@@ -27,13 +27,16 @@ pub struct NewIdentityOpts {
     /// I you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
     #[clap(long)]
     disable_encryption: bool,
+
+    /// If the identity already exists, remove and re-create it.
+    #[clap(long)]
+    force: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
     let name = opts.identity.as_str();
 
     let log = env.get_logger();
-    info!(log, r#"Creating identity: "{}"."#, name);
 
     let creation_parameters = match (opts.hsm_pkcs11_lib_path, opts.hsm_key_id) {
         (Some(pkcs11_lib_path), Some(key_id)) => Hardware {
@@ -47,7 +50,7 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
         },
     };
 
-    IdentityManager::new(env)?.create_new_identity(name, creation_parameters)?;
+    IdentityManager::new(env)?.create_new_identity(name, creation_parameters, opts.force)?;
 
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())

@@ -285,7 +285,9 @@ fn build_frontend(
             .stderr(std::process::Stdio::piped());
         slog::debug!(logger, "Running {:?}...", cmd);
 
-        let output = cmd.output()?;
+        let output = cmd
+            .output()
+            .with_context(|| format!("Error executing {:#?}", cmd))?;
         if !output.status.success() {
             return Err(DfxError::new(BuildError::CommandError(
                 format!("{:?}", cmd),

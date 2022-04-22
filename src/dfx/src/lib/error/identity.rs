@@ -19,10 +19,10 @@ pub enum IdentityError {
     #[error("Cannot generate key pair.")]
     CannotGenerateKeyPair(Unspecified),
 
-    #[error("Cannot create identity directory at '{0}': {1}")]
+    #[error("Cannot create identity directory at '{0}': {1:#}")]
     CannotCreateIdentityDirectory(PathBuf, Box<DfxError>),
 
-    #[error("Cannot rename identity directory from '{0}' to '{1}': {2}")]
+    #[error("Cannot rename identity directory from '{0}' to '{1}': {2:#}")]
     CannotRenameIdentityDirectory(PathBuf, PathBuf, Box<DfxError>),
 
     #[error("Cannot delete the default identity.")]
@@ -34,6 +34,6 @@ pub enum IdentityError {
     #[error("Cannot find home directory.")]
     CannotFindHomeDirectory(),
 
-    #[error("Cannot read identity file '{0}': {1}")]
+    #[error("Cannot read identity file '{0}': {1:#}")]
     CannotReadIdentityFile(String, Box<DfxError>),
 }

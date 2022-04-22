@@ -129,17 +129,17 @@ pub async fn exec(
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),
             config_interface,
-            canister_name,
+            Some(canister_name),
         )?;
         let memory_allocation = get_memory_allocation(
             opts.memory_allocation.clone(),
             config_interface,
-            canister_name,
+            Some(canister_name),
         )?;
         let freezing_threshold = get_freezing_threshold(
             opts.freezing_threshold.clone(),
             config_interface,
-            canister_name,
+            Some(canister_name),
         )?;
         create_canister(
             env,
@@ -176,17 +176,17 @@ pub async fn exec(
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
                     config_interface,
-                    canister_name,
+                    Some(canister_name),
                 )?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation.clone(),
                     config_interface,
-                    canister_name,
+                    Some(canister_name),
                 )?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold.clone(),
                     config_interface,
-                    canister_name,
+                    Some(canister_name),
                 )?;
                 create_canister(
                     env,

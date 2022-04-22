@@ -75,16 +75,7 @@ pub struct EnvironmentImpl {
 
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
-        let config = match Config::from_current_dir() {
-            Err(err) => {
-                if err.kind() == std::io::ErrorKind::NotFound {
-                    Ok(None)
-                } else {
-                    Err(err)
-                }
-            }
-            Ok(x) => Ok(Some(x)),
-        }?;
+        let config = Config::from_current_dir()?;
         let temp_dir = match &config {
             None => tempfile::tempdir()
                 .expect("Could not create a temporary directory.")
