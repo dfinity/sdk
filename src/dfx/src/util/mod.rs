@@ -166,10 +166,7 @@ pub fn blob_from_arguments(
                     } else if func.args.is_empty() {
                         use candid::Encode;
                         Encode!()
-                    } else if func.args.iter().all(|t| match t {
-                        Type::Opt(_) => true,
-                        _ => false,
-                    }) {
+                    } else if func.args.iter().all(|t| matches!(t, Type::Opt(_))) {
                         // If the user provided no arguments, and if all the expected arguments are
                         // optional, then use null values.
                         let nulls = vec![IDLValue::Null; func.args.len()];
