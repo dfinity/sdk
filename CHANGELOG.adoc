@@ -70,6 +70,10 @@ Example how to specify the subnet type:
 }
 ----
 
+=== feat: Introduce command for local cycles top-up
+
+`dfx ledger fabricate-cycles <canister (id)> <optional amount>` can be used during local development to create cycles out of thin air and add them to a canister. Instead of supplying a canister name or id it is also possible to use `--all` to add the cycles to every canister in the current project. When no amount is supplied, the command uses 10T cycles as default. Using this command with `--network ic` will result in an error.
+
 === feat: Private keys can be stored in encrypted format
 
 `dfx identity new` and `dfx identity import` now ask you for a password to encrypt the private key (PEM file) when it is stored on disk.
@@ -89,6 +93,10 @@ dfx identity import identity_name identity.pem
 === feat: Identity export
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
+
+=== feat: Identity new/import now has a --force flag
+
+If you want to script identity creation and don't care about overwriting existing identities, you now can use the `--force` flag for the commands `dfx identity new` and `dfx identity import`.
 
 === fix: Do not automatically create a wallet on IC
 
@@ -118,6 +126,11 @@ then dfx start/replica will launch the ic-btc-adapter process.
 
 This integration is not yet complete, pending upcoming functionality in ic-starter.
 
+=== fix: report context of errors
+
+dfx now displays the context of an error in several places where previously the only error
+message would be something like "No such file or directory."
+
 == updating dependencies
 
 Updated to version 0.14.0 of agent-rs
@@ -129,9 +142,12 @@ https://github.com/dfinity/cycles-wallet/commit/f18e9f5c2f96e9807b6f149c975e2563
 
 == Replica
 
-Updated replica to blessed commit 7424ea8c83b86cd7867c0686eaeb2c0285450b12.
+Updated replica to elected commit 0ef2aebde4ff735a1a93efa342dcf966b6df5061.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/54964[54964]
+* https://dashboard.internetcomputer.org/proposal/53702[53702]
+* https://dashboard.internetcomputer.org/proposal/53231[53231]
 * https://dashboard.internetcomputer.org/proposal/53134[53134]
 * https://dashboard.internetcomputer.org/proposal/52627[52627]
 * https://dashboard.internetcomputer.org/proposal/52144[52144]
