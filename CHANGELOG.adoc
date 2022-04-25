@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: dfx identity set-wallet now checks that the provided canister is actually a wallet
+
+This check was previously performed on local networks, but not on mainnet.
+
 === feat: dfx canister call --candid <path to candid file> ...
 
 Allows one to provide the .did file for calls to an arbitrary canister.
