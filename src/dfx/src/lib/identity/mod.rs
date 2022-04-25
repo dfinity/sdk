@@ -13,7 +13,7 @@ use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
-use ic_agent::{Signature, AgentError};
+use ic_agent::{AgentError, Signature};
 use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
@@ -427,60 +427,65 @@ impl Identity {
         name: &str,
         some_canister_id: Option<Principal>,
     ) -> DfxResult<Principal> {
-                fetch_root_key_if_needed(env).await?;
-                let mgr = ManagementCanister::create(
-                    env.get_agent()
-                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-                );
-                info!(
-                    env.get_logger(),
-                    "Creating a wallet canister on the {} network.", network.name
-                );
+        fetch_root_key_if_needed(env).await?;
+        let mgr = ManagementCanister::create(
+            env.get_agent()
+                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
+        );
+        info!(
+            env.get_logger(),
+            "Creating a wallet canister on the {} network.", network.name
+        );
 
-                let wasm = wallet_wasm(env.get_logger())?;
+        let wasm = wallet_wasm(env.get_logger())?;
 
-                let canister_id = match some_canister_id {
-                    Some(id) => id,
-                    None => {
-                        mgr.create_canister()
-                            .as_provisional_create_with_amount(None)
-                            .call_and_wait(waiter_with_timeout(expiry_duration()))
-                            .await?
-                            .0
-                    }
-                };
-
-                match mgr.install_code(&canister_id, wasm.as_slice())
-                    .with_mode(InstallMode::Install)
+        let canister_id = match some_canister_id {
+            Some(id) => id,
+            None => {
+                mgr.create_canister()
+                    .as_provisional_create_with_amount(None)
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
-                    .await
-                {
-                    Err(AgentError::ReplicaError { reject_code: 5, reject_message }) if reject_message.contains("not empty") => {
-                        bail!(
-                            r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#, network.name
-                        )
-                    },
-                    res => res?
-                }
+                    .await?
+                    .0
+            }
+        };
 
-                let wallet = Identity::build_wallet_canister(canister_id, env).await?;
+        match mgr
+            .install_code(&canister_id, wasm.as_slice())
+            .with_mode(InstallMode::Install)
+            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .await
+        {
+            Err(AgentError::ReplicaError {
+                reject_code: 5,
+                reject_message,
+            }) if reject_message.contains("not empty") => {
+                bail!(
+                    r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#,
+                    network.name
+                )
+            }
+            res => res?,
+        }
 
-                wallet
-                    .wallet_store_wallet_wasm(wasm)
-                    .call_and_wait(waiter_with_timeout(expiry_duration()))
-                    .await?;
+        let wallet = Identity::build_wallet_canister(canister_id, env).await?;
 
-                Identity::set_wallet_id(env, network, name, canister_id)?;
+        wallet
+            .wallet_store_wallet_wasm(wasm)
+            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .await?;
 
-                info!(
-                    env.get_logger(),
-                    r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
-                    network.name,
-                    name,
-                    canister_id,
-                );
+        Identity::set_wallet_id(env, network, name, canister_id)?;
 
-                Ok(canister_id)
+        info!(
+            env.get_logger(),
+            r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
+            network.name,
+            name,
+            canister_id,
+        );
+
+        Ok(canister_id)
     }
 
     /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
