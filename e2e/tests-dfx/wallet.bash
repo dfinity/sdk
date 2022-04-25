@@ -108,10 +108,10 @@ teardown() {
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello
-    ID=$(dfx canister --network actuallylocal id hello)
     dfx canister --network actuallylocal create hello_assets
-    ID_TWO=$(dfx canister --network actuallylocal id hello_assets)
+    ID=$(dfx canister --network actuallylocal id hello_assets)
+    dfx deploy --network actuallylocal hello
+    ID_TWO=$(dfx canister --network actuallylocal id hello)
 
     # set controller to user
     dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
@@ -125,8 +125,9 @@ teardown() {
     GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)
     assert_eq "$ID" "$GET_WALLET_RES"
 
-    assert_command dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
-    assert_match "The wallet canister \"${ID}\"\ already exists for user \"default\" on \"actuallylocal\" network."
+    # Command should fail on an already-deployed canister
+    assert_command_fail dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
+    assert_match "The wallet canister \"${ID_TWO}\"\ already exists for user \"default\" on \"actuallylocal\" network."
 }
 
 @test "wallet create wallet" {
