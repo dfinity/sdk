@@ -5,7 +5,7 @@ mod install_canister;
 pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
 use ic_utils::Argument;
-pub use install_canister::install_canister;
+pub use install_canister::{install_canister, install_canister_wasm};
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -252,6 +252,37 @@ pub async fn deposit_cycles(
         timeout,
         call_sender,
         cycles,
+    )
+    .await?;
+
+    Ok(())
+}
+
+/// Can only run this locally, not on the real IC.
+/// Conjures cycles from nothing and deposits them in the selected canister.
+pub async fn provisional_deposit_cycles(
+    env: &dyn Environment,
+    canister_id: Principal,
+    timeout: Duration,
+    call_sender: &CallSender,
+    cycles: u128,
+) -> DfxResult {
+    #[derive(CandidType)]
+    struct In {
+        canister_id: Principal,
+        amount: u128,
+    }
+    let _: () = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ProvisionalTopUpCanister.as_ref(),
+        In {
+            canister_id,
+            amount: cycles,
+        },
+        timeout,
+        call_sender,
+        0,
     )
     .await?;
 

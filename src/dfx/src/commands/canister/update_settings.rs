@@ -80,9 +80,7 @@ pub async fn exec(
         let canister_id = CanisterId::from_text(canister_name_or_id)
             .or_else(|_| canister_id_store.get(canister_name_or_id))?;
         let textual_cid = canister_id.to_text();
-        let canister_name = canister_id_store
-            .get_name(&textual_cid)
-            .ok_or_else(|| anyhow!("Cannot find canister name for id '{}'.", textual_cid))?;
+        let canister_name = canister_id_store.get_name(&textual_cid).map(|x| &**x);
 
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),
@@ -141,17 +139,17 @@ pub async fn exec(
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
                     config_interface,
-                    canister_name,
+                    Some(canister_name),
                 )?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation.clone(),
                     config_interface,
-                    canister_name,
+                    Some(canister_name),
                 )?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold.clone(),
                     config_interface,
-                    canister_name,
+                    Some(canister_name),
                 )?;
                 if let Some(added) = &opts.add_controller {
                     let status =

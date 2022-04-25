@@ -5,6 +5,18 @@
 
 == DFX
 
+=== feat: dfx identity set-wallet now checks that the provided canister is actually a wallet
+
+This check was previously performed on local networks, but not on mainnet.
+
+=== feat: dfx canister call --candid <path to candid file> ...
+
+Allows one to provide the .did file for calls to an arbitrary canister.
+
+=== feat: Install arbitrary wasm into canisters
+
+You no longer need a DFX project setup with a build task to install an already-built wasm module into a canister ID. The new `+--wasm <path>+` flag to `+dfx canister install+` will bypass project configuration and install the wasm module at `+<path>+`. A DFX project setup is still recommended for general use; this should mostly be used for installing pre-built canisters. Note that DFX will also not perform its usual checks for API/ABI/stable-memory compatibility in this mode.
+
 === feat: Support for 128-bit cycle counts
 
 Cycle counts can now exceed the previously set maximum of 2^64. The new limit is 2^128. A new wallet version has been bundled with this release that supports the new cycle count. You will not be able to use this feature with your existing wallets without running `+dfx wallet upgrade+`, but old wallets will still work just fine with old cycle counts.
@@ -17,6 +29,11 @@ rather than 'Address already in use'.
 As a consequence, after `dfx start` failed to notice that dfx was already running,
 it would replace .dfx/pid with an empty file.  Later invocations of `dfx stop`
 would display no output and return a successful exit code, but leave dfx running.
+
+=== fix: dfx canister update-settings <canister id> works even if the canister id is not known to the project.
+
+This makes the behavior match the usage text of the command:
+`<CANISTER> Specifies the canister name or id to update. You must specify either canister name/id or the --all option`
 
 === feat: dfx deploy --upgrade-unchanged or dfx canister install --mode upgrade --upgrade-unchanged
 
@@ -53,6 +70,10 @@ Example how to specify the subnet type:
 }
 ----
 
+=== feat: Introduce command for local cycles top-up
+
+`dfx ledger fabricate-cycles <canister (id)> <optional amount>` can be used during local development to create cycles out of thin air and add them to a canister. Instead of supplying a canister name or id it is also possible to use `--all` to add the cycles to every canister in the current project. When no amount is supplied, the command uses 10T cycles as default. Using this command with `--network ic` will result in an error.
+
 === feat: Private keys can be stored in encrypted format
 
 `dfx identity new` and `dfx identity import` now ask you for a password to encrypt the private key (PEM file) when it is stored on disk.
@@ -72,6 +93,10 @@ dfx identity import identity_name identity.pem
 === feat: Identity export
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
+
+=== feat: Identity new/import now has a --force flag
+
+If you want to script identity creation and don't care about overwriting existing identities, you now can use the `--force` flag for the commands `dfx identity new` and `dfx identity import`.
 
 === fix: Do not automatically create a wallet on IC
 
@@ -101,6 +126,15 @@ then dfx start/replica will launch the ic-btc-adapter process.
 
 This integration is not yet complete, pending upcoming functionality in ic-starter.
 
+=== fix: report context of errors
+
+dfx now displays the context of an error in several places where previously the only error
+message would be something like "No such file or directory."
+
+=== chore: updates starter project for Node 18
+
+Webpack dev server now works for Node 18 (and should work for Node 17). A few packages are also upgraded
+
 == updating dependencies
 
 Updated to version 0.14.0 of agent-rs
@@ -112,9 +146,12 @@ https://github.com/dfinity/cycles-wallet/commit/f18e9f5c2f96e9807b6f149c975e2563
 
 == Replica
 
-Updated replica to blessed commit 7424ea8c83b86cd7867c0686eaeb2c0285450b12.
+Updated replica to elected commit 0ef2aebde4ff735a1a93efa342dcf966b6df5061.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/54964[54964]
+* https://dashboard.internetcomputer.org/proposal/53702[53702]
+* https://dashboard.internetcomputer.org/proposal/53231[53231]
 * https://dashboard.internetcomputer.org/proposal/53134[53134]
 * https://dashboard.internetcomputer.org/proposal/52627[52627]
 * https://dashboard.internetcomputer.org/proposal/52144[52144]
@@ -122,9 +159,9 @@ This incorporates the following executed proposals:
 
 Added the ic-btc-adapter binary to the cache.
 
-=== chore: updates starter project for Node 18
+== Motoko
 
-Webpack dev server now works for Node 18 (and should work for Node 17). A few packages are also upgraded
+Updated Motoko from 0.6.25 to 0.6.26.
 
 = 0.9.3
 

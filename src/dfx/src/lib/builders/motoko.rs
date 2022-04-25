@@ -15,6 +15,7 @@ use ic_types::principal::Principal as CanisterId;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::sync::Arc;
@@ -53,11 +54,11 @@ impl CanisterBuilder for MotokoBuilder {
                 return Ok(());
             }
 
-            let output = cache
-                .get_binary_command("moc")?
-                .arg("--print-deps")
-                .arg(&file)
-                .output()?;
+            let mut command = cache.get_binary_command("moc")?;
+            let command = command.arg("--print-deps").arg(&file);
+            let output = command
+                .output()
+                .with_context(|| format!("Error executing {:#?}", command))?;
 
             let output = String::from_utf8_lossy(&output.stdout);
             for line in output.lines() {
