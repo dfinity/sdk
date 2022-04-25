@@ -146,6 +146,10 @@ This integration is not yet complete, pending upcoming functionality in ic-start
 dfx now displays the context of an error in several places where previously the only error
 message would be something like "No such file or directory."
 
+=== chore: updates starter project for Node 18
+
+Webpack dev server now works for Node 18 (and should work for Node 17). A few packages are also upgraded
+
 == updating dependencies
 
 Updated to version 0.14.0 of agent-rs
