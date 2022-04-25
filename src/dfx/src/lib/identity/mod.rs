@@ -13,7 +13,7 @@ use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
-use ic_agent::Signature;
+use ic_agent::{Signature, AgentError};
 use ic_identity_hsm::HardwareIdentity;
 use ic_types::Principal;
 use ic_utils::call::AsyncCall;
@@ -427,8 +427,6 @@ impl Identity {
         name: &str,
         some_canister_id: Option<Principal>,
     ) -> DfxResult<Principal> {
-        match Identity::wallet_canister_id(env, network, name) {
-            Err(_) => {
                 fetch_root_key_if_needed(env).await?;
                 let mgr = ManagementCanister::create(
                     env.get_agent()
@@ -452,10 +450,18 @@ impl Identity {
                     }
                 };
 
-                mgr.install_code(&canister_id, wasm.as_slice())
+                match mgr.install_code(&canister_id, wasm.as_slice())
                     .with_mode(InstallMode::Install)
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
-                    .await?;
+                    .await
+                {
+                    Err(AgentError::ReplicaError { reject_code: 5, reject_message }) if reject_message.contains("not empty") => {
+                        bail!(
+                            r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#, network.name
+                        )
+                    },
+                    res => res?
+                }
 
                 let wallet = Identity::build_wallet_canister(canister_id, env).await?;
 
@@ -475,18 +481,6 @@ impl Identity {
                 );
 
                 Ok(canister_id)
-            }
-            Ok(x) => {
-                info!(
-                    env.get_logger(),
-                    r#"The wallet canister "{}" already exists for user "{}" on "{}" network."#,
-                    x.to_text(),
-                    name,
-                    network.name
-                );
-                Ok(x)
-            }
-        }
     }
 
     /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
