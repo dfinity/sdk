@@ -10,14 +10,19 @@
 
 Before this, `deploy`ing a canister with an `opt Foo` init argument without specifying an `--argument` would lead to an error:
 
-```
+[source, bash]
+----
 $ dfx deploy
 Error: Invalid data: Expected arguments but found none.
-```
+----
 
 With this change, this isn't an error anymore, but instead `null` is passed as a value. In general, if the user does _not_ provide an `--argument`, and if the init method expects only `opt` arguments, then `dfx` will supply `null` for each argument.
 
 Note in particular that this does not try to match `opt` arguments for heterogeneous (`opt`/non-`opt`) signatures. Note moreover that this only impacts a case that would previously error out, so no existing (working) workflows should be affected.
+
+=== feat: dfx identity set-wallet now checks that the provided canister is actually a wallet
+
+This check was previously performed on local networks, but not on mainnet.
 
 === feat: dfx canister call --candid <path to candid file> ...
 

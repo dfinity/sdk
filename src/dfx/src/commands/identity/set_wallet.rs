@@ -9,7 +9,7 @@ use anyhow::anyhow;
 use clap::Parser;
 use ic_types::Principal;
 use ic_utils::interfaces::wallet::BalanceResult;
-use slog::{debug, error, info};
+use slog::{error, info};
 use tokio::runtime::Runtime;
 
 /// Sets the wallet canister ID to use for your identity on a network.
@@ -56,11 +56,6 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
             log,
             "Skipping verification of availability of the canister on the network due to --force..."
         );
-    } else if network.is_ic {
-        debug!(
-            log,
-            "Skipping verification of availability of the canister on the IC network..."
-        );
     } else {
         let agent = env
             .get_agent()
@@ -82,7 +77,8 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     Ok(BalanceResult { amount: 0 }) => {
                         error!(
                             log,
-                            "Impossible to read the canister. Make sure this is a valid wallet and the network is running. Use --force to skip this verification."
+                            "Impossible to read the canister. Make sure this is a valid wallet{}. Use --force to skip this verification.",
+                            if !network.is_ic { " and the network is running" } else { "" },
                         );
                         Err(anyhow!("Could not find the wallet or the wallet was invalid."))
                     },
