@@ -48,7 +48,7 @@ pub fn trillion_cycle_amount_validator(cycles: &str) -> Result<(), String> {
     if format!("{}000000000000", cycles).parse::<u128>().is_ok() {
         return Ok(());
     }
-    Err("Must be a non negative amount.".to_string())
+    Err("Must be a non negative amount. Currently only accepts whole numbers. Use --cycles otherwise.".to_string())
 }
 
 pub fn compute_allocation_validator(compute_allocation: &str) -> Result<(), String> {
