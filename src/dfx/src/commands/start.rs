@@ -3,7 +3,8 @@ use crate::actors::{
     start_btc_adapter_actor, start_emulator_actor, start_icx_proxy_actor, start_replica_actor,
     start_shutdown_controller,
 };
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, ConfigInterface};
+use crate::lib::bitcoin;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
@@ -17,13 +18,11 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
-use serde_json::Value;
 use std::fs;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -46,12 +45,12 @@ pub struct StartOpts {
     #[clap(long)]
     emulator: bool,
 
-    /// The path of the btc adapter configuration file.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"))]
-    btc_adapter_config: Option<PathBuf>,
+    /// Address of bitcoind node.  Implies --enable-bitcoin.
+    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    bitcoin_node: Vec<SocketAddr>,
 
     /// enable the bitcoin adapter
-    #[clap(long)]
+    #[clap(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 }
 
@@ -136,7 +135,7 @@ pub fn exec(
         background,
         emulator,
         clean,
-        btc_adapter_config,
+        bitcoin_node,
         enable_bitcoin,
     }: StartOpts,
 ) -> DfxResult {
@@ -146,6 +145,7 @@ pub fn exec(
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
     let btc_adapter_pid_file_path = temp_dir.join("ic-btc-adapter-pid");
+    let btc_adapter_config_path = temp_dir.join("ic-btc-adapter-config.json");
     let icx_proxy_pid_file_path = temp_dir.join("icx-proxy-pid");
     let webserver_port_path = temp_dir.join("webserver-port");
     let state_root = env.get_state_dir();
@@ -160,6 +160,7 @@ pub fn exec(
 
     std::fs::write(&pid_file_path, "")?; // make sure we can write to this file
     std::fs::write(&btc_adapter_pid_file_path, "")?;
+    std::fs::write(&btc_adapter_config_path, "")?;
     std::fs::write(&icx_proxy_pid_file_path, "")?;
     std::fs::write(&webserver_port_path, "")?;
 
@@ -173,7 +174,15 @@ pub fn exec(
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
-    let btc_adapter_config = get_btc_adapter_config(&config, enable_bitcoin, btc_adapter_config)?;
+    let btc_adapter_config = write_btc_adapter_config_if_enabled(
+        config.get_config(),
+        &btc_adapter_config_path,
+        enable_bitcoin,
+        bitcoin_node,
+    )?;
+    let btc_adapter_socket_path = btc_adapter_config
+        .as_ref()
+        .and_then(|cfg| cfg.get_socket_path());
 
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
@@ -185,10 +194,10 @@ pub fn exec(
         } else {
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
                 if let Some(btc_adapter_config) = btc_adapter_config {
-                    let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)?;
+                    let socket_path = btc_adapter_config.get_socket_path();
                     let ready_subscribe = start_btc_adapter_actor(
                         env,
-                        btc_adapter_config,
+                        btc_adapter_config_path,
                         socket_path.clone(),
                         shutdown_controller.clone(),
                         btc_adapter_pid_file_path,
@@ -250,6 +259,11 @@ pub fn exec(
         Ok::<_, Error>(proxy)
     })?;
     system.run()?;
+
+    if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
+        let _ = std::fs::remove_file(&btc_adapter_socket_path);
+    }
+
     Ok(())
 }
 
@@ -339,46 +353,45 @@ fn write_pid(pid_file_path: &Path) {
     }
 }
 
-pub fn get_btc_adapter_socket_path(btc_config_path: &Path) -> DfxResult<Option<PathBuf>> {
-    let content = std::fs::read(&btc_config_path)
-        .with_context(|| format!("Unable to read {}", btc_config_path.to_string_lossy()))?;
-    let json: Value = serde_json::from_slice(&content).with_context(|| {
-        format!(
-            "Unable to decode {} as json",
-            btc_config_path.to_string_lossy()
-        )
-    })?;
-    Ok(json
-        .pointer("/incoming_source/Path")
-        .and_then(|v| v.as_str())
-        .map(PathBuf::from))
-}
-
-pub fn get_btc_adapter_config(
-    config: &Arc<Config>,
+pub fn write_btc_adapter_config_if_enabled(
+    config: &ConfigInterface,
+    config_path: &Path,
     enable_bitcoin: bool,
-    btc_adapter_config: Option<PathBuf>,
-) -> DfxResult<Option<PathBuf>> {
-    let btc_adapter_config: Option<PathBuf> = {
-        let enable = enable_bitcoin
-            || btc_adapter_config.is_some()
-            || config.get_config().get_defaults().get_bitcoin().enabled;
-        let config = btc_adapter_config.or_else(|| {
-            config
-                .get_config()
-                .get_defaults()
-                .bitcoin
-                .as_ref()
-                .and_then(|x| x.btc_adapter_config.clone())
-        });
+    nodes: Vec<SocketAddr>,
+) -> DfxResult<Option<bitcoin::adapter::Config>> {
+    let enable = enable_bitcoin || !nodes.is_empty() || config.get_defaults().get_bitcoin().enabled;
 
-        match (enable, config) {
-            (true, Some(path)) => Some(path),
-            (true, None) => {
-                bail!("Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json")
-            }
-            (false, _) => None,
-        }
+    if !enable {
+        return Ok(None);
     };
-    Ok(btc_adapter_config)
+
+    let nodes = match (
+        nodes,
+        &config
+            .get_defaults()
+            .get_bitcoin()
+            .adapter_config
+            .as_ref()
+            .map(|x| x.nodes.clone()),
+    ) {
+        (cli_nodes, _) if !cli_nodes.is_empty() => cli_nodes,
+        (_, Some(default_nodes)) if !default_nodes.is_empty() => default_nodes.clone(),
+        (_, _) => bitcoin::adapter::config::default_nodes(),
+    };
+
+    let pid = sysinfo::get_current_pid()
+        .map_err(|s| anyhow!("Unable to obtain pid: {}", s))
+        .context("Unable to construct btc adapter socket path")?;
+
+    // Unix socket domain names can only be so long.
+    // An attempt to use a path under .dfx/ resulted in this error:
+    //    path must be shorter than libc::sockaddr_un.sun_path
+    let socket_path = PathBuf::from(format!("/tmp/ic-btc-adapter-socket.{}", pid));
+
+    let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path);
+
+    std::fs::write(config_path, &serde_json::to_string_pretty(&adapter_config)?)
+        .with_context(|| format!("Unable to write {}", config_path.to_string_lossy()))?;
+
+    Ok(Some(adapter_config))
 }
