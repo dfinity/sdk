@@ -54,7 +54,7 @@ pub async fn as_cycles_with_current_exchange_rate(icpts: &ICPTs) -> DfxResult<u1
 
         let cycles_per_icp: u128 = u128::try_from(decoded_response.data.xdr_permyriad_per_icp).context("Encountered an error while translating response into cycles")? * (CYCLES_PER_XDR / 10_000);
         DfxResult::<u128>::Ok(cycles_per_icp)
-    }.context("Encountered a problem while fetching the exchange rate bewteen ICP and cycles. If this issue continues to happen, please sepcify an amount in cycles directly.")?;
+    }.context("Encountered a problem while fetching the exchange rate between ICP and cycles. If this issue continues to happen, please specify an amount in cycles directly.")?;
 
     // This will make rounding errors, but that's fine. We just don't want to be wildly inaccurate.
     let cycles_per_e8s = cycles_per_icp / u128::from(ICP_SUBDIVIDABLE_BY);
