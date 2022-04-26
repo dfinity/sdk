@@ -11,6 +11,7 @@ use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
+pub mod currency_conversion;
 
 // The user can pass in port "0" to dfx start or dfx bootstrap i.e. "127.0.0.1:0" or "[::1]:0",
 // thus, we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
@@ -166,6 +167,12 @@ pub fn blob_from_arguments(
                     } else if func.args.is_empty() {
                         use candid::Encode;
                         Encode!()
+                    } else if func.args.iter().all(|t| matches!(t, Type::Opt(_))) {
+                        // If the user provided no arguments, and if all the expected arguments are
+                        // optional, then use null values.
+                        let nulls = vec![IDLValue::Null; func.args.len()];
+                        let args = IDLArgs::new(&nulls);
+                        args.to_bytes_with_types(env, &func.args)
                     } else if let Some(random) = random {
                         let random = if random.is_empty() {
                             eprintln!("Random schema is empty, using any random value instead.");

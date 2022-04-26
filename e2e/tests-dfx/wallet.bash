@@ -162,3 +162,11 @@ teardown() {
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
     dfx wallet send "$ALICE_WALLET" 1
 }
+
+@test "dfx canister deposit-cycles succeeds on a canister the caller does not own" {
+    dfx_new hello
+    dfx_start
+    dfx identity new alice --disable-encryption
+    dfx --identity alice deploy --no-wallet hello
+    assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello
+}
