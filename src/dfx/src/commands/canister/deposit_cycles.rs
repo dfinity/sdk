@@ -46,12 +46,15 @@ async fn deposit_cycles(
 
     canister::deposit_cycles(env, canister_id, timeout, call_sender, cycles).await?;
 
-    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
-
-    info!(
-        log,
-        "Deposited {} cycles, updated balance: {} cycles", cycles, status.cycles
-    );
+    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await;
+    if let Ok(status) = status {
+        info!(
+            log,
+            "Deposited {} cycles, updated balance: {} cycles", cycles, status.cycles
+        );
+    } else {
+        info!(log, "Deposited {cycles} cycles.");
+    }
 
     Ok(())
 }
