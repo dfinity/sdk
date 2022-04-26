@@ -22,6 +22,12 @@ pub struct BtcAdapterConfig {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CanisterHttpAdapterConfig {
+    pub enabled: bool,
+    pub socket_path: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ArtifactPoolConfig {
     pub consensus_pool_path: PathBuf,
 }
@@ -44,6 +50,7 @@ pub struct ReplicaConfig {
     pub artifact_pool: ArtifactPoolConfig,
     pub subnet_type: ReplicaSubnetType,
     pub btc_adapter: BtcAdapterConfig,
+    pub canister_http_adapter: CanisterHttpAdapterConfig,
 }
 
 impl ReplicaConfig {
@@ -64,6 +71,10 @@ impl ReplicaConfig {
             },
             subnet_type,
             btc_adapter: BtcAdapterConfig { socket_path: None },
+            canister_http_adapter: CanisterHttpAdapterConfig {
+                enabled: false,
+                socket_path: None,
+            },
         }
     }
 
@@ -83,6 +94,18 @@ impl ReplicaConfig {
 
     pub fn with_btc_adapter_socket(&mut self, socket_path: PathBuf) -> Self {
         self.btc_adapter.socket_path = Some(socket_path);
+        let config = &*self;
+        config.clone()
+    }
+
+    pub fn with_canister_http_adapter_enabled(&mut self) -> Self {
+        self.canister_http_adapter.enabled = true;
+        let config = &*self;
+        config.clone()
+    }
+
+    pub fn with_canister_http_adapter_socket(&mut self, socket_path: PathBuf) -> Self {
+        self.canister_http_adapter.socket_path = Some(socket_path);
         let config = &*self;
         config.clone()
     }

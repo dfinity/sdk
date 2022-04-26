@@ -1,5 +1,6 @@
 use crate::actors::{
-    start_btc_adapter_actor, start_emulator_actor, start_replica_actor, start_shutdown_controller,
+    start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
+    start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfinity::ConfigDefaultsReplica;
 use crate::error_invalid_argument;
@@ -7,7 +8,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
-use crate::commands::start::{configure_btc_adapter_if_enabled, empty_writable_path};
+use crate::commands::start::{
+    configure_btc_adapter_if_enabled, configure_canister_http_adapter_if_enabled,
+    empty_writable_path,
+};
 use clap::Parser;
 use std::default::Default;
 use std::net::SocketAddr;
@@ -31,6 +35,10 @@ pub struct ReplicaOpts {
     /// enable the bitcoin adapter
     #[clap(long)]
     enable_bitcoin: bool,
+
+    /// enable canister http adapter
+    #[clap(long)]
+    enable_canister_http: bool,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -91,6 +99,10 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let temp_dir = env.get_temp_dir();
     let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
     let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
+    let canister_http_adapter_pid_file_path =
+        empty_writable_path(temp_dir.join("ic-canister-http-adapter-pid"))?;
+    let canister_http_adapter_config_path =
+        empty_writable_path(temp_dir.join("ic-canister-http-config.json"))?;
 
     let config = env.get_config_or_anyhow()?;
     let btc_adapter_config = configure_btc_adapter_if_enabled(
@@ -100,6 +112,15 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
         opts.bitcoin_node.clone(),
     )?;
     let btc_adapter_socket_path = btc_adapter_config
+        .as_ref()
+        .and_then(|cfg| cfg.get_socket_path());
+
+    let canister_http_adapter_config = configure_canister_http_adapter_if_enabled(
+        config.get_config(),
+        &canister_http_adapter_config_path,
+        opts.enable_canister_http,
+    )?;
+    let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
 
@@ -123,14 +144,36 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
                 } else {
                     (None, None)
                 };
+            let (canister_http_adapter_ready_subscribe, canister_http_socket_path) =
+                if let Some(ref canister_http_adapter_config) = canister_http_adapter_config {
+                    let socket_path = canister_http_adapter_config.get_socket_path();
+                    let ready_subscribe = start_canister_http_adapter_actor(
+                        env,
+                        canister_http_adapter_config_path,
+                        socket_path.clone(),
+                        shutdown_controller.clone(),
+                        canister_http_adapter_pid_file_path,
+                    )?
+                    .recipient();
+                    (Some(ready_subscribe), socket_path)
+                } else {
+                    (None, None)
+                };
 
-            let replica_config = get_config(env, opts, btc_adapter_socket_path)?;
+            let mut replica_config = get_config(env, opts, btc_adapter_socket_path)?;
+            if canister_http_adapter_config.is_some() {
+                replica_config = replica_config.with_canister_http_adapter_enabled();
+                if let Some(socket_path) = canister_http_socket_path {
+                    replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
+                }
+            }
 
             start_replica_actor(
                 env,
                 replica_config,
                 shutdown_controller,
                 btc_adapter_ready_subscribe,
+                canister_http_adapter_ready_subscribe,
             )?;
         }
         DfxResult::Ok(())
@@ -139,6 +182,9 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
 
     if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
         let _ = std::fs::remove_file(&btc_adapter_socket_path);
+    }
+    if let Some(canister_http_socket_path) = canister_http_socket_path {
+        let _ = std::fs::remove_file(&canister_http_socket_path);
     }
 
     Ok(())
