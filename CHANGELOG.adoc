@@ -158,7 +158,7 @@ Updated to version 0.14.0 of agent-rs
 
 == Cycles wallet
 
-Module hash: 6c71179a123784bd39cd6348306a225e19c443b0df25f839ea2b2080de79ec32
+Module hash: bb001d1ebff044ba43c060956859f614963d05c77bd778468fce4de095fe8f92
 https://github.com/dfinity/cycles-wallet/commit/f18e9f5c2f96e9807b6f149c975e25638cc3356b
 
 == Replica
