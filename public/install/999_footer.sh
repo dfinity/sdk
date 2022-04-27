@@ -159,9 +159,10 @@ main() {
     if [ -n "${_dfx_sha256_filename}" ]; then
         log "Checking integrity of tarball..."
         ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
-        ensure pushd "${_dir}" >/dev/null
-        ensure $SHASUM -c "${_dfx_sha256_filename}"
-        ensure popd >/dev/null
+        (
+            ensure cd "${_dir}" >/dev/null
+            ensure $SHASUM -c "${_dfx_sha256_filename}"
+        )
     fi
     tar -xf "$_dfx_archive" -O >"$_dfx_file"
     ensure chmod u+x "$_dfx_file"
