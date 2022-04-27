@@ -103,7 +103,13 @@ main() {
     need_cmd mktemp
     need_cmd chmod
     need_cmd mkdir
-    need_cmd shasum
+    if check_cmd sha256sum; then
+        SHASUM=sha256sum
+    elif check_cmd shasum; then
+        SHASUM=shasum
+    else
+        err "need 'shasum' or 'sha256sum' (neither command found)"
+    fi
     need_cmd rm
     need_cmd tar
     need_cmd gzip
@@ -154,7 +160,7 @@ main() {
         log "Checking integrity of tarball..."
         ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
         ensure pushd "${_dir}" >/dev/null
-        ensure shasum -c "${_dfx_sha256_filename}"
+        ensure $SHASUM -c "${_dfx_sha256_filename}"
         ensure popd >/dev/null
     fi
     tar -xf "$_dfx_archive" -O >"$_dfx_file"
