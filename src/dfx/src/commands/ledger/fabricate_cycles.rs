@@ -4,7 +4,10 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
-use crate::util::clap::validators::{cycle_amount_validator, trillion_cycle_amount_validator};
+use crate::util::clap::validators::{
+    cycle_amount_validator, e8s_validator, icpts_amount_validator, trillion_cycle_amount_validator,
+};
+use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
 use crate::util::expiry_duration;
 
 use anyhow::Context;
@@ -13,16 +16,60 @@ use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
+use super::get_icpts_from_args;
+
 const DEFAULT_CYCLES_TO_FABRICATE: u128 = 10_000_000_000_000_u128;
 
 /// Local development only: Fabricate cycles out of thin air and deposit them into the specified canister(s).
+/// Can specify a number of ICP/e8s (which will be converted to cycles using the current exchange rate) or a number of cycles.
+/// If no amount is specified, 10T cycles are added.
 #[derive(Parser)]
 pub struct FabricateCyclesOpts {
-    /// Specifies the amount of cycles to fabricate. Defaults to 10T cycles.
-    #[clap(long, validator(cycle_amount_validator), conflicts_with("t"))]
+    /// Specifies the amount of cycles to fabricate.
+    #[clap(
+        long,
+        validator(cycle_amount_validator),
+        conflicts_with("t"),
+        conflicts_with("amount"),
+        conflicts_with("icp"),
+        conflicts_with("e8s")
+    )]
+    cycles: Option<String>,
+
+    /// ICP to mint into cycles and deposit into destination canister
+    /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
+    /// i.e. 100.012
+    #[clap(
+        long,
+        validator(icpts_amount_validator),
+        conflicts_with("cycles"),
+        conflicts_with("icp"),
+        conflicts_with("e8s"),
+        conflicts_with("t")
+    )]
     amount: Option<String>,
 
-    /// Specifies the amount of trillion cycles to fabricate. Defaults to 10T cycles.
+    /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
+    #[clap(
+        long,
+        validator(e8s_validator),
+        conflicts_with("amount"),
+        conflicts_with("cycles"),
+        conflicts_with("t")
+    )]
+    icp: Option<String>,
+
+    /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
+    #[clap(
+        long,
+        validator(e8s_validator),
+        conflicts_with("amount"),
+        conflicts_with("cycles"),
+        conflicts_with("t")
+    )]
+    e8s: Option<String>,
+
+    /// Specifies the amount of trillion cycles to fabricate.
     #[clap(
         long,
         validator(trillion_cycle_amount_validator),
@@ -32,7 +79,7 @@ pub struct FabricateCyclesOpts {
 
     /// Specifies the name or id of the canister to receive the cycles deposit.
     /// You must specify either a canister name/id or the --all option.
-    #[clap(long)]
+    #[clap(long, required_unless_present("all"))]
     canister: Option<String>,
 
     /// Deposit cycles to all of the canisters configured in the dfx.json file.
@@ -76,8 +123,7 @@ async fn deposit_minted_cycles(
 }
 
 pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult {
-    // amount has been validated by cycle_amount_validator
-    let cycles = cycles_to_fabricate(&opts);
+    let cycles = cycles_to_fabricate(env, &opts).await?;
 
     fetch_root_key_or_anyhow(env).await?;
 
@@ -100,16 +146,30 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
     }
 }
 
-fn cycles_to_fabricate(opts: &FabricateCyclesOpts) -> u128 {
-    if let Some(cycles_str) = &opts.amount {
-        //cycles_str is validated by cycle_amount_validator
-        cycles_str.parse::<u128>().unwrap()
+async fn cycles_to_fabricate(env: &dyn Environment, opts: &FabricateCyclesOpts) -> DfxResult<u128> {
+    if let Some(cycles_str) = &opts.cycles {
+        //cycles_str is validated by cycle_amount_validator. Therefore unwrap is safe
+        Ok(cycles_str.parse::<u128>().unwrap())
     } else if let Some(t_cycles_str) = &opts.t {
-        //cycles_str is validated by trillion_cycle_amount_validator
-        format!("{}000000000000", t_cycles_str)
+        //t_cycles_str is validated by trillion_cycle_amount_validator. Therefore unwrap is safe
+        Ok(format!("{}000000000000", t_cycles_str)
             .parse::<u128>()
-            .unwrap()
+            .unwrap())
+    } else if opts.amount.is_some() || opts.icp.is_some() || opts.e8s.is_some() {
+        let icpts = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)
+            .context("Encountered an error while parsing --amount, --icp, or --e8s")?;
+        let cycles = as_cycles_with_current_exchange_rate(&icpts)
+            .await
+            .context("Encountered an error while converting at the current exchange rate. If this issue persist, please specify an amount of cycles manually using the --cycles or --t flag.")?;
+        let log = env.get_logger();
+        info!(
+            log,
+            "At the current exchange rate, {} e8s produces approximately {} cycles.",
+            icpts.get_e8s().to_string(),
+            cycles.to_string()
+        );
+        Ok(cycles)
     } else {
-        DEFAULT_CYCLES_TO_FABRICATE
+        Ok(DEFAULT_CYCLES_TO_FABRICATE)
     }
 }

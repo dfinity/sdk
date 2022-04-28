@@ -16,7 +16,7 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
         agent
             .fetch_root_key()
             .await
-            .context("Failed during call to replica.")?;
+            .context("Encountered an error while trying to fetch the root key.")?;
     }
     Ok(())
 }
@@ -36,7 +36,7 @@ pub async fn fetch_root_key_or_anyhow(env: &dyn Environment) -> DfxResult {
         agent
             .fetch_root_key()
             .await
-            .context("Failed during call to replica.")?;
+            .context("Encountered an error while trying to fetch the local replica's root key.")?;
         Ok(())
     } else {
         Err(anyhow!(
