@@ -32,7 +32,8 @@ impl CanisterInfoFactory for CustomCanisterInfo {
         let candid = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
             PathBuf::from(remote_candid)
         } else {
-            info.get_extra::<PathBuf>("candid").context("Failed while trying to get field 'candid'.")?
+            info.get_extra::<PathBuf>("candid")
+                .context("Failed while trying to get field 'candid'.")?
         };
         let output_idl_path = workspace_root.join(candid);
 

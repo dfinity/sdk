@@ -123,7 +123,9 @@ async fn deposit_minted_cycles(
 }
 
 pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult {
-    let cycles = cycles_to_fabricate(env, &opts).await?;
+    let cycles = cycles_to_fabricate(env, &opts)
+        .await
+        .context("Failed to determine cycle amount to fabricate.")?;
 
     fetch_root_key_or_anyhow(env).await?;
 

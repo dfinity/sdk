@@ -20,11 +20,11 @@ const CMC_MAINNET_PRINCIPAL: &str = "rkp4c-7iaaa-aaaaa-aaaca-cai";
 pub async fn as_cycles_with_current_exchange_rate(icpts: &ICPTs) -> DfxResult<u128> {
     let cycles_per_icp: u128 = {
         let agent = Agent::builder()
-            .with_transport(ReqwestHttpReplicaV2Transport::create(DEFAULT_IC_GATEWAY)?)
+            .with_transport(ReqwestHttpReplicaV2Transport::create(DEFAULT_IC_GATEWAY).context("Failed to create transport object to default ic gateway.")?)
             .build()
             .context("Cannot create mainnet agent.")?;
         let response = agent
-            .query(&Principal::from_str(CMC_MAINNET_PRINCIPAL)?, "get_icp_xdr_conversion_rate")
+            .query(&Principal::from_str(CMC_MAINNET_PRINCIPAL).context("Failed to parse mainnet CMC principal.")?, "get_icp_xdr_conversion_rate")
             .with_arg(Encode!(&()).unwrap())
             .call()
             .await
