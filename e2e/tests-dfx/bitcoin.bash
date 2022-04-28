@@ -152,10 +152,10 @@ set_default_bitcoin_enabled() {
     install_asset bitcoin
 
     assert_command_fail dfx start --enable-bitcoin
-    assert_eq "Error: Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json"
+    assert_eq "Error: Failed to get BTC adapter config. Error: Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json"
 
     assert_command_fail dfx replica --enable-bitcoin
-    assert_eq "Error: Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json"
+    assert_eq "Error: Failed to get BTC adapter config. Error: Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json"
 }
 
 @test "can enable bitcoin through default configuration (dfx start)" {
