@@ -1,16 +1,12 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::ledger_types::{AccountBalanceArgs, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::AccountIdentifier;
-use crate::lib::nns_types::icpts::ICPTs;
+use crate::lib::operations::ledger;
 
 use anyhow::anyhow;
-use candid::{Decode, Encode};
 use clap::Parser;
 use ic_types::Principal;
 use std::str::FromStr;
-
-const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
 
 /// Prints the account balance of the user
 #[derive(Parser)]
@@ -38,21 +34,9 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    let canister_id = opts
-        .ledger_canister_id
-        .unwrap_or(MAINNET_LEDGER_CANISTER_ID);
+    let balance = ledger::balance(agent, &acc_id, opts.ledger_canister_id).await?;
 
-    let result = agent
-        .query(&canister_id, ACCOUNT_BALANCE_METHOD)
-        .with_arg(Encode!(&AccountBalanceArgs {
-            account: acc_id.to_string()
-        })?)
-        .call()
-        .await?;
-
-    let balance = Decode!(&result, ICPTs)?;
-
-    println!("{}", balance);
+    println!("{balance}");
 
     Ok(())
 }

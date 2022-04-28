@@ -1,10 +1,11 @@
-use crate::commands::ledger::{get_icpts_from_args, transfer_and_notify};
+use crate::commands::ledger::get_icpts_from_args;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{CyclesResponse, Memo};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 
+use crate::lib::operations::ledger::transfer_and_notify;
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
 use anyhow::anyhow;
