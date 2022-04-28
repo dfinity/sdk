@@ -3,6 +3,12 @@
 
 = UNRELEASED
 
+== DFX
+
+=== chore: add context to errors
+
+Most errors that happen within dfx are now reported in much more detail. No more plain `File not found` without explanation what even was attempted.
+
 = 0.10.0
 
 == DFX
