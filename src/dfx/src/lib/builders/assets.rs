@@ -41,7 +41,7 @@ impl AssetsBuilderExtra {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>()?;
+            .collect::<DfxResult<Vec<CanisterId>>>().context("Failed to collect canister ids.")?;
 
         Ok(AssetsBuilderExtra { dependencies })
     }
@@ -68,7 +68,9 @@ impl CanisterBuilder for AssetsBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        Ok(AssetsBuilderExtra::try_from(info, pool)?.dependencies)
+        Ok(AssetsBuilderExtra::try_from(info, pool)
+            .context("Failed to create AssetBuilderExtra.")?
+            .dependencies)
     }
 
     fn build(
@@ -77,20 +79,31 @@ impl CanisterBuilder for AssetsBuilder {
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let mut canister_assets = util::assets::assetstorage_canister()?;
-        for file in canister_assets.entries()? {
-            let mut file = file?;
+        let mut canister_assets = util::assets::assetstorage_canister()
+            .context("Failed to get asset canister archive.")?;
+        for file in canister_assets
+            .entries()
+            .context("Failed to read asset canister archive entries.")?
+        {
+            let mut file = file.context("Failed to read asset canister archive entry.")?;
 
             if file.header().entry_type().is_dir() {
                 continue;
             }
             // See https://github.com/alexcrichton/tar-rs/issues/261
-            fs::create_dir_all(info.get_output_root())?;
-            file.unpack_in(info.get_output_root())?;
+            fs::create_dir_all(info.get_output_root())
+                .context(format!("Failed to create {:?}.", info.get_output_root()))?;
+            file.unpack_in(info.get_output_root()).context(format!(
+                "Failed to unpack archive to {:?}.",
+                info.get_output_root()
+            ))?;
         }
 
-        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        delete_output_directory(info, &assets_canister_info)?;
+        let assets_canister_info = info
+            .as_info::<AssetsCanisterInfo>()
+            .context("Failed to create AssetCanisterInfo.")?;
+        delete_output_directory(info, &assets_canister_info)
+            .context("Failed to delete output directory.")?;
 
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
@@ -122,7 +135,7 @@ impl CanisterBuilder for AssetsBuilder {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>()?;
+            .collect::<DfxResult<Vec<CanisterId>>>().context("Failed to collect canister ids.")?;
 
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
 
@@ -131,12 +144,17 @@ impl CanisterBuilder for AssetsBuilder {
             info.get_workspace_root(),
             &config.network_name,
             vars,
-        )?;
+        )
+        .context("Failed to build frontend.")?;
 
-        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        assets_canister_info.assert_source_paths()?;
+        let assets_canister_info = info
+            .as_info::<AssetsCanisterInfo>()
+            .context("Failed to create AssetCanisterInfo.")?;
+        assets_canister_info
+            .assert_source_paths()
+            .context("Failed to get asset canister source paths.")?;
 
-        copy_assets(pool.get_logger(), &assets_canister_info)?;
+        copy_assets(pool.get_logger(), &assets_canister_info).context("Failed to copy assets.")?;
         Ok(())
     }
 
@@ -152,26 +170,36 @@ impl CanisterBuilder for AssetsBuilder {
             .as_ref()
             .context("`declarations.output` must not be None")?;
 
-        let mut canister_assets = util::assets::assetstorage_canister()?;
-        for file in canister_assets.entries()? {
-            let mut file = file?;
+        let mut canister_assets = util::assets::assetstorage_canister()
+            .context("Failed to load asset canister archive.")?;
+        for file in canister_assets
+            .entries()
+            .context("Failed to read asset canister archive entries.")?
+        {
+            let mut file = file.context("Failed to read asset canister archive entry.")?;
 
             if file.header().entry_type().is_dir() {
                 continue;
             }
             // See https://github.com/alexcrichton/tar-rs/issues/261
-            fs::create_dir_all(&generate_output_dir)?;
+            fs::create_dir_all(&generate_output_dir)
+                .context(format!("Failed to create {:?}.", &generate_output_dir))?;
 
-            file.unpack_in(generate_output_dir.clone())?;
+            file.unpack_in(generate_output_dir.clone())
+                .context("Failed to unpack archive content.")?;
         }
 
-        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        delete_output_directory(info, &assets_canister_info)?;
+        let assets_canister_info = info
+            .as_info::<AssetsCanisterInfo>()
+            .context("Failed to create AssetsCanisterInfo.")?;
+        delete_output_directory(info, &assets_canister_info)
+            .context("Failed to delet output directory.")?;
 
         // delete unpacked wasm file
         let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));
         if wasm_path.exists() {
-            std::fs::remove_file(wasm_path)?;
+            std::fs::remove_file(&wasm_path)
+                .context(format!("Failed to remove {:?}.", &wasm_path))?;
         }
 
         let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
@@ -179,7 +207,8 @@ impl CanisterBuilder for AssetsBuilder {
             .join(info.get_name())
             .with_extension("did");
         if idl_path.exists() {
-            std::fs::rename(&idl_path, &idl_path_rename)?;
+            std::fs::rename(&idl_path, &idl_path_rename)
+                .context(format!("Failed to rename {:?}.", &idl_path))?;
         }
 
         Ok(idl_path_rename)
@@ -200,14 +229,17 @@ fn delete_output_directory(
 ) -> DfxResult {
     let output_assets_path = assets_canister_info.get_output_assets_path();
     if output_assets_path.exists() {
-        let output_assets_path = output_assets_path.canonicalize()?;
+        let output_assets_path = output_assets_path
+            .canonicalize()
+            .context("Failed to canonicalize output assets path.")?;
         if !output_assets_path.starts_with(info.get_workspace_root()) {
             bail!(
                 "Directory at '{}' is outside the workspace root.",
                 output_assets_path.display()
             );
         }
-        fs::remove_dir_all(output_assets_path)?;
+        fs::remove_dir_all(&output_assets_path)
+            .context(format!("Failed to remove {:?}.", &output_assets_path))?;
     }
     Ok(())
 }
@@ -231,7 +263,7 @@ fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo)
         let input_assets_path = source_path.as_path();
         let walker = WalkDir::new(input_assets_path).into_iter();
         for entry in walker.filter_entry(|e| !is_hidden(e)) {
-            let entry = entry?;
+            let entry = entry.context("Failed to read input asset entry.")?;
             let source = entry.path();
             let relative = source
                 .strip_prefix(input_assets_path)
@@ -247,9 +279,13 @@ fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo)
             }
 
             if entry.file_type().is_dir() {
-                fs::create_dir(destination)?;
+                fs::create_dir(&destination)
+                    .context(format!("Failed to create {:?}.", &destination))?;
             } else {
-                fs::copy(source, destination)?;
+                fs::copy(&source, &destination).context(format!(
+                    "Failed to copy {:?} to {:?}",
+                    &source, &destination
+                ))?;
             }
         }
     }

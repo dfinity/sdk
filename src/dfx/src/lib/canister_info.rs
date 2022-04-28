@@ -7,7 +7,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::provider::get_network_context;
 use crate::util;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use std::collections::BTreeMap;
@@ -60,12 +60,13 @@ impl CanisterInfo {
     ) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
-        let network_name = get_network_context()?;
+        let network_name = get_network_context().context("Failed to get network context.")?;
         let build_root = config
             .get_temp_path()
             .join(util::network_to_pathcompat(&network_name));
         let build_root = build_root.join("canisters");
-        std::fs::create_dir_all(&build_root)?;
+        std::fs::create_dir_all(&build_root)
+            .context(format!("Failed to create {:?}.", &build_root))?;
 
         let canister_map = (&config.get_config().canisters)
             .as_ref()
@@ -129,7 +130,9 @@ impl CanisterInfo {
             extras,
         };
 
-        let canister_args: Option<String> = canister_info.get_extra_optional("args")?;
+        let canister_args: Option<String> = canister_info
+            .get_extra_optional("args")
+            .context("Failed while trying to get optional config field 'args'.")?;
 
         Ok(match canister_args {
             None => canister_info,

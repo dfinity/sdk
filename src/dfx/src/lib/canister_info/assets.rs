@@ -61,7 +61,8 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
         let input_root = info.get_workspace_root().to_path_buf();
         // If there are no "source" field, we just ignore this.
         let source_paths = if info.has_extra("source") {
-            info.get_extra::<Vec<PathBuf>>("source")?
+            info.get_extra::<Vec<PathBuf>>("source")
+                .context("Failed while trying to get field 'source'.")?
         } else {
             vec![]
         };

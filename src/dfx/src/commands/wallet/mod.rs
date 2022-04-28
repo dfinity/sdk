@@ -6,6 +6,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
+use anyhow::Context;
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use clap::Parser;
@@ -58,7 +59,8 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.clone())?;
+    let agent_env = create_agent_environment(env, opts.network.clone())
+        .context("Failed to create AgentEnvironment.")?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {
@@ -89,10 +91,17 @@ where
         .to_string();
     // Network descriptor will always be set.
     let network = env.get_network_descriptor().unwrap();
-    let wallet =
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name, false)
+        .await
+        .context("Failed to get/create wallet.")?;
 
-    let out: O = wallet.query_(method).with_arg(arg).build().call().await?;
+    let out: O = wallet
+        .query_(method)
+        .with_arg(arg)
+        .build()
+        .call()
+        .await
+        .context("Query to wallet failed.")?;
     Ok(out)
 }
 
@@ -101,13 +110,16 @@ where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
-    let wallet = get_wallet(env).await?;
+    let wallet = get_wallet(env)
+        .await
+        .context("Failed to fetch wallet caller.")?;
     let out: O = wallet
         .update_(method)
         .with_arg(arg)
         .build()
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Update call to wallet failed.")?;
     Ok(out)
 }
 
@@ -118,8 +130,11 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
         .to_string();
     // Network descriptor will always be set.
     let network = env.get_network_descriptor().unwrap();
-    fetch_root_key_if_needed(env).await?;
-    let wallet =
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
+    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name, false)
+        .await
+        .context("Failed to fetch wallet.")?;
     Ok(wallet)
 }

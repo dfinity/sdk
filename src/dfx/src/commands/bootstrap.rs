@@ -48,14 +48,19 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
-    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;
+    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())
+        .context("Failed to fetch bootstrap server configuration.")?;
 
-    let network_descriptor = get_network_descriptor(env, opts.network)?;
+    let network_descriptor =
+        get_network_descriptor(env, opts.network).context("Failed to fetch network descriptor.")?;
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
 
-    let providers = get_providers(&network_descriptor)?;
+    let providers = get_providers(&network_descriptor).context(format!(
+        "Failed to fetch providers for {}.",
+        network_descriptor.name
+    ))?;
     let providers: Vec<Url> = providers
         .iter()
         .map(|uri| Url::parse(uri).unwrap())
@@ -65,48 +70,70 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     // allocated port and construct a resuable SocketAddr which the actix
     // HttpServer will bind to
     let socket_addr =
-        get_reusable_socket_addr(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap())?;
+        get_reusable_socket_addr(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap())
+            .context("Failed to find socket address for the HTTP server.")?;
 
     let webserver_port_path = env.get_temp_dir().join("webserver-port");
-    std::fs::write(&webserver_port_path, "")?;
-    std::fs::write(&webserver_port_path, socket_addr.port().to_string())?;
+    std::fs::write(&webserver_port_path, "").context(format!(
+        "Failed to write/clear webserver port file {:?}.",
+        &webserver_port_path
+    ))?;
+    std::fs::write(&webserver_port_path, socket_addr.port().to_string()).context(format!(
+        "Failed to write port to webserver port file {:?}.",
+        &webserver_port_path
+    ))?;
 
-    verify_unique_ports(&providers, &socket_addr)?;
+    verify_unique_ports(&providers, &socket_addr)
+        .context("Cannot bind to and serve from the same port.")?;
 
     let system = actix::System::new();
-    let _proxy = system.block_on(async move {
-        let shutdown_controller = start_shutdown_controller(env)?;
+    let _proxy = system
+        .block_on(async move {
+            let shutdown_controller =
+                start_shutdown_controller(env).context("Failed to start ShutdownController.")?;
 
-        let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
-        let proxy_port_path = env.get_temp_dir().join("proxy-port");
-        std::fs::write(&proxy_port_path, "")?;
-        std::fs::write(&proxy_port_path, webserver_bind.port().to_string())?;
+            let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)
+                .context("Failed to fetch reusable socket address.")?;
+            let proxy_port_path = env.get_temp_dir().join("proxy-port");
+            std::fs::write(&proxy_port_path, "").context(format!(
+                "Failed to write/clear proxy port file {:?}.",
+                &proxy_port_path
+            ))?;
+            std::fs::write(&proxy_port_path, webserver_bind.port().to_string()).context(
+                format!(
+                    "Failed to write port to proxy port file {:?}.",
+                    &proxy_port_path
+                ),
+            )?;
 
-        let icx_proxy_config = IcxProxyConfig {
-            bind: socket_addr,
-            proxy_port: webserver_bind.port(),
-            providers,
-            fetch_root_key: !network_descriptor.is_ic,
-        };
+            let icx_proxy_config = IcxProxyConfig {
+                bind: socket_addr,
+                proxy_port: webserver_bind.port(),
+                providers,
+                fetch_root_key: !network_descriptor.is_ic,
+            };
 
-        run_webserver(
-            env.get_logger().clone(),
-            build_output_root,
-            network_descriptor,
-            webserver_bind,
-        )?;
+            run_webserver(
+                env.get_logger().clone(),
+                build_output_root,
+                network_descriptor,
+                webserver_bind,
+            )
+            .context("Failed to run webserver.")?;
 
-        let port_ready_subscribe = None;
-        let proxy = start_icx_proxy_actor(
-            env,
-            icx_proxy_config,
-            port_ready_subscribe,
-            shutdown_controller,
-            icx_proxy_pid_file_path,
-        )?;
-        Ok::<_, Error>(proxy)
-    })?;
-    system.run()?;
+            let port_ready_subscribe = None;
+            let proxy = start_icx_proxy_actor(
+                env,
+                icx_proxy_config,
+                port_ready_subscribe,
+                shutdown_controller,
+                icx_proxy_pid_file_path,
+            )
+            .context("Failed to start icx proxy actor.")?;
+            Ok::<_, Error>(proxy)
+        })
+        .context("Failed to start proxy.")?;
+    system.run().context("Failed to run system runner.")?;
 
     Ok(())
 }
@@ -136,9 +163,11 @@ fn apply_arguments(
     _env: &dyn Environment,
     opts: BootstrapOpts,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
-    let ip = get_ip(config, opts.ip.as_deref())?;
-    let port = get_port(config, opts.port.as_deref())?;
-    let timeout = get_timeout(config, opts.timeout.as_deref())?;
+    let ip = get_ip(config, opts.ip.as_deref()).context("Failed to fetch IP from config.")?;
+    let port =
+        get_port(config, opts.port.as_deref()).context("Failed to fetch port from config.")?;
+    let timeout = get_timeout(config, opts.timeout.as_deref())
+        .context("Failed to fetch timeout from config.")?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),

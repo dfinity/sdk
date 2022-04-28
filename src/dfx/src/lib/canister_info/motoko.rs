@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
 use std::path::{Path, PathBuf};
@@ -66,7 +68,9 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let name = info.get_name();
         let idl_path = build_root.join("idl/");
 
-        let main_path = info.get_extra::<PathBuf>("main")?;
+        let main_path = info
+            .get_extra::<PathBuf>("main")
+            .context("Failed while trying to get field 'main'.")?;
 
         let input_path = workspace_root.join(&main_path);
         let output_root = build_root.join(name);

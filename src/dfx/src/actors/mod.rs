@@ -11,6 +11,7 @@ use crate::actors::btc_adapter::BtcAdapter;
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use actix::{Actor, Addr, Recipient};
+use anyhow::Context;
 use std::fs;
 use std::path::PathBuf;
 
@@ -35,7 +36,10 @@ pub fn start_btc_adapter_actor(
     shutdown_controller: Addr<ShutdownController>,
     btc_adapter_pid_file_path: PathBuf,
 ) -> DfxResult<Addr<BtcAdapter>> {
-    let btc_adapter_path = env.get_cache().get_binary_command_path("ic-btc-adapter")?;
+    let btc_adapter_path = env
+        .get_cache()
+        .get_binary_command_path("ic-btc-adapter")
+        .context("Failed to fetch 'ic-btc-adapter' binary.")?;
 
     let actor_config = btc_adapter::Config {
         btc_adapter_path,
@@ -54,7 +58,10 @@ pub fn start_emulator_actor(
     env: &dyn Environment,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<Emulator>> {
-    let ic_ref_path = env.get_cache().get_binary_command_path("ic-ref")?;
+    let ic_ref_path = env
+        .get_cache()
+        .get_binary_command_path("ic-ref")
+        .context("Failed to fetch 'ic-ref' binary.")?;
 
     let temp_dir = env.get_temp_dir();
     let emulator_port_path = temp_dir.join("ic-ref.port");
@@ -63,7 +70,10 @@ pub fn start_emulator_actor(
     // handing it over to ic-ref. If we read the file and it has
     // contents we shall assume it is due to our spawned ic-ref
     // process.
-    std::fs::write(&emulator_port_path, "")?;
+    std::fs::write(&emulator_port_path, "").context(format!(
+        "Failed to write/clear emulator port file {:?}.",
+        &emulator_port_path
+    ))?;
 
     let actor_config = actors::emulator::Config {
         ic_ref_path,
@@ -77,19 +87,28 @@ pub fn start_emulator_actor(
 fn setup_replica_env(env: &dyn Environment, replica_config: &ReplicaConfig) -> DfxResult<PathBuf> {
     // create replica config dir
     let replica_configuration_dir = env.get_temp_dir().join("replica-configuration");
-    fs::create_dir_all(&replica_configuration_dir)?;
+    fs::create_dir_all(&replica_configuration_dir).context(format!(
+        "Failed to create replica config direcory {:?}.",
+        &replica_configuration_dir
+    ))?;
 
     if let Some(replica_port_path) = &replica_config.http_handler.write_port_to {
         // Touch the replica port file. This ensures it is empty prior to
         // handing it over to the replica. If we read the file and it has
         // contents we shall assume it is due to our spawned replica
         // process.
-        std::fs::write(&replica_port_path, "")?;
+        std::fs::write(&replica_port_path, "").context(format!(
+            "Failed to write/clear replica port file {:?}.",
+            &replica_port_path
+        ))?;
     }
 
     // create replica state dir
     let state_dir = env.get_state_dir().join("replicated_state");
-    fs::create_dir_all(&state_dir)?;
+    fs::create_dir_all(&state_dir).context(format!(
+        "Failed to create replica state directory {:?}.",
+        &state_dir
+    ))?;
 
     Ok(replica_configuration_dir)
 }
@@ -101,10 +120,17 @@ pub fn start_replica_actor(
     btc_adapter_ready_subscribe: Option<Recipient<BtcAdapterReadySubscribe>>,
 ) -> DfxResult<Addr<Replica>> {
     // get binary path
-    let replica_path = env.get_cache().get_binary_command_path("replica")?;
-    let ic_starter_path = env.get_cache().get_binary_command_path("ic-starter")?;
+    let replica_path = env
+        .get_cache()
+        .get_binary_command_path("replica")
+        .context("Failed to fetch 'replica' binary.")?;
+    let ic_starter_path = env
+        .get_cache()
+        .get_binary_command_path("ic-starter")
+        .context("Failed to fetch 'ic-starter' binary.")?;
 
-    let replica_configuration_dir = setup_replica_env(env, &replica_config)?;
+    let replica_configuration_dir =
+        setup_replica_env(env, &replica_config).context("Failed to set up replica environment.")?;
 
     let actor_config = replica::Config {
         ic_starter_path,
@@ -125,7 +151,10 @@ pub fn start_icx_proxy_actor(
     shutdown_controller: Addr<ShutdownController>,
     icx_proxy_pid_path: PathBuf,
 ) -> DfxResult<Addr<IcxProxy>> {
-    let icx_proxy_path = env.get_cache().get_binary_command_path("icx-proxy")?;
+    let icx_proxy_path = env
+        .get_cache()
+        .get_binary_command_path("icx-proxy")
+        .context("Failed to fetch 'icx-proxy' binary.")?;
 
     let actor_config = icx_proxy::Config {
         logger: Some(env.get_logger().clone()),

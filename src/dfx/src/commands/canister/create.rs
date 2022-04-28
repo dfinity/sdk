@@ -14,7 +14,7 @@ use crate::util::clap::validators::{
 };
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_agent::Identity as _;
 use ic_types::principal::Principal as CanisterId;
@@ -70,7 +70,9 @@ pub async fn exec(
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
 
     let with_cycles = opts.with_cycles.as_deref();
 
@@ -86,7 +88,8 @@ pub async fn exec(
             env.get_selected_identity().expect("No selected identity"),
             false,
         )
-        .await?;
+        .await
+        .context("Failed to get wallet.")?;
         proxy_sender = CallSender::Wallet(*wallet.canister_id_());
         call_sender = &proxy_sender;
     }
@@ -106,7 +109,8 @@ pub async fn exec(
                                 Ok(env.get_selected_identity_principal().unwrap())
                             } else {
                                 let identity_name = controller;
-                                IdentityManager::new(env)?
+                                IdentityManager::new(env)
+                                    .context("Failed to load identity manager.")?
                                     .instantiate_identity_from_name(identity_name)
                                     .and_then(|identity| {
                                         identity.sender().map_err(|err| anyhow!(err))
@@ -117,12 +121,17 @@ pub async fn exec(
                 )
                 .collect::<DfxResult<Vec<_>>>()
         })
-        .transpose()?;
+        .transpose()
+        .context("Failed to fetch controllers.")?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
         if config
             .get_config()
-            .is_remote_canister(canister_name, &network.name)?
+            .is_remote_canister(canister_name, &network.name)
+            .context(format!(
+                "Failed to determine if {} is a remote canister.",
+                canister_name
+            ))?
         {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
         }
@@ -130,17 +139,29 @@ pub async fn exec(
             opts.compute_allocation.clone(),
             config_interface,
             Some(canister_name),
-        )?;
+        )
+        .context(format!(
+            "Failed to read compute allocation of {}.",
+            canister_name
+        ))?;
         let memory_allocation = get_memory_allocation(
             opts.memory_allocation.clone(),
             config_interface,
             Some(canister_name),
-        )?;
+        )
+        .context(format!(
+            "Failed to read memory allocation of {}.",
+            canister_name
+        ))?;
         let freezing_threshold = get_freezing_threshold(
             opts.freezing_threshold.clone(),
             config_interface,
             Some(canister_name),
-        )?;
+        )
+        .context(format!(
+            "Failed to read freezing threshold of {}.",
+            canister_name
+        ))?;
         create_canister(
             env,
             canister_name,
@@ -154,7 +175,8 @@ pub async fn exec(
                 freezing_threshold,
             },
         )
-        .await?;
+        .await
+        .context(format!("Failed to create {}.", canister_name))?;
         Ok(())
     } else if opts.all {
         // Create all canisters.
@@ -162,7 +184,11 @@ pub async fn exec(
             for canister_name in canisters.keys() {
                 if config
                     .get_config()
-                    .is_remote_canister(canister_name, &network.name)?
+                    .is_remote_canister(canister_name, &network.name)
+                    .context(format!(
+                        "Failed to determine if {} is remote.",
+                        canister_name
+                    ))?
                 {
                     info!(
                         env.get_logger(),
@@ -177,17 +203,29 @@ pub async fn exec(
                     opts.compute_allocation.clone(),
                     config_interface,
                     Some(canister_name),
-                )?;
+                )
+                .context(format!(
+                    "Failed to read compute allocation of {}.",
+                    canister_name
+                ))?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation.clone(),
                     config_interface,
                     Some(canister_name),
-                )?;
+                )
+                .context(format!(
+                    "Failed to read memory allocation of {}.",
+                    canister_name
+                ))?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold.clone(),
                     config_interface,
                     Some(canister_name),
-                )?;
+                )
+                .context(format!(
+                    "Failed to read freezing threshold of {}.",
+                    canister_name
+                ))?;
                 create_canister(
                     env,
                     canister_name,
@@ -201,7 +239,8 @@ pub async fn exec(
                         freezing_threshold,
                     },
                 )
-                .await?;
+                .await
+                .context(format!("Failed to create {}.", canister_name))?;
             }
         }
         Ok(())

@@ -6,7 +6,7 @@ use crate::lib::sign::signed_message::SignedMessageV1;
 use ic_agent::agent::ReplicaV2Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_types::Principal;
 use std::{fs::File, path::Path};
@@ -39,12 +39,14 @@ pub async fn exec(
         .map_err(|_| anyhow!("Cannot read the message file."))?;
     let message: SignedMessageV1 =
         serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
-    message.validate()?;
+    message.validate().context("Message failed to validate.")?;
 
     let network = message.network.clone();
-    let transport = ReqwestHttpReplicaV2Transport::create(network)?;
-    let content = hex::decode(&message.content)?;
-    let canister_id = Principal::from_text(message.canister_id.clone())?;
+    let transport = ReqwestHttpReplicaV2Transport::create(network)
+        .context("Failed to create transport object.")?;
+    let content = hex::decode(&message.content).context("Failed to decode message content.")?;
+    let canister_id = Principal::from_text(message.canister_id.clone())
+        .context("Failed to parse canister id.")?;
 
     if opts.status {
         if message.call_type.clone().as_str() != "update" {
@@ -53,8 +55,12 @@ pub async fn exec(
         if message.signed_request_status.is_none() {
             bail!("No signed_request_status in [{}].", file_name);
         }
-        let envelope = hex::decode(&message.signed_request_status.unwrap())?;
-        let response = transport.read_state(canister_id, envelope).await?;
+        let envelope = hex::decode(&message.signed_request_status.unwrap())
+            .context("Failed to decode envelope.")?;
+        let response = transport
+            .read_state(canister_id, envelope)
+            .await
+            .context("Failed to read canister state.")?;
         eprintln!("To see the content of response, copy-paste the encoded string into cbor.me.");
         eprint!("Response: ");
         println!("{}", hex::encode(response));
@@ -74,14 +80,19 @@ pub async fn exec(
     // Not using dialoguer because it doesn't support non terminal env like bats e2e
     eprintln!("\nOkay? [y/N]");
     let mut input = String::new();
-    std::io::stdin().read_line(&mut input)?;
+    std::io::stdin()
+        .read_line(&mut input)
+        .context("Failed to read stdin.")?;
     if !["y", "yes"].contains(&input.to_lowercase().trim()) {
         return Ok(());
     }
 
     match message.call_type.as_str() {
         "query" => {
-            let response = transport.query(canister_id, content).await?;
+            let response = transport
+                .query(canister_id, content)
+                .await
+                .context("Query call failed.")?;
             eprintln!(
                 "To see the content of response, copy-paste the encoded string into cbor.me."
             );
@@ -93,8 +104,12 @@ pub async fn exec(
                 &message
                     .request_id
                     .expect("Cannot get request_id from the update message."),
-            )?;
-            transport.call(canister_id, content, request_id).await?;
+            )
+            .context("Failed to read request_id.")?;
+            transport
+                .call(canister_id, content, request_id)
+                .await
+                .context("Update call failed.")?;
 
             eprintln!(
                 "To check the status of this update call, append `--status` to current command."

@@ -95,9 +95,9 @@ impl std::fmt::Display for Status<'_> {
 pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> DfxResult {
     if !dry_run {
         if let Some(p) = path.parent() {
-            std::fs::create_dir_all(p)?;
+            std::fs::create_dir_all(p).context(format!("Failed to create directory {:?}.", p))?;
         }
-        std::fs::write(&path, content)?;
+        std::fs::write(&path, content).context(format!("Failed to write to {:?}.", path))?;
     }
 
     info!(log, "{}", Status::Create(path, content.len()));
@@ -112,7 +112,8 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
     }
 
     if !dry_run {
-        std::fs::create_dir_all(&path)?;
+        std::fs::create_dir_all(&path)
+            .context(format!("Failed to create directory {:?}.", path))?;
     }
 
     info!(log, "{}", Status::CreateDir(path));
@@ -133,13 +134,15 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
             .arg("add")
             .current_dir(project_name)
             .arg(".")
-            .output()?;
+            .output()
+            .context("Failed to run 'git add'.")?;
         std::process::Command::new("git")
             .arg("commit")
             .current_dir(project_name)
             .arg("-a")
             .arg("--message=Initial commit.")
-            .output()?;
+            .output()
+            .context("Failed to run 'git commit'.")?;
     }
 
     Ok(())
@@ -250,9 +253,11 @@ fn scaffold_frontend_code(
         )?;
 
         let dfx_path = project_name.join(CONFIG_FILE_NAME);
-        let content = std::fs::read(&dfx_path)?;
-        let mut config_json: Value =
-            serde_json::from_slice(&content).map_err(std::io::Error::from)?;
+        let content =
+            std::fs::read(&dfx_path).context(format!("Failed to read {:?}.", &dfx_path))?;
+        let mut config_json: Value = serde_json::from_slice(&content)
+            .map_err(std::io::Error::from)
+            .context(format!("Failed to parse {:?}.", &dfx_path))?;
 
         let frontend_value: serde_json::Map<String, Value> = [(
             "entrypoint".to_string(),
@@ -285,13 +290,18 @@ fn scaffold_frontend_code(
 
             let pretty = serde_json::to_string_pretty(&config_json)
                 .context("Invalid data: Cannot serialize configuration file.")?;
-            std::fs::write(&dfx_path, pretty)?;
+            std::fs::write(&dfx_path, pretty)
+                .context(format!("Failed to write to {:?}.", &dfx_path))?;
 
             // Install node modules. Error is not blocking, we just show a message instead.
             if node_installed {
                 let b = env.new_spinner("Installing node dependencies...".into());
 
-                if npm_install(project_name)?.wait().is_ok() {
+                if npm_install(project_name)
+                    .context("npm install failed.")?
+                    .wait()
+                    .is_ok()
+                {
                     b.finish_with_message("Done.".into());
                 } else {
                     b.finish_with_message(
@@ -328,7 +338,8 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
             child
                 .stdout
                 .expect("Could not get the output of subprocess 'npm'.")
-                .read_to_string(&mut result)?;
+                .read_to_string(&mut result)
+                .context("Failed to run 'npm'.")?;
             Ok(result.trim().to_string())
         })
 }
@@ -353,9 +364,9 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         warn_upgrade(log, latest_version.as_ref(), current_version);
     }
 
-    if !env.get_cache().is_installed()? {
-        env.get_cache().install()?;
-    }
+    env.get_cache()
+        .install()
+        .context("Failed to install cache.")?;
 
     info!(
         log,
@@ -384,8 +395,8 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
 
     // Default to start with motoko
     let mut new_project_files = match opts.r#type.as_str() {
-        "rust" => assets::new_project_rust_files()?,
-        "motoko" => assets::new_project_motoko_files()?,
+        "rust" => assets::new_project_rust_files().context("Failed to get rust archive.")?,
+        "motoko" => assets::new_project_motoko_files().context("Failed to get motoko archive.")?,
         t => bail!("Unsupported canister type: {}", t),
     };
     write_files_from_entries(
@@ -394,7 +405,8 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         project_name,
         dry_run,
         &variables,
-    )?;
+    )
+    .context("Failed to unpack data.")?;
 
     scaffold_frontend_code(
         env,
@@ -404,7 +416,8 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         opts.frontend,
         &opts.agent_version,
         &variables,
-    )?;
+    )
+    .context("Failed to scaffold frontend code.")?;
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.
@@ -427,13 +440,13 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
             }
 
             if should_git {
-                init_git(log, project_name)?;
+                init_git(log, project_name).context("Failed to init git.")?;
             }
         }
 
         #[cfg(not(target_os = "macos"))]
         {
-            init_git(log, project_name)?;
+            init_git(log, project_name).context("Failed to init git.")?;
         }
     }
 

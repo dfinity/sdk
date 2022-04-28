@@ -96,7 +96,9 @@ pub trait CanisterBuilder {
             .context("`output` must not be None")?;
 
         if generate_output_dir.exists() {
-            let generate_output_dir = generate_output_dir.canonicalize()?;
+            let generate_output_dir = generate_output_dir
+                .canonicalize()
+                .context("Failed to canonicalize output dir.")?;
             if !generate_output_dir.starts_with(info.get_workspace_root()) {
                 bail!(
                     "Directory at '{}' is outside the workspace root.",
@@ -109,9 +111,12 @@ pub trait CanisterBuilder {
         std::fs::create_dir_all(&generate_output_dir)
             .context(format!("Failed to create dir: {:?}", &generate_output_dir))?;
 
-        let generated_idl_path = self.generate_idl(pool, info, config)?;
+        let generated_idl_path = self
+            .generate_idl(pool, info, config)
+            .context("Failed to generate idl.")?;
 
-        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
+        let (env, ty) =
+            check_candid_file(generated_idl_path.as_path()).context("Failed candid file check.")?;
 
         let bindings = info
             .get_declarations_config()
@@ -135,7 +140,8 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("did.d.ts");
             let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
-            std::fs::write(&output_did_ts_path, content)?;
+            std::fs::write(&output_did_ts_path, content)
+                .context(format!("Failed to write to {:?}.", &output_did_ts_path))?;
             eprintln!("  {}", &output_did_ts_path.display());
         }
 
@@ -146,18 +152,30 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("did.js");
             let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
-            std::fs::write(&output_did_js_path, content)?;
+            std::fs::write(&output_did_js_path, content)
+                .context(format!("Failed to write to {:?}.", &output_did_js_path))?;
             eprintln!("  {}", &output_did_js_path.display());
 
             // index.js
-            let mut language_bindings = crate::util::assets::language_bindings()?;
-            for f in language_bindings.entries()? {
-                let mut file = f?;
+            let mut language_bindings = crate::util::assets::language_bindings()
+                .context("Failed to get langugae bindings archive.")?;
+            for f in language_bindings
+                .entries()
+                .context("Failed to read language bindings archive entries.")?
+            {
+                let mut file = f.context("Failed to read language bindings archive entry.")?;
                 let mut file_contents = String::new();
-                file.read_to_string(&mut file_contents)?;
+                file.read_to_string(&mut file_contents)
+                    .context("Failed to read language bindings archive file content.")?;
 
                 let mut new_file_contents = file_contents
-                    .replace("{canister_id}", &info.get_canister_id()?.to_text())
+                    .replace(
+                        "{canister_id}",
+                        &info
+                            .get_canister_id()
+                            .context("Failed to get canister id.")?
+                            .to_text(),
+                    )
                     .replace("{canister_name}", info.get_name());
                 new_file_contents = match &info.get_declarations_config().env_override {
                     Some(s) => new_file_contents.replace(
@@ -168,7 +186,8 @@ pub trait CanisterBuilder {
                         .replace("{canister_name_uppercase}", &info.get_name().to_uppercase()),
                 };
                 let index_js_path = generate_output_dir.join("index").with_extension("js");
-                std::fs::write(&index_js_path, new_file_contents)?;
+                std::fs::write(&index_js_path, new_file_contents)
+                    .context(format!("Failed to write to {:?}.", &index_js_path))?;
                 eprintln!("  {}", &index_js_path.display());
             }
         }
@@ -179,13 +198,15 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("mo");
             let content = ensure_trailing_newline(candid::bindings::motoko::compile(&env, &ty));
-            std::fs::write(&output_mo_path, content)?;
+            std::fs::write(&output_mo_path, content)
+                .context(format!("Failed to write to {:?}.", &output_mo_path))?;
             eprintln!("  {}", &output_mo_path.display());
         }
 
         // Candid, delete if not required
         if !bindings.contains(&"did".to_string()) {
-            std::fs::remove_file(generated_idl_path)?;
+            std::fs::remove_file(&generated_idl_path)
+                .context(format!("Failed to remove {:?}.", &generated_idl_path))?;
         } else {
             eprintln!("  {}", &generated_idl_path.display());
         }
@@ -277,7 +298,9 @@ pub struct BuildConfig {
 impl BuildConfig {
     pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
-        let network_name = util::network_to_pathcompat(&get_network_context()?);
+        let network_name = util::network_to_pathcompat(
+            &get_network_context().context("Failed to get network context.")?,
+        );
         let build_root = config.get_temp_path().join(&network_name);
         let build_root = build_root.join("canisters");
 
@@ -305,10 +328,10 @@ pub struct BuilderPool {
 impl BuilderPool {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         let builders: Vec<Arc<dyn CanisterBuilder>> = vec![
-            Arc::new(assets::AssetsBuilder::new(env)?),
-            Arc::new(custom::CustomBuilder::new(env)?),
-            Arc::new(motoko::MotokoBuilder::new(env)?),
-            Arc::new(rust::RustBuilder::new(env)?),
+            Arc::new(assets::AssetsBuilder::new(env).context("Failed to create AssetsBuilder.")?),
+            Arc::new(custom::CustomBuilder::new(env).context("Failed to create CustomBuilder.")?),
+            Arc::new(motoko::MotokoBuilder::new(env).context("Failed to create MotokoBuilder.")?),
+            Arc::new(rust::RustBuilder::new(env).context("Failed to create RustBuilder.")?),
         ];
 
         Ok(Self { builders })

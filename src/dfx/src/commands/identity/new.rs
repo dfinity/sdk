@@ -5,6 +5,7 @@ use crate::lib::identity::identity_manager::{
 };
 use crate::util::clap::validators::is_hsm_key_id;
 
+use anyhow::Context;
 use clap::Parser;
 use slog::info;
 use IdentityCreationParameters::{Hardware, Pem};
@@ -50,7 +51,10 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
         },
     };
 
-    IdentityManager::new(env)?.create_new_identity(name, creation_parameters, opts.force)?;
+    IdentityManager::new(env)
+        .context("Failed to load identity manager.")?
+        .create_new_identity(name, creation_parameters, opts.force)
+        .context(format!("Failed to create identity {}.", name))?;
 
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())

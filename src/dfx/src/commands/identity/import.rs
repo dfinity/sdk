@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::{IdentityCreationParameters, IdentityManager};
 
+use anyhow::Context;
 use clap::Parser;
 use slog::info;
 use std::path::PathBuf;
@@ -33,7 +34,10 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
         src_pem_file: opts.pem_file,
         disable_encryption: opts.disable_encryption,
     };
-    IdentityManager::new(env)?.create_new_identity(name, params, opts.force)?;
+    IdentityManager::new(env)
+        .context("Failed to load identity manager.")?
+        .create_new_identity(name, params, opts.force)
+        .context(format!("Failed to create new identity {}.", name))?;
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())
 }

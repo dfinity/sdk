@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::toolchain;
 use crate::lib::toolchain::Toolchain;
 
+use anyhow::Context;
 use clap::Parser;
 
 /// Set default toolchain or get current default toolchain
@@ -16,11 +17,16 @@ pub struct ToolchainDefault {
 pub fn exec(_env: &dyn Environment, opts: ToolchainDefault) -> DfxResult {
     match opts.toolchain {
         Some(name) => {
-            let toolchain = name.parse::<Toolchain>()?;
-            toolchain.set_default()?;
+            let toolchain = name
+                .parse::<Toolchain>()
+                .context("Failed to parse toolchain name.")?;
+            toolchain
+                .set_default()
+                .context("Failed to set default toolchain.")?;
         }
         None => {
-            let toolchain = toolchain::get_default_toolchain()?;
+            let toolchain =
+                toolchain::get_default_toolchain().context("Failed to fetch default toolchain.")?;
             println!("{}", toolchain);
         }
     }

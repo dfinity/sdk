@@ -73,7 +73,7 @@ pub struct CanisterCallOpts {
     candid: Option<PathBuf>,
 }
 
-#[derive(Clone, CandidType, Deserialize)]
+#[derive(Clone, CandidType, Deserialize, Debug)]
 struct CallIn<TCycles = u128> {
     canister: CanisterId,
     method_name: String,
@@ -105,7 +105,8 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
         .with_arg(args)
         .build()
         .call_and_wait(waiter_with_exponential_backoff())
-        .await?;
+        .await
+        .context(format!("Failed wallet call with args {:?}.", args))?;
     Ok(result.map_err(|err| anyhow!(err))?.r#return)
 }
 
@@ -143,7 +144,8 @@ pub fn get_effective_canister_id(
                     method_name.as_ref()))
             }
             MgmtMethod::InstallCode => {
-                let install_args = candid::Decode!(arg_value, CanisterInstall)?;
+                let install_args = candid::Decode!(arg_value, CanisterInstall)
+                    .context("Failed to decode arguments.")?;
                 Ok(install_args.canister_id)
             }
             MgmtMethod::UpdateSettings => {
@@ -152,7 +154,8 @@ pub fn get_effective_canister_id(
                     canister_id: CanisterId,
                     settings: CanisterSettings,
                 }
-                let in_args = candid::Decode!(arg_value, In)?;
+                let in_args =
+                    candid::Decode!(arg_value, In).context("Failed to decode arguments.")?;
                 Ok(in_args.canister_id)
             }
             MgmtMethod::StartCanister
@@ -166,7 +169,8 @@ pub fn get_effective_canister_id(
                 struct In {
                     canister_id: CanisterId,
                 }
-                let in_args = candid::Decode!(arg_value, In)?;
+                let in_args =
+                    candid::Decode!(arg_value, In).context("Failed to decode arguments.")?;
                 Ok(in_args.canister_id)
             }
             MgmtMethod::ProvisionalCreateCanisterWithCycles => {
@@ -185,20 +189,31 @@ pub async fn exec(
 ) -> DfxResult {
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store =
+        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
 
     let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
         Ok(id) => {
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id))?
+                get_local_cid_and_candid_path(env, canister_name, Some(id)).context(format!(
+                    "Failed to get canister id or candid path for {}",
+                    canister_name
+                ))?
             } else {
                 // TODO fetch candid file from remote canister
                 (id, None)
             }
         }
         Err(_) => {
-            let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
+            let canister_id = canister_id_store
+                .get(callee_canister)
+                .context(format!("Failed to get canister id for {}", callee_canister))?;
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)).context(
+                format!(
+                    "Failed to get canister id or candid path for {}",
+                    callee_canister
+                ),
+            )?
         }
     };
     let maybe_candid_path = opts.candid.or(maybe_candid_path);
@@ -232,12 +247,15 @@ pub async fn exec(
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
+    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)
+        .context("Failed to create argument blob.")?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
 
     let timeout = expiry_duration();
 
@@ -259,16 +277,20 @@ pub async fn exec(
                     method_name,
                     &arg_value,
                     canister_id,
-                )?;
+                )
+                .context("Failed to determine effective canister id.")?;
                 agent
                     .query(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
                     .with_arg(&arg_value)
                     .call()
-                    .await?
+                    .await
+                    .context("Failed query call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env)
+                    .await
+                    .context("Failed to setup wallet caller.")?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -278,7 +300,8 @@ pub async fn exec(
                         cycles,
                     },
                 )
-                .await?
+                .await
+                .context("Failed wallet call.")?
             }
         };
         print_idl_blob(&blob, output_type, &method_type)
@@ -291,20 +314,26 @@ pub async fn exec(
                     method_name,
                     &arg_value,
                     canister_id,
-                )?;
+                )
+                .context("Failed to determine effective canister id.")?;
                 agent
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
                     .with_arg(&arg_value)
                     .call()
-                    .await?
+                    .await
+                    .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env)
+                    .await
+                    .context("Failed to setup wallet caller.")?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
-                request_id_via_wallet_call(&wallet, canister_id, method_name, args, cycles).await?
+                request_id_via_wallet_call(&wallet, canister_id, method_name, args, cycles)
+                    .await
+                    .context("Failed request via wallet.")?
             }
         };
         eprint!("Request ID: ");
@@ -317,17 +346,21 @@ pub async fn exec(
                     method_name,
                     &arg_value,
                     canister_id,
-                )?;
+                )
+                .context("Failed to determine effective canister id.")?;
                 agent
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
                     .with_arg(&arg_value)
                     .expire_after(timeout)
                     .call_and_wait(waiter_with_exponential_backoff())
-                    .await?
+                    .await
+                    .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env)
+                    .await
+                    .context("Failed to setup wallet call.")?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -337,7 +370,8 @@ pub async fn exec(
                         cycles,
                     },
                 )
-                .await?
+                .await
+                .context("Failet to do wallet call.")?
             }
         };
 

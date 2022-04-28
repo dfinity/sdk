@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_agent::AgentError;
 use ic_types::Principal;
@@ -23,22 +23,32 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     let callee_canister = opts.canister.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store =
+        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
 
     let canister_id = Principal::from_text(callee_canister)
-        .or_else(|_| canister_id_store.get(callee_canister))?;
+        .or_else(|_| canister_id_store.get(callee_canister))
+        .context(format!(
+            "Failed to get canister id for {}.",
+            callee_canister
+        ))?;
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
     let controller_blob = agent
         .read_state_canister_info(canister_id, "controllers", false)
-        .await?;
+        .await
+        .context("Failed to read canister controllers.")?;
     let cbor: Value = serde_cbor::from_slice(&controller_blob)
         .map_err(|_| anyhow!("Invalid cbor data in controllers canister info."))?;
     let controllers = if let Value::Array(vec) = cbor {
         vec.into_iter()
             .map(|elem: Value| {
                 if let Value::Bytes(bytes) = elem {
-                    Ok(Principal::try_from(&bytes)?.to_text())
+                    Ok(Principal::try_from(&bytes)
+                        .context("Failed to construct principal.")?
+                        .to_text())
                 } else {
                     bail!(
                         "Expected element in controllers to be of type bytes, got {:?}",
@@ -49,7 +59,8 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
             .collect::<DfxResult<Vec<String>>>()
     } else {
         bail!("Expected controllers to be an array, but got {:?}", cbor);
-    }?;
+    }
+    .context("Failed to determine controllers.")?;
 
     let module_hash_hex = match agent
         .read_state_canister_info(canister_id, "module_hash", false)

@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use ic_agent::identity::Identity;
 
@@ -11,7 +11,10 @@ use ic_agent::identity::Identity;
 pub struct GetPrincipalOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetPrincipalOpts) -> DfxResult {
-    let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+    let identity = IdentityManager::new(env)
+        .context("Failed to load identity manager.")?
+        .instantiate_selected_identity()
+        .context("Failed to instantiate currently selected identity.")?;
     let principal_id = identity
         .as_ref()
         .sender()

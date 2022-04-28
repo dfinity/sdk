@@ -49,7 +49,7 @@ impl CanisterBuilder for RustBuilder {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>()?;
+            .collect::<DfxResult<Vec<CanisterId>>>().context("Failed to collect dependencies.")?;
         Ok(dependencies)
     }
 
@@ -63,7 +63,9 @@ impl CanisterBuilder for RustBuilder {
         canister_info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let rust_info = canister_info.as_info::<RustCanisterInfo>()?;
+        let rust_info = canister_info
+            .as_info::<RustCanisterInfo>()
+            .context("Failed to create RustCanisterInfo.")?;
         let package = rust_info.get_package();
 
         let canister_id = canister_info.get_canister_id().unwrap();
@@ -143,7 +145,9 @@ Run `cargo install ic-cdk-optimizer` to install it.
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        let rust_info = info.as_info::<RustCanisterInfo>()?;
+        let rust_info = info
+            .as_info::<RustCanisterInfo>()
+            .context("Failed to create RustCanisterInfo.")?;
         let output_idl_path = rust_info.get_output_idl_path();
         if output_idl_path.exists() {
             Ok(output_idl_path.to_path_buf())

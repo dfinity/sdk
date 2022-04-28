@@ -4,7 +4,7 @@ use crate::lib::identity::Identity;
 use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use clap::Parser;
 use ic_types::principal::Principal as CanisterId;
 use tokio::runtime::Runtime;
@@ -17,22 +17,28 @@ pub struct DeployWalletOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<String>) -> DfxResult {
-    let agent_env = create_agent_environment(env, network.clone())?;
+    let agent_env = create_agent_environment(env, network.clone())
+        .context("Failed to create AgentEnvironment.")?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;
+    runtime
+        .block_on(async { fetch_root_key_if_needed(&agent_env).await })
+        .context("Failed to fetch root key.")?;
 
     let identity_name = agent_env
         .get_selected_identity()
         .expect("No selected identity.")
         .to_string();
-    let network = get_network_descriptor(&agent_env, network)?;
+    let network =
+        get_network_descriptor(&agent_env, network).context("Failed to get network descriptor.")?;
 
     let canister_id = opts.canister_id;
     match CanisterId::from_text(&canister_id) {
         Ok(id) => {
             runtime.block_on(async {
-                Identity::create_wallet(&agent_env, &network, &identity_name, Some(id)).await?;
+                Identity::create_wallet(&agent_env, &network, &identity_name, Some(id))
+                    .await
+                    .context("Failed to create wallet.")?;
                 DfxResult::Ok(())
             })?;
         }

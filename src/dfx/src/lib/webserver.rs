@@ -8,7 +8,7 @@ use actix_cors::Cors;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::http::StatusCode;
 use actix_web::{http, middleware, web, App, Error, HttpResponse, HttpServer};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use serde::Deserialize;
 use slog::{info, Logger};
 use std::net::SocketAddr;
@@ -107,7 +107,8 @@ pub fn run_webserver(
                 ))
                 .default_service(web::get().to(|| HttpResponse::build(StatusCode::NOT_FOUND)))
         })
-        .bind(bind)?
+        .bind(bind)
+        .context(format!("Failed to bind HTTP server to {:?}.", bind))?
         // N.B. This is an arbitrary timeout for now.
         .shutdown_timeout(SHUTDOWN_WAIT_TIME)
         .run();

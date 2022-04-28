@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::call_sender;
 use crate::lib::provider::create_agent_environment;
 
+use anyhow::Context;
 use clap::{Parser, Subcommand};
 use tokio::runtime::Runtime;
 
@@ -62,11 +63,14 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.clone())?;
+    let agent_env = create_agent_environment(env, opts.network.clone())
+        .context("Failed to create AgentEnvironment.")?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async {
-        let call_sender = call_sender(&agent_env, &opts.wallet).await?;
+        let call_sender = call_sender(&agent_env, &opts.wallet)
+            .await
+            .context("Failed to determine call sender.")?;
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,
             SubCommand::Create(v) => create::exec(&agent_env, v, &call_sender).await,

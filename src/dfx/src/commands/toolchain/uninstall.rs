@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::toolchain::Toolchain;
 
+use anyhow::Context;
 use clap::Parser;
 
 /// Uninstall toolchain(s)
@@ -15,8 +16,12 @@ pub struct ToolchainUninstall {
 
 pub fn exec(_env: &dyn Environment, opts: ToolchainUninstall) -> DfxResult {
     for s in opts.toolchains {
-        let toolchain = s.parse::<Toolchain>()?;
-        toolchain.uninstall()?;
+        let toolchain = s
+            .parse::<Toolchain>()
+            .context("Failed to parse toolchain name.")?;
+        toolchain
+            .uninstall()
+            .context("Failed to uninstall toolchain.")?;
     }
     Ok(())
 }

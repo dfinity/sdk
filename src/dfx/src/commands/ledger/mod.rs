@@ -11,7 +11,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use candid::{Decode, Encode};
 use clap::Parser;
 use garcon::{Delay, Waiter};
@@ -57,7 +57,8 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.clone())?;
+    let agent_env = create_agent_environment(env, opts.network.clone())
+        .context("Failed to create AgentEnvironment.")?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {
@@ -129,19 +130,23 @@ pub async fn transfer(
     let block_height: BlockHeight = loop {
         match agent
             .update(canister_id, TRANSFER_METHOD)
-            .with_arg(Encode!(&TransferArgs {
-                memo,
-                amount,
-                fee,
-                from_subaccount: None,
-                to,
-                created_at_time: Some(TimeStamp { timestamp_nanos }),
-            })?)
+            .with_arg(
+                Encode!(&TransferArgs {
+                    memo,
+                    amount,
+                    fee,
+                    from_subaccount: None,
+                    to,
+                    created_at_time: Some(TimeStamp { timestamp_nanos }),
+                })
+                .context("Failed to encode arguments.")?,
+            )
             .call_and_wait(waiter_with_timeout(expiry_duration()))
             .await
         {
             Ok(data) => {
-                let result = Decode!(&data, TransferResult)?;
+                let result = Decode!(&data, TransferResult)
+                    .context("Failed to decode transfer response.")?;
                 match result {
                     Ok(block_height) => break block_height,
                     Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
@@ -175,27 +180,35 @@ async fn transfer_and_notify(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
 
     let to = AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, to_subaccount).to_address();
 
-    let block_height = transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, to).await?;
+    let block_height = transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, to)
+        .await
+        .context("Transfer failed.")?;
 
     println!("Transfer sent at BlockHeight: {}", block_height);
 
     let result = agent
         .update(&MAINNET_LEDGER_CANISTER_ID, NOTIFY_METHOD)
-        .with_arg(Encode!(&NotifyCanisterArgs {
-            block_height,
-            max_fee,
-            from_subaccount: None,
-            to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
-            to_subaccount,
-        })?)
+        .with_arg(
+            Encode!(&NotifyCanisterArgs {
+                block_height,
+                max_fee,
+                from_subaccount: None,
+                to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
+                to_subaccount,
+            })
+            .context("Failed to encode arguments.")?,
+        )
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Notify failed.")?;
 
-    let result = Decode!(&result, CyclesResponse)?;
+    let result = Decode!(&result, CyclesResponse).context("Failed to decode notify response.")?;
     Ok(result)
 }
 

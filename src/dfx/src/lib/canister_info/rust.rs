@@ -1,3 +1,5 @@
+use anyhow::Context;
+
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
 use std::path::{Path, PathBuf};
@@ -28,7 +30,9 @@ impl CanisterInfoFactory for RustCanisterInfo {
     }
 
     fn create(info: &CanisterInfo) -> DfxResult<Self> {
-        let package = info.get_extra::<String>("package")?;
+        let package = info
+            .get_extra::<String>("package")
+            .context("Failed while trying to get field 'package'.")?;
 
         let workspace_root = info.get_workspace_root();
         let output_wasm_path = workspace_root.join(format!(
@@ -38,7 +42,8 @@ impl CanisterInfoFactory for RustCanisterInfo {
         let candid = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
             PathBuf::from(remote_candid)
         } else {
-            info.get_extra::<PathBuf>("candid")?
+            info.get_extra::<PathBuf>("candid")
+                .context("Failed while trying to get field 'candid'.")?
         };
         let output_idl_path = workspace_root.join(candid);
 

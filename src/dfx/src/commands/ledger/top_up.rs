@@ -7,7 +7,7 @@ use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use ic_types::principal::Principal;
 use std::str::FromStr;
@@ -44,22 +44,31 @@ pub struct TopUpOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
-    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
+    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)
+        .context("Failed to determine ICP amount.")?;
 
-    let fee = opts.fee.map_or(Ok(TRANSACTION_FEE), |v| {
-        ICPTs::from_str(&v).map_err(|err| anyhow!(err))
-    })?;
+    let fee = opts
+        .fee
+        .map_or(Ok(TRANSACTION_FEE), |v| {
+            ICPTs::from_str(&v).map_err(|err| anyhow!(err))
+        })
+        .context("Failed to determine fee.")?;
 
     let memo = Memo(MEMO_TOP_UP_CANISTER);
 
-    let to_subaccount = Some(Subaccount::from(&Principal::from_text(opts.canister)?));
+    let to_subaccount = Some(Subaccount::from(
+        &Principal::from_text(opts.canister)
+            .context("Failed to parse target canister principal.")?,
+    ));
 
     let max_fee = opts
         .max_fee
         .map_or(Ok(TRANSACTION_FEE), |v| ICPTs::from_str(&v))
         .map_err(|err| anyhow!(err))?;
 
-    let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
+    let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee)
+        .await
+        .context("Failed to transfer and notify.")?;
 
     match result {
         CyclesResponse::ToppedUp(()) => {

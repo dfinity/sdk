@@ -82,7 +82,9 @@ impl Identity {
         if manager.require_identity_exists(name).is_ok() {
             if force {
                 if temporarily_use_anonymous_identity {
-                    manager.use_identity_named(ANONYMOUS_IDENTITY_NAME)?;
+                    manager
+                        .use_identity_named(ANONYMOUS_IDENTITY_NAME)
+                        .context("Failed to temporarily switch over to anonymous identity.")?;
                 }
                 manager
                     .remove(name)
@@ -104,7 +106,10 @@ impl Identity {
             if disable_encryption {
                 Ok(None)
             } else {
-                Ok(Some(identity_manager::EncryptionConfiguration::new()?))
+                Ok(Some(
+                    identity_manager::EncryptionConfiguration::new()
+                        .context("Failed to generate a fresh EncryptionConfiguration.")?,
+                ))
             }
         }
 
@@ -114,52 +119,64 @@ impl Identity {
         let temp_identity_dir = manager.get_identity_dir_path(&temp_identity_name);
         if temp_identity_dir.exists() {
             // clean traces from previous identity creation attempts
-            std::fs::remove_dir_all(&temp_identity_dir)?;
+            std::fs::remove_dir_all(&temp_identity_dir).context(format!(
+                "Failed to clean up previous creation attempts at {:?}.",
+                &temp_identity_dir
+            ))?;
         }
 
         let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
         let mut identity_config = IdentityConfiguration::default();
         match parameters {
             IdentityCreationParameters::Pem { disable_encryption } => {
-                identity_config.encryption = create_encryption_config(disable_encryption)?;
-                let pem_content = identity_manager::generate_key()?;
+                identity_config.encryption = create_encryption_config(disable_encryption)
+                    .context("Failed to create encryption configuration.")?;
+                let pem_content =
+                    identity_manager::generate_key().context("Failed to generate new key.")?;
                 let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 pem_encryption::write_pem_file(
                     &pem_file,
                     Some(&identity_config),
                     pem_content.as_slice(),
-                )?;
+                )
+                .context("Failed to write pem file.")?;
             }
             IdentityCreationParameters::PemFile {
                 src_pem_file,
                 disable_encryption,
             } => {
-                identity_config.encryption = create_encryption_config(disable_encryption)?;
-                let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
+                identity_config.encryption = create_encryption_config(disable_encryption)
+                    .context("Failed to create encryption configuration.")?;
+                let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)
+                    .context("Failed to load pem file.")?;
                 let dst_pem_file =
                     manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 pem_encryption::write_pem_file(
                     &dst_pem_file,
                     Some(&identity_config),
                     src_pem_content.as_slice(),
-                )?;
+                )
+                .context("Failed to write pem file.")?;
             }
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config.hsm = Some(hsm);
-                create(&temp_identity_dir)?;
+                create(&temp_identity_dir)
+                    .context("Failed to create temporary identity directory.")?;
             }
         }
-        identity_manager::write_identity_configuration(
-            &identity_config_location,
-            &identity_config,
-        )?;
+        identity_manager::write_identity_configuration(&identity_config_location, &identity_config)
+            .context("Failed to write identity configuration.")?;
 
         // Everything is created. Now move from the temporary directory to the actual identity location.
         let identity_dir = manager.get_identity_dir_path(name);
-        std::fs::rename(temp_identity_dir, identity_dir)?;
+        std::fs::rename(&temp_identity_dir, &identity_dir).context(format!(
+            "Failed to move temporary directory {:?} to permanent identiy directory {:?}.",
+            &temp_identity_dir, &identity_dir
+        ))?;
 
         if temporarily_use_anonymous_identity {
-            manager.use_identity_named(identity_in_use)?;
+            manager.use_identity_named(identity_in_use)
+                .context(format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
         }
         Ok(())
     }
@@ -234,7 +251,8 @@ impl Identity {
     pub fn load(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
         let json_path = manager.get_identity_json_path(name);
         let config = if json_path.exists() {
-            identity_manager::read_identity_configuration(&json_path)?
+            identity_manager::read_identity_configuration(&json_path)
+                .context("Failed to read identity configuration.")?
         } else {
             IdentityConfiguration {
                 hsm: None,
@@ -244,8 +262,11 @@ impl Identity {
         if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            let pem_path = manager.load_identity_pem_path(name)?;
-            let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+            let pem_path = manager
+                .load_identity_pem_path(name)
+                .context(format!("Failed to load pem path for {}.", name))?;
+            let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))
+                .context("Failed to load pem file.")?;
 
             Identity::load_secp256k1_identity(manager, name, &pem_content)
                 .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
@@ -266,7 +287,8 @@ impl Identity {
         Ok(match network.r#type {
             NetworkType::Persistent => {
                 // Using the global
-                get_config_dfx_dir_path()?
+                get_config_dfx_dir_path()
+                    .context("Failed to get dfx config dir path.")?
                     .join("identity")
                     .join(name)
                     .join(WALLET_CONFIG_FILENAME)
@@ -283,13 +305,15 @@ impl Identity {
         network: &NetworkDescriptor,
         name: &str,
     ) -> DfxResult<(PathBuf, WalletGlobalConfig)> {
-        let wallet_path = Identity::get_wallet_config_file(env, network, name)?;
+        let wallet_path = Identity::get_wallet_config_file(env, network, name)
+            .context("Failed to get wallet config path.")?;
 
         // Read the config file.
         Ok((
             wallet_path.clone(),
             if wallet_path.exists() {
-                Identity::load_wallet_config(&wallet_path)?
+                Identity::load_wallet_config(&wallet_path)
+                    .context("Failed to load wallet config.")?
             } else {
                 WalletGlobalConfig {
                     identities: BTreeMap::new(),
@@ -336,7 +360,8 @@ impl Identity {
         name: &str,
         id: Principal,
     ) -> DfxResult {
-        let (wallet_path, mut config) = Identity::wallet_config(env, network, name)?;
+        let (wallet_path, mut config) = Identity::wallet_config(env, network, name)
+            .context("Failed to get current wallet config.")?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
         let network_map = identities
@@ -347,7 +372,8 @@ impl Identity {
 
         network_map.networks.insert(network.name.clone(), id);
 
-        Identity::save_wallet_config(&wallet_path, &config)?;
+        Identity::save_wallet_config(&wallet_path, &config)
+            .context("Failed to save new wallet config.")?;
         Ok(())
     }
 
@@ -357,7 +383,8 @@ impl Identity {
         network: &NetworkDescriptor,
         name: &str,
     ) -> DfxResult {
-        let (wallet_path, mut config) = Identity::wallet_config(env, network, name)?;
+        let (wallet_path, mut config) = Identity::wallet_config(env, network, name)
+            .context("Failed to get current wallet config.")?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
         let network_map = identities
@@ -368,8 +395,15 @@ impl Identity {
 
         network_map.networks.remove(&network.name);
 
-        std::fs::create_dir_all(wallet_path.parent().unwrap())?;
-        std::fs::write(&wallet_path, &serde_json::to_string_pretty(&config)?)?;
+        std::fs::create_dir_all(wallet_path.parent().unwrap()).context(format!(
+            "Failed to create {:?}.",
+            wallet_path.parent().unwrap()
+        ))?;
+        std::fs::write(
+            &wallet_path,
+            &serde_json::to_string_pretty(&config).context("Failed to serialize config.")?,
+        )
+        .context(format!("Failed to write to {:?}.", &wallet_path))?;
         Ok(())
     }
 
@@ -378,7 +412,8 @@ impl Identity {
         renamed_identity: &str,
         wallet_path: PathBuf,
     ) -> DfxResult {
-        let mut config = Identity::load_wallet_config(&wallet_path)?;
+        let mut config = Identity::load_wallet_config(&wallet_path)
+            .context("Failed to load existing wallet config.")?;
         let identities = &mut config.identities;
         let v = identities
             .remove(original_identity)
@@ -386,7 +421,8 @@ impl Identity {
                 networks: BTreeMap::new(),
             });
         identities.insert(renamed_identity.to_string(), v);
-        Identity::save_wallet_config(&wallet_path, &config)?;
+        Identity::save_wallet_config(&wallet_path, &config)
+            .context("Failed to save new wallet config.")?;
         Ok(())
     }
 
@@ -396,7 +432,8 @@ impl Identity {
         original_identity: &str,
         renamed_identity: &str,
     ) -> DfxResult {
-        let persistent_wallet_path = get_config_dfx_dir_path()?
+        let persistent_wallet_path = get_config_dfx_dir_path()
+            .context("Failed to get dfx config dir path.")?
             .join("identity")
             .join(original_identity)
             .join(WALLET_CONFIG_FILENAME);
@@ -405,7 +442,8 @@ impl Identity {
                 original_identity,
                 renamed_identity,
                 persistent_wallet_path,
-            )?;
+            )
+            .context("Failed to move persistent wallet config.")?;
         }
         let local_wallet_path = env
             .get_temp_dir()
@@ -416,7 +454,8 @@ impl Identity {
                 original_identity,
                 renamed_identity,
                 local_wallet_path,
-            )?;
+            )
+            .context("Failed to move local wallet config.")?;
         }
         Ok(())
     }
@@ -427,7 +466,9 @@ impl Identity {
         name: &str,
         some_canister_id: Option<Principal>,
     ) -> DfxResult<Principal> {
-        fetch_root_key_if_needed(env).await?;
+        fetch_root_key_if_needed(env)
+            .await
+            .context("Failed to fetch root key.")?;
         let mgr = ManagementCanister::create(
             env.get_agent()
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
@@ -437,7 +478,7 @@ impl Identity {
             "Creating a wallet canister on the {} network.", network.name
         );
 
-        let wasm = wallet_wasm(env.get_logger())?;
+        let wasm = wallet_wasm(env.get_logger()).context("Failed to load wallet wasm.")?;
 
         let canister_id = match some_canister_id {
             Some(id) => id,
@@ -445,7 +486,8 @@ impl Identity {
                 mgr.create_canister()
                     .as_provisional_create_with_amount(None)
                     .call_and_wait(waiter_with_timeout(expiry_duration()))
-                    .await?
+                    .await
+                    .context("Failed create canister call.")?
                     .0
             }
         };
@@ -465,17 +507,21 @@ impl Identity {
                     network.name
                 )
             }
-            res => res?,
+            res => res.context("Failed while installing wasm.")?,
         }
 
-        let wallet = Identity::build_wallet_canister(canister_id, env).await?;
+        let wallet = Identity::build_wallet_canister(canister_id, env)
+            .await
+            .context("Failed to build wallet canister.")?;
 
         wallet
             .wallet_store_wallet_wasm(wasm)
             .call_and_wait(waiter_with_timeout(expiry_duration()))
-            .await?;
+            .await
+            .context("Failed to store wallet wasm.")?;
 
-        Identity::set_wallet_id(env, network, name, canister_id)?;
+        Identity::set_wallet_id(env, network, name, canister_id)
+            .context(format!("Failed to save wallet id {}.", canister_id))?;
 
         info!(
             env.get_logger(),
@@ -521,7 +567,8 @@ impl Identity {
         network: &NetworkDescriptor,
         name: &str,
     ) -> DfxResult<Principal> {
-        let wallet_path = Identity::get_wallet_config_file(env, network, name)?;
+        let wallet_path = Identity::get_wallet_config_file(env, network, name)
+            .context("Failed to get wallet config path.")?;
         if !wallet_path.exists() {
             return Err(anyhow!(
                 "Could not find wallet for \"{}\" on \"{}\" network.",
@@ -530,7 +577,8 @@ impl Identity {
             ));
         }
 
-        let config = Identity::load_wallet_config(&wallet_path)?;
+        let config =
+            Identity::load_wallet_config(&wallet_path).context("Failed to load wallet config.")?;
 
         let wallet_network = config.identities.get(name).ok_or_else(|| {
             anyhow!(
@@ -562,7 +610,8 @@ impl Identity {
                 .build()
                 .unwrap(),
         )
-        .await?)
+        .await
+        .context("Failed to build wallet canister caller.")?)
     }
 
     /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
@@ -575,7 +624,9 @@ impl Identity {
         name: &str,
         create: bool,
     ) -> DfxResult<WalletCanister<'env>> {
-        let wallet_canister_id = Identity::get_or_create_wallet(env, network, name, create).await?;
+        let wallet_canister_id = Identity::get_or_create_wallet(env, network, name, create)
+            .await
+            .context("Failed to get wallet.")?;
         Identity::build_wallet_canister(wallet_canister_id, env).await
     }
 }

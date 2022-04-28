@@ -6,6 +6,7 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
+use anyhow::Context;
 use clap::Parser;
 use ic_types::Principal;
 use slog::info;
@@ -30,9 +31,11 @@ async fn stop_canister(
     call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
-    let canister_id =
-        Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+    let canister_id_store =
+        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
+    let canister_id = Principal::from_text(canister)
+        .or_else(|_| canister_id_store.get(canister))
+        .context(format!("Failed to get canister id for {}.", canister))?;
 
     info!(
         log,
@@ -41,7 +44,9 @@ async fn stop_canister(
         canister_id.to_text(),
     );
 
-    canister::stop_canister(env, canister_id, timeout, call_sender).await?;
+    canister::stop_canister(env, canister_id, timeout, call_sender)
+        .await
+        .context(format!("Failed to stop canister {}.", canister))?;
 
     Ok(())
 }
@@ -53,7 +58,9 @@ pub async fn exec(
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {

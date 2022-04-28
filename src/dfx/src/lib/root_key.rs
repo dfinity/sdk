@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 
 pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
     let agent = env
@@ -13,7 +13,10 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
         .expect("no network descriptor")
         .is_ic
     {
-        agent.fetch_root_key().await?;
+        agent
+            .fetch_root_key()
+            .await
+            .context("Failed during call to replica.")?;
     }
     Ok(())
 }
@@ -30,7 +33,10 @@ pub async fn fetch_root_key_or_anyhow(env: &dyn Environment) -> DfxResult {
         .expect("no network descriptor")
         .is_ic
     {
-        agent.fetch_root_key().await?;
+        agent
+            .fetch_root_key()
+            .await
+            .context("Failed during call to replica.")?;
         Ok(())
     } else {
         Err(anyhow!(

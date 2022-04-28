@@ -17,7 +17,9 @@ pub enum CallSender {
 // or the provided wallet canister ID should be the Sender of the call.
 pub async fn call_sender(_env: &dyn Environment, wallet: &Option<String>) -> DfxResult<CallSender> {
     let sender = if let Some(id) = wallet {
-        CallSender::Wallet(Principal::from_text(&id)?)
+        CallSender::Wallet(
+            Principal::from_text(&id).context(format!("Failed to read principal from {}.", id))?,
+        )
     } else {
         CallSender::SelectedId
     };

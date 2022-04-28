@@ -2,6 +2,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::Manifest;
 use crate::{error_invalid_argument, error_invalid_data};
 
+use anyhow::Context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
@@ -54,42 +55,51 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
     ))
     .map_err(|e| error_invalid_argument!("invalid url: {}", e))?;
 
-    let home = std::env::var("HOME")?;
+    let home = std::env::var("HOME").context("Failed to resolve env var HOME.")?;
     let home = Path::new(&home);
 
     let download_dir = home.join(DOWNLOADS_DIR);
     if !download_dir.exists() {
-        fs::create_dir_all(&download_dir)?;
+        fs::create_dir_all(&download_dir)
+            .context(format!("Failed to create dir {:?}.", &download_dir))?;
     }
     let download_file = download_dir.join(&format!("dfx-{}.tar.gz", version));
     if download_file.exists() {
         println!("Found downloaded file {:?}", download_file);
     } else {
-        let mut dest = fs::File::create(&download_file)?;
+        let mut dest = fs::File::create(&download_file)
+            .context(format!("Failed to create file {:?}.", &download_file))?;
         let b = ProgressBar::new_spinner();
         b.set_draw_target(ProgressDrawTarget::stderr());
         b.set_message(format!("Downloading {}", url));
         b.enable_steady_tick(80);
         let response = reqwest::blocking::get(url).map_err(DfxError::new)?;
-        let content = response.bytes()?;
-        dest.write_all(&*content)?;
+        let content = response.bytes().context("Failed to get response body.")?;
+        dest.write_all(&*content).context(format!(
+            "Failed to write response content to {:?}.",
+            &download_file
+        ))?;
         b.finish_with_message("Download complete");
     }
 
     let mut cache_dir = home.join(CACHE_ROOT);
     cache_dir.push(version.to_string());
     if !cache_dir.exists() {
-        fs::create_dir_all(&cache_dir)?;
+        fs::create_dir_all(&cache_dir).context(format!("Failed to create {:?}.", &cache_dir))?;
     }
 
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
     b.set_message(format!("Unpacking file {:?}", download_file));
     b.enable_steady_tick(80);
-    let tar_gz = fs::File::open(&download_file)?;
-    let tar = Decoder::new(tar_gz)?;
+    let tar_gz =
+        fs::File::open(&download_file).context(format!("Failed to open {:?}.", &download_file))?;
+    let tar = Decoder::new(tar_gz)
+        .context(format!("Failed to decode archive at {:?}.", &download_file))?;
     let mut archive = Archive::new(tar);
-    archive.unpack(&cache_dir)?;
+    archive
+        .unpack(&cache_dir)
+        .context(format!("Failed to unpack archive at {:?}.", &download_file))?;
     b.finish_with_message("Unpack complete");
 
     // Install components

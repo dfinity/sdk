@@ -4,7 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::package_arguments::{self, PackageArguments};
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use std::process::Stdio;
 
@@ -32,13 +32,15 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
     if atty::is(atty::Stream::Stdout) && !force_tty {
         Err(anyhow!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag."))
     } else if let Some(config) = env.get_config() {
-        let main_path = get_main_path(config.get_config(), opts.canister)?;
+        let main_path = get_main_path(config.get_config(), opts.canister)
+            .context("Failed to determine main path.")?;
         let packtool = &config
             .get_config()
             .get_defaults()
             .get_build()
             .get_packtool();
-        let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
+        let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)
+            .context("Failed to load package arguments.")?;
         run_ide(env, main_path, package_arguments)
     } else {
         Err(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
@@ -100,7 +102,8 @@ fn run_ide(
 ) -> DfxResult {
     let output = env
         .get_cache()
-        .get_binary_command("mo-ide")?
+        .get_binary_command("mo-ide")
+        .context("Failed to fetch 'mo-ide' binary.")?
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         // Point at the right canister
@@ -108,7 +111,8 @@ fn run_ide(
         .arg(main_path)
         // Tell the IDE where the stdlib and other packages are located
         .args(package_arguments)
-        .output()?;
+        .output()
+        .context("Failed to run 'mo-ide' binary.")?;
 
     if !output.status.success() {
         bail!(

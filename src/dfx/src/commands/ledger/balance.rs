@@ -4,7 +4,7 @@ use crate::lib::ledger_types::{AccountBalanceArgs, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::AccountIdentifier;
 use crate::lib::nns_types::icpts::ICPTs;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::{Decode, Encode};
 use clap::Parser;
 use ic_types::Principal;
@@ -44,13 +44,17 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
 
     let result = agent
         .query(&canister_id, ACCOUNT_BALANCE_METHOD)
-        .with_arg(Encode!(&AccountBalanceArgs {
-            account: acc_id.to_string()
-        })?)
+        .with_arg(
+            Encode!(&AccountBalanceArgs {
+                account: acc_id.to_string()
+            })
+            .context("Failed to encode arguments.")?,
+        )
         .call()
-        .await?;
+        .await
+        .context("Failed query call.")?;
 
-    let balance = Decode!(&result, ICPTs)?;
+    let balance = Decode!(&result, ICPTs).context("Failed to decode response.")?;
 
     println!("{}", balance);
 

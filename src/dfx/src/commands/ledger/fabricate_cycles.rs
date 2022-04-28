@@ -7,6 +7,7 @@ use crate::lib::root_key::fetch_root_key_or_anyhow;
 use crate::util::clap::validators::{cycle_amount_validator, trillion_cycle_amount_validator};
 use crate::util::expiry_duration;
 
+use anyhow::Context;
 use clap::Parser;
 use ic_types::Principal;
 use slog::info;
@@ -47,20 +48,29 @@ async fn deposit_minted_cycles(
     cycles: u128,
 ) -> DfxResult {
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
-    let canister_id =
-        Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+    let canister_id_store =
+        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
+    let canister_id = Principal::from_text(canister)
+        .or_else(|_| canister_id_store.get(canister))
+        .context(format!("Failed to determine canister id for {}.", canister))?;
 
     info!(log, "Fabricating {} cycles onto {}", cycles, canister,);
 
-    canister::provisional_deposit_cycles(env, canister_id, timeout, call_sender, cycles).await?;
+    canister::provisional_deposit_cycles(env, canister_id, timeout, call_sender, cycles)
+        .await
+        .context("Failed provisional deposit.")?;
 
-    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
-
-    info!(
-        log,
-        "Fabricated {} cycles, updated balance: {} cycles", cycles, status.cycles
-    );
+    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await;
+    if status.is_ok() {
+        info!(
+            log,
+            "Fabricated {} cycles, updated balance: {} cycles",
+            cycles,
+            status.unwrap().cycles
+        );
+    } else {
+        info!(log, "Fabricated {} cycles.", cycles);
+    }
 
     Ok(())
 }
@@ -80,7 +90,8 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 deposit_minted_cycles(env, canister, timeout, &CallSender::SelectedId, cycles)
-                    .await?;
+                    .await
+                    .context("Failed to mint cycles.")?;
             }
         }
         Ok(())

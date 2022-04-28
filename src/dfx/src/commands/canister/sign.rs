@@ -13,7 +13,7 @@ use ic_agent::AgentError;
 use ic_agent::RequestId;
 use ic_types::principal::Principal;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use chrono::Utc;
 use clap::Parser;
 use humanize_rs::duration;
@@ -74,20 +74,32 @@ pub async fn exec(
 
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store =
+        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
 
     let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
         Ok(id) => {
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id))?
+                get_local_cid_and_candid_path(env, canister_name, Some(id)).context(format!(
+                    "Failed to get local canister id and candid path for {}.",
+                    canister_name
+                ))?
             } else {
                 // TODO fetch candid file from remote canister
                 (id, None)
             }
         }
         Err(_) => {
-            let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
+            let canister_id = canister_id_store.get(callee_canister).context(format!(
+                "Failed to get canister id for {}.",
+                callee_canister
+            ))?;
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)).context(
+                format!(
+                    "Failed to get local canister id and candid path for {}.",
+                    callee_canister
+                ),
+            )?
         }
     };
 
@@ -113,7 +125,8 @@ pub async fn exec(
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
+    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)
+        .context("Failed to create argument blob.")?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -168,7 +181,8 @@ pub async fn exec(
 
     let is_management_canister = canister_id == Principal::management_canister();
     let effective_canister_id =
-        get_effective_canister_id(is_management_canister, method_name, &arg_value, canister_id)?;
+        get_effective_canister_id(is_management_canister, method_name, &arg_value, canister_id)
+            .context("Failed to get effective canister id.")?;
 
     if is_query {
         let res = sign_agent
@@ -210,7 +224,8 @@ pub async fn exec(
         let message: SignedMessageV1 =
             serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
         // message from file guaranteed to have request_id becase it is a update message just generated
-        let request_id = RequestId::from_str(&message.request_id.unwrap())?;
+        let request_id = RequestId::from_str(&message.request_id.unwrap())
+            .context("Failed to parse request id.")?;
         let res = sign_agent
             .request_status_raw(&request_id, canister_id, false)
             .await;

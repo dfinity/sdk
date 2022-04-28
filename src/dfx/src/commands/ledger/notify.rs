@@ -12,7 +12,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::{Decode, Encode};
 use clap::Parser;
 use ic_types::principal::Principal;
@@ -49,29 +49,36 @@ pub async fn exec(env: &dyn Environment, opts: NotifyOpts) -> DfxResult {
         .map_or(Ok(TRANSACTION_FEE), |v| ICPTs::from_str(&v))
         .map_err(|err| anyhow!(err))?;
 
-    let to_subaccount = Some(Subaccount::from(&Principal::from_text(
-        opts.destination_principal,
-    )?));
+    let to_subaccount = Some(Subaccount::from(
+        &Principal::from_text(opts.destination_principal)
+            .context("Failed to parse destination principal.")?,
+    ));
 
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
 
     let result = agent
         .update(&MAINNET_LEDGER_CANISTER_ID, NOTIFY_METHOD)
-        .with_arg(Encode!(&NotifyCanisterArgs {
-            block_height,
-            max_fee,
-            from_subaccount: None,
-            to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
-            to_subaccount,
-        })?)
+        .with_arg(
+            Encode!(&NotifyCanisterArgs {
+                block_height,
+                max_fee,
+                from_subaccount: None,
+                to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
+                to_subaccount,
+            })
+            .context("Failed to encode notify arguments.")?,
+        )
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Failed notify call.")?;
 
-    let result = Decode!(&result, CyclesResponse)?;
+    let result = Decode!(&result, CyclesResponse).context("Failed to decode notify response.")?;
 
     match result {
         CyclesResponse::ToppedUp(()) => {

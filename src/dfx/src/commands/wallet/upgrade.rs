@@ -6,7 +6,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_agent::AgentError;
 use ic_utils::call::AsyncCall;
@@ -26,13 +26,16 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
     // Network descriptor will always be set.
     let network = env.get_network_descriptor().unwrap();
 
-    let canister_id = Identity::wallet_canister_id(env, network, &identity_name)?;
+    let canister_id = Identity::wallet_canister_id(env, network, &identity_name)
+        .context("Failed to get wallet canister id.")?;
 
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
     let install_mode = match agent
         .read_state_canister_info(canister_id, "module_hash", false)
         .await
@@ -47,7 +50,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         Err(x) => bail!(x),
     };
 
-    let wasm = wallet_wasm(env.get_logger())?;
+    let wasm = wallet_wasm(env.get_logger()).context("Failed to load wallet wasm module.")?;
 
     let mgr = ManagementCanister::create(
         env.get_agent()
@@ -57,14 +60,18 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
     mgr.install_code(&canister_id, wasm.as_slice())
         .with_mode(install_mode)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Failed to install wasm.")?;
 
-    let wallet = Identity::build_wallet_canister(canister_id, env).await?;
+    let wallet = Identity::build_wallet_canister(canister_id, env)
+        .await
+        .context("Failed to build wallet canister caller.")?;
 
     wallet
         .wallet_store_wallet_wasm(wasm)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Failed to store wasm in canister.")?;
 
     println!("Upgraded the wallet wasm module.");
     Ok(())

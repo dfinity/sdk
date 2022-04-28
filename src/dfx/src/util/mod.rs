@@ -1,6 +1,7 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 
+use anyhow::Context;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs};
@@ -18,17 +19,25 @@ pub mod clap;
 // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
     let tcp_builder = if ip.is_ipv4() {
-        TcpBuilder::new_v4()?
+        TcpBuilder::new_v4().context("Failed to create IPv4 builder.")?
     } else {
-        TcpBuilder::new_v6()?
+        TcpBuilder::new_v6().context("Failed to create IPv6 builder.")?
     };
     let listener = tcp_builder
-        .reuse_address(true)?
-        .reuse_port(true)?
-        .bind(SocketAddr::new(ip, port))?
-        .to_tcp_listener()?;
-    listener.set_linger(Some(Duration::from_secs(10)))?;
-    Ok(listener.local_addr()?)
+        .reuse_address(true)
+        .context("Failed to set option reuse_address of tcp builder.")?
+        .reuse_port(true)
+        .context("Failed to set option reuse_port of tcp builder.")?
+        .bind(SocketAddr::new(ip, port))
+        .context("Failed to set socket of tcp builder.")?
+        .to_tcp_listener()
+        .context("Failed to create TcpListener.")?;
+    listener
+        .set_linger(Some(Duration::from_secs(10)))
+        .context("Failed to set linger duration of tcp listener.")?;
+    listener
+        .local_addr()
+        .context("Failed to fectch local address.")
 }
 
 pub fn expiry_duration() -> Duration {
@@ -117,7 +126,7 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
 }
 
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    Ok(pretty_check_file(idl_path)?)
+    pretty_check_file(idl_path).context("Pretty check failed.")
 }
 
 pub fn blob_from_arguments(
@@ -182,8 +191,10 @@ pub fn blob_from_arguments(
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
                         let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                        let config = candid::parser::configs::Configs::from_dhall(random)?;
-                        let args = IDLArgs::any(&seed, &config, env, &func.args)?;
+                        let config = candid::parser::configs::Configs::from_dhall(random)
+                            .context("Failed to create candid parser config.")?;
+                        let args = IDLArgs::any(&seed, &config, env, &func.args)
+                            .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(env, &func.args)
                     } else {

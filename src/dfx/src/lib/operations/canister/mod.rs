@@ -15,7 +15,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use ic_types::principal::Principal as CanisterId;
@@ -51,10 +51,13 @@ where
                 .with_effective_canister_id(destination_canister)
                 .build()
                 .call_and_wait(waiter_with_timeout(timeout))
-                .await?
+                .await
+                .context("Update call failed.")?
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env)
+                .await
+                .context("Failed to build wallet caller.")?;
             let out: O = wallet
                 .call(
                     Principal::management_canister(),
@@ -63,7 +66,8 @@ where
                     cycles,
                 )
                 .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
+                .await
+                .context("Update call using wallet failed.")?;
             out
         }
     };
@@ -91,7 +95,8 @@ pub async fn get_canister_status(
         call_sender,
         0,
     )
-    .await?;
+    .await
+    .context("Canister status call failed.")?;
     Ok(out)
 }
 
@@ -115,7 +120,8 @@ pub async fn start_canister(
         call_sender,
         0,
     )
-    .await?;
+    .await
+    .context("Start canister call failed.")?;
     Ok(())
 }
 
@@ -139,7 +145,8 @@ pub async fn stop_canister(
         call_sender,
         0,
     )
-    .await?;
+    .await
+    .context("Stop canister call failed.")?;
     Ok(())
 }
 
@@ -181,7 +188,8 @@ pub async fn update_settings(
         call_sender,
         0,
     )
-    .await?;
+    .await
+    .context("Update settings call failed.")?;
     Ok(())
 }
 
@@ -204,7 +212,8 @@ pub async fn uninstall_code(
         call_sender,
         0,
     )
-    .await?;
+    .await
+    .context("Uninstall call failed.")?;
 
     Ok(())
 }
@@ -228,7 +237,8 @@ pub async fn delete_canister(
         call_sender,
         0,
     )
-    .await?;
+    .await
+    .context("Delete call failed.")?;
 
     Ok(())
 }
@@ -253,7 +263,8 @@ pub async fn deposit_cycles(
         call_sender,
         cycles,
     )
-    .await?;
+    .await
+    .context("Deposit cycles call failed.")?;
 
     Ok(())
 }
@@ -284,7 +295,8 @@ pub async fn provisional_deposit_cycles(
         call_sender,
         0,
     )
-    .await?;
+    .await
+    .context("Provisional top up call failed.")?;
 
     Ok(())
 }
@@ -295,9 +307,13 @@ pub fn get_local_cid_and_candid_path(
     maybe_canister_id: Option<CanisterId>,
 ) -> DfxResult<(CanisterId, Option<PathBuf>)> {
     let config = env.get_config_or_anyhow()?;
-    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
+    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id).context(
+        format!("Failed to load canister info for {}.", canister_name),
+    )?;
     Ok((
-        canister_info.get_canister_id()?,
+        canister_info
+            .get_canister_id()
+            .context("Failed to get canister id.")?,
         canister_info.get_output_idl_path(),
     ))
 }

@@ -36,7 +36,9 @@ pub async fn install_canister(
     let log = env.get_logger();
     let network = env.get_network_descriptor().unwrap();
     if !network.is_ic && named_canister::get_ui_canister_id(network).is_none() {
-        named_canister::install_ui_canister(env, network, None).await?;
+        named_canister::install_ui_canister(env, network, None)
+            .await
+            .context("Failed to install ui canister.")?;
     }
 
     let canister_id = canister_info.get_canister_id().context(format!(
@@ -51,11 +53,14 @@ pub async fn install_canister(
                 .get_output_idl_path()
                 .expect("Generated did file not found");
             let deployed_path = candid_path.with_extension("old.did");
-            std::fs::write(&deployed_path, candid)?;
-            let (mut env, opt_new) = check_candid_file(&candid_path)?;
+            std::fs::write(&deployed_path, candid)
+                .context(format!("Failed to write candid to {:?}.", &deployed_path))?;
+            let (mut env, opt_new) =
+                check_candid_file(&candid_path).context("Candid check failed.")?;
             let new_type =
                 opt_new.expect("Generated did file should contain some service interface");
-            let (env2, opt_old) = check_candid_file(&deployed_path)?;
+            let (env2, opt_old) = check_candid_file(&deployed_path)
+                .context("Candid check for old .did file failed.")?;
             let old_type =
                 opt_old.expect("Deployed did file should contain some service interface");
             let mut gamma = HashSet::new();
@@ -69,19 +74,26 @@ pub async fn install_canister(
     }
     if canister_info.get_type() == "motoko" && matches!(mode, InstallMode::Upgrade) {
         use crate::lib::canister_info::motoko::MotokoCanisterInfo;
-        let info = canister_info.as_info::<MotokoCanisterInfo>()?;
+        let info = canister_info
+            .as_info::<MotokoCanisterInfo>()
+            .context("Failed to create MotokoCanisterInfo.")?;
         let stable_path = info.get_output_stable_path();
         let deployed_stable_path = stable_path.with_extension("old.most");
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
         if let Some(stable_types) = stable_types {
-            std::fs::write(&deployed_stable_path, stable_types)?;
+            std::fs::write(&deployed_stable_path, stable_types).context(format!(
+                "Failed to write stable types to {:?}.",
+                &deployed_stable_path
+            ))?;
             let cache = env.get_cache();
             let output = cache
-                .get_binary_command("moc")?
+                .get_binary_command("moc")
+                .context("Failed to fetch 'moc' binary.")?
                 .arg("--stable-compatible")
                 .arg(&deployed_stable_path)
                 .arg(&stable_path)
-                .output()?;
+                .output()
+                .context("Failed to run 'moc'.")?;
             if !output.status.success() {
                 let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &String::from_utf8_lossy(&output.stderr);
                 ask_for_consent(&msg)?;
@@ -92,7 +104,8 @@ pub async fn install_canister(
     let wasm_path = canister_info
         .get_output_wasm_path()
         .expect("Cannot get WASM output path.");
-    let wasm_module = std::fs::read(wasm_path)?;
+    let wasm_module =
+        std::fs::read(&wasm_path).context(format!("Failed to read {:?}.", &wasm_path))?;
 
     if mode == InstallMode::Upgrade
         && wasm_module_already_installed(&wasm_module, installed_module_hash.as_deref())
@@ -114,12 +127,15 @@ pub async fn install_canister(
             call_sender,
             wasm_module,
         )
-        .await?;
+        .await
+        .context("Failed during wasm installation call.")?;
     }
 
     if canister_info.get_type() == "assets" {
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env)
+                .await
+                .context("Failed to build wallet canister.")?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,
@@ -137,11 +153,14 @@ pub async fn install_canister(
                     0,
                 )
                 .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
+                .await
+                .context("Failed to authorize your principal with the canister. You can still control the canister by using your wallet with the --wallet flag.")?;
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent, timeout).await?;
+        post_install_store_assets(canister_info, agent, timeout)
+            .await
+            .context("Failed to store assets.")?;
     }
 
     Ok(())
@@ -194,12 +213,16 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                 .with_raw_arg(args.to_vec())
                 .with_mode(mode);
             install_builder
-                .build()?
+                .build()
+                .context("Failed to build call sender.")?
                 .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
+                .await
+                .context("Failed to install wasm.")?;
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env)
+                .await
+                .context("Failed to build wallet caller.")?;
             let install_args = CanisterInstall {
                 mode,
                 canister_id,
@@ -214,7 +237,8 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                     0,
                 )
                 .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
+                .await
+                .context("Failed during wasm installation.")?;
         }
     }
     Ok(())

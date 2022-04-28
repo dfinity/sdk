@@ -5,7 +5,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::CandidType;
 use clap::Parser;
 use ic_types::Principal;
@@ -28,11 +28,13 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
         canister: Principal,
         amount: u128,
     }
-    let canister = Principal::from_text(opts.destination.clone())?;
+    let canister = Principal::from_text(&opts.destination)
+        .context("Failed to parse destination principal.")?;
     // amount has been validated by cycle_amount_validator
     let amount = opts.amount.parse::<u128>().unwrap();
     let res = get_wallet(env)
-        .await?
+        .await
+        .context("Failed to fetch wallet caller.")?
         .wallet_send(canister, amount, waiter_with_timeout(expiry_duration()))
         .await;
     Ok(res.map_err(|err| {

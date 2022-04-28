@@ -75,14 +75,16 @@ pub struct EnvironmentImpl {
 
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
-        let config = Config::from_current_dir()?;
+        let config = Config::from_current_dir()
+            .context("Failed to read config from current working directory.")?;
         let temp_dir = match &config {
             None => tempfile::tempdir()
                 .expect("Could not create a temporary directory.")
                 .into_path(),
             Some(c) => c.get_path().parent().unwrap().join(".dfx"),
         };
-        create_dir_all(&temp_dir)?;
+        create_dir_all(&temp_dir)
+            .context(format!("Failed to create temp directory {:?}.", &temp_dir))?;
 
         // Figure out which version of DFX we should be running. This will use the following
         // fallback sequence:
@@ -97,14 +99,16 @@ impl EnvironmentImpl {
                 None => dfx_version().clone(),
                 Some(c) => match &c.get_config().get_dfx() {
                     None => dfx_version().clone(),
-                    Some(v) => Version::parse(v)?,
+                    Some(v) => Version::parse(v)
+                        .context(format!("Failed to parse version from '{:?}'.", v))?,
                 },
             },
             Ok(v) => {
                 if v.is_empty() {
                     dfx_version().clone()
                 } else {
-                    Version::parse(&v)?
+                    Version::parse(&v)
+                        .context(format!("Failed to parse version from '{:?}'.", v))?
                 }
             }
         };
@@ -223,8 +227,11 @@ impl<'a> AgentEnvironment<'a> {
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
     ) -> DfxResult<Self> {
-        let mut identity_manager = IdentityManager::new(backend)?;
-        let identity = identity_manager.instantiate_selected_identity()?;
+        let mut identity_manager =
+            IdentityManager::new(backend).context("Failed to set up identity manager.")?;
+        let identity = identity_manager
+            .instantiate_selected_identity()
+            .context("Failed to instantiate selected identity.")?;
 
         let agent_url = network_descriptor.providers.first().unwrap();
         Ok(AgentEnvironment {
@@ -327,7 +334,9 @@ impl AgentClient {
     }
 
     fn http_auth_path() -> DfxResult<PathBuf> {
-        Ok(cache::get_cache_root()?.join("http_auth"))
+        Ok(cache::get_cache_root()
+            .context("Failed to get cache root.")?
+            .join("http_auth"))
     }
 
     // A connection is considered secure if it goes to an HTTPs scheme or if it's the
@@ -337,8 +346,8 @@ impl AgentClient {
     }
 
     fn read_http_auth_map(&self) -> DfxResult<BTreeMap<String, String>> {
-        let p = &Self::http_auth_path()?;
-        let content = std::fs::read_to_string(p)?;
+        let p = &Self::http_auth_path().context("Failed to determine http auth path.")?;
+        let content = std::fs::read_to_string(p).context(format!("Failed to read {:?}.", p))?;
 
         // If there's an error parsing, simply use an empty map.
         Ok(
@@ -351,7 +360,9 @@ impl AgentClient {
         match self.url.host() {
             None => Ok(None),
             Some(h) => {
-                let map = self.read_http_auth_map()?;
+                let map = self
+                    .read_http_auth_map()
+                    .context("Failed to read http auth map.")?;
                 if let Some(token) = map.get(&h.to_string()) {
                     if !self.is_secure() {
                         slog::warn!(
@@ -386,8 +397,14 @@ impl AgentClient {
             .unwrap_or_else(|_| BTreeMap::new());
         map.insert(host.to_string(), auth.to_string());
 
-        let p = Self::http_auth_path()?;
-        std::fs::write(&p, serde_json::to_string(&map)?.as_bytes())?;
+        let p = Self::http_auth_path().context("Failed to get http auth path.")?;
+        std::fs::write(
+            &p,
+            serde_json::to_string(&map)
+                .context("Failed to serialize http auth.")?
+                .as_bytes(),
+        )
+        .context(format!("Failed to write to {:?}.", &p))?;
 
         Ok(p)
     }

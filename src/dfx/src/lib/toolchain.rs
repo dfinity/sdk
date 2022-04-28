@@ -2,7 +2,7 @@ use crate::config::cache;
 use crate::lib::dist;
 use crate::lib::error::{DfxError, DfxResult};
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use semver::{Version, VersionReq};
 use std::fmt;
 use std::fmt::Formatter;
@@ -60,13 +60,14 @@ impl Toolchain {
     pub fn update(&self) -> DfxResult<()> {
         eprintln!("Syncing toolchain: {}", self);
 
-        let toolchain_path = self.get_path()?;
+        let toolchain_path = self.get_path().context("Failed to get toolchain path.")?;
 
         let mut installed_version: Option<Version> = None;
         if let Ok(meta) = std::fs::symlink_metadata(&toolchain_path) {
             match meta.file_type().is_symlink() {
                 true => {
-                    let src = std::fs::read_link(&toolchain_path)?;
+                    let src = std::fs::read_link(&toolchain_path)
+                        .context(format!("Failed to read symlink {:?}.", &toolchain_path))?;
                     let src_name = src.file_name().unwrap().to_str().unwrap();
                     installed_version = Some(Version::parse(src_name).unwrap());
                     eprintln!(
@@ -79,9 +80,17 @@ impl Toolchain {
         }
 
         let resolved_version: Version = match self {
-            Toolchain::CompleteVersion(v) => is_version_available(v)?,
-            Toolchain::MajorMinor(major, minor) => get_compatible_version(major, minor)?,
-            Toolchain::Tag(t) => get_tag_version(t)?,
+            Toolchain::CompleteVersion(v) => is_version_available(v).context(format!(
+                "Failed to determine if complete version {} is available.",
+                v
+            ))?,
+            Toolchain::MajorMinor(major, minor) => {
+                get_compatible_version(major, minor).context(format!(
+                    "Failed to get compatible version for major {} and minor {}.",
+                    major, minor
+                ))?
+            }
+            Toolchain::Tag(t) => get_tag_version(t).context("Failed to get tag version.")?,
         };
         eprintln!("The latest compatible SDK version is {}", resolved_version);
 
@@ -92,16 +101,27 @@ impl Toolchain {
         };
 
         if status != "unchanged" {
-            match cache::is_version_installed(&resolved_version.to_string())? {
+            match cache::is_version_installed(&resolved_version.to_string())
+                .context("Failed while determining if version is installed.")?
+            {
                 true => eprintln!("SDK version {} already installed", resolved_version),
-                false => dist::install_version(&resolved_version)?,
+                false => dist::install_version(&resolved_version)
+                    .context(format!("Failed to install version {}.", &resolved_version))?,
             };
 
-            let cache_path = cache::get_bin_cache(&resolved_version.to_string())?;
+            let cache_path =
+                cache::get_bin_cache(&resolved_version.to_string()).context(format!(
+                    "Failed to get binary cache for version {}.",
+                    &resolved_version
+                ))?;
             if toolchain_path.exists() {
-                std::fs::remove_file(&toolchain_path)?;
+                std::fs::remove_file(&toolchain_path)
+                    .context(format!("Failed to remove {:?}.", &toolchain_path))?;
             }
-            std::os::unix::fs::symlink(cache_path, toolchain_path)?;
+            std::os::unix::fs::symlink(&cache_path, &toolchain_path).context(format!(
+                "Failed to create symlink from {:?} to {:?}.",
+                &toolchain_path, &cache_path
+            ))?;
         }
 
         eprintln!(
@@ -114,9 +134,10 @@ impl Toolchain {
 
     pub fn uninstall(&self) -> DfxResult<()> {
         eprintln!("Uninstalling toolchain: {}", self);
-        let toolchain_path = self.get_path()?;
+        let toolchain_path = self.get_path().context("Failed to get toolchain path.")?;
         if toolchain_path.exists() {
-            std::fs::remove_file(toolchain_path)?;
+            std::fs::remove_file(&toolchain_path)
+                .context(format!("Failed to remove {:?}.", &toolchain_path))?;
             eprintln!("Toolchain {} uninstalled", self);
         } else {
             eprintln!("Toolchain {} has not been installed", self);
@@ -125,61 +146,79 @@ impl Toolchain {
     }
 
     pub fn get_path(&self) -> DfxResult<PathBuf> {
-        let home = std::env::var("HOME")?;
+        let home = std::env::var("HOME").context("Failed to resolve env var 'HOME'.")?;
         let home = Path::new(&home);
         let toolchains_dir = home.join(TOOLCHAINS_ROOT);
-        std::fs::create_dir_all(&toolchains_dir)?;
+        std::fs::create_dir_all(&toolchains_dir).context(format!(
+            "Failed to create toolchain dir {:?}.",
+            &toolchains_dir
+        ))?;
         Ok(toolchains_dir.join(self.to_string()))
     }
 
     pub fn set_default(&self) -> DfxResult<()> {
-        self.update()?;
-        let default_path = get_default_path()?;
-        let toolchain_path = self.get_path()?;
+        self.update().context("Failed to update.")?;
+        let default_path = get_default_path().context("Failed to get default toolchain path.")?;
+        let toolchain_path = self.get_path().context("Failed to get toolchain path.")?;
         if default_path.exists() {
-            std::fs::remove_file(&default_path)?;
+            std::fs::remove_file(&default_path).context(format!(
+                "Failed to remove default toolchain path {:?}.",
+                &default_path
+            ))?;
         }
-        std::os::unix::fs::symlink(toolchain_path, default_path)?;
+        std::os::unix::fs::symlink(&toolchain_path, &default_path).context(format!(
+            "Failed to create symlink from {:?} to {:?}.",
+            &toolchain_path, &default_path
+        ))?;
         println!("Default toolchain set to {}", self);
         Ok(())
     }
 }
 
 pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
-    let home = std::env::var("HOME")?;
+    let home = std::env::var("HOME").context("Failed to resolve env var 'HOME'.")?;
     let home = Path::new(&home);
     let toolchains_dir = home.join(TOOLCHAINS_ROOT);
     let mut toolchains = vec![];
-    for entry in std::fs::read_dir(toolchains_dir)? {
-        let entry = entry?;
+    for entry in std::fs::read_dir(&toolchains_dir).context(format!(
+        "Failed to read toolchain dir {:?}.",
+        &toolchains_dir
+    ))? {
+        let entry = entry.context("Failed to read directory entry.")?;
         if let Some(name) = entry.file_name().to_str() {
-            toolchains.push(name.parse::<Toolchain>()?);
+            toolchains.push(
+                name.parse::<Toolchain>()
+                    .context(format!("Failed to add {} to toolchains.", name))?,
+            );
         }
     }
     Ok(toolchains)
 }
 
 pub fn get_default_toolchain() -> DfxResult<Toolchain> {
-    let default_path = get_default_path()?;
+    let default_path = get_default_path().context("Failed to get default toolchain path.")?;
     if !default_path.exists() {
         bail!("Default toolchain not set");
     }
-    let toolchain_path = std::fs::read_link(&default_path)?;
+    let toolchain_path = std::fs::read_link(&default_path).context(format!(
+        "Failed to read default toolchain symlink at {:?}.",
+        &default_path
+    ))?;
     let toolchain_name = toolchain_path.file_name().unwrap().to_str().unwrap();
     toolchain_name.parse::<Toolchain>()
 }
 
 fn get_default_path() -> DfxResult<PathBuf> {
-    let home = std::env::var("HOME")?;
+    let home = std::env::var("HOME").context("Failed to read env var 'HOME'.")?;
     let home = Path::new(&home);
     let default_path = home.join(DEFAULT_PATH);
     let parent = default_path.parent().unwrap();
-    std::fs::create_dir_all(parent)?;
+    std::fs::create_dir_all(parent).context(format!("Failed to create dir {:?}.", parent))?;
     Ok(default_path)
 }
 
 fn is_version_available(v: &Version) -> DfxResult<Version> {
-    let manifest = dist::get_manifest()?;
+    let manifest = dist::get_manifest().context("Failed to get distribution manifest.")?;
     let versions = manifest.get_versions();
     match versions.contains(v) {
         true => Ok(v.clone()),
@@ -188,7 +227,7 @@ fn is_version_available(v: &Version) -> DfxResult<Version> {
 }
 
 fn get_compatible_version(major: &u8, minor: &u8) -> DfxResult<Version> {
-    let manifest = dist::get_manifest()?;
+    let manifest = dist::get_manifest().context("Failed to get distribution manifest.")?;
     let versions = manifest.get_versions();
     let req = VersionReq::parse(&format!("{}.{}", major, minor)).unwrap();
     let compatible_version = versions.iter().filter(|v| req.matches(v)).max();
@@ -203,7 +242,7 @@ fn get_compatible_version(major: &u8, minor: &u8) -> DfxResult<Version> {
 }
 
 fn get_tag_version(tag: &str) -> DfxResult<Version> {
-    let manifest = dist::get_manifest()?;
+    let manifest = dist::get_manifest().context("Failed to get distribution manifest.")?;
     let tag_version = manifest.get_tag_version(tag);
     match tag_version {
         Some(v) => Ok(v.clone()),

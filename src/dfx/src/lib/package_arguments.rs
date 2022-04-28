@@ -1,7 +1,7 @@
 use crate::config::cache::Cache;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use std::process::Command;
 
 /// Package arguments for moc or mo-ide as returned by
@@ -12,7 +12,8 @@ pub type PackageArguments = Vec<String>;
 pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageArguments> {
     if packtool.is_none() {
         let stdlib_path = cache
-            .get_binary_command_path("base")?
+            .get_binary_command_path("base")
+            .context("Failed to get path to 'base' binary.")?
             .into_os_string()
             .into_string()
             .map_err(|_| anyhow!("Path contains invalid Unicode data."))?;

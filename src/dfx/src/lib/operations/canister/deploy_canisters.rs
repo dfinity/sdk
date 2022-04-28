@@ -10,7 +10,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -39,17 +39,19 @@ pub async fn deploy_canisters(
     let config = env
         .get_config()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
-    let initial_canister_id_store = CanisterIdStore::for_env(env)?;
+    let initial_canister_id_store =
+        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
 
     let network = env.get_network_descriptor().unwrap();
 
-    let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
+    let canisters_to_build = canister_with_dependencies(&config, some_canister)
+        .context("Failed to fetch canister list to build.")?;
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
         match some_canister {
             Some(canister_name) => {
-                if config.get_config().is_remote_canister(canister_name, &network.name)? {
+                if config.get_config().is_remote_canister(canister_name, &network.name).context(format!("Failed while determining if {} is remote or not.", canister_name))? {
                     bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
                     canister_name, &network.name);
                 }
@@ -87,9 +89,10 @@ pub async fn deploy_canisters(
         create_call_sender,
         &config,
     )
-    .await?;
+    .await
+    .context("Failed while trying to register all canisters.")?;
 
-    build_canisters(env, &canisters_to_build, &config)?;
+    build_canisters(env, &canisters_to_build, &config).context("Failed to build canisters")?;
 
     install_canisters(
         env,
@@ -103,7 +106,8 @@ pub async fn deploy_canisters(
         timeout,
         call_sender,
     )
-    .await?;
+    .await
+    .context("Failed while trying to install all canisters.")?;
 
     info!(log, "Deployed canisters.");
 
@@ -116,7 +120,8 @@ fn canister_with_dependencies(
 ) -> DfxResult<Vec<String>> {
     let mut canister_names = config
         .get_config()
-        .get_canister_names_with_dependencies(some_canister)?;
+        .get_canister_names_with_dependencies(some_canister)
+        .context("Failed to get canister names and their dependencies from loaded config.")?;
     canister_names.sort();
     Ok(canister_names)
 }
@@ -141,33 +146,42 @@ async fn register_canisters(
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
             let config_interface = config.get_config();
-            let compute_allocation =
-                config_interface
-                    .get_compute_allocation(canister_name)?
-                    .map(|arg| {
-                        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
-                            .expect("Compute Allocation must be a percentage.")
-                    });
-            let memory_allocation =
-                config_interface
-                    .get_memory_allocation(canister_name)?
-                    .map(|arg| {
-                        MemoryAllocation::try_from(
+            let compute_allocation = config_interface
+                .get_compute_allocation(canister_name)
+                .context(format!(
+                    "Failed to get compute allocation for {}.",
+                    canister_name
+                ))?
+                .map(|arg| {
+                    ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
+                        .expect("Compute Allocation must be a percentage.")
+                });
+            let memory_allocation = config_interface
+                .get_memory_allocation(canister_name)
+                .context(format!(
+                    "Failed to get memory allocation for {}.",
+                    canister_name
+                ))?
+                .map(|arg| {
+                    MemoryAllocation::try_from(
                         u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
                     )
                     .expect(
                         "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
                     )
-                    });
-            let freezing_threshold =
-                config_interface
-                    .get_freezing_threshold(canister_name)?
-                    .map(|arg| {
-                        FreezingThreshold::try_from(
-                            u128::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
-                        )
-                        .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
-                    });
+                });
+            let freezing_threshold = config_interface
+                .get_freezing_threshold(canister_name)
+                .context(format!(
+                    "Failed to get freezing threshold for {}.",
+                    canister_name
+                ))?
+                .map(|arg| {
+                    FreezingThreshold::try_from(
+                        u128::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
+                    )
+                    .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
+                });
             let controllers = None;
             create_canister(
                 env,
@@ -182,7 +196,8 @@ async fn register_canisters(
                     freezing_threshold,
                 },
             )
-            .await?;
+            .await
+            .context("Create canister call failed.")?;
         }
     }
     Ok(())
@@ -191,9 +206,12 @@ async fn register_canisters(
 fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Config) -> DfxResult {
     info!(env.get_logger(), "Building canisters...");
     let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
+    let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)
+        .context("Failed to load canister pool from given canisters.")?;
 
-    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)
+    canister_pool.build_or_fail(
+        &BuildConfig::from_config(config).context("Failed to create build config from config.")?,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -215,7 +233,8 @@ async fn install_canisters(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store =
+        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
 
     for canister_name in canister_names {
         let (install_mode, installed_module_hash) = if force_reinstall {
@@ -242,12 +261,17 @@ async fn install_canisters(
             }
         };
 
-        let canister_id = canister_id_store.get(canister_name)?;
-        let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
+        let canister_id = canister_id_store
+            .get(canister_name)
+            .context(format!("Failed to get canister id for {}.", canister_name))?;
+        let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id)).context(
+            format!("Failed to load canister info for {}.", canister_name),
+        )?;
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-        let install_args = blob_from_arguments(argument, None, argument_type, &init_type)?;
+        let install_args = blob_from_arguments(argument, None, argument_type, &init_type)
+            .context("Failed to create argument blob.")?;
 
         install_canister(
             env,
@@ -260,7 +284,8 @@ async fn install_canisters(
             installed_module_hash,
             upgrade_unchanged,
         )
-        .await?;
+        .await
+        .context("Canister install call failed.")?;
     }
 
     Ok(())

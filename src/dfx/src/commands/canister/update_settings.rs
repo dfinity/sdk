@@ -13,7 +13,7 @@ use crate::util::clap::validators::{
 };
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_agent::identity::Identity;
 use ic_types::principal::Principal as CanisterId;
@@ -62,7 +62,9 @@ pub async fn exec(
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
     let config_interface = config.get_config();
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(env)
+        .await
+        .context("Failed to fetch root key.")?;
 
     let controllers: Option<DfxResult<Vec<_>>> = opts.controller.as_ref().map(|controllers| {
         let y: DfxResult<Vec<_>> = controllers
@@ -71,14 +73,21 @@ pub async fn exec(
             .collect::<DfxResult<Vec<_>>>();
         y
     });
-    let controllers = controllers.transpose()?;
+    let controllers = controllers
+        .transpose()
+        .context("Failed to fetch controllers.")?;
 
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store =
+        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
 
     if let Some(canister_name_or_id) = opts.canister.as_deref() {
         let mut controllers = controllers;
         let canister_id = CanisterId::from_text(canister_name_or_id)
-            .or_else(|_| canister_id_store.get(canister_name_or_id))?;
+            .or_else(|_| canister_id_store.get(canister_name_or_id))
+            .context(format!(
+                "Failed to get canister id for {}.",
+                canister_name_or_id
+            ))?;
         let textual_cid = canister_id.to_text();
         let canister_name = canister_id_store.get_name(&textual_cid).map(|x| &**x);
 
@@ -86,22 +95,30 @@ pub async fn exec(
             opts.compute_allocation.clone(),
             config_interface,
             canister_name,
-        )?;
+        )
+        .context("Failed to get compute allocation.")?;
         let memory_allocation = get_memory_allocation(
             opts.memory_allocation.clone(),
             config_interface,
             canister_name,
-        )?;
+        )
+        .context("Failed to get memory allocation.")?;
         let freezing_threshold = get_freezing_threshold(
             opts.freezing_threshold.clone(),
             config_interface,
             canister_name,
-        )?;
+        )
+        .context("Failed to get freezing threshold.")?;
         if let Some(added) = &opts.add_controller {
-            let status = get_canister_status(env, canister_id, timeout, call_sender).await?;
+            let status = get_canister_status(env, canister_id, timeout, call_sender)
+                .await
+                .context("Failed to get canister status.")?;
             let mut existing_controllers = status.settings.controllers;
             for s in added {
-                existing_controllers.push(controller_to_principal(env, s)?);
+                existing_controllers.push(
+                    controller_to_principal(env, s)
+                        .context("Failed to convert controller to principal.")?,
+                );
             }
             controllers = Some(existing_controllers);
         }
@@ -109,13 +126,16 @@ pub async fn exec(
             let controllers = if opts.add_controller.is_some() {
                 controllers.as_mut().unwrap()
             } else {
-                let status = get_canister_status(env, canister_id, timeout, call_sender).await?;
+                let status = get_canister_status(env, canister_id, timeout, call_sender)
+                    .await
+                    .context("Failed to get canister status.")?;
                 controllers.get_or_insert(status.settings.controllers)
             };
             let removed = removed
                 .iter()
                 .map(|r| controller_to_principal(env, r))
-                .collect::<DfxResult<Vec<_>>>()?;
+                .collect::<DfxResult<Vec<_>>>()
+                .context("Failed to convert controller to principal.")?;
             for s in removed {
                 if let Some(idx) = controllers.iter().position(|x| *x == s) {
                     controllers.swap_remove(idx);
@@ -128,35 +148,55 @@ pub async fn exec(
             memory_allocation,
             freezing_threshold,
         };
-        update_settings(env, canister_id, settings, timeout, call_sender).await?;
+        update_settings(env, canister_id, settings, timeout, call_sender)
+            .await
+            .context("Failed to update settings.")?;
         display_controller_update(&opts, canister_name_or_id);
     } else if opts.all {
         // Update all canister settings.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
                 let mut controllers = controllers.clone();
-                let canister_id = canister_id_store.get(canister_name)?;
+                let canister_id = canister_id_store
+                    .get(canister_name)
+                    .context(format!("Failed to get canister id for {}.", canister_name))?;
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
                     config_interface,
                     Some(canister_name),
-                )?;
+                )
+                .context(format!(
+                    "Failed to get compute allocation for {}.",
+                    canister_name
+                ))?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation.clone(),
                     config_interface,
                     Some(canister_name),
-                )?;
+                )
+                .context(format!(
+                    "Failed to get memory allocation for {}.",
+                    canister_name
+                ))?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold.clone(),
                     config_interface,
                     Some(canister_name),
-                )?;
+                )
+                .context(format!(
+                    "Failed to get freezing threshold for {}.",
+                    canister_name
+                ))?;
                 if let Some(added) = &opts.add_controller {
-                    let status =
-                        get_canister_status(env, canister_id, timeout, call_sender).await?;
+                    let status = get_canister_status(env, canister_id, timeout, call_sender)
+                        .await
+                        .context("Failed to get canister status.")?;
                     let mut existing_controllers = status.settings.controllers;
                     for s in added {
-                        existing_controllers.push(controller_to_principal(env, s)?);
+                        existing_controllers.push(
+                            controller_to_principal(env, s)
+                                .context("Failed to convert controller to principal.")?,
+                        );
                     }
                     controllers = Some(existing_controllers);
                 }
@@ -164,8 +204,9 @@ pub async fn exec(
                     let controllers = if opts.add_controller.is_some() {
                         controllers.as_mut().unwrap()
                     } else {
-                        let status =
-                            get_canister_status(env, canister_id, timeout, call_sender).await?;
+                        let status = get_canister_status(env, canister_id, timeout, call_sender)
+                            .await
+                            .context("Failed to get canister status.")?;
                         controllers.get_or_insert(status.settings.controllers)
                     };
                     let removed = removed
@@ -184,7 +225,9 @@ pub async fn exec(
                     memory_allocation,
                     freezing_threshold,
                 };
-                update_settings(env, canister_id, settings, timeout, call_sender).await?;
+                update_settings(env, canister_id, settings, timeout, call_sender)
+                    .await
+                    .context("Failed to update canister settings.")?;
                 display_controller_update(&opts, canister_name);
             }
         }
@@ -204,7 +247,8 @@ fn controller_to_principal(env: &dyn Environment, controller: &str) -> DfxResult
                 Ok(env.get_selected_identity_principal().unwrap())
             } else {
                 let identity_name = controller;
-                IdentityManager::new(env)?
+                IdentityManager::new(env)
+                    .context("Failed to load identity manager.")?
                     .instantiate_identity_from_name(identity_name)
                     .and_then(|identity| identity.sender().map_err(|err| anyhow!(err)))
             }

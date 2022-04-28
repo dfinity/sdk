@@ -46,7 +46,8 @@ pub struct TransferOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
-    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
+    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)
+        .context("Failed to determine ICP amount.")?;
 
     let fee = opts.fee.clone().map_or(TRANSACTION_FEE, |v| {
         ICPTs::from_str(&v).expect("bug: amount_validator did not validate the fee")
@@ -80,7 +81,9 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         .ledger_canister_id
         .unwrap_or(MAINNET_LEDGER_CANISTER_ID);
 
-    let block_height = transfer(agent, &canister_id, memo, amount, fee, to).await?;
+    let block_height = transfer(agent, &canister_id, memo, amount, fee, to)
+        .await
+        .context("Failed transfer call.")?;
 
     println!("Transfer sent at BlockHeight: {}", block_height);
 

@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::manifest::{get_latest_release, get_latest_version};
 
+use anyhow::Context;
 use clap::Parser;
 use semver::Version;
 
@@ -24,18 +25,20 @@ pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
         _ => panic!("Not supported architecture"),
     };
     let current_version = if let Some(version) = opts.current_version {
-        Version::parse(&version)?
+        Version::parse(&version).context(format!("Failed to parse {} as version.", &version))?
     } else {
         env.get_version().clone()
     };
 
     println!("Current version: {}", current_version);
     let release_root = opts.release_root.as_str();
-    let latest_version = get_latest_version(release_root, None)?;
+    let latest_version =
+        get_latest_version(release_root, None).context("Failed to determine latest version.")?;
 
     if latest_version > current_version {
         println!("New version available: {}", latest_version);
-        get_latest_release(release_root, &latest_version, os_arch)?;
+        get_latest_release(release_root, &latest_version, os_arch)
+            .context("Failed to get latest release.")?;
     } else {
         println!("Already up to date");
     }

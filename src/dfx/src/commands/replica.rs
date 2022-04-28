@@ -8,6 +8,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
 use crate::commands::start::{get_btc_adapter_config, get_btc_adapter_socket_path};
+use anyhow::Context;
 use clap::Parser;
 use std::default::Default;
 use std::path::PathBuf;
@@ -39,7 +40,7 @@ fn get_config(
     btc_adapter_socket: Option<PathBuf>,
 ) -> DfxResult<ReplicaConfig> {
     let config = get_config_from_file(env);
-    let port = get_port(&config, opts.port)?;
+    let port = get_port(&config, opts.port).context("Failed to get port.")?;
     let mut http_handler: HttpHandlerConfig = Default::default();
     if port == 0 {
         let replica_port_path = env
@@ -88,47 +89,59 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let system = actix::System::new();
 
     let btc_adapter_pid_file_path = env.get_temp_dir().join("ic-btc-adapter-pid");
-    std::fs::write(&btc_adapter_pid_file_path, "")?;
+    std::fs::write(&btc_adapter_pid_file_path, "").context(format!(
+        "Failed to clear/create BTC adapter pid file {:?}.",
+        &btc_adapter_pid_file_path
+    ))?;
 
-    system.block_on(async move {
-        let shutdown_controller = start_shutdown_controller(env)?;
-        if opts.emulator {
-            start_emulator_actor(env, shutdown_controller)?;
-        } else {
-            let config = env.get_config_or_anyhow()?;
-            let btc_adapter_config = get_btc_adapter_config(
-                &config,
-                opts.enable_bitcoin,
-                opts.btc_adapter_config.clone(),
-            )?;
+    system
+        .block_on(async move {
+            let shutdown_controller =
+                start_shutdown_controller(env).context("Failed to start shutdown controller.")?;
+            if opts.emulator {
+                start_emulator_actor(env, shutdown_controller)
+                    .context("Failed to start emulator actor.")?;
+            } else {
+                let config = env.get_config_or_anyhow()?;
+                let btc_adapter_config = get_btc_adapter_config(
+                    &config,
+                    opts.enable_bitcoin,
+                    opts.btc_adapter_config.clone(),
+                )
+                .context("Failed to get BTC adapter config.")?;
 
-            let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                if let Some(btc_adapter_config) = btc_adapter_config {
-                    let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)?;
-                    let ready_subscribe = start_btc_adapter_actor(
-                        env,
-                        btc_adapter_config,
-                        socket_path.clone(),
-                        shutdown_controller.clone(),
-                        btc_adapter_pid_file_path,
-                    )?
-                    .recipient();
-                    (Some(ready_subscribe), socket_path)
-                } else {
-                    (None, None)
-                };
+                let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
+                    if let Some(btc_adapter_config) = btc_adapter_config {
+                        let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)
+                            .context("Failed to get BTC adapter socket path.")?;
+                        let ready_subscribe = start_btc_adapter_actor(
+                            env,
+                            btc_adapter_config,
+                            socket_path.clone(),
+                            shutdown_controller.clone(),
+                            btc_adapter_pid_file_path,
+                        )
+                        .context("Failed to start BTC adapter actor.")?
+                        .recipient();
+                        (Some(ready_subscribe), socket_path)
+                    } else {
+                        (None, None)
+                    };
 
-            let replica_config = get_config(env, opts, btc_adapter_socket_path)?;
+                let replica_config = get_config(env, opts, btc_adapter_socket_path)
+                    .context("Failed to get replica config")?;
 
-            start_replica_actor(
-                env,
-                replica_config,
-                shutdown_controller,
-                btc_adapter_ready_subscribe,
-            )?;
-        }
-        DfxResult::Ok(())
-    })?;
-    system.run()?;
+                start_replica_actor(
+                    env,
+                    replica_config,
+                    shutdown_controller,
+                    btc_adapter_ready_subscribe,
+                )
+                .context("Failed to start replica actor")?;
+            }
+            DfxResult::Ok(())
+        })
+        .context("Failed to setup replica.")?;
+    system.run().context("Failed to run replica.")?;
     Ok(())
 }

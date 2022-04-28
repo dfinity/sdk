@@ -39,7 +39,7 @@ pub fn get_network_descriptor<'a>(
         Arc::new(Config::from_str("{}").unwrap())
     });
     let config = config.as_ref().get_config();
-    let network_name = get_network_context()?;
+    let network_name = get_network_context().context("Failed to get network context.")?;
     match config.get_network(&network_name) {
         Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
             let provider_urls = match &network_provider.providers {
@@ -98,7 +98,8 @@ pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
     network: Option<String>,
 ) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = get_network_descriptor(env, network)?;
+    let network_descriptor =
+        get_network_descriptor(env, network).context("Failed to get network descriptor.")?;
     let timeout = expiry_duration();
     AgentEnvironment::new(env, network_descriptor, timeout)
 }

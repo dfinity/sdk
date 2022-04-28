@@ -27,9 +27,12 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
         let network_descriptor = env.get_network_descriptor().expect("no network descriptor");
-        let store = CanisterIdStore::for_network(network_descriptor)?;
+        let store = CanisterIdStore::for_network(network_descriptor).context(format!(
+            "Failed to load canister id stor for network {}.",
+            network_descriptor.name
+        ))?;
 
-        let remote_ids = get_remote_ids(env)?;
+        let remote_ids = get_remote_ids(env).context("Failed to get remote ids.")?;
 
         Ok(CanisterIdStore {
             remote_ids,
@@ -48,7 +51,7 @@ impl CanisterIdStore {
             }
         };
         let ids = if path.is_file() {
-            CanisterIdStore::load_ids(&path)?
+            CanisterIdStore::load_ids(&path).context("Failed to load ids.")?
         } else {
             CanisterIds::new()
         };
@@ -89,10 +92,11 @@ impl CanisterIdStore {
     }
 
     pub fn save_ids(&self) -> DfxResult {
-        let content = serde_json::to_string_pretty(&self.ids)?;
+        let content =
+            serde_json::to_string_pretty(&self.ids).context("Failed to serialize ids.")?;
         let parent = self.path.parent().unwrap();
         if !parent.exists() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent).context(format!("Failed to create {:?}.", parent))?;
         }
         std::fs::write(&self.path, content).context(format!(
             "Cannot write to file at '{}'.",
