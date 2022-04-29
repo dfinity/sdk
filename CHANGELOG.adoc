@@ -158,14 +158,15 @@ Updated to version 0.14.0 of agent-rs
 
 == Cycles wallet
 
-Module hash: 6c71179a123784bd39cd6348306a225e19c443b0df25f839ea2b2080de79ec32
+Module hash: bb001d1ebff044ba43c060956859f614963d05c77bd778468fce4de095fe8f92
 https://github.com/dfinity/cycles-wallet/commit/f18e9f5c2f96e9807b6f149c975e25638cc3356b
 
 == Replica
 
-Updated replica to elected commit 0ef2aebde4ff735a1a93efa342dcf966b6df5061.
+Updated replica to elected commit b3788091fbdb8bed7e527d2df4cc5e50312f476c.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/57150[57150]
 * https://dashboard.internetcomputer.org/proposal/54964[54964]
 * https://dashboard.internetcomputer.org/proposal/53702[53702]
 * https://dashboard.internetcomputer.org/proposal/53231[53231]
