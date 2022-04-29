@@ -21,8 +21,8 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 };
 
 const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
-    adapter_config: None,
     enabled: false,
+    nodes: None,
 };
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
@@ -86,18 +86,13 @@ pub struct CanisterDeclarationsConfig {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct ConfigDefaultsBitcoinAdapterConfig {
-    /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
-    #[serde(default)]
-    pub nodes: Vec<SocketAddr>,
-}
-
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBitcoin {
-    pub adapter_config: Option<ConfigDefaultsBitcoinAdapterConfig>,
-
     #[serde(default = "default_as_false")]
     pub enabled: bool,
+
+    /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
+    #[serde(default)]
+    pub nodes: Option<Vec<SocketAddr>>,
 }
 
 fn default_as_false() -> bool {

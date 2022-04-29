@@ -365,15 +365,7 @@ pub fn write_btc_adapter_config_if_enabled(
         return Ok(None);
     };
 
-    let nodes = match (
-        nodes,
-        &config
-            .get_defaults()
-            .get_bitcoin()
-            .adapter_config
-            .as_ref()
-            .map(|x| x.nodes.clone()),
-    ) {
+    let nodes = match (nodes, &config.get_defaults().get_bitcoin().nodes) {
         (cli_nodes, _) if !cli_nodes.is_empty() => cli_nodes,
         (_, Some(default_nodes)) if !default_nodes.is_empty() => default_nodes.clone(),
         (_, _) => bitcoin::adapter::config::default_nodes(),

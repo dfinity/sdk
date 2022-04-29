@@ -14,7 +14,7 @@ dfx command-line parameters for bitcoin integration:
 The above examples also work for dfx replica.
 
 These default to values from dfx.json:
-    .defaults.bitcoin.adapter_config.nodes
+    .defaults.bitcoin.nodes
     .defaults.bitcoin.enabled
 
 The --bitcoin-node parameter, if specified on the command line, implies --enable-bitcoin.
