@@ -81,6 +81,19 @@ pub enum CyclesResponse {
     Refunded(String, Option<BlockHeight>),
 }
 
+#[derive(CandidType, Deserialize)]
+pub struct IcpXdrConversionRate {
+    pub timestamp_seconds: u64,
+    pub xdr_permyriad_per_icp: u64,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct IcpXdrConversionRateCertifiedResponse {
+    pub data: IcpXdrConversionRate,
+    pub hash_tree: Vec<u8>,
+    pub certificate: Vec<u8>,
+}
+
 /// Position of a block in the chain. The first block has position 0.
 pub type BlockHeight = u64;
 

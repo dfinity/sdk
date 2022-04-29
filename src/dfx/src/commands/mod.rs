@@ -15,6 +15,7 @@ mod language_service;
 mod ledger;
 mod new;
 mod ping;
+mod quickstart;
 mod remote;
 mod replica;
 mod start;
@@ -28,7 +29,7 @@ pub enum Command {
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
-    Canister(canister::CanisterOpts),
+     Canister(canister::CanisterOpts),
     Config(config::ConfigOpts),
     Deploy(deploy::DeployOpts),
     Generate(generate::GenerateOpts),
@@ -38,6 +39,7 @@ pub enum Command {
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
     Ping(ping::PingOpts),
+    QuickStart,
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Start(start::StartOpts),
@@ -61,6 +63,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Ledger(v) => ledger::exec(env, v),
         Command::New(v) => new::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
+        Command::QuickStart => quickstart::exec(env),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
         Command::Start(v) => start::exec(env, v),

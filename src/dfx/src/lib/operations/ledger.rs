@@ -11,9 +11,10 @@ use crate::{
         environment::Environment,
         error::DfxResult,
         ledger_types::{
-            AccountBalanceArgs, AccountIdBlob, BlockHeight, CyclesResponse, Memo,
-            NotifyCanisterArgs, TimeStamp, TransferArgs, TransferError, TransferResult,
-            MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+            AccountBalanceArgs, AccountIdBlob, BlockHeight, CyclesResponse,
+            IcpXdrConversionRateCertifiedResponse, Memo, NotifyCanisterArgs, TimeStamp,
+            TransferArgs, TransferError, TransferResult, MAINNET_CYCLE_MINTER_CANISTER_ID,
+            MAINNET_LEDGER_CANISTER_ID,
         },
         nns_types::{
             account_identifier::{AccountIdentifier, Subaccount},
@@ -163,4 +164,18 @@ fn retryable(agent_error: &AgentError) -> bool {
         }
         _ => true,
     }
+}
+
+pub async fn icp_xdr_rate(agent: &Agent) -> DfxResult<u64> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(MAINNET_CYCLE_MINTER_CANISTER_ID)
+        .build()?;
+    let (certified_rate,): (IcpXdrConversionRateCertifiedResponse,) = canister
+        .query_("get_icp_xdr_conversion_rate")
+        .build()
+        .call()
+        .await?;
+    //todo check certificate
+    Ok(certified_rate.data.xdr_permyriad_per_icp)
 }
