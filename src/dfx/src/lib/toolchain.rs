@@ -263,7 +263,7 @@ fn get_tag_version(tag: &str) -> DfxResult<Version> {
     let tag_version = manifest.get_tag_version(tag);
     match tag_version {
         Some(v) => Ok(v.clone()),
-        None => bail!("Failed to get compatible SDK version for tag {}", tag),
+        None => bail!("Failed to get compatible SDK version for tag {}.", tag),
     }
 }
 
