@@ -88,10 +88,9 @@ fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u
 pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let system = actix::System::new();
 
-    let btc_adapter_pid_file_path =
-        empty_writable_path(env.get_temp_dir().join("ic-btc-adapter-pid"))?;
-    let btc_adapter_config_path =
-        empty_writable_path(env.get_temp_dir().join("ic-btc-adapter-config.json"))?;
+    let temp_dir = env.get_temp_dir();
+    let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
+    let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
 
     let config = env.get_config_or_anyhow()?;
     let btc_adapter_config = configure_btc_adapter_if_enabled(
