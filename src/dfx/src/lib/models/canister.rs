@@ -206,10 +206,12 @@ impl CanisterPool {
 
         // Add all the canisters as nodes.
         for canister in &self.canisters {
-            let canister_id = canister
-                .info
-                .get_canister_id()
-                .context("Failed to get canister id.")?;
+            let canister_id = canister.info.get_canister_id().with_context(|| {
+                format!(
+                    "Failed to get canister id for {}.",
+                    canister.info.get_name()
+                )
+            })?;
             id_set.insert(canister_id, graph.add_node(canister_id));
         }
 
@@ -220,7 +222,12 @@ impl CanisterPool {
             let deps = canister
                 .builder
                 .get_dependencies(self, canister_info)
-                .context("Failed to get dependencies.")?;
+                .with_context(|| {
+                    format!(
+                        "Failed to get dependencies for {}.",
+                        canister_info.get_name()
+                    )
+                })?;
             if let Some(node_ix) = id_set.get(&canister_id) {
                 for d in deps {
                     if let Some(dep_ix) = id_set.get(&d) {
@@ -322,8 +329,12 @@ impl CanisterPool {
             .map(|_| {})
             .map_err(DfxError::from)?;
 
-        build_canister_js(&canister.canister_id(), &canister.info)
-            .context("Failed to build canister js.")?;
+        build_canister_js(&canister.canister_id(), &canister.info).with_context(|| {
+            format!(
+                "Failed to build canister js for {}.",
+                canister.info.get_name()
+            )
+        })?;
 
         canister.postbuild(self, build_config)
     }
@@ -448,7 +459,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         .with_extension("did.d.ts");
 
     let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())
-        .context("Candid file check failed.")?;
+        .with_context(|| format!("Candid file check failed for {}.", canister_info.get_name()))?;
     let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content)
         .with_context(|| format!("Failed to write to {:?}.", &output_did_js_path))?;

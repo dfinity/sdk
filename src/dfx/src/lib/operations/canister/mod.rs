@@ -96,7 +96,7 @@ pub async fn get_canister_status(
         0,
     )
     .await
-    .context("Canister status call failed.")?;
+    .with_context(|| format!("Canister status call failed for {}.", canister_id))?;
     Ok(out)
 }
 
@@ -121,7 +121,7 @@ pub async fn start_canister(
         0,
     )
     .await
-    .context("Start canister call failed.")?;
+    .with_context(|| format!("Start canister call failed for {}.", canister_id))?;
     Ok(())
 }
 
@@ -146,7 +146,7 @@ pub async fn stop_canister(
         0,
     )
     .await
-    .context("Stop canister call failed.")?;
+    .with_context(|| format!("Stop canister call failed for {}.", canister_id))?;
     Ok(())
 }
 
@@ -189,7 +189,7 @@ pub async fn update_settings(
         0,
     )
     .await
-    .context("Update settings call failed.")?;
+    .with_context(|| format!("Update settings call failed for {}.", canister_id))?;
     Ok(())
 }
 
@@ -213,7 +213,7 @@ pub async fn uninstall_code(
         0,
     )
     .await
-    .context("Uninstall call failed.")?;
+    .with_context(|| format!("Uninstall call failed for {}.", canister_id))?;
 
     Ok(())
 }
@@ -238,7 +238,7 @@ pub async fn delete_canister(
         0,
     )
     .await
-    .context("Delete call failed.")?;
+    .with_context(|| format!("Delete call failed for {}.", canister_id))?;
 
     Ok(())
 }
@@ -264,7 +264,7 @@ pub async fn deposit_cycles(
         cycles,
     )
     .await
-    .context("Deposit cycles call failed.")?;
+    .with_context(|| format!("Deposit cycles call failed for {}.", canister_id))?;
 
     Ok(())
 }
@@ -296,7 +296,7 @@ pub async fn provisional_deposit_cycles(
         0,
     )
     .await
-    .context("Provisional top up call failed.")?;
+    .with_context(|| format!("Provisional top up call failed for {}.", canister_id))?;
 
     Ok(())
 }
@@ -312,7 +312,7 @@ pub fn get_local_cid_and_candid_path(
     Ok((
         canister_info
             .get_canister_id()
-            .context("Failed to get canister id.")?,
+            .with_context(|| format!("Failed to get canister id for {}.", canister_name))?,
         canister_info.get_output_idl_path(),
     ))
 }

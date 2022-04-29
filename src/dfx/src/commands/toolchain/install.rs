@@ -18,8 +18,10 @@ pub fn exec(_env: &dyn Environment, opts: ToolchainInstall) -> DfxResult {
     for s in opts.toolchains {
         let toolchain = s
             .parse::<Toolchain>()
-            .context("Failed to parse toolchain.")?;
-        toolchain.update().context("Failed to update toolchain.")?;
+            .with_context(|| format!("Failed to parse toolchain {}.", s))?;
+        toolchain
+            .update()
+            .with_context(|| format!("Failed to update toolchain {}.", s))?;
     }
     Ok(())
 }

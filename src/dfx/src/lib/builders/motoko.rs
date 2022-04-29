@@ -73,8 +73,9 @@ impl CanisterBuilder for MotokoBuilder {
                         result.insert(import);
                     }
                     MotokoImport::Relative(path) => {
-                        find_deps_recursive(cache, path.as_path(), result)
-                            .context("Failed recursive dependency detection.")?;
+                        find_deps_recursive(cache, path.as_path(), result).with_context(|| {
+                            format!("Failed recursive dependency detection at {:?}.", &path)
+                        })?;
                     }
                     MotokoImport::Lib(_) => (),
                     MotokoImport::Ic(_) => (),
@@ -88,7 +89,12 @@ impl CanisterBuilder for MotokoBuilder {
             motoko_info.get_main_path(),
             &mut result,
         )
-        .context("Failed recursive dependency detection.")?;
+        .with_context(|| {
+            format!(
+                "Failed recursive dependency detection at {:?}.",
+                motoko_info.get_main_path()
+            )
+        })?;
 
         Ok(result
             .iter()

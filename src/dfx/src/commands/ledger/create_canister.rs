@@ -67,7 +67,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
 
     let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee)
         .await
-        .context("Failed during transfer.")?;
+        .context("Failed during transfer_and_notify.")?;
 
     match result {
         CyclesResponse::CanisterCreated(v) => {

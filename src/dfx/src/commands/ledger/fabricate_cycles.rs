@@ -105,7 +105,7 @@ async fn deposit_minted_cycles(
 
     canister::provisional_deposit_cycles(env, canister_id, timeout, call_sender, cycles)
         .await
-        .context("Failed provisional deposit.")?;
+        .with_context(|| format!("Failed provisional deposit for {}.", canister_id))?;
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await;
     if status.is_ok() {
@@ -139,7 +139,7 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
             for canister in canisters.keys() {
                 deposit_minted_cycles(env, canister, timeout, &CallSender::SelectedId, cycles)
                     .await
-                    .context("Failed to mint cycles.")?;
+                    .with_context(|| format!("Failed to mint cycles for {}.", canister))?;
             }
         }
         Ok(())

@@ -45,7 +45,7 @@ impl CustomBuilderExtra {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>().context("Failed to collect dependencies.")?;
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
 
         let wasm = info
             .get_output_wasm_path()
@@ -57,7 +57,8 @@ impl CustomBuilderExtra {
             if let Ok(s) = String::deserialize(json.clone()) {
                 vec![s]
             } else {
-                Vec::<String>::deserialize(json).context("Failed to deserialize json.")?
+                Vec::<String>::deserialize(json)
+                    .context("Failed to deserialize json in 'build'.")?
             }
         } else {
             vec![]
@@ -101,7 +102,12 @@ impl CanisterBuilder for CustomBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(CustomBuilderExtra::try_from(info, pool)
-            .context("Failed to create CustomBuilderExtra.")?
+            .with_context(|| {
+                format!(
+                    "Failed to create CustomBuilderExtra for {}.",
+                    info.get_name()
+                )
+            })?
             .dependencies)
     }
 
@@ -116,8 +122,12 @@ impl CanisterBuilder for CustomBuilder {
             wasm,
             build,
             dependencies,
-        } = CustomBuilderExtra::try_from(info, pool)
-            .context("Failed to create CustomBuilderExtra.")?;
+        } = CustomBuilderExtra::try_from(info, pool).with_context(|| {
+            format!(
+                "Failed to create CustomBuilderExtra for {}.",
+                info.get_name()
+            )
+        })?;
 
         let canister_id = info.get_canister_id().unwrap();
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
@@ -167,7 +177,12 @@ impl CanisterBuilder for CustomBuilder {
 
         // get the path to candid file
         let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)
-            .context("Failed to create CustomBuilderExtra.")?;
+            .with_context(|| {
+                format!(
+                    "Failed to create CustomBuilderExtra for {}.",
+                    info.get_name()
+                )
+            })?;
 
         std::fs::copy(&candid, &output_idl_path).with_context(|| {
             format!(

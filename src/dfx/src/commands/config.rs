@@ -58,7 +58,8 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
             "text" => println!("{}", value),
             "json" => println!(
                 "{}",
-                serde_json::to_string_pretty(value).context("Failed to serialize to json")?
+                serde_json::to_string_pretty(value)
+                    .context("Failed to serialize config to json")?
             ),
             _ => {}
         }

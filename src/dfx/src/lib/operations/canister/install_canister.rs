@@ -57,8 +57,9 @@ pub async fn install_canister(
             let deployed_path = candid_path.with_extension("old.did");
             std::fs::write(&deployed_path, candid)
                 .with_context(|| format!("Failed to write candid to {:?}.", &deployed_path))?;
-            let (mut env, opt_new) =
-                check_candid_file(&candid_path).context("Candid check failed.")?;
+            let (mut env, opt_new) = check_candid_file(&candid_path).with_context(|| {
+                format!("Candid check failed for {}.", canister_info.get_name())
+            })?;
             let new_type =
                 opt_new.expect("Generated did file should contain some service interface");
             let (env2, opt_old) = check_candid_file(&deployed_path)
@@ -132,7 +133,12 @@ pub async fn install_canister(
             wasm_module,
         )
         .await
-        .context("Failed during wasm installation call.")?;
+        .with_context(|| {
+            format!(
+                "Failed during wasm installation call for {}.",
+                canister_info.get_name()
+            )
+        })?;
     }
 
     if canister_info.get_type() == "assets" {

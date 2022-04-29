@@ -38,7 +38,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
             warn!(logger, "{}", err);
             let network_name = get_network_context().context("Failed to get network name.")?;
             let url = command_line_provider_to_url(&network_name)
-                .context("Failed to parse supplied provider.")?;
+                .with_context(|| format!("Failed to parse supplied provider {}.", &network_name))?;
             let is_ic = NetworkDescriptor::is_ic(&network_name, &vec![url.to_string()]);
             let network_descriptor = NetworkDescriptor {
                 name: "-ping-".to_string(),

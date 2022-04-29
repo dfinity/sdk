@@ -96,9 +96,12 @@ pub trait CanisterBuilder {
             .context("`output` must not be None")?;
 
         if generate_output_dir.exists() {
-            let generate_output_dir = generate_output_dir
-                .canonicalize()
-                .context("Failed to canonicalize output dir.")?;
+            let generate_output_dir = generate_output_dir.canonicalize().with_context(|| {
+                format!(
+                    "Failed to canonicalize output dir {:?}.",
+                    generate_output_dir.to_string_lossy()
+                )
+            })?;
             if !generate_output_dir.starts_with(info.get_workspace_root()) {
                 bail!(
                     "Directory at '{}' is outside the workspace root.",
@@ -113,10 +116,10 @@ pub trait CanisterBuilder {
 
         let generated_idl_path = self
             .generate_idl(pool, info, config)
-            .context("Failed to generate idl.")?;
+            .context("Failed to generate idl path.")?;
 
-        let (env, ty) =
-            check_candid_file(generated_idl_path.as_path()).context("Failed candid file check.")?;
+        let (env, ty) = check_candid_file(generated_idl_path.as_path())
+            .with_context(|| format!("Failed candid file check for {:?}.", &generated_idl_path))?;
 
         let bindings = info
             .get_declarations_config()

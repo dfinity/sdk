@@ -192,7 +192,7 @@ async fn register_canisters(
                 },
             )
             .await
-            .context("Create canister call failed.")?;
+            .with_context(|| format!("Create canister call failed for {}.", canister_name))?;
         }
     }
     Ok(())
@@ -279,7 +279,12 @@ async fn install_canisters(
             upgrade_unchanged,
         )
         .await
-        .context("Canister install call failed.")?;
+        .with_context(|| {
+            format!(
+                "Canister install call failed for {}.",
+                canister_info.get_name()
+            )
+        })?;
     }
 
     Ok(())

@@ -45,7 +45,7 @@ async fn start_canister(
 
     canister::start_canister(env, canister_id, timeout, call_sender)
         .await
-        .context("Failed to start canister.")?;
+        .with_context(|| format!("Failed to start canister {}.", canister_id))?;
 
     Ok(())
 }

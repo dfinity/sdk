@@ -110,7 +110,8 @@ pub async fn exec(
             )
             .await
         } else {
-            let canister_info = canister_info.context("Failed to load canister info.")?;
+            let canister_info = canister_info
+                .with_context(|| format!("Failed to load canister info for {}.", canister))?;
             let maybe_path = canister_info.get_output_idl_path();
             let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
             let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)
@@ -136,13 +137,13 @@ pub async fn exec(
 
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                if config
+                let canister_is_remote = config
                     .get_config()
                     .is_remote_canister(canister, &network.name)
                     .with_context(|| {
                         format!("Failed to determine if {} is remote or not.", canister)
-                    })?
-                {
+                    })?;
+                if canister_is_remote {
                     info!(
                         env.get_logger(),
                         "Skipping canister '{}' because it is remote for network '{}'",

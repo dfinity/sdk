@@ -125,7 +125,7 @@ pub async fn exec(
         .context("Failed to fetch controllers.")?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
-        if config
+        let canister_is_remote = config
             .get_config()
             .is_remote_canister(canister_name, &network.name)
             .with_context(|| {
@@ -133,8 +133,8 @@ pub async fn exec(
                     "Failed to determine if {} is a remote canister.",
                     canister_name
                 )
-            })?
-        {
+            })?;
+        if canister_is_remote {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
         }
         let compute_allocation = get_compute_allocation(
@@ -175,13 +175,13 @@ pub async fn exec(
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                if config
+                let canister_is_remote = config
                     .get_config()
                     .is_remote_canister(canister_name, &network.name)
                     .with_context(|| {
                         format!("Failed to determine if {} is remote.", canister_name)
-                    })?
-                {
+                    })?;
+                if canister_is_remote {
                     info!(
                         env.get_logger(),
                         "Skipping canister '{}' because it is remote for network '{}'",

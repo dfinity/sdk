@@ -117,7 +117,7 @@ pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
 pub fn parse_provider_url(url: &str) -> DfxResult<String> {
     Url::parse(url)
         .map(|_| String::from(url))
-        .context("Cannot parse provider URL.")
+        .with_context(|| format!("Cannot parse provider URL {}.", url))
 }
 
 #[cfg(test)]

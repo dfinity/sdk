@@ -174,11 +174,11 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
             let full_path = temp_p.join(file.path().context("Failed to get file path.")?);
             let mut perms = std::fs::metadata(full_path.as_path())
-                .context("Failed to get file metadata.")?
+                .with_context(|| format!("Failed to get file metadata for {:?}.", &full_path))?
                 .permissions();
             perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
             std::fs::set_permissions(full_path.as_path(), perms)
-                .context("Failed to set file permissions.")?;
+                .with_context(|| format!("Failed to set file permissions for {:?}.", &full_path))?;
         }
 
         // Copy our own binary in the cache.
@@ -187,13 +187,14 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             &dfx,
             std::fs::read(current_exe).context("Failed to read currently running executable.")?,
         )
-        .context("Failed to copy running binary to cache.")?;
+        .with_context(|| format!("Failed to copy running binary {:?} to cache.", &dfx))?;
         // And make it executable.
         let mut perms = std::fs::metadata(&dfx)
-            .context("Failed to read file metadata.")?
+            .with_context(|| format!("Failed to read file metadata for {:?}.", &dfx))?
             .permissions();
         perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-        std::fs::set_permissions(&dfx, perms).context("Failed to set file metadata.")?;
+        std::fs::set_permissions(&dfx, perms)
+            .with_context(|| format!("Failed to set file metadata for {:?}.", &dfx))?;
 
         // atomically install cache version into place
         if force && p.exists() {
@@ -249,8 +250,12 @@ pub fn list_versions() -> DfxResult<Vec<Version>> {
     let root = get_bin_cache_root().context("Failed to get bin cache root.")?;
     let mut result: Vec<Version> = Vec::new();
 
-    for entry in std::fs::read_dir(root).context("Failed to read bin cache root content.")? {
-        let entry = entry.context("Failed to read an entry in bin cache root.")?;
+    for entry in std::fs::read_dir(&root)
+        .with_context(|| format!("Failed to read bin cache root content at {:?}.", &root))?
+    {
+        let entry = entry.with_context(|| {
+            format!("Failed to read an entry in bin cache root at {:?}.", &root)
+        })?;
         if let Some(version) = entry.file_name().to_str() {
             if version.starts_with('_') {
                 // temp directory for version being installed

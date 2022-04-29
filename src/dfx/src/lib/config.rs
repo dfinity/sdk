@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 pub fn get_config_dfx_dir_path() -> DfxResult<PathBuf> {
     let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
-    let home = std::env::var("HOME").context("Cannot find home directory.")?;
+    let home = std::env::var("HOME").context("Failed to resolve 'HOME' env var.")?;
     let root = config_root.unwrap_or(home);
     let p = PathBuf::from(root).join(".config").join("dfx");
     if !p.exists() {

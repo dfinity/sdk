@@ -95,7 +95,7 @@ async fn delete_canister(
     } else if to_dank {
         Some(
             Principal::from_text("aanaa-xaaaa-aaaah-aaeiq-cai")
-                .context("Failed to read principal.")?,
+                .context("Failed to read principal aanaa-xaaaa-aaaah-aaeiq-cai.")?,
         )
     } else {
         match withdraw_cycles_to_canister {
@@ -165,7 +165,9 @@ async fn delete_canister(
             info!(log, "Setting the controller to identity princpal.");
             update_settings(env, canister_id, settings, timeout, call_sender)
                 .await
-                .context("Failed to update canister settings.")?;
+                .with_context(|| {
+                    format!("Failed to update canister settings for {}.", canister_id)
+                })?;
 
             // Install a temporary wallet wasm which will transfer the cycles out of the canister before it is deleted.
             let wasm_module =
@@ -190,7 +192,7 @@ async fn delete_canister(
             if install_result.is_ok() {
                 start_canister(env, canister_id, timeout, &CallSender::SelectedId)
                     .await
-                    .context("Failed to start canister.")?;
+                    .with_context(|| format!("Failed to start canister {}.", canister_id))?;
                 let status = canister::get_canister_status(
                     env,
                     canister_id,
@@ -198,7 +200,7 @@ async fn delete_canister(
                     &CallSender::SelectedId,
                 )
                 .await
-                .context("Failed to get canister status.")?;
+                .with_context(|| format!("Failed to get canister status for {}.", canister_id))?;
                 let mut cycles = status.cycles.0.to_u128().unwrap();
                 if cycles > WITHDRAWAL_COST {
                     cycles -= WITHDRAWAL_COST;
@@ -217,7 +219,9 @@ async fn delete_canister(
                             cycles,
                         )
                         .await
-                        .context("Failed to deposit cycles.")?;
+                        .with_context(|| {
+                            format!("Failed to deposit cycles into {}.", target_canister_id)
+                        })?;
                     } else {
                         info!(
                             log,
@@ -245,7 +249,7 @@ async fn delete_canister(
                 }
                 stop_canister(env, canister_id, timeout, &CallSender::SelectedId)
                     .await
-                    .context("Failed to stop canister.")?;
+                    .with_context(|| format!("Failed to stop canister {}.", canister_id))?;
             } else {
                 info!(
                     log,
@@ -270,11 +274,14 @@ async fn delete_canister(
 
     canister::delete_canister(env, canister_id, timeout, call_sender)
         .await
-        .context("Failed to delete canister.")?;
+        .with_context(|| format!("Failed to delete canister {}.", canister_id))?;
 
-    canister_id_store
-        .remove(canister)
-        .context("Failed to remove canister id from canister id store.")?;
+    canister_id_store.remove(canister).with_context(|| {
+        format!(
+            "Failed to remove canister id of {} from canister id store.",
+            canister
+        )
+    })?;
 
     Ok(())
 }

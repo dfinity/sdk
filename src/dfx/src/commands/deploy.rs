@@ -161,7 +161,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
 
     if let Some(canisters) = &config.get_config().canisters {
         for (canister_name, canister_config) in canisters {
-            if config
+            let canister_is_remote = config
                 .get_config()
                 .is_remote_canister(canister_name, &network.name)
                 .with_context(|| {
@@ -169,8 +169,8 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
                         "Failed to determine if canister {} is remote.",
                         canister_name
                     )
-                })?
-            {
+                })?;
+            if canister_is_remote {
                 continue;
             }
             let canister_id = match Principal::from_text(canister_name) {

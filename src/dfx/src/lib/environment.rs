@@ -100,7 +100,7 @@ impl EnvironmentImpl {
                 Some(c) => match &c.get_config().get_dfx() {
                     None => dfx_version().clone(),
                     Some(v) => Version::parse(v)
-                        .with_context(|| format!("Failed to parse version from '{:?}'.", v))?,
+                        .with_context(|| format!("Failed to parse version from '{}'.", v))?,
                 },
             },
             Ok(v) => {
@@ -108,7 +108,7 @@ impl EnvironmentImpl {
                     dfx_version().clone()
                 } else {
                     Version::parse(&v)
-                        .with_context(|| format!("Failed to parse version from '{:?}'.", v))?
+                        .with_context(|| format!("Failed to parse version from '{}'.", &v))?
                 }
             }
         };

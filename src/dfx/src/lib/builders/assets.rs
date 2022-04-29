@@ -41,7 +41,7 @@ impl AssetsBuilderExtra {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>().context("Failed to collect canister ids.")?;
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
 
         Ok(AssetsBuilderExtra { dependencies })
     }
@@ -69,7 +69,12 @@ impl CanisterBuilder for AssetsBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(AssetsBuilderExtra::try_from(info, pool)
-            .context("Failed to create AssetBuilderExtra.")?
+            .with_context(|| {
+                format!(
+                    "Failed to create AssetsBuilderExtra for canister {}.",
+                    info.get_name()
+                )
+            })?
             .dependencies)
     }
 
@@ -134,7 +139,7 @@ impl CanisterBuilder for AssetsBuilder {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>().context("Failed to collect canister ids.")?;
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
 
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
 
@@ -185,7 +190,12 @@ impl CanisterBuilder for AssetsBuilder {
                 .with_context(|| format!("Failed to create {:?}.", &generate_output_dir))?;
 
             file.unpack_in(generate_output_dir.clone())
-                .context("Failed to unpack archive content.")?;
+                .with_context(|| {
+                    format!(
+                        "Failed to unpack archive content to {:?}.",
+                        &generate_output_dir
+                    )
+                })?;
         }
 
         let assets_canister_info = info
@@ -228,9 +238,12 @@ fn delete_output_directory(
 ) -> DfxResult {
     let output_assets_path = assets_canister_info.get_output_assets_path();
     if output_assets_path.exists() {
-        let output_assets_path = output_assets_path
-            .canonicalize()
-            .context("Failed to canonicalize output assets path.")?;
+        let output_assets_path = output_assets_path.canonicalize().with_context(|| {
+            format!(
+                "Failed to canonicalize output assets path {}.",
+                output_assets_path.to_string_lossy()
+            )
+        })?;
         if !output_assets_path.starts_with(info.get_workspace_root()) {
             bail!(
                 "Directory at '{}' is outside the workspace root.",
@@ -262,7 +275,12 @@ fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo)
         let input_assets_path = source_path.as_path();
         let walker = WalkDir::new(input_assets_path).into_iter();
         for entry in walker.filter_entry(|e| !is_hidden(e)) {
-            let entry = entry.context("Failed to read input asset entry.")?;
+            let entry = entry.with_context(|| {
+                format!(
+                    "Failed to read an input asset entry in {:?}.",
+                    input_assets_path
+                )
+            })?;
             let source = entry.path();
             let relative = source
                 .strip_prefix(input_assets_path)

@@ -49,7 +49,7 @@ impl CanisterBuilder for RustBuilder {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>().context("Failed to collect dependencies.")?;
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context(|| format!("Failed to collect dependencies (canister ids) for canister {}.", info.get_name()))?;
         Ok(dependencies)
     }
 

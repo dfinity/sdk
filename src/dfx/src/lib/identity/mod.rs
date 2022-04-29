@@ -164,8 +164,12 @@ impl Identity {
             }
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config.hsm = Some(hsm);
-                create(&temp_identity_dir)
-                    .context("Failed to create temporary identity directory.")?;
+                create(&temp_identity_dir).with_context(|| {
+                    format!(
+                        "Failed to create temporary identity directory {:?}.",
+                        &temp_identity_dir
+                    )
+                })?;
             }
         }
         identity_manager::write_identity_configuration(&identity_config_location, &identity_config)
@@ -405,7 +409,8 @@ impl Identity {
             .with_context(|| format!("Failed to create {:?}.", wallet_path.parent().unwrap()))?;
         std::fs::write(
             &wallet_path,
-            &serde_json::to_string_pretty(&config).context("Failed to serialize config.")?,
+            &serde_json::to_string_pretty(&config)
+                .context("Failed to serialize global wallet config.")?,
         )
         .with_context(|| format!("Failed to write to {:?}.", &wallet_path))?;
         Ok(())

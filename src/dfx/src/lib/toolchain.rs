@@ -105,9 +105,12 @@ impl Toolchain {
         };
 
         if status != "unchanged" {
-            match cache::is_version_installed(&resolved_version.to_string())
-                .context("Failed while determining if version is installed.")?
-            {
+            match cache::is_version_installed(&resolved_version.to_string()).with_context(|| {
+                format!(
+                    "Failed while determining if version {} is installed.",
+                    &resolved_version.to_string()
+                )
+            })? {
                 true => eprintln!("SDK version {} already installed", resolved_version),
                 false => dist::install_version(&resolved_version)
                     .with_context(|| format!("Failed to install version {}.", &resolved_version))?,
@@ -193,7 +196,9 @@ pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
     for entry in std::fs::read_dir(&toolchains_dir)
         .with_context(|| format!("Failed to read toolchain dir {:?}.", &toolchains_dir))?
     {
-        let entry = entry.context("Failed to read directory entry.")?;
+        let entry = entry.with_context(|| {
+            format!("Failed to read a directory entry in {:?}.", &toolchains_dir)
+        })?;
         if let Some(name) = entry.file_name().to_str() {
             toolchains.push(
                 name.parse::<Toolchain>()

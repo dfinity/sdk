@@ -48,7 +48,7 @@ async fn deposit_cycles(
 
     canister::deposit_cycles(env, canister_id, timeout, call_sender, cycles)
         .await
-        .context("Failed to deposit cycles.")?;
+        .with_context(|| format!("Failed to deposit cycles to {}.", canister_id))?;
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await;
     if let Ok(status) = status {

@@ -182,7 +182,12 @@ impl IdentityManager {
         let mut names = self
             .identity_root_path
             .read_dir()
-            .context("Failed to read identity root directory.")?
+            .with_context(|| {
+                format!(
+                    "Failed to read identity root directory {:?}.",
+                    self.identity_root_path
+                )
+            })?
             .filter(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {
                     Ok(file_type) => file_type.is_dir(),
@@ -219,10 +224,10 @@ impl IdentityManager {
 
         let config = self
             .get_identity_config_or_default(name)
-            .context("Failed to get identity config.")?;
+            .with_context(|| format!("Failed to get identity config for {}.", name))?;
         let pem_path = self.get_identity_pem_path(name, &config);
         let pem = pem_encryption::load_pem_file(&pem_path, Some(&config))
-            .context("Failed to load pem file.")?;
+            .with_context(|| format!("Failed to load pem file for {}.", name))?;
         String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
 
@@ -375,8 +380,12 @@ impl IdentityManager {
         if json_path.exists() {
             let content = std::fs::read(&json_path)
                 .with_context(|| format!("Failed to read {:?}.", &json_path))?;
-            let config = serde_json::from_slice(content.as_ref())
-                .context("Error deserializing identity configuration")?;
+            let config = serde_json::from_slice(content.as_ref()).with_context(|| {
+                format!(
+                    "Error deserializing identity configuration at {:?}.",
+                    &json_path
+                )
+            })?;
             Ok(config)
         } else {
             Ok(IdentityConfiguration::default())

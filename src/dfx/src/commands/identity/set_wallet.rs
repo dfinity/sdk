@@ -50,9 +50,12 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                 .with_context(|| format!("Failed to fetch canister id for {}.", canister_name))?;
             let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))
                 .with_context(|| format!("Failed to load canister info for {}.", canister_name))?;
-            canister_info
-                .get_canister_id()
-                .context("Failed to read canister id.")?
+            canister_info.get_canister_id().with_context(|| {
+                format!(
+                    "Failed to read canister id of {}.",
+                    canister_info.get_name()
+                )
+            })?
         }
     };
     let force = opts.force;
@@ -109,7 +112,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         canister_id
     );
     Identity::set_wallet_id(env, &network, &identity_name, canister_id)
-        .context("Failed to set wallet id.")?;
+        .with_context(|| format!("Failed to set wallet id for {}.", identity_name))?;
     info!(log, "Wallet set successfully.");
 
     Ok(())

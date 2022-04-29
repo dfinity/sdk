@@ -52,7 +52,12 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
         )
         .call()
         .await
-        .context("Failed query call.")?;
+        .with_context(|| {
+            format!(
+                "Failed query call to {} for method {}.",
+                canister_id, ACCOUNT_BALANCE_METHOD
+            )
+        })?;
 
     let balance = Decode!(&result, ICPTs).context("Failed to decode response.")?;
 

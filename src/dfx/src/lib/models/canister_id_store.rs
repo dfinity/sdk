@@ -29,7 +29,7 @@ impl CanisterIdStore {
         let network_descriptor = env.get_network_descriptor().expect("no network descriptor");
         let store = CanisterIdStore::for_network(network_descriptor).with_context(|| {
             format!(
-                "Failed to load canister id stor for network {}.",
+                "Failed to load canister id store for network {}.",
                 network_descriptor.name
             )
         })?;

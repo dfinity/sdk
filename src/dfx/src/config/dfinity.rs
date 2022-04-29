@@ -384,7 +384,12 @@ impl ConfigInterface {
     pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
         Ok(self
             .get_remote_canister_id(canister, network)
-            .with_context(|| format!("Failed to get remote canister id for {}.", canister))?
+            .with_context(|| {
+                format!(
+                    "Failed to get remote canister id for {} on network {}.",
+                    canister, network
+                )
+            })?
             .is_some())
     }
 
@@ -476,9 +481,12 @@ pub struct Config {
 #[allow(dead_code)]
 impl Config {
     fn resolve_config_path(working_dir: &Path) -> DfxResult<Option<PathBuf>> {
-        let mut curr = PathBuf::from(working_dir)
-            .canonicalize()
-            .context("Failed to canonicalize working dir path.")?;
+        let mut curr = PathBuf::from(working_dir).canonicalize().with_context(|| {
+            format!(
+                "Failed to canonicalize working dir path {:}.",
+                working_dir.to_string_lossy()
+            )
+        })?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
                 return Ok(Some(curr.join(CONFIG_FILE_NAME)));
@@ -501,7 +509,12 @@ impl Config {
                 .with_context(|| format!("Failed to read folder content for {:?}.", path))?;
             Config::from_slice(path.to_path_buf(), &content)
         }
-        .with_context(|| format!("Reading {}", path.to_string_lossy()))
+        .with_context(|| {
+            format!(
+                "Failed to load config from {} content.",
+                path.to_string_lossy()
+            )
+        })
     }
 
     fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {

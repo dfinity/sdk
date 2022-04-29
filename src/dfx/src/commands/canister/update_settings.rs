@@ -109,13 +109,12 @@ pub async fn exec(
         if let Some(added) = &opts.add_controller {
             let status = get_canister_status(env, canister_id, timeout, call_sender)
                 .await
-                .context("Failed to get canister status.")?;
+                .with_context(|| format!("Failed to get canister status of {}.", canister_id))?;
             let mut existing_controllers = status.settings.controllers;
             for s in added {
-                existing_controllers.push(
-                    controller_to_principal(env, s)
-                        .context("Failed to convert controller to principal.")?,
-                );
+                existing_controllers.push(controller_to_principal(env, s).with_context(|| {
+                    format!("Failed to convert controller {} to principal.", s)
+                })?);
             }
             controllers = Some(existing_controllers);
         }
@@ -125,7 +124,9 @@ pub async fn exec(
             } else {
                 let status = get_canister_status(env, canister_id, timeout, call_sender)
                     .await
-                    .context("Failed to get canister status.")?;
+                    .with_context(|| {
+                        format!("Failed to get canister status for {}.", canister_id)
+                    })?;
                 controllers.get_or_insert(status.settings.controllers)
             };
             let removed = removed
@@ -147,7 +148,7 @@ pub async fn exec(
         };
         update_settings(env, canister_id, settings, timeout, call_sender)
             .await
-            .context("Failed to update settings.")?;
+            .with_context(|| format!("Failed to update settings for {}.", canister_id))?;
         display_controller_update(&opts, canister_name_or_id);
     } else if opts.all {
         // Update all canister settings.
@@ -184,13 +185,14 @@ pub async fn exec(
                 if let Some(added) = &opts.add_controller {
                     let status = get_canister_status(env, canister_id, timeout, call_sender)
                         .await
-                        .context("Failed to get canister status.")?;
+                        .with_context(|| {
+                            format!("Failed to get canister status for {}.", canister_id)
+                        })?;
                     let mut existing_controllers = status.settings.controllers;
                     for s in added {
-                        existing_controllers.push(
-                            controller_to_principal(env, s)
-                                .context("Failed to convert controller to principal.")?,
-                        );
+                        existing_controllers.push(controller_to_principal(env, s).with_context(
+                            || format!("Failed to convert controller {} to principal.", s),
+                        )?);
                     }
                     controllers = Some(existing_controllers);
                 }
@@ -200,7 +202,9 @@ pub async fn exec(
                     } else {
                         let status = get_canister_status(env, canister_id, timeout, call_sender)
                             .await
-                            .context("Failed to get canister status.")?;
+                            .with_context(|| {
+                                format!("Failed to get canister status for {}.", canister_id)
+                            })?;
                         controllers.get_or_insert(status.settings.controllers)
                     };
                     let removed = removed
@@ -221,7 +225,9 @@ pub async fn exec(
                 };
                 update_settings(env, canister_id, settings, timeout, call_sender)
                     .await
-                    .context("Failed to update canister settings.")?;
+                    .with_context(|| {
+                        format!("Failed to update canister settings for {}.", canister_id)
+                    })?;
                 display_controller_update(&opts, canister_name);
             }
         }

@@ -16,9 +16,10 @@ use argon2::{password_hash::PasswordHasher, Argon2};
 /// Try to only load the pem file once, as the user may be prompted for the password every single time you call this function.
 pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> DfxResult<Vec<u8>> {
     let content = std::fs::read(path).with_context(|| format!("Failed to read {:?}.", path))?;
-    let content =
-        maybe_decrypt_pem(content.as_slice(), config).context("Failed pem file decryption.")?;
-    identity_utils::validate_pem_file(&content).context("Pem file validation failed.")?;
+    let content = maybe_decrypt_pem(content.as_slice(), config)
+        .with_context(|| format!("Failed pem file decryption of {:?}.", path))?;
+    identity_utils::validate_pem_file(&content)
+        .with_context(|| format!("Failed to validate pem file {:?}.", path))?;
     Ok(content)
 }
 
