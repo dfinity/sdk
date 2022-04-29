@@ -66,8 +66,9 @@ impl Toolchain {
         if let Ok(meta) = std::fs::symlink_metadata(&toolchain_path) {
             match meta.file_type().is_symlink() {
                 true => {
-                    let src = std::fs::read_link(&toolchain_path)
-                        .context(format!("Failed to read symlink {:?}.", &toolchain_path))?;
+                    let src = std::fs::read_link(&toolchain_path).with_context(|| {
+                        format!("Failed to read symlink {:?}.", &toolchain_path)
+                    })?;
                     let src_name = src.file_name().unwrap().to_str().unwrap();
                     installed_version = Some(Version::parse(src_name).unwrap());
                     eprintln!(
@@ -80,16 +81,19 @@ impl Toolchain {
         }
 
         let resolved_version: Version = match self {
-            Toolchain::CompleteVersion(v) => is_version_available(v).context(format!(
-                "Failed to determine if complete version {} is available.",
-                v
-            ))?,
-            Toolchain::MajorMinor(major, minor) => {
-                get_compatible_version(major, minor).context(format!(
-                    "Failed to get compatible version for major {} and minor {}.",
-                    major, minor
-                ))?
-            }
+            Toolchain::CompleteVersion(v) => is_version_available(v).with_context(|| {
+                format!(
+                    "Failed to determine if complete version {} is available.",
+                    v
+                )
+            })?,
+            Toolchain::MajorMinor(major, minor) => get_compatible_version(major, minor)
+                .with_context(|| {
+                    format!(
+                        "Failed to get compatible version for major {} and minor {}.",
+                        major, minor
+                    )
+                })?,
             Toolchain::Tag(t) => get_tag_version(t).context("Failed to get tag version.")?,
         };
         eprintln!("The latest compatible SDK version is {}", resolved_version);
@@ -106,22 +110,26 @@ impl Toolchain {
             {
                 true => eprintln!("SDK version {} already installed", resolved_version),
                 false => dist::install_version(&resolved_version)
-                    .context(format!("Failed to install version {}.", &resolved_version))?,
+                    .with_context(|| format!("Failed to install version {}.", &resolved_version))?,
             };
 
             let cache_path =
-                cache::get_bin_cache(&resolved_version.to_string()).context(format!(
-                    "Failed to get binary cache for version {}.",
-                    &resolved_version
-                ))?;
+                cache::get_bin_cache(&resolved_version.to_string()).with_context(|| {
+                    format!(
+                        "Failed to get binary cache for version {}.",
+                        &resolved_version
+                    )
+                })?;
             if toolchain_path.exists() {
                 std::fs::remove_file(&toolchain_path)
-                    .context(format!("Failed to remove {:?}.", &toolchain_path))?;
+                    .with_context(|| format!("Failed to remove {:?}.", &toolchain_path))?;
             }
-            std::os::unix::fs::symlink(&cache_path, &toolchain_path).context(format!(
-                "Failed to create symlink from {:?} to {:?}.",
-                &toolchain_path, &cache_path
-            ))?;
+            std::os::unix::fs::symlink(&cache_path, &toolchain_path).with_context(|| {
+                format!(
+                    "Failed to create symlink from {:?} to {:?}.",
+                    &toolchain_path, &cache_path
+                )
+            })?;
         }
 
         eprintln!(
@@ -137,7 +145,7 @@ impl Toolchain {
         let toolchain_path = self.get_path().context("Failed to get toolchain path.")?;
         if toolchain_path.exists() {
             std::fs::remove_file(&toolchain_path)
-                .context(format!("Failed to remove {:?}.", &toolchain_path))?;
+                .with_context(|| format!("Failed to remove {:?}.", &toolchain_path))?;
             eprintln!("Toolchain {} uninstalled", self);
         } else {
             eprintln!("Toolchain {} has not been installed", self);
@@ -149,10 +157,8 @@ impl Toolchain {
         let home = std::env::var("HOME").context("Failed to resolve env var 'HOME'.")?;
         let home = Path::new(&home);
         let toolchains_dir = home.join(TOOLCHAINS_ROOT);
-        std::fs::create_dir_all(&toolchains_dir).context(format!(
-            "Failed to create toolchain dir {:?}.",
-            &toolchains_dir
-        ))?;
+        std::fs::create_dir_all(&toolchains_dir)
+            .with_context(|| format!("Failed to create toolchain dir {:?}.", &toolchains_dir))?;
         Ok(toolchains_dir.join(self.to_string()))
     }
 
@@ -161,15 +167,19 @@ impl Toolchain {
         let default_path = get_default_path().context("Failed to get default toolchain path.")?;
         let toolchain_path = self.get_path().context("Failed to get toolchain path.")?;
         if default_path.exists() {
-            std::fs::remove_file(&default_path).context(format!(
-                "Failed to remove default toolchain path {:?}.",
-                &default_path
-            ))?;
+            std::fs::remove_file(&default_path).with_context(|| {
+                format!(
+                    "Failed to remove default toolchain path {:?}.",
+                    &default_path
+                )
+            })?;
         }
-        std::os::unix::fs::symlink(&toolchain_path, &default_path).context(format!(
-            "Failed to create symlink from {:?} to {:?}.",
-            &toolchain_path, &default_path
-        ))?;
+        std::os::unix::fs::symlink(&toolchain_path, &default_path).with_context(|| {
+            format!(
+                "Failed to create symlink from {:?} to {:?}.",
+                &toolchain_path, &default_path
+            )
+        })?;
         println!("Default toolchain set to {}", self);
         Ok(())
     }
@@ -180,15 +190,14 @@ pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
     let home = Path::new(&home);
     let toolchains_dir = home.join(TOOLCHAINS_ROOT);
     let mut toolchains = vec![];
-    for entry in std::fs::read_dir(&toolchains_dir).context(format!(
-        "Failed to read toolchain dir {:?}.",
-        &toolchains_dir
-    ))? {
+    for entry in std::fs::read_dir(&toolchains_dir)
+        .with_context(|| format!("Failed to read toolchain dir {:?}.", &toolchains_dir))?
+    {
         let entry = entry.context("Failed to read directory entry.")?;
         if let Some(name) = entry.file_name().to_str() {
             toolchains.push(
                 name.parse::<Toolchain>()
-                    .context(format!("Failed to add {} to toolchains.", name))?,
+                    .with_context(|| format!("Failed to add {} to toolchains.", name))?,
             );
         }
     }
@@ -200,10 +209,12 @@ pub fn get_default_toolchain() -> DfxResult<Toolchain> {
     if !default_path.exists() {
         bail!("Default toolchain not set");
     }
-    let toolchain_path = std::fs::read_link(&default_path).context(format!(
-        "Failed to read default toolchain symlink at {:?}.",
-        &default_path
-    ))?;
+    let toolchain_path = std::fs::read_link(&default_path).with_context(|| {
+        format!(
+            "Failed to read default toolchain symlink at {:?}.",
+            &default_path
+        )
+    })?;
     let toolchain_name = toolchain_path.file_name().unwrap().to_str().unwrap();
     toolchain_name.parse::<Toolchain>()
 }
@@ -213,7 +224,8 @@ fn get_default_path() -> DfxResult<PathBuf> {
     let home = Path::new(&home);
     let default_path = home.join(DEFAULT_PATH);
     let parent = default_path.parent().unwrap();
-    std::fs::create_dir_all(parent).context(format!("Failed to create dir {:?}.", parent))?;
+    std::fs::create_dir_all(parent)
+        .with_context(|| format!("Failed to create dir {:?}.", parent))?;
     Ok(default_path)
 }
 

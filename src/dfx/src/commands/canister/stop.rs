@@ -35,7 +35,7 @@ async fn stop_canister(
         CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
     let canister_id = Principal::from_text(canister)
         .or_else(|_| canister_id_store.get(canister))
-        .context(format!("Failed to get canister id for {}.", canister))?;
+        .with_context(|| format!("Failed to get canister id for {}.", canister))?;
 
     info!(
         log,
@@ -46,7 +46,7 @@ async fn stop_canister(
 
     canister::stop_canister(env, canister_id, timeout, call_sender)
         .await
-        .context(format!("Failed to stop canister {}.", canister))?;
+        .with_context(|| format!("Failed to stop canister {}.", canister))?;
 
     Ok(())
 }

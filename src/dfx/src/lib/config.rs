@@ -10,7 +10,7 @@ pub fn get_config_dfx_dir_path() -> DfxResult<PathBuf> {
     let p = PathBuf::from(root).join(".config").join("dfx");
     if !p.exists() {
         std::fs::create_dir_all(&p)
-            .context(format!("Cannot create config directory at {}", p.display()))?;
+            .with_context(|| format!("Cannot create config directory at {}", p.display()))?;
     } else if !p.is_dir() {
         bail!("Path {} is not a directory.", p.display());
     }

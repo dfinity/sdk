@@ -28,10 +28,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     let canister_id = Principal::from_text(callee_canister)
         .or_else(|_| canister_id_store.get(callee_canister))
-        .context(format!(
-            "Failed to get canister id for {}.",
-            callee_canister
-        ))?;
+        .with_context(|| format!("Failed to get canister id for {}.", callee_canister))?;
 
     fetch_root_key_if_needed(env)
         .await

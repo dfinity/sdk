@@ -51,7 +51,7 @@ pub async fn deploy_canisters(
         // don't force-reinstall the dependencies too.
         match some_canister {
             Some(canister_name) => {
-                if config.get_config().is_remote_canister(canister_name, &network.name).context(format!("Failed while determining if {} is remote or not.", canister_name))? {
+                if config.get_config().is_remote_canister(canister_name, &network.name).with_context(||format!("Failed while determining if {} is remote or not.", canister_name))? {
                     bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
                     canister_name, &network.name);
                 }
@@ -148,20 +148,16 @@ async fn register_canisters(
             let config_interface = config.get_config();
             let compute_allocation = config_interface
                 .get_compute_allocation(canister_name)
-                .context(format!(
-                    "Failed to get compute allocation for {}.",
-                    canister_name
-                ))?
+                .with_context(|| {
+                    format!("Failed to get compute allocation for {}.", canister_name)
+                })?
                 .map(|arg| {
                     ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
                         .expect("Compute Allocation must be a percentage.")
                 });
             let memory_allocation = config_interface
                 .get_memory_allocation(canister_name)
-                .context(format!(
-                    "Failed to get memory allocation for {}.",
-                    canister_name
-                ))?
+                .with_context(|| format!("Failed to get memory allocation for {}.", canister_name))?
                 .map(|arg| {
                     MemoryAllocation::try_from(
                         u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
@@ -172,10 +168,9 @@ async fn register_canisters(
                 });
             let freezing_threshold = config_interface
                 .get_freezing_threshold(canister_name)
-                .context(format!(
-                    "Failed to get freezing threshold for {}.",
-                    canister_name
-                ))?
+                .with_context(|| {
+                    format!("Failed to get freezing threshold for {}.", canister_name)
+                })?
                 .map(|arg| {
                     FreezingThreshold::try_from(
                         u128::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
@@ -263,10 +258,9 @@ async fn install_canisters(
 
         let canister_id = canister_id_store
             .get(canister_name)
-            .context(format!("Failed to get canister id for {}.", canister_name))?;
-        let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id)).context(
-            format!("Failed to load canister info for {}.", canister_name),
-        )?;
+            .with_context(|| format!("Failed to get canister id for {}.", canister_name))?;
+        let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))
+            .with_context(|| format!("Failed to load canister info for {}.", canister_name))?;
 
         let maybe_path = canister_info.get_output_idl_path();
         let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));

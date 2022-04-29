@@ -33,7 +33,7 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
             "{}",
             Identity::get_or_create_wallet(&agent_env, &network, &identity_name, false)
                 .await
-                .context(format!(
+                .with_context(|| format!(
                     "Failed to get or create wallet for {}.",
                     &identity_name
                 ))?

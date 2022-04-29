@@ -24,10 +24,12 @@ pub async fn install_ui_canister(
     network: &NetworkDescriptor,
     some_canister_id: Option<Principal>,
 ) -> DfxResult<Principal> {
-    let mut id_store = CanisterIdStore::for_network(network).context(format!(
-        "Failed to setup canister id store for network {}.",
-        network.name
-    ))?;
+    let mut id_store = CanisterIdStore::for_network(network).with_context(|| {
+        format!(
+            "Failed to setup canister id store for network {}.",
+            network.name
+        )
+    })?;
     if id_store.find(UI_CANISTER).is_some() {
         return Err(anyhow!(
             "UI canister already installed on {} network",
@@ -81,11 +83,13 @@ pub async fn install_ui_canister(
         .context("Install wasm call failed.")?;
     id_store
         .add(UI_CANISTER, canister_id.to_text())
-        .context(format!(
-            "Failed to add canister with name {} and id {} to canister id store.",
-            UI_CANISTER,
-            canister_id.to_text()
-        ))?;
+        .with_context(|| {
+            format!(
+                "Failed to add canister with name {} and id {} to canister id store.",
+                UI_CANISTER,
+                canister_id.to_text()
+            )
+        })?;
     info!(
         env.get_logger(),
         "The UI canister on the \"{}\" network is \"{}\"",

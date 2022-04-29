@@ -57,10 +57,8 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
 
-    let providers = get_providers(&network_descriptor).context(format!(
-        "Failed to fetch providers for {}.",
-        network_descriptor.name
-    ))?;
+    let providers = get_providers(&network_descriptor)
+        .with_context(|| format!("Failed to fetch providers for {}.", network_descriptor.name))?;
     let providers: Vec<Url> = providers
         .iter()
         .map(|uri| Url::parse(uri).unwrap())
@@ -74,14 +72,18 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
             .context("Failed to find socket address for the HTTP server.")?;
 
     let webserver_port_path = env.get_temp_dir().join("webserver-port");
-    std::fs::write(&webserver_port_path, "").context(format!(
-        "Failed to write/clear webserver port file {:?}.",
-        &webserver_port_path
-    ))?;
-    std::fs::write(&webserver_port_path, socket_addr.port().to_string()).context(format!(
-        "Failed to write port to webserver port file {:?}.",
-        &webserver_port_path
-    ))?;
+    std::fs::write(&webserver_port_path, "").with_context(|| {
+        format!(
+            "Failed to write/clear webserver port file {:?}.",
+            &webserver_port_path
+        )
+    })?;
+    std::fs::write(&webserver_port_path, socket_addr.port().to_string()).with_context(|| {
+        format!(
+            "Failed to write port to webserver port file {:?}.",
+            &webserver_port_path
+        )
+    })?;
 
     verify_unique_ports(&providers, &socket_addr)
         .context("Cannot bind to and serve from the same port.")?;
@@ -95,15 +97,19 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
             let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)
                 .context("Failed to fetch reusable socket address.")?;
             let proxy_port_path = env.get_temp_dir().join("proxy-port");
-            std::fs::write(&proxy_port_path, "").context(format!(
-                "Failed to write/clear proxy port file {:?}.",
-                &proxy_port_path
-            ))?;
-            std::fs::write(&proxy_port_path, webserver_bind.port().to_string()).context(
+            std::fs::write(&proxy_port_path, "").with_context(|| {
                 format!(
-                    "Failed to write port to proxy port file {:?}.",
+                    "Failed to write/clear proxy port file {:?}.",
                     &proxy_port_path
-                ),
+                )
+            })?;
+            std::fs::write(&proxy_port_path, webserver_bind.port().to_string()).with_context(
+                || {
+                    format!(
+                        "Failed to write port to proxy port file {:?}.",
+                        &proxy_port_path
+                    )
+                },
             )?;
 
             let icx_proxy_config = IcxProxyConfig {

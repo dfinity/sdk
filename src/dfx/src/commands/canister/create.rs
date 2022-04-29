@@ -128,10 +128,12 @@ pub async fn exec(
         if config
             .get_config()
             .is_remote_canister(canister_name, &network.name)
-            .context(format!(
-                "Failed to determine if {} is a remote canister.",
-                canister_name
-            ))?
+            .with_context(|| {
+                format!(
+                    "Failed to determine if {} is a remote canister.",
+                    canister_name
+                )
+            })?
         {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
         }
@@ -140,28 +142,19 @@ pub async fn exec(
             config_interface,
             Some(canister_name),
         )
-        .context(format!(
-            "Failed to read compute allocation of {}.",
-            canister_name
-        ))?;
+        .with_context(|| format!("Failed to read compute allocation of {}.", canister_name))?;
         let memory_allocation = get_memory_allocation(
             opts.memory_allocation.clone(),
             config_interface,
             Some(canister_name),
         )
-        .context(format!(
-            "Failed to read memory allocation of {}.",
-            canister_name
-        ))?;
+        .with_context(|| format!("Failed to read memory allocation of {}.", canister_name))?;
         let freezing_threshold = get_freezing_threshold(
             opts.freezing_threshold.clone(),
             config_interface,
             Some(canister_name),
         )
-        .context(format!(
-            "Failed to read freezing threshold of {}.",
-            canister_name
-        ))?;
+        .with_context(|| format!("Failed to read freezing threshold of {}.", canister_name))?;
         create_canister(
             env,
             canister_name,
@@ -176,7 +169,7 @@ pub async fn exec(
             },
         )
         .await
-        .context(format!("Failed to create {}.", canister_name))?;
+        .with_context(|| format!("Failed to create {}.", canister_name))?;
         Ok(())
     } else if opts.all {
         // Create all canisters.
@@ -185,10 +178,9 @@ pub async fn exec(
                 if config
                     .get_config()
                     .is_remote_canister(canister_name, &network.name)
-                    .context(format!(
-                        "Failed to determine if {} is remote.",
-                        canister_name
-                    ))?
+                    .with_context(|| {
+                        format!("Failed to determine if {} is remote.", canister_name)
+                    })?
                 {
                     info!(
                         env.get_logger(),
@@ -204,28 +196,25 @@ pub async fn exec(
                     config_interface,
                     Some(canister_name),
                 )
-                .context(format!(
-                    "Failed to read compute allocation of {}.",
-                    canister_name
-                ))?;
+                .with_context(|| {
+                    format!("Failed to read compute allocation of {}.", canister_name)
+                })?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation.clone(),
                     config_interface,
                     Some(canister_name),
                 )
-                .context(format!(
-                    "Failed to read memory allocation of {}.",
-                    canister_name
-                ))?;
+                .with_context(|| {
+                    format!("Failed to read memory allocation of {}.", canister_name)
+                })?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold.clone(),
                     config_interface,
                     Some(canister_name),
                 )
-                .context(format!(
-                    "Failed to read freezing threshold of {}.",
-                    canister_name
-                ))?;
+                .with_context(|| {
+                    format!("Failed to read freezing threshold of {}.", canister_name)
+                })?;
                 create_canister(
                     env,
                     canister_name,
@@ -240,7 +229,7 @@ pub async fn exec(
                     },
                 )
                 .await
-                .context(format!("Failed to create {}.", canister_name))?;
+                .with_context(|| format!("Failed to create {}.", canister_name))?;
             }
         }
         Ok(())

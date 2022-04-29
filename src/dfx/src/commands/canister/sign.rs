@@ -80,25 +80,28 @@ pub async fn exec(
     let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
         Ok(id) => {
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id)).context(format!(
-                    "Failed to get local canister id and candid path for {}.",
-                    canister_name
-                ))?
+                get_local_cid_and_candid_path(env, canister_name, Some(id)).with_context(|| {
+                    format!(
+                        "Failed to get local canister id and candid path for {}.",
+                        canister_name
+                    )
+                })?
             } else {
                 // TODO fetch candid file from remote canister
                 (id, None)
             }
         }
         Err(_) => {
-            let canister_id = canister_id_store.get(callee_canister).context(format!(
-                "Failed to get canister id for {}.",
-                callee_canister
-            ))?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)).context(
-                format!(
-                    "Failed to get local canister id and candid path for {}.",
-                    callee_canister
-                ),
+            let canister_id = canister_id_store
+                .get(callee_canister)
+                .with_context(|| format!("Failed to get canister id for {}.", callee_canister))?;
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)).with_context(
+                || {
+                    format!(
+                        "Failed to get local canister id and candid path for {}.",
+                        callee_canister
+                    )
+                },
             )?
         }
     };

@@ -70,10 +70,12 @@ pub fn start_emulator_actor(
     // handing it over to ic-ref. If we read the file and it has
     // contents we shall assume it is due to our spawned ic-ref
     // process.
-    std::fs::write(&emulator_port_path, "").context(format!(
-        "Failed to write/clear emulator port file {:?}.",
-        &emulator_port_path
-    ))?;
+    std::fs::write(&emulator_port_path, "").with_context(|| {
+        format!(
+            "Failed to write/clear emulator port file {:?}.",
+            &emulator_port_path
+        )
+    })?;
 
     let actor_config = actors::emulator::Config {
         ic_ref_path,
@@ -87,28 +89,30 @@ pub fn start_emulator_actor(
 fn setup_replica_env(env: &dyn Environment, replica_config: &ReplicaConfig) -> DfxResult<PathBuf> {
     // create replica config dir
     let replica_configuration_dir = env.get_temp_dir().join("replica-configuration");
-    fs::create_dir_all(&replica_configuration_dir).context(format!(
-        "Failed to create replica config direcory {:?}.",
-        &replica_configuration_dir
-    ))?;
+    fs::create_dir_all(&replica_configuration_dir).with_context(|| {
+        format!(
+            "Failed to create replica config direcory {:?}.",
+            &replica_configuration_dir
+        )
+    })?;
 
     if let Some(replica_port_path) = &replica_config.http_handler.write_port_to {
         // Touch the replica port file. This ensures it is empty prior to
         // handing it over to the replica. If we read the file and it has
         // contents we shall assume it is due to our spawned replica
         // process.
-        std::fs::write(&replica_port_path, "").context(format!(
-            "Failed to write/clear replica port file {:?}.",
-            &replica_port_path
-        ))?;
+        std::fs::write(&replica_port_path, "").with_context(|| {
+            format!(
+                "Failed to write/clear replica port file {:?}.",
+                &replica_port_path
+            )
+        })?;
     }
 
     // create replica state dir
     let state_dir = env.get_state_dir().join("replicated_state");
-    fs::create_dir_all(&state_dir).context(format!(
-        "Failed to create replica state directory {:?}.",
-        &state_dir
-    ))?;
+    fs::create_dir_all(&state_dir)
+        .with_context(|| format!("Failed to create replica state directory {:?}.", &state_dir))?;
 
     Ok(replica_configuration_dir)
 }

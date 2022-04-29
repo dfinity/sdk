@@ -142,19 +142,14 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
     b.set_message("Unpacking");
     archive
         .unpack(&current_exe_dir)
-        .context(format!("Failed to unpack to {:?}.", &current_exe_dir))?;
+        .with_context(|| format!("Failed to unpack to {:?}.", &current_exe_dir))?;
     b.set_message("Setting permissions");
     let mut permissions = fs::metadata(&current_exe_path)
-        .context(format!(
-            "Failed to read metadata for {:?}.",
-            &current_exe_path
-        ))?
+        .with_context(|| format!("Failed to read metadata for {:?}.", &current_exe_path))?
         .permissions();
     permissions.set_mode(0o775); // FIXME Preserve existing permissions
-    fs::set_permissions(&current_exe_path, permissions).context(format!(
-        "Failed to set metadata for {:?}.",
-        &current_exe_path
-    ))?;
+    fs::set_permissions(&current_exe_path, permissions)
+        .with_context(|| format!("Failed to set metadata for {:?}.", &current_exe_path))?;
     b.finish_with_message("Done");
     Ok(())
 }

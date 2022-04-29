@@ -61,16 +61,15 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let agent = Agent::builder()
         .with_transport(
             ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(frontend_url)
-                .context(format!(
-                    "Failed to create replica transport from frontend url {}.",
-                    frontend_url
-                ))?,
+                .with_context(|| {
+                    format!(
+                        "Failed to create replica transport from frontend url {}.",
+                        frontend_url
+                    )
+                })?,
         )
         .build()
-        .context(format!(
-            "Failed to build agent with frontend url {}.",
-            frontend_url
-        ))?;
+        .with_context(|| format!("Failed to build agent with frontend url {}.", frontend_url))?;
 
     // wait for frontend to come up
     let mut waiter = Delay::builder()
@@ -118,11 +117,11 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
             loop {
                 let tokio_file = tokio::fs::File::open(&webserver_port_path)
                     .await
-                    .context(format!("Failed to open {:?}.", &webserver_port_path))?;
+                    .with_context(|| format!("Failed to open {:?}.", &webserver_port_path))?;
                 let mut std_file = tokio_file.into_std().await;
                 std_file
                     .read_to_string(&mut contents)
-                    .context(format!("Failed to read {:?}.", &webserver_port_path))?;
+                    .with_context(|| format!("Failed to read {:?}.", &webserver_port_path))?;
                 if !contents.is_empty() {
                     break;
                 }
@@ -173,22 +172,26 @@ pub fn exec(
         clean_state(temp_dir, &state_root).context("Failed to clean up existing state.")?;
     }
 
-    std::fs::write(&pid_file_path, "").context(format!(
-        "Failed to create/clear pid file {:?}.",
-        &pid_file_path
-    ))?;
-    std::fs::write(&btc_adapter_pid_file_path, "").context(format!(
-        "Failed to create/clear BTC adapter pid file {:?}.",
-        &btc_adapter_pid_file_path
-    ))?;
-    std::fs::write(&icx_proxy_pid_file_path, "").context(format!(
-        "Failed to create/clear icx proxy pid file {:?}.",
-        &icx_proxy_pid_file_path
-    ))?;
-    std::fs::write(&webserver_port_path, "").context(format!(
-        "Failed to create/clear webserver port file {:?}.",
-        &webserver_port_path
-    ))?;
+    std::fs::write(&pid_file_path, "")
+        .with_context(|| format!("Failed to create/clear pid file {:?}.", &pid_file_path))?;
+    std::fs::write(&btc_adapter_pid_file_path, "").with_context(|| {
+        format!(
+            "Failed to create/clear BTC adapter pid file {:?}.",
+            &btc_adapter_pid_file_path
+        )
+    })?;
+    std::fs::write(&icx_proxy_pid_file_path, "").with_context(|| {
+        format!(
+            "Failed to create/clear icx proxy pid file {:?}.",
+            &icx_proxy_pid_file_path
+        )
+    })?;
+    std::fs::write(&webserver_port_path, "").with_context(|| {
+        format!(
+            "Failed to create/clear webserver port file {:?}.",
+            &webserver_port_path
+        )
+    })?;
 
     let (frontend_url, address_and_port) =
         frontend_address(host, &config, background).context("Failed to get frontend address.")?;
@@ -199,10 +202,14 @@ pub fn exec(
     }
 
     write_pid(&pid_file_path);
-    std::fs::write(&webserver_port_path, address_and_port.port().to_string()).context(format!(
-        "Failed to write webserver port file {:?}.",
-        &webserver_port_path
-    ))?;
+    std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
+        || {
+            format!(
+                "Failed to write webserver port file {:?}.",
+                &webserver_port_path
+            )
+        },
+    )?;
 
     let btc_adapter_config = get_btc_adapter_config(&config, enable_bitcoin, btc_adapter_config)
         .context("Failed to get BTC adapter config.")?;
@@ -221,10 +228,12 @@ pub fn exec(
                 let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
                     if let Some(btc_adapter_config) = btc_adapter_config {
                         let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)
-                            .context(format!(
-                                "Failed to get BTC adapter socket path from config at {:?}.",
-                                &btc_adapter_config
-                            ))?;
+                            .with_context(|| {
+                                format!(
+                                    "Failed to get BTC adapter socket path from config at {:?}.",
+                                    &btc_adapter_config
+                                )
+                            })?;
                         let ready_subscribe = start_btc_adapter_actor(
                             env,
                             btc_adapter_config,
@@ -303,17 +312,13 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     // directory itself. N.B. This does NOT follow symbolic links -- and I
     // hope we do not need to.
     if state_root.is_dir() {
-        fs::remove_dir_all(state_root).context(format!(
-            "Cannot remove directory at '{}'.",
-            state_root.display()
-        ))?;
+        fs::remove_dir_all(state_root)
+            .with_context(|| format!("Cannot remove directory at '{}'.", state_root.display()))?;
     }
     let local_dir = temp_dir.join("local");
     if local_dir.is_dir() {
-        fs::remove_dir_all(&local_dir).context(format!(
-            "Cannot remove directory at '{}'.",
-            local_dir.display()
-        ))?;
+        fs::remove_dir_all(&local_dir)
+            .with_context(|| format!("Cannot remove directory at '{}'.", local_dir.display()))?;
     }
     Ok(())
 }

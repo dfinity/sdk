@@ -25,7 +25,8 @@ pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
         _ => panic!("Not supported architecture"),
     };
     let current_version = if let Some(version) = opts.current_version {
-        Version::parse(&version).context(format!("Failed to parse {} as version.", &version))?
+        Version::parse(&version)
+            .with_context(|| format!("Failed to parse {} as version.", &version))?
     } else {
         env.get_version().clone()
     };

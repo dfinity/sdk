@@ -307,9 +307,8 @@ pub fn get_local_cid_and_candid_path(
     maybe_canister_id: Option<CanisterId>,
 ) -> DfxResult<(CanisterId, Option<PathBuf>)> {
     let config = env.get_config_or_anyhow()?;
-    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id).context(
-        format!("Failed to load canister info for {}.", canister_name),
-    )?;
+    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)
+        .with_context(|| format!("Failed to load canister info for {}.", canister_name))?;
     Ok((
         canister_info
             .get_canister_id()

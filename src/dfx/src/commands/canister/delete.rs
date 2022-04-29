@@ -85,7 +85,7 @@ async fn delete_canister(
         CanisterIdStore::for_env(env).context("Failed to load canister store.")?;
     let canister_id = Principal::from_text(canister)
         .or_else(|_| canister_id_store.get(canister))
-        .context(format!("Failed to read canister id for {}.", canister))?;
+        .with_context(|| format!("Failed to read canister id for {}.", canister))?;
     let mut call_sender = call_sender;
     let to_dank = withdraw_cycles_to_dank || withdraw_cycles_to_dank_principal.is_some();
 
@@ -100,10 +100,9 @@ async fn delete_canister(
     } else {
         match withdraw_cycles_to_canister {
             Some(ref target_canister_id) => {
-                Some(Principal::from_text(target_canister_id).context(format!(
-                    "Failed to read canister id {}.",
-                    target_canister_id
-                ))?)
+                Some(Principal::from_text(target_canister_id).with_context(|| {
+                    format!("Failed to read canister id {}.", target_canister_id)
+                })?)
             }
             None => match call_sender {
                 CallSender::Wallet(wallet_id) => Some(*wallet_id),
@@ -130,7 +129,7 @@ async fn delete_canister(
     let dank_target_principal = match withdraw_cycles_to_dank_principal {
         None => principal,
         Some(principal) => Principal::from_text(&principal)
-            .context(format!("Failed to read principal {}.", &principal))?,
+            .with_context(|| format!("Failed to read principal {}.", &principal))?,
     };
     fetch_root_key_if_needed(env)
         .await
@@ -146,7 +145,7 @@ async fn delete_canister(
         // Determine how many cycles we can withdraw.
         let status = canister::get_canister_status(env, canister_id, timeout, call_sender)
             .await
-            .context(format!("Failed to get canister status of {}.", canister_id))?;
+            .with_context(|| format!("Failed to get canister status of {}.", canister_id))?;
         if status.status == CanisterStatus::Stopped {
             let agent = env
                 .get_agent()
@@ -154,7 +153,7 @@ async fn delete_canister(
             let mgr = ManagementCanister::create(agent);
             let canister_id = Principal::from_text(canister)
                 .or_else(|_| canister_id_store.get(canister))
-                .context(format!("Failed to read canister id for {}.", canister))?;
+                .with_context(|| format!("Failed to read canister id for {}.", canister))?;
 
             // Set this principal to be a controller and default the other settings.
             let settings = CanisterSettings {
@@ -318,7 +317,7 @@ pub async fn exec(
                     opts.withdraw_cycles_to_dank_principal.clone(),
                 )
                 .await
-                .context(format!("Failed to delete {}.", canister))?;
+                .with_context(|| format!("Failed to delete {}.", canister))?;
             }
         }
         Ok(())

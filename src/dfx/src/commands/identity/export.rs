@@ -18,7 +18,7 @@ pub fn exec(env: &dyn Environment, opts: ExportOpts) -> DfxResult {
     let pem = IdentityManager::new(env)
         .context("Failed to load identity manager.")?
         .export(name)
-        .context(format!("Failed to export {}.", name))?;
+        .with_context(|| format!("Failed to export {}.", name))?;
     print!("{}", pem);
 
     Ok(())

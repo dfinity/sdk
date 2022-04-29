@@ -132,10 +132,10 @@ impl CanisterBuilder for CustomBuilder {
 
             // First separate everything as if it was read from a shell.
             let args = shell_words::split(&command)
-                .context(format!("Cannot parse command '{}'.", command))?;
+                .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &vars).context(format!("Failed to run {}.", command))?;
+                run_command(args, &vars).with_context(|| format!("Failed to run {}.", command))?;
             }
         }
 
@@ -159,7 +159,7 @@ impl CanisterBuilder for CustomBuilder {
             .context("output here must not be None")?;
 
         std::fs::create_dir_all(generate_output_dir)
-            .context(format!("Failed to create {:?}.", generate_output_dir))?;
+            .with_context(|| format!("Failed to create {:?}.", generate_output_dir))?;
 
         let output_idl_path = generate_output_dir
             .join(info.get_name())
@@ -169,10 +169,12 @@ impl CanisterBuilder for CustomBuilder {
         let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)
             .context("Failed to create CustomBuilderExtra.")?;
 
-        std::fs::copy(&candid, &output_idl_path).context(format!(
-            "Failed to copy canidid from {:?} to {:?}.",
-            &candid, &output_idl_path
-        ))?;
+        std::fs::copy(&candid, &output_idl_path).with_context(|| {
+            format!(
+                "Failed to copy canidid from {:?} to {:?}.",
+                &candid, &output_idl_path
+            )
+        })?;
 
         Ok(output_idl_path)
     }

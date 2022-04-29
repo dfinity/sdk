@@ -114,21 +114,22 @@ pub fn delete_version(v: &str) -> DfxResult<bool> {
         return Ok(false);
     }
 
-    let root =
-        get_bin_cache(v).context(format!("Failed to get bin cache path for version {}.", v))?;
+    let root = get_bin_cache(v)
+        .with_context(|| format!("Failed to get bin cache path for version {}.", v))?;
     std::fs::remove_dir_all(&root)
-        .context(format!("Failed to remove bin cache root {:?}.", &root))?;
+        .with_context(|| format!("Failed to remove bin cache root {:?}.", &root))?;
 
     Ok(true)
 }
 
 pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
-    let p = get_bin_cache(v).context(format!("Failed to get bin cache path for version {}.", v))?;
+    let p = get_bin_cache(v)
+        .with_context(|| format!("Failed to get bin cache path for version {}.", v))?;
     if !force && is_version_installed(v).unwrap_or(false) {
         return Ok(p);
     }
 
-    if Version::parse(v).context(format!("Failed to parse version string {}.", v))?
+    if Version::parse(v).with_context(|| format!("Failed to parse version string {}.", v))?
         == *dfx_version()
     {
         // Dismiss as fast as possible. We use the current_exe variable after an
@@ -153,10 +154,8 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             .collect();
         let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))
             .context("Failed to get temporary bin cache path.")?;
-        std::fs::create_dir(&temp_p).context(format!(
-            "Failed to create temporary bin cache dir {:?}.",
-            &temp_p
-        ))?;
+        std::fs::create_dir(&temp_p)
+            .with_context(|| format!("Failed to create temporary bin cache dir {:?}.", &temp_p))?;
 
         let mut binary_cache_assets =
             util::assets::binary_cache().context("Failed to get asset binary cache.")?;
@@ -198,7 +197,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
         // atomically install cache version into place
         if force && p.exists() {
-            std::fs::remove_dir_all(&p).context(format!("Failed to remove {:?}.", &p))?;
+            std::fs::remove_dir_all(&p).with_context(|| format!("Failed to remove {:?}.", &p))?;
         }
 
         if std::fs::rename(&temp_p, &p).is_ok() {
@@ -207,7 +206,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             }
         } else {
             std::fs::remove_dir_all(&temp_p)
-                .context(format!("Failed to remove temp binary cache {:?}.", &temp_p))?;
+                .with_context(|| format!("Failed to remove temp binary cache {:?}.", &temp_p))?;
             if let Some(b) = b {
                 b.finish_with_message(format!("Version v{} was already installed.", v));
             }
@@ -220,10 +219,8 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 }
 
 pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> DfxResult<PathBuf> {
-    install_version(version, false).context(format!(
-        "Failed to install binary cache for version {}.",
-        version
-    ))?;
+    install_version(version, false)
+        .with_context(|| format!("Failed to install binary cache for version {}.", version))?;
 
     let env_var_name = format!("DFX_{}_PATH", binary_name.replace("-", "_").to_uppercase());
 
@@ -232,18 +229,17 @@ pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> DfxResu
     }
 
     Ok(get_bin_cache(version)
-        .context(format!(
-            "Failed to get binary cache for version {}.",
-            version
-        ))?
+        .with_context(|| format!("Failed to get binary cache for version {}.", version))?
         .join(binary_name))
 }
 
 pub fn binary_command_from_version(version: &str, name: &str) -> DfxResult<std::process::Command> {
-    let path = get_binary_path_from_version(version, name).context(format!(
-        "Failed to get binary {} for cache version {}.",
-        name, version,
-    ))?;
+    let path = get_binary_path_from_version(version, name).with_context(|| {
+        format!(
+            "Failed to get binary {} for cache version {}.",
+            name, version,
+        )
+    })?;
     let cmd = std::process::Command::new(path);
 
     Ok(cmd)
@@ -262,7 +258,7 @@ pub fn list_versions() -> DfxResult<Vec<Version>> {
             }
             result.push(
                 Version::parse(version)
-                    .context(format!("Failed to parse version from {}.", version))?,
+                    .with_context(|| format!("Failed to parse version from {}.", version))?,
             );
         }
     }
@@ -273,7 +269,7 @@ pub fn list_versions() -> DfxResult<Vec<Version>> {
 pub fn call_cached_dfx(v: &Version) -> DfxResult<ExitStatus> {
     let v = format!("{}", v);
     let command_path = get_binary_path_from_version(&v, "dfx")
-        .context(format!("Failed to get dfx binary path for version {}.", v))?;
+        .with_context(|| format!("Failed to get dfx binary path for version {}.", v))?;
     if command_path
         == std::env::current_exe().context("Failed to get currently running executable.")?
     {

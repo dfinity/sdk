@@ -95,10 +95,12 @@ impl Identity {
         }
 
         fn create(identity_dir: &Path) -> DfxResult {
-            std::fs::create_dir_all(identity_dir).context(format!(
-                "Cannot create temporary identity directory at '{0}'.",
-                identity_dir.display(),
-            ))
+            std::fs::create_dir_all(identity_dir).with_context(|| {
+                format!(
+                    "Cannot create temporary identity directory at '{0}'.",
+                    identity_dir.display(),
+                )
+            })
         }
         fn create_encryption_config(
             disable_encryption: bool,
@@ -119,10 +121,12 @@ impl Identity {
         let temp_identity_dir = manager.get_identity_dir_path(&temp_identity_name);
         if temp_identity_dir.exists() {
             // clean traces from previous identity creation attempts
-            std::fs::remove_dir_all(&temp_identity_dir).context(format!(
-                "Failed to clean up previous creation attempts at {:?}.",
-                &temp_identity_dir
-            ))?;
+            std::fs::remove_dir_all(&temp_identity_dir).with_context(|| {
+                format!(
+                    "Failed to clean up previous creation attempts at {:?}.",
+                    &temp_identity_dir
+                )
+            })?;
         }
 
         let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
@@ -169,14 +173,16 @@ impl Identity {
 
         // Everything is created. Now move from the temporary directory to the actual identity location.
         let identity_dir = manager.get_identity_dir_path(name);
-        std::fs::rename(&temp_identity_dir, &identity_dir).context(format!(
-            "Failed to move temporary directory {:?} to permanent identiy directory {:?}.",
-            &temp_identity_dir, &identity_dir
-        ))?;
+        std::fs::rename(&temp_identity_dir, &identity_dir).with_context(|| {
+            format!(
+                "Failed to move temporary directory {:?} to permanent identiy directory {:?}.",
+                &temp_identity_dir, &identity_dir
+            )
+        })?;
 
         if temporarily_use_anonymous_identity {
             manager.use_identity_named(identity_in_use)
-                .context(format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
+                .with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
         }
         Ok(())
     }
@@ -264,7 +270,7 @@ impl Identity {
         } else {
             let pem_path = manager
                 .load_identity_pem_path(name)
-                .context(format!("Failed to load pem path for {}.", name))?;
+                .with_context(|| format!("Failed to load pem path for {}.", name))?;
             let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))
                 .context("Failed to load pem file.")?;
 
@@ -395,15 +401,13 @@ impl Identity {
 
         network_map.networks.remove(&network.name);
 
-        std::fs::create_dir_all(wallet_path.parent().unwrap()).context(format!(
-            "Failed to create {:?}.",
-            wallet_path.parent().unwrap()
-        ))?;
+        std::fs::create_dir_all(wallet_path.parent().unwrap())
+            .with_context(|| format!("Failed to create {:?}.", wallet_path.parent().unwrap()))?;
         std::fs::write(
             &wallet_path,
             &serde_json::to_string_pretty(&config).context("Failed to serialize config.")?,
         )
-        .context(format!("Failed to write to {:?}.", &wallet_path))?;
+        .with_context(|| format!("Failed to write to {:?}.", &wallet_path))?;
         Ok(())
     }
 
@@ -521,7 +525,7 @@ impl Identity {
             .context("Failed to store wallet wasm.")?;
 
         Identity::set_wallet_id(env, network, name, canister_id)
-            .context(format!("Failed to save wallet id {}.", canister_id))?;
+            .with_context(|| format!("Failed to save wallet id {}.", canister_id))?;
 
         info!(
             env.get_logger(),

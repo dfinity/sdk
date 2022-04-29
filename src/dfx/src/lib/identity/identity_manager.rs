@@ -151,7 +151,7 @@ impl IdentityManager {
                 self.require_identity_exists(identity_name)?;
                 Box::new(
                     DfxIdentity::load(self, identity_name)
-                        .context(format!("Failed to load identity {}.", identity_name))?,
+                        .with_context(|| format!("Failed to load identity {}.", identity_name))?,
                 )
             }
         };
@@ -238,16 +238,14 @@ impl IdentityManager {
         remove_identity_file(
             &self
                 .load_identity_pem_path(name)
-                .context(format!("Failed to load identity pem path for {}.", name))?,
+                .with_context(|| format!("Failed to load identity pem path for {}.", name))?,
         )?;
         remove_identity_file(&self.get_identity_json_path(name))
-            .context(format!("Failed to remove identity file for {}.", name))?;
+            .with_context(|| format!("Failed to remove identity file for {}.", name))?;
 
         let dir = self.get_identity_dir_path(name);
-        std::fs::remove_dir(&dir).context(format!(
-            "Cannot remove identity directory at '{}'.",
-            dir.display()
-        ))?;
+        std::fs::remove_dir(&dir)
+            .with_context(|| format!("Cannot remove identity directory at '{}'.", dir.display()))?;
 
         Ok(())
     }
@@ -281,7 +279,7 @@ impl IdentityManager {
 
         if from == self.configuration.default {
             self.write_default_identity(to)
-                .context(format!("Failed to switch over default identity settings. Please do this manually by running 'dfx identity use {}'", to))?;
+                .with_context(||format!("Failed to switch over default identity settings. Please do this manually by running 'dfx identity use {}'", to))?;
             Ok(true)
         } else {
             Ok(false)
@@ -321,7 +319,7 @@ impl IdentityManager {
         let json_path = self.get_identity_json_path(name);
         let identity_pem_path = self
             .load_identity_pem_path(name)
-            .context(format!("Failed to load identity pem path for {}.", name))?;
+            .with_context(|| format!("Failed to load identity pem path for {}.", name))?;
 
         if !identity_pem_path.exists() {
             if !json_path.exists() {
@@ -346,10 +344,7 @@ impl IdentityManager {
     pub fn load_identity_pem_path(&self, identity_name: &str) -> DfxResult<PathBuf> {
         let config = self
             .get_identity_config_or_default(identity_name)
-            .context(format!(
-                "Failed to read identity config for {}.",
-                identity_name
-            ))?;
+            .with_context(|| format!("Failed to read identity config for {}.", identity_name))?;
 
         Ok(self.get_identity_pem_path(identity_name, &config))
     }
@@ -378,8 +373,8 @@ impl IdentityManager {
     ) -> DfxResult<IdentityConfiguration> {
         let json_path = self.get_identity_json_path(identity);
         if json_path.exists() {
-            let content =
-                std::fs::read(&json_path).context(format!("Failed to read {:?}.", &json_path))?;
+            let content = std::fs::read(&json_path)
+                .with_context(|| format!("Failed to read {:?}.", &json_path))?;
             let config = serde_json::from_slice(content.as_ref())
                 .context("Error deserializing identity configuration")?;
             Ok(config)
@@ -430,10 +425,12 @@ To create a more secure identity, create and use an identity that is protected b
                 creds_pem_path.display(),
                 identity_pem_path.display()
             );
-            fs::copy(&creds_pem_path, &identity_pem_path).context(format!(
-                "Failed to migrate legacy identity from {:?} to {:?}.",
-                &creds_pem_path, &identity_pem_path
-            ))?;
+            fs::copy(&creds_pem_path, &identity_pem_path).with_context(|| {
+                format!(
+                    "Failed to migrate legacy identity from {:?} to {:?}.",
+                    &creds_pem_path, &identity_pem_path
+                )
+            })?;
         } else {
             slog::info!(
                 logger,
@@ -475,28 +472,34 @@ fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
 }
 
 fn read_configuration(path: &Path) -> DfxResult<Configuration> {
-    let content = std::fs::read_to_string(&path).context(format!(
-        "Cannot read configuration file at '{}'.",
-        PathBuf::from(path).display()
-    ))?;
+    let content = std::fs::read_to_string(&path).with_context(|| {
+        format!(
+            "Cannot read configuration file at '{}'.",
+            PathBuf::from(path).display()
+        )
+    })?;
     serde_json::from_str(&content).map_err(DfxError::from)
 }
 
 fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
     let content =
         serde_json::to_string_pretty(&config).context("Failed to serialize configuration.")?;
-    std::fs::write(&path, content).context(format!(
-        "Cannot write configuration file at '{}'.",
-        PathBuf::from(path).display()
-    ))?;
+    std::fs::write(&path, content).with_context(|| {
+        format!(
+            "Cannot write configuration file at '{}'.",
+            PathBuf::from(path).display()
+        )
+    })?;
     Ok(())
 }
 
 pub(super) fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConfiguration> {
-    let content = std::fs::read_to_string(&path).context(format!(
-        "Cannot read identity configuration file at '{}'.",
-        PathBuf::from(path).display()
-    ))?;
+    let content = std::fs::read_to_string(&path).with_context(|| {
+        format!(
+            "Cannot read identity configuration file at '{}'.",
+            PathBuf::from(path).display()
+        )
+    })?;
     serde_json::from_str(&content).map_err(DfxError::from)
 }
 
@@ -506,19 +509,19 @@ pub(super) fn write_identity_configuration(
 ) -> DfxResult {
     let content = serde_json::to_string_pretty(&config)
         .context("Failed to serialize identity configuration.")?;
-    std::fs::write(&path, content).context(format!(
-        "Cannot write identity configuration file at '{}'.",
-        PathBuf::from(path).display()
-    ))?;
+    std::fs::write(&path, content).with_context(|| {
+        format!(
+            "Cannot write identity configuration file at '{}'.",
+            PathBuf::from(path).display()
+        )
+    })?;
     Ok(())
 }
 
 fn remove_identity_file(file: &Path) -> DfxResult {
     if file.exists() {
-        std::fs::remove_file(&file).context(format!(
-            "Cannot remove identity file at '{}'.",
-            file.display()
-        ))?;
+        std::fs::remove_file(&file)
+            .with_context(|| format!("Cannot remove identity file at '{}'.", file.display()))?;
     }
     Ok(())
 }

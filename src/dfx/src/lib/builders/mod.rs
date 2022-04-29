@@ -106,10 +106,10 @@ pub trait CanisterBuilder {
                 );
             }
             std::fs::remove_dir_all(&generate_output_dir)
-                .context(format!("Failed to remove dir: {:?}", &generate_output_dir))?;
+                .with_context(|| format!("Failed to remove dir: {:?}", &generate_output_dir))?;
         }
         std::fs::create_dir_all(&generate_output_dir)
-            .context(format!("Failed to create dir: {:?}", &generate_output_dir))?;
+            .with_context(|| format!("Failed to create dir: {:?}", &generate_output_dir))?;
 
         let generated_idl_path = self
             .generate_idl(pool, info, config)
@@ -141,7 +141,7 @@ pub trait CanisterBuilder {
                 .with_extension("did.d.ts");
             let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
             std::fs::write(&output_did_ts_path, content)
-                .context(format!("Failed to write to {:?}.", &output_did_ts_path))?;
+                .with_context(|| format!("Failed to write to {:?}.", &output_did_ts_path))?;
             eprintln!("  {}", &output_did_ts_path.display());
         }
 
@@ -153,7 +153,7 @@ pub trait CanisterBuilder {
                 .with_extension("did.js");
             let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
             std::fs::write(&output_did_js_path, content)
-                .context(format!("Failed to write to {:?}.", &output_did_js_path))?;
+                .with_context(|| format!("Failed to write to {:?}.", &output_did_js_path))?;
             eprintln!("  {}", &output_did_js_path.display());
 
             // index.js
@@ -187,7 +187,7 @@ pub trait CanisterBuilder {
                 };
                 let index_js_path = generate_output_dir.join("index").with_extension("js");
                 std::fs::write(&index_js_path, new_file_contents)
-                    .context(format!("Failed to write to {:?}.", &index_js_path))?;
+                    .with_context(|| format!("Failed to write to {:?}.", &index_js_path))?;
                 eprintln!("  {}", &index_js_path.display());
             }
         }
@@ -199,14 +199,14 @@ pub trait CanisterBuilder {
                 .with_extension("mo");
             let content = ensure_trailing_newline(candid::bindings::motoko::compile(&env, &ty));
             std::fs::write(&output_mo_path, content)
-                .context(format!("Failed to write to {:?}.", &output_mo_path))?;
+                .with_context(|| format!("Failed to write to {:?}.", &output_mo_path))?;
             eprintln!("  {}", &output_mo_path.display());
         }
 
         // Candid, delete if not required
         if !bindings.contains(&"did".to_string()) {
             std::fs::remove_file(&generated_idl_path)
-                .context(format!("Failed to remove {:?}.", &generated_idl_path))?;
+                .with_context(|| format!("Failed to remove {:?}.", &generated_idl_path))?;
         } else {
             eprintln!("  {}", &generated_idl_path.display());
         }

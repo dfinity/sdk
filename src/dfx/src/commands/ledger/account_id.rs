@@ -47,7 +47,7 @@ pub async fn exec(env: &dyn Environment, opts: AccountIdOpts) -> DfxResult {
             CanisterIdStore::for_env(env).context("Failed to load canister id store")?;
         canister_id_store
             .get(&alias)
-            .context(format!("Failed to get canister id for {}.", alias))?
+            .with_context(|| format!("Failed to get canister id for {}.", alias))?
     } else {
         env.get_selected_identity_principal()
             .context("No identity is selected")?

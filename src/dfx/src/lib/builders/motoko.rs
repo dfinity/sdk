@@ -126,14 +126,12 @@ impl CanisterBuilder for MotokoBuilder {
             .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
             .collect();
 
-        std::fs::create_dir_all(motoko_info.get_output_root()).context(format!(
-            "Failed to create {:?}.",
-            motoko_info.get_output_root()
-        ))?;
+        std::fs::create_dir_all(motoko_info.get_output_root())
+            .with_context(|| format!("Failed to create {:?}.", motoko_info.get_output_root()))?;
         let cache = &self.cache;
         let idl_dir_path = &config.idl_root;
         std::fs::create_dir_all(&idl_dir_path)
-            .context(format!("Failed to create {:?}.", &idl_dir_path))?;
+            .with_context(|| format!("Failed to create {:?}.", &idl_dir_path))?;
 
         let package_arguments = package_arguments::load(cache.as_ref(), motoko_info.get_packtool())
             .context("Failed to load package arguments.")?;
@@ -185,7 +183,7 @@ impl CanisterBuilder for MotokoBuilder {
             .context("output here must not be None")?;
 
         std::fs::create_dir_all(generate_output_dir)
-            .context(format!("Failed to create {:?}.", generate_output_dir))?;
+            .with_context(|| format!("Failed to create {:?}.", generate_output_dir))?;
 
         let output_idl_path = generate_output_dir
             .join(info.get_name())
@@ -197,10 +195,12 @@ impl CanisterBuilder for MotokoBuilder {
             .context("Failed to create MotokoCanisterInfo.")?;
         let idl_from_build = motoko_info.get_output_idl_path().to_path_buf();
 
-        std::fs::copy(&idl_from_build, &output_idl_path).context(format!(
-            "Failed to copy {:?} to {:?}.",
-            &idl_from_build, &output_idl_path
-        ))?;
+        std::fs::copy(&idl_from_build, &output_idl_path).with_context(|| {
+            format!(
+                "Failed to copy {:?} to {:?}.",
+                &idl_from_build, &output_idl_path
+            )
+        })?;
 
         Ok(output_idl_path)
     }

@@ -37,7 +37,7 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     IdentityManager::new(env)
         .context("Failed to load identity manager.")?
         .create_new_identity(name, params, opts.force)
-        .context(format!("Failed to create new identity {}.", name))?;
+        .with_context(|| format!("Failed to create new identity {}.", name))?;
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())
 }

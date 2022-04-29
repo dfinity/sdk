@@ -35,10 +35,12 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         .context("Failed to fetch canister names and their dependencies.")?;
 
     // Get pool of canisters to build
-    let canister_pool = CanisterPool::load(&env, false, &canister_names).context(format!(
-        "Failed to load canister pool for canisters {:?}.",
-        &canister_names
-    ))?;
+    let canister_pool = CanisterPool::load(&env, false, &canister_names).with_context(|| {
+        format!(
+            "Failed to load canister pool for canisters {:?}.",
+            &canister_names
+        )
+    })?;
 
     // This is just to display an error if trying to generate before creating the canister.
     let store = CanisterIdStore::for_env(&env).context("Failed to load canister store.")?;
@@ -46,10 +48,12 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     let mut build_before_generate = false;
     for canister in canister_pool.get_canister_list() {
         let canister_name = canister.get_name();
-        let canister_id = store.get(canister_name).context(format!(
-            "Failed to get canister id for canister '{}'.",
-            canister_name
-        ))?;
+        let canister_id = store.get(canister_name).with_context(|| {
+            format!(
+                "Failed to get canister id for canister '{}'.",
+                canister_name
+            )
+        })?;
         if let Some(info) = canister_pool.get_canister_info(&canister_id) {
             if info.get_type() == "motoko" {
                 build_before_generate = true;

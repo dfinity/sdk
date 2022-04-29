@@ -22,7 +22,7 @@ pub fn exec(env: &dyn Environment, opts: RemoveOpts) -> DfxResult {
     IdentityManager::new(env)
         .context("Failed to load identity manager.")?
         .remove(name)
-        .context(format!("Failed to remove {}.", name))?;
+        .with_context(|| format!("Failed to remove {}.", name))?;
 
     info!(log, r#"Removed identity "{}"."#, name);
     Ok(())

@@ -35,11 +35,11 @@ async fn canister_status(
         CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
     let canister_id = Principal::from_text(canister)
         .or_else(|_| canister_id_store.get(canister))
-        .context(format!("Failed to get canister id for {}.", canister))?;
+        .with_context(|| format!("Failed to get canister id for {}.", canister))?;
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender)
         .await
-        .context(format!("Failed to get canister status for {}.", canister))?;
+        .with_context(|| format!("Failed to get canister status for {}.", canister))?;
 
     let mut controllers: Vec<_> = status
         .settings
@@ -82,7 +82,7 @@ pub async fn exec(
             for canister in canisters.keys() {
                 canister_status(env, canister, timeout, call_sender)
                     .await
-                    .context(format!("Failed to read canister status for {}.", canister))?;
+                    .with_context(|| format!("Failed to read canister status for {}.", canister))?;
             }
         }
         Ok(())

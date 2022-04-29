@@ -352,9 +352,10 @@ impl ConfigInterface {
             Some(specific_canister) => {
                 let mut names = HashSet::new();
                 let mut path = vec![];
-                add_dependencies(canister_map, &mut names, &mut path, specific_canister).context(
-                    format!("Failed to add dependencies for {}.", specific_canister),
-                )?;
+                add_dependencies(canister_map, &mut names, &mut path, specific_canister)
+                    .with_context(|| {
+                        format!("Failed to add dependencies for {}.", specific_canister)
+                    })?;
                 names.into_iter().collect()
             }
             None => canister_map.keys().cloned().collect(),
@@ -383,10 +384,7 @@ impl ConfigInterface {
     pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
         Ok(self
             .get_remote_canister_id(canister, network)
-            .context(format!(
-                "Failed to get remote canister id for {}.",
-                canister
-            ))?
+            .with_context(|| format!("Failed to get remote canister id for {}.", canister))?
             .is_some())
     }
 
@@ -459,7 +457,7 @@ fn add_dependencies(
 
     for canister in deps {
         add_dependencies(all_canisters, names, path, &canister)
-            .context(format!("Failed to add dependencies for {}.", canister))?;
+            .with_context(|| format!("Failed to add dependencies for {}.", canister))?;
     }
 
     path.pop();
@@ -500,7 +498,7 @@ impl Config {
     fn from_file(path: &Path) -> DfxResult<Config> {
         {
             let content = std::fs::read(&path)
-                .context(format!("Failed to read folder content for {:?}.", path))?;
+                .with_context(|| format!("Failed to read folder content for {:?}.", path))?;
             Config::from_slice(path.to_path_buf(), &content)
         }
         .with_context(|| format!("Reading {}", path.to_string_lossy()))
@@ -567,7 +565,7 @@ impl Config {
         let json_pretty = serde_json::to_string_pretty(&self.json)
             .map_err(|e| error_invalid_data!("Failed to serialize dfx.json: {}", e))?;
         std::fs::write(&self.path, json_pretty)
-            .context(format!("Failed to write config to {:?}.", &self.path))?;
+            .with_context(|| format!("Failed to write config to {:?}.", &self.path))?;
         Ok(())
     }
 }

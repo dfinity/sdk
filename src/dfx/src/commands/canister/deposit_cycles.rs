@@ -42,7 +42,7 @@ async fn deposit_cycles(
         CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
     let canister_id = Principal::from_text(canister)
         .or_else(|_| canister_id_store.get(canister))
-        .context(format!("Failed to get id for {}.", canister))?;
+        .with_context(|| format!("Failed to get id for {}.", canister))?;
 
     info!(log, "Depositing {} cycles onto {}", cycles, canister,);
 
@@ -89,7 +89,7 @@ pub async fn exec(
             for canister in canisters.keys() {
                 deposit_cycles(env, canister, timeout, call_sender, cycles)
                     .await
-                    .context(format!("Failed to deposit cycles into {}.", canister))?;
+                    .with_context(|| format!("Failed to deposit cycles into {}.", canister))?;
             }
         }
         Ok(())

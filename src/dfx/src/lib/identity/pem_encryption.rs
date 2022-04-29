@@ -15,7 +15,7 @@ use argon2::{password_hash::PasswordHasher, Argon2};
 ///
 /// Try to only load the pem file once, as the user may be prompted for the password every single time you call this function.
 pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> DfxResult<Vec<u8>> {
-    let content = std::fs::read(path).context(format!("Failed to read {:?}.", path))?;
+    let content = std::fs::read(path).with_context(|| format!("Failed to read {:?}.", path))?;
     let content =
         maybe_decrypt_pem(content.as_slice(), config).context("Failed pem file decryption.")?;
     identity_utils::validate_pem_file(&content).context("Pem file validation failed.")?;
@@ -33,17 +33,16 @@ pub fn write_pem_file(
     let pem_content =
         maybe_encrypt_pem(pem_content, config).context("Failed pem file encryption.")?;
 
-    let containing_folder = path.parent().context(format!(
-        "Could not determine parent folder for {}",
-        path.display()
-    ))?;
+    let containing_folder = path
+        .parent()
+        .with_context(|| format!("Could not determine parent folder for {}", path.display()))?;
     std::fs::create_dir_all(containing_folder)
-        .context(format!("Failed to create {:?}.", containing_folder))?;
+        .with_context(|| format!("Failed to create {:?}.", containing_folder))?;
     std::fs::write(path, pem_content)
-        .context(format!("Failed to write pem file to {:?}.", path))?;
+        .with_context(|| format!("Failed to write pem file to {:?}.", path))?;
 
     let mut permissions = std::fs::metadata(path)
-        .context(format!("Failed to read permissions of {:?}.", path))?
+        .with_context(|| format!("Failed to read permissions of {:?}.", path))?
         .permissions();
     permissions.set_readonly(true);
     #[cfg(unix)]
@@ -52,7 +51,7 @@ pub fn write_pem_file(
         permissions.set_mode(0o400);
     }
     std::fs::set_permissions(path, permissions)
-        .context(format!("Failed to set permissions of {:?}.", path))?;
+        .with_context(|| format!("Failed to set permissions of {:?}.", path))?;
 
     Ok(())
 }

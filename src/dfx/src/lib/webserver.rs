@@ -108,7 +108,7 @@ pub fn run_webserver(
                 .default_service(web::get().to(|| HttpResponse::build(StatusCode::NOT_FOUND)))
         })
         .bind(bind)
-        .context(format!("Failed to bind HTTP server to {:?}.", bind))?
+        .with_context(|| format!("Failed to bind HTTP server to {:?}.", bind))?
         // N.B. This is an arbitrary timeout for now.
         .shutdown_timeout(SHUTDOWN_WAIT_TIME)
         .run();

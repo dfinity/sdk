@@ -27,10 +27,12 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
         let network_descriptor = env.get_network_descriptor().expect("no network descriptor");
-        let store = CanisterIdStore::for_network(network_descriptor).context(format!(
-            "Failed to load canister id stor for network {}.",
-            network_descriptor.name
-        ))?;
+        let store = CanisterIdStore::for_network(network_descriptor).with_context(|| {
+            format!(
+                "Failed to load canister id stor for network {}.",
+                network_descriptor.name
+            )
+        })?;
 
         let remote_ids = get_remote_ids(env).context("Failed to get remote ids.")?;
 
@@ -84,11 +86,9 @@ impl CanisterIdStore {
 
     pub fn load_ids(path: &Path) -> DfxResult<CanisterIds> {
         let content = std::fs::read_to_string(path)
-            .context(format!("Cannot read from file at '{}'.", path.display()))?;
-        serde_json::from_str(&content).context(format!(
-            "Cannot decode contents of file at '{}'.",
-            path.display()
-        ))
+            .with_context(|| format!("Cannot read from file at '{}'.", path.display()))?;
+        serde_json::from_str(&content)
+            .with_context(|| format!("Cannot decode contents of file at '{}'.", path.display()))
     }
 
     pub fn save_ids(&self) -> DfxResult {
@@ -96,12 +96,11 @@ impl CanisterIdStore {
             serde_json::to_string_pretty(&self.ids).context("Failed to serialize ids.")?;
         let parent = self.path.parent().unwrap();
         if !parent.exists() {
-            std::fs::create_dir_all(parent).context(format!("Failed to create {:?}.", parent))?;
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("Failed to create {:?}.", parent))?;
         }
-        std::fs::write(&self.path, content).context(format!(
-            "Cannot write to file at '{}'.",
-            self.path.display()
-        ))
+        std::fs::write(&self.path, content)
+            .with_context(|| format!("Cannot write to file at '{}'.", self.path.display()))
     }
 
     pub fn find(&self, canister_name: &str) -> Option<CanisterId> {

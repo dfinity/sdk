@@ -92,11 +92,10 @@ impl CanisterBuilder for AssetsBuilder {
             }
             // See https://github.com/alexcrichton/tar-rs/issues/261
             fs::create_dir_all(info.get_output_root())
-                .context(format!("Failed to create {:?}.", info.get_output_root()))?;
-            file.unpack_in(info.get_output_root()).context(format!(
-                "Failed to unpack archive to {:?}.",
-                info.get_output_root()
-            ))?;
+                .with_context(|| format!("Failed to create {:?}.", info.get_output_root()))?;
+            file.unpack_in(info.get_output_root()).with_context(|| {
+                format!("Failed to unpack archive to {:?}.", info.get_output_root())
+            })?;
         }
 
         let assets_canister_info = info
@@ -183,7 +182,7 @@ impl CanisterBuilder for AssetsBuilder {
             }
             // See https://github.com/alexcrichton/tar-rs/issues/261
             fs::create_dir_all(&generate_output_dir)
-                .context(format!("Failed to create {:?}.", &generate_output_dir))?;
+                .with_context(|| format!("Failed to create {:?}.", &generate_output_dir))?;
 
             file.unpack_in(generate_output_dir.clone())
                 .context("Failed to unpack archive content.")?;
@@ -199,7 +198,7 @@ impl CanisterBuilder for AssetsBuilder {
         let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));
         if wasm_path.exists() {
             std::fs::remove_file(&wasm_path)
-                .context(format!("Failed to remove {:?}.", &wasm_path))?;
+                .with_context(|| format!("Failed to remove {:?}.", &wasm_path))?;
         }
 
         let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
@@ -208,7 +207,7 @@ impl CanisterBuilder for AssetsBuilder {
             .with_extension("did");
         if idl_path.exists() {
             std::fs::rename(&idl_path, &idl_path_rename)
-                .context(format!("Failed to rename {:?}.", &idl_path))?;
+                .with_context(|| format!("Failed to rename {:?}.", &idl_path))?;
         }
 
         Ok(idl_path_rename)
@@ -239,7 +238,7 @@ fn delete_output_directory(
             );
         }
         fs::remove_dir_all(&output_assets_path)
-            .context(format!("Failed to remove {:?}.", &output_assets_path))?;
+            .with_context(|| format!("Failed to remove {:?}.", &output_assets_path))?;
     }
     Ok(())
 }
@@ -280,12 +279,11 @@ fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo)
 
             if entry.file_type().is_dir() {
                 fs::create_dir(&destination)
-                    .context(format!("Failed to create {:?}.", &destination))?;
+                    .with_context(|| format!("Failed to create {:?}.", &destination))?;
             } else {
-                fs::copy(&source, &destination).context(format!(
-                    "Failed to copy {:?} to {:?}",
-                    &source, &destination
-                ))?;
+                fs::copy(&source, &destination).with_context(|| {
+                    format!("Failed to copy {:?} to {:?}", &source, &destination)
+                })?;
             }
         }
     }

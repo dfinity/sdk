@@ -47,15 +47,9 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
             let canister_id = CanisterIdStore::for_env(env)
                 .context("Failed to load canister id store.")?
                 .get(canister_name)
-                .context(format!(
-                    "Failed to fetch canister id for {}.",
-                    canister_name
-                ))?;
+                .with_context(|| format!("Failed to fetch canister id for {}.", canister_name))?;
             let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))
-                .context(format!(
-                    "Failed to load canister info for {}.",
-                    canister_name
-                ))?;
+                .with_context(|| format!("Failed to load canister info for {}.", canister_name))?;
             canister_info
                 .get_canister_id()
                 .context("Failed to read canister id.")?

@@ -15,7 +15,7 @@ pub fn exec(env: &dyn Environment, _opts: CacheShowOpts) -> DfxResult {
     println!(
         "{}",
         cache::get_bin_cache(&v)
-            .context(format!("Failed to get binary cache for version {}", &v))?
+            .with_context(|| format!("Failed to get binary cache for version {}", &v))?
             .as_path()
             .display()
     );

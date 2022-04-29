@@ -81,17 +81,14 @@ pub async fn exec(
         if config
             .get_config()
             .is_remote_canister(canister, &network.name)
-            .context(format!(
-                "Failed to determine if {} is remote or not.",
-                canister
-            ))?
+            .with_context(|| format!("Failed to determine if {} is remote or not.", canister))?
         {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be installed from here.", canister, &network.name)
         }
 
         let canister_id = Principal::from_text(canister)
             .or_else(|_| canister_id_store.get(canister))
-            .context(format!("Failed to get canister id for {}.", canister))?;
+            .with_context(|| format!("Failed to get canister id for {}.", canister))?;
         let arguments = opts.argument.as_deref();
         let arg_type = opts.argument_type.as_deref();
         let canister_info = CanisterInfo::load(&config, canister, Some(canister_id));
@@ -142,10 +139,9 @@ pub async fn exec(
                 if config
                     .get_config()
                     .is_remote_canister(canister, &network.name)
-                    .context(format!(
-                        "Failed to determine if {} is remote or not.",
-                        canister
-                    ))?
+                    .with_context(|| {
+                        format!("Failed to determine if {} is remote or not.", canister)
+                    })?
                 {
                     info!(
                         env.get_logger(),
@@ -158,16 +154,15 @@ pub async fn exec(
                 }
                 let canister_id = Principal::from_text(canister)
                     .or_else(|_| canister_id_store.get(canister))
-                    .context(format!("Failed to get canister id for {}.", canister))?;
+                    .with_context(|| format!("Failed to get canister id for {}.", canister))?;
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))
-                    .context(format!("Failed to load canister info for {}.", canister))?;
+                    .with_context(|| format!("Failed to load canister info for {}.", canister))?;
                 let installed_module_hash =
                     read_module_hash(agent, &canister_id_store, &canister_info)
                         .await
-                        .context(format!(
-                            "Failed to read installed module hash for {}.",
-                            canister
-                        ))?;
+                        .with_context(|| {
+                            format!("Failed to read installed module hash for {}.", canister)
+                        })?;
 
                 let install_args = [];
 
@@ -183,7 +178,7 @@ pub async fn exec(
                     opts.upgrade_unchanged,
                 )
                 .await
-                .context(format!("Failed to install wasm for {}.", canister))?;
+                .with_context(|| format!("Failed to install wasm for {}.", canister))?;
             }
         }
         Ok(())

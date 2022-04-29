@@ -66,7 +66,7 @@ impl CanisterInfo {
             .join(util::network_to_pathcompat(&network_name));
         let build_root = build_root.join("canisters");
         std::fs::create_dir_all(&build_root)
-            .context(format!("Failed to create {:?}.", &build_root))?;
+            .with_context(|| format!("Failed to create {:?}.", &build_root))?;
 
         let canister_map = (&config.get_config().canisters)
             .as_ref()

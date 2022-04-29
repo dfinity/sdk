@@ -53,10 +53,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
 
     let canister_id = Principal::from_text(callee_canister)
         .or_else(|_| canister_id_store.get(callee_canister))
-        .context(format!(
-            "Failed to determine canister id for {}.",
-            callee_canister
-        ))?;
+        .with_context(|| format!("Failed to determine canister id for {}.", callee_canister))?;
 
     let mut waiter = waiter_with_exponential_backoff();
     let Replied::CallReplied(blob) = async {

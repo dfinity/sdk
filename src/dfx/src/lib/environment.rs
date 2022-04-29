@@ -84,7 +84,7 @@ impl EnvironmentImpl {
             Some(c) => c.get_path().parent().unwrap().join(".dfx"),
         };
         create_dir_all(&temp_dir)
-            .context(format!("Failed to create temp directory {:?}.", &temp_dir))?;
+            .with_context(|| format!("Failed to create temp directory {:?}.", &temp_dir))?;
 
         // Figure out which version of DFX we should be running. This will use the following
         // fallback sequence:
@@ -100,7 +100,7 @@ impl EnvironmentImpl {
                 Some(c) => match &c.get_config().get_dfx() {
                     None => dfx_version().clone(),
                     Some(v) => Version::parse(v)
-                        .context(format!("Failed to parse version from '{:?}'.", v))?,
+                        .with_context(|| format!("Failed to parse version from '{:?}'.", v))?,
                 },
             },
             Ok(v) => {
@@ -108,7 +108,7 @@ impl EnvironmentImpl {
                     dfx_version().clone()
                 } else {
                     Version::parse(&v)
-                        .context(format!("Failed to parse version from '{:?}'.", v))?
+                        .with_context(|| format!("Failed to parse version from '{:?}'.", v))?
                 }
             }
         };
@@ -318,7 +318,7 @@ pub struct AgentClient {
 
 impl AgentClient {
     pub fn new(logger: Logger, url: String) -> DfxResult<AgentClient> {
-        let url = reqwest::Url::parse(&url).context(format!("Invalid URL: {}", url))?;
+        let url = reqwest::Url::parse(&url).with_context(|| format!("Invalid URL: {}", url))?;
 
         let result = Self {
             logger,
@@ -347,7 +347,8 @@ impl AgentClient {
 
     fn read_http_auth_map(&self) -> DfxResult<BTreeMap<String, String>> {
         let p = &Self::http_auth_path().context("Failed to determine http auth path.")?;
-        let content = std::fs::read_to_string(p).context(format!("Failed to read {:?}.", p))?;
+        let content =
+            std::fs::read_to_string(p).with_context(|| format!("Failed to read {:?}.", p))?;
 
         // If there's an error parsing, simply use an empty map.
         Ok(
@@ -404,7 +405,7 @@ impl AgentClient {
                 .context("Failed to serialize http auth.")?
                 .as_bytes(),
         )
-        .context(format!("Failed to write to {:?}.", &p))?;
+        .with_context(|| format!("Failed to write to {:?}.", &p))?;
 
         Ok(p)
     }

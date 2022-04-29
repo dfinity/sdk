@@ -27,7 +27,7 @@ pub fn exec(env: &dyn Environment, opts: RenameOpts) -> DfxResult {
         IdentityManager::new(env).context("Failed to load identity manager.")?;
     let renamed_default = identity_manager
         .rename(env, from, to)
-        .context(format!("Failed to rename {} to {}.", from, to))?;
+        .with_context(|| format!("Failed to rename {} to {}.", from, to))?;
 
     info!(log, r#"Renamed identity "{}" to "{}"."#, from, to);
     if renamed_default {

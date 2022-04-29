@@ -41,10 +41,12 @@ pub async fn install_canister(
             .context("Failed to install ui canister.")?;
     }
 
-    let canister_id = canister_info.get_canister_id().context(format!(
-        "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
-        canister_info.get_name().to_owned()
-    ))?;
+    let canister_id = canister_info.get_canister_id().with_context(|| {
+        format!(
+            "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
+            canister_info.get_name().to_owned()
+        )
+    })?;
     if matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = candid {
@@ -54,7 +56,7 @@ pub async fn install_canister(
                 .expect("Generated did file not found");
             let deployed_path = candid_path.with_extension("old.did");
             std::fs::write(&deployed_path, candid)
-                .context(format!("Failed to write candid to {:?}.", &deployed_path))?;
+                .with_context(|| format!("Failed to write candid to {:?}.", &deployed_path))?;
             let (mut env, opt_new) =
                 check_candid_file(&candid_path).context("Candid check failed.")?;
             let new_type =
@@ -81,10 +83,12 @@ pub async fn install_canister(
         let deployed_stable_path = stable_path.with_extension("old.most");
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
         if let Some(stable_types) = stable_types {
-            std::fs::write(&deployed_stable_path, stable_types).context(format!(
-                "Failed to write stable types to {:?}.",
-                &deployed_stable_path
-            ))?;
+            std::fs::write(&deployed_stable_path, stable_types).with_context(|| {
+                format!(
+                    "Failed to write stable types to {:?}.",
+                    &deployed_stable_path
+                )
+            })?;
             let cache = env.get_cache();
             let output = cache
                 .get_binary_command("moc")
@@ -105,7 +109,7 @@ pub async fn install_canister(
         .get_output_wasm_path()
         .expect("Cannot get WASM output path.");
     let wasm_module =
-        std::fs::read(&wasm_path).context(format!("Failed to read {:?}.", &wasm_path))?;
+        std::fs::read(&wasm_path).with_context(|| format!("Failed to read {:?}.", &wasm_path))?;
 
     if mode == InstallMode::Upgrade
         && wasm_module_already_installed(&wasm_module, installed_module_hash.as_deref())

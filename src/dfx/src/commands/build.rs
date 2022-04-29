@@ -71,10 +71,9 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         let store = CanisterIdStore::for_env(&env).context("Failed to create canister store.")?;
         for canister in canister_pool.get_canister_list() {
             let canister_name = canister.get_name();
-            store.get(canister_name).context(format!(
-                "Canister {} failed pre-build check.",
-                canister_name
-            ))?;
+            store
+                .get(canister_name)
+                .with_context(|| format!("Canister {} failed pre-build check.", canister_name))?;
         }
     }
 
