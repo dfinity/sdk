@@ -1,3 +1,4 @@
+use crate::config::dfinity::DEFAULT_IC_GATEWAY;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -12,6 +13,8 @@ use crate::util::expiry_duration;
 
 use anyhow::Context;
 use clap::Parser;
+use ic_agent::Agent;
+use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
 use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
@@ -146,7 +149,9 @@ async fn cycles_to_fabricate(env: &dyn Environment, opts: &FabricateCyclesOpts) 
     } else if opts.amount.is_some() || opts.icp.is_some() || opts.e8s.is_some() {
         let icpts = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)
             .context("Encountered an error while parsing --amount, --icp, or --e8s")?;
-        let cycles = as_cycles_with_current_exchange_rate(&icpts)
+        let agent = Agent::builder()
+            .with_transport(ReqwestHttpReplicaV2Transport::create(DEFAULT_IC_GATEWAY)?).build().context("Cannot create mainnet agent.")?;
+        let cycles = as_cycles_with_current_exchange_rate(&agent, &icpts)
             .await
             .context("Encountered an error while converting at the current exchange rate. If this issue persist, please specify an amount of cycles manually using the --cycles or --t flag.")?;
         let log = env.get_logger();

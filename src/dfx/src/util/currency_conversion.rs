@@ -1,58 +1,24 @@
 use crate::{
-    config::dfinity::DEFAULT_IC_GATEWAY,
     lib::{
         error::DfxResult,
-        nns_types::icpts::{ICPTs, ICP_SUBDIVIDABLE_BY},
+        nns_types::icpts::{ICPTs, ICP_SUBDIVIDABLE_BY}, operations::ledger::icp_xdr_rate,
     },
 };
 use anyhow::Context;
-use candid::{CandidType, Decode, Deserialize, Encode, Principal};
-use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, Agent};
-use serde::Serialize;
-use std::{convert::TryFrom, str::FromStr};
+use ic_agent::Agent;
+use std::convert::TryFrom;
 
 /// How many cycles you get per XDR when converting ICP to cycles
 const CYCLES_PER_XDR: u128 = 1_000_000_000_000;
-const CMC_MAINNET_PRINCIPAL: &str = "rkp4c-7iaaa-aaaaa-aaaca-cai";
 
 /// This returns how many cycles the amount of ICP/e8s is currently worth.
 /// Fetches the exchange rate from the (hardcoded) IC network.
-pub async fn as_cycles_with_current_exchange_rate(icpts: &ICPTs) -> DfxResult<u128> {
+pub async fn as_cycles_with_current_exchange_rate(agent: &Agent, icpts: &ICPTs) -> DfxResult<u128> {
     let cycles_per_icp: u128 = {
-        let agent = Agent::builder()
-            .with_transport(ReqwestHttpReplicaV2Transport::create(DEFAULT_IC_GATEWAY)?)
-            .build()
-            .context("Cannot create mainnet agent.")?;
-        let response = agent
-            .query(&Principal::from_str(CMC_MAINNET_PRINCIPAL)?, "get_icp_xdr_conversion_rate")
-            .with_arg(Encode!(&()).unwrap())
-            .call()
-            .await
+        let xdr_permyriad_per_icp = icp_xdr_rate(agent).await
             .context("Failed to fetch ICP -> cycles conversion rate from mainnet CMC.")?;
 
-        /// These two data structures are stolen straight from https://github.com/dfinity/ic/blob/master/rs/nns/cmc/src/lib.rs
-        /// At the time of writing, the latest version is https://github.com/dfinity/ic/blob/d69f7f5b6682958bfdc4836ca4adfa83ce3d4252/rs/nns/cmc/src/lib.rs
-        #[derive(Serialize, Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
-        pub struct IcpXdrConversionRateCertifiedResponse {
-            pub data: IcpXdrConversionRate,
-            pub hash_tree: Vec<u8>,
-            pub certificate: Vec<u8>,
-        }
-        #[derive(Serialize, Deserialize, CandidType, Clone, PartialEq, Eq, Debug, Default)]
-        pub struct IcpXdrConversionRate {
-            /// The time for which the market data was queried, expressed in UNIX epoch
-            /// time in seconds.
-            pub timestamp_seconds: u64,
-            /// The number of 10,000ths of IMF SDR (currency code XDR) that corresponds
-            /// to 1 ICP. This value reflects the current market price of one ICP
-            /// token. In other words, this value specifies the ICP/XDR conversion
-            /// rate to four decimal places.
-            pub xdr_permyriad_per_icp: u64,
-
-        }
-        let decoded_response: IcpXdrConversionRateCertifiedResponse = Decode!(response.as_slice(), IcpXdrConversionRateCertifiedResponse).context("Failed to decode CMC response.")?;
-
-        let cycles_per_icp: u128 = u128::try_from(decoded_response.data.xdr_permyriad_per_icp).context("Encountered an error while translating response into cycles")? * (CYCLES_PER_XDR / 10_000);
+        let cycles_per_icp: u128 = u128::try_from(xdr_permyriad_per_icp).context("Encountered an error while translating response into cycles")? * (CYCLES_PER_XDR / 10_000);
         DfxResult::<u128>::Ok(cycles_per_icp)
     }.context("Encountered a problem while fetching the exchange rate between ICP and cycles. If this issue continues to happen, please specify an amount in cycles directly.")?;
 
