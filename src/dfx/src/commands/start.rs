@@ -144,10 +144,6 @@ pub fn exec(
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
-    let btc_adapter_pid_file_path = temp_dir.join("ic-btc-adapter-pid");
-    let btc_adapter_config_path = temp_dir.join("ic-btc-adapter-config.json");
-    let icx_proxy_pid_file_path = temp_dir.join("icx-proxy-pid");
-    let webserver_port_path = temp_dir.join("webserver-port");
     let state_root = env.get_state_dir();
 
     check_previous_process_running(&pid_file_path)?;
@@ -158,11 +154,11 @@ pub fn exec(
         clean_state(temp_dir, &state_root)?;
     }
 
-    std::fs::write(&pid_file_path, "")?; // make sure we can write to this file
-    std::fs::write(&btc_adapter_pid_file_path, "")?;
-    std::fs::write(&btc_adapter_config_path, "")?;
-    std::fs::write(&icx_proxy_pid_file_path, "")?;
-    std::fs::write(&webserver_port_path, "")?;
+    let pid_file_path = empty_writable_path(pid_file_path)?;
+    let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
+    let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
+    let icx_proxy_pid_file_path = empty_writable_path(temp_dir.join("icx-proxy-pid"))?;
+    let webserver_port_path = empty_writable_path(temp_dir.join("webserver-port"))?;
 
     let (frontend_url, address_and_port) = frontend_address(host, &config, background)?;
 
@@ -172,9 +168,16 @@ pub fn exec(
     }
 
     write_pid(&pid_file_path);
-    std::fs::write(&webserver_port_path, address_and_port.port().to_string())?;
+    std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
+        || {
+            format!(
+                "Unable to write to {}",
+                webserver_port_path.to_string_lossy()
+            )
+        },
+    )?;
 
-    let btc_adapter_config = write_btc_adapter_config_if_enabled(
+    let btc_adapter_config = configure_btc_adapter_if_enabled(
         config.get_config(),
         &btc_adapter_config_path,
         enable_bitcoin,
@@ -353,7 +356,7 @@ fn write_pid(pid_file_path: &Path) {
     }
 }
 
-pub fn write_btc_adapter_config_if_enabled(
+pub fn configure_btc_adapter_if_enabled(
     config: &ConfigInterface,
     config_path: &Path,
     enable_bitcoin: bool,
@@ -371,8 +374,17 @@ pub fn write_btc_adapter_config_if_enabled(
         (_, _) => bitcoin::adapter::config::default_nodes(),
     };
 
+    let config =
+        write_btc_adapter_config(config_path, nodes).context("Unable to configure btc adapter")?;
+    Ok(Some(config))
+}
+
+fn write_btc_adapter_config(
+    config_path: &Path,
+    nodes: Vec<SocketAddr>,
+) -> DfxResult<bitcoin::adapter::Config> {
     let pid = sysinfo::get_current_pid()
-        .map_err(|s| anyhow!("Unable to obtain pid: {}", s))
+        .map_err(|s| anyhow!("Unable to obtain pid of current process: {}", s))
         .context("Unable to construct btc adapter socket path")?;
 
     // Unix socket domain names can only be so long.
@@ -382,8 +394,20 @@ pub fn write_btc_adapter_config_if_enabled(
 
     let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path);
 
-    std::fs::write(config_path, &serde_json::to_string_pretty(&adapter_config)?)
-        .with_context(|| format!("Unable to write {}", config_path.to_string_lossy()))?;
+    let contents = serde_json::to_string_pretty(&adapter_config)
+        .context("Unable to serialize btc adapter configuration to json")?;
+    std::fs::write(config_path, &contents).with_context(|| {
+        format!(
+            "Unable to write btc adapter configuration to {}",
+            config_path.to_string_lossy()
+        )
+    })?;
 
-    Ok(Some(adapter_config))
+    Ok(adapter_config)
+}
+
+pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
+    std::fs::write(&path, "")
+        .with_context(|| format!("Unable to write to {}", path.to_string_lossy()))?;
+    Ok(path)
 }
