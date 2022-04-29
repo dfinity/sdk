@@ -29,7 +29,7 @@ pub enum Command {
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
-     Canister(canister::CanisterOpts),
+    Canister(canister::CanisterOpts),
     Config(config::ConfigOpts),
     Deploy(deploy::DeployOpts),
     Generate(generate::GenerateOpts),

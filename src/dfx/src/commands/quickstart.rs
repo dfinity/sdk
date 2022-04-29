@@ -5,8 +5,12 @@ use rust_decimal::Decimal;
 use tokio::runtime::Runtime;
 
 use crate::lib::{
-    environment::Environment, error::DfxResult, identity::IdentityManager,
-    nns_types::account_identifier::AccountIdentifier, operations::ledger::{balance, icp_xdr_rate}, provider::create_agent_environment,
+    environment::Environment,
+    error::DfxResult,
+    identity::IdentityManager,
+    nns_types::account_identifier::AccountIdentifier,
+    operations::ledger::{balance, icp_xdr_rate},
+    provider::create_agent_environment,
 };
 
 pub fn exec(env: &dyn Environment) -> DfxResult {

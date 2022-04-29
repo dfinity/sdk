@@ -1,8 +1,7 @@
-use crate::{
-    lib::{
-        error::DfxResult,
-        nns_types::icpts::{ICPTs, ICP_SUBDIVIDABLE_BY}, operations::ledger::icp_xdr_rate,
-    },
+use crate::lib::{
+    error::DfxResult,
+    nns_types::icpts::{ICPTs, ICP_SUBDIVIDABLE_BY},
+    operations::ledger::icp_xdr_rate,
 };
 use anyhow::Context;
 use ic_agent::Agent;
