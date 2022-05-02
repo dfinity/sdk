@@ -69,7 +69,11 @@ pub async fn exec(
     let controllers: Option<DfxResult<Vec<_>>> = opts.controller.as_ref().map(|controllers| {
         let y: DfxResult<Vec<_>> = controllers
             .iter()
-            .map(|controller| controller_to_principal(env, controller))
+            .map(|controller| {
+                controller_to_principal(env, controller).with_context(|| {
+                    format!("Failed to convert controller {} to principal.", controller)
+                })
+            })
             .collect::<DfxResult<Vec<_>>>();
         y
     });
@@ -131,9 +135,13 @@ pub async fn exec(
             };
             let removed = removed
                 .iter()
-                .map(|r| controller_to_principal(env, r))
+                .map(|r| {
+                    controller_to_principal(env, r).with_context(|| {
+                        format!("Failed to convert controller {} to principal.", r)
+                    })
+                })
                 .collect::<DfxResult<Vec<_>>>()
-                .context("Failed to convert controller to principal.")?;
+                .context("Failed to collect controllers.")?;
             for s in removed {
                 if let Some(idx) = controllers.iter().position(|x| *x == s) {
                     controllers.swap_remove(idx);
@@ -209,8 +217,13 @@ pub async fn exec(
                     };
                     let removed = removed
                         .iter()
-                        .map(|r| controller_to_principal(env, r))
-                        .collect::<DfxResult<Vec<_>>>()?;
+                        .map(|r| {
+                            controller_to_principal(env, r).with_context(|| {
+                                format!("Failed to convert controller {} to principal.", r)
+                            })
+                        })
+                        .collect::<DfxResult<Vec<_>>>()
+                        .context("Failed to collect controllers.")?;
                     for s in removed {
                         if let Some(idx) = controllers.iter().position(|x| *x == s) {
                             controllers.swap_remove(idx);

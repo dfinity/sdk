@@ -51,7 +51,10 @@ pub fn get_network_descriptor<'a>(
             }?;
             let validated_urls = provider_urls
                 .iter()
-                .map(|provider| parse_provider_url(provider))
+                .map(|provider| {
+                    parse_provider_url(provider)
+                        .with_context(|| format!("Failed to parse provider url {}.", provider))
+                })
                 .collect::<DfxResult<_>>();
             validated_urls.map(|provider_urls| NetworkDescriptor {
                 name: network_name.to_string(),
@@ -64,7 +67,10 @@ pub fn get_network_descriptor<'a>(
             let provider_urls = vec![format!("http://{}", local_provider.bind)];
             let validated_urls = provider_urls
                 .iter()
-                .map(|provider| parse_provider_url(provider))
+                .map(|provider| {
+                    parse_provider_url(provider)
+                        .with_context(|| format!("Failed to parse provider url {}.", provider))
+                })
                 .collect::<DfxResult<_>>();
             validated_urls.map(|provider_urls| NetworkDescriptor {
                 name: network_name.to_string(),

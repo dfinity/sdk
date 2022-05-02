@@ -36,7 +36,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     let controller_blob = agent
         .read_state_canister_info(canister_id, "controllers", false)
         .await
-        .with_context(|| format!("Failed to read canister {}'s controllers.", canister_id))?;
+        .with_context(|| format!("Failed to read controllers of canister {}.", canister_id))?;
     let cbor: Value = serde_cbor::from_slice(&controller_blob)
         .map_err(|_| anyhow!("Invalid cbor data in controllers canister info."))?;
     let controllers = if let Value::Array(vec) = cbor {
@@ -44,7 +44,12 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
             .map(|elem: Value| {
                 if let Value::Bytes(bytes) = elem {
                     Ok(Principal::try_from(&bytes)
-                        .context("Failed to construct principal.")?
+                        .with_context(|| {
+                            format!(
+                                "Failed to construct principal of controller from bytes ({}).",
+                                hex::encode(&bytes)
+                            )
+                        })?
                         .to_text())
                 } else {
                     bail!(

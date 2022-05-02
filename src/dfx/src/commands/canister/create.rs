@@ -112,6 +112,9 @@ pub async fn exec(
                                 IdentityManager::new(env)
                                     .context("Failed to load identity manager.")?
                                     .instantiate_identity_from_name(identity_name)
+                                    .with_context(|| {
+                                        format!("Failed to instantiate identity {}.", identity_name)
+                                    })
                                     .and_then(|identity| {
                                         identity.sender().map_err(|err| anyhow!(err))
                                     })

@@ -2,18 +2,18 @@ use crate::{
     config::dfinity::DEFAULT_IC_GATEWAY,
     lib::{
         error::DfxResult,
+        ledger_types::MAINNET_CYCLE_MINTER_CANISTER_ID,
         nns_types::icpts::{ICPTs, ICP_SUBDIVIDABLE_BY},
     },
 };
 use anyhow::Context;
-use candid::{CandidType, Decode, Deserialize, Encode, Principal};
+use candid::{CandidType, Decode, Deserialize, Encode};
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, Agent};
 use serde::Serialize;
-use std::{convert::TryFrom, str::FromStr};
+use std::convert::TryFrom;
 
 /// How many cycles you get per XDR when converting ICP to cycles
 const CYCLES_PER_XDR: u128 = 1_000_000_000_000;
-const CMC_MAINNET_PRINCIPAL: &str = "rkp4c-7iaaa-aaaaa-aaaca-cai";
 
 /// This returns how many cycles the amount of ICP/e8s is currently worth.
 /// Fetches the exchange rate from the (hardcoded) IC network.
@@ -24,7 +24,7 @@ pub async fn as_cycles_with_current_exchange_rate(icpts: &ICPTs) -> DfxResult<u1
             .build()
             .context("Cannot create mainnet agent.")?;
         let response = agent
-            .query(&Principal::from_str(CMC_MAINNET_PRINCIPAL).context("Failed to parse mainnet CMC principal.")?, "get_icp_xdr_conversion_rate")
+            .query(&MAINNET_CYCLE_MINTER_CANISTER_ID, "get_icp_xdr_conversion_rate")
             .with_arg(Encode!(&()).unwrap())
             .call()
             .await

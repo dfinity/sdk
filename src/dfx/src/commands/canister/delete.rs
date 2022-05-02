@@ -30,6 +30,8 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
+const DANK_PRINCIPAL: Principal =
+    Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
 const WITHDRAWAL_COST: u128 = 10_000_000_000; // Emperically estimated.
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
@@ -93,10 +95,7 @@ async fn delete_canister(
     let target_canister_id = if no_withdrawal {
         None
     } else if to_dank {
-        Some(
-            Principal::from_text("aanaa-xaaaa-aaaah-aaeiq-cai")
-                .context("Failed to read principal aanaa-xaaaa-aaaah-aaeiq-cai.")?,
-        )
+        Some(DANK_PRINCIPAL)
     } else {
         match withdraw_cycles_to_canister {
             Some(ref target_canister_id) => {
@@ -186,7 +185,7 @@ async fn delete_canister(
                 .with_mode(mode);
             let install_result = install_builder
                 .build()
-                .context("Failed to create build install call.")?
+                .context("Failed to build InstallCode call.")?
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await;
             if install_result.is_ok() {

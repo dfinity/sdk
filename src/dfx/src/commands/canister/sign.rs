@@ -82,8 +82,9 @@ pub async fn exec(
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
                 get_local_cid_and_candid_path(env, canister_name, Some(id)).with_context(|| {
                     format!(
-                        "Failed to get local canister id and candid path for {}.",
-                        canister_name
+                        "Failed to get candid path for canister {} with id {}.",
+                        canister_name,
+                        id.to_text()
                     )
                 })?
             } else {
@@ -92,14 +93,18 @@ pub async fn exec(
             }
         }
         Err(_) => {
-            let canister_id = canister_id_store
-                .get(callee_canister)
-                .with_context(|| format!("Failed to get canister id for {}.", callee_canister))?;
+            let canister_id = canister_id_store.get(callee_canister).with_context(|| {
+                format!(
+                    "Failed to get canister id for canister {}.",
+                    callee_canister
+                )
+            })?;
             get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)).with_context(
                 || {
                     format!(
-                        "Failed to get local canister id and candid path for {}.",
-                        callee_canister
+                        "Failed to get candid path for canister {} with id {}.",
+                        callee_canister,
+                        canister_id.to_text()
                     )
                 },
             )?

@@ -106,7 +106,7 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
         .build()
         .call_and_wait(waiter_with_exponential_backoff())
         .await
-        .with_context(|| format!("Failed wallet call with args {:?}.", args))?;
+        .context("Failed wallet call with args.")?;
     Ok(result.map_err(|err| anyhow!(err))?.r#return)
 }
 
@@ -197,8 +197,8 @@ pub async fn exec(
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
                 get_local_cid_and_candid_path(env, canister_name, Some(id)).with_context(|| {
                     format!(
-                        "Failed to get canister id or candid path for {}",
-                        canister_name
+                        "Failed to get candid path for canister '{}' with id {:?}",
+                        canister_name, id
                     )
                 })?
             } else {
@@ -213,8 +213,8 @@ pub async fn exec(
             get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)).with_context(
                 || {
                     format!(
-                        "Failed to get canister id or candid path for {}",
-                        callee_canister
+                        "Failed to get candid path for canister '{}' with id {:?}",
+                        callee_canister, canister_id
                     )
                 },
             )?
