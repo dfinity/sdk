@@ -548,7 +548,7 @@ impl Identity {
         Ok(canister_id)
     }
 
-    /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
+    /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
     pub async fn get_or_create_wallet(
@@ -628,7 +628,7 @@ impl Identity {
         .context("Failed to build wallet canister caller.")?)
     }
 
-    /// Fetches the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
+    /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
     #[allow(clippy::needless_lifetimes)]

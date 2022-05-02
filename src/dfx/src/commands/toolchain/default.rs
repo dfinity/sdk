@@ -26,7 +26,7 @@ pub fn exec(_env: &dyn Environment, opts: ToolchainDefault) -> DfxResult {
         }
         None => {
             let toolchain =
-                toolchain::get_default_toolchain().context("Failed to fetch default toolchain.")?;
+                toolchain::get_default_toolchain().context("Failed to get default toolchain.")?;
             println!("{}", toolchain);
         }
     }

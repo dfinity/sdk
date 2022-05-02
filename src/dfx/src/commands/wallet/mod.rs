@@ -135,6 +135,6 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
         .context("Failed to fetch root key.")?;
     let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name, false)
         .await
-        .context("Failed to fetch wallet caller.")?;
+        .context("Failed to get wallet caller.")?;
     Ok(wallet)
 }

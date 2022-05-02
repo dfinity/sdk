@@ -53,7 +53,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())
-        .context("Failed to fetch canister names and their dependencies.")?;
+        .context("Failed to determine canister names and their dependencies.")?;
 
     // Get pool of canisters to build
     let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)

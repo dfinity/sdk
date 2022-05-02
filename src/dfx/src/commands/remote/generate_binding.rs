@@ -34,7 +34,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let log = env.get_logger();
 
-    //fetches specified canister, or all if canister is None (= --all is set)
+    //collects specified canister, or all if canister is None (= --all is set)
     let canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister.as_deref())
@@ -47,7 +47,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
         if let Some(candid) = info.get_remote_candid() {
             let main_optional: Option<String> = info
                 .get_extra_optional("main")
-                .context("Failed while trying to fetch optional 'main' field.")?;
+                .context("Failed while trying to get optional 'main' field.")?;
             if let Some(main) = main_optional {
                 let main_path = Path::new(&main);
                 let candid_path = Path::new(&candid);

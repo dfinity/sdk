@@ -97,7 +97,7 @@ pub async fn install_canister(
             let cache = env.get_cache();
             let output = cache
                 .get_binary_command("moc")
-                .context("Failed to fetch 'moc' binary.")?
+                .context("Failed to determine path of 'moc' binary.")?
                 .arg("--stable-compatible")
                 .arg(&deployed_stable_path)
                 .arg(&stable_path)

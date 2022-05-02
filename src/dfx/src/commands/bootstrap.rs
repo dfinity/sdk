@@ -49,16 +49,20 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
     let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())
-        .context("Failed to fetch bootstrap server configuration.")?;
+        .context("Failed to determine bootstrap server configuration.")?;
 
-    let network_descriptor =
-        get_network_descriptor(env, opts.network).context("Failed to fetch network descriptor.")?;
+    let network_descriptor = get_network_descriptor(env, opts.network)
+        .context("Failed to determine network descriptor.")?;
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
 
-    let providers = get_providers(&network_descriptor)
-        .with_context(|| format!("Failed to fetch providers for {}.", network_descriptor.name))?;
+    let providers = get_providers(&network_descriptor).with_context(|| {
+        format!(
+            "Failed to determine providers for {}.",
+            network_descriptor.name
+        )
+    })?;
     let providers: Vec<Url> = providers
         .iter()
         .map(|uri| Url::parse(uri).unwrap())
@@ -95,7 +99,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
                 start_shutdown_controller(env).context("Failed to start ShutdownController.")?;
 
             let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)
-                .context("Failed to fetch reusable socket address.")?;
+                .context("Failed to find a reusable socket address.")?;
             let proxy_port_path = env.get_temp_dir().join("proxy-port");
             std::fs::write(&proxy_port_path, "").with_context(|| {
                 format!(
@@ -169,11 +173,11 @@ fn apply_arguments(
     _env: &dyn Environment,
     opts: BootstrapOpts,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
-    let ip = get_ip(config, opts.ip.as_deref()).context("Failed to fetch IP from config.")?;
+    let ip = get_ip(config, opts.ip.as_deref()).context("Failed to determine IP from config.")?;
     let port =
-        get_port(config, opts.port.as_deref()).context("Failed to fetch port from config.")?;
+        get_port(config, opts.port.as_deref()).context("Failed to determine port from config.")?;
     let timeout = get_timeout(config, opts.timeout.as_deref())
-        .context("Failed to fetch timeout from config.")?;
+        .context("Failed to determine timeout from config.")?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),

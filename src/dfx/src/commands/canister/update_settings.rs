@@ -75,7 +75,7 @@ pub async fn exec(
     });
     let controllers = controllers
         .transpose()
-        .context("Failed to fetch controllers.")?;
+        .context("Failed to determine controllers.")?;
 
     let canister_id_store =
         CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;

@@ -26,7 +26,7 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
         .expect("No selected identity.")
         .to_string();
     let network = get_network_descriptor(&agent_env, network)
-        .context("Failed to fetch network descriptor.")?;
+        .context("Failed to determine network descriptor.")?;
 
     runtime.block_on(async {
         println!(

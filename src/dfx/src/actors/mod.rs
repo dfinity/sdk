@@ -39,7 +39,7 @@ pub fn start_btc_adapter_actor(
     let btc_adapter_path = env
         .get_cache()
         .get_binary_command_path("ic-btc-adapter")
-        .context("Failed to fetch 'ic-btc-adapter' binary.")?;
+        .context("Failed to determine path of 'ic-btc-adapter' binary.")?;
 
     let actor_config = btc_adapter::Config {
         btc_adapter_path,
@@ -61,7 +61,7 @@ pub fn start_emulator_actor(
     let ic_ref_path = env
         .get_cache()
         .get_binary_command_path("ic-ref")
-        .context("Failed to fetch 'ic-ref' binary.")?;
+        .context("Failed to determine path of 'ic-ref' binary.")?;
 
     let temp_dir = env.get_temp_dir();
     let emulator_port_path = temp_dir.join("ic-ref.port");
@@ -131,11 +131,11 @@ pub fn start_replica_actor(
     let replica_path = env
         .get_cache()
         .get_binary_command_path("replica")
-        .context("Failed to fetch 'replica' binary.")?;
+        .context("Failed to determine path of 'replica' binary.")?;
     let ic_starter_path = env
         .get_cache()
         .get_binary_command_path("ic-starter")
-        .context("Failed to fetch 'ic-starter' binary.")?;
+        .context("Failed to determine path of 'ic-starter' binary.")?;
 
     let replica_configuration_dir =
         setup_replica_env(env, &replica_config).context("Failed to set up replica environment.")?;
@@ -162,7 +162,7 @@ pub fn start_icx_proxy_actor(
     let icx_proxy_path = env
         .get_cache()
         .get_binary_command_path("icx-proxy")
-        .context("Failed to fetch 'icx-proxy' binary.")?;
+        .context("Failed to determine path of 'icx-proxy' binary.")?;
 
     let actor_config = icx_proxy::Config {
         logger: Some(env.get_logger().clone()),

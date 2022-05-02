@@ -122,7 +122,7 @@ pub async fn exec(
                 .collect::<DfxResult<Vec<_>>>()
         })
         .transpose()
-        .context("Failed to fetch controllers.")?;
+        .context("Failed to determine controllers.")?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
         let canister_is_remote = config

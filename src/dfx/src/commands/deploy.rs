@@ -152,7 +152,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     let network: &NetworkDescriptor = env.get_network_descriptor().unwrap();
     let log = env.get_logger();
     let canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to fetch CanisterIdStore")?;
+        CanisterIdStore::for_env(env).context("Failed to load CanisterIdStore")?;
 
     let mut frontend_urls = BTreeMap::new();
     let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();

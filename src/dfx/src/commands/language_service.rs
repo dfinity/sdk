@@ -103,7 +103,7 @@ fn run_ide(
     let output = env
         .get_cache()
         .get_binary_command("mo-ide")
-        .context("Failed to fetch 'mo-ide' binary.")?
+        .context("Failed to determine path of 'mo-ide' binary.")?
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         // Point at the right canister

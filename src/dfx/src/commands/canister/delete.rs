@@ -171,7 +171,7 @@ async fn delete_canister(
 
             // Install a temporary wallet wasm which will transfer the cycles out of the canister before it is deleted.
             let wasm_module =
-                wallet_wasm(env.get_logger()).context("Failed to fetch wallet wasm file.")?;
+                wallet_wasm(env.get_logger()).context("Failed to load wallet wasm file.")?;
             info!(
                 log,
                 "Installing temporary wallet in canister {} to enable transfer of cycles.",

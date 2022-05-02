@@ -12,7 +12,7 @@ pub struct ToolchainList {}
 
 pub fn exec(_env: &dyn Environment, _opts: ToolchainList) -> DfxResult {
     let toolchains =
-        toolchain::list_installed_toolchains().context("Failed to fetch installed toolchains.")?;
+        toolchain::list_installed_toolchains().context("Failed to get installed toolchains.")?;
     for toolchain in toolchains {
         println!("{}", toolchain);
     }
