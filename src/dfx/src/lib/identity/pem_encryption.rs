@@ -15,11 +15,12 @@ use argon2::{password_hash::PasswordHasher, Argon2};
 ///
 /// Try to only load the pem file once, as the user may be prompted for the password every single time you call this function.
 pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> DfxResult<Vec<u8>> {
-    let content = std::fs::read(path).with_context(|| format!("Failed to read {:?}.", path))?;
+    let content = std::fs::read(path)
+        .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
     let content = maybe_decrypt_pem(content.as_slice(), config)
-        .with_context(|| format!("Failed pem file decryption of {:?}.", path))?;
+        .with_context(|| format!("Failed pem file decryption of {}.", path.to_string_lossy()))?;
     identity_utils::validate_pem_file(&content)
-        .with_context(|| format!("Failed to validate pem file {:?}.", path))?;
+        .with_context(|| format!("Failed to validate pem file {}.", path.to_string_lossy()))?;
     Ok(content)
 }
 
@@ -38,12 +39,12 @@ pub fn write_pem_file(
         .parent()
         .with_context(|| format!("Could not determine parent folder for {}", path.display()))?;
     std::fs::create_dir_all(containing_folder)
-        .with_context(|| format!("Failed to create {:?}.", containing_folder))?;
+        .with_context(|| format!("Failed to create {}.", containing_folder.to_string_lossy()))?;
     std::fs::write(path, pem_content)
-        .with_context(|| format!("Failed to write pem file to {:?}.", path))?;
+        .with_context(|| format!("Failed to write pem file to {}.", path.to_string_lossy()))?;
 
     let mut permissions = std::fs::metadata(path)
-        .with_context(|| format!("Failed to read permissions of {:?}.", path))?
+        .with_context(|| format!("Failed to read permissions of {}.", path.to_string_lossy()))?
         .permissions();
     permissions.set_readonly(true);
     #[cfg(unix)]
@@ -52,7 +53,7 @@ pub fn write_pem_file(
         permissions.set_mode(0o400);
     }
     std::fs::set_permissions(path, permissions)
-        .with_context(|| format!("Failed to set permissions of {:?}.", path))?;
+        .with_context(|| format!("Failed to set permissions of {}.", path.to_string_lossy()))?;
 
     Ok(())
 }

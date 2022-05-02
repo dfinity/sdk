@@ -282,18 +282,29 @@ impl CanisterPool {
         let idl_file_path = canister.info.get_build_idl_path();
         if build_idl_path.ne(&idl_file_path) {
             std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
-                format!("Failed to create {:?}.", idl_file_path.parent().unwrap())
+                format!(
+                    "Failed to create {}.",
+                    idl_file_path.parent().unwrap().to_string_lossy()
+                )
             })?;
             std::fs::copy(&build_idl_path, &idl_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)?;
 
             let mut perms = std::fs::metadata(&idl_file_path)
-                .with_context(|| format!("Failed to read file metadata for {:?}.", &idl_file_path))?
+                .with_context(|| {
+                    format!(
+                        "Failed to read file metadata for {}.",
+                        idl_file_path.to_string_lossy()
+                    )
+                })?
                 .permissions();
             perms.set_readonly(false);
             std::fs::set_permissions(&idl_file_path, perms).with_context(|| {
-                format!("Failed to set file permissions for {:?}.", &idl_file_path)
+                format!(
+                    "Failed to set file permissions for {}.",
+                    idl_file_path.to_string_lossy()
+                )
             })?;
         }
 
@@ -301,7 +312,10 @@ impl CanisterPool {
         let wasm_file_path = canister.info.get_build_wasm_path();
         if build_wasm_path.ne(&wasm_file_path) {
             std::fs::create_dir_all(wasm_file_path.parent().unwrap()).with_context(|| {
-                format!("Failed to create {:?}.", wasm_file_path.parent().unwrap())
+                format!(
+                    "Failed to create {}.",
+                    wasm_file_path.parent().unwrap().to_string_lossy()
+                )
             })?;
             std::fs::copy(&build_wasm_path, &wasm_file_path)
                 .map(|_| {})
@@ -309,12 +323,18 @@ impl CanisterPool {
 
             let mut perms = std::fs::metadata(&wasm_file_path)
                 .with_context(|| {
-                    format!("Failed to read file metadata for {:?}.", &wasm_file_path)
+                    format!(
+                        "Failed to read file metadata for {}.",
+                        wasm_file_path.to_string_lossy()
+                    )
                 })?
                 .permissions();
             perms.set_readonly(false);
             std::fs::set_permissions(&wasm_file_path, perms).with_context(|| {
-                format!("Failed to set file permissions for {:?}.", &wasm_file_path)
+                format!(
+                    "Failed to set file permissions for {}.",
+                    wasm_file_path.to_string_lossy()
+                )
             })?;
         }
 
@@ -323,8 +343,12 @@ impl CanisterPool {
         let canister_id = canister.canister_id();
         let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
 
-        std::fs::create_dir_all(idl_file_path.parent().unwrap())
-            .with_context(|| format!("Failed to create {:?}.", idl_file_path.parent().unwrap()))?;
+        std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
+            format!(
+                "Failed to create {}.",
+                idl_file_path.parent().unwrap().to_string_lossy()
+            )
+        })?;
         std::fs::copy(&build_idl_path, &idl_file_path)
             .map(|_| {})
             .map_err(DfxError::from)?;
@@ -461,11 +485,19 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())
         .with_context(|| format!("Candid file check failed for {}.", canister_info.get_name()))?;
     let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
-    std::fs::write(&output_did_js_path, content)
-        .with_context(|| format!("Failed to write to {:?}.", &output_did_js_path))?;
+    std::fs::write(&output_did_js_path, content).with_context(|| {
+        format!(
+            "Failed to write to {}.",
+            output_did_js_path.to_string_lossy()
+        )
+    })?;
     let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
-    std::fs::write(&output_did_ts_path, content)
-        .with_context(|| format!("Failed to write to {:?}.", &output_did_ts_path))?;
+    std::fs::write(&output_did_ts_path, content).with_context(|| {
+        format!(
+            "Failed to write to {}.",
+            output_did_ts_path.to_string_lossy()
+        )
+    })?;
 
     let mut language_bindings =
         assets::language_bindings().context("Failed to get language bindings archive.")?;
@@ -495,14 +527,18 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
                     decode_path_to_str(&index_js_path).context("Failed to decode path to str.")?,
                     new_file_contents,
                 )
-                .with_context(|| format!("Failed to write to {:?}.", &index_js_path))?;
+                .with_context(|| {
+                    format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                })?;
             }
             "canisterId.js" => {
                 std::fs::write(
                     decode_path_to_str(&index_js_path).context("Failed to decode path to str.")?,
                     new_file_contents,
                 )
-                .with_context(|| format!("Failed to write to {:?}.", &index_js_path))?;
+                .with_context(|| {
+                    format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                })?;
             }
             _ => unreachable!(),
         }

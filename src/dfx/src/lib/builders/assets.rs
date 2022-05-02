@@ -96,10 +96,17 @@ impl CanisterBuilder for AssetsBuilder {
                 continue;
             }
             // See https://github.com/alexcrichton/tar-rs/issues/261
-            fs::create_dir_all(info.get_output_root())
-                .with_context(|| format!("Failed to create {:?}.", info.get_output_root()))?;
+            fs::create_dir_all(info.get_output_root()).with_context(|| {
+                format!(
+                    "Failed to create {}.",
+                    info.get_output_root().to_string_lossy()
+                )
+            })?;
             file.unpack_in(info.get_output_root()).with_context(|| {
-                format!("Failed to unpack archive to {:?}.", info.get_output_root())
+                format!(
+                    "Failed to unpack archive to {}.",
+                    info.get_output_root().to_string_lossy()
+                )
             })?;
         }
 
@@ -186,14 +193,18 @@ impl CanisterBuilder for AssetsBuilder {
                 continue;
             }
             // See https://github.com/alexcrichton/tar-rs/issues/261
-            fs::create_dir_all(&generate_output_dir)
-                .with_context(|| format!("Failed to create {:?}.", &generate_output_dir))?;
+            fs::create_dir_all(&generate_output_dir).with_context(|| {
+                format!(
+                    "Failed to create {}.",
+                    generate_output_dir.to_string_lossy()
+                )
+            })?;
 
             file.unpack_in(generate_output_dir.clone())
                 .with_context(|| {
                     format!(
-                        "Failed to unpack archive content to {:?}.",
-                        &generate_output_dir
+                        "Failed to unpack archive content to {}.",
+                        generate_output_dir.to_string_lossy()
                     )
                 })?;
         }
@@ -208,7 +219,7 @@ impl CanisterBuilder for AssetsBuilder {
         let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));
         if wasm_path.exists() {
             std::fs::remove_file(&wasm_path)
-                .with_context(|| format!("Failed to remove {:?}.", &wasm_path))?;
+                .with_context(|| format!("Failed to remove {}.", wasm_path.to_string_lossy()))?;
         }
 
         let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
@@ -217,7 +228,7 @@ impl CanisterBuilder for AssetsBuilder {
             .with_extension("did");
         if idl_path.exists() {
             std::fs::rename(&idl_path, &idl_path_rename)
-                .with_context(|| format!("Failed to rename {:?}.", &idl_path))?;
+                .with_context(|| format!("Failed to rename {}.", idl_path.to_string_lossy()))?;
         }
 
         Ok(idl_path_rename)
@@ -250,8 +261,9 @@ fn delete_output_directory(
                 output_assets_path.display()
             );
         }
-        fs::remove_dir_all(&output_assets_path)
-            .with_context(|| format!("Failed to remove {:?}.", &output_assets_path))?;
+        fs::remove_dir_all(&output_assets_path).with_context(|| {
+            format!("Failed to remove {}.", output_assets_path.to_string_lossy())
+        })?;
     }
     Ok(())
 }
@@ -277,8 +289,8 @@ fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo)
         for entry in walker.filter_entry(|e| !is_hidden(e)) {
             let entry = entry.with_context(|| {
                 format!(
-                    "Failed to read an input asset entry in {:?}.",
-                    input_assets_path
+                    "Failed to read an input asset entry in {}.",
+                    input_assets_path.to_string_lossy()
                 )
             })?;
             let source = entry.path();
@@ -296,11 +308,16 @@ fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo)
             }
 
             if entry.file_type().is_dir() {
-                fs::create_dir(&destination)
-                    .with_context(|| format!("Failed to create {:?}.", &destination))?;
+                fs::create_dir(&destination).with_context(|| {
+                    format!("Failed to create {}.", destination.to_string_lossy())
+                })?;
             } else {
                 fs::copy(&source, &destination).with_context(|| {
-                    format!("Failed to copy {:?} to {:?}", &source, &destination)
+                    format!(
+                        "Failed to copy {} to {}",
+                        source.to_string_lossy(),
+                        destination.to_string_lossy()
+                    )
                 })?;
             }
         }

@@ -78,8 +78,9 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         continue;
                     }
                 }
-                let (type_env, did_types) = check_candid_file(candid_path)
-                    .with_context(|| format!("Candid check failed for {:?}.", candid_path))?;
+                let (type_env, did_types) = check_candid_file(candid_path).with_context(|| {
+                    format!("Candid check failed for {}.", candid_path.to_string_lossy())
+                })?;
                 let bindings = if main.ends_with(&".mo") {
                     Some(candid::bindings::motoko::compile(&type_env, &did_types))
                 } else if main.ends_with(&".rs") {
@@ -99,8 +100,12 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 };
 
                 if let Some(bindings_string) = bindings {
-                    std::fs::write(&main_path, &bindings_string)
-                        .with_context(|| format!("Failed to write bindings to {:?}.", main_path))?;
+                    std::fs::write(&main_path, &bindings_string).with_context(|| {
+                        format!(
+                            "Failed to write bindings to {}.",
+                            main_path.to_string_lossy()
+                        )
+                    })?;
                     info!(
                         log,
                         "Generated {} using {} for canister {}.",

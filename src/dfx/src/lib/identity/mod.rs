@@ -123,8 +123,8 @@ impl Identity {
             // clean traces from previous identity creation attempts
             std::fs::remove_dir_all(&temp_identity_dir).with_context(|| {
                 format!(
-                    "Failed to clean up previous creation attempts at {:?}.",
-                    &temp_identity_dir
+                    "Failed to clean up previous creation attempts at {}.",
+                    temp_identity_dir.to_string_lossy()
                 )
             })?;
         }
@@ -166,8 +166,8 @@ impl Identity {
                 identity_config.hsm = Some(hsm);
                 create(&temp_identity_dir).with_context(|| {
                     format!(
-                        "Failed to create temporary identity directory {:?}.",
-                        &temp_identity_dir
+                        "Failed to create temporary identity directory {}.",
+                        temp_identity_dir.to_string_lossy()
                     )
                 })?;
             }
@@ -179,8 +179,9 @@ impl Identity {
         let identity_dir = manager.get_identity_dir_path(name);
         std::fs::rename(&temp_identity_dir, &identity_dir).with_context(|| {
             format!(
-                "Failed to move temporary directory {:?} to permanent identiy directory {:?}.",
-                &temp_identity_dir, &identity_dir
+                "Failed to move temporary directory {} to permanent identiy directory {}.",
+                temp_identity_dir.to_string_lossy(),
+                identity_dir.to_string_lossy()
             )
         })?;
 
@@ -405,14 +406,18 @@ impl Identity {
 
         network_map.networks.remove(&network.name);
 
-        std::fs::create_dir_all(wallet_path.parent().unwrap())
-            .with_context(|| format!("Failed to create {:?}.", wallet_path.parent().unwrap()))?;
+        std::fs::create_dir_all(wallet_path.parent().unwrap()).with_context(|| {
+            format!(
+                "Failed to create {}.",
+                wallet_path.parent().unwrap().to_string_lossy()
+            )
+        })?;
         std::fs::write(
             &wallet_path,
             &serde_json::to_string_pretty(&config)
                 .context("Failed to serialize global wallet config.")?,
         )
-        .with_context(|| format!("Failed to write to {:?}.", &wallet_path))?;
+        .with_context(|| format!("Failed to write to {}.", wallet_path.to_string_lossy()))?;
         Ok(())
     }
 

@@ -152,7 +152,10 @@ Run `cargo install ic-cdk-optimizer` to install it.
         if output_idl_path.exists() {
             Ok(output_idl_path.to_path_buf())
         } else {
-            bail!("Candid file: {:?} doesn't exist.", output_idl_path);
+            bail!(
+                "Candid file: {} doesn't exist.",
+                output_idl_path.to_string_lossy()
+            );
         }
     }
 }

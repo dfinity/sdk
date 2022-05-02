@@ -116,8 +116,12 @@ pub fn delete_version(v: &str) -> DfxResult<bool> {
 
     let root = get_bin_cache(v)
         .with_context(|| format!("Failed to get bin cache path for version {}.", v))?;
-    std::fs::remove_dir_all(&root)
-        .with_context(|| format!("Failed to remove bin cache root {:?}.", &root))?;
+    std::fs::remove_dir_all(&root).with_context(|| {
+        format!(
+            "Failed to remove bin cache root {}.",
+            root.to_string_lossy()
+        )
+    })?;
 
     Ok(true)
 }
@@ -154,8 +158,12 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             .collect();
         let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))
             .context("Failed to get temporary bin cache path.")?;
-        std::fs::create_dir(&temp_p)
-            .with_context(|| format!("Failed to create temporary bin cache dir {:?}.", &temp_p))?;
+        std::fs::create_dir(&temp_p).with_context(|| {
+            format!(
+                "Failed to create temporary bin cache dir {}.",
+                temp_p.to_string_lossy()
+            )
+        })?;
 
         let mut binary_cache_assets =
             util::assets::binary_cache().context("Failed to get asset binary cache.")?;
@@ -174,11 +182,20 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 
             let full_path = temp_p.join(file.path().context("Failed to get file path.")?);
             let mut perms = std::fs::metadata(full_path.as_path())
-                .with_context(|| format!("Failed to get file metadata for {:?}.", &full_path))?
+                .with_context(|| {
+                    format!(
+                        "Failed to get file metadata for {}.",
+                        full_path.to_string_lossy()
+                    )
+                })?
                 .permissions();
             perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-            std::fs::set_permissions(full_path.as_path(), perms)
-                .with_context(|| format!("Failed to set file permissions for {:?}.", &full_path))?;
+            std::fs::set_permissions(full_path.as_path(), perms).with_context(|| {
+                format!(
+                    "Failed to set file permissions for {}.",
+                    full_path.to_string_lossy()
+                )
+            })?;
         }
 
         // Copy our own binary in the cache.
@@ -187,18 +204,30 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             &dfx,
             std::fs::read(current_exe).context("Failed to read currently running executable.")?,
         )
-        .with_context(|| format!("Failed to copy running binary {:?} to cache.", &dfx))?;
+        .with_context(|| {
+            format!(
+                "Failed to copy running binary {} to cache.",
+                dfx.to_string_lossy()
+            )
+        })?;
         // And make it executable.
         let mut perms = std::fs::metadata(&dfx)
-            .with_context(|| format!("Failed to read file metadata for {:?}.", &dfx))?
+            .with_context(|| {
+                format!(
+                    "Failed to read file metadata for {}.",
+                    dfx.to_string_lossy()
+                )
+            })?
             .permissions();
         perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-        std::fs::set_permissions(&dfx, perms)
-            .with_context(|| format!("Failed to set file metadata for {:?}.", &dfx))?;
+        std::fs::set_permissions(&dfx, perms).with_context(|| {
+            format!("Failed to set file metadata for {}.", dfx.to_string_lossy())
+        })?;
 
         // atomically install cache version into place
         if force && p.exists() {
-            std::fs::remove_dir_all(&p).with_context(|| format!("Failed to remove {:?}.", &p))?;
+            std::fs::remove_dir_all(&p)
+                .with_context(|| format!("Failed to remove {}.", p.to_string_lossy()))?;
         }
 
         if std::fs::rename(&temp_p, &p).is_ok() {
@@ -206,8 +235,12 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
                 b.finish_with_message(format!("Version v{} installed successfully.", v));
             }
         } else {
-            std::fs::remove_dir_all(&temp_p)
-                .with_context(|| format!("Failed to remove temp binary cache {:?}.", &temp_p))?;
+            std::fs::remove_dir_all(&temp_p).with_context(|| {
+                format!(
+                    "Failed to remove temp binary cache {}.",
+                    temp_p.to_string_lossy()
+                )
+            })?;
             if let Some(b) = b {
                 b.finish_with_message(format!("Version v{} was already installed.", v));
             }
@@ -250,11 +283,17 @@ pub fn list_versions() -> DfxResult<Vec<Version>> {
     let root = get_bin_cache_root().context("Failed to get bin cache root.")?;
     let mut result: Vec<Version> = Vec::new();
 
-    for entry in std::fs::read_dir(&root)
-        .with_context(|| format!("Failed to read bin cache root content at {:?}.", &root))?
-    {
+    for entry in std::fs::read_dir(&root).with_context(|| {
+        format!(
+            "Failed to read bin cache root content at {}.",
+            root.to_string_lossy()
+        )
+    })? {
         let entry = entry.with_context(|| {
-            format!("Failed to read an entry in bin cache root at {:?}.", &root)
+            format!(
+                "Failed to read an entry in bin cache root at {}.",
+                root.to_string_lossy()
+            )
         })?;
         if let Some(version) = entry.file_name().to_str() {
             if version.starts_with('_') {

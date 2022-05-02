@@ -98,7 +98,7 @@ pub trait CanisterBuilder {
         if generate_output_dir.exists() {
             let generate_output_dir = generate_output_dir.canonicalize().with_context(|| {
                 format!(
-                    "Failed to canonicalize output dir {:?}.",
+                    "Failed to canonicalize output dir {}.",
                     generate_output_dir.to_string_lossy()
                 )
             })?;
@@ -108,18 +108,30 @@ pub trait CanisterBuilder {
                     generate_output_dir.as_path().display()
                 );
             }
-            std::fs::remove_dir_all(&generate_output_dir)
-                .with_context(|| format!("Failed to remove dir: {:?}", &generate_output_dir))?;
+            std::fs::remove_dir_all(&generate_output_dir).with_context(|| {
+                format!(
+                    "Failed to remove dir: {}",
+                    generate_output_dir.to_string_lossy()
+                )
+            })?;
         }
-        std::fs::create_dir_all(&generate_output_dir)
-            .with_context(|| format!("Failed to create dir: {:?}", &generate_output_dir))?;
+        std::fs::create_dir_all(&generate_output_dir).with_context(|| {
+            format!(
+                "Failed to create dir: {}",
+                generate_output_dir.to_string_lossy()
+            )
+        })?;
 
         let generated_idl_path = self
             .generate_idl(pool, info, config)
             .context("Failed to generate idl path.")?;
 
-        let (env, ty) = check_candid_file(generated_idl_path.as_path())
-            .with_context(|| format!("Failed candid file check for {:?}.", &generated_idl_path))?;
+        let (env, ty) = check_candid_file(generated_idl_path.as_path()).with_context(|| {
+            format!(
+                "Failed candid file check for {}.",
+                generated_idl_path.to_string_lossy()
+            )
+        })?;
 
         let bindings = info
             .get_declarations_config()
@@ -143,8 +155,12 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("did.d.ts");
             let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
-            std::fs::write(&output_did_ts_path, content)
-                .with_context(|| format!("Failed to write to {:?}.", &output_did_ts_path))?;
+            std::fs::write(&output_did_ts_path, content).with_context(|| {
+                format!(
+                    "Failed to write to {}.",
+                    output_did_ts_path.to_string_lossy()
+                )
+            })?;
             eprintln!("  {}", &output_did_ts_path.display());
         }
 
@@ -155,8 +171,12 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("did.js");
             let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
-            std::fs::write(&output_did_js_path, content)
-                .with_context(|| format!("Failed to write to {:?}.", &output_did_js_path))?;
+            std::fs::write(&output_did_js_path, content).with_context(|| {
+                format!(
+                    "Failed to write to {}.",
+                    output_did_js_path.to_string_lossy()
+                )
+            })?;
             eprintln!("  {}", &output_did_js_path.display());
 
             // index.js
@@ -189,8 +209,9 @@ pub trait CanisterBuilder {
                         .replace("{canister_name_uppercase}", &info.get_name().to_uppercase()),
                 };
                 let index_js_path = generate_output_dir.join("index").with_extension("js");
-                std::fs::write(&index_js_path, new_file_contents)
-                    .with_context(|| format!("Failed to write to {:?}.", &index_js_path))?;
+                std::fs::write(&index_js_path, new_file_contents).with_context(|| {
+                    format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                })?;
                 eprintln!("  {}", &index_js_path.display());
             }
         }
@@ -201,15 +222,17 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("mo");
             let content = ensure_trailing_newline(candid::bindings::motoko::compile(&env, &ty));
-            std::fs::write(&output_mo_path, content)
-                .with_context(|| format!("Failed to write to {:?}.", &output_mo_path))?;
+            std::fs::write(&output_mo_path, content).with_context(|| {
+                format!("Failed to write to {}.", output_mo_path.to_string_lossy())
+            })?;
             eprintln!("  {}", &output_mo_path.display());
         }
 
         // Candid, delete if not required
         if !bindings.contains(&"did".to_string()) {
-            std::fs::remove_file(&generated_idl_path)
-                .with_context(|| format!("Failed to remove {:?}.", &generated_idl_path))?;
+            std::fs::remove_file(&generated_idl_path).with_context(|| {
+                format!("Failed to remove {}.", generated_idl_path.to_string_lossy())
+            })?;
         } else {
             eprintln!("  {}", &generated_idl_path.display());
         }

@@ -97,7 +97,7 @@ impl CanisterIdStore {
         let parent = self.path.parent().unwrap();
         if !parent.exists() {
             std::fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create {:?}.", parent))?;
+                .with_context(|| format!("Failed to create {}.", parent.to_string_lossy()))?;
         }
         std::fs::write(&self.path, content)
             .with_context(|| format!("Cannot write to file at '{}'.", self.path.display()))

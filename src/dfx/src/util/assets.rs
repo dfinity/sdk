@@ -25,9 +25,14 @@ pub fn wallet_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
     if let Ok(dfx_wallet_wasm) = std::env::var("DFX_WALLET_WASM") {
         info!(logger, "Using wasm at path: {}", dfx_wallet_wasm);
         std::fs::File::open(&dfx_wallet_wasm)
-            .with_context(|| format!("Failed to open {:?}.", &dfx_wallet_wasm))?
+            .with_context(|| format!("Failed to open {}.", dfx_wallet_wasm.to_string_lossy()))?
             .read_to_end(&mut wasm)
-            .with_context(|| format!("Failed to read file content for {:?}.", &dfx_wallet_wasm))?;
+            .with_context(|| {
+                format!(
+                    "Failed to read file content for {}.",
+                    dfx_wallet_wasm.to_string_lossy()
+                )
+            })?;
     } else {
         let mut canister_assets =
             wallet_canister().context("Failed to load wallet canister archive.")?;

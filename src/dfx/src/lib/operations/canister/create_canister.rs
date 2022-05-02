@@ -29,7 +29,7 @@ pub async fn create_canister(
     settings: CanisterSettings,
 ) -> DfxResult {
     let log = env.get_logger();
-    info!(log, "Creating canister {:?}...", canister_name);
+    info!(log, "Creating canister {}...", canister_name);
 
     let config = env.get_config_or_anyhow()?;
 
@@ -49,7 +49,7 @@ pub async fn create_canister(
         })?
     {
         bail!(
-            "{:?} canister is remote on network {} and has canister id: {:?}",
+            "{} canister is remote on network {} and has canister id: {}",
             canister_name,
             network_name,
             remote_canister_id.to_text()
@@ -59,14 +59,14 @@ pub async fn create_canister(
     let non_default_network = if network_name == "local" {
         String::new()
     } else {
-        format!("on network {:?} ", network_name)
+        format!("on network {} ", network_name)
     };
 
     match canister_id_store.find(canister_name) {
         Some(canister_id) => {
             info!(
                 log,
-                "{:?} canister was already created {}and has canister id: {:?}",
+                "{} canister was already created {}and has canister id: {}",
                 canister_name,
                 non_default_network,
                 canister_id.to_text()
@@ -133,7 +133,7 @@ pub async fn create_canister(
             let canister_id = cid.to_text();
             info!(
                 log,
-                "{:?} canister created {}with canister id: {:?}",
+                "{} canister created {}with canister id: {}",
                 canister_name,
                 non_default_network,
                 canister_id

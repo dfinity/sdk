@@ -505,8 +505,12 @@ impl Config {
 
     fn from_file(path: &Path) -> DfxResult<Config> {
         {
-            let content = std::fs::read(&path)
-                .with_context(|| format!("Failed to read folder content for {:?}.", path))?;
+            let content = std::fs::read(&path).with_context(|| {
+                format!(
+                    "Failed to read folder content for {}.",
+                    path.to_string_lossy()
+                )
+            })?;
             Config::from_slice(path.to_path_buf(), &content)
         }
         .with_context(|| {
@@ -577,8 +581,9 @@ impl Config {
     pub fn save(&self) -> DfxResult {
         let json_pretty = serde_json::to_string_pretty(&self.json)
             .map_err(|e| error_invalid_data!("Failed to serialize dfx.json: {}", e))?;
-        std::fs::write(&self.path, json_pretty)
-            .with_context(|| format!("Failed to write config to {:?}.", &self.path))?;
+        std::fs::write(&self.path, json_pretty).with_context(|| {
+            format!("Failed to write config to {}.", self.path.to_string_lossy())
+        })?;
         Ok(())
     }
 }

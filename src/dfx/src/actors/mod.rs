@@ -72,8 +72,8 @@ pub fn start_emulator_actor(
     // process.
     std::fs::write(&emulator_port_path, "").with_context(|| {
         format!(
-            "Failed to write/clear emulator port file {:?}.",
-            &emulator_port_path
+            "Failed to write/clear emulator port file {}.",
+            emulator_port_path.to_string_lossy()
         )
     })?;
 
@@ -91,8 +91,8 @@ fn setup_replica_env(env: &dyn Environment, replica_config: &ReplicaConfig) -> D
     let replica_configuration_dir = env.get_temp_dir().join("replica-configuration");
     fs::create_dir_all(&replica_configuration_dir).with_context(|| {
         format!(
-            "Failed to create replica config direcory {:?}.",
-            &replica_configuration_dir
+            "Failed to create replica config direcory {}.",
+            replica_configuration_dir.to_string_lossy()
         )
     })?;
 
@@ -103,16 +103,20 @@ fn setup_replica_env(env: &dyn Environment, replica_config: &ReplicaConfig) -> D
         // process.
         std::fs::write(&replica_port_path, "").with_context(|| {
             format!(
-                "Failed to write/clear replica port file {:?}.",
-                &replica_port_path
+                "Failed to write/clear replica port file {}.",
+                replica_port_path.to_string_lossy()
             )
         })?;
     }
 
     // create replica state dir
     let state_dir = env.get_state_dir().join("replicated_state");
-    fs::create_dir_all(&state_dir)
-        .with_context(|| format!("Failed to create replica state directory {:?}.", &state_dir))?;
+    fs::create_dir_all(&state_dir).with_context(|| {
+        format!(
+            "Failed to create replica state directory {}.",
+            state_dir.to_string_lossy()
+        )
+    })?;
 
     Ok(replica_configuration_dir)
 }

@@ -184,8 +184,8 @@ impl IdentityManager {
             .read_dir()
             .with_context(|| {
                 format!(
-                    "Failed to read identity root directory {:?}.",
-                    self.identity_root_path
+                    "Failed to read identity root directory {}.",
+                    self.identity_root_path.to_string_lossy()
                 )
             })?
             .filter(|entry_result| match entry_result {
@@ -379,11 +379,11 @@ impl IdentityManager {
         let json_path = self.get_identity_json_path(identity);
         if json_path.exists() {
             let content = std::fs::read(&json_path)
-                .with_context(|| format!("Failed to read {:?}.", &json_path))?;
+                .with_context(|| format!("Failed to read {}.", json_path.to_string_lossy()))?;
             let config = serde_json::from_slice(content.as_ref()).with_context(|| {
                 format!(
-                    "Error deserializing identity configuration at {:?}.",
-                    &json_path
+                    "Error deserializing identity configuration at {}.",
+                    json_path.to_string_lossy()
                 )
             })?;
             Ok(config)
@@ -436,8 +436,9 @@ To create a more secure identity, create and use an identity that is protected b
             );
             fs::copy(&creds_pem_path, &identity_pem_path).with_context(|| {
                 format!(
-                    "Failed to migrate legacy identity from {:?} to {:?}.",
-                    &creds_pem_path, &identity_pem_path
+                    "Failed to migrate legacy identity from {} to {}.",
+                    creds_pem_path.to_string_lossy(),
+                    identity_pem_path.to_string_lossy()
                 )
             })?;
         } else {
@@ -447,8 +448,14 @@ To create a more secure identity, create and use an identity that is protected b
                 identity_pem_path.display()
             );
             let key = generate_key().context("Failed to generate key.")?;
-            pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())
-                .context("Failed to write pem file {:?}.")?;
+            pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice()).with_context(
+                || {
+                    format!(
+                        "Failed to write pem file {}.",
+                        identity_pem_path.to_string_lossy()
+                    )
+                },
+            )?;
         }
     } else {
         slog::info!(

@@ -96,10 +96,10 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
     if !dry_run {
         if let Some(p) = path.parent() {
             std::fs::create_dir_all(p)
-                .with_context(|| format!("Failed to create directory {:?}.", p))?;
+                .with_context(|| format!("Failed to create directory {}.", p.to_string_lossy()))?;
         }
         std::fs::write(&path, content)
-            .with_context(|| format!("Failed to write to {:?}.", path))?;
+            .with_context(|| format!("Failed to write to {}.", path.to_string_lossy()))?;
     }
 
     info!(log, "{}", Status::Create(path, content.len()));
@@ -115,7 +115,7 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
 
     if !dry_run {
         std::fs::create_dir_all(&path)
-            .with_context(|| format!("Failed to create directory {:?}.", path))?;
+            .with_context(|| format!("Failed to create directory {}.", path.to_string_lossy()))?;
     }
 
     info!(log, "{}", Status::CreateDir(path));
@@ -259,7 +259,7 @@ fn scaffold_frontend_code(
             std::fs::read(&dfx_path).with_context(|| format!("Failed to read {:?}.", &dfx_path))?;
         let mut config_json: Value = serde_json::from_slice(&content)
             .map_err(std::io::Error::from)
-            .with_context(|| format!("Failed to parse {:?}.", &dfx_path))?;
+            .with_context(|| format!("Failed to parse {}.", dfx_path.to_string_lossy()))?;
 
         let frontend_value: serde_json::Map<String, Value> = [(
             "entrypoint".to_string(),
@@ -293,7 +293,7 @@ fn scaffold_frontend_code(
             let pretty = serde_json::to_string_pretty(&config_json)
                 .context("Invalid data: Cannot serialize configuration file.")?;
             std::fs::write(&dfx_path, pretty)
-                .with_context(|| format!("Failed to write to {:?}.", &dfx_path))?;
+                .with_context(|| format!("Failed to write to {}.", dfx_path.to_string_lossy()))?;
 
             // Install node modules. Error is not blocking, we just show a message instead.
             if node_installed {

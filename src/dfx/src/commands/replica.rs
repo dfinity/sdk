@@ -91,8 +91,8 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let btc_adapter_pid_file_path = env.get_temp_dir().join("ic-btc-adapter-pid");
     std::fs::write(&btc_adapter_pid_file_path, "").with_context(|| {
         format!(
-            "Failed to clear/create BTC adapter pid file {:?}.",
-            &btc_adapter_pid_file_path
+            "Failed to clear/create BTC adapter pid file {}.",
+            btc_adapter_pid_file_path.to_string_lossy()
         )
     })?;
 

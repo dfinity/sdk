@@ -168,8 +168,12 @@ impl CanisterBuilder for CustomBuilder {
             .as_ref()
             .context("output here must not be None")?;
 
-        std::fs::create_dir_all(generate_output_dir)
-            .with_context(|| format!("Failed to create {:?}.", generate_output_dir))?;
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
+            format!(
+                "Failed to create {}.",
+                generate_output_dir.to_string_lossy()
+            )
+        })?;
 
         let output_idl_path = generate_output_dir
             .join(info.get_name())
@@ -186,8 +190,9 @@ impl CanisterBuilder for CustomBuilder {
 
         std::fs::copy(&candid, &output_idl_path).with_context(|| {
             format!(
-                "Failed to copy canidid from {:?} to {:?}.",
-                &candid, &output_idl_path
+                "Failed to copy canidid from {} to {}.",
+                candid.to_string_lossy(),
+                output_idl_path.to_string_lossy()
             )
         })?;
 

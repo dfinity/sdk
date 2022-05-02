@@ -55,8 +55,12 @@ pub async fn install_canister(
                 .get_output_idl_path()
                 .expect("Generated did file not found");
             let deployed_path = candid_path.with_extension("old.did");
-            std::fs::write(&deployed_path, candid)
-                .with_context(|| format!("Failed to write candid to {:?}.", &deployed_path))?;
+            std::fs::write(&deployed_path, candid).with_context(|| {
+                format!(
+                    "Failed to write candid to {}.",
+                    deployed_path.to_string_lossy()
+                )
+            })?;
             let (mut env, opt_new) = check_candid_file(&candid_path).with_context(|| {
                 format!("Candid check failed for {}.", canister_info.get_name())
             })?;
@@ -86,8 +90,8 @@ pub async fn install_canister(
         if let Some(stable_types) = stable_types {
             std::fs::write(&deployed_stable_path, stable_types).with_context(|| {
                 format!(
-                    "Failed to write stable types to {:?}.",
-                    &deployed_stable_path
+                    "Failed to write stable types to {}.",
+                    deployed_stable_path.to_string_lossy()
                 )
             })?;
             let cache = env.get_cache();
@@ -109,8 +113,8 @@ pub async fn install_canister(
     let wasm_path = canister_info
         .get_output_wasm_path()
         .expect("Cannot get WASM output path.");
-    let wasm_module =
-        std::fs::read(&wasm_path).with_context(|| format!("Failed to read {:?}.", &wasm_path))?;
+    let wasm_module = std::fs::read(&wasm_path)
+        .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
 
     if mode == InstallMode::Upgrade
         && wasm_module_already_installed(&wasm_module, installed_module_hash.as_deref())

@@ -74,14 +74,14 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let webserver_port_path = env.get_temp_dir().join("webserver-port");
     std::fs::write(&webserver_port_path, "").with_context(|| {
         format!(
-            "Failed to write/clear webserver port file {:?}.",
-            &webserver_port_path
+            "Failed to write/clear webserver port file {}.",
+            webserver_port_path.to_string_lossy()
         )
     })?;
     std::fs::write(&webserver_port_path, socket_addr.port().to_string()).with_context(|| {
         format!(
-            "Failed to write port to webserver port file {:?}.",
-            &webserver_port_path
+            "Failed to write port to webserver port file {}.",
+            webserver_port_path.to_string_lossy()
         )
     })?;
 
@@ -99,15 +99,15 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
             let proxy_port_path = env.get_temp_dir().join("proxy-port");
             std::fs::write(&proxy_port_path, "").with_context(|| {
                 format!(
-                    "Failed to write/clear proxy port file {:?}.",
-                    &proxy_port_path
+                    "Failed to write/clear proxy port file {}.",
+                    proxy_port_path.to_string_lossy()
                 )
             })?;
             std::fs::write(&proxy_port_path, webserver_bind.port().to_string()).with_context(
                 || {
                     format!(
-                        "Failed to write port to proxy port file {:?}.",
-                        &proxy_port_path
+                        "Failed to write port to proxy port file {}.",
+                        proxy_port_path.to_string_lossy()
                     )
                 },
             )?;

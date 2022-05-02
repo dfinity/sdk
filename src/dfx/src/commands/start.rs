@@ -117,11 +117,13 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
             loop {
                 let tokio_file = tokio::fs::File::open(&webserver_port_path)
                     .await
-                    .with_context(|| format!("Failed to open {:?}.", &webserver_port_path))?;
+                    .with_context(|| {
+                        format!("Failed to open {}.", webserver_port_path.to_string_lossy())
+                    })?;
                 let mut std_file = tokio_file.into_std().await;
-                std_file
-                    .read_to_string(&mut contents)
-                    .with_context(|| format!("Failed to read {:?}.", &webserver_port_path))?;
+                std_file.read_to_string(&mut contents).with_context(|| {
+                    format!("Failed to read {}.", webserver_port_path.to_string_lossy())
+                })?;
                 if !contents.is_empty() {
                     break;
                 }
@@ -172,24 +174,28 @@ pub fn exec(
         clean_state(temp_dir, &state_root).context("Failed to clean up existing state.")?;
     }
 
-    std::fs::write(&pid_file_path, "")
-        .with_context(|| format!("Failed to create/clear pid file {:?}.", &pid_file_path))?;
+    std::fs::write(&pid_file_path, "").with_context(|| {
+        format!(
+            "Failed to create/clear pid file {}.",
+            pid_file_path.to_string_lossy()
+        )
+    })?;
     std::fs::write(&btc_adapter_pid_file_path, "").with_context(|| {
         format!(
-            "Failed to create/clear BTC adapter pid file {:?}.",
-            &btc_adapter_pid_file_path
+            "Failed to create/clear BTC adapter pid file {}.",
+            btc_adapter_pid_file_path.to_string_lossy()
         )
     })?;
     std::fs::write(&icx_proxy_pid_file_path, "").with_context(|| {
         format!(
-            "Failed to create/clear icx proxy pid file {:?}.",
-            &icx_proxy_pid_file_path
+            "Failed to create/clear icx proxy pid file {}.",
+            icx_proxy_pid_file_path.to_string_lossy()
         )
     })?;
     std::fs::write(&webserver_port_path, "").with_context(|| {
         format!(
-            "Failed to create/clear webserver port file {:?}.",
-            &webserver_port_path
+            "Failed to create/clear webserver port file {}.",
+            webserver_port_path.to_string_lossy()
         )
     })?;
 
@@ -205,8 +211,8 @@ pub fn exec(
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
         || {
             format!(
-                "Failed to write webserver port file {:?}.",
-                &webserver_port_path
+                "Failed to write webserver port file {}.",
+                webserver_port_path.to_string_lossy()
             )
         },
     )?;
@@ -230,8 +236,8 @@ pub fn exec(
                         let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)
                             .with_context(|| {
                                 format!(
-                                    "Failed to get BTC adapter socket path from config at {:?}.",
-                                    &btc_adapter_config
+                                    "Failed to get BTC adapter socket path from config at {}.",
+                                    btc_adapter_config.to_string_lossy()
                                 )
                             })?;
                         let ready_subscribe = start_btc_adapter_actor(
