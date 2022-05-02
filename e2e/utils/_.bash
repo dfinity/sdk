@@ -28,7 +28,7 @@ standard_setup() {
 }
 
 standard_teardown() {
-    rm -rf "$DFX_E2E_TEMP_DIR"
+    rm -rf "$DFX_E2E_TEMP_DIR" || rm -rf "$DFX_E2E_TEMP_DIR"
 }
 
 dfx_new_frontend() {
