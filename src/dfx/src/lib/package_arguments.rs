@@ -13,7 +13,7 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
     if packtool.is_none() {
         let stdlib_path = cache
             .get_binary_command_path("base")
-            .context("Failed to get path to 'base' binary.")?
+            .context("Failed to get path to 'base' library in cache.")?
             .into_os_string()
             .into_string()
             .map_err(|_| anyhow!("Path contains invalid Unicode data."))?;
