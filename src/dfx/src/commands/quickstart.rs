@@ -23,7 +23,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
     let principal = ident.sender().map_err(Error::msg)?;
     println!("Your DFX user principal: {principal}");
     let acct = AccountIdentifier::new(principal, None);
-    println!("Your ledger account ID: {acct}");
+    println!("Your ledger account address: {acct}");
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         let balance = balance(agent, &acct, None).await?;
@@ -41,7 +41,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
                 }
             }
         } else if Confirm::new().with_prompt("Import an existing wallet?").interact()? {
-            let id = Input::<Principal>::new().with_prompt("Paste the principal ID of the existing wallet:").interact_text()?;
+            let id = Input::<Principal>::new().with_prompt("Paste the principal ID of the existing wallet").interact_text()?;
             let wallet = if let Ok(wallet) = WalletCanister::create(agent, id).await {
                 wallet
             } else {
@@ -60,15 +60,18 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
             let needed_tc = Decimal::new(10, 0) - possible_tc;
             if needed_tc.is_sign_positive() {
                 let needed_icp = needed_tc * icp_per_tc;
-                println!("You need {needed_icp} more ICP to deploy a 10 TC wallet canister on mainnet.");
-                println!("Deposit {needed_icp} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet.");
+                let precision = needed_icp.scale() as usize + 4; 
+                println!("You need {needed_icp:.precision$} more ICP to deploy a 10 TC wallet canister on mainnet.");
+                println!("Deposit {needed_icp:.precision$} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet.");
                 println!("Alternatively:");
                 println!("- If you have ICP in an NNS account, you can create a new canister through the NNS interface");
                 println!("- If you have a Twitter account, you can link it to the cycles faucet to get free cycles at https://faucet.dfinity.org");
                 println!("Either of these options will ask for your DFX user principal, listed above.");
                 println!("And either of these options will hand you back a wallet canister principal; when you run the command again, select the 'import an existing wallet' option.");
             } else {
-                if Confirm::new().with_prompt(format!("Spend {} ICP to create a new wallet with 10 TC?", Decimal::new(10, 0) * icp_per_tc)).interact()? {
+                let to_spend = Decimal::new(10, 0) * icp_per_tc;
+                let precision = to_spend.scale() as usize + 4;
+                if Confirm::new().with_prompt(format!("Spend {to_spend:.precision$} ICP to create a new wallet with 10 TC?")).interact()? {
                     // todo blocked on ledger change
                 } else {
                     println!("Run this command again at any time to continue from here."); // unify somehow
