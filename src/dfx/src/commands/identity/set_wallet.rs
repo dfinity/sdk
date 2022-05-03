@@ -24,8 +24,7 @@ pub struct SetWalletOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>) -> DfxResult {
-    let agent_env = create_agent_environment(env, network.clone())
-        .context("Failed to create AgentEnvironment.")?;
+    let agent_env = create_agent_environment(env, network.clone())?;
     let config = env.get_config_or_anyhow()?;
     let env = &agent_env;
     let log = env.get_logger();
@@ -37,27 +36,15 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         .expect("No selected identity.")
         .to_string();
 
-    let network =
-        get_network_descriptor(&agent_env, network).context("Failed to get network descriptor.")?;
+    let network = get_network_descriptor(&agent_env, network)?;
 
     let canister_name = opts.canister_name.as_str();
     let canister_id = match Principal::from_text(canister_name) {
         Ok(id) => id,
         Err(_) => {
-            let canister_id = CanisterIdStore::for_env(env)
-                .context("Failed to load canister id store.")?
-                .get(canister_name)
-                .with_context(|| {
-                    format!("Failed to determine canister id for {}.", canister_name)
-                })?;
-            let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))
-                .with_context(|| format!("Failed to load canister info for {}.", canister_name))?;
-            canister_info.get_canister_id().with_context(|| {
-                format!(
-                    "Failed to read canister id of {}.",
-                    canister_info.get_name()
-                )
-            })?
+            let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
+            let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+            canister_info.get_canister_id()?
         }
     };
     let force = opts.force;
@@ -83,7 +70,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = Identity::build_wallet_canister(canister_id, env).await.context("Failed to build wallet caller.")?;
+                let canister = Identity::build_wallet_canister(canister_id, env).await?;
                 let balance = canister.wallet_balance().await;
 
                 match balance {
@@ -113,8 +100,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         network.name,
         canister_id
     );
-    Identity::set_wallet_id(env, &network, &identity_name, canister_id)
-        .with_context(|| format!("Failed to set wallet id for {}.", identity_name))?;
+    Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
     info!(log, "Wallet set successfully.");
 
     Ok(())

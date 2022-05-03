@@ -9,6 +9,7 @@ use crate::lib::provider::get_network_context;
 use crate::util::{self, check_candid_file};
 
 use anyhow::{bail, Context};
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use std::borrow::Cow;
 use std::ffi::OsStr;
@@ -122,16 +123,9 @@ pub trait CanisterBuilder {
             )
         })?;
 
-        let generated_idl_path = self
-            .generate_idl(pool, info, config)
-            .context("Failed to generate idl path.")?;
+        let generated_idl_path = self.generate_idl(pool, info, config)?;
 
-        let (env, ty) = check_candid_file(generated_idl_path.as_path()).with_context(|| {
-            format!(
-                "Failed candid file check for {}.",
-                generated_idl_path.to_string_lossy()
-            )
-        })?;
+        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
 
         let bindings = info
             .get_declarations_config()
@@ -192,13 +186,7 @@ pub trait CanisterBuilder {
                     .context("Failed to read language bindings archive file content.")?;
 
                 let mut new_file_contents = file_contents
-                    .replace(
-                        "{canister_id}",
-                        &info
-                            .get_canister_id()
-                            .context("Failed to get canister id.")?
-                            .to_text(),
-                    )
+                    .replace("{canister_id}", &info.get_canister_id()?.to_text())
                     .replace("{canister_name}", info.get_name());
                 new_file_contents = match &info.get_declarations_config().env_override {
                     Some(s) => new_file_contents.replace(
@@ -322,11 +310,10 @@ pub struct BuildConfig {
 }
 
 impl BuildConfig {
+    #[context("Failed to create build config.")]
     pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
-        let network_name = util::network_to_pathcompat(
-            &get_network_context().context("Failed to get network context.")?,
-        );
+        let network_name = util::network_to_pathcompat(&get_network_context()?);
         let build_root = config.get_temp_path().join(&network_name);
         let build_root = build_root.join("canisters");
 
@@ -352,12 +339,13 @@ pub struct BuilderPool {
 }
 
 impl BuilderPool {
+    #[context("Failed to create new builder pool.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         let builders: Vec<Arc<dyn CanisterBuilder>> = vec![
-            Arc::new(assets::AssetsBuilder::new(env).context("Failed to create AssetsBuilder.")?),
-            Arc::new(custom::CustomBuilder::new(env).context("Failed to create CustomBuilder.")?),
-            Arc::new(motoko::MotokoBuilder::new(env).context("Failed to create MotokoBuilder.")?),
-            Arc::new(rust::RustBuilder::new(env).context("Failed to create RustBuilder.")?),
+            Arc::new(assets::AssetsBuilder::new(env)?),
+            Arc::new(custom::CustomBuilder::new(env)?),
+            Arc::new(motoko::MotokoBuilder::new(env)?),
+            Arc::new(rust::RustBuilder::new(env)?),
         ];
 
         Ok(Self { builders })

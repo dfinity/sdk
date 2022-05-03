@@ -11,8 +11,7 @@ pub struct WalletBalanceOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: WalletBalanceOpts) -> DfxResult {
     let balance = get_wallet(env)
-        .await
-        .context("Failed to setup wallet caller.")?
+        .await?
         .wallet_balance()
         .await
         .context("Failed to fetch wallet balance.")?;

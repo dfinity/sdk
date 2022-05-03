@@ -1,5 +1,6 @@
 use crate::lib::error::DfxResult;
 use anyhow::Context;
+use fn_error_context::context;
 use slog::info;
 use std::io::Read;
 
@@ -19,6 +20,7 @@ pub fn dfinity_logo() -> String {
     }
 }
 
+#[context("Failed to load wallet wasm.")]
 pub fn wallet_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
     let mut wasm = Vec::new();
 

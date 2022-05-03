@@ -6,6 +6,7 @@ use crate::lib::package_arguments::{self, PackageArguments};
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
+use fn_error_context::context;
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
@@ -32,21 +33,20 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
     if atty::is(atty::Stream::Stdout) && !force_tty {
         Err(anyhow!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag."))
     } else if let Some(config) = env.get_config() {
-        let main_path = get_main_path(config.get_config(), opts.canister)
-            .context("Failed to determine main path.")?;
+        let main_path = get_main_path(config.get_config(), opts.canister)?;
         let packtool = &config
             .get_config()
             .get_defaults()
             .get_build()
             .get_packtool();
-        let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)
-            .context("Failed to load package arguments.")?;
+        let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
         run_ide(env, main_path, package_arguments)
     } else {
         Err(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
     }
 }
 
+#[context("Failed to determine main path.")]
 fn get_main_path(config: &ConfigInterface, canister_name: Option<String>) -> DfxResult<String> {
     // TODO try and point at the actual dfx.json path
     let dfx_json = CONFIG_FILE_NAME;
@@ -102,8 +102,7 @@ fn run_ide(
 ) -> DfxResult {
     let output = env
         .get_cache()
-        .get_binary_command("mo-ide")
-        .context("Failed to determine path of 'mo-ide' binary.")?
+        .get_binary_command("mo-ide")?
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         // Point at the right canister

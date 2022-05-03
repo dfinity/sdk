@@ -5,6 +5,7 @@ use anyhow::Context;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs};
+use fn_error_context::context;
 use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
 use std::net::{IpAddr, SocketAddr};
@@ -18,6 +19,7 @@ pub mod currency_conversion;
 // thus, we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
 // TcpBuilder is used with reuse_address and reuse_port set to "true" because
 // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
+#[context("Failed to find reusable socket address.")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
     let tcp_builder = if ip.is_ipv4() {
         TcpBuilder::new_v4().context("Failed to create IPv4 builder.")?
@@ -51,6 +53,7 @@ pub fn network_to_pathcompat(network_name: &str) -> String {
 }
 
 /// Deserialize and print return values from canister method.
+#[context("Failed to deserialize idl blob: Invalid data.")]
 pub fn print_idl_blob(
     blob: &[u8],
     output_type: Option<&str>,
@@ -127,9 +130,16 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
 }
 
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    pretty_check_file(idl_path).context("Pretty check failed.")
+    //context macro does not work for the returned error type
+    pretty_check_file(idl_path).with_context(|| {
+        format!(
+            "Candid file check failed for {}.",
+            idl_path.to_string_lossy()
+        )
+    })
 }
 
+#[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
     arguments: Option<&str>,
     random: Option<&str>,

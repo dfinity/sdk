@@ -16,9 +16,7 @@ pub struct DeauthorizeOpts {
 pub async fn exec(env: &dyn Environment, opts: DeauthorizeOpts) -> DfxResult {
     let custodian =
         Principal::from_text(&opts.custodian).context("Failed to parse custodian principal.")?;
-    wallet_update(env, "deauthorize", custodian)
-        .await
-        .context("Failed to deauthorized custodian from the wallet.")?;
+    wallet_update(env, "deauthorize", custodian).await?;
     println!("Deauthorized {} as a custodian.", opts.custodian);
     Ok(())
 }

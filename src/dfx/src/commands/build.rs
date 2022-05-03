@@ -5,7 +5,6 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 
-use anyhow::Context;
 use clap::Parser;
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
@@ -32,8 +31,7 @@ pub struct CanisterBuildOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network)
-        .context("Failed to create AgentEnvironment.")?;
+    let env = create_agent_environment(env, opts.network)?;
 
     let logger = env.get_logger();
 
@@ -42,9 +40,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    env.get_cache()
-        .install()
-        .context("Failed to install cache.")?;
+    env.get_cache().install()?;
 
     let build_mode_check = opts.check;
     let _all = opts.all;
@@ -52,12 +48,10 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     // Option can be None in which case --all was specified
     let canister_names = config
         .get_config()
-        .get_canister_names_with_dependencies(opts.canister_name.as_deref())
-        .context("Failed to determine canister names and their dependencies.")?;
+        .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
 
     // Get pool of canisters to build
-    let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)
-        .context("Failed to load CanisterPool.")?;
+    let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)?;
 
     // Create canisters on the replica and associate canister ids locally.
     if build_mode_check {
@@ -68,21 +62,17 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     } else {
         // CanisterIds would have been set in CanisterPool::load, if available.
         // This is just to display an error if trying to build before creating the canister.
-        let store = CanisterIdStore::for_env(&env).context("Failed to create canister store.")?;
+        let store = CanisterIdStore::for_env(&env)?;
         for canister in canister_pool.get_canister_list() {
             let canister_name = canister.get_name();
-            store
-                .get(canister_name)
-                .with_context(|| format!("Canister {} failed pre-build check.", canister_name))?;
+            store.get(canister_name)?;
         }
     }
 
     slog::info!(logger, "Building canisters...");
 
     canister_pool.build_or_fail(
-        &BuildConfig::from_config(&config)
-            .context("Failed to read BuildConfig")?
-            .with_build_mode_check(build_mode_check),
+        &BuildConfig::from_config(&config)?.with_build_mode_check(build_mode_check),
     )?;
 
     Ok(())

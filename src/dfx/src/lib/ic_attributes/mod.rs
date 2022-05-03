@@ -1,7 +1,7 @@
 use crate::config::dfinity::ConfigInterface;
 use crate::lib::error::DfxResult;
 
-use anyhow::Context;
+use fn_error_context::context;
 use humanize_rs::bytes::Bytes;
 use ic_types::principal::Principal;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -16,6 +16,7 @@ pub struct CanisterSettings {
     pub freezing_threshold: Option<FreezingThreshold>,
 }
 
+#[context("Failed to get compute allocation.")]
 pub fn get_compute_allocation(
     compute_allocation: Option<String>,
     config_interface: &ConfigInterface,
@@ -23,9 +24,7 @@ pub fn get_compute_allocation(
 ) -> DfxResult<Option<ComputeAllocation>> {
     let compute_allocation = match (compute_allocation, canister_name) {
         (Some(compute_allocation), _) => Some(compute_allocation),
-        (None, Some(canister_name)) => config_interface
-            .get_compute_allocation(canister_name)
-            .context("Failed to get configured compute allocation.")?,
+        (None, Some(canister_name)) => config_interface.get_compute_allocation(canister_name)?,
         (None, None) => None,
     };
     Ok(compute_allocation.map(|arg| {
@@ -34,6 +33,7 @@ pub fn get_compute_allocation(
     }))
 }
 
+#[context("Failed to get memory allocation.")]
 pub fn get_memory_allocation(
     memory_allocation: Option<String>,
     config_interface: &ConfigInterface,
@@ -41,9 +41,7 @@ pub fn get_memory_allocation(
 ) -> DfxResult<Option<MemoryAllocation>> {
     let memory_allocation = match (memory_allocation, canister_name) {
         (Some(memory_allocation), _) => Some(memory_allocation),
-        (None, Some(canister_name)) => config_interface
-            .get_memory_allocation(canister_name)
-            .context("Failed to get configured memory allocation.")?,
+        (None, Some(canister_name)) => config_interface.get_memory_allocation(canister_name)?,
         (None, None) => None,
     };
     Ok(memory_allocation.map(|arg| {
@@ -52,6 +50,7 @@ pub fn get_memory_allocation(
     }))
 }
 
+#[context("Failed to get freezing threshold.")]
 pub fn get_freezing_threshold(
     freezing_threshold: Option<String>,
     config_interface: &ConfigInterface,
@@ -59,9 +58,7 @@ pub fn get_freezing_threshold(
 ) -> DfxResult<Option<FreezingThreshold>> {
     let freezing_threshold = match (freezing_threshold, canister_name) {
         (Some(freezing_threshold), _) => Some(freezing_threshold),
-        (None, Some(canister_name)) => config_interface
-            .get_freezing_threshold(canister_name)
-            .context("Failed to get configured freezing threshold.")?,
+        (None, Some(canister_name)) => config_interface.get_freezing_threshold(canister_name)?,
         (None, None) => None,
     };
     Ok(freezing_threshold.map(|arg| {

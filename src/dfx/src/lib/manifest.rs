@@ -2,6 +2,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_data};
 
 use anyhow::Context;
+use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
@@ -77,6 +78,7 @@ pub fn is_upgrade_necessary(latest_version: Option<&Version>, current: &Version)
     }
 }
 
+#[context("Failed to fetch latest version.")]
 pub fn get_latest_version(
     release_root: &str,
     timeout: Option<std::time::Duration>,
@@ -121,6 +123,11 @@ pub fn get_latest_version(
         .map(|v| v.clone())
 }
 
+#[context(
+    "Failed to get latest release for version {} and architecture {}.",
+    version,
+    arch
+)]
 pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxResult<()> {
     let url = reqwest::Url::parse(&format!(
         "{0}/downloads/dfx/{1}/{2}/dfx-{1}.tar.gz",

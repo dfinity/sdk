@@ -39,7 +39,7 @@ pub async fn exec(
         .map_err(|_| anyhow!("Cannot read the message file."))?;
     let message: SignedMessageV1 =
         serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
-    message.validate().context("Message failed to validate.")?;
+    message.validate()?;
 
     let network = message.network.clone();
     let transport = ReqwestHttpReplicaV2Transport::create(network)

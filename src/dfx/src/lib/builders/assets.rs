@@ -11,6 +11,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use std::fs;
@@ -25,6 +26,7 @@ struct AssetsBuilderExtra {
 }
 
 impl AssetsBuilderExtra {
+    #[context("Failed to create AssetBuilderExtra for canister '{}'.", info.get_name())]
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
         let deps = match info.get_extra_value("dependencies") {
             None => vec![],
@@ -51,6 +53,7 @@ pub struct AssetsBuilder {
 }
 
 impl AssetsBuilder {
+    #[context("Failed to create AssetBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(AssetsBuilder {
             _cache: env.get_cache(),
@@ -63,21 +66,16 @@ impl CanisterBuilder for AssetsBuilder {
         info.get_type() == "assets"
     }
 
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        Ok(AssetsBuilderExtra::try_from(info, pool)
-            .with_context(|| {
-                format!(
-                    "Failed to create AssetsBuilderExtra for canister {}.",
-                    info.get_name()
-                )
-            })?
-            .dependencies)
+        Ok(AssetsBuilderExtra::try_from(info, pool)?.dependencies)
     }
 
+    #[context("Failed to build asset canister '{}'.", info.get_name())]
     fn build(
         &self,
         _pool: &CanisterPool,
@@ -110,11 +108,8 @@ impl CanisterBuilder for AssetsBuilder {
             })?;
         }
 
-        let assets_canister_info = info
-            .as_info::<AssetsCanisterInfo>()
-            .context("Failed to create AssetCanisterInfo.")?;
-        delete_output_directory(info, &assets_canister_info)
-            .context("Failed to delete output directory.")?;
+        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
+        delete_output_directory(info, &assets_canister_info)?;
 
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
@@ -155,20 +150,16 @@ impl CanisterBuilder for AssetsBuilder {
             info.get_workspace_root(),
             &config.network_name,
             vars,
-        )
-        .context("Failed to build frontend.")?;
+        )?;
 
-        let assets_canister_info = info
-            .as_info::<AssetsCanisterInfo>()
-            .context("Failed to create AssetCanisterInfo.")?;
-        assets_canister_info
-            .assert_source_paths()
-            .context("Failed to get asset canister source paths.")?;
+        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
+        assets_canister_info.assert_source_paths()?;
 
-        copy_assets(pool.get_logger(), &assets_canister_info).context("Failed to copy assets.")?;
+        copy_assets(pool.get_logger(), &assets_canister_info)?;
         Ok(())
     }
 
+    #[context("Failed to generate idl for canister '{}'.", info.get_name())]
     fn generate_idl(
         &self,
         _pool: &CanisterPool,
@@ -209,11 +200,8 @@ impl CanisterBuilder for AssetsBuilder {
                 })?;
         }
 
-        let assets_canister_info = info
-            .as_info::<AssetsCanisterInfo>()
-            .context("Failed to create AssetsCanisterInfo.")?;
-        delete_output_directory(info, &assets_canister_info)
-            .context("Failed to delet output directory.")?;
+        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
+        delete_output_directory(info, &assets_canister_info)?;
 
         // delete unpacked wasm file
         let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));
@@ -243,6 +231,7 @@ fn is_hidden(entry: &walkdir::DirEntry) -> bool {
         .unwrap_or(false)
 }
 
+#[context("Failed to delete output directory for canister '{}'.", info.get_name())]
 fn delete_output_directory(
     info: &CanisterInfo,
     assets_canister_info: &AssetsCanisterInfo,
@@ -268,6 +257,7 @@ fn delete_output_directory(
     Ok(())
 }
 
+#[context("Failed to copy assets.")]
 fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
     let source_paths = assets_canister_info.get_source_paths();
     let output_assets_path = assets_canister_info.get_output_assets_path();
@@ -325,6 +315,7 @@ fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo)
     Ok(())
 }
 
+#[context("Failed to build frontend for network '{}'.", network_name)]
 fn build_frontend(
     logger: &slog::Logger,
     project_root: &Path,

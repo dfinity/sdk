@@ -2,7 +2,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 
-use anyhow::Context;
 use clap::Parser;
 use slog::info;
 
@@ -19,10 +18,7 @@ pub fn exec(env: &dyn Environment, opts: RemoveOpts) -> DfxResult {
     let log = env.get_logger();
     info!(log, r#"Removing identity "{}"."#, name);
 
-    IdentityManager::new(env)
-        .context("Failed to load identity manager.")?
-        .remove(name)
-        .with_context(|| format!("Failed to remove {}.", name))?;
+    IdentityManager::new(env)?.remove(name)?;
 
     info!(log, r#"Removed identity "{}"."#, name);
     Ok(())

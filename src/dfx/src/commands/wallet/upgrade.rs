@@ -26,16 +26,13 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
     // Network descriptor will always be set.
     let network = env.get_network_descriptor().unwrap();
 
-    let canister_id = Identity::wallet_canister_id(env, network, &identity_name)
-        .context("Failed to get wallet canister id.")?;
+    let canister_id = Identity::wallet_canister_id(env, network, &identity_name)?;
 
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
     let install_mode = match agent
         .read_state_canister_info(canister_id, "module_hash", false)
         .await
@@ -50,7 +47,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         Err(x) => bail!(x),
     };
 
-    let wasm = wallet_wasm(env.get_logger()).context("Failed to load wallet wasm module.")?;
+    let wasm = wallet_wasm(env.get_logger())?;
 
     let mgr = ManagementCanister::create(
         env.get_agent()
@@ -63,9 +60,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         .await
         .context("Failed to install wasm.")?;
 
-    let wallet = Identity::build_wallet_canister(canister_id, env)
-        .await
-        .context("Failed to build wallet canister caller.")?;
+    let wallet = Identity::build_wallet_canister(canister_id, env).await?;
 
     wallet
         .wallet_store_wallet_wasm(wasm)

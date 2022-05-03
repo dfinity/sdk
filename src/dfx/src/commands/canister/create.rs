@@ -70,9 +70,7 @@ pub async fn exec(
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
 
     let with_cycles = opts.with_cycles.as_deref();
 
@@ -88,8 +86,7 @@ pub async fn exec(
             env.get_selected_identity().expect("No selected identity"),
             false,
         )
-        .await
-        .context("Failed to get wallet.")?;
+        .await?;
         proxy_sender = CallSender::Wallet(*wallet.canister_id_());
         call_sender = &proxy_sender;
     }
@@ -109,12 +106,8 @@ pub async fn exec(
                                 Ok(env.get_selected_identity_principal().unwrap())
                             } else {
                                 let identity_name = controller;
-                                IdentityManager::new(env)
-                                    .context("Failed to load identity manager.")?
+                                IdentityManager::new(env)?
                                     .instantiate_identity_from_name(identity_name)
-                                    .with_context(|| {
-                                        format!("Failed to instantiate identity {}.", identity_name)
-                                    })
                                     .and_then(|identity| {
                                         identity.sender().map_err(|err| anyhow!(err))
                                     })
@@ -130,13 +123,7 @@ pub async fn exec(
     if let Some(canister_name) = opts.canister_name.as_deref() {
         let canister_is_remote = config
             .get_config()
-            .is_remote_canister(canister_name, &network.name)
-            .with_context(|| {
-                format!(
-                    "Failed to determine if {} is a remote canister.",
-                    canister_name
-                )
-            })?;
+            .is_remote_canister(canister_name, &network.name)?;
         if canister_is_remote {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
         }
@@ -171,8 +158,7 @@ pub async fn exec(
                 freezing_threshold,
             },
         )
-        .await
-        .with_context(|| format!("Failed to create {}.", canister_name))?;
+        .await?;
         Ok(())
     } else if opts.all {
         // Create all canisters.
@@ -180,10 +166,7 @@ pub async fn exec(
             for canister_name in canisters.keys() {
                 let canister_is_remote = config
                     .get_config()
-                    .is_remote_canister(canister_name, &network.name)
-                    .with_context(|| {
-                        format!("Failed to determine if {} is remote.", canister_name)
-                    })?;
+                    .is_remote_canister(canister_name, &network.name)?;
                 if canister_is_remote {
                     info!(
                         env.get_logger(),
@@ -231,8 +214,7 @@ pub async fn exec(
                         freezing_threshold,
                     },
                 )
-                .await
-                .with_context(|| format!("Failed to create {}.", canister_name))?;
+                .await?;
             }
         }
         Ok(())

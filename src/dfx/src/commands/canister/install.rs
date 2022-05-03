@@ -9,6 +9,7 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
+use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -64,13 +65,10 @@ pub async fn exec(
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let timeout = expiry_duration();
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
 
     let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
-    let canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
+    let canister_id_store = CanisterIdStore::for_env(env)?;
     let network = env.get_network_descriptor().unwrap();
 
     if mode == InstallMode::Reinstall && (opts.canister.is_none() || opts.all) {
@@ -80,22 +78,19 @@ pub async fn exec(
     if let Some(canister) = opts.canister.as_deref() {
         if config
             .get_config()
-            .is_remote_canister(canister, &network.name)
-            .with_context(|| format!("Failed to determine if {} is remote or not.", canister))?
+            .is_remote_canister(canister, &network.name)?
         {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be installed from here.", canister, &network.name)
         }
 
-        let canister_id = Principal::from_text(canister)
-            .or_else(|_| canister_id_store.get(canister))
-            .with_context(|| format!("Failed to get canister id for {}.", canister))?;
+        let canister_id =
+            Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
         let arguments = opts.argument.as_deref();
         let arg_type = opts.argument_type.as_deref();
         let canister_info = CanisterInfo::load(&config, canister, Some(canister_id));
         if let Some(wasm_path) = opts.wasm {
             // streamlined version, we can ignore most of the environment
-            let install_args = blob_from_arguments(arguments, None, arg_type, &None)
-                .context("Failed to create argument blob.")?;
+            let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
             install_canister_wasm(
                 env,
                 agent,
@@ -114,11 +109,9 @@ pub async fn exec(
                 .with_context(|| format!("Failed to load canister info for {}.", canister))?;
             let maybe_path = canister_info.get_output_idl_path();
             let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-            let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)
-                .context("Failed to create argument blob.")?;
-            let installed_module_hash = read_module_hash(agent, &canister_id_store, &canister_info)
-                .await
-                .context("Failed to read module hash.")?;
+            let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
+            let installed_module_hash =
+                read_module_hash(agent, &canister_id_store, &canister_info).await?;
             install_canister(
                 env,
                 agent,
@@ -139,10 +132,7 @@ pub async fn exec(
             for canister in canisters.keys() {
                 let canister_is_remote = config
                     .get_config()
-                    .is_remote_canister(canister, &network.name)
-                    .with_context(|| {
-                        format!("Failed to determine if {} is remote or not.", canister)
-                    })?;
+                    .is_remote_canister(canister, &network.name)?;
                 if canister_is_remote {
                     info!(
                         env.get_logger(),
@@ -153,17 +143,11 @@ pub async fn exec(
 
                     continue;
                 }
-                let canister_id = Principal::from_text(canister)
-                    .or_else(|_| canister_id_store.get(canister))
-                    .with_context(|| format!("Failed to get canister id for {}.", canister))?;
-                let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))
-                    .with_context(|| format!("Failed to load canister info for {}.", canister))?;
+                let canister_id =
+                    Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+                let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
                 let installed_module_hash =
-                    read_module_hash(agent, &canister_id_store, &canister_info)
-                        .await
-                        .with_context(|| {
-                            format!("Failed to read installed module hash for {}.", canister)
-                        })?;
+                    read_module_hash(agent, &canister_id_store, &canister_info).await?;
 
                 let install_args = [];
 
@@ -178,8 +162,7 @@ pub async fn exec(
                     installed_module_hash,
                     opts.upgrade_unchanged,
                 )
-                .await
-                .with_context(|| format!("Failed to install wasm for {}.", canister))?;
+                .await?;
             }
         }
         Ok(())
@@ -188,6 +171,7 @@ pub async fn exec(
     }
 }
 
+#[context("Failed to read installed moule hash for canister '{}'.", canister_info.get_name())]
 async fn read_module_hash(
     agent: &Agent,
     canister_id_store: &CanisterIdStore,

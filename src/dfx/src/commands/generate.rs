@@ -5,7 +5,6 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 
-use anyhow::Context;
 use clap::Parser;
 
 /// Generate type declarations for canisters from the code in your project
@@ -17,43 +16,30 @@ pub struct GenerateOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let env = create_agent_environment(env, None).context("Failed to create AgentEnvironment.")?;
+    let env = create_agent_environment(env, None)?;
 
     // Read the config.
     let config = env.get_config_or_anyhow()?;
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    env.get_cache()
-        .install()
-        .context("Failed to install cache.")?;
+    env.get_cache().install()?;
 
     // Option can be None which means generate types for all canisters
     let canister_names = config
         .get_config()
-        .get_canister_names_with_dependencies(opts.canister_name.as_deref())
-        .context("Failed to determine canister names and their dependencies.")?;
+        .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
 
     // Get pool of canisters to build
-    let canister_pool = CanisterPool::load(&env, false, &canister_names).with_context(|| {
-        format!(
-            "Failed to load canister pool for canisters {:?}.",
-            &canister_names
-        )
-    })?;
+    let canister_pool = CanisterPool::load(&env, false, &canister_names)?;
 
     // This is just to display an error if trying to generate before creating the canister.
-    let store = CanisterIdStore::for_env(&env).context("Failed to load canister store.")?;
+    let store = CanisterIdStore::for_env(&env)?;
     // If generate for motoko canister, build first
     let mut build_before_generate = false;
     for canister in canister_pool.get_canister_list() {
         let canister_name = canister.get_name();
-        let canister_id = store.get(canister_name).with_context(|| {
-            format!(
-                "Failed to get canister id for canister '{}'.",
-                canister_name
-            )
-        })?;
+        let canister_id = store.get(canister_name)?;
         if let Some(info) = canister_pool.get_canister_info(&canister_id) {
             if info.get_type() == "motoko" {
                 build_before_generate = true;
@@ -61,22 +47,18 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         }
     }
 
-    let build_config = BuildConfig::from_config(&config).context("Failed to load BuildConfig.")?;
+    let build_config = BuildConfig::from_config(&config)?;
 
     if build_before_generate {
         slog::info!(
             env.get_logger(),
             "Building canisters before generate for Motoko"
         );
-        canister_pool
-            .build_or_fail(&build_config)
-            .context("Failed to build canisters.")?;
+        canister_pool.build_or_fail(&build_config)?;
     }
 
     for canister in canister_pool.get_canister_list() {
-        canister
-            .generate(&canister_pool, &build_config)
-            .context("Failed to generate type declarations.")?;
+        canister.generate(&canister_pool, &build_config)?;
     }
 
     Ok(())

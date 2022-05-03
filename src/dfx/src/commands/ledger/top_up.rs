@@ -44,8 +44,7 @@ pub struct TopUpOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
-    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)
-        .context("Failed to determine ICP amount.")?;
+    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
 
     let fee = opts
         .fee
@@ -66,9 +65,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
         .map_or(Ok(TRANSACTION_FEE), |v| ICPTs::from_str(&v))
         .map_err(|err| anyhow!(err))?;
 
-    let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee)
-        .await
-        .context("Failed to transfer and notify.")?;
+    let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
 
     match result {
         CyclesResponse::ToppedUp(()) => {

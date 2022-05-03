@@ -8,6 +8,7 @@ use crate::util::clap::validators::project_name_validator;
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use console::{style, Style};
+use fn_error_context::context;
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
 use semver::Version;
@@ -122,6 +123,7 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
     Ok(())
 }
 
+#[context("Failed to init git at {}.", project_name.to_string_lossy())]
 pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
     let init_status = std::process::Command::new("git")
         .arg("init")
@@ -150,6 +152,7 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
     Ok(())
 }
 
+#[context("Failed to unpack archive to {}.", root.to_string_lossy())]
 fn write_files_from_entries<R: Sized + Read>(
     log: &Logger,
     archive: &mut Archive<R>,
@@ -198,6 +201,7 @@ fn write_files_from_entries<R: Sized + Read>(
     Ok(())
 }
 
+#[context("Failed to run 'npm install'.")]
 fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
     std::process::Command::new("npm")
         .arg("install")
@@ -210,6 +214,7 @@ fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
         .map_err(DfxError::from)
 }
 
+#[context("Failed to scaffold frontend code.")]
 fn scaffold_frontend_code(
     env: &dyn Environment,
     dry_run: bool,
@@ -299,11 +304,7 @@ fn scaffold_frontend_code(
             if node_installed {
                 let b = env.new_spinner("Installing node dependencies...".into());
 
-                if npm_install(project_name)
-                    .context("npm install failed.")?
-                    .wait()
-                    .is_ok()
-                {
+                if npm_install(project_name)?.wait().is_ok() {
                     b.finish_with_message("Done.".into());
                 } else {
                     b.finish_with_message(
@@ -366,9 +367,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         warn_upgrade(log, latest_version.as_ref(), current_version);
     }
 
-    env.get_cache()
-        .install()
-        .context("Failed to install cache.")?;
+    env.get_cache().install()?;
 
     info!(
         log,
@@ -407,8 +406,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         project_name,
         dry_run,
         &variables,
-    )
-    .context("Failed to unpack data.")?;
+    )?;
 
     scaffold_frontend_code(
         env,
@@ -418,8 +416,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         opts.frontend,
         &opts.agent_version,
         &variables,
-    )
-    .context("Failed to scaffold frontend code.")?;
+    )?;
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.
@@ -442,13 +439,13 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
             }
 
             if should_git {
-                init_git(log, project_name).context("Failed to init git.")?;
+                init_git(log, project_name)?;
             }
         }
 
         #[cfg(not(target_os = "macos"))]
         {
-            init_git(log, project_name).context("Failed to init git.")?;
+            init_git(log, project_name)?;
         }
     }
 

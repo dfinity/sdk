@@ -9,6 +9,7 @@ use actix_web::error::ErrorInternalServerError;
 use actix_web::http::StatusCode;
 use actix_web::{http, middleware, web, App, Error, HttpResponse, HttpServer};
 use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use serde::Deserialize;
 use slog::{info, Logger};
 use std::net::SocketAddr;
@@ -75,6 +76,7 @@ async fn candid(
 }
 
 /// Run the webserver in another thread.
+#[context("Failed to run webserver.")]
 pub fn run_webserver(
     logger: Logger,
     build_output_root: PathBuf,

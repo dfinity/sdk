@@ -43,17 +43,13 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
 
     let callee_canister = opts.canister.as_str();
-    let canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
+    let canister_id_store = CanisterIdStore::for_env(env)?;
 
     let canister_id = Principal::from_text(callee_canister)
-        .or_else(|_| canister_id_store.get(callee_canister))
-        .with_context(|| format!("Failed to determine canister id for {}.", callee_canister))?;
+        .or_else(|_| canister_id_store.get(callee_canister))?;
 
     let mut waiter = waiter_with_exponential_backoff();
     let Replied::CallReplied(blob) = async {
@@ -105,6 +101,6 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     .map_err(DfxError::from)?;
 
     let output_type = opts.output.as_deref();
-    print_idl_blob(&blob, output_type, &None).context("Invalid data: Invalid IDL blob.")?;
+    print_idl_blob(&blob, output_type, &None)?;
     Ok(())
 }

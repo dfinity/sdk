@@ -32,13 +32,12 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
 
     // For ping, "provider" could either be a URL or a network name.
     // If not passed, we default to the "local" network.
-    let network_descriptor = get_network_descriptor(env, opts.network)
-        .or_else::<DfxError, _>(|err| {
+    let network_descriptor =
+        get_network_descriptor(env, opts.network).or_else::<DfxError, _>(|err| {
             let logger = env.get_logger();
             warn!(logger, "{}", err);
-            let network_name = get_network_context().context("Failed to get network name.")?;
-            let url = command_line_provider_to_url(&network_name)
-                .with_context(|| format!("Failed to parse supplied provider {}.", &network_name))?;
+            let network_name = get_network_context()?;
+            let url = command_line_provider_to_url(&network_name)?;
             let is_ic = NetworkDescriptor::is_ic(&network_name, &vec![url.to_string()]);
             let network_descriptor = NetworkDescriptor {
                 name: "-ping-".to_string(),
@@ -47,12 +46,10 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                 is_ic,
             };
             Ok(network_descriptor)
-        })
-        .context("Failed to get network descriptor.")?;
+        })?;
 
     let timeout = expiry_duration();
-    let env = AgentEnvironment::new(env, network_descriptor, timeout)
-        .context("Failed to create AgentEnvironment.")?;
+    let env = AgentEnvironment::new(env, network_descriptor, timeout)?;
 
     let agent = env
         .get_agent()

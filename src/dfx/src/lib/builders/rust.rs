@@ -8,6 +8,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 
 use anyhow::{anyhow, bail, Context};
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::{info, o, warn};
@@ -19,6 +20,7 @@ pub struct RustBuilder {
 }
 
 impl RustBuilder {
+    #[context("Failed to create RustBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(RustBuilder {
             logger: env.get_logger().new(o! {
@@ -29,6 +31,7 @@ impl RustBuilder {
 }
 
 impl CanisterBuilder for RustBuilder {
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
@@ -57,15 +60,14 @@ impl CanisterBuilder for RustBuilder {
         info.get_type() == "rust"
     }
 
+    #[context("Failed to build Rust canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let rust_info = canister_info
-            .as_info::<RustCanisterInfo>()
-            .context("Failed to create RustCanisterInfo.")?;
+        let rust_info = canister_info.as_info::<RustCanisterInfo>()?;
         let package = rust_info.get_package();
 
         let canister_id = canister_info.get_canister_id().unwrap();
@@ -94,7 +96,7 @@ impl CanisterBuilder for RustBuilder {
             self.logger,
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
         );
-        let output = cargo.output().context("Failed to run cargo build")?;
+        let output = cargo.output().context("Failed to run 'cargo build'.")?;
 
         if std::process::Command::new("ic-cdk-optimizer")
             .arg("--version")
@@ -145,9 +147,7 @@ Run `cargo install ic-cdk-optimizer` to install it.
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        let rust_info = info
-            .as_info::<RustCanisterInfo>()
-            .context("Failed to create RustCanisterInfo.")?;
+        let rust_info = info.as_info::<RustCanisterInfo>()?;
         let output_idl_path = rust_info.get_output_idl_path();
         if output_idl_path.exists() {
             Ok(output_idl_path.to_path_buf())

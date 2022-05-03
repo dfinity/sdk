@@ -3,6 +3,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -340,6 +341,7 @@ impl ConfigInterface {
 
     /// Return the names of the specified canister and all of its dependencies.
     /// If none specified, return the names of all canisters.
+    #[context("Failed to get canisters with their dependencies.")]
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
@@ -352,10 +354,7 @@ impl ConfigInterface {
             Some(specific_canister) => {
                 let mut names = HashSet::new();
                 let mut path = vec![];
-                add_dependencies(canister_map, &mut names, &mut path, specific_canister)
-                    .with_context(|| {
-                        format!("Failed to add dependencies for {}.", specific_canister)
-                    })?;
+                add_dependencies(canister_map, &mut names, &mut path, specific_canister)?;
                 names.into_iter().collect()
             }
             None => canister_map.keys().cloned().collect(),
@@ -364,6 +363,11 @@ impl ConfigInterface {
         Ok(canister_names)
     }
 
+    #[context(
+        "Failed to figure out if canister '{}' has a remote id on network '{}'.",
+        canister,
+        network
+    )]
     pub fn get_remote_canister_id(
         &self,
         canister: &str,
@@ -381,26 +385,26 @@ impl ConfigInterface {
         Ok(maybe_principal)
     }
 
+    #[context(
+        "Failed while determining if canister '{}' is remote on network '{}'.",
+        canister,
+        network
+    )]
     pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
-        Ok(self
-            .get_remote_canister_id(canister, network)
-            .with_context(|| {
-                format!(
-                    "Failed to get remote canister id for {} on network {}.",
-                    canister, network
-                )
-            })?
-            .is_some())
+        Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
+    #[context("Failed to get compute allocation for '{}'.", canister_name)]
     pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "compute_allocation")
     }
 
+    #[context("Failed to get memory allocation for '{}'.", canister_name)]
     pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "memory_allocation")
     }
 
+    #[context("Failed to get freezing threshold for '{}'.", canister_name)]
     pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "freezing_threshold")
     }
@@ -428,6 +432,7 @@ impl ConfigInterface {
     }
 }
 
+#[context("Failed to add dependencies for canister '{}'.", canister_name)]
 fn add_dependencies(
     all_canisters: &BTreeMap<String, ConfigCanistersCanister>,
     names: &mut HashSet<String>,
@@ -461,8 +466,7 @@ fn add_dependencies(
     path.push(String::from(canister_name));
 
     for canister in deps {
-        add_dependencies(all_canisters, names, path, &canister)
-            .with_context(|| format!("Failed to add dependencies for {}.", canister))?;
+        add_dependencies(all_canisters, names, path, &canister)?;
     }
 
     path.pop();
@@ -480,6 +484,7 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
+    #[context("Failed to resolve config path from {}.", working_dir.to_string_lossy())]
     fn resolve_config_path(working_dir: &Path) -> DfxResult<Option<PathBuf>> {
         let mut curr = PathBuf::from(working_dir).canonicalize().with_context(|| {
             format!(
@@ -503,34 +508,24 @@ impl Config {
         Ok(None)
     }
 
+    #[context("Failed to load config from {}.", path.to_string_lossy())]
     fn from_file(path: &Path) -> DfxResult<Config> {
-        {
-            let content = std::fs::read(&path).with_context(|| {
-                format!(
-                    "Failed to read folder content for {}.",
-                    path.to_string_lossy()
-                )
-            })?;
-            Config::from_slice(path.to_path_buf(), &content)
-        }
-        .with_context(|| {
+        let content = std::fs::read(&path).with_context(|| {
             format!(
-                "Failed to load config from {} content.",
+                "Failed to read folder content for {}.",
                 path.to_string_lossy()
             )
-        })
+        })?;
+        Ok(Config::from_slice(path.to_path_buf(), &content)?)
     }
 
     fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
-        let path =
-            Config::resolve_config_path(working_dir).context("Failed to resolve config path.")?;
-        let maybe_config = path
-            .map(|path| Config::from_file(&path))
-            .transpose()
-            .context("Failed to read config.")?;
+        let path = Config::resolve_config_path(working_dir)?;
+        let maybe_config = path.map(|path| Config::from_file(&path)).transpose()?;
         Ok(maybe_config)
     }
 
+    #[context("Failed to read config from current working directory.")]
     pub fn from_current_dir() -> DfxResult<Option<Config>> {
         Config::from_dir(
             &std::env::current_dir().context("Failed to determine current working dir.")?,

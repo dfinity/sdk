@@ -8,6 +8,7 @@ use crate::lib::models::canister::CanisterPool;
 
 use anyhow::{anyhow, Context};
 use console::style;
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::info;
@@ -29,6 +30,7 @@ struct CustomBuilderExtra {
 }
 
 impl CustomBuilderExtra {
+    #[context("Failed to create CustomBuilderExtra for canister '{}'.", info.get_name())]
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
         let deps = match info.get_extra_value("dependencies") {
             None => vec![],
@@ -84,6 +86,7 @@ pub struct CustomBuilder {
 }
 
 impl CustomBuilder {
+    #[context("Failed to create CustomBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(CustomBuilder {
             logger: env.get_logger().clone(),
@@ -96,21 +99,16 @@ impl CanisterBuilder for CustomBuilder {
         info.get_type() == "custom"
     }
 
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        Ok(CustomBuilderExtra::try_from(info, pool)
-            .with_context(|| {
-                format!(
-                    "Failed to create CustomBuilderExtra for {}.",
-                    info.get_name()
-                )
-            })?
-            .dependencies)
+        Ok(CustomBuilderExtra::try_from(info, pool)?.dependencies)
     }
 
+    #[context("Failed to build custom canister {}.", info.get_name())]
     fn build(
         &self,
         pool: &CanisterPool,
@@ -122,12 +120,7 @@ impl CanisterBuilder for CustomBuilder {
             wasm,
             build,
             dependencies,
-        } = CustomBuilderExtra::try_from(info, pool).with_context(|| {
-            format!(
-                "Failed to create CustomBuilderExtra for {}.",
-                info.get_name()
-            )
-        })?;
+        } = CustomBuilderExtra::try_from(info, pool)?;
 
         let canister_id = info.get_canister_id().unwrap();
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
@@ -180,13 +173,7 @@ impl CanisterBuilder for CustomBuilder {
             .with_extension("did");
 
         // get the path to candid file
-        let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)
-            .with_context(|| {
-                format!(
-                    "Failed to create CustomBuilderExtra for {}.",
-                    info.get_name()
-                )
-            })?;
+        let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)?;
 
         std::fs::copy(&candid, &output_idl_path).with_context(|| {
             format!(

@@ -10,6 +10,7 @@ use crate::util::read_module_metadata;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
+use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
@@ -22,6 +23,7 @@ use std::io::stdin;
 use std::time::Duration;
 
 #[allow(clippy::too_many_arguments)]
+#[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
 pub async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
@@ -36,17 +38,10 @@ pub async fn install_canister(
     let log = env.get_logger();
     let network = env.get_network_descriptor().unwrap();
     if !network.is_ic && named_canister::get_ui_canister_id(network).is_none() {
-        named_canister::install_ui_canister(env, network, None)
-            .await
-            .context("Failed to install ui canister.")?;
+        named_canister::install_ui_canister(env, network, None).await?;
     }
 
-    let canister_id = canister_info.get_canister_id().with_context(|| {
-        format!(
-            "Cannot find build output for canister '{}'. Did you forget to run `dfx build`?",
-            canister_info.get_name().to_owned()
-        )
-    })?;
+    let canister_id = canister_info.get_canister_id()?;
     if matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = candid {
@@ -61,13 +56,12 @@ pub async fn install_canister(
                     deployed_path.to_string_lossy()
                 )
             })?;
-            let (mut env, opt_new) = check_candid_file(&candid_path).with_context(|| {
-                format!("Candid check failed for {}.", canister_info.get_name())
-            })?;
+            let (mut env, opt_new) =
+                check_candid_file(&candid_path).context("Checking generated did file.")?;
             let new_type =
                 opt_new.expect("Generated did file should contain some service interface");
-            let (env2, opt_old) = check_candid_file(&deployed_path)
-                .context("Candid check for old .did file failed.")?;
+            let (env2, opt_old) =
+                check_candid_file(&deployed_path).context("Checking old candid file.")?;
             let old_type =
                 opt_old.expect("Deployed did file should contain some service interface");
             let mut gamma = HashSet::new();
@@ -81,9 +75,7 @@ pub async fn install_canister(
     }
     if canister_info.get_type() == "motoko" && matches!(mode, InstallMode::Upgrade) {
         use crate::lib::canister_info::motoko::MotokoCanisterInfo;
-        let info = canister_info
-            .as_info::<MotokoCanisterInfo>()
-            .context("Failed to create MotokoCanisterInfo.")?;
+        let info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let stable_path = info.get_output_stable_path();
         let deployed_stable_path = stable_path.with_extension("old.most");
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
@@ -96,8 +88,7 @@ pub async fn install_canister(
             })?;
             let cache = env.get_cache();
             let output = cache
-                .get_binary_command("moc")
-                .context("Failed to determine path of 'moc' binary.")?
+                .get_binary_command("moc")?
                 .arg("--stable-compatible")
                 .arg(&deployed_stable_path)
                 .arg(&stable_path)
@@ -136,20 +127,12 @@ pub async fn install_canister(
             call_sender,
             wasm_module,
         )
-        .await
-        .with_context(|| {
-            format!(
-                "Failed during wasm installation call for {}.",
-                canister_info.get_name()
-            )
-        })?;
+        .await?;
     }
 
     if canister_info.get_type() == "assets" {
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env)
-                .await
-                .context("Failed to build wallet canister.")?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,
@@ -172,15 +155,14 @@ pub async fn install_canister(
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent, timeout)
-            .await
-            .context("Failed to store assets.")?;
+        post_install_store_assets(canister_info, agent, timeout).await?;
     }
 
     Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
+#[context("Failed to install wasm in canister '{}'.", canister_id)]
 pub async fn install_canister_wasm(
     env: &dyn Environment,
     agent: &Agent,
@@ -234,9 +216,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                 .context("Failed to install wasm.")?;
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env)
-                .await
-                .context("Failed to build wallet caller.")?;
+            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let install_args = CanisterInstall {
                 mode,
                 canister_id,
@@ -252,7 +232,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                 )
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await
-                .context("Failed during wasm installation.")?;
+                .context("Failed during wasm installation call.")?;
         }
     }
     Ok(())

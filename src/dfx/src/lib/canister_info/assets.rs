@@ -2,6 +2,7 @@ use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
 
 use anyhow::{bail, Context};
+use fn_error_context::context;
 use std::path::{Path, PathBuf};
 
 pub struct AssetsCanisterInfo {
@@ -27,6 +28,7 @@ impl AssetsCanisterInfo {
         self.output_assets_path.as_path()
     }
 
+    #[context("Failed to assert source paths.")]
     pub fn assert_source_paths(&self) -> DfxResult<()> {
         let source_paths = self.get_source_paths();
         let input_root = &self.input_root;
@@ -61,8 +63,7 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
         let input_root = info.get_workspace_root().to_path_buf();
         // If there are no "source" field, we just ignore this.
         let source_paths = if info.has_extra("source") {
-            info.get_extra::<Vec<PathBuf>>("source")
-                .context("Failed while trying to get field 'source'.")?
+            info.get_extra::<Vec<PathBuf>>("source")?
         } else {
             vec![]
         };

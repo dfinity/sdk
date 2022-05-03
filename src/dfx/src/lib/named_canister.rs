@@ -11,6 +11,7 @@ use crate::util;
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
@@ -19,26 +20,20 @@ use std::io::Read;
 
 const UI_CANISTER: &str = "__Candid_UI";
 
+#[context("Failed to install candid UI canister.")]
 pub async fn install_ui_canister(
     env: &dyn Environment,
     network: &NetworkDescriptor,
     some_canister_id: Option<Principal>,
 ) -> DfxResult<Principal> {
-    let mut id_store = CanisterIdStore::for_network(network).with_context(|| {
-        format!(
-            "Failed to setup canister id store for network {}.",
-            network.name
-        )
-    })?;
+    let mut id_store = CanisterIdStore::for_network(network)?;
     if id_store.find(UI_CANISTER).is_some() {
         return Err(anyhow!(
             "UI canister already installed on {} network",
             network.name
         ));
     }
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
     let mgr = ManagementCanister::create(
         env.get_agent()
             .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
@@ -81,15 +76,7 @@ pub async fn install_ui_canister(
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
         .context("Install wasm call failed.")?;
-    id_store
-        .add(UI_CANISTER, canister_id.to_text())
-        .with_context(|| {
-            format!(
-                "Failed to add canister with name {} and id {} to canister id store.",
-                UI_CANISTER,
-                canister_id.to_text()
-            )
-        })?;
+    id_store.add(UI_CANISTER, &canister_id.to_text())?;
     info!(
         env.get_logger(),
         "The UI canister on the \"{}\" network is \"{}\"",

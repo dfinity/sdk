@@ -38,17 +38,13 @@ async fn deposit_cycles(
     cycles: u128,
 ) -> DfxResult {
     let log = env.get_logger();
-    let canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
-    let canister_id = Principal::from_text(canister)
-        .or_else(|_| canister_id_store.get(canister))
-        .with_context(|| format!("Failed to get canister id for {}.", canister))?;
+    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id =
+        Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
     info!(log, "Depositing {} cycles onto {}", cycles, canister,);
 
-    canister::deposit_cycles(env, canister_id, timeout, call_sender, cycles)
-        .await
-        .with_context(|| format!("Failed to deposit cycles to {}.", canister_id))?;
+    canister::deposit_cycles(env, canister_id, timeout, call_sender, cycles).await?;
 
     let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await;
     if let Ok(status) = status {
@@ -77,9 +73,7 @@ pub async fn exec(
 
     let config = env.get_config_or_anyhow()?;
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {

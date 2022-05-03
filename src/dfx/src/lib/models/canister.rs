@@ -9,6 +9,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::{assets, check_candid_file};
 
 use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
@@ -51,10 +52,7 @@ impl Canister {
         pool: &CanisterPool,
         build_config: &BuildConfig,
     ) -> DfxResult<&BuildOutput> {
-        let output = self
-            .builder
-            .build(pool, &self.info, build_config)
-            .context("Failed to combine build information.")?;
+        let output = self.builder.build(pool, &self.info, build_config)?;
 
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));
@@ -78,6 +76,7 @@ impl Canister {
     }
 
     // this function is only ever used when build_config.build_mode_check is true
+    #[context("Failed to generate random canister id.")]
     pub fn generate_random_canister_id() -> DfxResult<CanisterId> {
         let mut rng = thread_rng();
         let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
@@ -91,6 +90,7 @@ impl Canister {
         unsafe { (&*self.output.as_ptr()).as_ref() }
     }
 
+    #[context("Failed while trying to generate type declarations for '{}'.", self.info.get_name())]
     pub fn generate(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
         self.builder.generate(pool, &self.info, build_config)
     }
@@ -111,17 +111,14 @@ struct PoolConstructHelper<'a> {
 }
 
 impl CanisterPool {
+    #[context("Failed to insert '{}' into canister pool.", canister_name)]
     fn insert(canister_name: &str, pool_helper: &mut PoolConstructHelper<'_>) -> DfxResult<()> {
         let canister_id = match pool_helper.canister_id_store.find(canister_name) {
             Some(canister_id) => Some(canister_id),
-            None if pool_helper.generate_cid => Some(
-                Canister::generate_random_canister_id()
-                    .context("Failed to generate random canister id.")?,
-            ),
+            None if pool_helper.generate_cid => Some(Canister::generate_random_canister_id()?),
             _ => None,
         };
-        let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)
-            .with_context(|| format!("Failed to load canister info for {}.", canister_name))?;
+        let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
 
         if let Some(builder) = pool_helper.builder_pool.get(&info) {
             pool_helper
@@ -136,6 +133,10 @@ impl CanisterPool {
         }
     }
 
+    #[context(
+        "Failed to load canister pool for given canisters: {:?}",
+        canister_names
+    )]
     pub fn load(
         env: &dyn Environment,
         generate_cid: bool,
@@ -150,17 +151,14 @@ impl CanisterPool {
 
         let mut pool_helper = PoolConstructHelper {
             config: &config,
-            builder_pool: BuilderPool::new(env).context("Failed to create builder pool.")?,
-            canister_id_store: CanisterIdStore::for_env(env)
-                .context("Failed to load canister id store.")?,
+            builder_pool: BuilderPool::new(env)?,
+            canister_id_store: CanisterIdStore::for_env(env)?,
             generate_cid,
             canisters_map: &mut canisters_map,
         };
 
         for canister_name in canister_names {
-            CanisterPool::insert(canister_name, &mut pool_helper).with_context(|| {
-                format!("Failed to insert {} into canister pool.", canister_name)
-            })?;
+            CanisterPool::insert(canister_name, &mut pool_helper)?;
         }
 
         Ok(CanisterPool {
@@ -200,18 +198,14 @@ impl CanisterPool {
         &self.logger
     }
 
+    #[context("Failed to build dependencies graph for canister pool.")]
     fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
 
         // Add all the canisters as nodes.
         for canister in &self.canisters {
-            let canister_id = canister.info.get_canister_id().with_context(|| {
-                format!(
-                    "Failed to get canister id for {}.",
-                    canister.info.get_name()
-                )
-            })?;
+            let canister_id = canister.info.get_canister_id()?;
             id_set.insert(canister_id, graph.add_node(canister_id));
         }
 
@@ -219,15 +213,7 @@ impl CanisterPool {
         for canister in &self.canisters {
             let canister_id = canister.canister_id();
             let canister_info = &canister.info;
-            let deps = canister
-                .builder
-                .get_dependencies(self, canister_info)
-                .with_context(|| {
-                    format!(
-                        "Failed to get dependencies for {}.",
-                        canister_info.get_name()
-                    )
-                })?;
+            let deps = canister.builder.get_dependencies(self, canister_info)?;
             if let Some(node_ix) = id_set.get(&canister_id) {
                 for d in deps {
                     if let Some(dep_ix) = id_set.get(&d) {
@@ -283,7 +269,7 @@ impl CanisterPool {
         if build_idl_path.ne(&idl_file_path) {
             std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
                 format!(
-                    "Failed to create {}.",
+                    "Failed to create idl file {}.",
                     idl_file_path.parent().unwrap().to_string_lossy()
                 )
             })?;
@@ -294,7 +280,7 @@ impl CanisterPool {
             let mut perms = std::fs::metadata(&idl_file_path)
                 .with_context(|| {
                     format!(
-                        "Failed to read file metadata for {}.",
+                        "Failed to read file metadata for idl file {}.",
                         idl_file_path.to_string_lossy()
                     )
                 })?
@@ -302,7 +288,7 @@ impl CanisterPool {
             perms.set_readonly(false);
             std::fs::set_permissions(&idl_file_path, perms).with_context(|| {
                 format!(
-                    "Failed to set file permissions for {}.",
+                    "Failed to set file permissions for idl file {}.",
                     idl_file_path.to_string_lossy()
                 )
             })?;
@@ -353,12 +339,7 @@ impl CanisterPool {
             .map(|_| {})
             .map_err(DfxError::from)?;
 
-        build_canister_js(&canister.canister_id(), &canister.info).with_context(|| {
-            format!(
-                "Failed to build canister js for {}.",
-                canister.info.get_name()
-            )
-        })?;
+        build_canister_js(&canister.canister_id(), &canister.info)?;
 
         canister.postbuild(self, build_config)
     }
@@ -383,6 +364,7 @@ impl CanisterPool {
     }
 
     /// Build all canisters, returning a vector of results of each builds.
+    #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
         build_config: &BuildConfig,
@@ -390,9 +372,7 @@ impl CanisterPool {
         self.step_prebuild_all(build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        let graph = self
-            .build_dependencies_graph()
-            .context("Failed to build dependencies graph.")?;
+        let graph = self.build_dependencies_graph()?;
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -453,10 +433,9 @@ impl CanisterPool {
 
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
+    #[context("Failed while trying to build all canisters.")]
     pub fn build_or_fail(&self, build_config: &BuildConfig) -> DfxResult<()> {
-        let outputs = self
-            .build(build_config)
-            .context("Failed while trying to build all canisters.")?;
+        let outputs = self.build(build_config)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
@@ -476,14 +455,14 @@ fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
 }
 
 /// Create a canister JavaScript DID and Actor Factory.
+#[context("Failed to build canister js for canister '{}'.", canister_info.get_name())]
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
     let output_did_js_path = canister_info.get_build_idl_path().with_extension("did.js");
     let output_did_ts_path = canister_info
         .get_build_idl_path()
         .with_extension("did.d.ts");
 
-    let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())
-        .with_context(|| format!("Candid file check failed for {}.", canister_info.get_name()))?;
+    let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())?;
     let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(

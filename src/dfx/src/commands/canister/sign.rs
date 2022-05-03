@@ -74,40 +74,20 @@ pub async fn exec(
 
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
+    let canister_id_store = CanisterIdStore::for_env(env)?;
 
     let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
         Ok(id) => {
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id)).with_context(|| {
-                    format!(
-                        "Failed to get candid path for canister {} with id {}.",
-                        canister_name,
-                        id.to_text()
-                    )
-                })?
+                get_local_cid_and_candid_path(env, canister_name, Some(id))?
             } else {
                 // TODO fetch candid file from remote canister
                 (id, None)
             }
         }
         Err(_) => {
-            let canister_id = canister_id_store.get(callee_canister).with_context(|| {
-                format!(
-                    "Failed to get canister id for canister {}.",
-                    callee_canister
-                )
-            })?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)).with_context(
-                || {
-                    format!(
-                        "Failed to get candid path for canister {} with id {}.",
-                        callee_canister,
-                        canister_id.to_text()
-                    )
-                },
-            )?
+            let canister_id = canister_id_store.get(callee_canister)?;
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
         }
     };
 
@@ -133,8 +113,7 @@ pub async fn exec(
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)
-        .context("Failed to create argument blob.")?;
+    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -189,8 +168,7 @@ pub async fn exec(
 
     let is_management_canister = canister_id == Principal::management_canister();
     let effective_canister_id =
-        get_effective_canister_id(is_management_canister, method_name, &arg_value, canister_id)
-            .context("Failed to get effective canister id.")?;
+        get_effective_canister_id(is_management_canister, method_name, &arg_value, canister_id)?;
 
     if is_query {
         let res = sign_agent

@@ -8,6 +8,7 @@ use crate::lib::provider::get_network_context;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use std::collections::BTreeMap;
@@ -53,6 +54,7 @@ pub struct CanisterInfo {
 }
 
 impl CanisterInfo {
+    #[context("Failed to load canister info for '{}'.", name)]
     pub fn load(
         config: &Config,
         name: &str,
@@ -60,7 +62,7 @@ impl CanisterInfo {
     ) -> DfxResult<CanisterInfo> {
         let workspace_root = config.get_path().parent().unwrap();
         let build_defaults = config.get_config().get_defaults().get_build();
-        let network_name = get_network_context().context("Failed to get network context.")?;
+        let network_name = get_network_context()?;
         let build_root = config
             .get_temp_path()
             .join(util::network_to_pathcompat(&network_name));
@@ -130,9 +132,7 @@ impl CanisterInfo {
             extras,
         };
 
-        let canister_args: Option<String> = canister_info
-            .get_extra_optional("args")
-            .context("Failed while trying to get optional config field 'args'.")?;
+        let canister_args: Option<String> = canister_info.get_extra_optional("args")?;
 
         Ok(match canister_args {
             None => canister_info,
@@ -175,6 +175,8 @@ impl CanisterInfo {
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
     }
+
+    #[context("Failed to get canister id for '{}'.", self.name)]
     pub fn get_canister_id(&self) -> DfxResult<CanisterId> {
         match &self.canister_id {
             Some(canister_id) => Ok(*canister_id),
@@ -196,6 +198,7 @@ impl CanisterInfo {
         self.extras.contains_key(name)
     }
 
+    #[context("Failed while trying to get field '{}'.", name)]
     pub fn get_extra<T: serde::de::DeserializeOwned>(&self, name: &str) -> DfxResult<T> {
         self.get_extra_value(name)
             .ok_or_else(|| {
@@ -210,6 +213,7 @@ impl CanisterInfo {
             })
     }
 
+    #[context("Failed while trying to get optional config field '{}'.", name)]
     pub fn get_extra_optional<T: serde::de::DeserializeOwned>(
         &self,
         name: &str,
@@ -282,6 +286,7 @@ impl CanisterInfo {
         }
     }
 
+    #[context("Failed to create <Type>CanisterInfo for canister '{}'.", self.name, )]
     pub fn as_info<T: CanisterInfoFactory>(&self) -> DfxResult<T> {
         if T::supports(self) {
             T::create(self)

@@ -15,6 +15,7 @@ use crate::lib::webserver::run_webserver;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
+use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
 use serde_json::Value;
@@ -156,8 +157,7 @@ pub fn exec(
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let network_descriptor =
-        get_network_descriptor(env, None).context("Failed to get network descriptor.")?;
+    let network_descriptor = get_network_descriptor(env, None)?;
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
@@ -171,7 +171,7 @@ pub fn exec(
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if clean {
-        clean_state(temp_dir, &state_root).context("Failed to clean up existing state.")?;
+        clean_state(temp_dir, &state_root)?;
     }
 
     std::fs::write(&pid_file_path, "").with_context(|| {
@@ -199,11 +199,10 @@ pub fn exec(
         )
     })?;
 
-    let (frontend_url, address_and_port) =
-        frontend_address(host, &config, background).context("Failed to get frontend address.")?;
+    let (frontend_url, address_and_port) = frontend_address(host, &config, background)?;
 
     if background {
-        send_background().context("Failed to spawn background dfx.")?;
+        send_background()?;
         return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
 
@@ -217,37 +216,27 @@ pub fn exec(
         },
     )?;
 
-    let btc_adapter_config = get_btc_adapter_config(&config, enable_bitcoin, btc_adapter_config)
-        .context("Failed to get BTC adapter config.")?;
+    let btc_adapter_config = get_btc_adapter_config(&config, enable_bitcoin, btc_adapter_config)?;
 
     let system = actix::System::new();
     let _proxy = system
         .block_on(async move {
-            let shutdown_controller =
-                start_shutdown_controller(env).context("Failed to start shutdown controller.")?;
+            let shutdown_controller = start_shutdown_controller(env)?;
 
             let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-                let emulator = start_emulator_actor(env, shutdown_controller.clone())
-                    .context("Failed to start emulator actor.")?;
+                let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
                 emulator.recipient()
             } else {
                 let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
                     if let Some(btc_adapter_config) = btc_adapter_config {
-                        let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)
-                            .with_context(|| {
-                                format!(
-                                    "Failed to get BTC adapter socket path from config at {}.",
-                                    btc_adapter_config.to_string_lossy()
-                                )
-                            })?;
+                        let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)?;
                         let ready_subscribe = start_btc_adapter_actor(
                             env,
                             btc_adapter_config,
                             socket_path.clone(),
                             shutdown_controller.clone(),
                             btc_adapter_pid_file_path,
-                        )
-                        .context("Failed to start BTC adapter actor.")?
+                        )?
                         .recipient();
                         (Some(ready_subscribe), socket_path)
                     } else {
@@ -276,13 +265,11 @@ pub fn exec(
                     replica_config,
                     shutdown_controller.clone(),
                     btc_adapter_ready_subscribe,
-                )
-                .context("Failed to start replica actor.")?;
+                )?;
                 replica.recipient()
             };
 
-            let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)
-                .context("Failed to find reusable socket address.")?;
+            let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
             let icx_proxy_config = IcxProxyConfig {
                 bind: address_and_port,
                 proxy_port: webserver_bind.port(),
@@ -295,8 +282,7 @@ pub fn exec(
                 build_output_root,
                 network_descriptor,
                 webserver_bind,
-            )
-            .context("Failed to start webserver.")?;
+            )?;
 
             let proxy = start_icx_proxy_actor(
                 env,
@@ -304,8 +290,7 @@ pub fn exec(
                 Some(port_ready_subscribe),
                 shutdown_controller,
                 icx_proxy_pid_file_path,
-            )
-            .context("Failed to start icx proxy.")?;
+            )?;
             Ok::<_, Error>(proxy)
         })
         .context("Failed to setup system.")?;
@@ -313,6 +298,7 @@ pub fn exec(
     Ok(())
 }
 
+#[context("Failed to clean existing replica state.")]
 fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     // Clean the contents of the provided directory including the
     // directory itself. N.B. This does NOT follow symbolic links -- and I
@@ -329,6 +315,7 @@ fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     Ok(())
 }
 
+#[context("Failed to spawn background dfx.")]
 fn send_background() -> DfxResult<()> {
     // Background strategy is different; we spawn `dfx` with the same arguments
     // (minus --background), ping and exit.
@@ -341,6 +328,7 @@ fn send_background() -> DfxResult<()> {
     Ok(())
 }
 
+#[context("Failed to get frontend address.")]
 fn frontend_address(
     host: Option<String>,
     config: &Config,
@@ -360,8 +348,8 @@ fn frontend_address(
         // Since the user may have provided port "0", we need to grab a dynamically
         // allocated port and construct a resuable SocketAddr which the actix
         // HttpServer will bind to
-        address_and_port = get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())
-            .with_context(|| format!("Failed to get frontend address {}", address_and_port))?;
+        address_and_port =
+            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
     }
     let ip = if address_and_port.is_ipv6() {
         format!("[{}]", address_and_port.ip())
@@ -395,6 +383,7 @@ fn write_pid(pid_file_path: &Path) {
     }
 }
 
+#[context("Failed ot get btc adapter socket path from config at {}.", btc_config_path.to_string_lossy())]
 pub fn get_btc_adapter_socket_path(btc_config_path: &Path) -> DfxResult<Option<PathBuf>> {
     let content = std::fs::read(&btc_config_path)
         .with_context(|| format!("Unable to read {}", btc_config_path.to_string_lossy()))?;
@@ -410,6 +399,7 @@ pub fn get_btc_adapter_socket_path(btc_config_path: &Path) -> DfxResult<Option<P
         .map(PathBuf::from))
 }
 
+#[context("Failed to get btc adapter config.")]
 pub fn get_btc_adapter_config(
     config: &Arc<Config>,
     enable_bitcoin: bool,

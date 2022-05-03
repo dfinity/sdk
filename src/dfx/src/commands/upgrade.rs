@@ -33,13 +33,11 @@ pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
 
     println!("Current version: {}", current_version);
     let release_root = opts.release_root.as_str();
-    let latest_version =
-        get_latest_version(release_root, None).context("Failed to determine latest version.")?;
+    let latest_version = get_latest_version(release_root, None)?;
 
     if latest_version > current_version {
         println!("New version available: {}", latest_version);
-        get_latest_release(release_root, &latest_version, os_arch)
-            .context("Failed to get latest release.")?;
+        get_latest_release(release_root, &latest_version, os_arch)?;
     } else {
         println!("Already up to date");
     }

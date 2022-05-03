@@ -20,13 +20,10 @@ pub fn exec(_env: &dyn Environment, opts: ToolchainDefault) -> DfxResult {
             let toolchain = name
                 .parse::<Toolchain>()
                 .context("Failed to parse toolchain name.")?;
-            toolchain
-                .set_default()
-                .context("Failed to set default toolchain.")?;
+            toolchain.set_default()?;
         }
         None => {
-            let toolchain =
-                toolchain::get_default_toolchain().context("Failed to get default toolchain.")?;
+            let toolchain = toolchain::get_default_toolchain()?;
             println!("{}", toolchain);
         }
     }

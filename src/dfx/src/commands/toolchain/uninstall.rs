@@ -19,9 +19,7 @@ pub fn exec(_env: &dyn Environment, opts: ToolchainUninstall) -> DfxResult {
         let toolchain = s
             .parse::<Toolchain>()
             .with_context(|| format!("Failed to parse toolchain name {}.", s))?;
-        toolchain
-            .uninstall()
-            .with_context(|| format!("Failed to uninstall toolchain {}.", s))?;
+        toolchain.uninstall()?;
     }
     Ok(())
 }

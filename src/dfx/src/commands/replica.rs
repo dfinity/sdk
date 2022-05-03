@@ -10,6 +10,7 @@ use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 use crate::commands::start::{get_btc_adapter_config, get_btc_adapter_socket_path};
 use anyhow::Context;
 use clap::Parser;
+use fn_error_context::context;
 use std::default::Default;
 use std::path::PathBuf;
 
@@ -34,13 +35,14 @@ pub struct ReplicaOpts {
 }
 
 /// Gets the configuration options for the Internet Computer replica.
+#[context("Failed to get replica config.")]
 fn get_config(
     env: &dyn Environment,
     opts: ReplicaOpts,
     btc_adapter_socket: Option<PathBuf>,
 ) -> DfxResult<ReplicaConfig> {
     let config = get_config_from_file(env);
-    let port = get_port(&config, opts.port).context("Failed to get port.")?;
+    let port = get_port(&config, opts.port)?;
     let mut http_handler: HttpHandlerConfig = Default::default();
     if port == 0 {
         let replica_port_path = env
@@ -73,6 +75,7 @@ fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsReplica {
 /// Gets the port number that the Internet Computer replica listens on. First checks if the port
 /// number was specified on the command-line using --port, otherwise checks if the port number was
 /// specified in the dfx configuration file, otherise defaults to 8080.
+#[context("Failed to get port.")]
 fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u16> {
     port.map(|port| port.parse())
         .unwrap_or_else(|| {
@@ -98,48 +101,41 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
 
     system
         .block_on(async move {
-            let shutdown_controller =
-                start_shutdown_controller(env).context("Failed to start shutdown controller.")?;
+            let shutdown_controller = start_shutdown_controller(env)?;
             if opts.emulator {
-                start_emulator_actor(env, shutdown_controller)
-                    .context("Failed to start emulator actor.")?;
+                start_emulator_actor(env, shutdown_controller)?;
             } else {
                 let config = env.get_config_or_anyhow()?;
                 let btc_adapter_config = get_btc_adapter_config(
                     &config,
                     opts.enable_bitcoin,
                     opts.btc_adapter_config.clone(),
-                )
-                .context("Failed to get BTC adapter config.")?;
+                )?;
 
                 let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
                     if let Some(btc_adapter_config) = btc_adapter_config {
-                        let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)
-                            .context("Failed to get BTC adapter socket path.")?;
+                        let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)?;
                         let ready_subscribe = start_btc_adapter_actor(
                             env,
                             btc_adapter_config,
                             socket_path.clone(),
                             shutdown_controller.clone(),
                             btc_adapter_pid_file_path,
-                        )
-                        .context("Failed to start BTC adapter actor.")?
+                        )?
                         .recipient();
                         (Some(ready_subscribe), socket_path)
                     } else {
                         (None, None)
                     };
 
-                let replica_config = get_config(env, opts, btc_adapter_socket_path)
-                    .context("Failed to get replica config")?;
+                let replica_config = get_config(env, opts, btc_adapter_socket_path)?;
 
                 start_replica_actor(
                     env,
                     replica_config,
                     shutdown_controller,
                     btc_adapter_ready_subscribe,
-                )
-                .context("Failed to start replica actor")?;
+                )?;
             }
             DfxResult::Ok(())
         })

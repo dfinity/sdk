@@ -8,6 +8,7 @@ use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
+use fn_error_context::context;
 use ic_agent::AgentError;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
@@ -20,6 +21,7 @@ const CANISTER_CREATE_FEE: u128 = 1_000_000_000_000_u128;
 // For now create the canister with 3T cycle balance.
 const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
 
+#[context("Failed to create canister '{}'.", canister_name)]
 pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
@@ -33,20 +35,13 @@ pub async fn create_canister(
 
     let config = env.get_config_or_anyhow()?;
 
-    let mut canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
+    let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let network_name = get_network_context().context("Failed to get network name.")?;
+    let network_name = get_network_context()?;
 
     if let Some(remote_canister_id) = config
         .get_config()
-        .get_remote_canister_id(canister_name, &network_name)
-        .with_context(|| {
-            format!(
-                "Failed to get remote canister id for {} on network {}.",
-                canister_name, &network_name
-            )
-        })?
+        .get_remote_canister_id(canister_name, &network_name)?
     {
         bail!(
             "{} canister is remote on network {} and has canister id: {}",
@@ -100,9 +95,7 @@ pub async fn create_canister(
                         .0
                 }
                 CallSender::Wallet(wallet_id) => {
-                    let wallet = Identity::build_wallet_canister(*wallet_id, env)
-                        .await
-                        .context("Failed to load wallet canister caller.")?;
+                    let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.map_or(
                         CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
@@ -138,10 +131,9 @@ pub async fn create_canister(
                 non_default_network,
                 canister_id
             );
-            canister_id_store.add(canister_name, canister_id)
+            canister_id_store.add(canister_name, &canister_id)
         }
-    }
-    .context("Failed to create canister.")?;
+    }?;
 
     Ok(())
 }

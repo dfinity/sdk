@@ -76,8 +76,7 @@ pub struct DeployOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network)
-        .context("Failed to create AgentEnvironment.")?;
+    let env = create_agent_environment(env, opts.network)?;
 
     let timeout = expiry_duration();
     let canister_name = opts.canister_name.as_deref();
@@ -106,43 +105,35 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let call_sender = runtime
-        .block_on(call_sender(&env, &opts.wallet))
-        .context("Failed to determine call sender.")?;
+    let call_sender = runtime.block_on(call_sender(&env, &opts.wallet))?;
     let proxy_sender;
     let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
-        let wallet = runtime
-            .block_on(Identity::get_or_create_wallet_canister(
-                &env,
-                env.get_network_descriptor()
-                    .expect("Couldn't get the network descriptor"),
-                env.get_selected_identity().expect("No selected identity"),
-                false,
-            ))
-            .context("Failed to create wallet caller.")?;
+        let wallet = runtime.block_on(Identity::get_or_create_wallet_canister(
+            &env,
+            env.get_network_descriptor()
+                .expect("Couldn't get the network descriptor"),
+            env.get_selected_identity().expect("No selected identity"),
+            false,
+        ))?;
         proxy_sender = CallSender::Wallet(*wallet.canister_id_());
         &proxy_sender
     } else {
         &call_sender
     };
-    runtime
-        .block_on(fetch_root_key_if_needed(&env))
-        .context("Failed to fetch root key.")?;
+    runtime.block_on(fetch_root_key_if_needed(&env))?;
 
-    runtime
-        .block_on(deploy_canisters(
-            &env,
-            canister_name,
-            argument,
-            argument_type,
-            force_reinstall,
-            opts.upgrade_unchanged,
-            timeout,
-            with_cycles,
-            &call_sender,
-            create_call_sender,
-        ))
-        .context("Failed to deploy canister(s).")?;
+    runtime.block_on(deploy_canisters(
+        &env,
+        canister_name,
+        argument,
+        argument_type,
+        force_reinstall,
+        opts.upgrade_unchanged,
+        timeout,
+        with_cycles,
+        &call_sender,
+        create_call_sender,
+    ))?;
 
     display_urls(&env)
 }
@@ -151,8 +142,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let network: &NetworkDescriptor = env.get_network_descriptor().unwrap();
     let log = env.get_logger();
-    let canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to load CanisterIdStore")?;
+    let canister_id_store = CanisterIdStore::for_env(env)?;
 
     let mut frontend_urls = BTreeMap::new();
     let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();
@@ -163,13 +153,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
         for (canister_name, canister_config) in canisters {
             let canister_is_remote = config
                 .get_config()
-                .is_remote_canister(canister_name, &network.name)
-                .with_context(|| {
-                    format!(
-                        "Failed to determine if canister {} is remote.",
-                        canister_name
-                    )
-                })?;
+                .is_remote_canister(canister_name, &network.name)?;
             if canister_is_remote {
                 continue;
             }
@@ -178,13 +162,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
                 Err(_) => canister_id_store.find(canister_name),
             };
             if let Some(canister_id) = canister_id {
-                let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))
-                    .with_context(|| {
-                    format!(
-                        "Failed to load canister info for canister {}.",
-                        canister_name
-                    )
-                })?;
+                let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
                 let is_frontend = canister_config.extras.get("frontend").is_some();
 
                 if is_frontend {

@@ -16,9 +16,7 @@ pub struct AddControllerOpts {
 pub async fn exec(env: &dyn Environment, opts: AddControllerOpts) -> DfxResult {
     let controller =
         Principal::from_text(opts.controller).context("Failed to parse controller principal.")?;
-    wallet_update(env, "add_controller", controller)
-        .await
-        .context("Failed to add controller to the wallet.")?;
+    wallet_update(env, "add_controller", controller).await?;
     println!("Added {} as a controller.", controller);
     Ok(())
 }

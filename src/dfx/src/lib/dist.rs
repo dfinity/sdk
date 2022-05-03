@@ -3,6 +3,7 @@ use crate::lib::manifest::Manifest;
 use crate::{error_invalid_argument, error_invalid_data};
 
 use anyhow::Context;
+use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
@@ -15,6 +16,7 @@ pub static DEFAULT_RELEASE_ROOT: &str = "https://sdk.dfinity.org";
 pub static CACHE_ROOT: &str = ".cache/dfinity/versions/";
 pub static DOWNLOADS_DIR: &str = ".cache/dfinity/downloads/";
 
+#[context("Failed to get distribution manifest.")]
 pub fn get_manifest() -> DfxResult<Manifest> {
     let url_string = format!("{}/manifest.json", DEFAULT_RELEASE_ROOT);
     let url = reqwest::Url::parse(&url_string)
@@ -43,6 +45,7 @@ pub fn get_manifest() -> DfxResult<Manifest> {
 }
 
 // Download a SDK version to cache
+#[context("Failed to download and install version '{}'.", version)]
 pub fn install_version(version: &Version) -> DfxResult<()> {
     let arch_os = match std::env::consts::OS {
         "linux" => "x86_64-linux",

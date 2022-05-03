@@ -7,6 +7,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
 use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use ic_types::Principal;
 use semver::Version;
@@ -75,8 +76,7 @@ pub struct EnvironmentImpl {
 
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
-        let config = Config::from_current_dir()
-            .context("Failed to read config from current working directory.")?;
+        let config = Config::from_current_dir()?;
         let temp_dir = match &config {
             None => tempfile::tempdir()
                 .expect("Could not create a temporary directory.")
@@ -226,16 +226,14 @@ pub struct AgentEnvironment<'a> {
 }
 
 impl<'a> AgentEnvironment<'a> {
+    #[context("Failed to create AgentEnvironment.")]
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
     ) -> DfxResult<Self> {
-        let mut identity_manager =
-            IdentityManager::new(backend).context("Failed to set up identity manager.")?;
-        let identity = identity_manager
-            .instantiate_selected_identity()
-            .context("Failed to instantiate selected identity.")?;
+        let mut identity_manager = IdentityManager::new(backend)?;
+        let identity = identity_manager.instantiate_selected_identity()?;
 
         let agent_url = network_descriptor.providers.first().unwrap();
         Ok(AgentEnvironment {
@@ -337,10 +335,9 @@ impl AgentClient {
         Ok(result)
     }
 
+    #[context("Failed to determine http auth path.")]
     fn http_auth_path() -> DfxResult<PathBuf> {
-        Ok(cache::get_cache_root()
-            .context("Failed to get cache root.")?
-            .join("http_auth"))
+        Ok(cache::get_cache_root()?.join("http_auth"))
     }
 
     // A connection is considered secure if it goes to an HTTPs scheme or if it's the
@@ -349,8 +346,9 @@ impl AgentClient {
         self.url.scheme() == "https" || self.url.host_str().unwrap_or("") == "localhost"
     }
 
+    #[context("Failed to read http auth map.")]
     fn read_http_auth_map(&self) -> DfxResult<BTreeMap<String, String>> {
-        let p = &Self::http_auth_path().context("Failed to determine http auth path.")?;
+        let p = &Self::http_auth_path()?;
         let content = std::fs::read_to_string(p)
             .with_context(|| format!("Failed to read {}.", p.to_string_lossy()))?;
 
@@ -365,9 +363,7 @@ impl AgentClient {
         match self.url.host() {
             None => Ok(None),
             Some(h) => {
-                let map = self
-                    .read_http_auth_map()
-                    .context("Failed to read http auth map.")?;
+                let map = self.read_http_auth_map()?;
                 if let Some(token) = map.get(&h.to_string()) {
                     if !self.is_secure() {
                         slog::warn!(
@@ -402,11 +398,11 @@ impl AgentClient {
             .unwrap_or_else(|_| BTreeMap::new());
         map.insert(host.to_string(), auth.to_string());
 
-        let p = Self::http_auth_path().context("Failed to get http auth path.")?;
+        let p = Self::http_auth_path()?;
         std::fs::write(
             &p,
             serde_json::to_string(&map)
-                .context("Failed to serialize http auth.")?
+                .context("Failed to serialize http auth map.")?
                 .as_bytes(),
         )
         .with_context(|| format!("Failed to write to {}.", p.to_string_lossy()))?;

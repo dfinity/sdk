@@ -12,6 +12,7 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_i
 use anyhow::{anyhow, bail, Context};
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
@@ -106,7 +107,7 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
         .build()
         .call_and_wait(waiter_with_exponential_backoff())
         .await
-        .context("Failed wallet call with args.")?;
+        .context("Failed wallet call.")?;
     Ok(result.map_err(|err| anyhow!(err))?.r#return)
 }
 
@@ -125,6 +126,11 @@ async fn request_id_via_wallet_call(
         .map_err(|err| anyhow!("Agent error {}", err))
 }
 
+#[context(
+    "Failed to determine effective canister id of method '{}' regarding canister {}.",
+    method_name,
+    canister_id
+)]
 pub fn get_effective_canister_id(
     is_management_canister: bool,
     method_name: &str,
@@ -189,35 +195,20 @@ pub async fn exec(
 ) -> DfxResult {
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
+    let canister_id_store = CanisterIdStore::for_env(env)?;
 
     let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
         Ok(id) => {
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id)).with_context(|| {
-                    format!(
-                        "Failed to get candid path for canister '{}' with id {:?}",
-                        canister_name, id
-                    )
-                })?
+                get_local_cid_and_candid_path(env, canister_name, Some(id))?
             } else {
                 // TODO fetch candid file from remote canister
                 (id, None)
             }
         }
         Err(_) => {
-            let canister_id = canister_id_store
-                .get(callee_canister)
-                .with_context(|| format!("Failed to get canister id for {}", callee_canister))?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)).with_context(
-                || {
-                    format!(
-                        "Failed to get candid path for canister '{}' with id {:?}",
-                        callee_canister, canister_id
-                    )
-                },
-            )?
+            let canister_id = canister_id_store.get(callee_canister)?;
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
         }
     };
     let maybe_candid_path = opts.candid.or(maybe_candid_path);
@@ -251,15 +242,12 @@ pub async fn exec(
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)
-        .context("Failed to create argument blob.")?;
+    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
 
     let timeout = expiry_duration();
 
@@ -281,8 +269,7 @@ pub async fn exec(
                     method_name,
                     &arg_value,
                     canister_id,
-                )
-                .context("Failed to determine effective canister id.")?;
+                )?;
                 agent
                     .query(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
@@ -292,9 +279,7 @@ pub async fn exec(
                     .context("Failed query call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)
-                    .await
-                    .context("Failed to setup wallet caller.")?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -308,8 +293,7 @@ pub async fn exec(
                 .context("Failed wallet call.")?
             }
         };
-        print_idl_blob(&blob, output_type, &method_type)
-            .context("Invalid data: Invalid IDL blob.")?;
+        print_idl_blob(&blob, output_type, &method_type)?;
     } else if opts.r#async {
         let request_id = match call_sender {
             CallSender::SelectedId => {
@@ -318,8 +302,7 @@ pub async fn exec(
                     method_name,
                     &arg_value,
                     canister_id,
-                )
-                .context("Failed to determine effective canister id.")?;
+                )?;
                 agent
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
@@ -329,9 +312,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)
-                    .await
-                    .context("Failed to setup wallet caller.")?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
@@ -350,8 +331,7 @@ pub async fn exec(
                     method_name,
                     &arg_value,
                     canister_id,
-                )
-                .context("Failed to determine effective canister id.")?;
+                )?;
                 agent
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
@@ -362,9 +342,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env)
-                    .await
-                    .context("Failed to setup wallet call.")?;
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -379,8 +357,7 @@ pub async fn exec(
             }
         };
 
-        print_idl_blob(&blob, output_type, &method_type)
-            .context("Invalid data: Invalid IDL blob.")?;
+        print_idl_blob(&blob, output_type, &method_type)?;
     }
 
     Ok(())

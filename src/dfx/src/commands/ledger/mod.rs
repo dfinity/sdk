@@ -14,6 +14,7 @@ use crate::util::expiry_duration;
 use anyhow::{anyhow, bail, Context};
 use candid::{Decode, Encode};
 use clap::Parser;
+use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
@@ -57,8 +58,7 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.clone())
-        .context("Failed to create AgentEnvironment.")?;
+    let agent_env = create_agent_environment(env, opts.network.clone())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {
@@ -73,6 +73,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
     })
 }
 
+#[context("Failed to determine icp amount from supplied arguments.")]
 fn get_icpts_from_args(
     amount: &Option<String>,
     icp: &Option<String>,
@@ -104,6 +105,7 @@ fn get_icpts_from_args(
     }
 }
 
+#[context("Failed to transfer funds.")]
 pub async fn transfer(
     agent: &Agent,
     canister_id: &Principal,
@@ -168,6 +170,7 @@ pub async fn transfer(
     Ok(block_height)
 }
 
+#[context("Failed to perform transfer_and_notify.")]
 async fn transfer_and_notify(
     env: &dyn Environment,
     memo: Memo,
@@ -180,15 +183,11 @@ async fn transfer_and_notify(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
 
     let to = AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, to_subaccount).to_address();
 
-    let block_height = transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, to)
-        .await
-        .context("Transfer failed.")?;
+    let block_height = transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, to).await?;
 
     println!("Transfer sent at BlockHeight: {}", block_height);
 
@@ -202,11 +201,11 @@ async fn transfer_and_notify(
                 to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
                 to_subaccount,
             })
-            .context("Failed to encode arguments.")?,
+            .context("Failed to encode notify arguments.")?,
         )
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
-        .context("Notify failed.")?;
+        .context("Notify call failed.")?;
 
     let result = Decode!(&result, CyclesResponse).context("Failed to decode notify response.")?;
     Ok(result)

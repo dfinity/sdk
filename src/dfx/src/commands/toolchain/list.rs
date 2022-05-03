@@ -2,7 +2,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::toolchain;
 
-use anyhow::Context;
 use clap::Parser;
 
 /// List installed toolchains
@@ -11,8 +10,7 @@ use clap::Parser;
 pub struct ToolchainList {}
 
 pub fn exec(_env: &dyn Environment, _opts: ToolchainList) -> DfxResult {
-    let toolchains =
-        toolchain::list_installed_toolchains().context("Failed to get installed toolchains.")?;
+    let toolchains = toolchain::list_installed_toolchains()?;
     for toolchain in toolchains {
         println!("{}", toolchain);
     }

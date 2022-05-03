@@ -10,6 +10,7 @@ use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
+use fn_error_context::context;
 use std::default::Default;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use url::Url;
@@ -48,21 +49,14 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let config_defaults = get_config_defaults_from_file(env);
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
-    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())
-        .context("Failed to determine bootstrap server configuration.")?;
+    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;
 
-    let network_descriptor = get_network_descriptor(env, opts.network)
-        .context("Failed to determine network descriptor.")?;
+    let network_descriptor = get_network_descriptor(env, opts.network)?;
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
 
-    let providers = get_providers(&network_descriptor).with_context(|| {
-        format!(
-            "Failed to determine providers for {}.",
-            network_descriptor.name
-        )
-    })?;
+    let providers = get_providers(&network_descriptor)?;
     let providers: Vec<Url> = providers
         .iter()
         .map(|uri| Url::parse(uri).unwrap())
@@ -89,17 +83,14 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
         )
     })?;
 
-    verify_unique_ports(&providers, &socket_addr)
-        .context("Cannot bind to and serve from the same port.")?;
+    verify_unique_ports(&providers, &socket_addr)?;
 
     let system = actix::System::new();
     let _proxy = system
         .block_on(async move {
-            let shutdown_controller =
-                start_shutdown_controller(env).context("Failed to start ShutdownController.")?;
+            let shutdown_controller = start_shutdown_controller(env)?;
 
-            let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)
-                .context("Failed to find a reusable socket address.")?;
+            let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
             let proxy_port_path = env.get_temp_dir().join("proxy-port");
             std::fs::write(&proxy_port_path, "").with_context(|| {
                 format!(
@@ -128,8 +119,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
                 build_output_root,
                 network_descriptor,
                 webserver_bind,
-            )
-            .context("Failed to run webserver.")?;
+            )?;
 
             let port_ready_subscribe = None;
             let proxy = start_icx_proxy_actor(
@@ -138,8 +128,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
                 port_ready_subscribe,
                 shutdown_controller,
                 icx_proxy_pid_file_path,
-            )
-            .context("Failed to start icx proxy actor.")?;
+            )?;
             Ok::<_, Error>(proxy)
         })
         .context("Failed to start proxy.")?;
@@ -148,6 +137,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     Ok(())
 }
 
+#[context("Cannot bind to and serve from the same port.")]
 fn verify_unique_ports(providers: &[url::Url], bind: &SocketAddr) -> DfxResult {
     // Verify that we cannot bind to a port that we forward to.
     let bound_port = bind.port();
@@ -168,16 +158,15 @@ fn verify_unique_ports(providers: &[url::Url], bind: &SocketAddr) -> DfxResult {
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
+#[context("Failed to determine bootstrap server configuration.")]
 fn apply_arguments(
     config: &ConfigDefaultsBootstrap,
     _env: &dyn Environment,
     opts: BootstrapOpts,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
-    let ip = get_ip(config, opts.ip.as_deref()).context("Failed to determine IP from config.")?;
-    let port =
-        get_port(config, opts.port.as_deref()).context("Failed to determine port from config.")?;
-    let timeout = get_timeout(config, opts.timeout.as_deref())
-        .context("Failed to determine timeout from config.")?;
+    let ip = get_ip(config, opts.ip.as_deref())?;
+    let port = get_port(config, opts.port.as_deref())?;
+    let timeout = get_timeout(config, opts.timeout.as_deref())?;
     Ok(ConfigDefaultsBootstrap {
         ip: Some(ip),
         port: Some(port),
@@ -196,6 +185,7 @@ fn get_config_defaults_from_file(env: &dyn Environment) -> ConfigDefaults {
 /// Gets the IP address that the bootstrap server listens on. First checks if the IP address was
 /// specified on the command-line using --ip, otherwise checks if the IP address was specified in
 /// the dfx configuration file, otherise defaults to 127.0.0.1.
+#[context("Failed to get ip that the bootstrap server listens on.")]
 fn get_ip(config: &ConfigDefaultsBootstrap, ip: Option<&str>) -> DfxResult<IpAddr> {
     ip.map(|ip| ip.parse())
         .unwrap_or_else(|| {
@@ -208,6 +198,8 @@ fn get_ip(config: &ConfigDefaultsBootstrap, ip: Option<&str>) -> DfxResult<IpAdd
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
 /// specified on the command-line using --port, otherwise checks if the port number was specified
 /// in the dfx configuration file, otherise defaults to 8081.
+
+#[context("Failed to get port that the bootstrap server listens on.")]
 fn get_port(config: &ConfigDefaultsBootstrap, port: Option<&str>) -> DfxResult<u16> {
     port.map(|port| port.parse())
         .unwrap_or_else(|| {
@@ -218,6 +210,7 @@ fn get_port(config: &ConfigDefaultsBootstrap, port: Option<&str>) -> DfxResult<u
 }
 
 /// Gets the list of compute provider API endpoints.
+#[context("Failed to get providers for network '{}'.", network_descriptor.name)]
 fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String>> {
     network_descriptor
         .providers
@@ -230,6 +223,7 @@ fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String
 /// requests to complete. First checks if the timeout was specified on the command-line using
 /// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
 /// otherise defaults to 30.
+#[context("Failed to determine timeout for bootstrap server.")]
 fn get_timeout(config: &ConfigDefaultsBootstrap, timeout: Option<&str>) -> DfxResult<u64> {
     timeout
         .map(|timeout| timeout.parse())

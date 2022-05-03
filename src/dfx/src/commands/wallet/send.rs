@@ -33,8 +33,7 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
     // amount has been validated by cycle_amount_validator
     let amount = opts.amount.parse::<u128>().unwrap();
     let res = get_wallet(env)
-        .await
-        .context("Failed to get wallet caller.")?
+        .await?
         .wallet_send(canister, amount, waiter_with_timeout(expiry_duration()))
         .await;
     Ok(res.map_err(|err| {

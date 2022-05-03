@@ -16,9 +16,7 @@ pub struct AuthorizeOpts {
 pub async fn exec(env: &dyn Environment, opts: AuthorizeOpts) -> DfxResult {
     let custodian =
         Principal::from_text(opts.custodian).context("Failed to parse custodian principal.")?;
-    wallet_update(env, "authorize", custodian)
-        .await
-        .context("Failed to add custodian to the wallet.")?;
+    wallet_update(env, "authorize", custodian).await?;
     println!("Authorized {} as a custodian.", custodian);
     Ok(())
 }

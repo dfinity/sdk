@@ -2,7 +2,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 
-use anyhow::Context;
 use clap::Parser;
 use std::io::Write;
 
@@ -11,10 +10,8 @@ use std::io::Write;
 pub struct ListOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: ListOpts) -> DfxResult {
-    let mgr = IdentityManager::new(env).context("Failed to load identity manager.")?;
-    let identities = mgr
-        .get_identity_names()
-        .context("Failed to get identity names.")?;
+    let mgr = IdentityManager::new(env)?;
+    let identities = mgr.get_identity_names()?;
     let current_identity = mgr.get_selected_identity_name();
     for identity in identities {
         if current_identity == &identity {

@@ -1,5 +1,6 @@
 use crate::lib::error::DfxResult;
 
+use fn_error_context::context;
 use ic_agent::RequestId;
 use ic_types::principal::Principal;
 
@@ -74,6 +75,7 @@ impl SignedMessageV1 {
         self
     }
 
+    #[context("Failed to validate signed message.")]
     pub fn validate(&self) -> DfxResult {
         if self.version != 1 {
             bail!("Invalid message: version must be 1");

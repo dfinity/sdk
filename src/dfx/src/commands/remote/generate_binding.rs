@@ -30,24 +30,20 @@ pub struct GenerateBindingOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
-    let env = create_agent_environment(env, None).context("Failed to create AgentEnvironment.")?;
+    let env = create_agent_environment(env, None)?;
     let config = env.get_config_or_anyhow()?;
     let log = env.get_logger();
 
     //collects specified canister, or all if canister is None (= --all is set)
     let canister_names = config
         .get_config()
-        .get_canister_names_with_dependencies(opts.canister.as_deref())
-        .context("Failed to load canister names.")?;
-    let canister_pool = CanisterPool::load(&env, false, &canister_names)
-        .context("Failed to create canister pool.")?;
+        .get_canister_names_with_dependencies(opts.canister.as_deref())?;
+    let canister_pool = CanisterPool::load(&env, false, &canister_names)?;
 
     for canister in canister_pool.get_canister_list() {
         let info = canister.get_info();
         if let Some(candid) = info.get_remote_candid() {
-            let main_optional: Option<String> = info
-                .get_extra_optional("main")
-                .context("Failed while trying to get optional 'main' field.")?;
+            let main_optional: Option<String> = info.get_extra_optional("main")?;
             if let Some(main) = main_optional {
                 let main_path = Path::new(&main);
                 let candid_path = Path::new(&candid);
@@ -78,9 +74,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         continue;
                     }
                 }
-                let (type_env, did_types) = check_candid_file(candid_path).with_context(|| {
-                    format!("Candid check failed for {}.", candid_path.to_string_lossy())
-                })?;
+                let (type_env, did_types) = check_candid_file(candid_path)?;
                 let bindings = if main.ends_with(&".mo") {
                     Some(candid::bindings::motoko::compile(&type_env, &did_types))
                 } else if main.ends_with(&".rs") {

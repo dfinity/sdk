@@ -58,9 +58,7 @@ pub async fn exec(env: &dyn Environment, opts: NotifyOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
 
     let result = agent
         .update(&MAINNET_LEDGER_CANISTER_ID, NOTIFY_METHOD)

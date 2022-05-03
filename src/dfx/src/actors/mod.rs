@@ -12,6 +12,7 @@ use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use actix::{Actor, Addr, Recipient};
 use anyhow::Context;
+use fn_error_context::context;
 use std::fs;
 use std::path::PathBuf;
 
@@ -22,6 +23,7 @@ pub mod replica;
 mod shutdown;
 pub mod shutdown_controller;
 
+#[context("Failed to start shutdown controller.")]
 pub fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<ShutdownController>> {
     let actor_config = shutdown_controller::Config {
         logger: Some(env.get_logger().clone()),
@@ -29,6 +31,7 @@ pub fn start_shutdown_controller(env: &dyn Environment) -> DfxResult<Addr<Shutdo
     Ok(ShutdownController::new(actor_config).start())
 }
 
+#[context("Failed to start btc adapter.")]
 pub fn start_btc_adapter_actor(
     env: &dyn Environment,
     config_path: PathBuf,
@@ -36,10 +39,7 @@ pub fn start_btc_adapter_actor(
     shutdown_controller: Addr<ShutdownController>,
     btc_adapter_pid_file_path: PathBuf,
 ) -> DfxResult<Addr<BtcAdapter>> {
-    let btc_adapter_path = env
-        .get_cache()
-        .get_binary_command_path("ic-btc-adapter")
-        .context("Failed to determine path of 'ic-btc-adapter' binary.")?;
+    let btc_adapter_path = env.get_cache().get_binary_command_path("ic-btc-adapter")?;
 
     let actor_config = btc_adapter::Config {
         btc_adapter_path,
@@ -54,14 +54,12 @@ pub fn start_btc_adapter_actor(
     Ok(BtcAdapter::new(actor_config).start())
 }
 
+#[context("Failed to start emulator actor.")]
 pub fn start_emulator_actor(
     env: &dyn Environment,
     shutdown_controller: Addr<ShutdownController>,
 ) -> DfxResult<Addr<Emulator>> {
-    let ic_ref_path = env
-        .get_cache()
-        .get_binary_command_path("ic-ref")
-        .context("Failed to determine path of 'ic-ref' binary.")?;
+    let ic_ref_path = env.get_cache().get_binary_command_path("ic-ref")?;
 
     let temp_dir = env.get_temp_dir();
     let emulator_port_path = temp_dir.join("ic-ref.port");
@@ -86,6 +84,7 @@ pub fn start_emulator_actor(
     Ok(actors::emulator::Emulator::new(actor_config).start())
 }
 
+#[context("Failed to setup replica environment.")]
 fn setup_replica_env(env: &dyn Environment, replica_config: &ReplicaConfig) -> DfxResult<PathBuf> {
     // create replica config dir
     let replica_configuration_dir = env.get_temp_dir().join("replica-configuration");
@@ -121,6 +120,7 @@ fn setup_replica_env(env: &dyn Environment, replica_config: &ReplicaConfig) -> D
     Ok(replica_configuration_dir)
 }
 
+#[context("Failed to start replica actor.")]
 pub fn start_replica_actor(
     env: &dyn Environment,
     replica_config: ReplicaConfig,
@@ -128,17 +128,10 @@ pub fn start_replica_actor(
     btc_adapter_ready_subscribe: Option<Recipient<BtcAdapterReadySubscribe>>,
 ) -> DfxResult<Addr<Replica>> {
     // get binary path
-    let replica_path = env
-        .get_cache()
-        .get_binary_command_path("replica")
-        .context("Failed to determine path of 'replica' binary.")?;
-    let ic_starter_path = env
-        .get_cache()
-        .get_binary_command_path("ic-starter")
-        .context("Failed to determine path of 'ic-starter' binary.")?;
+    let replica_path = env.get_cache().get_binary_command_path("replica")?;
+    let ic_starter_path = env.get_cache().get_binary_command_path("ic-starter")?;
 
-    let replica_configuration_dir =
-        setup_replica_env(env, &replica_config).context("Failed to set up replica environment.")?;
+    let replica_configuration_dir = setup_replica_env(env, &replica_config)?;
 
     let actor_config = replica::Config {
         ic_starter_path,
@@ -152,6 +145,7 @@ pub fn start_replica_actor(
     Ok(Replica::new(actor_config).start())
 }
 
+#[context("Failed to start icx proxy actor.")]
 pub fn start_icx_proxy_actor(
     env: &dyn Environment,
     icx_proxy_config: IcxProxyConfig,
@@ -159,10 +153,7 @@ pub fn start_icx_proxy_actor(
     shutdown_controller: Addr<ShutdownController>,
     icx_proxy_pid_path: PathBuf,
 ) -> DfxResult<Addr<IcxProxy>> {
-    let icx_proxy_path = env
-        .get_cache()
-        .get_binary_command_path("icx-proxy")
-        .context("Failed to determine path of 'icx-proxy' binary.")?;
+    let icx_proxy_path = env.get_cache().get_binary_command_path("icx-proxy")?;
 
     let actor_config = icx_proxy::Config {
         logger: Some(env.get_logger().clone()),

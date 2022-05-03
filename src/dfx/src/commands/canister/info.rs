@@ -23,16 +23,12 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     let callee_canister = opts.canister.as_str();
-    let canister_id_store =
-        CanisterIdStore::for_env(env).context("Failed to load canister id store.")?;
+    let canister_id_store = CanisterIdStore::for_env(env)?;
 
     let canister_id = Principal::from_text(callee_canister)
-        .or_else(|_| canister_id_store.get(callee_canister))
-        .with_context(|| format!("Failed to get canister id for {}.", callee_canister))?;
+        .or_else(|_| canister_id_store.get(callee_canister))?;
 
-    fetch_root_key_if_needed(env)
-        .await
-        .context("Failed to fetch root key.")?;
+    fetch_root_key_if_needed(env).await?;
     let controller_blob = agent
         .read_state_canister_info(canister_id, "controllers", false)
         .await
