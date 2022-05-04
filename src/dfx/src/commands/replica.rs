@@ -7,12 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
-<<<<<<< HEAD
-use crate::commands::start::{get_btc_adapter_config, get_btc_adapter_socket_path};
-use anyhow::Context;
-=======
 use crate::commands::start::{configure_btc_adapter_if_enabled, empty_writable_path};
->>>>>>> master
 use clap::Parser;
 use fn_error_context::context;
 use std::default::Default;
