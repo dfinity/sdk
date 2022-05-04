@@ -16,7 +16,7 @@ pub async fn post_install_store_assets(
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
     let output_assets_path = assets_canister_info.get_output_assets_path();
 
-    let canister_id = info.get_canister_id()?;
+    let canister_id = info.get_canister_id().expect("Could not find canister ID.");
 
     let canister = ic_utils::Canister::builder()
         .with_agent(agent)
