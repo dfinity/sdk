@@ -3,7 +3,8 @@ use crate::actors::{
     start_btc_adapter_actor, start_emulator_actor, start_icx_proxy_actor, start_replica_actor,
     start_shutdown_controller,
 };
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, ConfigInterface};
+use crate::lib::bitcoin;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
@@ -18,13 +19,11 @@ use clap::Parser;
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
-use serde_json::Value;
 use std::fs;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -47,12 +46,12 @@ pub struct StartOpts {
     #[clap(long)]
     emulator: bool,
 
-    /// The path of the btc adapter configuration file.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"))]
-    btc_adapter_config: Option<PathBuf>,
+    /// Address of bitcoind node.  Implies --enable-bitcoin.
+    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    bitcoin_node: Vec<SocketAddr>,
 
     /// enable the bitcoin adapter
-    #[clap(long)]
+    #[clap(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 }
 
@@ -152,7 +151,7 @@ pub fn exec(
         background,
         emulator,
         clean,
-        btc_adapter_config,
+        bitcoin_node,
         enable_bitcoin,
     }: StartOpts,
 ) -> DfxResult {
@@ -161,9 +160,6 @@ pub fn exec(
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
-    let btc_adapter_pid_file_path = temp_dir.join("ic-btc-adapter-pid");
-    let icx_proxy_pid_file_path = temp_dir.join("icx-proxy-pid");
-    let webserver_port_path = temp_dir.join("webserver-port");
     let state_root = env.get_state_dir();
 
     check_previous_process_running(&pid_file_path)?;
@@ -174,30 +170,11 @@ pub fn exec(
         clean_state(temp_dir, &state_root)?;
     }
 
-    std::fs::write(&pid_file_path, "").with_context(|| {
-        format!(
-            "Failed to create/clear pid file {}.",
-            pid_file_path.to_string_lossy()
-        )
-    })?;
-    std::fs::write(&btc_adapter_pid_file_path, "").with_context(|| {
-        format!(
-            "Failed to create/clear BTC adapter pid file {}.",
-            btc_adapter_pid_file_path.to_string_lossy()
-        )
-    })?;
-    std::fs::write(&icx_proxy_pid_file_path, "").with_context(|| {
-        format!(
-            "Failed to create/clear icx proxy pid file {}.",
-            icx_proxy_pid_file_path.to_string_lossy()
-        )
-    })?;
-    std::fs::write(&webserver_port_path, "").with_context(|| {
-        format!(
-            "Failed to create/clear webserver port file {}.",
-            webserver_port_path.to_string_lossy()
-        )
-    })?;
+    let pid_file_path = empty_writable_path(pid_file_path)?;
+    let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
+    let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
+    let icx_proxy_pid_file_path = empty_writable_path(temp_dir.join("icx-proxy-pid"))?;
+    let webserver_port_path = empty_writable_path(temp_dir.join("webserver-port"))?;
 
     let (frontend_url, address_and_port) = frontend_address(host, &config, background)?;
 
@@ -216,85 +193,111 @@ pub fn exec(
         },
     )?;
 
-    let btc_adapter_config = get_btc_adapter_config(&config, enable_bitcoin, btc_adapter_config)?;
+    let btc_adapter_config = configure_btc_adapter_if_enabled(
+        config.get_config(),
+        &btc_adapter_config_path,
+        enable_bitcoin,
+        bitcoin_node,
+    )?;
+    let btc_adapter_socket_path = btc_adapter_config
+        .as_ref()
+        .and_then(|cfg| cfg.get_socket_path());
 
     let system = actix::System::new();
-    let _proxy = system
-        .block_on(async move {
-            let shutdown_controller = start_shutdown_controller(env)?;
+    let _proxy = system.block_on(async move {
+        let shutdown_controller = start_shutdown_controller(env)?;
 
-            let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-                let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
-                emulator.recipient()
-            } else {
-                let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                    if let Some(btc_adapter_config) = btc_adapter_config {
-                        let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)?;
-                        let ready_subscribe = start_btc_adapter_actor(
-                            env,
-                            btc_adapter_config,
-                            socket_path.clone(),
-                            shutdown_controller.clone(),
-                            btc_adapter_pid_file_path,
-                        )?
-                        .recipient();
-                        (Some(ready_subscribe), socket_path)
-                    } else {
-                        (None, None)
-                    };
+        let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
+            let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
+            emulator.recipient()
+        } else {
+            let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
+                if let Some(btc_adapter_config) = btc_adapter_config {
+                    let socket_path = btc_adapter_config.get_socket_path();
+                    let ready_subscribe = start_btc_adapter_actor(
+                        env,
+                        btc_adapter_config_path,
+                        socket_path.clone(),
+                        shutdown_controller.clone(),
+                        btc_adapter_pid_file_path,
+                    )?
+                    .recipient();
+                    (Some(ready_subscribe), socket_path)
+                } else {
+                    (None, None)
+                };
 
-                let replica_port_path = env
-                    .get_temp_dir()
-                    .join("replica-configuration")
-                    .join("replica-1.port");
+            let replica_port_path = env
+                .get_temp_dir()
+                .join("replica-configuration")
+                .join("replica-1.port");
 
-                let subnet_type = config
-                    .get_config()
-                    .get_defaults()
-                    .get_replica()
-                    .subnet_type
-                    .unwrap_or_default();
-                let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
-                    .with_random_port(&replica_port_path);
-                if let Some(btc_adapter_socket) = btc_adapter_socket_path {
-                    replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
-                }
+            let subnet_type = config
+                .get_config()
+                .get_defaults()
+                .get_replica()
+                .subnet_type
+                .unwrap_or_default();
+            let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
+                .with_random_port(&replica_port_path);
+            if let Some(btc_adapter_socket) = btc_adapter_socket_path {
+                replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+            }
 
-                let replica = start_replica_actor(
-                    env,
-                    replica_config,
-                    shutdown_controller.clone(),
-                    btc_adapter_ready_subscribe,
-                )?;
-                replica.recipient()
-            };
-
-            let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
-            let icx_proxy_config = IcxProxyConfig {
-                bind: address_and_port,
-                proxy_port: webserver_bind.port(),
-                providers: vec![],
-                fetch_root_key: !network_descriptor.is_ic,
-            };
-
-            run_webserver(
-                env.get_logger().clone(),
-                build_output_root,
-                network_descriptor,
-                webserver_bind,
-            )?;
-
-            let proxy = start_icx_proxy_actor(
+            let replica = start_replica_actor(
                 env,
-                icx_proxy_config,
-                Some(port_ready_subscribe),
-                shutdown_controller,
-                icx_proxy_pid_file_path,
+                replica_config,
+                shutdown_controller.clone(),
+                btc_adapter_ready_subscribe,
             )?;
-            Ok::<_, Error>(proxy)
-        })
-        .context("Failed to setup system.")?;
-    system.run().context("Failed to run system.")?;
+            replica.recipient()
+        };
+
+        let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
+        let icx_proxy_config = IcxProxyConfig {
+            bind: address_and_port,
+            proxy_port: webserver_bind.port(),
+            providers: vec![],
+            fetch_root_key: !network_descriptor.is_ic,
+        };
+
+        run_webserver(
+            env.get_logger().clone(),
+            build_output_root,
+            network_descriptor,
+            webserver_bind,
+        )?;
+
+        let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
+        let icx_proxy_config = IcxProxyConfig {
+            bind: address_and_port,
+            proxy_port: webserver_bind.port(),
+            providers: vec![],
+            fetch_root_key: !network_descriptor.is_ic,
+        };
+
+        run_webserver(
+            env.get_logger().clone(),
+            build_output_root,
+            network_descriptor,
+            webserver_bind,
+        )?;
+
+        let proxy = start_icx_proxy_actor(
+            env,
+            icx_proxy_config,
+            Some(port_ready_subscribe),
+            shutdown_controller,
+            icx_proxy_pid_file_path,
+        )?;
+        Ok::<_, Error>(proxy)
+    })?;
+    system.run()?;
+
+    if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
+        let _ = std::fs::remove_file(&btc_adapter_socket_path);
+    }
+
     Ok(())
 }
 
@@ -383,48 +386,59 @@ fn write_pid(pid_file_path: &Path) {
     }
 }
 
-#[context("Failed ot get btc adapter socket path from config at {}.", btc_config_path.to_string_lossy())]
-pub fn get_btc_adapter_socket_path(btc_config_path: &Path) -> DfxResult<Option<PathBuf>> {
-    let content = std::fs::read(&btc_config_path)
-        .with_context(|| format!("Unable to read {}", btc_config_path.to_string_lossy()))?;
-    let json: Value = serde_json::from_slice(&content).with_context(|| {
-        format!(
-            "Unable to decode {} as json",
-            btc_config_path.to_string_lossy()
-        )
-    })?;
-    Ok(json
-        .pointer("/incoming_source/Path")
-        .and_then(|v| v.as_str())
-        .map(PathBuf::from))
+#[context("Failed to configure btc adapter.")]
+pub fn configure_btc_adapter_if_enabled(
+    config: &ConfigInterface,
+    config_path: &Path,
+    enable_bitcoin: bool,
+    nodes: Vec<SocketAddr>,
+) -> DfxResult<Option<bitcoin::adapter::Config>> {
+    let enable = enable_bitcoin || !nodes.is_empty() || config.get_defaults().get_bitcoin().enabled;
+
+    if !enable {
+        return Ok(None);
+    };
+
+    let nodes = match (nodes, &config.get_defaults().get_bitcoin().nodes) {
+        (cli_nodes, _) if !cli_nodes.is_empty() => cli_nodes,
+        (_, Some(default_nodes)) if !default_nodes.is_empty() => default_nodes.clone(),
+        (_, _) => bitcoin::adapter::config::default_nodes(),
+    };
+
+    let config = write_btc_adapter_config(config_path, nodes)?;
+    Ok(Some(config))
 }
 
-#[context("Failed to get btc adapter config.")]
-pub fn get_btc_adapter_config(
-    config: &Arc<Config>,
-    enable_bitcoin: bool,
-    btc_adapter_config: Option<PathBuf>,
-) -> DfxResult<Option<PathBuf>> {
-    let btc_adapter_config: Option<PathBuf> = {
-        let enable = enable_bitcoin
-            || btc_adapter_config.is_some()
-            || config.get_config().get_defaults().get_bitcoin().enabled;
-        let config = btc_adapter_config.or_else(|| {
-            config
-                .get_config()
-                .get_defaults()
-                .bitcoin
-                .as_ref()
-                .and_then(|x| x.btc_adapter_config.clone())
-        });
+#[context("Failed to write btc adapter config to {}.", config_path.to_string_lossy())]
+fn write_btc_adapter_config(
+    config_path: &Path,
+    nodes: Vec<SocketAddr>,
+) -> DfxResult<bitcoin::adapter::Config> {
+    let pid = sysinfo::get_current_pid()
+        .map_err(|s| anyhow!("Unable to obtain pid of current process: {}", s))
+        .context("Unable to construct btc adapter socket path")?;
 
-        match (enable, config) {
-            (true, Some(path)) => Some(path),
-            (true, None) => {
-                bail!("Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json")
-            }
-            (false, _) => None,
-        }
-    };
-    Ok(btc_adapter_config)
+    // Unix socket domain names can only be so long.
+    // An attempt to use a path under .dfx/ resulted in this error:
+    //    path must be shorter than libc::sockaddr_un.sun_path
+    let socket_path = PathBuf::from(format!("/tmp/ic-btc-adapter-socket.{}", pid));
+
+    let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path);
+
+    let contents = serde_json::to_string_pretty(&adapter_config)
+        .context("Unable to serialize btc adapter configuration to json")?;
+    std::fs::write(config_path, &contents).with_context(|| {
+        format!(
+            "Unable to write btc adapter configuration to {}",
+            config_path.to_string_lossy()
+        )
+    })?;
+
+    Ok(adapter_config)
+}
+
+pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
+    std::fs::write(&path, "")
+        .with_context(|| format!("Unable to write to {}", path.to_string_lossy()))?;
+    Ok(path)
 }

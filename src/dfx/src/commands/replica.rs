@@ -7,11 +7,16 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
+<<<<<<< HEAD
 use crate::commands::start::{get_btc_adapter_config, get_btc_adapter_socket_path};
 use anyhow::Context;
+=======
+use crate::commands::start::{configure_btc_adapter_if_enabled, empty_writable_path};
+>>>>>>> master
 use clap::Parser;
 use fn_error_context::context;
 use std::default::Default;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 
 /// Starts a local Internet Computer replica.
@@ -25,9 +30,9 @@ pub struct ReplicaOpts {
     #[clap(long)]
     emulator: bool,
 
-    /// Runs the bitcoin adapter (not supported with emulator)
-    #[clap(long, conflicts_with("emulator"))]
-    btc_adapter_config: Option<PathBuf>,
+    /// Address of bitcoind node.  Implies --enable-bitcoin.
+    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    bitcoin_node: Vec<SocketAddr>,
 
     /// enable the bitcoin adapter
     #[clap(long)]
@@ -91,55 +96,58 @@ fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u
 pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let system = actix::System::new();
 
-    let btc_adapter_pid_file_path = env.get_temp_dir().join("ic-btc-adapter-pid");
-    std::fs::write(&btc_adapter_pid_file_path, "").with_context(|| {
-        format!(
-            "Failed to clear/create BTC adapter pid file {}.",
-            btc_adapter_pid_file_path.to_string_lossy()
-        )
+    let temp_dir = env.get_temp_dir();
+    let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
+    let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
+
+    let config = env.get_config_or_anyhow()?;
+    let btc_adapter_config = configure_btc_adapter_if_enabled(
+        config.get_config(),
+        &btc_adapter_config_path,
+        opts.enable_bitcoin,
+        opts.bitcoin_node.clone(),
+    )?;
+    let btc_adapter_socket_path = btc_adapter_config
+        .as_ref()
+        .and_then(|cfg| cfg.get_socket_path());
+
+    system.block_on(async move {
+        let shutdown_controller = start_shutdown_controller(env)?;
+        if opts.emulator {
+            start_emulator_actor(env, shutdown_controller)?;
+        } else {
+            let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
+                if let Some(btc_adapter_config) = btc_adapter_config {
+                    let socket_path = btc_adapter_config.get_socket_path();
+                    let ready_subscribe = start_btc_adapter_actor(
+                        env,
+                        btc_adapter_config_path,
+                        socket_path.clone(),
+                        shutdown_controller.clone(),
+                        btc_adapter_pid_file_path,
+                    )?
+                    .recipient();
+                    (Some(ready_subscribe), socket_path)
+                } else {
+                    (None, None)
+                };
+
+            let replica_config = get_config(env, opts, btc_adapter_socket_path)?;
+
+            start_replica_actor(
+                env,
+                replica_config,
+                shutdown_controller,
+                btc_adapter_ready_subscribe,
+            )?;
+        }
+        DfxResult::Ok(())
     })?;
+    system.run()?;
 
-    system
-        .block_on(async move {
-            let shutdown_controller = start_shutdown_controller(env)?;
-            if opts.emulator {
-                start_emulator_actor(env, shutdown_controller)?;
-            } else {
-                let config = env.get_config_or_anyhow()?;
-                let btc_adapter_config = get_btc_adapter_config(
-                    &config,
-                    opts.enable_bitcoin,
-                    opts.btc_adapter_config.clone(),
-                )?;
+    if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
+        let _ = std::fs::remove_file(&btc_adapter_socket_path);
+    }
 
-                let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                    if let Some(btc_adapter_config) = btc_adapter_config {
-                        let socket_path = get_btc_adapter_socket_path(&btc_adapter_config)?;
-                        let ready_subscribe = start_btc_adapter_actor(
-                            env,
-                            btc_adapter_config,
-                            socket_path.clone(),
-                            shutdown_controller.clone(),
-                            btc_adapter_pid_file_path,
-                        )?
-                        .recipient();
-                        (Some(ready_subscribe), socket_path)
-                    } else {
-                        (None, None)
-                    };
-
-                let replica_config = get_config(env, opts, btc_adapter_socket_path)?;
-
-                start_replica_actor(
-                    env,
-                    replica_config,
-                    shutdown_controller,
-                    btc_adapter_ready_subscribe,
-                )?;
-            }
-            DfxResult::Ok(())
-        })
-        .context("Failed to setup replica.")?;
-    system.run().context("Failed to run replica.")?;
     Ok(())
 }

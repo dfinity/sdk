@@ -169,7 +169,11 @@ impl CanisterIdStore {
 
 #[context("Failed to get remote ids.")]
 fn get_remote_ids(env: &dyn Environment) -> DfxResult<Option<CanisterIds>> {
-    let config = env.get_config_or_anyhow()?;
+    let config = if let Some(cfg) = env.get_config() {
+        cfg
+    } else {
+        return Ok(None);
+    };
     let config = config.get_config();
 
     let mut remote_ids = CanisterIds::new();
