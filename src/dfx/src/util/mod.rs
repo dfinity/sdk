@@ -19,7 +19,7 @@ pub mod currency_conversion;
 // thus, we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
 // TcpBuilder is used with reuse_address and reuse_port set to "true" because
 // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
-#[context("Failed to find reusable socket address.")]
+#[context("Failed to find reusable socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
     let tcp_builder = if ip.is_ipv4() {
         TcpBuilder::new_v4().context("Failed to create IPv4 builder.")?
@@ -32,7 +32,7 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
         .reuse_port(true)
         .context("Failed to set option reuse_port of tcp builder.")?
         .bind(SocketAddr::new(ip, port))
-        .context("Failed to set socket of tcp builder.")?
+        .with_context(|| format!("Failed to set socket of tcp builder to {}:{}.", ip, port))?
         .to_tcp_listener()
         .context("Failed to create TcpListener.")?;
     listener
