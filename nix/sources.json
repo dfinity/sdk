@@ -129,27 +129,27 @@
         "homepage": null,
         "owner": "dfinity",
         "repo": "motoko-base",
-        "rev": "9a0930048fc300cc4388eb39def77e38cae10d52",
-        "sha256": "1xpv5gy6fyzrfdbby7s38raqavha7jb49mgd7xc9xpxny4f8rz92",
+        "rev": "6f80c49d0f708c11d95895893ef3237cc7b05234",
+        "sha256": "0dzdf607w2lrxnlfkcsnn8cr22m2f1q1if5vcy2miqrj8qz13jpv",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko-base/archive/9a0930048fc300cc4388eb39def77e38cae10d52.tar.gz",
+        "url": "https://github.com/dfinity/motoko-base/archive/6f80c49d0f708c11d95895893ef3237cc7b05234.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "0x1ynixzmprjm147775xmffa1f1c57nfzm78c8hcjpl7k3mskryx",
+        "sha256": "1qqg7nha7f2llmx4vjc8f0yxh422dg5srrzrykh40pmz71w5mlbg",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.26/motoko-macos-0.6.26.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.27/motoko-macos-0.6.27.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
-        "version": "0.6.26"
+        "version": "0.6.27"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "1hs6z788gxiicnl6qk7nrw4k9ayrn63nivwif81l5da35nlb7yp8",
+        "sha256": "0q0zhndcc7aica9k4w0vi7z2wgap19d46r9ar99z2g2d9iddfijg",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.26/motoko-linux64-0.6.26.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.27/motoko-linux64-0.6.27.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
-        "version": "0.6.26"
+        "version": "0.6.27"
     },
     "napalm": {
         "branch": "master",
