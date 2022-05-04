@@ -254,17 +254,11 @@ pub fn exec(
         };
 
         let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
-        let icx_proxy_config = IcxProxyConfig {
-            bind: address_and_port,
-            proxy_port: webserver_bind.port(),
-            providers: vec![],
-            fetch_root_key: !network_descriptor.is_ic,
-        };
 
         run_webserver(
             env.get_logger().clone(),
-            build_output_root,
-            network_descriptor,
+            build_output_root.clone(),
+            network_descriptor.clone(),
             webserver_bind,
         )?;
 
