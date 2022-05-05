@@ -31,6 +31,10 @@ If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica 
 === Updated agent-rs to 0.16.0
 >>>>>>> master
 
+=== Motoko
+
+Updated Motoko from 0.6.26 to 0.6.27.
+
 = 0.10.0
 
 == DFX
