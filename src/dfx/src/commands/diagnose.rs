@@ -6,6 +6,8 @@ use crate::lib::{
     provider::create_agent_environment,
 };
 
+/// Detects known problems in the current environment caused by upgrading DFX, and suggests commands to fix them.
+/// These commands can be batch-run automatically via `dfx fix`.
 #[derive(Parser)]
 pub struct DiagnoseOpts {
     #[clap(long)]

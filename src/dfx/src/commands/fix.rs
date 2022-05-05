@@ -6,9 +6,12 @@ use crate::lib::{
     provider::create_agent_environment,
 };
 
+/// Applies one-time fixes for known problems in the current environment caused by upgrading DFX.
+/// Makes no changes that would not have been suggested by `dfx diagnose`.
 #[derive(Parser)]
 pub struct FixOpts {
     #[clap(long)]
+    /// Override the network to connect to. By default the local network is used.
     network: Option<String>,
 }
 
