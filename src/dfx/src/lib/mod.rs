@@ -1,3 +1,4 @@
+pub mod bitcoin;
 pub mod builders;
 pub mod canister_info;
 pub mod config;
