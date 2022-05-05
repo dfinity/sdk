@@ -14,6 +14,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use console::Style;
+use fn_error_context::context;
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
@@ -166,58 +167,15 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
                 let is_frontend = canister_config.extras.get("frontend").is_some();
 
                 if is_frontend {
-                    let mut url = Url::parse(&network.providers[0]).with_context(|| {
-                        format!(
-                            "Failed to parse url for network provider {}.",
-                            &network.providers[0]
-                        )
-                    })?;
-
-                    if let Some(Domain(domain)) = url.host() {
-                        let host = format!("{}.{}", canister_id, domain);
-                        url.set_host(Some(&host))
-                            .with_context(|| format!("Failed to set host to {}.", host))?;
-                    } else {
-                        let query = format!("canisterId={}", canister_id);
-                        url.set_query(Some(&query));
-                    };
+                    let url = construct_frontend_url(network, &canister_id)?;
                     frontend_urls.insert(canister_name, url);
                 }
 
                 if canister_info.get_type() != "assets" {
-                    if network.is_ic {
-                        let url = format!(
-                            "https://{}.raw.ic0.app/?id={}",
-                            MAINNET_CANDID_INTERFACE_PRINCIPAL, canister_id
-                        );
-                        candid_urls.insert(
-                            canister_name,
-                            Url::parse(&url).with_context(|| {
-                                format!(
-                                    "Failed to parse candid url {} for canister {}.",
-                                    &url, canister_name
-                                )
-                            })?,
-                        );
-                    } else if let Some(ui_canister_id) = ui_canister_id {
-                        let mut url = Url::parse(&network.providers[0]).with_context(|| {
-                            format!(
-                                "Failed to parse network provider {}.",
-                                &network.providers[0]
-                            )
-                        })?;
-                        if let Some(Domain(domain)) = url.host() {
-                            let host = format!("{}.{}", ui_canister_id, domain);
-                            let query = format!("id={}", canister_id);
-                            url.set_host(Some(&host))
-                                .with_context(|| format!("Failed to set host to {}", &host))?;
-                            url.set_query(Some(&query));
-                        } else {
-                            let query = format!("canisterId={}&id={}", ui_canister_id, canister_id);
-                            url.set_query(Some(&query));
-                        }
-                        candid_urls.insert(canister_name, url);
-                    };
+                    let url = construct_ui_canister_url(network, &canister_id, ui_canister_id)?;
+                    if let Some(ui_canister_url) = url {
+                        candid_urls.insert(canister_name, ui_canister_url);
+                    }
                 }
             }
         }
@@ -241,4 +199,66 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     }
 
     Ok(())
+}
+
+#[context("Failed to construct frontend url for canister {} on network '{}'.", canister_id, network.name)]
+fn construct_frontend_url(network: &NetworkDescriptor, canister_id: &Principal) -> DfxResult<Url> {
+    let mut url = Url::parse(&network.providers[0]).with_context(|| {
+        format!(
+            "Failed to parse url for network provider {}.",
+            &network.providers[0]
+        )
+    })?;
+
+    if let Some(Domain(domain)) = url.host() {
+        let host = format!("{}.{}", canister_id, domain);
+        url.set_host(Some(&host))
+            .with_context(|| format!("Failed to set host to {}.", host))?;
+    } else {
+        let query = format!("canisterId={}", canister_id);
+        url.set_query(Some(&query));
+    };
+
+    Ok(url)
+}
+
+#[context("Failed to construct ui canister url for {} on network '{}'.", canister_id, network.name)]
+fn construct_ui_canister_url(
+    network: &NetworkDescriptor,
+    canister_id: &Principal,
+    ui_canister_id: Option<Principal>,
+) -> DfxResult<Option<Url>> {
+    if network.is_ic {
+        let url = format!(
+            "https://{}.raw.ic0.app/?id={}",
+            MAINNET_CANDID_INTERFACE_PRINCIPAL, canister_id
+        );
+        let url = Url::parse(&url).with_context(|| {
+            format!(
+                "Failed to parse candid url {} for canister {}.",
+                &url, canister_id
+            )
+        })?;
+        Ok(Some(url))
+    } else if let Some(ui_canister_id) = ui_canister_id {
+        let mut url = Url::parse(&network.providers[0]).with_context(|| {
+            format!(
+                "Failed to parse network provider {}.",
+                &network.providers[0]
+            )
+        })?;
+        if let Some(Domain(domain)) = url.host() {
+            let host = format!("{}.{}", ui_canister_id, domain);
+            let query = format!("id={}", canister_id);
+            url.set_host(Some(&host))
+                .with_context(|| format!("Failed to set host to {}", &host))?;
+            url.set_query(Some(&query));
+        } else {
+            let query = format!("canisterId={}&id={}", ui_canister_id, canister_id);
+            url.set_query(Some(&query));
+        }
+        Ok(Some(url))
+    } else {
+        Ok(None)
+    }
 }
