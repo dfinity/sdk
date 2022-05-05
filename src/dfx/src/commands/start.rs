@@ -141,7 +141,7 @@ pub fn exec(
     }: StartOpts,
 ) -> DfxResult {
     let now = Instant::now();
-    eprintln!("Instant.now(): {:?}", now);
+    eprintln!("Instant.now(): {:?}", now );
     let idle_seconds = 3600;
     let adjusted = now - Duration::from_secs(idle_seconds + 1);
     eprintln!("now - {} seconds: {:?}", idle_seconds, adjusted);
