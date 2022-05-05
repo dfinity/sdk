@@ -23,7 +23,8 @@ use super::{
     error::DfxResult,
     identity::{Identity, IdentityManager},
     models::canister_id_store::CanisterIdStore,
-    network::network_descriptor::NetworkDescriptor, root_key::fetch_root_key_if_needed,
+    network::network_descriptor::NetworkDescriptor,
+    root_key::fetch_root_key_if_needed,
 };
 
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {
@@ -53,12 +54,13 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         }
     }
     let store = CanisterIdStore::for_env(env)?;
-    for (name, _) in &store.ids {
+    for name in store.ids.keys() {
         if let Some(id) = store.find(name) {
-            if let Err(_) = mgmt
+            if mgmt
                 .canister_status(&id)
                 .call_and_wait(waiter_with_timeout(expiry_duration()))
                 .await
+                .is_err()
             {
                 if fix {
                     println!(
