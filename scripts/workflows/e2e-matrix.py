@@ -24,21 +24,6 @@ matrix = {
             'backend': 'ic-ref',
             'test': 'dfx/bitcoin'
         }
-    ],
-    'include': [
-        {
-            'backend': 'replica',
-            'os': 'macos-10.15',
-            'test': 'dfx/bitcoin',
-            'rust': '1.58.1'
-        },
-        {
-            'backend': 'replica',
-            'os': 'macos-12',
-            'test': 'dfx/bitcoin',
-            'rust': '1.58.1'
-        }
-
     ]
 }
 
