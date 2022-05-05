@@ -75,10 +75,11 @@ pub async fn exec(
 
     if let Some(canister) = opts.canister.as_deref() {
         let config = env.get_config();
-        if config.as_ref().map_or(Ok(false), |config| config
-            .get_config()
-            .is_remote_canister(canister, &network.name))?
-        {
+        if config.as_ref().map_or(Ok(false), |config| {
+            config
+                .get_config()
+                .is_remote_canister(canister, &network.name)
+        })? {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be installed from here.", canister, &network.name)
         }
 
@@ -88,7 +89,7 @@ pub async fn exec(
         let arg_type = opts.argument_type.as_deref();
         let canister_info = config.as_ref()
             .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
-            .and_then(|config| CanisterInfo::load(&config, canister, Some(canister_id)));
+            .and_then(|config| CanisterInfo::load(config, canister, Some(canister_id)));
         if let Some(wasm_path) = opts.wasm {
             // streamlined version, we can ignore most of the environment
             let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
