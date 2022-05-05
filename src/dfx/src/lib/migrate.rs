@@ -23,10 +23,11 @@ use super::{
     error::DfxResult,
     identity::{Identity, IdentityManager},
     models::canister_id_store::CanisterIdStore,
-    network::network_descriptor::NetworkDescriptor,
+    network::network_descriptor::NetworkDescriptor, root_key::fetch_root_key_if_needed,
 };
 
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {
+    fetch_root_key_if_needed(env).await?;
     let agent = env
         .get_agent()
         .expect("Could not get agent from environment");
