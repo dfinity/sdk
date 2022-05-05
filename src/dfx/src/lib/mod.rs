@@ -11,6 +11,7 @@ pub mod ledger_types;
 pub mod locations;
 pub mod logger;
 pub mod manifest;
+pub mod migrate;
 pub mod models;
 pub mod named_canister;
 pub mod network;
