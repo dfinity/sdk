@@ -23,6 +23,7 @@ use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -139,6 +140,11 @@ pub fn exec(
         enable_bitcoin,
     }: StartOpts,
 ) -> DfxResult {
+    let now = Instant::now();
+    eprintln!("Instant.now(): {:?}", now );
+    let idle_seconds = 3600;
+    let adjusted = now - Duration::from_secs(idle_seconds + 1);
+    eprintln!("now - {} seconds: {:?}", idle_seconds, adjusted);
     let config = env.get_config_or_anyhow()?;
     let network_descriptor = get_network_descriptor(env, None)?;
     let temp_dir = env.get_temp_dir();
