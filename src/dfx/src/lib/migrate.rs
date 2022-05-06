@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Error};
+use anyhow::{anyhow, bail, Context, Error};
 use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Identity as _;
 use ic_utils::{
@@ -8,6 +8,7 @@ use ic_utils::{
     },
     Argument,
 };
+use itertools::Itertools;
 
 use crate::{
     lib::waiter::waiter_with_timeout,
@@ -32,9 +33,13 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     let ident = mgr.instantiate_selected_identity()?;
     let wallet = Identity::wallet_canister_id(env, network, ident.name())
         .map_err(|_| anyhow!("No wallet found; nothing to do"))?;
-    let wallet = WalletCanister::create(agent, wallet)
-        .await
-        .context("No accessible wallet found; nothing to do")?;
+    let wallet = if let Ok(wallet) = WalletCanister::create(agent, wallet).await {
+        wallet
+    } else {
+        let cbor = agent.read_state_canister_info(wallet, "controllers", false).await?;
+        let controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
+        bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
+    };
     let mgmt = ManagementCanister::create(agent);
     if !wallet.version_supports_u128_cycles() {
         if fix {
