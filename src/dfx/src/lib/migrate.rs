@@ -26,6 +26,8 @@ use super::{
 
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
+    let config = env.get_config_or_anyhow()?;
+    let config = config.get_config();
     let agent = env
         .get_agent()
         .expect("Could not get agent from environment");
@@ -44,10 +46,14 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
     };
     did_migrate |= migrate_wallet(env, agent, &wallet, fix).await?;
-    let store = CanisterIdStore::for_env(env)?;
-    for name in store.ids.keys() {
-        if let Some(id) = store.find_in(name, &store.ids) {
-            did_migrate |= migrate_canister(agent, &wallet, id, name, &ident, fix).await?;
+    if let Some(canisters) = &config.canisters {
+        let store = CanisterIdStore::for_network(network)?;
+        for name in canisters.keys() {
+            if !config.is_remote_canister(name, &network.name)? {
+                if let Some(id) = store.find(name) {
+                    did_migrate |= migrate_canister(agent, &wallet, id, name, &ident, fix).await?;
+                }
+            }
         }
     }
     if did_migrate {
