@@ -71,6 +71,22 @@
         "url": "https://download.dfinity.systems/blessed/ic/2e16bb834b05d7eadbe1603c8046a96fe57a1868/sdk-release/x86_64-linux/ic-btc-adapter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/ic-btc-adapter.gz"
     },
+    "ic-canister-http-adapter-x86_64-darwin": {
+        "builtin": false,
+        "rev": "2e16bb834b05d7eadbe1603c8046a96fe57a1868",
+        "sha256": "1207rms77ijy3rn8vcij0cywfazfz63zmpb7j2z0fp0xrj2is675",
+        "type": "file",
+        "url": "https://download.dfinity.systems/blessed/ic/2e16bb834b05d7eadbe1603c8046a96fe57a1868/sdk-release/x86_64-darwin/ic-canister-http-adapter.gz",
+        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/ic-canister-http-adapter.gz"
+    },
+    "ic-canister-http-adapter-x86_64-linux": {
+        "builtin": false,
+        "rev": "2e16bb834b05d7eadbe1603c8046a96fe57a1868",
+        "sha256": "1wqv9g4j7ixml32mxmc9ispqm2bj0a2fsg9ymf90w36hgg2maawm",
+        "type": "file",
+        "url": "https://download.dfinity.systems/blessed/ic/2e16bb834b05d7eadbe1603c8046a96fe57a1868/sdk-release/x86_64-linux/ic-canister-http-adapter.gz",
+        "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/ic-canister-http-adapter.gz"
+    },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
