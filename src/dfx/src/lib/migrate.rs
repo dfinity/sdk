@@ -46,7 +46,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     did_migrate |= migrate_wallet(env, agent, &wallet, fix).await?;
     let store = CanisterIdStore::for_env(env)?;
     for name in store.ids.keys() {
-        if let Some(id) = store.find(name) {
+        if let Some(id) = store.find_in(name, &store.ids) {
             did_migrate |= migrate_canister(agent, &wallet, id, name, &ident, fix).await?;
         }
     }

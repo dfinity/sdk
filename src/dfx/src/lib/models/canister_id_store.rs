@@ -107,7 +107,7 @@ impl CanisterIdStore {
             .or_else(|| self.find_in(canister_name, &self.ids))
     }
 
-    fn find_in(&self, canister_name: &str, canister_ids: &CanisterIds) -> Option<CanisterId> {
+    pub fn find_in(&self, canister_name: &str, canister_ids: &CanisterIds) -> Option<CanisterId> {
         canister_ids
             .get(canister_name)
             .and_then(|network_name_to_canister_id| {
