@@ -58,7 +58,12 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     Ok(())
 }
 
-async fn migrate_wallet(env: &dyn Environment, agent: &Agent, wallet: &WalletCanister<'_>, fix: bool) -> DfxResult<bool> {
+async fn migrate_wallet(
+    env: &dyn Environment,
+    agent: &Agent,
+    wallet: &WalletCanister<'_>,
+    fix: bool,
+) -> DfxResult<bool> {
     let mgmt = ManagementCanister::create(agent);
     if !wallet.version_supports_u128_cycles() {
         if fix {
