@@ -3,6 +3,7 @@
 }:
 let
   ic-btc-adapter-bin = pkgs.sources."ic-btc-adapter-${pkgs.system}";
+  ic-canister-http-adapter-bin = pkgs.sources."ic-canister-http-adapter-${pkgs.system}";
   replica-bin = pkgs.sources."replica-${pkgs.system}";
   canister-sandbox-bin = pkgs.sources."canister-sandbox-${pkgs.system}";
   sandbox-launcher-bin = pkgs.sources."sandbox-launcher-${pkgs.system}";
@@ -11,6 +12,7 @@ let
     mkdir -p $out
 
     gunzip <${ic-btc-adapter-bin} >$out/ic-btc-adapter
+    gunzip <${ic-canister-http-adapter-bin} >$out/ic-canister-http-adapter
     gunzip <${replica-bin} >$out/replica
     gunzip <${canister-sandbox-bin} >$out/canister_sandbox
     gunzip <${sandbox-launcher-bin} >$out/sandbox_launcher
