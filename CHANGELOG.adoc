@@ -25,6 +25,10 @@ The --bitcoin-node parameter, if specified on the command line, implies --enable
 
 If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica will launch the ic-btc-adapter process.
 
+=== Binary cache
+
+Added ic-canister-http-adapter to the binary cache.
+
 == Dependencies
 
 === Updated agent-rs to 0.16.0
