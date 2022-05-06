@@ -63,14 +63,13 @@ pub async fn exec(
     opts: CanisterStatusOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let config = env.get_config_or_anyhow()?;
-
     fetch_root_key_if_needed(env).await?;
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
         canister_status(env, canister, timeout, call_sender).await
     } else if opts.all {
+        let config = env.get_config_or_anyhow()?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 canister_status(env, canister, timeout, call_sender).await?;
