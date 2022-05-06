@@ -1,6 +1,6 @@
 use anyhow::{anyhow, bail, Context, Error};
 use candid::{CandidType, Deserialize, Principal};
-use ic_agent::Identity as _;
+use ic_agent::{Agent, Identity as _};
 use ic_utils::{
     interfaces::{
         management_canister::builders::{CanisterSettings, InstallMode},
@@ -31,6 +31,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         .expect("Could not get agent from environment");
     let mut mgr = IdentityManager::new(env)?;
     let ident = mgr.instantiate_selected_identity()?;
+    let mut did_migrate = false;
     let wallet = Identity::wallet_canister_id(env, network, ident.name())
         .map_err(|_| anyhow!("No wallet found; nothing to do"))?;
     let wallet = if let Ok(wallet) = WalletCanister::create(agent, wallet).await {
@@ -42,6 +43,22 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         let controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
         bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
     };
+    did_migrate |= migrate_wallet(env, agent, &wallet, fix).await?;
+    let store = CanisterIdStore::for_env(env)?;
+    for name in store.ids.keys() {
+        if let Some(id) = store.find(name) {
+            did_migrate |= migrate_canister(agent, &wallet, id, name, &ident, fix).await?;
+        }
+    }
+    if did_migrate {
+        println!("You can also make all of these changes at once with the `dfx fix` command");
+    } else {
+        println!("No problems found");
+    }
+    Ok(())
+}
+
+async fn migrate_wallet(env: &dyn Environment, agent: &Agent, wallet: &WalletCanister<'_>, fix: bool) -> DfxResult<bool> {
     let mgmt = ManagementCanister::create(agent);
     if !wallet.version_supports_u128_cycles() {
         if fix {
@@ -55,51 +72,61 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         } else {
             println!("The wallet is outdated; run `dfx wallet upgrade`");
         }
+        Ok(true)
+    } else {
+        Ok(false)
     }
-    let store = CanisterIdStore::for_env(env)?;
-    for name in store.ids.keys() {
-        if let Some(id) = store.find(name) {
-            let cbor = agent
-                .read_state_canister_info(id, "controllers", false)
-                .await?;
-            let mut controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
-            if controllers.contains(wallet.canister_id_())
-                && !controllers.contains(&ident.sender().unwrap())
-            {
-                if fix {
-                    println!(
-                        "Adding the {ident} identity to canister {name}'s controllers...",
-                        ident = ident.name()
-                    );
-                    controllers.push(ident.sender().map_err(Error::msg)?);
-                    #[derive(CandidType, Deserialize)]
-                    struct In {
-                        canister_id: Principal,
-                        settings: CanisterSettings,
-                    }
-                    wallet
-                        .call(
-                            Principal::management_canister(),
-                            "update_settings",
-                            Argument::from_candid((In {
-                                canister_id: id,
-                                settings: CanisterSettings {
-                                    controllers: Some(controllers),
-                                    compute_allocation: None,
-                                    freezing_threshold: None,
-                                    memory_allocation: None,
-                                },
-                            },)),
-                            0,
-                        )
-                        .call_and_wait(waiter_with_timeout(expiry_duration()))
-                        .await
-                        .context("Could not update canister settings")?;
-                } else {
-                    println!("Canister {name} is outdated; run `dfx canister update-settings` with the --add-controller flag")
-                }
+}
+
+async fn migrate_canister(
+    agent: &Agent,
+    wallet: &WalletCanister<'_>,
+    canister_id: Principal,
+    canister_name: &str,
+    ident: &Identity,
+    fix: bool,
+) -> DfxResult<bool> {
+    let cbor = agent
+        .read_state_canister_info(canister_id, "controllers", false)
+        .await?;
+    let mut controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
+    if controllers.contains(wallet.canister_id_())
+        && !controllers.contains(&ident.sender().unwrap())
+    {
+        if fix {
+            println!(
+                "Adding the {ident} identity to canister {canister_name}'s controllers...",
+                ident = ident.name()
+            );
+            controllers.push(ident.sender().map_err(Error::msg)?);
+            #[derive(CandidType, Deserialize)]
+            struct In {
+                canister_id: Principal,
+                settings: CanisterSettings,
             }
+            wallet
+                .call(
+                    Principal::management_canister(),
+                    "update_settings",
+                    Argument::from_candid((In {
+                        canister_id,
+                        settings: CanisterSettings {
+                            controllers: Some(controllers),
+                            compute_allocation: None,
+                            freezing_threshold: None,
+                            memory_allocation: None,
+                        },
+                    },)),
+                    0,
+                )
+                .call_and_wait(waiter_with_timeout(expiry_duration()))
+                .await
+                .context("Could not update canister settings")?;
+        } else {
+            println!("Canister {canister_name} is outdated; run `dfx canister update-settings` with the --add-controller flag")
         }
+        Ok(true)
+    } else {
+        Ok(false)
     }
-    Ok(())
 }
