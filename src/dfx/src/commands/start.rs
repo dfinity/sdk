@@ -196,7 +196,7 @@ pub fn exec(
             emulator.recipient()
         } else {
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                if let Some(btc_adapter_config) = btc_adapter_config {
+                if let Some(ref btc_adapter_config) = btc_adapter_config {
                     let socket_path = btc_adapter_config.get_socket_path();
                     let ready_subscribe = start_btc_adapter_actor(
                         env,
@@ -224,8 +224,11 @@ pub fn exec(
                 .unwrap_or_default();
             let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
                 .with_random_port(&replica_port_path);
-            if let Some(btc_adapter_socket) = btc_adapter_socket_path {
-                replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+            if btc_adapter_config.is_some() {
+                replica_config = replica_config.with_btc_adapter_enabled();
+                if let Some(btc_adapter_socket) = btc_adapter_socket_path {
+                    replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+                }
             }
 
             let replica = start_replica_actor(
