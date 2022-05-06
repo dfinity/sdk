@@ -18,9 +18,14 @@ type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 
 #[derive(Clone, Debug)]
 pub struct CanisterIdStore {
-    pub network_descriptor: NetworkDescriptor,
-    pub path: PathBuf,
-    pub ids: CanisterIds,
+    network_descriptor: NetworkDescriptor,
+    path: PathBuf,
+
+    // Only the canister ids read from/written to canister-ids.json
+    // which does not include remote canister ids
+    ids: CanisterIds,
+
+    // Remote ids read from dfx.json, never written to canister_ids.json
     remote_ids: Option<CanisterIds>,
 }
 
