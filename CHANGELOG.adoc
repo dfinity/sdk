@@ -25,9 +25,16 @@ If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica 
 
 === Updated agent-rs to 0.16.0
 
-=== Motoko
+== Motoko
 
 Updated Motoko from 0.6.26 to 0.6.27.
+
+== Replica
+
+Updated replica to elected commit 2e16bb834b05d7eadbe1603c8046a96fe57a1868.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/57395[57395]
 
 = 0.10.0
 
