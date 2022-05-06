@@ -2,12 +2,8 @@ use anyhow::{anyhow, Context, Error};
 use candid::{CandidType, Deserialize, Principal};
 use ic_agent::Identity as _;
 use ic_utils::{
-    call::AsyncCall,
     interfaces::{
-        management_canister::{
-            builders::{CanisterSettings, InstallMode},
-            StatusCallResult,
-        },
+        management_canister::builders::{CanisterSettings, InstallMode},
         ManagementCanister, WalletCanister,
     },
     Argument,
@@ -56,35 +52,21 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     let store = CanisterIdStore::for_env(env)?;
     for name in store.ids.keys() {
         if let Some(id) = store.find(name) {
-            if mgmt
-                .canister_status(&id)
-                .call_and_wait(waiter_with_timeout(expiry_duration()))
-                .await
-                .is_err()
+            let cbor = agent
+                .read_state_canister_info(id, "controllers", false)
+                .await?;
+            let mut controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
+            if controllers.contains(wallet.canister_id_())
+                && !controllers.contains(&ident.sender().unwrap())
             {
                 if fix {
                     println!(
                         "Adding the {ident} identity to canister {name}'s controllers...",
                         ident = ident.name()
                     );
-                    #[derive(CandidType, Deserialize)]
-                    struct In {
-                        canister_id: Principal,
-                    }
-                    let (status,): (StatusCallResult,) = wallet
-                        .call(
-                            Principal::management_canister(),
-                            "canister_status",
-                            Argument::from_candid((In { canister_id: id },)),
-                            0,
-                        )
-                        .call_and_wait(waiter_with_timeout(expiry_duration()))
-                        .await
-                        .context("Could not access canister through wallet")?;
-                    let mut controllers = status.settings.controllers;
                     controllers.push(ident.sender().map_err(Error::msg)?);
                     #[derive(CandidType, Deserialize)]
-                    struct In2 {
+                    struct In {
                         canister_id: Principal,
                         settings: CanisterSettings,
                     }
@@ -92,7 +74,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
                         .call(
                             Principal::management_canister(),
                             "update_settings",
-                            Argument::from_candid((In2 {
+                            Argument::from_candid((In {
                                 canister_id: id,
                                 settings: CanisterSettings {
                                     controllers: Some(controllers),
