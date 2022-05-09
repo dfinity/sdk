@@ -7,14 +7,22 @@ use rust_decimal::prelude::*;
 
 /// Get the cycle balance of the selected Identity's cycles wallet.
 #[derive(Parser)]
-pub struct WalletBalanceOpts {}
+pub struct WalletBalanceOpts {
+    /// Get balance raw value (without upscaling to trillions of cycles).
+    #[clap(long)]
+    precise: bool,
+}
 
 pub async fn exec(env: &dyn Environment, _opts: WalletBalanceOpts) -> DfxResult {
     let balance = get_wallet(env).await?.wallet_balance().await?;
+    if _opts.precise {
+        println!("{} cycles.", balance.amount);
+    } else {
         println!(
             "{} TC (trillion cycles).",
             round_to_trillion_cycles(balance.amount)
         );
+    }
     Ok(())
 }
 
