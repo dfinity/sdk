@@ -71,7 +71,10 @@ impl ReplicaConfig {
                 consensus_pool_path: state_root.join("consensus_pool"),
             },
             subnet_type,
-            btc_adapter: BtcAdapterConfig { enabled: false, socket_path: None },
+            btc_adapter: BtcAdapterConfig {
+                enabled: false,
+                socket_path: None,
+            },
             canister_http_adapter: CanisterHttpAdapterConfig {
                 enabled: false,
                 socket_path: None,

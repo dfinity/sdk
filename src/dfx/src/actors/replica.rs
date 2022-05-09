@@ -315,10 +315,11 @@ fn replica_start_thread(
         }
         if config.canister_http_adapter.enabled {
             cmd.args(&["--subnet-features", "http_requests"]);
-            if let Some(_socket_path) = config.canister_http_adapter.socket_path {
-                // See https://dfinity.atlassian.net/browse/SDK-452
-                // Needs replica with https://gitlab.com/dfinity-lab/public/ic/-/merge_requests/4607
-                // cmd.args(&["--canister-http-uds-path", socket_path.to_str().unwrap_or_default()]);
+            if let Some(socket_path) = config.canister_http_adapter.socket_path {
+                cmd.args(&[
+                    "--canister-http-uds-path",
+                    socket_path.to_str().unwrap_or_default(),
+                ]);
             }
         }
 
