@@ -344,7 +344,7 @@ teardown() {
 @test "identity: import" {
     openssl ecparam -name secp256k1 -genkey -out identity.pem
     assert_command dfx identity import --disable-encryption alice identity.pem
-    assert_match 'Created identity: "alice".' "$stderr"
+    assert_match 'Imported identity: "alice".' "$stderr"
     assert_command diff identity.pem "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
 }
@@ -353,14 +353,14 @@ teardown() {
     openssl ecparam -name secp256k1 -genkey -out identity.pem
     openssl ecparam -name secp256k1 -genkey -out identity2.pem
     assert_command dfx identity import --disable-encryption alice identity.pem
-    assert_match 'Created identity: "alice".' "$stderr"
+    assert_match 'Imported identity: "alice".' "$stderr"
     dfx identity use alice
     PRINCIPAL_1="$(dfx identity get-principal)"
 
     assert_command_fail dfx identity import --disable-encryption alice identity2.pem
     assert_match "Identity already exists."
     assert_command dfx identity import --disable-encryption --force alice identity2.pem
-    assert_match 'Created identity: "alice".'
+    assert_match 'Imported identity: "alice".'
     PRINCIPAL_2="$(dfx identity get-principal)"
 
     assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
@@ -369,7 +369,7 @@ teardown() {
 @test "identity: import default" {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity import --disable-encryption bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match 'Created identity: "bob".' "$stderr"
+    assert_match 'Imported identity: "bob".' "$stderr"
     assert_command diff "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_eq ""
 }
