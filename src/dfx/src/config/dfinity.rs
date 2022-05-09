@@ -343,7 +343,7 @@ impl ConfigInterface {
 
     /// Return the names of the specified canister and all of its dependencies.
     /// If none specified, return the names of all canisters.
-    #[context("Failed to get canisters with their dependencies.")]
+    #[context("Failed to get canisters with their dependencies (for {}).", some_canister.unwrap_or("all canisters"))]
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
@@ -512,12 +512,8 @@ impl Config {
 
     #[context("Failed to load config from {}.", path.to_string_lossy())]
     fn from_file(path: &Path) -> DfxResult<Config> {
-        let content = std::fs::read(&path).with_context(|| {
-            format!(
-                "Failed to read folder content for {}.",
-                path.to_string_lossy()
-            )
-        })?;
+        let content = std::fs::read(&path)
+            .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
         Ok(Config::from_slice(path.to_path_buf(), &content)?)
     }
 

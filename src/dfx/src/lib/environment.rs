@@ -1,5 +1,5 @@
 use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, DEFAULT_IC_GATEWAY};
 use crate::config::{cache, dfx_version};
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
@@ -226,7 +226,7 @@ pub struct AgentEnvironment<'a> {
 }
 
 impl<'a> AgentEnvironment<'a> {
-    #[context("Failed to create AgentEnvironment.")]
+    #[context("Failed to create AgentEnvironment for network '{}'.", network_descriptor.name)]
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
@@ -235,12 +235,13 @@ impl<'a> AgentEnvironment<'a> {
         let mut identity_manager = IdentityManager::new(backend)?;
         let identity = identity_manager.instantiate_selected_identity()?;
 
-        let agent_url = network_descriptor.providers.first().unwrap();
+        let default = String::from(DEFAULT_IC_GATEWAY);
+        let agent_url = network_descriptor.providers.first().unwrap_or(&default);
         Ok(AgentEnvironment {
             backend,
             agent: create_agent(backend.get_logger().clone(), agent_url, identity, timeout)
                 .expect("Failed to construct agent."),
-            network_descriptor,
+            network_descriptor: network_descriptor.clone(),
             identity_manager,
         })
     }

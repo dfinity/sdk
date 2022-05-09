@@ -166,7 +166,7 @@ impl Identity {
         let identity_dir = manager.get_identity_dir_path(name);
         std::fs::rename(&temp_identity_dir, &identity_dir).with_context(|| {
             format!(
-                "Failed to move temporary directory {} to permanent identiy directory {}.",
+                "Failed to move temporary directory {} to permanent identity directory {}.",
                 temp_identity_dir.to_string_lossy(),
                 identity_dir.to_string_lossy()
             )

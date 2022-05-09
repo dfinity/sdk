@@ -105,7 +105,7 @@ where
     Ok(out)
 }
 
-#[context("Failed to call update funciton '{}' on wallet.", method)]
+#[context("Failed to call update function '{}' on wallet.", method)]
 async fn wallet_update<A, O>(env: &dyn Environment, method: &str, arg: A) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,

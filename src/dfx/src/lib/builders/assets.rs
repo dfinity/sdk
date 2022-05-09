@@ -155,7 +155,9 @@ impl CanisterBuilder for AssetsBuilder {
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
         assets_canister_info.assert_source_paths()?;
 
-        copy_assets(pool.get_logger(), &assets_canister_info)?;
+        copy_assets(pool.get_logger(), &assets_canister_info).with_context(|| {
+            format!("Failed to copy assets for canister '{}'.", info.get_name())
+        })?;
         Ok(())
     }
 

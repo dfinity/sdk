@@ -175,7 +175,7 @@ pub trait CanisterBuilder {
 
             // index.js
             let mut language_bindings = crate::util::assets::language_bindings()
-                .context("Failed to get langugae bindings archive.")?;
+                .context("Failed to get language bindings archive.")?;
             for f in language_bindings
                 .entries()
                 .context("Failed to read language bindings archive entries.")?

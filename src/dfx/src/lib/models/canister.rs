@@ -445,6 +445,7 @@ impl CanisterPool {
     }
 }
 
+#[context("Failed to decode path to str.")]
 fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
     path.to_str().ok_or_else(|| {
         DfxError::new(BuildError::JsBindGenError(format!(
@@ -498,26 +499,18 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
                 &canister_info.get_name().to_uppercase(),
             );
 
-        match decode_path_to_str(&file.path().context("Path is not valid unicode.")?)
-            .context("Failed to decode path to str.")?
-        {
+        match decode_path_to_str(&file.path()?).context("Failed to decode path to str.")? {
             "canister.js" => {
-                std::fs::write(
-                    decode_path_to_str(&index_js_path).context("Failed to decode path to str.")?,
-                    new_file_contents,
-                )
-                .with_context(|| {
-                    format!("Failed to write to {}.", index_js_path.to_string_lossy())
-                })?;
+                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)
+                    .with_context(|| {
+                        format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                    })?;
             }
             "canisterId.js" => {
-                std::fs::write(
-                    decode_path_to_str(&index_js_path).context("Failed to decode path to str.")?,
-                    new_file_contents,
-                )
-                .with_context(|| {
-                    format!("Failed to write to {}.", index_js_path.to_string_lossy())
-                })?;
+                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)
+                    .with_context(|| {
+                        format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                    })?;
             }
             _ => unreachable!(),
         }

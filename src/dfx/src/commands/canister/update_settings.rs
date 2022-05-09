@@ -74,7 +74,7 @@ pub async fn exec(
     });
     let controllers = controllers
         .transpose()
-        .context("Failed to determine controllers.")?;
+        .context("Failed to determine all new controllers given in --controllers.")?;
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
@@ -119,7 +119,7 @@ pub async fn exec(
                 .iter()
                 .map(|r| controller_to_principal(env, r))
                 .collect::<DfxResult<Vec<_>>>()
-                .context("Failed to collect controllers.")?;
+                .context("Failed to determine all controllers to remove.")?;
             for s in removed {
                 if let Some(idx) = controllers.iter().position(|x| *x == s) {
                     controllers.swap_remove(idx);
@@ -185,7 +185,7 @@ pub async fn exec(
                         .iter()
                         .map(|r| controller_to_principal(env, r))
                         .collect::<DfxResult<Vec<_>>>()
-                        .context("Failed to collect controllers.")?;
+                        .context("Failed to determine all controllers to remove.")?;
                     for s in removed {
                         if let Some(idx) = controllers.iter().position(|x| *x == s) {
                             controllers.swap_remove(idx);

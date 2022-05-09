@@ -198,7 +198,7 @@ impl CanisterInfo {
         self.extras.contains_key(name)
     }
 
-    #[context("Failed while trying to get field '{}'.", name)]
+    #[context("Failed while trying to get field '{}' for canister '{}'.", name, self.name)]
     pub fn get_extra<T: serde::de::DeserializeOwned>(&self, name: &str) -> DfxResult<T> {
         self.get_extra_value(name)
             .ok_or_else(|| {
@@ -213,7 +213,7 @@ impl CanisterInfo {
             })
     }
 
-    #[context("Failed while trying to get optional config field '{}'.", name)]
+    #[context("Failed while trying to get optional config field '{}' for canister '{}'.", name, self.name)]
     pub fn get_extra_optional<T: serde::de::DeserializeOwned>(
         &self,
         name: &str,

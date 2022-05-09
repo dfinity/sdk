@@ -175,7 +175,7 @@ pub async fn exec(
     }
 }
 
-#[context("Failed to read installed moule hash for canister '{}'.", canister_info.get_name())]
+#[context("Failed to read installed module hash for canister '{}'.", canister_info.get_name())]
 async fn read_module_hash(
     agent: &Agent,
     canister_id_store: &CanisterIdStore,

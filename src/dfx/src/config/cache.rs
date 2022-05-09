@@ -66,7 +66,7 @@ impl Cache for DiskBasedCache {
     }
 }
 
-#[context("Failed ot get cache root.")]
+#[context("Failed to get cache root.")]
 pub fn get_cache_root() -> DfxResult<PathBuf> {
     let cache_root = std::env::var("DFX_CACHE_ROOT").ok();
     let home =
