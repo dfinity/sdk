@@ -19,7 +19,7 @@ These default to values from dfx.json:
 
 The --bitcoin-node parameter, if specified on the command line, implies --enable-bitcoin.
 
-If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica will launch the ic-btc-adapter process.
+If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica will launch the ic-btc-adapter process and configure the replica to communicate with it.
 
 === Binary cache
 
