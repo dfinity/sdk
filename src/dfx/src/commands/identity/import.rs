@@ -34,6 +34,6 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
         disable_encryption: opts.disable_encryption,
     };
     IdentityManager::new(env)?.create_new_identity(name, params, opts.force)?;
-    info!(log, r#"Created identity: "{}"."#, name);
+    info!(log, r#"Imported identity: "{}"."#, name);
     Ok(())
 }

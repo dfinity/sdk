@@ -15,7 +15,6 @@ use crate::commands::start::{
 use clap::Parser;
 use std::default::Default;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 
 /// Starts a local Internet Computer replica.
 #[derive(Parser)]
@@ -42,11 +41,7 @@ pub struct ReplicaOpts {
 }
 
 /// Gets the configuration options for the Internet Computer replica.
-fn get_config(
-    env: &dyn Environment,
-    opts: ReplicaOpts,
-    btc_adapter_socket: Option<PathBuf>,
-) -> DfxResult<ReplicaConfig> {
+fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConfig> {
     let config = get_config_from_file(env);
     let port = get_port(&config, opts.port)?;
     let mut http_handler: HttpHandlerConfig = Default::default();
@@ -64,9 +59,6 @@ fn get_config(
         ReplicaConfig::new(&env.get_state_dir(), config.subnet_type.unwrap_or_default());
     replica_config.http_handler = http_handler;
 
-    if let Some(btc_adapter_socket) = btc_adapter_socket {
-        replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
-    }
     Ok(replica_config)
 }
 
@@ -130,7 +122,7 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
             start_emulator_actor(env, shutdown_controller)?;
         } else {
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                if let Some(btc_adapter_config) = btc_adapter_config {
+                if let Some(ref btc_adapter_config) = btc_adapter_config {
                     let socket_path = btc_adapter_config.get_socket_path();
                     let ready_subscribe = start_btc_adapter_actor(
                         env,
@@ -160,7 +152,13 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
                     (None, None)
                 };
 
-            let mut replica_config = get_config(env, opts, btc_adapter_socket_path)?;
+            let mut replica_config = get_config(env, opts)?;
+            if btc_adapter_config.is_some() {
+                replica_config = replica_config.with_btc_adapter_enabled();
+                if let Some(btc_adapter_socket) = btc_adapter_socket_path {
+                    replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+                }
+            }
             if canister_http_adapter_config.is_some() {
                 replica_config = replica_config.with_canister_http_adapter_enabled();
                 if let Some(socket_path) = canister_http_socket_path {

@@ -16,7 +16,6 @@ pub fn exec(env: &dyn Environment, opts: RemoveOpts) -> DfxResult {
     let name = opts.identity.as_str();
 
     let log = env.get_logger();
-    info!(log, r#"Removing identity "{}"."#, name);
 
     IdentityManager::new(env)?.remove(name)?;
 
