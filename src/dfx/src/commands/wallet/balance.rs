@@ -82,3 +82,49 @@ fn pretty_thousand_separators(i: String) -> String {
         .collect::<_>()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{pretty_thousand_separators, round_to_trillion_cycles};
+
+    #[test]
+    fn prettify_balance_amount() {
+        // thousands separator
+        assert_eq!(
+            "13,333.456",
+            pretty_thousand_separators("13333.456".to_string())
+        );
+        assert_eq!(
+            "3,333.456",
+            pretty_thousand_separators("3333.456".to_string())
+        );
+        assert_eq!("333.456", pretty_thousand_separators("333.456".to_string()));
+        assert_eq!("33.456", pretty_thousand_separators("33.456".to_string()));
+        assert_eq!("3.456", pretty_thousand_separators("3.456".to_string()));
+
+        // rounding + thousands separator
+        assert_eq!("1,234.568", round_to_trillion_cycles(1234567890100000));
+        assert_eq!(
+            "123,456,123,412.348",
+            round_to_trillion_cycles(123456123412347890100000)
+        );
+        assert_eq!("0.000", round_to_trillion_cycles(1234));
+        assert_eq!("0.000", round_to_trillion_cycles(0));
+        assert_eq!("0.000", round_to_trillion_cycles(500000000));
+        assert_eq!("0.001", round_to_trillion_cycles(500000001));
+        assert_eq!("12.568", round_to_trillion_cycles(12567890100000));
+        assert_eq!(
+            "340,282,366,920,938,463,463,374,607.431",
+            round_to_trillion_cycles(u128::MAX)
+        );
+        assert_eq!(
+            "99,999,999,999,999,999.999",
+            round_to_trillion_cycles(99999999999999999999999999999)
+        );
+        assert_eq!(
+            "10,000,000,000,000,000.000",
+            round_to_trillion_cycles(9999999999999999999999999999)
+        );
+        assert_eq!("1.268", round_to_trillion_cycles(1267890100000));
+        assert_eq!("0.168", round_to_trillion_cycles(167890100000));
+    }
+}
