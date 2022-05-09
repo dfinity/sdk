@@ -121,7 +121,6 @@ teardown() {
     assert_match 'alice anonymous default'
 
     assert_command dfx identity remove alice
-    assert_match 'Removing identity "alice".' "$stderr"
     assert_match 'Removed identity "alice".' "$stderr"
     assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 
@@ -181,7 +180,6 @@ teardown() {
     local key="$x"
 
     assert_command dfx identity rename alice bob
-    assert_match 'Renaming identity "alice" to "bob".' "$stderr"
     assert_match 'Renamed identity "alice" to "bob".' "$stderr"
 
     assert_command dfx identity list
