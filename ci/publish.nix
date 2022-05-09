@@ -17,7 +17,7 @@
 # This script will be executed by DFINITY's Continuous Deployment
 # system. That system will also set the correct AWS credentials and the
 # DFINITY_DOWNLOAD_BUCKET environment variable.
-{ pkgs, releaseVersion, dfx-standalone, install }:
+{ pkgs, releaseVersion, install }:
 let
   s3cp = pkgs.lib.writeCheckedShellScriptBin "s3cp" [] ''
     set -eu
@@ -34,44 +34,8 @@ let
       --no-progress
   '';
 
-  mkDfxTarball = dfx:
-    pkgs.runCommandNoCC "dfx-${releaseVersion}.tar.gz" {
-      inherit dfx;
-      allowedRequisites = [];
-    } ''
-      tmp=$(mktemp -d)
-      cp $dfx/bin/dfx $tmp/dfx
-      chmod 0755 $tmp/dfx
-      tar -czf "$out" -C $tmp/ .
-    '';
-
 in
 rec {
-  dfx-tarballs = {
-    linux = mkDfxTarball dfx-standalone.x86_64-linux;
-    darwin = mkDfxTarball dfx-standalone.x86_64-darwin;
-  };
-
-  dfx = pkgs.lib.writeCheckedShellScriptBin "activate" [] ''
-    set -eu
-    PATH="${pkgs.lib.makeBinPath [ s3cp pkgs.slack ]}"
-
-    v="${releaseVersion}"
-    cache_long="max-age=31536000" # 1 year
-
-    file="dfx-$v.tar.gz"
-    dir="sdk/dfx/$v"
-
-    s3cp "${dfx-tarballs.linux}" "$dir/x86_64-linux/$file" "application/gzip" "$cache_long"
-    s3cp "${dfx-tarballs.darwin}" "$dir/x86_64-darwin/$file" "application/gzip" "$cache_long"
-
-    slack "$SLACK_CHANNEL_BUILD_NOTIFICATIONS_WEBHOOK" <<EOI
-    *DFX-$v* has been published to DFINITY's CDN :champagne:!
-    - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-linux/$file
-    - https://$DFINITY_DOWNLOAD_DOMAIN/$dir/x86_64-darwin/$file
-    Install the SDK by following the instructions at: https://sdk.dfinity.org/docs/download.html.
-    EOI
-  '';
   install-sh = pkgs.lib.writeCheckedShellScriptBin "activate" [] ''
     set -eu
     PATH="${pkgs.lib.makeBinPath [ s3cp ]}"
