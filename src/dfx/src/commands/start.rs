@@ -49,12 +49,12 @@ pub struct StartOpts {
     #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
     bitcoin_node: Vec<SocketAddr>,
 
-    /// enable the bitcoin adapter
+    /// enable bitcoin integration
     #[clap(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 
-    /// enable canister http adapter
-    #[clap(long)]
+    /// enable canister http requests
+    #[clap(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
 }
 

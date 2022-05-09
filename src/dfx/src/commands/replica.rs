@@ -31,12 +31,12 @@ pub struct ReplicaOpts {
     #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
     bitcoin_node: Vec<SocketAddr>,
 
-    /// enable the bitcoin adapter
-    #[clap(long)]
+    /// enable bitcoin integration
+    #[clap(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 
-    /// enable canister http adapter
-    #[clap(long)]
+    /// enable canister http requests
+    #[clap(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
 }
 
