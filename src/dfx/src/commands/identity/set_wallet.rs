@@ -5,7 +5,7 @@ use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::{create_agent_environment, get_network_descriptor};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use ic_types::Principal;
 use ic_utils::interfaces::wallet::BalanceResult;
@@ -63,7 +63,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
 
         runtime
             .block_on(async {
-                let _ = agent.status().await?;
+                let _ = agent.status().await.context("Failed to read network status.")?;
 
                 info!(
                     log,

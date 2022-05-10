@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.9.3"
+version = "0.10.0"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -37,6 +37,7 @@ ctrlc = { version = "3.2.1", features = [ "termination" ] }
 dialoguer = "0.10.0"
 erased-serde = "0.3.18"
 flate2 = "1.0.11"
+fn-error-context = "0.2.0"
 futures = "0.3.21"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }

@@ -1012,7 +1012,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.9.3"
+version = "0.10.0"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1036,6 +1036,7 @@ dependencies = [
  "env_logger",
  "erased-serde",
  "flate2",
+ "fn-error-context",
  "futures",
  "garcon",
  "hex",
@@ -1380,6 +1381,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98de4bbd547a563b716d8dfa9aad1cb19bfab00f4fa09a6a4ed21dbcf44ce9c4"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "fn-error-context"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "236b4e4ae2b8be5f7a5652f6108c4a0f2627c569db4e7923333d31c7dbfed0fb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

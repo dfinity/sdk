@@ -2,7 +2,7 @@ use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use serde_json::value::Value;
 
@@ -56,7 +56,11 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
     } else if let Some(value) = config.get_json().pointer(config_path.as_str()) {
         match format {
             "text" => println!("{}", value),
-            "json" => println!("{}", serde_json::to_string_pretty(value)?),
+            "json" => println!(
+                "{}",
+                serde_json::to_string_pretty(value)
+                    .context("Failed to serialize config to json")?
+            ),
             _ => {}
         }
         Ok(())

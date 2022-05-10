@@ -321,6 +321,12 @@ NOTE: Depending on the number of jobs queued up, this step can take 45 to 60 min
 ----
 git switch release-$NEW_DFX_VERSION
 ----
+. Set the upstream tracking information for the release branch:
++
+[source, bash]
+----
+git branch --set-upstream-to=origin/$NEW_DFX_VERSION $NEW_DFX_VERSION
+----
 . Update the release branch:
 +
 [source, bash]

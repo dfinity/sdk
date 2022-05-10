@@ -8,6 +8,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 
 use anyhow::{anyhow, bail, Context};
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::{info, o, warn};
@@ -19,6 +20,7 @@ pub struct RustBuilder {
 }
 
 impl RustBuilder {
+    #[context("Failed to create RustBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(RustBuilder {
             logger: env.get_logger().new(o! {
@@ -29,6 +31,7 @@ impl RustBuilder {
 }
 
 impl CanisterBuilder for RustBuilder {
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
@@ -49,7 +52,7 @@ impl CanisterBuilder for RustBuilder {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>()?;
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context(|| format!("Failed to collect dependencies (canister ids) for canister {}.", info.get_name()))?;
         Ok(dependencies)
     }
 
@@ -57,6 +60,7 @@ impl CanisterBuilder for RustBuilder {
         info.get_type() == "rust"
     }
 
+    #[context("Failed to build Rust canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
         pool: &CanisterPool,
@@ -92,7 +96,7 @@ impl CanisterBuilder for RustBuilder {
             self.logger,
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
         );
-        let output = cargo.output().context("Failed to run cargo build")?;
+        let output = cargo.output().context("Failed to run 'cargo build'.")?;
 
         if std::process::Command::new("ic-cdk-optimizer")
             .arg("--version")
@@ -148,7 +152,10 @@ Run `cargo install ic-cdk-optimizer` to install it.
         if output_idl_path.exists() {
             Ok(output_idl_path.to_path_buf())
         } else {
-            bail!("Candid file: {:?} doesn't exist.", output_idl_path);
+            bail!(
+                "Candid file: {} doesn't exist.",
+                output_idl_path.to_string_lossy()
+            );
         }
     }
 }

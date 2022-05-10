@@ -6,7 +6,7 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_agent::AgentError;
 use ic_utils::call::AsyncCall;
@@ -57,14 +57,16 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
     mgr.install_code(&canister_id, wasm.as_slice())
         .with_mode(install_mode)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Failed to install wasm.")?;
 
     let wallet = Identity::build_wallet_canister(canister_id, env).await?;
 
     wallet
         .wallet_store_wallet_wasm(wasm)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Failed to store wasm in canister.")?;
 
     println!("Upgraded the wallet wasm module.");
     Ok(())
