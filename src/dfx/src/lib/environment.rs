@@ -1,5 +1,5 @@
 use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::dfinity::{Config, DEFAULT_IC_GATEWAY};
+use crate::config::dfinity::Config;
 use crate::config::{cache, dfx_version};
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
