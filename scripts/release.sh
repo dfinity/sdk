@@ -193,6 +193,8 @@ tag_release_commit() {
     echo "Switching to the release branch."
     $DRY_RUN_ECHO git switch "$FINAL_RELEASE_BRANCH"
 
+    $DRY_RUN_ECHO git branch --set-upstream-to=origin/"$FINAL_RELEASE_BRANCH" "$FINAL_RELEASE_BRANCH"
+
     echo "Pulling the remote branch"
     $DRY_RUN_ECHO git pull
 
