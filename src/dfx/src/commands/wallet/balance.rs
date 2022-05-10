@@ -23,33 +23,31 @@ pub async fn exec(env: &dyn Environment, opts: WalletBalanceOpts) -> DfxResult {
     } else {
         println!(
             "{} TC (trillion cycles).",
-            round_to_trillion_cycles(balance.amount)
+            pretty_thousand_separators(format_as_trillions(balance.amount))
         );
     }
     Ok(())
 }
 
-fn round_to_trillion_cycles(amount: u128) -> String {
+fn format_as_trillions(amount: u128) -> String {
     const SCALE: u32 = 12; // trillion = 10^12
     const FRACTIONAL_PRECISION: u32 = 3;
 
-    // handling edge case when wallet has more than ~99999999999999999999999999999 cycles:
+    // handling edge case when wallet has more than ~10^29 cycles:
     // ::from_u128() returns None if the value is too big to be handled by rust_decimal,
     // in such case, the integer will be simply divided by 10^(SCALE-FRACTIONAL_PRECISION)
     // and returned as int with manually inserted comma character, therefore sacrificing
     // the fractional precision rounding (which is otherwise provided by rust_decimal)
-    let value: String = if let Some(mut dec) = Decimal::from_u128(amount) {
+    if let Some(mut dec) = Decimal::from_u128(amount) {
         // safe to .unwrap(), because .set_scale() throws Error only when
         // precision argument is bigger than 28, in our case it's always 12
         dec.set_scale(SCALE).unwrap();
-        format!("{}", dec.round_dp(FRACTIONAL_PRECISION))
+        dec.round_dp(FRACTIONAL_PRECISION).to_string()
     } else {
         let mut v = (amount / 10u128.pow(SCALE - FRACTIONAL_PRECISION)).to_string();
         v.insert(v.len() - FRACTIONAL_PRECISION as usize, DECIMAL_POINT);
         v
-    };
-
-    pretty_thousand_separators(value)
+    }
 }
 
 fn pretty_thousand_separators(num: String) -> String {
@@ -94,47 +92,70 @@ fn pretty_thousand_separators(num: String) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{pretty_thousand_separators, round_to_trillion_cycles};
+    use super::{format_as_trillions, pretty_thousand_separators};
 
     #[test]
     fn prettify_balance_amount() {
         // thousands separator
+        assert_eq!("3.456", pretty_thousand_separators("3.456".to_string()));
+        assert_eq!("33.456", pretty_thousand_separators("33.456".to_string()));
+        assert_eq!("333.456", pretty_thousand_separators("333.456".to_string()));
+        assert_eq!(
+            "3,333.456",
+            pretty_thousand_separators("3333.456".to_string())
+        );
         assert_eq!(
             "13,333.456",
             pretty_thousand_separators("13333.456".to_string())
         );
         assert_eq!(
-            "3,333.456",
-            pretty_thousand_separators("3333.456".to_string())
+            "313,333.456",
+            pretty_thousand_separators("313333.456".to_string())
         );
-        assert_eq!("333.456", pretty_thousand_separators("333.456".to_string()));
-        assert_eq!("33.456", pretty_thousand_separators("33.456".to_string()));
-        assert_eq!("3.456", pretty_thousand_separators("3.456".to_string()));
-
-        // rounding + thousands separator
-        assert_eq!("1,234.568", round_to_trillion_cycles(1234567890100000));
         assert_eq!(
-            "123,456,123,412.348",
-            round_to_trillion_cycles(123456123412347890100000)
+            "3,313,333.456",
+            pretty_thousand_separators("3313333.456".to_string())
         );
-        assert_eq!("0.000", round_to_trillion_cycles(1234));
-        assert_eq!("0.000", round_to_trillion_cycles(0));
-        assert_eq!("0.000", round_to_trillion_cycles(500000000));
-        assert_eq!("0.001", round_to_trillion_cycles(500000001));
-        assert_eq!("12.568", round_to_trillion_cycles(12567890100000));
+
+        // scaling number
+        assert_eq!("0.000", format_as_trillions(0));
+        assert_eq!("0.000", format_as_trillions(1234));
+        assert_eq!("0.000", format_as_trillions(500000000));
+        assert_eq!("0.001", format_as_trillions(500000001));
+        assert_eq!("0.168", format_as_trillions(167890100000));
+        assert_eq!("1.268", format_as_trillions(1267890100000));
+        assert_eq!("12.568", format_as_trillions(12567890100000));
+        assert_eq!("1234.568", format_as_trillions(1234567890100000));
+        assert_eq!(
+            "123456123412.348",
+            format_as_trillions(123456123412347890100000)
+        );
+        assert_eq!(
+            "10000000000000000.000",
+            format_as_trillions(9999999999999999999999999999)
+        );
+        assert_eq!(
+            "99999999999999999.999",
+            format_as_trillions(99999999999999999999999999999)
+        );
+        assert_eq!(
+            "340282366920938463463374607.431",
+            format_as_trillions(u128::MAX)
+        );
+
+        // combined
+        assert_eq!("0.000", pretty_thousand_separators(format_as_trillions(0)));
+        assert_eq!(
+            "100.000",
+            pretty_thousand_separators(format_as_trillions(100000000000000))
+        );
+        assert_eq!(
+            "10,000,000,000.000",
+            pretty_thousand_separators(format_as_trillions(10000000000000000000000))
+        );
         assert_eq!(
             "340,282,366,920,938,463,463,374,607.431",
-            round_to_trillion_cycles(u128::MAX)
+            pretty_thousand_separators(format_as_trillions(u128::MAX))
         );
-        assert_eq!(
-            "99,999,999,999,999,999.999",
-            round_to_trillion_cycles(99999999999999999999999999999)
-        );
-        assert_eq!(
-            "10,000,000,000,000,000.000",
-            round_to_trillion_cycles(9999999999999999999999999999)
-        );
-        assert_eq!("1.268", round_to_trillion_cycles(1267890100000));
-        assert_eq!("0.168", round_to_trillion_cycles(167890100000));
     }
 }
