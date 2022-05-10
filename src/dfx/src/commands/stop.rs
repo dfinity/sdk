@@ -24,13 +24,11 @@ fn list_all_descendants<'a>(system: &'a System, proc: &'a Process) -> Vec<&'a Pr
 }
 
 /// Recursively kill a process and ALL its children.
-fn kill_all(system: &System, proc: &Process) -> DfxResult {
+fn kill_all(system: &System, proc: &Process) {
     let processes = list_all_descendants(system, proc);
     for proc in processes {
         proc.kill_with(Signal::Term);
     }
-
-    Ok(())
 }
 
 pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
@@ -42,7 +40,7 @@ pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
                 let mut system = System::new();
                 system.refresh_processes();
                 if let Some(proc) = system.process(pid) {
-                    kill_all(&system, proc)?;
+                    kill_all(&system, proc);
                 }
             }
         }

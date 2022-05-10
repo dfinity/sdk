@@ -2,6 +2,7 @@ use crate::commands::wallet::get_wallet;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
+use anyhow::Context;
 use clap::Parser;
 use num_traits::FromPrimitive;
 use rust_decimal::Decimal;
@@ -17,7 +18,12 @@ pub struct WalletBalanceOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: WalletBalanceOpts) -> DfxResult {
-    let balance = get_wallet(env).await?.wallet_balance().await?;
+    let balance = get_wallet(env)
+        .await?
+        .wallet_balance()
+        .await
+        .context("Failed to fetch wallet balance.")?;
+    
     if opts.precise {
         println!("{} cycles.", balance.amount);
     } else {
@@ -26,6 +32,7 @@ pub async fn exec(env: &dyn Environment, opts: WalletBalanceOpts) -> DfxResult {
             pretty_thousand_separators(format_as_trillions(balance.amount))
         );
     }
+
     Ok(())
 }
 

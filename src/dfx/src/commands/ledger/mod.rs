@@ -11,9 +11,10 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use candid::{Decode, Encode};
 use clap::Parser;
+use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
@@ -72,6 +73,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
     })
 }
 
+#[context("Failed to determine icp amount from supplied arguments.")]
 fn get_icpts_from_args(
     amount: &Option<String>,
     icp: &Option<String>,
@@ -103,6 +105,7 @@ fn get_icpts_from_args(
     }
 }
 
+#[context("Failed to transfer funds.")]
 pub async fn transfer(
     agent: &Agent,
     canister_id: &Principal,
@@ -129,19 +132,23 @@ pub async fn transfer(
     let block_height: BlockHeight = loop {
         match agent
             .update(canister_id, TRANSFER_METHOD)
-            .with_arg(Encode!(&TransferArgs {
-                memo,
-                amount,
-                fee,
-                from_subaccount: None,
-                to,
-                created_at_time: Some(TimeStamp { timestamp_nanos }),
-            })?)
+            .with_arg(
+                Encode!(&TransferArgs {
+                    memo,
+                    amount,
+                    fee,
+                    from_subaccount: None,
+                    to,
+                    created_at_time: Some(TimeStamp { timestamp_nanos }),
+                })
+                .context("Failed to encode arguments.")?,
+            )
             .call_and_wait(waiter_with_timeout(expiry_duration()))
             .await
         {
             Ok(data) => {
-                let result = Decode!(&data, TransferResult)?;
+                let result = Decode!(&data, TransferResult)
+                    .context("Failed to decode transfer response.")?;
                 match result {
                     Ok(block_height) => break block_height,
                     Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
@@ -163,6 +170,7 @@ pub async fn transfer(
     Ok(block_height)
 }
 
+#[context("Failed to perform transfer_and_notify.")]
 async fn transfer_and_notify(
     env: &dyn Environment,
     memo: Memo,
@@ -185,17 +193,21 @@ async fn transfer_and_notify(
 
     let result = agent
         .update(&MAINNET_LEDGER_CANISTER_ID, NOTIFY_METHOD)
-        .with_arg(Encode!(&NotifyCanisterArgs {
-            block_height,
-            max_fee,
-            from_subaccount: None,
-            to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
-            to_subaccount,
-        })?)
+        .with_arg(
+            Encode!(&NotifyCanisterArgs {
+                block_height,
+                max_fee,
+                from_subaccount: None,
+                to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
+                to_subaccount,
+            })
+            .context("Failed to encode notify arguments.")?,
+        )
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Notify call failed.")?;
 
-    let result = Decode!(&result, CyclesResponse)?;
+    let result = Decode!(&result, CyclesResponse).context("Failed to decode notify response.")?;
     Ok(result)
 }
 

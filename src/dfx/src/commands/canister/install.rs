@@ -9,6 +9,7 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
+use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -108,7 +109,8 @@ pub async fn exec(
             )
             .await
         } else {
-            let canister_info = canister_info?;
+            let canister_info = canister_info
+                .with_context(|| format!("Failed to load canister info for {}.", canister))?;
             let maybe_path = canister_info.get_output_idl_path();
             let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
             let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
@@ -132,10 +134,10 @@ pub async fn exec(
         let config = env.get_config_or_anyhow()?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                if config
+                let canister_is_remote = config
                     .get_config()
-                    .is_remote_canister(canister, &network.name)?
-                {
+                    .is_remote_canister(canister, &network.name)?;
+                if canister_is_remote {
                     info!(
                         env.get_logger(),
                         "Skipping canister '{}' because it is remote for network '{}'",
@@ -173,6 +175,7 @@ pub async fn exec(
     }
 }
 
+#[context("Failed to read installed module hash for canister '{}'.", canister_info.get_name())]
 async fn read_module_hash(
     agent: &Agent,
     canister_id_store: &CanisterIdStore,

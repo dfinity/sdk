@@ -10,6 +10,7 @@ use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
+use fn_error_context::context;
 use std::default::Default;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use url::Url;
@@ -65,52 +66,78 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     // allocated port and construct a resuable SocketAddr which the actix
     // HttpServer will bind to
     let socket_addr =
-        get_reusable_socket_addr(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap())?;
+        get_reusable_socket_addr(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap())
+            .context("Failed to find socket address for the HTTP server.")?;
 
     let webserver_port_path = env.get_temp_dir().join("webserver-port");
-    std::fs::write(&webserver_port_path, "")?;
-    std::fs::write(&webserver_port_path, socket_addr.port().to_string())?;
+    std::fs::write(&webserver_port_path, "").with_context(|| {
+        format!(
+            "Failed to write/clear webserver port file {}.",
+            webserver_port_path.to_string_lossy()
+        )
+    })?;
+    std::fs::write(&webserver_port_path, socket_addr.port().to_string()).with_context(|| {
+        format!(
+            "Failed to write port to webserver port file {}.",
+            webserver_port_path.to_string_lossy()
+        )
+    })?;
 
     verify_unique_ports(&providers, &socket_addr)?;
 
     let system = actix::System::new();
-    let _proxy = system.block_on(async move {
-        let shutdown_controller = start_shutdown_controller(env)?;
+    let _proxy = system
+        .block_on(async move {
+            let shutdown_controller = start_shutdown_controller(env)?;
 
-        let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
-        let proxy_port_path = env.get_temp_dir().join("proxy-port");
-        std::fs::write(&proxy_port_path, "")?;
-        std::fs::write(&proxy_port_path, webserver_bind.port().to_string())?;
+            let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
+            let proxy_port_path = env.get_temp_dir().join("proxy-port");
+            std::fs::write(&proxy_port_path, "").with_context(|| {
+                format!(
+                    "Failed to write/clear proxy port file {}.",
+                    proxy_port_path.to_string_lossy()
+                )
+            })?;
+            std::fs::write(&proxy_port_path, webserver_bind.port().to_string()).with_context(
+                || {
+                    format!(
+                        "Failed to write port to proxy port file {}.",
+                        proxy_port_path.to_string_lossy()
+                    )
+                },
+            )?;
 
-        let icx_proxy_config = IcxProxyConfig {
-            bind: socket_addr,
-            proxy_port: webserver_bind.port(),
-            providers,
-            fetch_root_key: !network_descriptor.is_ic,
-        };
+            let icx_proxy_config = IcxProxyConfig {
+                bind: socket_addr,
+                proxy_port: webserver_bind.port(),
+                providers,
+                fetch_root_key: !network_descriptor.is_ic,
+            };
 
-        run_webserver(
-            env.get_logger().clone(),
-            build_output_root,
-            network_descriptor,
-            webserver_bind,
-        )?;
+            run_webserver(
+                env.get_logger().clone(),
+                build_output_root,
+                network_descriptor,
+                webserver_bind,
+            )?;
 
-        let port_ready_subscribe = None;
-        let proxy = start_icx_proxy_actor(
-            env,
-            icx_proxy_config,
-            port_ready_subscribe,
-            shutdown_controller,
-            icx_proxy_pid_file_path,
-        )?;
-        Ok::<_, Error>(proxy)
-    })?;
-    system.run()?;
+            let port_ready_subscribe = None;
+            let proxy = start_icx_proxy_actor(
+                env,
+                icx_proxy_config,
+                port_ready_subscribe,
+                shutdown_controller,
+                icx_proxy_pid_file_path,
+            )?;
+            Ok::<_, Error>(proxy)
+        })
+        .context("Failed to start proxy.")?;
+    system.run().context("Failed to run system runner.")?;
 
     Ok(())
 }
 
+#[context("Cannot bind to and serve from the same port.")]
 fn verify_unique_ports(providers: &[url::Url], bind: &SocketAddr) -> DfxResult {
     // Verify that we cannot bind to a port that we forward to.
     let bound_port = bind.port();
@@ -131,6 +158,7 @@ fn verify_unique_ports(providers: &[url::Url], bind: &SocketAddr) -> DfxResult {
 
 /// Gets the configuration options for the bootstrap server. Each option is checked for correctness
 /// and otherwise guaranteed to exist.
+#[context("Failed to determine bootstrap server configuration.")]
 fn apply_arguments(
     config: &ConfigDefaultsBootstrap,
     _env: &dyn Environment,
@@ -157,6 +185,7 @@ fn get_config_defaults_from_file(env: &dyn Environment) -> ConfigDefaults {
 /// Gets the IP address that the bootstrap server listens on. First checks if the IP address was
 /// specified on the command-line using --ip, otherwise checks if the IP address was specified in
 /// the dfx configuration file, otherise defaults to 127.0.0.1.
+#[context("Failed to get ip that the bootstrap server listens on.")]
 fn get_ip(config: &ConfigDefaultsBootstrap, ip: Option<&str>) -> DfxResult<IpAddr> {
     ip.map(|ip| ip.parse())
         .unwrap_or_else(|| {
@@ -169,6 +198,8 @@ fn get_ip(config: &ConfigDefaultsBootstrap, ip: Option<&str>) -> DfxResult<IpAdd
 /// Gets the port number that the bootstrap server listens on. First checks if the port number was
 /// specified on the command-line using --port, otherwise checks if the port number was specified
 /// in the dfx configuration file, otherise defaults to 8081.
+
+#[context("Failed to get port that the bootstrap server listens on.")]
 fn get_port(config: &ConfigDefaultsBootstrap, port: Option<&str>) -> DfxResult<u16> {
     port.map(|port| port.parse())
         .unwrap_or_else(|| {
@@ -179,6 +210,7 @@ fn get_port(config: &ConfigDefaultsBootstrap, port: Option<&str>) -> DfxResult<u
 }
 
 /// Gets the list of compute provider API endpoints.
+#[context("Failed to get providers for network '{}'.", network_descriptor.name)]
 fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String>> {
     network_descriptor
         .providers
@@ -191,6 +223,7 @@ fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<String
 /// requests to complete. First checks if the timeout was specified on the command-line using
 /// --timeout, otherwise checks if the timeout was specified in the dfx configuration file,
 /// otherise defaults to 30.
+#[context("Failed to determine timeout for bootstrap server.")]
 fn get_timeout(config: &ConfigDefaultsBootstrap, timeout: Option<&str>) -> DfxResult<u64> {
     timeout
         .map(|timeout| timeout.parse())
