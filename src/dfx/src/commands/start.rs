@@ -474,6 +474,7 @@ pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
     Ok(path)
 }
 
+#[context("Failed to configure canister http adapter.")]
 pub fn configure_canister_http_adapter_if_enabled(
     config: &ConfigInterface,
     config_path: &Path,
