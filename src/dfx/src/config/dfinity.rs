@@ -285,23 +285,6 @@ impl ConfigInterface {
             _ => &EMPTY_CONFIG_DEFAULTS,
         }
     }
-    pub fn get_provider_url(&self, network: &str) -> DfxResult<Option<String>> {
-        match &self.networks {
-            Some(networks) => match networks.get(network) {
-                Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
-                    match network_provider.providers.first() {
-                        Some(provider) => Ok(Some(provider.clone())),
-                        None => Err(anyhow!("Cannot find providers for network '{}'.", network)),
-                    }
-                }
-                Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
-                    Ok(Some(local_provider.bind.clone()))
-                }
-                _ => Ok(None),
-            },
-            _ => Ok(None),
-        }
-    }
 
     pub fn get_network(&self, name: &str) -> Option<ConfigNetwork> {
         let network = self
