@@ -1,8 +1,9 @@
-# copied from https://github.com/dfinity-lab/common/blob/master/pkgs/overlays/packages/cargo-deny/buildtime.toml
+# adapted from https://github.com/dfinity-lab/common/blob/master/pkgs/overlays/packages/cargo-deny/buildtime.toml
 # for context, see https://github.com/dfinity-lab/common/blob/master/pkgs/overlays/packages/cargo-deny/runtime.toml
 # we allow more licenses in the build-time check. all rust dependencies are statically linked,
 # so copyleft licenses like MPL which allow static linking are A-OK
 [licenses]
+default = "deny"
 unlicensed = "allow"
 
 allow = [
@@ -19,9 +20,6 @@ allow = [
 
 deny = [
     "GPL-1.0",
-    "GPL-1.0-or-later",
     "GPL-2.0",
-    "GPL-2.0-or-later",
     "GPL-3.0",
-    "GPL-3.0-or-later",
 ]

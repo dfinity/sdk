@@ -15,3 +15,4 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v1
         with:
           rust-version: "1.58.1"
+          command: check bans licenses sources # skip advisories, which are handled in audit.yml
