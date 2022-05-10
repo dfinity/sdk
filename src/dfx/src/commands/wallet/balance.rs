@@ -3,7 +3,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use clap::Parser;
-use rust_decimal::prelude::*;
+use num_traits::FromPrimitive;
+use rust_decimal::Decimal;
 
 /// Get the cycle balance of the selected Identity's cycles wallet.
 #[derive(Parser)]
