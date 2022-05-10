@@ -25,6 +25,13 @@ The --bitcoin-node parameter, if specified on the command line, implies --enable
 
 If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica will launch the ic-btc-adapter process and configure the replica to communicate with it.
 
+
+=== feat: print wallet balance in a human readable form #2184
+
+Default behaviour changed for `+dfx wallet balance+`, it will now print cycles amount upscaled to trillions.
+
+New flag `+--precise+` added to `+dfx wallet balance+`. Allows to get exact amount of cycles in wallet (without upscaling).
+
 === feat: canister http integration
 
 dfx command-line parameters for canister http requests integration:
