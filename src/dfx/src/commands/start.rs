@@ -1,13 +1,13 @@
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::{
-    start_btc_adapter_actor, start_emulator_actor, start_icx_proxy_actor, start_replica_actor,
-    start_shutdown_controller,
+    start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
+    start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfinity::{Config, ConfigInterface};
-use crate::lib::bitcoin;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
+use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
@@ -50,9 +50,13 @@ pub struct StartOpts {
     #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
     bitcoin_node: Vec<SocketAddr>,
 
-    /// enable the bitcoin adapter
+    /// enable bitcoin integration
     #[clap(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
+
+    /// enable canister http requests
+    #[clap(long, conflicts_with("emulator"))]
+    enable_canister_http: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -153,6 +157,7 @@ pub fn exec(
         clean,
         bitcoin_node,
         enable_bitcoin,
+        enable_canister_http,
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
@@ -173,6 +178,10 @@ pub fn exec(
     let pid_file_path = empty_writable_path(pid_file_path)?;
     let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
     let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
+    let canister_http_adapter_pid_file_path =
+        empty_writable_path(temp_dir.join("ic-canister-http-adapter-pid"))?;
+    let canister_http_adapter_config_path =
+        empty_writable_path(temp_dir.join("ic-canister-http-config.json"))?;
     let icx_proxy_pid_file_path = empty_writable_path(temp_dir.join("icx-proxy-pid"))?;
     let webserver_port_path = empty_writable_path(temp_dir.join("webserver-port"))?;
 
@@ -203,6 +212,15 @@ pub fn exec(
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
 
+    let canister_http_adapter_config = configure_canister_http_adapter_if_enabled(
+        config.get_config(),
+        &canister_http_adapter_config_path,
+        enable_canister_http,
+    )?;
+    let canister_http_socket_path = canister_http_adapter_config
+        .as_ref()
+        .and_then(|cfg| cfg.get_socket_path());
+
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
@@ -220,6 +238,21 @@ pub fn exec(
                         socket_path.clone(),
                         shutdown_controller.clone(),
                         btc_adapter_pid_file_path,
+                    )?
+                    .recipient();
+                    (Some(ready_subscribe), socket_path)
+                } else {
+                    (None, None)
+                };
+            let (canister_http_adapter_ready_subscribe, canister_http_socket_path) =
+                if let Some(ref canister_http_adapter_config) = canister_http_adapter_config {
+                    let socket_path = canister_http_adapter_config.get_socket_path();
+                    let ready_subscribe = start_canister_http_adapter_actor(
+                        env,
+                        canister_http_adapter_config_path,
+                        socket_path.clone(),
+                        shutdown_controller.clone(),
+                        canister_http_adapter_pid_file_path,
                     )?
                     .recipient();
                     (Some(ready_subscribe), socket_path)
@@ -246,12 +279,19 @@ pub fn exec(
                     replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
                 }
             }
+            if canister_http_adapter_config.is_some() {
+                replica_config = replica_config.with_canister_http_adapter_enabled();
+                if let Some(socket_path) = canister_http_socket_path {
+                    replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
+                }
+            }
 
             let replica = start_replica_actor(
                 env,
                 replica_config,
                 shutdown_controller.clone(),
                 btc_adapter_ready_subscribe,
+                canister_http_adapter_ready_subscribe,
             )?;
             replica.recipient()
         };
@@ -284,6 +324,9 @@ pub fn exec(
 
     if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
         let _ = std::fs::remove_file(&btc_adapter_socket_path);
+    }
+    if let Some(canister_http_socket_path) = canister_http_socket_path {
+        let _ = std::fs::remove_file(&canister_http_socket_path);
     }
 
     Ok(())
@@ -429,4 +472,35 @@ pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
     std::fs::write(&path, "")
         .with_context(|| format!("Unable to write to {}", path.to_string_lossy()))?;
     Ok(path)
+}
+
+#[context("Failed to configure canister http adapter.")]
+pub fn configure_canister_http_adapter_if_enabled(
+    config: &ConfigInterface,
+    config_path: &Path,
+    enable_canister_http: bool,
+) -> DfxResult<Option<canister_http::adapter::Config>> {
+    let enable = enable_canister_http || config.get_defaults().get_canister_http().enabled;
+
+    if !enable {
+        return Ok(None);
+    };
+
+    let pid = sysinfo::get_current_pid()
+        .map_err(|s| anyhow!("Unable to obtain pid: {}", s))
+        .context("Unable to construct canister http adapter socket path")?;
+
+    // Unix socket domain names can only be so long.
+    // An attempt to use a path under .dfx/ resulted in this error:
+    //    path must be shorter than libc::sockaddr_un.sun_path
+    let socket_path = PathBuf::from(format!("/tmp/ic-canister-http-adapter-socket.{}", pid));
+
+    let adapter_config = canister_http::adapter::Config::new(socket_path);
+
+    let contents = serde_json::to_string_pretty(&adapter_config)
+        .context("Unable to serialize canister http adapter configuration to json")?;
+    std::fs::write(config_path, &contents)
+        .with_context(|| format!("Unable to write {}", config_path.to_string_lossy()))?;
+
+    Ok(Some(adapter_config))
 }

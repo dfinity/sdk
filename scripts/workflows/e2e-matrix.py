@@ -23,6 +23,10 @@ matrix = {
         {
             'backend': 'ic-ref',
             'test': 'dfx/bitcoin'
+        },
+        {
+            'backend': 'ic-ref',
+            'test': 'dfx/canister_http'
         }
     ]
 }

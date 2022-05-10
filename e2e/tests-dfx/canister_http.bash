@@ -6,32 +6,22 @@ load ../utils/_
 
 setup() {
     standard_setup
-
-    bitcoind -regtest -daemonwait
 }
 
 teardown() {
-    bitcoin-cli -regtest stop
-
     dfx_stop
     dfx_stop_replica_and_bootstrap
     standard_teardown
 }
 
-set_default_bitcoin_enabled() {
+set_default_canister_http_enabled() {
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.defaults.bitcoin.enabled=true' dfx.json)" >dfx.json
+    cat <<<"$(jq '.defaults.canister_http.enabled=true' dfx.json)" >dfx.json
 }
 
-@test "noop" {
-    assert_command bitcoin-cli -regtest createwallet "test"
-    ADDRESS="$(bitcoin-cli -regtest getnewaddress)"
-    assert_command bitcoin-cli -regtest generatetoaddress 101 "$ADDRESS"
-}
-
-@test "dfx restarts replica when ic-btc-adapter restarts" {
+@test "dfx restarts replica when ic-canister-http-adapter restarts" {
     dfx_new hello
-    set_default_bitcoin_enabled
+    set_default_canister_http_enabled
     dfx_start
 
     install_asset greet
@@ -40,13 +30,13 @@ set_default_bitcoin_enabled() {
     assert_eq '("Hello, Alpha!")'
 
     REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
-    BTC_ADAPTER_PID=$(cat .dfx/ic-btc-adapter-pid)
+    CANISTER_HTTP_ADAPTER_PID=$(cat .dfx/ic-canister-http-adapter-pid)
 
     echo "replica pid is $REPLICA_PID"
-    echo "ic-btc-adapter pid is $BTC_ADAPTER_PID"
+    echo "ic-canister-http-adapter pid is $CANISTER_HTTP_ADAPTER_PID"
 
-    kill -KILL "$BTC_ADAPTER_PID"
-    assert_process_exits "$BTC_ADAPTER_PID" 15s
+    kill -KILL "$CANISTER_HTTP_ADAPTER_PID"
+    assert_process_exits "$CANISTER_HTTP_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
 
     timeout 15s sh -c \
@@ -73,9 +63,9 @@ set_default_bitcoin_enabled() {
     assert_command curl --fail http://localhost:"$(cat .dfx/webserver-port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
+@test "dfx restarts replica when ic-canister-http-adapter restarts (replica and bootstrap)" {
     dfx_new hello
-    set_default_bitcoin_enabled
+    set_default_canister_http_enabled
     dfx_start_replica_and_bootstrap
 
     install_asset greet
@@ -84,14 +74,14 @@ set_default_bitcoin_enabled() {
     assert_eq '("Hello, Alpha!")'
 
     REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
-    BTC_ADAPTER_PID=$(cat .dfx/ic-btc-adapter-pid)
+    CANISTER_HTTP_ADAPTER_PID=$(cat .dfx/ic-canister-http-adapter-pid)
 
     echo "replica pid is $REPLICA_PID"
     echo "replica port is $(cat .dfx/replica-configuration/replica-1.port)"
-    echo "ic-btc-adapter pid is $BTC_ADAPTER_PID"
+    echo "ic-canister-http-adapter pid is $CANISTER_HTTP_ADAPTER_PID"
 
-    kill -KILL "$BTC_ADAPTER_PID"
-    assert_process_exits "$BTC_ADAPTER_PID" 15s
+    kill -KILL "$CANISTER_HTTP_ADAPTER_PID"
+    assert_process_exits "$CANISTER_HTTP_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
 
     timeout 15s sh -x -c \
@@ -118,81 +108,36 @@ set_default_bitcoin_enabled() {
     assert_eq '("Hello, Omega!")'
 }
 
-
-@test "dfx start --bitcoin-node <node> implies --enable-bitcoin" {
+@test "dfx start --enable-canister-http with no other configuration succeeds" {
     dfx_new hello
-    dfx_start "--bitcoin-node" "127.0.0.1:18444"
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    dfx_start --enable-canister-http
+
+    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
 
-@test "dfx replica --bitcoin-node <node> implies --enable-bitcoin" {
+@test "dfx replica --enable-canister-http with no other configuration succeeds" {
     dfx_new hello
-    dfx_start_replica_and_bootstrap "--bitcoin-node" "127.0.0.1:18444"
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    dfx_start_replica_and_bootstrap --enable-canister-http
+
+    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
 
-
-@test "dfx start --enable-bitcoin with no other configuration succeeds" {
+@test "can enable http through default configuration (dfx start)" {
     dfx_new hello
-
-    dfx_start --enable-bitcoin
-
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
-}
-
-@test "dfx replica --enable-bitcoin with no other configuration succeeds" {
-    dfx_new hello
-
-    dfx_start_replica_and_bootstrap --enable-bitcoin
-
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
-}
-
-@test "can enable bitcoin through default configuration (dfx start)" {
-    dfx_new hello
-    set_default_bitcoin_enabled
+    set_default_canister_http_enabled
 
     dfx_start
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
 
-@test "can enable bitcoin through default configuration (dfx replica)" {
+@test "can enable http through default configuration (dfx replica)" {
     dfx_new hello
-    set_default_bitcoin_enabled
+    set_default_canister_http_enabled
 
     dfx_start_replica_and_bootstrap
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
-}
-
-@test "dfx start with both bitcoin and canister http enabled" {
-    dfx_new hello
-
-    dfx_start --enable-bitcoin --enable-canister-http
-
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
-
-    install_asset greet
-    assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
-    assert_eq '("Hello, Alpha!")'
 }
-
-@test "dfx replica+bootstrap with both bitcoin and canister http enabled" {
-    dfx_new hello
-
-    dfx_start_replica_and_bootstrap --enable-bitcoin --enable-canister-http
-
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
-    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
-
-    install_asset greet
-    assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
-    assert_eq '("Hello, Alpha!")'
-}
-
