@@ -3,6 +3,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -342,6 +343,7 @@ impl ConfigInterface {
 
     /// Return the names of the specified canister and all of its dependencies.
     /// If none specified, return the names of all canisters.
+    #[context("Failed to get canisters with their dependencies (for {}).", some_canister.unwrap_or("all canisters"))]
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
@@ -363,6 +365,11 @@ impl ConfigInterface {
         Ok(canister_names)
     }
 
+    #[context(
+        "Failed to figure out if canister '{}' has a remote id on network '{}'.",
+        canister,
+        network
+    )]
     pub fn get_remote_canister_id(
         &self,
         canister: &str,
@@ -380,18 +387,26 @@ impl ConfigInterface {
         Ok(maybe_principal)
     }
 
+    #[context(
+        "Failed while determining if canister '{}' is remote on network '{}'.",
+        canister,
+        network
+    )]
     pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
         Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
+    #[context("Failed to get compute allocation for '{}'.", canister_name)]
     pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "compute_allocation")
     }
 
+    #[context("Failed to get memory allocation for '{}'.", canister_name)]
     pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "memory_allocation")
     }
 
+    #[context("Failed to get freezing threshold for '{}'.", canister_name)]
     pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "freezing_threshold")
     }
@@ -419,6 +434,7 @@ impl ConfigInterface {
     }
 }
 
+#[context("Failed to add dependencies for canister '{}'.", canister_name)]
 fn add_dependencies(
     all_canisters: &BTreeMap<String, ConfigCanistersCanister>,
     names: &mut HashSet<String>,
@@ -470,8 +486,14 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
+    #[context("Failed to resolve config path from {}.", working_dir.to_string_lossy())]
     fn resolve_config_path(working_dir: &Path) -> DfxResult<Option<PathBuf>> {
-        let mut curr = PathBuf::from(working_dir).canonicalize()?;
+        let mut curr = PathBuf::from(working_dir).canonicalize().with_context(|| {
+            format!(
+                "Failed to canonicalize working dir path {:}.",
+                working_dir.to_string_lossy()
+            )
+        })?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
                 return Ok(Some(curr.join(CONFIG_FILE_NAME)));
@@ -488,12 +510,11 @@ impl Config {
         Ok(None)
     }
 
+    #[context("Failed to load config from {}.", path.to_string_lossy())]
     fn from_file(path: &Path) -> DfxResult<Config> {
-        {
-            let content = std::fs::read(&path)?;
-            Config::from_slice(path.to_path_buf(), &content)
-        }
-        .with_context(|| format!("Reading {}", path.to_string_lossy()))
+        let content = std::fs::read(&path)
+            .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
+        Ok(Config::from_slice(path.to_path_buf(), &content)?)
     }
 
     fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
@@ -502,8 +523,11 @@ impl Config {
         Ok(maybe_config)
     }
 
+    #[context("Failed to read config from current working directory.")]
     pub fn from_current_dir() -> DfxResult<Option<Config>> {
-        Config::from_dir(&std::env::current_dir()?)
+        Config::from_dir(
+            &std::env::current_dir().context("Failed to determine current working dir.")?,
+        )
     }
 
     fn from_slice(path: PathBuf, content: &[u8]) -> std::io::Result<Config> {
@@ -550,7 +574,9 @@ impl Config {
     pub fn save(&self) -> DfxResult {
         let json_pretty = serde_json::to_string_pretty(&self.json)
             .map_err(|e| error_invalid_data!("Failed to serialize dfx.json: {}", e))?;
-        std::fs::write(&self.path, json_pretty)?;
+        std::fs::write(&self.path, json_pretty).with_context(|| {
+            format!("Failed to write config to {}.", self.path.to_string_lossy())
+        })?;
         Ok(())
     }
 }

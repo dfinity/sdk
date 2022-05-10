@@ -1,6 +1,7 @@
 use crate::config::dfinity::ConfigInterface;
 use crate::lib::error::DfxResult;
 
+use fn_error_context::context;
 use humanize_rs::bytes::Bytes;
 use ic_types::principal::Principal;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -15,6 +16,7 @@ pub struct CanisterSettings {
     pub freezing_threshold: Option<FreezingThreshold>,
 }
 
+#[context("Failed to get compute allocation.")]
 pub fn get_compute_allocation(
     compute_allocation: Option<String>,
     config_interface: &ConfigInterface,
@@ -31,6 +33,7 @@ pub fn get_compute_allocation(
     }))
 }
 
+#[context("Failed to get memory allocation.")]
 pub fn get_memory_allocation(
     memory_allocation: Option<String>,
     config_interface: &ConfigInterface,
@@ -47,6 +50,7 @@ pub fn get_memory_allocation(
     }))
 }
 
+#[context("Failed to get freezing threshold.")]
 pub fn get_freezing_threshold(
     freezing_threshold: Option<String>,
     config_interface: &ConfigInterface,

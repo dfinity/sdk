@@ -13,6 +13,7 @@ use crate::commands::start::{
     empty_writable_path,
 };
 use clap::Parser;
+use fn_error_context::context;
 use std::default::Default;
 use std::net::SocketAddr;
 
@@ -41,6 +42,7 @@ pub struct ReplicaOpts {
 }
 
 /// Gets the configuration options for the Internet Computer replica.
+#[context("Failed to get replica config.")]
 fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConfig> {
     let config = get_config_from_file(env);
     let port = get_port(&config, opts.port)?;
@@ -73,6 +75,7 @@ fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsReplica {
 /// Gets the port number that the Internet Computer replica listens on. First checks if the port
 /// number was specified on the command-line using --port, otherwise checks if the port number was
 /// specified in the dfx configuration file, otherise defaults to 8080.
+#[context("Failed to get port.")]
 fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u16> {
     port.map(|port| port.parse())
         .unwrap_or_else(|| {

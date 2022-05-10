@@ -8,6 +8,7 @@ use crate::util::clap::validators::project_name_validator;
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use console::{style, Style};
+use fn_error_context::context;
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
 use semver::Version;
@@ -95,9 +96,11 @@ impl std::fmt::Display for Status<'_> {
 pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> DfxResult {
     if !dry_run {
         if let Some(p) = path.parent() {
-            std::fs::create_dir_all(p)?;
+            std::fs::create_dir_all(p)
+                .with_context(|| format!("Failed to create directory {}.", p.to_string_lossy()))?;
         }
-        std::fs::write(&path, content)?;
+        std::fs::write(&path, content)
+            .with_context(|| format!("Failed to write to {}.", path.to_string_lossy()))?;
     }
 
     info!(log, "{}", Status::Create(path, content.len()));
@@ -112,13 +115,15 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
     }
 
     if !dry_run {
-        std::fs::create_dir_all(&path)?;
+        std::fs::create_dir_all(&path)
+            .with_context(|| format!("Failed to create directory {}.", path.to_string_lossy()))?;
     }
 
     info!(log, "{}", Status::CreateDir(path));
     Ok(())
 }
 
+#[context("Failed to init git at {}.", project_name.to_string_lossy())]
 pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
     let init_status = std::process::Command::new("git")
         .arg("init")
@@ -133,18 +138,21 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
             .arg("add")
             .current_dir(project_name)
             .arg(".")
-            .output()?;
+            .output()
+            .context("Failed to run 'git add'.")?;
         std::process::Command::new("git")
             .arg("commit")
             .current_dir(project_name)
             .arg("-a")
             .arg("--message=Initial commit.")
-            .output()?;
+            .output()
+            .context("Failed to run 'git commit'.")?;
     }
 
     Ok(())
 }
 
+#[context("Failed to unpack archive to {}.", root.to_string_lossy())]
 fn write_files_from_entries<R: Sized + Read>(
     log: &Logger,
     archive: &mut Archive<R>,
@@ -193,6 +201,7 @@ fn write_files_from_entries<R: Sized + Read>(
     Ok(())
 }
 
+#[context("Failed to run 'npm install'.")]
 fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
     std::process::Command::new("npm")
         .arg("install")
@@ -205,6 +214,7 @@ fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
         .map_err(DfxError::from)
 }
 
+#[context("Failed to scaffold frontend code.")]
 fn scaffold_frontend_code(
     env: &dyn Environment,
     dry_run: bool,
@@ -250,9 +260,11 @@ fn scaffold_frontend_code(
         )?;
 
         let dfx_path = project_name.join(CONFIG_FILE_NAME);
-        let content = std::fs::read(&dfx_path)?;
-        let mut config_json: Value =
-            serde_json::from_slice(&content).map_err(std::io::Error::from)?;
+        let content =
+            std::fs::read(&dfx_path).with_context(|| format!("Failed to read {:?}.", &dfx_path))?;
+        let mut config_json: Value = serde_json::from_slice(&content)
+            .map_err(std::io::Error::from)
+            .with_context(|| format!("Failed to parse {}.", dfx_path.to_string_lossy()))?;
 
         let frontend_value: serde_json::Map<String, Value> = [(
             "entrypoint".to_string(),
@@ -285,7 +297,8 @@ fn scaffold_frontend_code(
 
             let pretty = serde_json::to_string_pretty(&config_json)
                 .context("Invalid data: Cannot serialize configuration file.")?;
-            std::fs::write(&dfx_path, pretty)?;
+            std::fs::write(&dfx_path, pretty)
+                .with_context(|| format!("Failed to write to {}.", dfx_path.to_string_lossy()))?;
 
             // Install node modules. Error is not blocking, we just show a message instead.
             if node_installed {
@@ -328,7 +341,8 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
             child
                 .stdout
                 .expect("Could not get the output of subprocess 'npm'.")
-                .read_to_string(&mut result)?;
+                .read_to_string(&mut result)
+                .context("Failed to run 'npm'.")?;
             Ok(result.trim().to_string())
         })
 }
@@ -353,9 +367,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         warn_upgrade(log, latest_version.as_ref(), current_version);
     }
 
-    if !env.get_cache().is_installed()? {
-        env.get_cache().install()?;
-    }
+    env.get_cache().install()?;
 
     info!(
         log,
@@ -384,8 +396,8 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
 
     // Default to start with motoko
     let mut new_project_files = match opts.r#type.as_str() {
-        "rust" => assets::new_project_rust_files()?,
-        "motoko" => assets::new_project_motoko_files()?,
+        "rust" => assets::new_project_rust_files().context("Failed to get rust archive.")?,
+        "motoko" => assets::new_project_motoko_files().context("Failed to get motoko archive.")?,
         t => bail!("Unsupported canister type: {}", t),
     };
     write_files_from_entries(

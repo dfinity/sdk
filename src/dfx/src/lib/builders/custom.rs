@@ -8,6 +8,7 @@ use crate::lib::models::canister::CanisterPool;
 
 use anyhow::{anyhow, Context};
 use console::style;
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::info;
@@ -29,6 +30,7 @@ struct CustomBuilderExtra {
 }
 
 impl CustomBuilderExtra {
+    #[context("Failed to create CustomBuilderExtra for canister '{}'.", info.get_name())]
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
         let deps = match info.get_extra_value("dependencies") {
             None => vec![],
@@ -45,7 +47,7 @@ impl CustomBuilderExtra {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>()?;
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
 
         let wasm = info
             .get_output_wasm_path()
@@ -57,7 +59,8 @@ impl CustomBuilderExtra {
             if let Ok(s) = String::deserialize(json.clone()) {
                 vec![s]
             } else {
-                Vec::<String>::deserialize(json)?
+                Vec::<String>::deserialize(json)
+                    .context("Failed to deserialize json in 'build'.")?
             }
         } else {
             vec![]
@@ -83,6 +86,7 @@ pub struct CustomBuilder {
 }
 
 impl CustomBuilder {
+    #[context("Failed to create CustomBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(CustomBuilder {
             logger: env.get_logger().clone(),
@@ -95,6 +99,7 @@ impl CanisterBuilder for CustomBuilder {
         info.get_type() == "custom"
     }
 
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
@@ -103,6 +108,7 @@ impl CanisterBuilder for CustomBuilder {
         Ok(CustomBuilderExtra::try_from(info, pool)?.dependencies)
     }
 
+    #[context("Failed to build custom canister {}.", info.get_name())]
     fn build(
         &self,
         pool: &CanisterPool,
@@ -129,10 +135,10 @@ impl CanisterBuilder for CustomBuilder {
 
             // First separate everything as if it was read from a shell.
             let args = shell_words::split(&command)
-                .context(format!("Cannot parse command '{}'.", command))?;
+                .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &vars)?;
+                run_command(args, &vars).with_context(|| format!("Failed to run {}.", command))?;
             }
         }
 
@@ -155,7 +161,12 @@ impl CanisterBuilder for CustomBuilder {
             .as_ref()
             .context("output here must not be None")?;
 
-        std::fs::create_dir_all(generate_output_dir)?;
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
+            format!(
+                "Failed to create {}.",
+                generate_output_dir.to_string_lossy()
+            )
+        })?;
 
         let output_idl_path = generate_output_dir
             .join(info.get_name())
@@ -164,7 +175,13 @@ impl CanisterBuilder for CustomBuilder {
         // get the path to candid file
         let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)?;
 
-        std::fs::copy(&candid, &output_idl_path)?;
+        std::fs::copy(&candid, &output_idl_path).with_context(|| {
+            format!(
+                "Failed to copy canidid from {} to {}.",
+                candid.to_string_lossy(),
+                output_idl_path.to_string_lossy()
+            )
+        })?;
 
         Ok(output_idl_path)
     }

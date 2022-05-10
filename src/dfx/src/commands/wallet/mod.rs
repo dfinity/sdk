@@ -6,9 +6,11 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
+use anyhow::Context;
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use clap::Parser;
+use fn_error_context::context;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::WalletCanister;
 use tokio::runtime::Runtime;
@@ -78,6 +80,7 @@ pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
     })
 }
 
+#[context("Failed to call query function '{}' on wallet.", method)]
 async fn wallet_query<A, O>(env: &dyn Environment, method: &str, arg: A) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,
@@ -92,10 +95,17 @@ where
     let wallet =
         Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
 
-    let out: O = wallet.query_(method).with_arg(arg).build().call().await?;
+    let out: O = wallet
+        .query_(method)
+        .with_arg(arg)
+        .build()
+        .call()
+        .await
+        .context("Query to wallet failed.")?;
     Ok(out)
 }
 
+#[context("Failed to call update function '{}' on wallet.", method)]
 async fn wallet_update<A, O>(env: &dyn Environment, method: &str, arg: A) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,
@@ -111,6 +121,7 @@ where
     Ok(out)
 }
 
+#[context("Failed to setup wallet caller.")]
 async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
     let identity_name = env
         .get_selected_identity()

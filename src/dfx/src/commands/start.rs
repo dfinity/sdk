@@ -16,6 +16,7 @@ use crate::lib::webserver::run_webserver;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
+use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
@@ -63,9 +64,16 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     let agent = Agent::builder()
         .with_transport(
-            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(frontend_url)?,
+            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(frontend_url)
+                .with_context(|| {
+                    format!(
+                        "Failed to create replica transport from frontend url {}.",
+                        frontend_url
+                    )
+                })?,
         )
-        .build()?;
+        .build()
+        .with_context(|| format!("Failed to build agent with frontend url {}.", frontend_url))?;
 
     // wait for frontend to come up
     let mut waiter = Delay::builder()
@@ -106,20 +114,28 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
         .throttle(std::time::Duration::from_secs(1))
         .build();
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let port = runtime.block_on(async {
-        waiter.start();
-        let mut contents = String::new();
-        loop {
-            let tokio_file = tokio::fs::File::open(&webserver_port_path).await?;
-            let mut std_file = tokio_file.into_std().await;
-            std_file.read_to_string(&mut contents)?;
-            if !contents.is_empty() {
-                break;
+    let port = runtime
+        .block_on(async {
+            waiter.start();
+            let mut contents = String::new();
+            loop {
+                let tokio_file = tokio::fs::File::open(&webserver_port_path)
+                    .await
+                    .with_context(|| {
+                        format!("Failed to open {}.", webserver_port_path.to_string_lossy())
+                    })?;
+                let mut std_file = tokio_file.into_std().await;
+                std_file.read_to_string(&mut contents).with_context(|| {
+                    format!("Failed to read {}.", webserver_port_path.to_string_lossy())
+                })?;
+                if !contents.is_empty() {
+                    break;
+                }
+                waiter.wait().map_err(|err| anyhow!("{:?}", err))?;
             }
-            waiter.wait().map_err(|err| anyhow!("{:?}", err))?;
-        }
-        Ok::<String, DfxError>(contents.clone())
-    })?;
+            Ok::<String, DfxError>(contents.clone())
+        })
+        .context("Failed to get port.")?;
     let mut frontend_url_mod = frontend_url.clone();
     let port_offset = frontend_url_mod
         .as_str()
@@ -180,7 +196,7 @@ pub fn exec(
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
         || {
             format!(
-                "Unable to write to {}",
+                "Failed to write webserver port file {}.",
                 webserver_port_path.to_string_lossy()
             )
         },
@@ -316,38 +332,37 @@ pub fn exec(
     Ok(())
 }
 
+#[context("Failed to clean existing replica state.")]
 fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     // Clean the contents of the provided directory including the
     // directory itself. N.B. This does NOT follow symbolic links -- and I
     // hope we do not need to.
     if state_root.is_dir() {
-        fs::remove_dir_all(state_root).context(format!(
-            "Cannot remove directory at '{}'.",
-            state_root.display()
-        ))?;
+        fs::remove_dir_all(state_root)
+            .with_context(|| format!("Cannot remove directory at '{}'.", state_root.display()))?;
     }
     let local_dir = temp_dir.join("local");
     if local_dir.is_dir() {
-        fs::remove_dir_all(&local_dir).context(format!(
-            "Cannot remove directory at '{}'.",
-            local_dir.display()
-        ))?;
+        fs::remove_dir_all(&local_dir)
+            .with_context(|| format!("Cannot remove directory at '{}'.", local_dir.display()))?;
     }
     Ok(())
 }
 
+#[context("Failed to spawn background dfx.")]
 fn send_background() -> DfxResult<()> {
     // Background strategy is different; we spawn `dfx` with the same arguments
     // (minus --background), ping and exit.
-    let exe = std::env::current_exe()?;
+    let exe = std::env::current_exe().context("Failed to get current executable.")?;
     let mut cmd = Command::new(exe);
     // Skip 1 because arg0 is this executable's path.
     cmd.args(std::env::args().skip(1).filter(|a| !a.eq("--background")));
 
-    cmd.spawn()?;
+    cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())
 }
 
+#[context("Failed to get frontend address.")]
 fn frontend_address(
     host: Option<String>,
     config: &Config,
@@ -367,8 +382,8 @@ fn frontend_address(
         // Since the user may have provided port "0", we need to grab a dynamically
         // allocated port and construct a resuable SocketAddr which the actix
         // HttpServer will bind to
-        address_and_port = get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())
-            .with_context(|| format!("Getting frontend address {}", address_and_port))?;
+        address_and_port =
+            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
     }
     let ip = if address_and_port.is_ipv6() {
         format!("[{}]", address_and_port.ip())
@@ -402,6 +417,7 @@ fn write_pid(pid_file_path: &Path) {
     }
 }
 
+#[context("Failed to configure btc adapter.")]
 pub fn configure_btc_adapter_if_enabled(
     config: &ConfigInterface,
     config_path: &Path,
@@ -420,11 +436,11 @@ pub fn configure_btc_adapter_if_enabled(
         (_, _) => bitcoin::adapter::config::default_nodes(),
     };
 
-    let config =
-        write_btc_adapter_config(config_path, nodes).context("Unable to configure btc adapter")?;
+    let config = write_btc_adapter_config(config_path, nodes)?;
     Ok(Some(config))
 }
 
+#[context("Failed to write btc adapter config to {}.", config_path.to_string_lossy())]
 fn write_btc_adapter_config(
     config_path: &Path,
     nodes: Vec<SocketAddr>,

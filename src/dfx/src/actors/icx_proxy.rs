@@ -89,15 +89,18 @@ impl IcxProxy {
         let fetch_root_key = config.fetch_root_key;
         let (sender, receiver) = unbounded();
 
-        let handle = icx_proxy_start_thread(
-            logger,
-            config.bind,
-            providers,
-            proxy_port,
-            icx_proxy_path,
-            icx_proxy_pid_path.clone(),
-            receiver,
-            fetch_root_key,
+        let handle = anyhow::Context::context(
+            icx_proxy_start_thread(
+                logger,
+                config.bind,
+                providers,
+                proxy_port,
+                icx_proxy_path,
+                icx_proxy_pid_path.clone(),
+                receiver,
+                fetch_root_key,
+            ),
+            "Failed to start ICX proxy thread.",
         )?;
 
         self.thread_join = Some(handle);

@@ -10,12 +10,15 @@ use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use anyhow::{anyhow, Context};
 use argon2::{password_hash::PasswordHasher, Argon2};
+use fn_error_context::context;
 
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
 ///
 /// Try to only load the pem file once, as the user may be prompted for the password every single time you call this function.
+#[context("Failed to load pem file {}.", path.to_string_lossy())]
 pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> DfxResult<Vec<u8>> {
-    let content = std::fs::read(path)?;
+    let content = std::fs::read(path)
+        .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
     let content = maybe_decrypt_pem(content.as_slice(), config)?;
     identity_utils::validate_pem_file(&content)?;
     Ok(content)
@@ -24,6 +27,7 @@ pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> Dfx
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
 ///
 /// Automatically creates required directories.
+#[context("Failed to write pem file.")]
 pub fn write_pem_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
@@ -31,21 +35,28 @@ pub fn write_pem_file(
 ) -> DfxResult<()> {
     let pem_content = maybe_encrypt_pem(pem_content, config)?;
 
-    let containing_folder = path.parent().context(format!(
-        "Could not determine parent folder for {}",
-        path.display()
-    ))?;
-    std::fs::create_dir_all(containing_folder)?;
-    std::fs::write(&path, pem_content)?;
+    let containing_folder = path.parent().with_context(|| {
+        format!(
+            "Could not determine parent folder for {}",
+            path.to_string_lossy()
+        )
+    })?;
+    std::fs::create_dir_all(containing_folder)
+        .with_context(|| format!("Failed to create {}.", containing_folder.to_string_lossy()))?;
+    std::fs::write(path, pem_content)
+        .with_context(|| format!("Failed to write pem file to {}.", path.to_string_lossy()))?;
 
-    let mut permissions = std::fs::metadata(&path)?.permissions();
+    let mut permissions = std::fs::metadata(path)
+        .with_context(|| format!("Failed to read permissions of {}.", path.to_string_lossy()))?
+        .permissions();
     permissions.set_readonly(true);
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         permissions.set_mode(0o400);
     }
-    std::fs::set_permissions(&path, permissions)?;
+    std::fs::set_permissions(path, permissions)
+        .with_context(|| format!("Failed to set permissions of {}.", path.to_string_lossy()))?;
 
     Ok(())
 }
@@ -57,14 +68,14 @@ pub fn write_pem_file(
 /// If the pem file should not be encrypted, then the content is returned as is.
 ///
 /// `maybe_decrypt_pem` does the opposite.
+#[context("Failed to encrypt pem file.")]
 fn maybe_encrypt_pem(
     pem_content: &[u8],
     config: Option<&IdentityConfiguration>,
 ) -> DfxResult<Vec<u8>> {
     if let Some(encryption_config) = config.and_then(|c| c.encryption.as_ref()) {
         let password = password_prompt()?;
-        let result = encrypt(pem_content, encryption_config, &password)
-            .context("Problem occurred during encryption");
+        let result = encrypt(pem_content, encryption_config, &password);
         println!("Encryption complete.");
         result
     } else {
@@ -79,14 +90,14 @@ fn maybe_encrypt_pem(
 /// If the pem file should not be encrypted, then the content is returned as is.
 ///
 /// `maybe_encrypt_pem` does the opposite.
+#[context("Failed to decrypt pem file.")]
 fn maybe_decrypt_pem(
     pem_content: &[u8],
     config: Option<&IdentityConfiguration>,
 ) -> DfxResult<Vec<u8>> {
     if let Some(decryption_config) = config.and_then(|c| c.encryption.as_ref()) {
         let password = password_prompt()?;
-        let result = decrypt(pem_content, decryption_config, &password)
-            .context("Problem occurred during decryption");
+        let result = decrypt(pem_content, decryption_config, &password);
         if result.is_ok() {
             // print to stderr so that output redirection works for the identity export command
             eprintln!("Decryption complete.");
@@ -97,10 +108,12 @@ fn maybe_decrypt_pem(
     }
 }
 
+#[context("Failed to prompt user for password.")]
 fn password_prompt() -> DfxResult<String> {
     let pw = dialoguer::Password::new()
         .with_prompt("Please enter a passphrase for your identity")
-        .interact()?;
+        .interact()
+        .context("Failed to read user input.")?;
     Ok(pw)
 }
 
@@ -108,6 +121,7 @@ fn get_argon_params() -> argon2::Params {
     argon2::Params::new(64000 /* in kb */, 3, 1, Some(32 /* in bytes */)).unwrap()
 }
 
+#[context("Failed during encryption.")]
 fn encrypt(content: &[u8], config: &EncryptionConfiguration, password: &str) -> DfxResult<Vec<u8>> {
     let argon2 = Argon2::new(
         argon2::Algorithm::Argon2id,
@@ -123,11 +137,12 @@ fn encrypt(content: &[u8], config: &EncryptionConfiguration, password: &str) -> 
 
     let encrypted = cipher
         .encrypt(nonce, content)
-        .map_err(|_| anyhow!("Encryption failed."))?;
+        .map_err(|e| anyhow!("Failed to encrypt content: {}", e))?;
 
     Ok(encrypted)
 }
 
+#[context("Failed during decryption.")]
 fn decrypt(
     encrypted_content: &[u8],
     config: &EncryptionConfiguration,
@@ -147,7 +162,7 @@ fn decrypt(
 
     let decrypted = cipher
         .decrypt(nonce, encrypted_content.as_ref())
-        .map_err(|_| anyhow!("Decryption failed."))?;
+        .map_err(|e| anyhow!("Failed to decrypt content: {}.", e))?;
     Ok(decrypted)
 }
 

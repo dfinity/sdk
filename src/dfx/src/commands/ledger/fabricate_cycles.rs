@@ -10,8 +10,8 @@ use crate::util::clap::validators::{
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
 use crate::util::expiry_duration;
 
-use anyhow::Context;
 use clap::Parser;
+use fn_error_context::context;
 use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
@@ -87,6 +87,7 @@ pub struct FabricateCyclesOpts {
     all: bool,
 }
 
+#[context("Failed to deposite {} cycles into canister '{}'.", cycles, canister)]
 async fn deposit_minted_cycles(
     env: &dyn Environment,
     canister: &str,
@@ -99,14 +100,21 @@ async fn deposit_minted_cycles(
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
+    info!(log, "Fabricating {} cycles onto {}", cycles, canister,);
+
     canister::provisional_deposit_cycles(env, canister_id, timeout, call_sender, cycles).await?;
 
-    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
-
-    info!(
-        log,
-        "Fabricated {} cycles for {}, updated balance: {} cycles", cycles, canister, status.cycles
-    );
+    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await;
+    if status.is_ok() {
+        info!(
+            log,
+            "Fabricated {} cycles, updated balance: {} cycles",
+            cycles,
+            status.unwrap().cycles
+        );
+    } else {
+        info!(log, "Fabricated {} cycles.", cycles);
+    }
 
     Ok(())
 }
@@ -134,6 +142,7 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
     }
 }
 
+#[context("Failed to determine amount of cycles to fabricate.")]
 async fn cycles_to_fabricate(env: &dyn Environment, opts: &FabricateCyclesOpts) -> DfxResult<u128> {
     if let Some(cycles_str) = &opts.cycles {
         //cycles_str is validated by cycle_amount_validator. Therefore unwrap is safe
@@ -144,11 +153,8 @@ async fn cycles_to_fabricate(env: &dyn Environment, opts: &FabricateCyclesOpts) 
             .parse::<u128>()
             .unwrap())
     } else if opts.amount.is_some() || opts.icp.is_some() || opts.e8s.is_some() {
-        let icpts = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)
-            .context("Encountered an error while parsing --amount, --icp, or --e8s")?;
-        let cycles = as_cycles_with_current_exchange_rate(&icpts)
-            .await
-            .context("Encountered an error while converting at the current exchange rate. If this issue persist, please specify an amount of cycles manually using the --cycles or --t flag.")?;
+        let icpts = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
+        let cycles = as_cycles_with_current_exchange_rate(&icpts).await?;
         let log = env.get_logger();
         info!(
             log,
