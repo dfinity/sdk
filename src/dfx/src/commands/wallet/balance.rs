@@ -53,6 +53,9 @@ fn round_to_trillion_cycles(amount: u128) -> String {
 }
 
 fn pretty_thousand_separators(num: String) -> String {
+    /// formats a number provided as string, by dividing digits into groups of 3 using a delimiter
+    /// https://en.wikipedia.org/wiki/Decimal_separator#Digit_grouping
+
     // 1. walk backwards (reverse string) and return characters until decimal point is seen
     // 2. once decimal point is seen, start counting chars and:
     //   - every third character but not at the end of the string: return (char + delimiter)
