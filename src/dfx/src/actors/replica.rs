@@ -116,16 +116,19 @@ impl Replica {
 
         let (sender, receiver) = unbounded();
 
-        let handle = replica_start_thread(
-            logger,
-            config.clone(),
-            port,
-            write_port_to,
-            ic_starter_path,
-            replica_path,
-            replica_pid_path,
-            addr,
-            receiver,
+        let handle = anyhow::Context::context(
+            replica_start_thread(
+                logger,
+                config.clone(),
+                port,
+                write_port_to,
+                ic_starter_path,
+                replica_path,
+                replica_pid_path,
+                addr,
+                receiver,
+            ),
+            "Failed to start replica thread.",
         )?;
 
         self.thread_join = Some(handle);

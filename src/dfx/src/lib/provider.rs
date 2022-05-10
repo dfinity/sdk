@@ -5,6 +5,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::{self, expiry_duration};
 
 use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use lazy_static::lazy_static;
 use std::sync::{Arc, RwLock};
 use url::Url;
@@ -20,6 +21,7 @@ fn set_network_context(network: Option<String>) {
     *n = Some(name);
 }
 
+#[context("Failed to get network context.")]
 pub fn get_network_context() -> DfxResult<String> {
     NETWORK_CONTEXT
         .read()
@@ -29,6 +31,7 @@ pub fn get_network_context() -> DfxResult<String> {
 }
 
 // always returns at least one url
+#[context("Failed to get network descriptor.")]
 pub fn get_network_descriptor<'a>(
     env: &'a (dyn Environment + 'a),
     network: Option<String>,
@@ -94,6 +97,7 @@ pub fn get_network_descriptor<'a>(
     }
 }
 
+#[context("Failed to create AgentEnvironment.")]
 pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
     network: Option<String>,
@@ -103,6 +107,7 @@ pub fn create_agent_environment<'a>(
     AgentEnvironment::new(env, network_descriptor, timeout)
 }
 
+#[context("Failed to parse supplied provider url {}.", s)]
 pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
     match parse_provider_url(s) {
         Ok(url) => Ok(url),
@@ -116,7 +121,7 @@ pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
 pub fn parse_provider_url(url: &str) -> DfxResult<String> {
     Url::parse(url)
         .map(|_| String::from(url))
-        .context("Cannot parse provider URL.")
+        .with_context(|| format!("Cannot parse provider URL {}.", url))
 }
 
 #[cfg(test)]

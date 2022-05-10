@@ -7,7 +7,7 @@ use crate::lib::provider::{
 };
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use garcon::{Delay, Waiter};
 use slog::warn;
@@ -28,8 +28,7 @@ pub struct PingOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
-    env.get_config()
-        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+    env.get_config_or_anyhow()?;
 
     // For ping, "provider" could either be a URL or a network name.
     // If not passed, we default to the "local" network.
@@ -84,7 +83,9 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                 .map_err(|_| anyhow!("Timed out waiting for replica to become healthy"))?;
         }
     } else {
-        let status = runtime.block_on(agent.status())?;
+        let status = runtime
+            .block_on(agent.status())
+            .context("Failed while waiting for agent status.")?;
         println!("{}", status);
     }
 

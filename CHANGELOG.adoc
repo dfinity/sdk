@@ -5,6 +5,10 @@
 
 == DFX
 
+=== chore: add context to errors
+
+Most errors that happen within dfx are now reported in much more detail. No more plain `File not found` without explanation what even was attempted.
+
 === feat: bitcoin integration: dfx now generates the bitcoin adapter config file
 
 dfx command-line parameters for bitcoin integration:
