@@ -6,6 +6,8 @@ use clap::Parser;
 use num_traits::FromPrimitive;
 use rust_decimal::Decimal;
 
+const DECIMAL_POINT: char = '.';
+
 /// Get the cycle balance of the selected Identity's cycles wallet.
 #[derive(Parser)]
 pub struct WalletBalanceOpts {
@@ -43,33 +45,37 @@ fn round_to_trillion_cycles(amount: u128) -> String {
         format!("{}", dec.round_dp(FRACTIONAL_PRECISION))
     } else {
         let mut v = (amount / 10u128.pow(SCALE - FRACTIONAL_PRECISION)).to_string();
-        v.insert(v.len() - FRACTIONAL_PRECISION as usize, '.');
+        v.insert(v.len() - FRACTIONAL_PRECISION as usize, DECIMAL_POINT);
         v
     };
 
     pretty_thousand_separators(value)
 }
 
-fn pretty_thousand_separators(i: String) -> String {
-    // 1. walk backwards (reverse string) and return characters until comma is seen
-    // 2. once comma is seen, start counting chars and:
-    //   - every third character but not at the end of the string: return (char + separator)
+fn pretty_thousand_separators(num: String) -> String {
+    // 1. walk backwards (reverse string) and return characters until decimal point is seen
+    // 2. once decimal point is seen, start counting chars and:
+    //   - every third character but not at the end of the string: return (char + delimiter)
     //   - otherwise: return char
     // 3. re-reverse the string
-    const SEPARATOR: char = ',';
+    const GROUP_DELIMITER: char = ',';
     let mut count: u32 = 0;
-    let mut seen_comma = false;
-    i.chars()
+    let mut seen_decimal_point = false;
+    num.chars()
         .rev()
         .enumerate()
         .map(|(idx, c)| {
-            if c == '.' {
-                seen_comma = true;
+            if c == DECIMAL_POINT {
+                seen_decimal_point = true;
                 count += 1;
                 c.to_string()
-            } else if seen_comma && count.rem_euclid(3) == 0 && count > 0 && i.len() != idx + 1 {
+            } else if seen_decimal_point
+                && count.rem_euclid(3) == 0
+                && count > 0
+                && num.len() != idx + 1
+            {
                 count += 1;
-                format!("{}{}", c, SEPARATOR)
+                format!("{}{}", c, GROUP_DELIMITER)
             } else if count == 0 {
                 c.to_string()
             } else {
