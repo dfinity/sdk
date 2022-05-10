@@ -13,9 +13,9 @@ pub struct WalletBalanceOpts {
     precise: bool,
 }
 
-pub async fn exec(env: &dyn Environment, _opts: WalletBalanceOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: WalletBalanceOpts) -> DfxResult {
     let balance = get_wallet(env).await?.wallet_balance().await?;
-    if _opts.precise {
+    if opts.precise {
         println!("{} cycles.", balance.amount);
     } else {
         println!(
