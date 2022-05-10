@@ -18,9 +18,14 @@ type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 
 #[derive(Clone, Debug)]
 pub struct CanisterIdStore {
-    pub network_descriptor: NetworkDescriptor,
-    pub path: PathBuf,
-    pub ids: CanisterIds,
+    network_descriptor: NetworkDescriptor,
+    path: PathBuf,
+
+    // Only the canister ids read from/written to canister-ids.json
+    // which does not include remote canister ids
+    ids: CanisterIds,
+
+    // Remote ids read from dfx.json, never written to canister_ids.json
     remote_ids: Option<CanisterIds>,
 }
 
@@ -157,7 +162,11 @@ impl CanisterIdStore {
 }
 
 fn get_remote_ids(env: &dyn Environment) -> DfxResult<Option<CanisterIds>> {
-    let config = env.get_config_or_anyhow()?;
+    let config = if let Some(cfg) = env.get_config() {
+        cfg
+    } else {
+        return Ok(None);
+    };
     let config = config.get_config();
 
     let mut remote_ids = CanisterIds::new();

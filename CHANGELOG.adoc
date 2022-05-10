@@ -1,6 +1,48 @@
 = dfx changelog
 :doctype: book
 
+= UNRELEASED
+
+== DFX
+
+=== feat: bitcoin integration: dfx now generates the bitcoin adapter config file
+
+dfx command-line parameters for bitcoin integration:
+    dfx start   --enable-bitcoin  # use default node 127.0.0.1:18444
+    dfx start   --enable-bitcoin --bitcoin-node <node>
+
+The above examples also work for dfx replica.
+
+These default to values from dfx.json:
+    .defaults.bitcoin.nodes
+    .defaults.bitcoin.enabled
+
+The --bitcoin-node parameter, if specified on the command line, implies --enable-bitcoin.
+
+If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica will launch the ic-btc-adapter process and configure the replica to communicate with it.
+
+=== Binary cache
+
+Added ic-canister-http-adapter to the binary cache.
+
+== Dependencies
+
+=== Updated agent-rs to 0.16.0
+
+== Motoko
+
+Updated Motoko from 0.6.26 to 0.6.27.
+
+== Replica
+
+Updated replica to elected commit 2e16bb834b05d7eadbe1603c8046a96fe57a1868.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/58479[58479]
+* https://dashboard.internetcomputer.org/proposal/58376[58376]
+* https://dashboard.internetcomputer.org/proposal/57843[57843]
+* https://dashboard.internetcomputer.org/proposal/57395[57395]
+
 = 0.10.0
 
 == DFX

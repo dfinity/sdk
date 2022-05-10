@@ -17,7 +17,7 @@ This command will install a binary compatible with your operating system, and ad
 
 ==== via GitHub Releases
 
-Find a release for your architecture https://github.com/dfinity/dfx/releases[here].
+Find a release for your architecture https://github.com/dfinity/sdk/releases[here].
 
 === Getting Help
 

@@ -21,8 +21,8 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 };
 
 const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
-    btc_adapter_config: None,
     enabled: false,
+    nodes: None,
 };
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
@@ -87,10 +87,12 @@ pub struct CanisterDeclarationsConfig {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBitcoin {
-    pub btc_adapter_config: Option<PathBuf>,
-
     #[serde(default = "default_as_false")]
     pub enabled: bool,
+
+    /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
+    #[serde(default)]
+    pub nodes: Option<Vec<SocketAddr>>,
 }
 
 fn default_as_false() -> bool {
@@ -280,23 +282,6 @@ impl ConfigInterface {
         match &self.defaults {
             Some(v) => v,
             _ => &EMPTY_CONFIG_DEFAULTS,
-        }
-    }
-    pub fn get_provider_url(&self, network: &str) -> DfxResult<Option<String>> {
-        match &self.networks {
-            Some(networks) => match networks.get(network) {
-                Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
-                    match network_provider.providers.first() {
-                        Some(provider) => Ok(Some(provider.clone())),
-                        None => Err(anyhow!("Cannot find providers for network '{}'.", network)),
-                    }
-                }
-                Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
-                    Ok(Some(local_provider.bind.clone()))
-                }
-                _ => Ok(None),
-            },
-            _ => Ok(None),
         }
     }
 
