@@ -23,3 +23,6 @@ deny = [
     "GPL-2.0",
     "GPL-3.0",
 ]
+
+[sources]
+allow-git = [ "https://github.com/dfinity/agent-rs.git" ]
