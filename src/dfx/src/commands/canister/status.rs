@@ -7,6 +7,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
 use clap::Parser;
+use fn_error_context::context;
 use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
@@ -23,6 +24,7 @@ pub struct CanisterStatusOpts {
     all: bool,
 }
 
+#[context("Failed to get canister status for '{}'.", canister)]
 async fn canister_status(
     env: &dyn Environment,
     canister: &str,

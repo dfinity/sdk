@@ -7,7 +7,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 use clap::Parser;
 use ic_types::Principal;
 use slog::info;
@@ -81,7 +81,9 @@ pub async fn exec(
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                deposit_cycles(env, canister, timeout, call_sender, cycles).await?;
+                deposit_cycles(env, canister, timeout, call_sender, cycles)
+                    .await
+                    .with_context(|| format!("Failed to deposit cycles into {}.", canister))?;
             }
         }
         Ok(())

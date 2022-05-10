@@ -90,7 +90,10 @@ impl BtcAdapter {
 
         let (sender, receiver) = unbounded();
 
-        let handle = btc_adapter_start_thread(logger, self.config.clone(), addr, receiver)?;
+        let handle = anyhow::Context::context(
+            btc_adapter_start_thread(logger, self.config.clone(), addr, receiver),
+            "Failed to start BTC adapter thread.",
+        )?;
 
         self.thread_join = Some(handle);
         self.stop_sender = Some(sender);

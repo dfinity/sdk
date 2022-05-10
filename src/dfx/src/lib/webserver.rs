@@ -8,7 +8,8 @@ use actix_cors::Cors;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::http::StatusCode;
 use actix_web::{http, middleware, web, App, Error, HttpResponse, HttpServer};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use serde::Deserialize;
 use slog::{info, Logger};
 use std::net::SocketAddr;
@@ -75,6 +76,7 @@ async fn candid(
 }
 
 /// Run the webserver in another thread.
+#[context("Failed to run webserver.")]
 pub fn run_webserver(
     logger: Logger,
     build_output_root: PathBuf,
@@ -107,7 +109,8 @@ pub fn run_webserver(
                 ))
                 .default_service(web::get().to(|| HttpResponse::build(StatusCode::NOT_FOUND)))
         })
-        .bind(bind)?
+        .bind(bind)
+        .with_context(|| format!("Failed to bind HTTP server to {:?}.", bind))?
         // N.B. This is an arbitrary timeout for now.
         .shutdown_timeout(SHUTDOWN_WAIT_TIME)
         .run();

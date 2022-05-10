@@ -7,7 +7,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::provider::get_network_context;
 use crate::util;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use std::collections::BTreeMap;
@@ -53,6 +54,7 @@ pub struct CanisterInfo {
 }
 
 impl CanisterInfo {
+    #[context("Failed to load canister info for '{}'.", name)]
     pub fn load(
         config: &Config,
         name: &str,
@@ -65,7 +67,8 @@ impl CanisterInfo {
             .get_temp_path()
             .join(util::network_to_pathcompat(&network_name));
         let build_root = build_root.join("canisters");
-        std::fs::create_dir_all(&build_root)?;
+        std::fs::create_dir_all(&build_root)
+            .with_context(|| format!("Failed to create {}.", build_root.to_string_lossy()))?;
 
         let canister_map = (&config.get_config().canisters)
             .as_ref()
@@ -172,6 +175,8 @@ impl CanisterInfo {
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
     }
+
+    #[context("Failed to get canister id for '{}'.", self.name)]
     pub fn get_canister_id(&self) -> DfxResult<CanisterId> {
         match &self.canister_id {
             Some(canister_id) => Ok(*canister_id),
@@ -193,6 +198,7 @@ impl CanisterInfo {
         self.extras.contains_key(name)
     }
 
+    #[context("Failed while trying to get field '{}' for canister '{}'.", name, self.name)]
     pub fn get_extra<T: serde::de::DeserializeOwned>(&self, name: &str) -> DfxResult<T> {
         self.get_extra_value(name)
             .ok_or_else(|| {
@@ -207,6 +213,7 @@ impl CanisterInfo {
             })
     }
 
+    #[context("Failed while trying to get optional config field '{}' for canister '{}'.", name, self.name)]
     pub fn get_extra_optional<T: serde::de::DeserializeOwned>(
         &self,
         name: &str,
@@ -279,6 +286,7 @@ impl CanisterInfo {
         }
     }
 
+    #[context("Failed to create <Type>CanisterInfo for canister '{}'.", self.name, )]
     pub fn as_info<T: CanisterInfoFactory>(&self) -> DfxResult<T> {
         if T::supports(self) {
             T::create(self)

@@ -58,7 +58,8 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         loop {
             match agent
                 .request_status_raw(&request_id, canister_id, false)
-                .await?
+                .await
+                .context("Failed to fetch request status.")?
             {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
@@ -100,6 +101,6 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     .map_err(DfxError::from)?;
 
     let output_type = opts.output.as_deref();
-    print_idl_blob(&blob, output_type, &None).context("Invalid data: Invalid IDL blob.")?;
+    print_idl_blob(&blob, output_type, &None)?;
     Ok(())
 }
