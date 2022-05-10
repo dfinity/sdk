@@ -23,6 +23,12 @@ pub struct BtcAdapterConfig {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CanisterHttpAdapterConfig {
+    pub enabled: bool,
+    pub socket_path: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ArtifactPoolConfig {
     pub consensus_pool_path: PathBuf,
 }
@@ -45,6 +51,7 @@ pub struct ReplicaConfig {
     pub artifact_pool: ArtifactPoolConfig,
     pub subnet_type: ReplicaSubnetType,
     pub btc_adapter: BtcAdapterConfig,
+    pub canister_http_adapter: CanisterHttpAdapterConfig,
 }
 
 impl ReplicaConfig {
@@ -65,6 +72,10 @@ impl ReplicaConfig {
             },
             subnet_type,
             btc_adapter: BtcAdapterConfig {
+                enabled: false,
+                socket_path: None,
+            },
+            canister_http_adapter: CanisterHttpAdapterConfig {
                 enabled: false,
                 socket_path: None,
             },
@@ -99,6 +110,19 @@ impl ReplicaConfig {
             ..self
         }
     }
+
+    pub fn with_canister_http_adapter_enabled(self) -> Self {
+        ReplicaConfig {
+            canister_http_adapter: self.canister_http_adapter.with_enabled(),
+            ..self
+        }
+    }
+    pub fn with_canister_http_adapter_socket(self, socket_path: PathBuf) -> Self {
+        ReplicaConfig {
+            canister_http_adapter: self.canister_http_adapter.with_socket_path(socket_path),
+            ..self
+        }
+    }
 }
 
 impl BtcAdapterConfig {
@@ -111,6 +135,22 @@ impl BtcAdapterConfig {
 
     pub fn with_socket_path(self, socket_path: PathBuf) -> Self {
         BtcAdapterConfig {
+            socket_path: Some(socket_path),
+            ..self
+        }
+    }
+}
+
+impl CanisterHttpAdapterConfig {
+    pub fn with_enabled(self) -> Self {
+        CanisterHttpAdapterConfig {
+            enabled: true,
+            ..self
+        }
+    }
+
+    pub fn with_socket_path(self, socket_path: PathBuf) -> Self {
+        CanisterHttpAdapterConfig {
             socket_path: Some(socket_path),
             ..self
         }

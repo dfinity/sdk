@@ -8,6 +8,8 @@ use crate::lib::replica_config::ReplicaConfig;
 
 use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
 use crate::actors::btc_adapter::BtcAdapter;
+use crate::actors::canister_http_adapter::signals::CanisterHttpAdapterReadySubscribe;
+use crate::actors::canister_http_adapter::CanisterHttpAdapter;
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use actix::{Actor, Addr, Recipient};
@@ -17,6 +19,7 @@ use std::fs;
 use std::path::PathBuf;
 
 pub mod btc_adapter;
+pub mod canister_http_adapter;
 pub mod emulator;
 pub mod icx_proxy;
 pub mod replica;
@@ -52,6 +55,31 @@ pub fn start_btc_adapter_actor(
         logger: Some(env.get_logger().clone()),
     };
     Ok(BtcAdapter::new(actor_config).start())
+}
+
+#[context("Failed to start canister http adapter actor.")]
+pub fn start_canister_http_adapter_actor(
+    env: &dyn Environment,
+    config_path: PathBuf,
+    socket_path: Option<PathBuf>,
+    shutdown_controller: Addr<ShutdownController>,
+    pid_file_path: PathBuf,
+) -> DfxResult<Addr<CanisterHttpAdapter>> {
+    let adapter_path = env
+        .get_cache()
+        .get_binary_command_path("ic-canister-http-adapter")?;
+
+    let actor_config = canister_http_adapter::Config {
+        adapter_path,
+
+        config_path,
+        socket_path,
+
+        shutdown_controller,
+        pid_file_path,
+        logger: Some(env.get_logger().clone()),
+    };
+    Ok(CanisterHttpAdapter::new(actor_config).start())
 }
 
 #[context("Failed to start emulator actor.")]
@@ -126,6 +154,7 @@ pub fn start_replica_actor(
     replica_config: ReplicaConfig,
     shutdown_controller: Addr<ShutdownController>,
     btc_adapter_ready_subscribe: Option<Recipient<BtcAdapterReadySubscribe>>,
+    canister_http_adapter_ready_subscribe: Option<Recipient<CanisterHttpAdapterReadySubscribe>>,
 ) -> DfxResult<Addr<Replica>> {
     // get binary path
     let replica_path = env.get_cache().get_binary_command_path("replica")?;
@@ -141,6 +170,7 @@ pub fn start_replica_actor(
         logger: Some(env.get_logger().clone()),
         replica_configuration_dir,
         btc_adapter_ready_subscribe,
+        canister_http_adapter_ready_subscribe,
     };
     Ok(Replica::new(actor_config).start())
 }
