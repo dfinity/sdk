@@ -124,7 +124,7 @@ set_default_canister_http_enabled() {
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
 
-@test "can enable bitcoin through default configuration (dfx start)" {
+@test "can enable http through default configuration (dfx start)" {
     dfx_new hello
     set_default_canister_http_enabled
 
@@ -133,7 +133,7 @@ set_default_canister_http_enabled() {
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
 
-@test "can enable bitcoin through default configuration (dfx replica)" {
+@test "can enable http through default configuration (dfx replica)" {
     dfx_new hello
     set_default_canister_http_enabled
 

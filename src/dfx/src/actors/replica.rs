@@ -113,8 +113,8 @@ impl Replica {
     }
 
     fn restart_replica_if_all_ready(&mut self, addr: Addr<Self>) {
-        let ready = !self.awaiting_canister_http_adapter_ready && !self.awaiting_btc_adapter_ready;
-        if ready {
+        let done_waiting = !self.awaiting_canister_http_adapter_ready && !self.awaiting_btc_adapter_ready;
+        if done_waiting {
             self.stop_replica();
             self.start_replica(addr)
                 .expect("unable to start the replica");
