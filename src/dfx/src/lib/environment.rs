@@ -235,8 +235,12 @@ impl<'a> AgentEnvironment<'a> {
         let mut identity_manager = IdentityManager::new(backend)?;
         let identity = identity_manager.instantiate_selected_identity()?;
 
-        let default = String::from(DEFAULT_IC_GATEWAY);
-        let agent_url = network_descriptor.providers.first().unwrap_or(&default);
+        let agent_url = network_descriptor.providers.first().with_context(|| {
+            format!(
+                "Network '{}' does not specify any network providers.",
+                network_descriptor.name
+            )
+        })?;
         Ok(AgentEnvironment {
             backend,
             agent: create_agent(backend.get_logger().clone(), agent_url, identity, timeout)

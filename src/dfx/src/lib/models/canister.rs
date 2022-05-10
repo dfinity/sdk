@@ -499,7 +499,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
                 &canister_info.get_name().to_uppercase(),
             );
 
-        match decode_path_to_str(&file.path()?).context("Failed to decode path to str.")? {
+        match decode_path_to_str(&file.path()?)? {
             "canister.js" => {
                 std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)
                     .with_context(|| {
