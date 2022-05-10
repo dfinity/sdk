@@ -18,6 +18,7 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bitcoin: None,
     bootstrap: None,
     build: None,
+    canister_http: None,
     replica: None,
 };
 
@@ -25,6 +26,9 @@ const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitco
     enabled: false,
     nodes: None,
 };
+
+const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
+    ConfigDefaultsCanisterHttp { enabled: false };
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
@@ -94,6 +98,12 @@ pub struct ConfigDefaultsBitcoin {
     /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
     #[serde(default)]
     pub nodes: Option<Vec<SocketAddr>>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsCanisterHttp {
+    #[serde(default = "default_as_false")]
+    pub enabled: bool,
 }
 
 fn default_as_false() -> bool {
@@ -208,6 +218,7 @@ pub struct ConfigDefaults {
     pub bitcoin: Option<ConfigDefaultsBitcoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
+    pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
@@ -268,6 +279,12 @@ impl ConfigDefaults {
         match &self.build {
             Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_BUILD,
+        }
+    }
+    pub fn get_canister_http(&self) -> &ConfigDefaultsCanisterHttp {
+        match &self.canister_http {
+            Some(x) => x,
+            None => &EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP,
         }
     }
     pub fn get_replica(&self) -> &ConfigDefaultsReplica {
