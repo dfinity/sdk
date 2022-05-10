@@ -23,7 +23,7 @@ pub async fn exec(env: &dyn Environment, opts: WalletBalanceOpts) -> DfxResult {
         .wallet_balance()
         .await
         .context("Failed to fetch wallet balance.")?;
-    
+
     if opts.precise {
         println!("{} cycles.", balance.amount);
     } else {
