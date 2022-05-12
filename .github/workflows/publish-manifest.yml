@@ -26,4 +26,4 @@ jobs:
             /^ *#/d
             s/ *#.*//
           " _out/install.sh
-          cp public/manifest.json > _out/manifest.json
+          cp public/manifest.json _out/manifest.json
