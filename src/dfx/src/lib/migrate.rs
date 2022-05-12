@@ -4,15 +4,15 @@ use ic_agent::{Agent, Identity as _};
 use ic_utils::{
     interfaces::{
         management_canister::builders::{CanisterSettings, InstallMode},
-        ManagementCanister, WalletCanister,
+        WalletCanister,
     },
     Argument,
 };
 use itertools::Itertools;
 
 use crate::{
-    lib::waiter::waiter_with_timeout,
-    util::{assets::wallet_wasm, expiry_duration},
+    lib::{operations::canister::install_wallet, waiter::waiter_with_timeout},
+    util::expiry_duration,
 };
 
 use super::{
@@ -70,16 +70,10 @@ async fn migrate_wallet(
     wallet: &WalletCanister<'_>,
     fix: bool,
 ) -> DfxResult<bool> {
-    let mgmt = ManagementCanister::create(agent);
     if !wallet.version_supports_u128_cycles() {
         if fix {
             println!("Upgrading wallet... ");
-            let wasm = wallet_wasm(env.get_logger())?;
-            mgmt.install_code(wallet.canister_id_(), &wasm)
-                .with_mode(InstallMode::Upgrade)
-                .call_and_wait(waiter_with_timeout(expiry_duration()))
-                .await
-                .context("Could not upgrade wallet")?;
+            install_wallet(env, agent, *wallet.canister_id_(), InstallMode::Upgrade).await?
         } else {
             println!("The wallet is outdated; run `dfx wallet upgrade`");
         }
