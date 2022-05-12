@@ -9,7 +9,7 @@
 
 Most errors that happen within dfx are now reported in much more detail. No more plain `File not found` without explanation what even was attempted.
 
-=== fix: identities with configured wallets are removed only when using the --drop-wallets flag
+=== fix: identities with configured wallets are not broken anymore and removed only when using the --drop-wallets flag
 
 When an identity has a configured wallet, dfx no longer breaks the identity without actually removing it.
 Instead, if the --drop-wallets flag is specified, it properly removes everything and logs what wallets were linked,
