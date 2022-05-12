@@ -16,7 +16,7 @@ jobs:
       - name: Generate
         run: |
           shellcheck --shell=sh public/install/*.sh --exclude SC2039,SC2154,SC2034
-          shfmt -d -p -i 4 -ci -bn -s public/install/*.sh
+          ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install/*.sh
           mkdir _out
           cat public/install/*.sh > _out/install.sh
           sed -i "
