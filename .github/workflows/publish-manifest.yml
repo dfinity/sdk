@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
 
 jobs:
   publish-manifest:
@@ -29,7 +28,8 @@ jobs:
           " _out/install.sh
           cp public/manifest.json _out/manifest.json
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: JamesIves/github-pages-deploy-action@releases/v3
         with:
-          name: dfx-manifest-test-${{matrix.name}}
-          path: _out
+          single_commit: yes
+          branch: public-manifest
+          folder: _out/
