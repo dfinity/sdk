@@ -135,3 +135,22 @@ jobs:
           file: dfx-*.tar.*
           file_glob: true
           tag: ${{ env.VERSION }}
+
+  publish-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Generate
+        run: |
+          shellcheck --shell=sh public/install/*.sh --exclude SC2034,SC2154,SC3003,SC3014,SC3043
+          shfmt -d -p -i 4 -ci -bn -s public/install/*.sh
+          mkdir _out
+          cat public/install/*.sh > _out/install.sh
+          sed -i "
+            /#!.*/p
+            /##.*/p
+            /^ *$/d
+            /^ *#/d
+            s/ *#.*//
+          " _out/install.sh
+          cp public/manifest.json > _out/manifest.json
