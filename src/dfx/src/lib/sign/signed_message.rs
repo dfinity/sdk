@@ -1,9 +1,10 @@
 use crate::lib::error::DfxResult;
 
+use fn_error_context::context;
 use ic_agent::RequestId;
 use ic_types::principal::Principal;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use serde_cbor::Value;
@@ -74,6 +75,7 @@ impl SignedMessageV1 {
         self
     }
 
+    #[context("Failed to validate signed message.")]
     pub fn validate(&self) -> DfxResult {
         if self.version != 1 {
             bail!("Invalid message: version must be 1");
@@ -83,7 +85,7 @@ impl SignedMessageV1 {
             bail!("Invalid message: call_type must be `query` or `update`");
         }
 
-        let content = hex::decode(&self.content)?;
+        let content = hex::decode(&self.content).context("Failed to decode content.")?;
 
         let cbor: Value = serde_cbor::from_slice(&content)
             .map_err(|_| anyhow!("Invalid cbor data in the content of the message."))?;

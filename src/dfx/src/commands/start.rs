@@ -1,13 +1,13 @@
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::{
-    start_btc_adapter_actor, start_emulator_actor, start_icx_proxy_actor, start_replica_actor,
-    start_shutdown_controller,
+    start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
+    start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfinity::{Config, ConfigInterface};
-use crate::lib::bitcoin;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
+use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
@@ -16,6 +16,7 @@ use crate::lib::webserver::run_webserver;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
+use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
@@ -49,9 +50,13 @@ pub struct StartOpts {
     #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
     bitcoin_node: Vec<SocketAddr>,
 
-    /// enable the bitcoin adapter
+    /// enable bitcoin integration
     #[clap(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
+
+    /// enable canister http requests
+    #[clap(long, conflicts_with("emulator"))]
+    enable_canister_http: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -59,9 +64,16 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 
     let agent = Agent::builder()
         .with_transport(
-            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(frontend_url)?,
+            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(frontend_url)
+                .with_context(|| {
+                    format!(
+                        "Failed to create replica transport from frontend url {}.",
+                        frontend_url
+                    )
+                })?,
         )
-        .build()?;
+        .build()
+        .with_context(|| format!("Failed to build agent with frontend url {}.", frontend_url))?;
 
     // wait for frontend to come up
     let mut waiter = Delay::builder()
@@ -102,20 +114,28 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
         .throttle(std::time::Duration::from_secs(1))
         .build();
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let port = runtime.block_on(async {
-        waiter.start();
-        let mut contents = String::new();
-        loop {
-            let tokio_file = tokio::fs::File::open(&webserver_port_path).await?;
-            let mut std_file = tokio_file.into_std().await;
-            std_file.read_to_string(&mut contents)?;
-            if !contents.is_empty() {
-                break;
+    let port = runtime
+        .block_on(async {
+            waiter.start();
+            let mut contents = String::new();
+            loop {
+                let tokio_file = tokio::fs::File::open(&webserver_port_path)
+                    .await
+                    .with_context(|| {
+                        format!("Failed to open {}.", webserver_port_path.to_string_lossy())
+                    })?;
+                let mut std_file = tokio_file.into_std().await;
+                std_file.read_to_string(&mut contents).with_context(|| {
+                    format!("Failed to read {}.", webserver_port_path.to_string_lossy())
+                })?;
+                if !contents.is_empty() {
+                    break;
+                }
+                waiter.wait().map_err(|err| anyhow!("{:?}", err))?;
             }
-            waiter.wait().map_err(|err| anyhow!("{:?}", err))?;
-        }
-        Ok::<String, DfxError>(contents.clone())
-    })?;
+            Ok::<String, DfxError>(contents.clone())
+        })
+        .context("Failed to get port.")?;
     let mut frontend_url_mod = frontend_url.clone();
     let port_offset = frontend_url_mod
         .as_str()
@@ -137,6 +157,7 @@ pub fn exec(
         clean,
         bitcoin_node,
         enable_bitcoin,
+        enable_canister_http,
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
@@ -157,6 +178,10 @@ pub fn exec(
     let pid_file_path = empty_writable_path(pid_file_path)?;
     let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
     let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
+    let canister_http_adapter_pid_file_path =
+        empty_writable_path(temp_dir.join("ic-canister-http-adapter-pid"))?;
+    let canister_http_adapter_config_path =
+        empty_writable_path(temp_dir.join("ic-canister-http-config.json"))?;
     let icx_proxy_pid_file_path = empty_writable_path(temp_dir.join("icx-proxy-pid"))?;
     let webserver_port_path = empty_writable_path(temp_dir.join("webserver-port"))?;
 
@@ -171,7 +196,7 @@ pub fn exec(
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
         || {
             format!(
-                "Unable to write to {}",
+                "Failed to write webserver port file {}.",
                 webserver_port_path.to_string_lossy()
             )
         },
@@ -187,6 +212,15 @@ pub fn exec(
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
 
+    let canister_http_adapter_config = configure_canister_http_adapter_if_enabled(
+        config.get_config(),
+        &canister_http_adapter_config_path,
+        enable_canister_http,
+    )?;
+    let canister_http_socket_path = canister_http_adapter_config
+        .as_ref()
+        .and_then(|cfg| cfg.get_socket_path());
+
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
@@ -196,7 +230,7 @@ pub fn exec(
             emulator.recipient()
         } else {
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                if let Some(btc_adapter_config) = btc_adapter_config {
+                if let Some(ref btc_adapter_config) = btc_adapter_config {
                     let socket_path = btc_adapter_config.get_socket_path();
                     let ready_subscribe = start_btc_adapter_actor(
                         env,
@@ -204,6 +238,21 @@ pub fn exec(
                         socket_path.clone(),
                         shutdown_controller.clone(),
                         btc_adapter_pid_file_path,
+                    )?
+                    .recipient();
+                    (Some(ready_subscribe), socket_path)
+                } else {
+                    (None, None)
+                };
+            let (canister_http_adapter_ready_subscribe, canister_http_socket_path) =
+                if let Some(ref canister_http_adapter_config) = canister_http_adapter_config {
+                    let socket_path = canister_http_adapter_config.get_socket_path();
+                    let ready_subscribe = start_canister_http_adapter_actor(
+                        env,
+                        canister_http_adapter_config_path,
+                        socket_path.clone(),
+                        shutdown_controller.clone(),
+                        canister_http_adapter_pid_file_path,
                     )?
                     .recipient();
                     (Some(ready_subscribe), socket_path)
@@ -224,8 +273,17 @@ pub fn exec(
                 .unwrap_or_default();
             let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
                 .with_random_port(&replica_port_path);
-            if let Some(btc_adapter_socket) = btc_adapter_socket_path {
-                replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+            if btc_adapter_config.is_some() {
+                replica_config = replica_config.with_btc_adapter_enabled();
+                if let Some(btc_adapter_socket) = btc_adapter_socket_path {
+                    replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+                }
+            }
+            if canister_http_adapter_config.is_some() {
+                replica_config = replica_config.with_canister_http_adapter_enabled();
+                if let Some(socket_path) = canister_http_socket_path {
+                    replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
+                }
             }
 
             let replica = start_replica_actor(
@@ -233,6 +291,7 @@ pub fn exec(
                 replica_config,
                 shutdown_controller.clone(),
                 btc_adapter_ready_subscribe,
+                canister_http_adapter_ready_subscribe,
             )?;
             replica.recipient()
         };
@@ -266,42 +325,44 @@ pub fn exec(
     if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
         let _ = std::fs::remove_file(&btc_adapter_socket_path);
     }
+    if let Some(canister_http_socket_path) = canister_http_socket_path {
+        let _ = std::fs::remove_file(&canister_http_socket_path);
+    }
 
     Ok(())
 }
 
+#[context("Failed to clean existing replica state.")]
 fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
     // Clean the contents of the provided directory including the
     // directory itself. N.B. This does NOT follow symbolic links -- and I
     // hope we do not need to.
     if state_root.is_dir() {
-        fs::remove_dir_all(state_root).context(format!(
-            "Cannot remove directory at '{}'.",
-            state_root.display()
-        ))?;
+        fs::remove_dir_all(state_root)
+            .with_context(|| format!("Cannot remove directory at '{}'.", state_root.display()))?;
     }
     let local_dir = temp_dir.join("local");
     if local_dir.is_dir() {
-        fs::remove_dir_all(&local_dir).context(format!(
-            "Cannot remove directory at '{}'.",
-            local_dir.display()
-        ))?;
+        fs::remove_dir_all(&local_dir)
+            .with_context(|| format!("Cannot remove directory at '{}'.", local_dir.display()))?;
     }
     Ok(())
 }
 
+#[context("Failed to spawn background dfx.")]
 fn send_background() -> DfxResult<()> {
     // Background strategy is different; we spawn `dfx` with the same arguments
     // (minus --background), ping and exit.
-    let exe = std::env::current_exe()?;
+    let exe = std::env::current_exe().context("Failed to get current executable.")?;
     let mut cmd = Command::new(exe);
     // Skip 1 because arg0 is this executable's path.
     cmd.args(std::env::args().skip(1).filter(|a| !a.eq("--background")));
 
-    cmd.spawn()?;
+    cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())
 }
 
+#[context("Failed to get frontend address.")]
 fn frontend_address(
     host: Option<String>,
     config: &Config,
@@ -321,8 +382,8 @@ fn frontend_address(
         // Since the user may have provided port "0", we need to grab a dynamically
         // allocated port and construct a resuable SocketAddr which the actix
         // HttpServer will bind to
-        address_and_port = get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())
-            .with_context(|| format!("Getting frontend address {}", address_and_port))?;
+        address_and_port =
+            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
     }
     let ip = if address_and_port.is_ipv6() {
         format!("[{}]", address_and_port.ip())
@@ -356,6 +417,7 @@ fn write_pid(pid_file_path: &Path) {
     }
 }
 
+#[context("Failed to configure btc adapter.")]
 pub fn configure_btc_adapter_if_enabled(
     config: &ConfigInterface,
     config_path: &Path,
@@ -374,11 +436,11 @@ pub fn configure_btc_adapter_if_enabled(
         (_, _) => bitcoin::adapter::config::default_nodes(),
     };
 
-    let config =
-        write_btc_adapter_config(config_path, nodes).context("Unable to configure btc adapter")?;
+    let config = write_btc_adapter_config(config_path, nodes)?;
     Ok(Some(config))
 }
 
+#[context("Failed to write btc adapter config to {}.", config_path.to_string_lossy())]
 fn write_btc_adapter_config(
     config_path: &Path,
     nodes: Vec<SocketAddr>,
@@ -410,4 +472,35 @@ pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
     std::fs::write(&path, "")
         .with_context(|| format!("Unable to write to {}", path.to_string_lossy()))?;
     Ok(path)
+}
+
+#[context("Failed to configure canister http adapter.")]
+pub fn configure_canister_http_adapter_if_enabled(
+    config: &ConfigInterface,
+    config_path: &Path,
+    enable_canister_http: bool,
+) -> DfxResult<Option<canister_http::adapter::Config>> {
+    let enable = enable_canister_http || config.get_defaults().get_canister_http().enabled;
+
+    if !enable {
+        return Ok(None);
+    };
+
+    let pid = sysinfo::get_current_pid()
+        .map_err(|s| anyhow!("Unable to obtain pid: {}", s))
+        .context("Unable to construct canister http adapter socket path")?;
+
+    // Unix socket domain names can only be so long.
+    // An attempt to use a path under .dfx/ resulted in this error:
+    //    path must be shorter than libc::sockaddr_un.sun_path
+    let socket_path = PathBuf::from(format!("/tmp/ic-canister-http-adapter-socket.{}", pid));
+
+    let adapter_config = canister_http::adapter::Config::new(socket_path);
+
+    let contents = serde_json::to_string_pretty(&adapter_config)
+        .context("Unable to serialize canister http adapter configuration to json")?;
+    std::fs::write(config_path, &contents)
+        .with_context(|| format!("Unable to write {}", config_path.to_string_lossy()))?;
+
+    Ok(Some(adapter_config))
 }

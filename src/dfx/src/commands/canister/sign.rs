@@ -13,7 +13,7 @@ use ic_agent::AgentError;
 use ic_agent::RequestId;
 use ic_types::principal::Principal;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use chrono::Utc;
 use clap::Parser;
 use humanize_rs::duration;
@@ -210,7 +210,8 @@ pub async fn exec(
         let message: SignedMessageV1 =
             serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
         // message from file guaranteed to have request_id becase it is a update message just generated
-        let request_id = RequestId::from_str(&message.request_id.unwrap())?;
+        let request_id = RequestId::from_str(&message.request_id.unwrap())
+            .context("Failed to parse request id.")?;
         let res = sign_agent
             .request_status_raw(&request_id, canister_id, false)
             .await;

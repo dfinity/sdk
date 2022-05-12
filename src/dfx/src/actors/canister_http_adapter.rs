@@ -1,4 +1,6 @@
-use crate::actors::btc_adapter::signals::{BtcAdapterReady, BtcAdapterReadySubscribe};
+use crate::actors::canister_http_adapter::signals::{
+    CanisterHttpAdapterReady, CanisterHttpAdapterReadySubscribe,
+};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
@@ -21,44 +23,44 @@ pub mod signals {
 
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub struct BtcAdapterReady {}
+    pub struct CanisterHttpAdapterReady {}
 
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub struct BtcAdapterReadySubscribe(pub Recipient<BtcAdapterReady>);
+    pub struct CanisterHttpAdapterReadySubscribe(pub Recipient<CanisterHttpAdapterReady>);
 }
 
 #[derive(Clone)]
 pub struct Config {
-    pub btc_adapter_path: PathBuf,
+    pub adapter_path: PathBuf,
 
     pub config_path: PathBuf,
     pub socket_path: Option<PathBuf>,
     pub shutdown_controller: Addr<ShutdownController>,
-    pub btc_adapter_pid_file_path: PathBuf,
+    pub pid_file_path: PathBuf,
 
     pub logger: Option<Logger>,
 }
 
-/// An actor for the ic-btc-adapter process.  Publishes information about
+/// An actor for the ic-canister-http-adapter process.  Publishes information about
 /// the process starting or restarting, so that other processes can reconnect.
-pub struct BtcAdapter {
+pub struct CanisterHttpAdapter {
     config: Config,
 
     stop_sender: Option<Sender<()>>,
     thread_join: Option<JoinHandle<()>>,
 
     ready: bool,
-    ready_subscribers: Vec<Recipient<BtcAdapterReady>>,
+    ready_subscribers: Vec<Recipient<CanisterHttpAdapterReady>>,
 
     logger: Logger,
 }
 
-impl BtcAdapter {
+impl CanisterHttpAdapter {
     pub fn new(config: Config) -> Self {
         let logger =
             (config.logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
-        BtcAdapter {
+        CanisterHttpAdapter {
             config,
             stop_sender: None,
             thread_join: None,
@@ -81,19 +83,17 @@ impl BtcAdapter {
             }
             waiter
                 .wait()
-                .map_err(|err| anyhow!("Cannot start btc-adapter: {:?}", err))?;
+                .map_err(|err| anyhow!("Cannot start canister-http-adapter: {:?}", err))?;
         }
     }
 
-    fn start_btc_adapter(&mut self, addr: Addr<Self>) -> DfxResult {
+    fn start_adapter(&mut self, addr: Addr<Self>) -> DfxResult {
         let logger = self.logger.clone();
 
         let (sender, receiver) = unbounded();
 
-        let handle = anyhow::Context::context(
-            btc_adapter_start_thread(logger, self.config.clone(), addr, receiver),
-            "Failed to start BTC adapter thread.",
-        )?;
+        let handle =
+            canister_http_adapter_start_thread(logger, self.config.clone(), addr, receiver)?;
 
         self.thread_join = Some(handle);
         self.stop_sender = Some(sender);
@@ -102,17 +102,17 @@ impl BtcAdapter {
 
     fn send_ready_signal(&self) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(BtcAdapterReady {});
+            let _ = sub.do_send(CanisterHttpAdapterReady {});
         }
     }
 }
 
-impl Actor for BtcAdapter {
+impl Actor for CanisterHttpAdapter {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        self.start_btc_adapter(ctx.address())
-            .expect("Could not start btc-adapter");
+        self.start_adapter(ctx.address())
+            .expect("Could not start canister http adapter");
 
         self.config
             .shutdown_controller
@@ -120,7 +120,7 @@ impl Actor for BtcAdapter {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        info!(self.logger, "Stopping btc-adapter...");
+        info!(self.logger, "Stopping canister http adapter...");
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -134,29 +134,33 @@ impl Actor for BtcAdapter {
     }
 }
 
-impl Handler<signals::BtcAdapterReady> for BtcAdapter {
+impl Handler<signals::CanisterHttpAdapterReady> for CanisterHttpAdapter {
     type Result = ();
 
-    fn handle(&mut self, _msg: signals::BtcAdapterReady, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        _msg: signals::CanisterHttpAdapterReady,
+        _ctx: &mut Self::Context,
+    ) -> Self::Result {
         self.ready = true;
         self.send_ready_signal();
     }
 }
 
-impl Handler<BtcAdapterReadySubscribe> for BtcAdapter {
+impl Handler<CanisterHttpAdapterReadySubscribe> for CanisterHttpAdapter {
     type Result = ();
 
-    fn handle(&mut self, msg: BtcAdapterReadySubscribe, _: &mut Self::Context) {
+    fn handle(&mut self, msg: CanisterHttpAdapterReadySubscribe, _: &mut Self::Context) {
         // If the adapter is already ready, let the new subscriber know! Yeah!
         if self.ready {
-            let _ = msg.0.do_send(BtcAdapterReady {});
+            let _ = msg.0.do_send(CanisterHttpAdapterReady {});
         }
 
         self.ready_subscribers.push(msg.0);
     }
 }
 
-impl Handler<Shutdown> for BtcAdapter {
+impl Handler<Shutdown> for CanisterHttpAdapter {
     type Result = ResponseActFuture<Self, Result<(), ()>>;
 
     fn handle(&mut self, _msg: Shutdown, _ctx: &mut Self::Context) -> Self::Result {
@@ -171,10 +175,10 @@ impl Handler<Shutdown> for BtcAdapter {
     }
 }
 
-fn btc_adapter_start_thread(
+fn canister_http_adapter_start_thread(
     logger: Logger,
     config: Config,
-    addr: Addr<BtcAdapter>,
+    addr: Addr<CanisterHttpAdapter>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
@@ -185,8 +189,8 @@ fn btc_adapter_start_thread(
             .build();
         waiter.start();
 
-        let btc_adapter_path = config.btc_adapter_path.as_os_str();
-        let mut cmd = std::process::Command::new(btc_adapter_path);
+        let adapter_path = config.adapter_path.as_os_str();
+        let mut cmd = std::process::Command::new(adapter_path);
         cmd.arg(&config.config_path.to_string_lossy().to_string());
 
         cmd.stdout(std::process::Stdio::inherit());
@@ -196,42 +200,46 @@ fn btc_adapter_start_thread(
         while !done {
             if let Some(socket_path) = &config.socket_path {
                 if socket_path.exists() {
-                    std::fs::remove_file(socket_path).expect("Could not remove btc-adapter socket");
+                    std::fs::remove_file(socket_path)
+                        .expect("Could not remove ic-canister-http-adapter socket");
                 }
             }
             let last_start = std::time::Instant::now();
-            debug!(logger, "Starting ic-btc-adapter...");
-            let mut child = cmd.spawn().expect("Could not start ic-btc-adapter.");
+            debug!(logger, "Starting canister http adapter...");
+            let mut child = cmd.spawn().expect("Could not start canister http adapter.");
 
-            std::fs::write(&config.btc_adapter_pid_file_path, "")
-                .expect("Could not write to btc-adapter-pid file.");
-            std::fs::write(&config.btc_adapter_pid_file_path, child.id().to_string())
-                .expect("Could not write to btc-adapter-pid file.");
+            std::fs::write(&config.pid_file_path, "")
+                .expect("Could not write to canister http adapter pid file.");
+            std::fs::write(&config.pid_file_path, child.id().to_string())
+                .expect("Could not write to canister http adapter pid file.");
 
             if let Some(socket_path) = &config.socket_path {
-                BtcAdapter::wait_for_socket(socket_path)
-                    .expect("btc adapter socket was not created");
+                CanisterHttpAdapter::wait_for_socket(socket_path)
+                    .expect("canister http adapter socket was not created");
             }
-            addr.do_send(signals::BtcAdapterReady {});
+            addr.do_send(signals::CanisterHttpAdapterReady {});
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the adapter if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
-                    debug!(logger, "Got signal to stop. Killing btc-adapter process...");
+                    debug!(
+                        logger,
+                        "Got signal to stop. Killing ic-canister-http-adapter process..."
+                    );
                     let _ = child.kill();
                     let _ = child.wait();
                     done = true;
                 }
                 ChildOrReceiver::Child => {
-                    debug!(logger, "ic-btc-adapter process failed.");
+                    debug!(logger, "ic-canister-http-adapter process failed.");
                     // Reset waiter if last start was over 2 seconds ago, and do not wait.
                     if std::time::Instant::now().duration_since(last_start)
                         >= Duration::from_secs(2)
                     {
                         debug!(
                             logger,
-                            "Last ic-btc-adapter seemed to have been healthy, not waiting..."
+                            "Last ic-canister-http-adapter seemed to have been healthy, not waiting..."
                         );
                         waiter.start();
                     } else {
@@ -244,7 +252,7 @@ fn btc_adapter_start_thread(
     };
 
     std::thread::Builder::new()
-        .name("btc-adapter-actor".to_owned())
+        .name("canister-http-adapter-actor".to_owned())
         .spawn(thread_handler)
         .map_err(DfxError::from)
 }
