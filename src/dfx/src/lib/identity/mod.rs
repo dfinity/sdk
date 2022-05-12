@@ -318,7 +318,7 @@ impl Identity {
 
     /// Logs all wallets that are configured in a WalletGlobalConfig.
     #[context("Failed while trying to display configured wallets in {}.", wallet_config.to_string_lossy())]
-    pub fn display_linked_wallets(logger: &Logger, wallet_config: &PathBuf) -> DfxResult {
+    pub fn display_linked_wallets(logger: &Logger, wallet_config: &Path) -> DfxResult {
         let config = Identity::load_wallet_config(wallet_config)?;
         info!(
             logger,
