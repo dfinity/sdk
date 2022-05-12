@@ -68,7 +68,7 @@ jobs:
           cd openssl
           ./config -fPIC --prefix=/usr/local --openssldir=/usr/local/ssl
           make
-          make install
+          sudo make install
           echo "OPENSSL_LIB_DIR=/usr/local/lib64" >> $GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
         if: contains(matrix.target, 'linux-gnu')
