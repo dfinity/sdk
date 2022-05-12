@@ -17,6 +17,7 @@ jobs:
         run: |
           shellcheck --shell=sh public/install/*.sh --exclude SC2039,SC2154,SC2034
           ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install/*.sh
+          sed -i "s/@revision@/${GITHUB_SHA}/" public/install/999_footer.sh
           mkdir _out
           cat public/install/*.sh > _out/install.sh
           sed -i "
@@ -27,3 +28,8 @@ jobs:
             s/ *#.*//
           " _out/install.sh
           cp public/manifest.json _out/manifest.json
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dfx-manifest-test-${{matrix.name}}
+          path: _out
