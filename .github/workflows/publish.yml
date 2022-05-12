@@ -8,9 +8,7 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
-      - 'test-[0-9]+.[0-9]+.[0-9]+'
-      - 'test-[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-[A-Za-z]+.[0-9]+'
 
 jobs:
   build_dfx:
@@ -19,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         rust: [ '1.58.1' ]
-        target: [ x86_64-apple-darwin, x86_64-unknown-linux-musl ]
+        target: [ x86_64-apple-darwin, x86_64-unknown-linux-musl, x86_64-unknown-linux-gnu ]
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -29,6 +27,11 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             binary_path: target/x86_64-unknown-linux-musl/release
+            name: x86_64-linux-musl
+            tar: tar
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_path: target/x86_64-unknown-linux-gnu/release
             name: x86_64-linux
             tar: tar
     steps:
@@ -57,6 +60,18 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
         if: contains(matrix.os, 'macos')
+
+      - name: Build static-linked openssl
+        run: |
+          # https://github.com/rust-lang/cargo/issues/713#issuecomment-59597433
+          git clone git://git.openssl.org/openssl.git
+          cd openssl
+          ./config -fPIC --prefix=/usr/local --openssldir=/usr/local/ssl
+          make
+          make install
+          echo "OPENSSL_LIB_DIR=/usr/local/lib64" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
+        if: contains(matrix.target, 'linux-gnu')
 
       - name: Linux hack (musl only)
         run: |
@@ -118,7 +133,7 @@ jobs:
       fail-fast: false
       matrix:
         rust: [ '1.58.1' ]
-        name: [ 'x86_64-darwin', 'x86_64-linux' ]
+        name: [ 'x86_64-darwin', 'x86_64-linux', 'x86_64-linux-musl' ]
     steps:
       - name: Setup environment variables
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
