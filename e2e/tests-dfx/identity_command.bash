@@ -132,6 +132,17 @@ teardown() {
     assert_command_fail dfx identity remove charlie
 }
 
+@test "identity remove: only remove identities with configured wallet if --drop-wallets is specified" {
+    WALLET="rwlgt-iiaaa-aaaaa-aaaaa-cai"
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity use alice
+    assert_command dfx identity --network ic set-wallet --force "$WALLET"
+    assert_command dfx identity use default
+    assert_command_fail dfx identity remove alice
+    assert_match "$WALLET"
+    assert_command dfx identity remove alice --drop-wallets
+}
+
 @test "identity remove: cannot remove the non-default active identity" {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity use alice

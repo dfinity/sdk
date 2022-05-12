@@ -6,7 +6,7 @@ use crate::lib::identity::{
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
 use ic_types::Principal;
 use pem::{encode, Pem};
@@ -16,6 +16,8 @@ use slog::Logger;
 use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+use super::WALLET_CONFIG_FILENAME;
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 
@@ -233,12 +235,31 @@ impl IdentityManager {
 
     /// Remove a named identity.
     /// Removing the selected identity is not allowed.
+    /// Removing an identity that is connected to non-ephemeral wallets is only allowed if drop_wallets is true.
+    /// If display_linked_wallets_to contains a logger, this will log all the wallets the identity is connected to.
     #[context("Failed to remove identity '{}'.", name)]
-    pub fn remove(&self, name: &str) -> DfxResult {
+    pub fn remove(
+        &self,
+        name: &str,
+        drop_wallets: bool,
+        display_linked_wallets_to: Option<&Logger>,
+    ) -> DfxResult {
         self.require_identity_exists(name)?;
 
         if self.configuration.default == name {
             return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
+        }
+
+        let wallet_config_file = self.get_persistent_wallet_config_file(name);
+        if wallet_config_file.exists() {
+            if drop_wallets {
+                remove_identity_file(&wallet_config_file)?;
+            } else {
+                if let Some(logger) = display_linked_wallets_to {
+                    DfxIdentity::display_linked_wallets(logger, &wallet_config_file)?;
+                }
+                bail!("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")
+            }
         }
 
         remove_identity_file(&self.load_identity_pem_path(name)?)?;
@@ -359,6 +380,12 @@ impl IdentityManager {
             IDENTITY_PEM
         };
         self.get_identity_dir_path(identity_name).join(pem_file)
+    }
+
+    /// Returns the path where wallets on persistent/non-ephemeral networks are stored.
+    fn get_persistent_wallet_config_file(&self, identity: &str) -> PathBuf {
+        self.get_identity_dir_path(identity)
+            .join(WALLET_CONFIG_FILENAME)
     }
 
     pub fn get_identity_json_path(&self, identity: &str) -> PathBuf {

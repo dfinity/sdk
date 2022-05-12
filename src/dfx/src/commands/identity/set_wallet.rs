@@ -25,7 +25,6 @@ pub struct SetWalletOpts {
 
 pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>) -> DfxResult {
     let agent_env = create_agent_environment(env, network.clone())?;
-    let config = env.get_config_or_anyhow()?;
     let env = &agent_env;
     let log = env.get_logger();
 
@@ -42,6 +41,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
     let canister_id = match Principal::from_text(canister_name) {
         Ok(id) => id,
         Err(_) => {
+            let config = env.get_config_or_anyhow()?;
             let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
             let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
             canister_info.get_canister_id()?

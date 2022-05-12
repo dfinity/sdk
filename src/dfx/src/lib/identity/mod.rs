@@ -21,7 +21,7 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use serde::{Deserialize, Serialize};
-use slog::info;
+use slog::{info, Logger};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -87,7 +87,7 @@ impl Identity {
                         .use_identity_named(ANONYMOUS_IDENTITY_NAME)
                         .context("Failed to temporarily switch over to anonymous identity.")?;
                 }
-                manager.remove(name)?;
+                manager.remove(name, true, None)?;
             } else {
                 bail!("Identity already exists.");
             }
@@ -275,7 +275,7 @@ impl Identity {
     }
 
     #[context("Failed to get path to wallet config file for identity '{}' on network '{}'.", name, network.name)]
-    fn get_wallet_config_file(
+    pub fn get_wallet_config_file(
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
@@ -314,6 +314,25 @@ impl Identity {
                 }
             },
         ))
+    }
+
+    /// Logs all wallets that are configured in a WalletGlobalConfig.
+    #[context("Failed while trying to display configured wallets in {}.", wallet_config.to_string_lossy())]
+    pub fn display_linked_wallets(logger: &Logger, wallet_config: &PathBuf) -> DfxResult {
+        let config = Identity::load_wallet_config(wallet_config)?;
+        info!(
+            logger,
+            "This identity is connected to the following wallets:"
+        );
+        for (identity, map) in config.identities {
+            for (network, wallet) in map.networks {
+                info!(
+                    logger,
+                    "    identity '{}' on network '{}' has wallet {}", identity, network, wallet
+                );
+            }
+        }
+        Ok(())
     }
 
     #[context("Failed to load wallet config {}.", path.to_string_lossy())]
