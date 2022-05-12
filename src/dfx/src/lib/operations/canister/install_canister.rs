@@ -251,12 +251,13 @@ pub async fn install_wallet(
         .with_mode(mode)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
-        .context("Could not upgrade wallet")?;
+        .context("Failed to install wallet wasm.")?;
     let wallet = Identity::build_wallet_canister(id, env).await?;
     wallet
         .wallet_store_wallet_wasm(wasm)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+        .await
+        .context("Failed to store wallet wasm in container.")?;
     Ok(())
 }
 
