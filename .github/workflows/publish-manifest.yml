@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Install shfmt
+        run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
       - name: Generate
         run: |
           shellcheck --shell=sh public/install/*.sh --exclude SC2039,SC2154,SC2034
