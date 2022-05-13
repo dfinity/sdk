@@ -39,3 +39,5 @@ SANDBOX_LAUNCHER_X86_64_LINUX_SHA256="8391a2f103a46073db7aa7f2b6b973e8e3795e2f03
 SANDBOX_LAUNCHER_X86_64_LINUX_URL="https://download.dfinity.systems/blessed/ic/dcb2d23dfcd9de200f235110e618713cc884cb19/sdk-release/x86_64-linux/sandbox_launcher.gz"
 MOTOKO_BASE_BRANCH="next-moc"
 MOTOKO_BASE_REV="6f80c49d0f708c11d95895893ef3237cc7b05234"
+MOTOKO_BASE_TARBALL_URL="https://github.com/dfinity/motoko/releases/download/0.6.27/motoko-base-library.tar.gz"
+MOTOKO_BASE_TARBALL_SHA256="1ea79671779ad74e65f5713e95197409d7fa841bb7d04888377be874bd2aa0cd"

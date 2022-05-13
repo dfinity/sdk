@@ -13,7 +13,12 @@ DFX_ASSETS_TEMP_DIR=$(mktemp -d)
 BINARY_CACHE_TEMP_DIR=$(mktemp -d)
 DOWNLOAD_TEMP_DIR=$(mktemp -d)
 
+echo "DFX_ASSETS_TEMP_DIR is $DFX_ASSETS_TEMP_DIR"
+echo "BINARY_CACHE_TEMP_DIR is $BINARY_CACHE_TEMP_DIR"
+echo "DOWNLOAD_TEMP_DIR is $DOWNLOAD_TEMP_DIR"
+
 function cleanup {
+    echo
     rm -rf "$DFX_ASSETS_TEMP_DIR" "$BINARY_CACHE_TEMP_DIR" "$DOWNLOAD_TEMP_DIR"
 }
 trap cleanup EXIT
@@ -123,7 +128,35 @@ copy_motoko_base_from_clone() {
     )
 }
 
+download_motoko_base() {
+    echo "----download motoko base----"
+
+    URL=$MOTOKO_BASE_TARBALL_URL
+    SHA256=$MOTOKO_BASE_TARBALL_SHA256
+    DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/motoko-base-tarball.tar.gz"
+
+    download_url_and_check_sha "$URL" "$SHA256" "$DOWNLOAD_PATH"
+
+    mkdir "$DOWNLOAD_TEMP_DIR/motoko-base"
+    tar -xkvf "$DOWNLOAD_PATH" -C "$DOWNLOAD_TEMP_DIR/motoko-base"
+    ls -lR "$DOWNLOAD_TEMP_DIR/motoko-base"
+    #chmod -R 0744 "$DOWNLOAD_TEMP_DIR/motoko-base"
+    cp -R "$DOWNLOAD_TEMP_DIR/motoko-base/src/" "$BINARY_CACHE_TEMP_DIR/base"
+    chmod -R 0744 "$DOWNLOAD_TEMP_DIR/motoko-base"
+    rm -rf "$DOWNLOAD_TEMP_DIR/motoko-base"
+
+    echo "**** 1"
+    ls -lR "$BINARY_CACHE_TEMP_DIR/base"
+    chmod 0755 "$BINARY_CACHE_TEMP_DIR/base"
+    find "$BINARY_CACHE_TEMP_DIR/base" -type f -print -exec touch {} \; -exec chmod 0644 {} \;
+    echo "**** 2"
+    ls -lR "$BINARY_CACHE_TEMP_DIR/base"
+    # chmod 0644 "$BINARY_CACHE_TEMP_DIR/base/*.mo"
+
+}
+
 add_binary_cache() {
+    download_motoko_base
     download_binary "ic-btc-adapter"
     download_binary "ic-canister-http-adapter"
     download_binary "replica"
@@ -133,7 +166,7 @@ add_binary_cache() {
     download_ic_ref
     download_icx_proxy
     download_motoko_binaries
-    copy_motoko_base_from_clone
+    #copy_motoko_base_from_clone
 
     tar -czf "$DFX_ASSETS_TEMP_DIR"/binary_cache.tgz -C "$BINARY_CACHE_TEMP_DIR" .
 }

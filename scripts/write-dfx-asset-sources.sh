@@ -76,4 +76,6 @@ done
 
 write_var "motoko-base" "branch"
 write_var "motoko-base" "rev"
-
+write_url "motoko-base-tarball"
+#write_var "motoko-base-tarball" "version"
+write_sha256 "motoko-base-tarball"
