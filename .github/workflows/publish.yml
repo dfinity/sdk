@@ -17,18 +17,15 @@ jobs:
       fail-fast: false
       matrix:
         rust: [ '1.58.1' ]
-        target: [ x86_64-apple-darwin, x86_64-unknown-linux-musl, x86_64-unknown-linux-gnu ]
+        # We build a dynamic-linked linux binary because otherwise HSM support fails with:
+        #   Error: IO: Dynamic loading not supported
+        target: [ x86_64-apple-darwin, x86_64-unknown-linux-gnu ]
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
             binary_path: target/x86_64-apple-darwin/release
             name: x86_64-darwin
             tar: gtar
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            binary_path: target/x86_64-unknown-linux-musl/release
-            name: x86_64-linux-musl
-            tar: tar
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary_path: target/x86_64-unknown-linux-gnu/release
@@ -73,37 +70,34 @@ jobs:
           echo "OPENSSL_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
         if: contains(matrix.target, 'linux-gnu')
 
-      - name: Linux hack (musl only)
-        run: |
-          echo "[toolchain]" >./rust-toolchain.toml
-          echo 'channel = "1.58.1"' >>./rust-toolchain.toml
-          echo 'components = ["rustfmt", "clippy"]' >>./rust-toolchain.toml
-        if: contains(matrix.target, 'linux-musl')
-
-      - name: Generate DFX_ASSETS (musl only)
-        run: |
-          ./scripts/prepare-dfx-assets.sh .dfx-assets
-          echo "DFX_ASSETS=$(pwd)/.dfx-assets" >> $GITHUB_ENV
-        if: contains(matrix.target, 'linux-musl')
-
-      - name: Linux build (musl)
-        uses: dfinity/rust-musl-action@master
-        with:
-          args: |
-            echo "[toolchain]" >./rust-toolchain.toml
-            echo 'channel = "1.58.1"' >>./rust-toolchain.toml
-            echo 'components = ["rustfmt", "clippy"]' >>./rust-toolchain.toml
-            rustup target add ${{ matrix.target }}
-
-            cargo clean --target ${{ matrix.target }} --release
-            cargo build --target ${{ matrix.target }} --locked --release
-        if: contains(matrix.target, 'linux-musl')
-
-      - name: Build (non-musl)
+      - name: Build
         run: |
           cargo clean --target ${{ matrix.target }} --release
           cargo build --target ${{ matrix.target }} --locked --release
-        if: contains(matrix.target, 'linux-musl') == false
+
+      - name: Check dynamically-linked libraries (macos)
+        run: |
+          ACTUAL="$(otool -L ${{ matrix.binary_path }}/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
+          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libiconv.2.dylib X /usr/lib/libresolv.9.dylib"
+          echo "Dynamically-linked libraries:"
+          echo "  Actual:   $ACTUAL"
+          echo "  Expected: $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+              exit 1
+          fi
+        if: contains(matrix.os, 'macos')
+
+      - name: Check dynamically-linked libraries (ubuntu)
+        run: |
+          ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
+          EXPECTED="(todo)"
+          echo "Dynamically-linked libraries:"
+          echo "  Actual:   $ACTUAL"
+          echo "  Expected: $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+              exit 1
+          fi
+        if: contains(matrix.os, 'ubuntu')
 
       - name: Strip binaries
         run: |
@@ -133,7 +127,7 @@ jobs:
       fail-fast: false
       matrix:
         rust: [ '1.58.1' ]
-        name: [ 'x86_64-darwin', 'x86_64-linux', 'x86_64-linux-musl' ]
+        name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
       - name: Setup environment variables
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
