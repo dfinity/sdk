@@ -252,12 +252,12 @@ impl IdentityManager {
 
         let wallet_config_file = self.get_persistent_wallet_config_file(name);
         if wallet_config_file.exists() {
+            if let Some(logger) = display_linked_wallets_to {
+                DfxIdentity::display_linked_wallets(logger, &wallet_config_file)?;
+            }
             if drop_wallets {
                 remove_identity_file(&wallet_config_file)?;
             } else {
-                if let Some(logger) = display_linked_wallets_to {
-                    DfxIdentity::display_linked_wallets(logger, &wallet_config_file)?;
-                }
                 bail!("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")
             }
         }
