@@ -1047,6 +1047,7 @@ dependencies = [
  "ic-types",
  "ic-utils",
  "indicatif",
+ "itertools 0.10.3",
  "lazy-init",
  "lazy_static",
  "libflate",

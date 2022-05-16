@@ -6,7 +6,7 @@ pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
 use fn_error_context::context;
 use ic_utils::Argument;
-pub use install_canister::{install_canister, install_canister_wasm};
+pub use install_canister::{install_canister, install_canister_wasm, install_wallet};
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
