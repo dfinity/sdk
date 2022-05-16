@@ -3,6 +3,12 @@
 
 = UNRELEASED
 
+== BUILD PROCESS
+
+The build process temporarily obtains the icx-proxy binary from the dfx 0.10.0 release binary.
+Once icx-proxy releases are once again available on github, we will revert this change.
+Do not release dfx until this is reverted.
+
 == DFX
 
 === fix: HSMs are once again supported on Linux
@@ -47,6 +53,10 @@ dfx command-line parameters for canister http requests integration:
 
 This defaults to the following value in dfx.json:
     .defaults.canister_http.enabled
+
+=== fix: specifying ic provider with a trailing slash is recognised correctly
+
+Specifying the network provider as `https://ic0.app/` instead of `https://ic0.app` is now recognised as the real IC network.
 
 === Binary cache
 

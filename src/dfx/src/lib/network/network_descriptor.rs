@@ -1,5 +1,5 @@
 use crate::config::dfinity::NetworkType;
-use crate::config::dfinity::DEFAULT_IC_GATEWAY;
+use crate::config::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
 
 #[derive(Clone, Debug)]
 pub struct NetworkDescriptor {
@@ -10,12 +10,20 @@ pub struct NetworkDescriptor {
 }
 
 impl NetworkDescriptor {
-    // Determines whether the provided connection is the official IC or not.
+    /// Determines whether the provided connection is the official IC or not.
     #[allow(clippy::ptr_arg)]
     pub fn is_ic(network_name: &str, providers: &Vec<String>) -> bool {
-        let name_match = network_name == "ic" || network_name == DEFAULT_IC_GATEWAY;
-        let provider_match =
-            { providers.len() == 1 && providers.get(0).unwrap() == "https://ic0.app" };
+        let name_match = matches!(
+            network_name,
+            "ic" | DEFAULT_IC_GATEWAY | DEFAULT_IC_GATEWAY_TRAILING_SLASH
+        );
+        let provider_match = {
+            providers.len() == 1
+                && matches!(
+                    providers.get(0).unwrap().as_str(),
+                    DEFAULT_IC_GATEWAY | DEFAULT_IC_GATEWAY_TRAILING_SLASH
+                )
+        };
         name_match || provider_match
     }
 }
@@ -27,13 +35,22 @@ mod test {
     #[test]
     fn ic_by_netname() {
         assert!(NetworkDescriptor::is_ic("ic", &vec![]));
+        assert!(NetworkDescriptor::is_ic(DEFAULT_IC_GATEWAY, &vec![]));
+        assert!(NetworkDescriptor::is_ic(
+            DEFAULT_IC_GATEWAY_TRAILING_SLASH,
+            &vec![]
+        ));
     }
 
     #[test]
     fn ic_by_provider() {
         assert!(NetworkDescriptor::is_ic(
             "not_ic",
-            &vec!["https://ic0.app".to_string()]
+            &vec![DEFAULT_IC_GATEWAY.to_string()]
+        ));
+        assert!(NetworkDescriptor::is_ic(
+            "not_ic",
+            &vec![DEFAULT_IC_GATEWAY_TRAILING_SLASH.to_string()]
         ));
     }
 
@@ -55,7 +72,7 @@ mod test {
         assert!(!NetworkDescriptor::is_ic(
             "not_ic",
             &vec![
-                "https://ic0.app".to_string(),
+                DEFAULT_IC_GATEWAY.to_string(),
                 "some_other_provider".to_string()
             ]
         ));
