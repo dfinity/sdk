@@ -93,7 +93,11 @@ download_ic_ref() {
 }
 
 download_icx_proxy() {
-    download_tarball "icx-proxy"
+    if [ -z "$DFX_CARGO_BUILD_ICX_PROXY_PATH" ]; then
+        download_tarball "icx-proxy"
+    else
+        cp "$DFX_CARGO_BUILD_ICX_PROXY_PATH" "$BINARY_CACHE_TEMP_DIR"
+    fi
     chmod 0500 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
 }
 
