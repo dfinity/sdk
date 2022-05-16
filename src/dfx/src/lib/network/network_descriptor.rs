@@ -10,7 +10,7 @@ pub struct NetworkDescriptor {
 }
 
 impl NetworkDescriptor {
-    // Determines whether the provided connection is the official IC or not.
+    /// Determines whether the provided connection is the official IC or not.
     #[allow(clippy::ptr_arg)]
     pub fn is_ic(network_name: &str, providers: &Vec<String>) -> bool {
         let name_match = matches!(
