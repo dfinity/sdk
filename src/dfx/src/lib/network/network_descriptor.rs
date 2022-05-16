@@ -1,5 +1,5 @@
 use crate::config::dfinity::NetworkType;
-use crate::config::dfinity::DEFAULT_IC_GATEWAY;
+use crate::config::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
 
 #[derive(Clone, Debug)]
 pub struct NetworkDescriptor {
@@ -13,9 +13,17 @@ impl NetworkDescriptor {
     // Determines whether the provided connection is the official IC or not.
     #[allow(clippy::ptr_arg)]
     pub fn is_ic(network_name: &str, providers: &Vec<String>) -> bool {
-        let name_match = network_name == "ic" || network_name == DEFAULT_IC_GATEWAY;
-        let provider_match =
-            { providers.len() == 1 && providers.get(0).unwrap() == "https://ic0.app" };
+        let name_match = network_name == "ic"
+            || network_name == DEFAULT_IC_GATEWAY
+            || network_name == DEFAULT_IC_GATEWAY_TRAILING_SLASH;
+        let provider_match = {
+            providers.len() == 1
+                && match providers.get(0).unwrap().as_str() {
+                    DEFAULT_IC_GATEWAY => true,
+                    DEFAULT_IC_GATEWAY_TRAILING_SLASH => true,
+                    _ => false,
+                }
+        };
         name_match || provider_match
     }
 }
@@ -34,6 +42,14 @@ mod test {
         assert!(NetworkDescriptor::is_ic(
             "not_ic",
             &vec!["https://ic0.app".to_string()]
+        ));
+    }
+
+    #[test]
+    fn ic_by_provider_trailing_slash() {
+        assert!(NetworkDescriptor::is_ic(
+            "not_ic",
+            &vec!["https://ic0.app/".to_string()]
         ));
     }
 
