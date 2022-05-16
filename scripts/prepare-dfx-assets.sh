@@ -93,6 +93,7 @@ download_ic_ref() {
 }
 
 # This is a temporary hack while icx-proxy releases are not available from github releases.
+# To be reverted: https://dfinity.atlassian.net/browse/SDK-498
 get_icx_proxy_from_dfx_release() {
     case "$OSTYPE" in
         darwin*)
