@@ -13,16 +13,16 @@ impl NetworkDescriptor {
     // Determines whether the provided connection is the official IC or not.
     #[allow(clippy::ptr_arg)]
     pub fn is_ic(network_name: &str, providers: &Vec<String>) -> bool {
-        let name_match = network_name == "ic"
-            || network_name == DEFAULT_IC_GATEWAY
-            || network_name == DEFAULT_IC_GATEWAY_TRAILING_SLASH;
+        let name_match = matches!(
+            network_name,
+            "ic" | DEFAULT_IC_GATEWAY | DEFAULT_IC_GATEWAY_TRAILING_SLASH
+        );
         let provider_match = {
             providers.len() == 1
-                && match providers.get(0).unwrap().as_str() {
-                    DEFAULT_IC_GATEWAY => true,
-                    DEFAULT_IC_GATEWAY_TRAILING_SLASH => true,
-                    _ => false,
-                }
+                && matches!(
+                    providers.get(0).unwrap().as_str(),
+                    DEFAULT_IC_GATEWAY | DEFAULT_IC_GATEWAY_TRAILING_SLASH
+                )
         };
         name_match || provider_match
     }
