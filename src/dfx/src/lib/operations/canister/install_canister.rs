@@ -249,7 +249,7 @@ pub async fn install_wallet(
     let wasm = wallet_wasm(env.get_logger())?;
     mgmt.install_code(&id, &wasm)
         .with_mode(mode)
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait(waiter_with_timeout(expiry_duration() * 2))
         .await
         .context("Failed to install wallet wasm.")?;
     let wallet = Identity::build_wallet_canister(id, env).await?;

@@ -124,7 +124,7 @@ async fn migrate_canister(
                     },)),
                     0,
                 )
-                .call_and_wait(waiter_with_timeout(expiry_duration() * 2))
+                .call_and_wait(waiter_with_timeout(expiry_duration()))
                 .await
                 .context("Could not update canister settings")?;
         } else {
