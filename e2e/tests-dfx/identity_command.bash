@@ -139,6 +139,7 @@ teardown() {
     assert_command dfx identity --network ic set-wallet --force "$WALLET"
     assert_command dfx identity use default
     assert_command_fail dfx identity remove alice
+    # make sure the configured wallet is displayed
     assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
     assert_command dfx identity remove alice --drop-wallets
     assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
