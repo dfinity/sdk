@@ -139,8 +139,9 @@ teardown() {
     assert_command dfx identity --network ic set-wallet --force "$WALLET"
     assert_command dfx identity use default
     assert_command_fail dfx identity remove alice
-    assert_match "$WALLET"
+    assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
     assert_command dfx identity remove alice --drop-wallets
+    assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
 }
 
 @test "identity remove: cannot remove the non-default active identity" {
