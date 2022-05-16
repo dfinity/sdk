@@ -5,6 +5,11 @@
 
 == DFX
 
+=== fix: Webpack config no longer uses CopyPlugin
+
+Dfx already points to the asset canister's assets directory, and copying to disk could sometimes
+lead to an annoying "too many open files" error.
+
 === fix: HSMs are once again supported on Linux
 
 On Linux, dfx 0.10.0 failed any operation with an HSM with the following error:
