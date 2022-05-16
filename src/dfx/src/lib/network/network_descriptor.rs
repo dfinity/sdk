@@ -35,21 +35,22 @@ mod test {
     #[test]
     fn ic_by_netname() {
         assert!(NetworkDescriptor::is_ic("ic", &vec![]));
+        assert!(NetworkDescriptor::is_ic(DEFAULT_IC_GATEWAY, &vec![]));
+        assert!(NetworkDescriptor::is_ic(
+            DEFAULT_IC_GATEWAY_TRAILING_SLASH,
+            &vec![]
+        ));
     }
 
     #[test]
     fn ic_by_provider() {
         assert!(NetworkDescriptor::is_ic(
             "not_ic",
-            &vec!["https://ic0.app".to_string()]
+            &vec![DEFAULT_IC_GATEWAY.to_string()]
         ));
-    }
-
-    #[test]
-    fn ic_by_provider_trailing_slash() {
         assert!(NetworkDescriptor::is_ic(
             "not_ic",
-            &vec!["https://ic0.app/".to_string()]
+            &vec![DEFAULT_IC_GATEWAY_TRAILING_SLASH.to_string()]
         ));
     }
 
@@ -71,7 +72,7 @@ mod test {
         assert!(!NetworkDescriptor::is_ic(
             "not_ic",
             &vec![
-                "https://ic0.app".to_string(),
+                DEFAULT_IC_GATEWAY.to_string(),
                 "some_other_provider".to_string()
             ]
         ));
