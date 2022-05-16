@@ -56,6 +56,7 @@ pub struct ConfigCanistersCanisterRemote {
 
 const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
+pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 
 /// A Canister configuration in the dfx.json config file.
 /// It only contains a type; everything else should be infered using the
