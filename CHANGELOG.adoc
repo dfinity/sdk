@@ -5,6 +5,13 @@
 
 == DFX
 
+=== fix: HSMs are once again supported on Linux
+
+On Linux, dfx 0.10.0 failed any operation with an HSM with the following error:
+    Error: IO: Dynamic loading not supported
+
+The fix was to once again dynamically-link the Linux build.
+
 === chore: add context to errors
 
 Most errors that happen within dfx are now reported in much more detail. No more plain `File not found` without explanation what even was attempted.
