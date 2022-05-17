@@ -121,7 +121,7 @@ teardown() {
     dfx build
     dfx canister install hello_backend
     ID="$(dfx canister id hello_backend)"
-    NETWORK="http://localhost:$(cat .dfx/webserver-port)"
+    NETWORK="http://localhost:$(cat "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port")"
     (
         cd "$E2E_TEMP_DIR"
         mkdir "not-a-project-dir"

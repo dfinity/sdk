@@ -2,23 +2,24 @@ use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_replica_actor, start_shutdown_controller,
 };
-use crate::config::dfinity::ConfigDefaultsReplica;
-use crate::error_invalid_argument;
+use crate::commands::start::{
+    apply_command_line_parameters, configure_btc_adapter_if_enabled,
+    configure_canister_http_adapter_if_enabled, empty_writable_path,
+};
+use crate::config::dfinity::DEFAULT_REPLICA_PORT;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::network::id::write_network_id;
+use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
+use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
-use crate::commands::start::{
-    configure_btc_adapter_if_enabled, configure_canister_http_adapter_if_enabled,
-    empty_writable_path,
-};
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 use anyhow::Context;
 use clap::Parser;
 use fn_error_context::context;
 use std::default::Default;
 use std::fs;
+use std::fs::create_dir_all;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
@@ -50,12 +51,11 @@ pub struct ReplicaOpts {
 #[context("Failed to get replica config.")]
 fn get_config(
     local_server_descriptor: &LocalServerDescriptor,
-    opts: &ReplicaOpts,
     replica_port_path: PathBuf,
     state_root: &Path,
 ) -> DfxResult<ReplicaConfig> {
     let config = &local_server_descriptor.replica;
-    let port = get_port(config, opts.port.as_deref())?;
+    let port = config.port.unwrap_or(DEFAULT_REPLICA_PORT);
     let mut http_handler: HttpHandlerConfig = Default::default();
     if port == 0 {
         http_handler.write_port_to = Some(replica_port_path);
@@ -69,28 +69,50 @@ fn get_config(
     Ok(replica_config)
 }
 
-/// Gets the port number that the Internet Computer replica listens on. First checks if the port
-/// number was specified on the command-line using --port, otherwise checks if the port number was
-/// specified in the dfx configuration file, otherise defaults to 8080.
-#[context("Failed to get port.")]
-fn get_port(config: &ConfigDefaultsReplica, port: Option<&str>) -> DfxResult<u16> {
-    port.map(|port| port.parse())
-        .unwrap_or_else(|| {
-            let default = 8080;
-            Ok(config.port.unwrap_or(default))
-        })
-        .map_err(|err| error_invalid_argument!("Invalid port number: {}", err))
-}
-
 /// Start the Internet Computer locally. Spawns a proxy to forward and
 /// manage browser requests. Responsible for running the network (one
 /// replica at the moment), the proxy, and (if configured) the bitcoin adapter.
-pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
+pub fn exec(
+    env: &dyn Environment,
+    ReplicaOpts {
+        port,
+        emulator,
+        bitcoin_node,
+        enable_bitcoin,
+        enable_canister_http,
+    }: ReplicaOpts,
+) -> DfxResult {
     let system = actix::System::new();
 
-    let network_descriptor =
-        get_network_descriptor(env.get_config(), None, LocalBindDetermination::AsConfigured)?;
+    let network_descriptor = create_network_descriptor(
+        env.get_config(),
+        env.get_shared_config(),
+        None,
+        Some(env.get_logger().clone()),
+        LocalBindDetermination::AsConfigured,
+    )?;
+    let network_descriptor = apply_command_line_parameters(
+        network_descriptor,
+        None,
+        port,
+        enable_bitcoin,
+        bitcoin_node,
+        enable_canister_http,
+    )?;
+
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
+    local_server_descriptor.describe(true, true);
+
+    let temp_dir = &local_server_descriptor.data_directory;
+    create_dir_all(&temp_dir).with_context(|| {
+        format!(
+            "Failed to create network temp directory {}.",
+            temp_dir.to_string_lossy()
+        )
+    })?;
+    if !local_server_descriptor.network_id_path().exists() {
+        write_network_id(local_server_descriptor)?;
+    }
 
     let btc_adapter_pid_file_path =
         empty_writable_path(local_server_descriptor.btc_adapter_pid_path())?;
@@ -121,8 +143,6 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
         local_server_descriptor,
         &btc_adapter_config_path,
         &btc_adapter_socket_holder_path,
-        opts.enable_bitcoin,
-        opts.bitcoin_node.clone(),
     )?;
     let btc_adapter_socket_path = btc_adapter_config
         .as_ref()
@@ -132,21 +152,15 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
         local_server_descriptor,
         &canister_http_adapter_config_path,
         &canister_http_adapter_socket_holder_path,
-        opts.enable_canister_http,
     )?;
     let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
-    let mut replica_config = get_config(
-        local_server_descriptor,
-        &opts,
-        replica_port_path,
-        &state_root,
-    )?;
+    let mut replica_config = get_config(local_server_descriptor, replica_port_path, &state_root)?;
 
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
-        if opts.emulator {
+        if emulator {
             start_emulator_actor(env, shutdown_controller, emulator_port_path)?;
         } else {
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =

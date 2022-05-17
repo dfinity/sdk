@@ -20,9 +20,9 @@ teardown() {
     dfx_start
     setup_actuallylocal_network
     dfx_set_wallet
-    assert_command dfx_set_wallet
+    dfx_set_wallet
 
-    assert_command dfx canister create --all --network actuallylocal
+    dfx canister create --all --network actuallylocal
 
     # canister creates writes to a spinner (stderr), not stdout
     assert_command dfx canister id e2e_project_backend --network actuallylocal
@@ -34,14 +34,14 @@ teardown() {
 
     setup_actuallylocal_network
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.type="ephemeral"' dfx.json)" >dfx.json
-    assert_command dfx_set_wallet
+    cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
+    dfx_set_wallet
 
-    assert_command dfx canister create --all --network actuallylocal
+    dfx canister create --all --network actuallylocal
 
     # canister creates writes to a spinner (stderr), not stdout
     assert_command dfx canister id e2e_project_backend --network actuallylocal
-    assert_match "$(jq -r .e2e_project_backend.actuallylocal <.dfx/actuallylocal/canister_ids.json)"
+    assert_match "$(jq -r .e2e_project_backend.actuallylocal .dfx/actuallylocal/canister_ids.json)"
 }
 
 @test "create stores canister ids for default-ephemeral local networks in .dfx/{network}canister_ids.json" {
@@ -54,12 +54,17 @@ teardown() {
     assert_match "$(jq -r .e2e_project_backend.local <.dfx/local/canister_ids.json)"
 }
 
-
 @test "create stores canister ids for configured-persistent local networks in canister_ids.json" {
     dfx_start
 
+    webserver_port=$(get_webserver_port)
+
+    create_shared_dfx_json
+
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.type="persistent"' dfx.json)" >dfx.json
+    cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$webserver_port"'"' "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.networks.local.type="persistent"' "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
 
     assert_command dfx canister create --all --network local
 

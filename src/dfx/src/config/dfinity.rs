@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
+use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
@@ -7,6 +8,7 @@ use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use candid::Principal;
+use directories_next::ProjectDirs;
 use fn_error_context::context;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
@@ -15,7 +17,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
 use std::default::Default;
 use std::fmt;
-use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -29,29 +31,9 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     replica: None,
 };
 
-pub const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
-    enabled: false,
-    nodes: None,
-    log_level: BitcoinAdapterLogLevel::Info,
-};
-
-pub const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
-    ConfigDefaultsCanisterHttp { enabled: false };
-
-pub const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
-    ip: None,
-    port: None,
-    timeout: None,
-};
-
 const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
     packtool: None,
     args: None,
-};
-
-pub const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
-    port: None,
-    subnet_type: None,
 };
 
 /// # Remote Canister Configuration
@@ -71,9 +53,10 @@ pub struct ConfigCanistersCanisterRemote {
     pub id: BTreeMap<String, Principal>,
 }
 
-const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
+pub const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
+pub const DEFAULT_REPLICA_PORT: u16 = 8080;
 
 /// # Canister Configuration
 /// Configurations for a single canister.
@@ -219,7 +202,7 @@ pub struct CanisterDeclarationsConfig {
 }
 
 /// # Bitcoin Adapter Configuration
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBitcoin {
     /// # Enable Bitcoin Adapter
     #[serde(default)]
@@ -236,6 +219,16 @@ pub struct ConfigDefaultsBitcoin {
     pub log_level: BitcoinAdapterLogLevel,
 }
 
+impl Default for ConfigDefaultsBitcoin {
+    fn default() -> Self {
+        ConfigDefaultsBitcoin {
+            enabled: false,
+            nodes: None,
+            log_level: BitcoinAdapterLogLevel::Info,
+        }
+    }
+}
+
 /// # HTTP Adapter Configuration
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsCanisterHttp {
@@ -250,17 +243,40 @@ fn default_as_false() -> bool {
 }
 
 /// # Bootstrap Server Configuration
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBootstrap {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
-    pub ip: Option<IpAddr>,
+    #[serde(default = "default_bootstrap_ip")]
+    pub ip: IpAddr,
 
     /// Specifies the port number that the bootstrap server listens on. Defaults to 8081.
-    pub port: Option<u16>,
+    #[serde(default = "default_bootstrap_port")]
+    pub port: u16,
 
     /// Specifies the maximum number of seconds that the bootstrap server
     /// will wait for upstream requests to complete. Defaults to 30.
-    pub timeout: Option<u64>,
+    #[serde(default = "default_bootstrap_timeout")]
+    pub timeout: u64,
+}
+
+pub fn default_bootstrap_ip() -> IpAddr {
+    IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))
+}
+pub fn default_bootstrap_port() -> u16 {
+    8081
+}
+pub fn default_bootstrap_timeout() -> u64 {
+    30
+}
+
+impl Default for ConfigDefaultsBootstrap {
+    fn default() -> Self {
+        ConfigDefaultsBootstrap {
+            ip: default_bootstrap_ip(),
+            port: default_bootstrap_port(),
+            timeout: default_bootstrap_timeout(),
+        }
+    }
 }
 
 /// # Build Process Configuration
@@ -343,7 +359,7 @@ impl ReplicaSubnetType {
 }
 
 /// # Custom Network Configuration
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigNetworkProvider {
     /// The URL(s) this network can be reached at.
     pub providers: Vec<String>,
@@ -357,6 +373,7 @@ pub struct ConfigNetworkProvider {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigLocalProvider {
     /// Bind address for the webserver.
+    #[serde(default = "default_local_bind")]
     pub bind: String,
 
     /// Persistence type of this network.
@@ -369,6 +386,9 @@ pub struct ConfigLocalProvider {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
+fn default_local_bind() -> String {
+    String::from(DEFAULT_LOCAL_BIND)
+}
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ConfigNetwork {
@@ -417,6 +437,19 @@ pub struct ConfigInterface {
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct SharedConfigDefaults {
+    pub bitcoin: Option<ConfigDefaultsBitcoin>,
+    pub bootstrap: Option<ConfigDefaultsBootstrap>,
+    pub canister_http: Option<ConfigDefaultsCanisterHttp>,
+    pub replica: Option<ConfigDefaultsReplica>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SharedConfigInterface {
+    pub networks: Option<BTreeMap<String, ConfigNetwork>>,
+}
+
 impl ConfigCanistersCanister {}
 
 #[context("Failed to convert '{}' to a SocketAddress.", s)]
@@ -457,6 +490,14 @@ impl ConfigDefaults {
     }
 }
 
+impl SharedConfigInterface {
+    pub fn get_network(&self, name: &str) -> Option<&ConfigNetwork> {
+        self.networks
+            .as_ref()
+            .and_then(|networks| networks.get(name))
+    }
+}
+
 impl ConfigInterface {
     pub fn get_defaults(&self) -> &ConfigDefaults {
         match &self.defaults {
@@ -465,28 +506,10 @@ impl ConfigInterface {
         }
     }
 
-    pub fn get_network(&self, name: &str) -> Option<ConfigNetwork> {
-        let network = self
-            .networks
+    pub fn get_network(&self, name: &str) -> Option<&ConfigNetwork> {
+        self.networks
             .as_ref()
-            .and_then(|networks| networks.get(name).cloned());
-        match (name, &network) {
-            ("local", None) => Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
-                bind: String::from(DEFAULT_LOCAL_BIND),
-                r#type: NetworkType::Ephemeral,
-                bitcoin: None,
-                bootstrap: None,
-                canister_http: None,
-                replica: None,
-            })),
-            ("ic", _) => Some(ConfigNetwork::ConfigNetworkProvider(
-                ConfigNetworkProvider {
-                    providers: vec![DEFAULT_IC_GATEWAY.to_string()],
-                    r#type: NetworkType::Persistent,
-                },
-            )),
-            _ => network,
-        }
+            .and_then(|networks| networks.get(name))
     }
 
     pub fn get_version(&self) -> u32 {
@@ -791,6 +814,61 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
     }
 }
 
+#[derive(Clone)]
+pub struct SharedConfig {
+    path: PathBuf,
+    json: Value,
+    // public interface to the shared config:
+    shared_config: SharedConfigInterface,
+}
+
+impl SharedConfig {
+    pub fn get_path(&self) -> &PathBuf {
+        &self.path
+    }
+    pub fn get_shared_config(&self) -> &SharedConfigInterface {
+        &self.shared_config
+    }
+    #[context("Failed to determine shared network data directory.")]
+    pub fn get_network_data_directory(network: &str) -> DfxResult<PathBuf> {
+        let project_dirs = ProjectDirs::from("org", "dfinity", "dfx").ok_or_else(|| {
+            anyhow!("Unable to retrieve a valid home directory path from the operating system")
+        })?;
+        Ok(project_dirs.data_local_dir().join("network").join(network))
+    }
+
+    #[context("Failed to read shared configuration.")]
+    pub fn from_shared_dir() -> DfxResult<SharedConfig> {
+        let dir = get_config_dfx_dir_path()?;
+
+        let path = dir.join("dfx.json");
+        if path.exists() {
+            SharedConfig::from_file(&path)
+        } else {
+            Ok(SharedConfig {
+                path,
+                json: Default::default(),
+                shared_config: SharedConfigInterface { networks: None },
+            })
+        }
+    }
+
+    #[context("Failed to read shared configuration from {}.", path.to_string_lossy())]
+    fn from_file(path: &Path) -> DfxResult<SharedConfig> {
+        let content = std::fs::read(&path)
+            .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
+
+        let shared_config = serde_json::from_slice(&content)?;
+        let json = serde_json::from_slice(&content)?;
+        let path = PathBuf::from(path);
+        Ok(SharedConfig {
+            path,
+            json,
+            shared_config,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -933,7 +1011,7 @@ mod tests {
 
         assert_eq!(
             config.get_config().get_network("staging").unwrap(),
-            ConfigNetwork::ConfigNetworkProvider(ConfigNetworkProvider {
+            &ConfigNetwork::ConfigNetworkProvider(ConfigNetworkProvider {
                 providers: vec![String::from("https://1.2.3.4:5000")],
                 r#type: NetworkType::Ephemeral,
             })

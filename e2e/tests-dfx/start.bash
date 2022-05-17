@@ -73,7 +73,7 @@ teardown() {
     ID=$(dfx canister id hello_frontend)
 
     timeout 15s sh -c \
-      "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
+      "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY\"/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
@@ -124,7 +124,7 @@ teardown() {
     ID=$(dfx canister id hello_frontend)
 
     timeout 15s sh -c \
-      "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
+      "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
@@ -132,29 +132,75 @@ teardown() {
 
 @test "dfx starts replica with subnet_type application - project defaults" {
     install_asset subnet_type/project_defaults/application
+    define_project_network
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
-
 }
 
 @test "dfx starts replica with subnet_type verifiedapplication - project defaults" {
     install_asset subnet_type/project_defaults/verified_application
+    define_project_network
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
-
 }
 
 @test "dfx starts replica with subnet_type system - project defaults" {
     install_asset subnet_type/project_defaults/system
+    define_project_network
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
-
 }
 
-@test "dfx start detects if dfx is already running" {
+@test "dfx starts replica with subnet_type application - local network" {
+    install_asset subnet_type/network_settings/application
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "subnet_type: Application"
+}
+
+@test "dfx starts replica with subnet_type verifiedapplication - local network" {
+    install_asset subnet_type/network_settings/verified_application
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "subnet_type: VerifiedApplication"
+}
+
+@test "dfx starts replica with subnet_type system - local network" {
+    install_asset subnet_type/network_settings/system
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "subnet_type: System"
+}
+
+
+@test "dfx starts replica with subnet_type application - shared network" {
+    install_shared_asset subnet_type/network_settings/application
+
+    assert_command dfx start --background
+    assert_match "subnet_type: Application"
+}
+
+@test "dfx starts replica with subnet_type verifiedapplication - shared network" {
+    install_shared_asset subnet_type/network_settings//verified_application
+
+    assert_command dfx start --background
+    assert_match "subnet_type: VerifiedApplication"
+}
+
+@test "dfx starts replica with subnet_type system - shared network" {
+    install_shared_asset subnet_type/network_settings//system
+
+    assert_command dfx start --background
+    assert_match "subnet_type: System"
+}
+
+@test "dfx start detects if dfx is already running - shared network" {
     dfx_new hello
     dfx_start
 

@@ -58,8 +58,8 @@ teardown() {
     dfx_start
     webserver_port=$(get_webserver_port)
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$webserver_port"'"' dfx.json)" >dfx.json
-    assert_command dfx ping local
+    cat <<<"$(jq '.networks.nnn.bind="127.0.0.1:'"$webserver_port"'"' dfx.json)" >dfx.json
+    assert_command dfx ping nnn
 
     assert_match "\"ic_api_version\""
 }
@@ -70,7 +70,7 @@ teardown() {
     dfx_start --host 127.0.0.1:12345
 
     # Make dfx use the port from configuration:
-    rm .dfx/webserver-port
+    rm "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port"
 
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.arbitrary.providers=["http://127.0.0.1:12345"]' dfx.json)" >dfx.json
