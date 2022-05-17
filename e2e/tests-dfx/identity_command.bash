@@ -133,6 +133,7 @@ teardown() {
 }
 
 @test "identity remove: only remove identities with configured wallet if --drop-wallets is specified" {
+    # There's no replica running, and no real wallet.  This is just a valid principal.
     WALLET="rwlgt-iiaaa-aaaaa-aaaaa-cai"
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity use alice
