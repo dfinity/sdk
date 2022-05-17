@@ -10,6 +10,10 @@ use slog::info;
 pub struct RemoveOpts {
     /// The identity to remove.
     identity: String,
+
+    /// Required if the identity has wallets configured so that users do not accidentally lose access to wallets.
+    #[clap(long)]
+    drop_wallets: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: RemoveOpts) -> DfxResult {
@@ -17,7 +21,7 @@ pub fn exec(env: &dyn Environment, opts: RemoveOpts) -> DfxResult {
 
     let log = env.get_logger();
 
-    IdentityManager::new(env)?.remove(name)?;
+    IdentityManager::new(env)?.remove(name, opts.drop_wallets, Some(log))?;
 
     info!(log, r#"Removed identity "{}"."#, name);
     Ok(())
