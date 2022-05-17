@@ -9,6 +9,8 @@ mod cache;
 mod canister;
 mod config;
 mod deploy;
+mod diagnose;
+mod fix;
 mod generate;
 mod identity;
 mod language_service;
@@ -31,6 +33,8 @@ pub enum Command {
     Canister(canister::CanisterOpts),
     Config(config::ConfigOpts),
     Deploy(deploy::DeployOpts),
+    Diagnose(diagnose::DiagnoseOpts),
+    Fix(fix::FixOpts),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpt),
     #[clap(name("_language-service"))]
@@ -55,6 +59,8 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Canister(v) => canister::exec(env, v),
         Command::Config(v) => config::exec(env, v),
         Command::Deploy(v) => deploy::exec(env, v),
+        Command::Diagnose(v) => diagnose::exec(env, v),
+        Command::Fix(v) => fix::exec(env, v),
         Command::Generate(v) => generate::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
         Command::LanguageServices(v) => language_service::exec(env, v),
