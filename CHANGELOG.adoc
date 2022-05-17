@@ -3,12 +3,6 @@
 
 = UNRELEASED
 
-== BUILD PROCESS
-
-The build process temporarily obtains the icx-proxy binary from the dfx 0.10.0 release binary.
-Once icx-proxy releases are once again available on github, we will revert this change.
-Do not release dfx until this is reverted.
-
 == DFX
 
 === fix: Webpack config no longer uses CopyPlugin
@@ -92,6 +86,15 @@ This incorporates the following executed proposals:
 * https://dashboard.internetcomputer.org/proposal/58376[58376]
 * https://dashboard.internetcomputer.org/proposal/57843[57843]
 * https://dashboard.internetcomputer.org/proposal/57395[57395]
+
+== icx-proxy
+
+Updated icx-proxy to commit c312760a62b20931431ba45e5b0168ee79ea5cda
+
+* Added gzip and deflate body decoding before certification validation.
+* Fixed unzip and streaming bugs
+* Added Prometheus metrics endpoint
+* Added root and invalid ssl and dns mapping
 
 = 0.10.0
 
