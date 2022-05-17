@@ -92,29 +92,8 @@ download_ic_ref() {
     chmod 0500 "$BINARY_CACHE_TEMP_DIR/ic-ref"
 }
 
-# This is a temporary hack while icx-proxy releases are not available from github releases.
-# To be reverted: https://dfinity.atlassian.net/browse/SDK-498
-get_icx_proxy_from_dfx_release() {
-    case "$OSTYPE" in
-        darwin*)
-            URL="https://github.com/dfinity/sdk/releases/download/0.10.0/dfx-0.10.0-x86_64-darwin.tar.gz"
-            SHA256="7a4d49eeb004e9c5c2ac20891b95564cbe728f0ee7a9fa8579dc4e0022339d79"
-            ;;
-        linux*)
-            URL="https://github.com/dfinity/sdk/releases/download/0.10.0/dfx-0.10.0-x86_64-linux.tar.gz"
-            SHA256="f6ae43098b676da87503e627cc6f8820d0a0ff9f9beac0da2cc884598216b996"
-            ;;
-        *)        echo "Unsupported OS type: $OSTYPE"  ; exit 1;;
-    esac
-    download_url_and_check_sha "$URL" "$SHA256" "$DOWNLOAD_TEMP_DIR/dfx.tar.gz"
-    tar -xkvf "$DOWNLOAD_TEMP_DIR/dfx.tar.gz" -C "$DOWNLOAD_TEMP_DIR"
-    DFX_CACHE_ROOT="$DOWNLOAD_TEMP_DIR/dfx-cache" "$DOWNLOAD_TEMP_DIR/dfx" cache install
-    cp "$DOWNLOAD_TEMP_DIR/dfx-cache/.cache/dfinity/versions/0.10.0/icx-proxy" "$BINARY_CACHE_TEMP_DIR"
-}
-
 download_icx_proxy() {
-    # download_tarball "icx-proxy"
-    get_icx_proxy_from_dfx_release
+    download_tarball "icx-proxy"
 
     chmod 0500 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
 }
