@@ -45,7 +45,8 @@ teardown() {
 
 @test "rust canister can have nonstandard target dir location" {
     dfx_new_rust
-    export CARGO_TARGET_DIR="$(echo -ne '\x81')"
+    CARGO_TARGET_DIR="$(echo -ne '\x81')"
+    export CARGO_TARGET_DIR
     dfx_start
     assert_command dfx deploy
     assert_command dfx canister call e2e_project greet dfinity
