@@ -1,10 +1,12 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031
 
 load ../utils/_
 
+[ -e "${assets:?}/installed/bin/ic-cdk-optimizer" ] || cargo install ic-cdk-optimizer --root "$assets/installed" &> /dev/null
+
 setup() {
     standard_setup
-    export PATH="$HOME/.cargo/bin/:$PATH"
 }
 
 teardown() {
@@ -20,7 +22,7 @@ teardown() {
     dfx canister create --all
     assert_command dfx build hello
     assert_match "ic-cdk-optimizer not installed"
-    cargo install ic-cdk-optimizer
+    export PATH="$assets/installed/bin/:$PATH"
     assert_command dfx build hello
     assert_match "Executing: ic-cdk-optimizer"
     assert_command dfx canister install hello
@@ -31,7 +33,7 @@ teardown() {
 @test "rust canister can resolve dependencies" {
     dfx_new_rust rust_deps
     install_asset rust_deps
-
+    export PATH="$assets/installed/bin/:$PATH"
     dfx_start
     assert_command dfx deploy
     assert_command dfx canister call multiply_deps read
@@ -46,6 +48,7 @@ teardown() {
     dfx_new_rust
     CARGO_TARGET_DIR="$(echo -ne '\x81')"
     export CARGO_TARGET_DIR
+    export PATH="$assets/installed/bin/:$PATH"
     dfx_start
     assert_command dfx deploy
     assert_command dfx canister call e2e_project greet dfinity
