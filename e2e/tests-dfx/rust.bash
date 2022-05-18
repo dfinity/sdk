@@ -42,3 +42,11 @@ teardown() {
     assert_command dfx canister call rust_deps read
     assert_match '(9 : nat)'
 }
+
+@test "rust canister can have nonstandard target dir location" {
+    dfx_new_rust
+    export CARGO_TARGET_DIR="$(echo -ne '\x81')"
+    dfx_start
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project greet dfinity
+}
