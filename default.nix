@@ -9,6 +9,8 @@
 rec {
   inherit (pkgs) nix-fmt nix-fmt-check;
 
+  install = import ./public { inherit pkgs src; };
+
   # licenses = {
   #  dfx = pkgs.lib.runtime.runtimeLicensesReport dfx.build;
   # };
