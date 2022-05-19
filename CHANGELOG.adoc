@@ -5,9 +5,29 @@
 
 == DFX
 
+=== fix: Webpack config no longer uses CopyPlugin
+
+Dfx already points to the asset canister's assets directory, and copying to disk could sometimes
+lead to an annoying "too many open files" error.
+
+=== fix: HSMs are once again supported on Linux
+
+On Linux, dfx 0.10.0 failed any operation with an HSM with the following error:
+    Error: IO: Dynamic loading not supported
+
+The fix was to once again dynamically-link the Linux build.
+
 === chore: add context to errors
 
 Most errors that happen within dfx are now reported in much more detail. No more plain `File not found` without explanation what even was attempted.
+
+=== fix: identities with configured wallets are not broken anymore and removed only when using the --drop-wallets flag
+
+When an identity has a configured wallet, dfx no longer breaks the identity without actually removing it.
+Instead, if the --drop-wallets flag is specified, it properly removes everything and logs what wallets were linked,
+and when the flag is not specified, it does not remove anything.
+
+The behavior for identities without any configured wallets is unchanged.
 
 === feat: bitcoin integration: dfx now generates the bitcoin adapter config file
 
@@ -25,6 +45,13 @@ The --bitcoin-node parameter, if specified on the command line, implies --enable
 
 If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica will launch the ic-btc-adapter process and configure the replica to communicate with it.
 
+
+=== feat: print wallet balance in a human readable form #2184
+
+Default behaviour changed for `+dfx wallet balance+`, it will now print cycles amount upscaled to trillions.
+
+New flag `+--precise+` added to `+dfx wallet balance+`. Allows to get exact amount of cycles in wallet (without upscaling).
+
 === feat: canister http integration
 
 dfx command-line parameters for canister http requests integration:
@@ -33,6 +60,10 @@ dfx command-line parameters for canister http requests integration:
 
 This defaults to the following value in dfx.json:
     .defaults.canister_http.enabled
+
+=== fix: specifying ic provider with a trailing slash is recognised correctly
+
+Specifying the network provider as `https://ic0.app/` instead of `https://ic0.app` is now recognised as the real IC network.
 
 === Binary cache
 
@@ -55,6 +86,15 @@ This incorporates the following executed proposals:
 * https://dashboard.internetcomputer.org/proposal/58376[58376]
 * https://dashboard.internetcomputer.org/proposal/57843[57843]
 * https://dashboard.internetcomputer.org/proposal/57395[57395]
+
+== icx-proxy
+
+Updated icx-proxy to commit c312760a62b20931431ba45e5b0168ee79ea5cda
+
+* Added gzip and deflate body decoding before certification validation.
+* Fixed unzip and streaming bugs
+* Added Prometheus metrics endpoint
+* Added root and invalid ssl and dns mapping
 
 = 0.10.0
 

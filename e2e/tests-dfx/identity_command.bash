@@ -132,6 +132,20 @@ teardown() {
     assert_command_fail dfx identity remove charlie
 }
 
+@test "identity remove: only remove identities with configured wallet if --drop-wallets is specified" {
+    # There's no replica running, and no real wallet.  This is just a valid principal.
+    WALLET="rwlgt-iiaaa-aaaaa-aaaaa-cai"
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity use alice
+    assert_command dfx identity --network ic set-wallet --force "$WALLET"
+    assert_command dfx identity use default
+    assert_command_fail dfx identity remove alice
+    # make sure the configured wallet is displayed
+    assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
+    assert_command dfx identity remove alice --drop-wallets
+    assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
+}
+
 @test "identity remove: cannot remove the non-default active identity" {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity use alice

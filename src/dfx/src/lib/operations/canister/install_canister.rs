@@ -6,7 +6,8 @@ use crate::lib::identity::Identity;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::named_canister;
 use crate::lib::waiter::waiter_with_timeout;
-use crate::util::read_module_metadata;
+use crate::util::assets::wallet_wasm;
+use crate::util::{expiry_duration, read_module_metadata};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -235,6 +236,28 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                 .context("Failed during wasm installation call.")?;
         }
     }
+    Ok(())
+}
+
+pub async fn install_wallet(
+    env: &dyn Environment,
+    agent: &Agent,
+    id: Principal,
+    mode: InstallMode,
+) -> DfxResult {
+    let mgmt = ManagementCanister::create(agent);
+    let wasm = wallet_wasm(env.get_logger())?;
+    mgmt.install_code(&id, &wasm)
+        .with_mode(mode)
+        .call_and_wait(waiter_with_timeout(expiry_duration() * 2))
+        .await
+        .context("Failed to install wallet wasm.")?;
+    let wallet = Identity::build_wallet_canister(id, env).await?;
+    wallet
+        .wallet_store_wallet_wasm(wasm)
+        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .await
+        .context("Failed to store wallet wasm in container.")?;
     Ok(())
 }
 

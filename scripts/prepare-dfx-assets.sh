@@ -94,6 +94,7 @@ download_ic_ref() {
 
 download_icx_proxy() {
     download_tarball "icx-proxy"
+
     chmod 0500 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
 }
 

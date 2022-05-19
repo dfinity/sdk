@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "e78650dfe3899060c2a682581afc7b3ce7bb4900",
-        "sha256": "0aybf31sgc29r1awcb0bpivp4k5cgd7szk18z62rin4aqhvqf5ha",
+        "rev": "a47cd63007d20e5e0d58c4de945ac2e6b7cd70d0",
+        "sha256": "11khj49gcr2qa5zjnzv8wg4fs72b1h866c68brhd9p0zgysjv4vp",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/e78650dfe3899060c2a682581afc7b3ce7bb4900.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/a47cd63007d20e5e0d58c4de945ac2e6b7cd70d0.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
@@ -124,20 +124,20 @@
     "icx-proxy-x86_64-darwin": {
         "builtin": false,
         "rev": "594b6c81cde6da4e08faee8aa8e5a2e6ae815602",
-        "sha256": "0xccz7b2bpy4i17kli4p6ngscmb4z0qlby98cj44hkwpwd22bgz2",
-        "shortrev": "594b6c8",
+        "sha256": "09rxh6kjwy7qfsvvsy6xjzyn4r4zlb78k1qipi4k3x0w0ajvp0sp",
+        "tag": "rev-c312760",
         "type": "file",
-        "url": "https://github.com/dfinity/icx-proxy/releases/download/594b6c8/binaries-macos.tar.gz",
-        "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<shortrev>/binaries-macos.tar.gz"
+        "url": "https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-macos.tar.gz",
+        "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<tag>/binaries-macos.tar.gz"
     },
     "icx-proxy-x86_64-linux": {
         "builtin": false,
         "rev": "594b6c81cde6da4e08faee8aa8e5a2e6ae815602",
-        "sha256": "0bvm0pplfdqv1x39pza1ljhkba9fd7mg81xa6rc5p0i17hk7faxz",
-        "shortrev": "594b6c8",
+        "sha256": "18czg11v5hiczqrahr962wmjig3gcafplqiprlnx44kmzfhi4mks",
+        "tag": "rev-c312760",
         "type": "file",
-        "url": "https://github.com/dfinity/icx-proxy/releases/download/594b6c8/binaries-linux.tar.gz",
-        "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<shortrev>/binaries-linux.tar.gz"
+        "url": "https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-linux.tar.gz",
+        "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<tag>/binaries-linux.tar.gz"
     },
     "motoko-base": {
         "branch": "next-moc",

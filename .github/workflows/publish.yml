@@ -8,9 +8,7 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
-      - 'test-[0-9]+.[0-9]+.[0-9]+'
-      - 'test-[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-[A-Za-z]+.[0-9]+'
 
 jobs:
   build_dfx:
@@ -19,7 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         rust: [ '1.58.1' ]
-        target: [ x86_64-apple-darwin, x86_64-unknown-linux-musl ]
+        # We build a dynamic-linked linux binary because otherwise HSM support fails with:
+        #   Error: IO: Dynamic loading not supported
+        target: [ x86_64-apple-darwin, x86_64-unknown-linux-gnu ]
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -27,8 +27,8 @@ jobs:
             name: x86_64-darwin
             tar: gtar
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            binary_path: target/x86_64-unknown-linux-musl/release
+            target: x86_64-unknown-linux-gnu
+            binary_path: target/x86_64-unknown-linux-gnu/release
             name: x86_64-linux
             tar: tar
     steps:
@@ -58,37 +58,46 @@ jobs:
           override: true
         if: contains(matrix.os, 'macos')
 
-      - name: Linux hack (musl only)
+      - name: Build static-linked openssl
         run: |
-          echo "[toolchain]" >./rust-toolchain.toml
-          echo 'channel = "1.58.1"' >>./rust-toolchain.toml
-          echo 'components = ["rustfmt", "clippy"]' >>./rust-toolchain.toml
-        if: contains(matrix.target, 'linux-musl')
+          # https://github.com/rust-lang/cargo/issues/713#issuecomment-59597433
+          git clone git://git.openssl.org/openssl.git
+          cd openssl
+          ./config -fPIC --prefix=/usr/local --openssldir=/usr/local/ssl
+          make
+          sudo make install
+          echo "OPENSSL_LIB_DIR=/usr/local/lib64" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
+        if: contains(matrix.target, 'linux-gnu')
 
-      - name: Generate DFX_ASSETS (musl only)
-        run: |
-          ./scripts/prepare-dfx-assets.sh .dfx-assets
-          echo "DFX_ASSETS=$(pwd)/.dfx-assets" >> $GITHUB_ENV
-        if: contains(matrix.target, 'linux-musl')
-
-      - name: Linux build (musl)
-        uses: dfinity/rust-musl-action@master
-        with:
-          args: |
-            echo "[toolchain]" >./rust-toolchain.toml
-            echo 'channel = "1.58.1"' >>./rust-toolchain.toml
-            echo 'components = ["rustfmt", "clippy"]' >>./rust-toolchain.toml
-            rustup target add ${{ matrix.target }}
-
-            cargo clean --target ${{ matrix.target }} --release
-            cargo build --target ${{ matrix.target }} --locked --release
-        if: contains(matrix.target, 'linux-musl')
-
-      - name: Build (non-musl)
+      - name: Build
         run: |
           cargo clean --target ${{ matrix.target }} --release
           cargo build --target ${{ matrix.target }} --locked --release
-        if: contains(matrix.target, 'linux-musl') == false
+
+      - name: Check dynamically-linked libraries (macos)
+        run: |
+          ACTUAL="$(otool -L ${{ matrix.binary_path }}/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
+          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libiconv.2.dylib /usr/lib/libresolv.9.dylib"
+          echo "Dynamically-linked libraries:"
+          echo "  Actual:   $ACTUAL"
+          echo "  Expected: $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+              exit 1
+          fi
+        if: contains(matrix.os, 'macos')
+
+      - name: Check dynamically-linked libraries (ubuntu)
+        run: |
+          ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
+          EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libdl.so.2 libgcc_s.so.1 libm.so.6 libpthread.so.0 librt.so.1 linux-vdso.so.1"
+          echo "Dynamically-linked libraries:"
+          echo "  Actual:   $ACTUAL"
+          echo "  Expected: $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+              exit 1
+          fi
+        if: contains(matrix.os, 'ubuntu')
 
       - name: Strip binaries
         run: |
