@@ -74,7 +74,5 @@ do
     done
 done
 
-write_var "motoko-base" "branch"
-write_var "motoko-base" "rev"
 write_url "motoko-base-tarball"
 write_sha256 "motoko-base-tarball"
