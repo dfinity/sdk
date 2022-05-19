@@ -1765,7 +1765,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.16.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a068fd98f5ec9bccb7ca62d4bdeffe55004b26ed#a068fd98f5ec9bccb7ca62d4bdeffe55004b26ed"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=d170b0dd0fb87d741f642981fc1220ef448aeffb#d170b0dd0fb87d741f642981fc1220ef448aeffb"
 dependencies = [
  "async-trait",
  "base32",
@@ -1798,7 +1798,7 @@ dependencies = [
 [[package]]
 name = "ic-asset"
 version = "0.16.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a068fd98f5ec9bccb7ca62d4bdeffe55004b26ed#a068fd98f5ec9bccb7ca62d4bdeffe55004b26ed"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=d170b0dd0fb87d741f642981fc1220ef448aeffb#d170b0dd0fb87d741f642981fc1220ef448aeffb"
 dependencies = [
  "anyhow",
  "candid",
@@ -1821,7 +1821,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.16.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a068fd98f5ec9bccb7ca62d4bdeffe55004b26ed#a068fd98f5ec9bccb7ca62d4bdeffe55004b26ed"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=d170b0dd0fb87d741f642981fc1220ef448aeffb#d170b0dd0fb87d741f642981fc1220ef448aeffb"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1850,7 +1850,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.16.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a068fd98f5ec9bccb7ca62d4bdeffe55004b26ed#a068fd98f5ec9bccb7ca62d4bdeffe55004b26ed"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=d170b0dd0fb87d741f642981fc1220ef448aeffb#d170b0dd0fb87d741f642981fc1220ef448aeffb"
 dependencies = [
  "async-trait",
  "candid",
