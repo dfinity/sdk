@@ -1,3 +1,5 @@
-# This file is used to govern CI jobs for GitHub PRs
-args@{ supportedSystems ? [ "x86_64-linux" "x86_64-darwin" ], src ? builtins.fetchGit ../., ... }:
-import ./ci.nix (args // { inherit supportedSystems src; isMaster = false; })
+# see README.adoc; this is referenced by hydra evaluation for pull requests
+with import <nixpkgs> {};
+stdenv.mkDerivation {
+    name = "ci-pr";
+}
