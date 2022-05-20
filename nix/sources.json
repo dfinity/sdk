@@ -151,6 +151,16 @@
         "url": "https://github.com/dfinity/motoko-base/archive/6f80c49d0f708c11d95895893ef3237cc7b05234.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "motoko-base-tarball": {
+        "builtin": false,
+        "description": "The Motoko base library",
+        "owner": "dfinity",
+        "sha256": "1kd05ayp9s3v6y44il5p3f2gmmq9fhcragkiymjlxmwsfxqrd9qy",
+        "type": "tarball",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.27/motoko-base-library.tar.gz",
+        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
+        "version": "0.6.27"
+    },
     "motoko-x86_64-darwin": {
         "builtin": false,
         "sha256": "1qqg7nha7f2llmx4vjc8f0yxh422dg5srrzrykh40pmz71w5mlbg",
