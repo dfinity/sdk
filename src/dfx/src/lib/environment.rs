@@ -188,7 +188,7 @@ impl Environment for EnvironmentImpl {
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
         // It's not valid to call get_network_descriptor on an EnvironmentImpl.
         // All of the places that call this have an AgentEnvironment anyway.
-        panic!("NetworkDescriptor only available from an AgentEnvironment");
+        unreachable!("NetworkDescriptor only available from an AgentEnvironment");
     }
 
     fn get_logger(&self) -> &slog::Logger {
