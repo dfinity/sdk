@@ -75,6 +75,7 @@ slog-term = "2.9.0"
 sysinfo = "0.23.5"
 tar = "0.4.38"
 tempfile = "3.3.0"
+term = "0.7.0"
 thiserror = "1.0.20"
 tokio = { version = "1.17.0", features = [ "fs" ] }
 toml = "0.5.5"
