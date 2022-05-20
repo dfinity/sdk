@@ -77,7 +77,7 @@ Added ic-canister-http-adapter to the binary cache.
 
 == Dependencies
 
-=== Updated agent-rs to 0.16.0
+=== Updated agent-rs to 0.17.0
 
 == Motoko
 

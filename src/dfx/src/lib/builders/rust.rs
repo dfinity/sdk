@@ -13,6 +13,7 @@ use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::{info, o, warn};
 use std::path::PathBuf;
+use std::process::Command;
 use std::process::Stdio;
 
 pub struct RustBuilder {
@@ -72,7 +73,7 @@ impl CanisterBuilder for RustBuilder {
 
         let canister_id = canister_info.get_canister_id().unwrap();
 
-        let mut cargo = std::process::Command::new("cargo");
+        let mut cargo = Command::new("cargo");
         cargo
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
@@ -98,25 +99,26 @@ impl CanisterBuilder for RustBuilder {
         );
         let output = cargo.output().context("Failed to run 'cargo build'.")?;
 
-        if std::process::Command::new("ic-cdk-optimizer")
+        if Command::new("ic-cdk-optimizer")
             .arg("--version")
             .output()
             .is_ok()
         {
-            let mut optimizer = std::process::Command::new("ic-cdk-optimizer");
-            let wasm_path = format!("target/wasm32-unknown-unknown/release/{}.wasm", package);
+            let mut optimizer = Command::new("ic-cdk-optimizer");
+            let wasm_path = rust_info.get_output_wasm_path();
             optimizer
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .arg("-o")
-                .arg(&wasm_path)
-                .arg(&wasm_path);
+                .arg(wasm_path)
+                .arg(wasm_path);
             // The optimized wasm overwrites the original wasm.
             // Because the `get_output_wasm_path` must give the same path,
             // no matter optimized or not.
             info!(
                 self.logger,
-                "Executing: ic-cdk-optimizer -o {0} {0}", &wasm_path
+                "Executing: ic-cdk-optimizer -o {0} {0}",
+                wasm_path.display()
             );
             if !matches!(optimizer.status(), Ok(status) if status.success()) {
                 warn!(self.logger, "Failed to run ic-cdk-optimizer.");
