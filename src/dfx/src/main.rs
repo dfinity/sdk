@@ -102,7 +102,7 @@ fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
 }
 
 fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
-    let mut stderr = term::stderr().expect("Failed to get stderr.");
+    let mut stderr = util::stderr_wrapper::stderr_wrapper();
 
     // print error/cause stack
     for (level, cause) in err.chain().enumerate() {
