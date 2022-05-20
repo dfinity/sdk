@@ -235,10 +235,12 @@ pub async fn exec(
             Some(true) => !opts.update,
             Some(false) => {
                 if opts.query {
-                    bail!(DiagnosedError::new(
-                        format!("{} is an update method, not a query method.", method_name),
-                        "Run the command without '--query'.".to_string()
-                    ))
+                    return Err(anyhow!("Not a query method.")).with_context(|| {
+                        DiagnosedError::new(
+                            format!("{} is an update method, not a query method.", method_name),
+                            "Run the command without '--query'.".to_string(),
+                        )
+                    });
                 } else {
                     false
                 }
