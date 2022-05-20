@@ -43,6 +43,10 @@ pub fn diagnose(_env: &dyn Environment, err: &AnyhowError) -> Diagnosis {
         match agent_err {
             AgentError::HttpError(payload) => match payload.status {
                 403 => diagnose_http_403(),
+                400 => match std::str::from_utf8(payload.content.as_slice()) {
+                    Ok("Wrong sender") => diagnose_http_403(),
+                    _ => NULL_DIAGNOSIS,
+                },
                 _ => NULL_DIAGNOSIS,
             },
             _ => NULL_DIAGNOSIS,
