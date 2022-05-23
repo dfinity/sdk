@@ -571,7 +571,7 @@ impl Identity {
                     Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(anyhow!(
-                        "Wallet not found."
+                        "Wallet not configured."
                     )).with_context(|| DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
                     "To use an identity with a configured wallet you can do one of the following:\n\
                     - Run the command for a network where you have a wallet configured. To do so, add '--network <network name>' to your command.\n\

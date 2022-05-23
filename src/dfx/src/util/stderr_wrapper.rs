@@ -1,7 +1,7 @@
 use term::{Error, StderrTerminal, Terminal};
 
 /// Produces the standard term::StderrTerminal that can write colors.
-/// If there is no such terminal available, produces a stderr-wrapper that skips coloring.
+/// If there is no such terminal available (such as on Github CI), this produces a stderr-wrapper that skips coloring.
 pub fn stderr_wrapper() -> Box<StderrTerminal> {
     term::stderr().unwrap_or_else(|| {
         Box::new(BasicStderr {

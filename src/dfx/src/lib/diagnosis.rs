@@ -44,7 +44,11 @@ pub fn diagnose(_env: &dyn Environment, err: &AnyhowError) -> Diagnosis {
             AgentError::HttpError(payload) => match payload.status {
                 403 => diagnose_http_403(),
                 400 => match std::str::from_utf8(payload.content.as_slice()) {
-                    Ok("Wrong sender") => diagnose_http_403(),
+                    Ok("Wrong sender") => {
+                        // differing behavior between replica and ic-ref:
+                        // replica gives HTTP403, ic-ref gives HTTP400 with message "Wrong sender"
+                        diagnose_http_403()
+                    }
                     _ => NULL_DIAGNOSIS,
                 },
                 _ => NULL_DIAGNOSIS,

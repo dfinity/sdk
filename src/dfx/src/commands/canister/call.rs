@@ -10,7 +10,7 @@ use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
 use fn_error_context::context;
@@ -147,12 +147,12 @@ pub fn get_effective_canister_id(
         })?;
         match method_name {
             MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
-                bail!(DiagnosedError::new(
+                return Err(anyhow!("Method only callable by a canister.")).with_context(|| DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",
                         method_name.as_ref()
                     ),
-                    format!("To call {} externally, you need to proxy this call through a wallet. Try calling this with 'dfx canister --wallet <wallet id> call <other arguments>'.\n\
+                    format!("The easiest way to call {} externally is to proxy this call through a wallet. Try calling this with 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
                     To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.", method_name.as_ref())
                 ))
             }
@@ -267,8 +267,8 @@ pub async fn exec(
         .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
-        bail!(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
-        To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.".to_string()))
+        return Err(anyhow!("Function caller is not a canister.")).with_context(|| DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
+        To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.".to_string()));
     }
 
     if is_query {
