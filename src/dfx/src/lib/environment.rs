@@ -186,9 +186,9 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
-        // create an AgentEnvironment explicitly, in order to specify network and agent.
-        // See install, build for examples.
-        None
+        // It's not valid to call get_network_descriptor on an EnvironmentImpl.
+        // All of the places that call this have an AgentEnvironment anyway.
+        unreachable!("NetworkDescriptor only available from an AgentEnvironment");
     }
 
     fn get_logger(&self) -> &slog::Logger {
