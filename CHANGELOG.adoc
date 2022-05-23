@@ -17,6 +17,12 @@ On Linux, dfx 0.10.0 failed any operation with an HSM with the following error:
 
 The fix was to once again dynamically-link the Linux build.
 
+=== feat: error explanation and fixing instructions engine
+
+Dfx is now capable of providing explanations and remediation suggestions for entire categories of errors at a time.
+Explanations and suggestions will slowly be added over time.
+To see an example of an already existing suggestion, run `dfx deploy --network ic` while using an identity that has no wallet configured.
+
 === chore: add context to errors
 
 Most errors that happen within dfx are now reported in much more detail. No more plain `File not found` without explanation what even was attempted.

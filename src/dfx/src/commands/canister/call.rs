@@ -1,3 +1,4 @@
+use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -9,7 +10,7 @@ use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
 use fn_error_context::context;
@@ -146,8 +147,14 @@ pub fn get_effective_canister_id(
         })?;
         match method_name {
             MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
-                bail!(format!("{} can only be called via an inter-canister call. Try calling this without `--no-wallet`.",
-                    method_name.as_ref()))
+                return Err(anyhow!("Method only callable by a canister.")).with_context(|| DiagnosedError::new(
+                    format!(
+                        "{} can only be called by a canister, not by an external user.",
+                        method_name.as_ref()
+                    ),
+                    format!("The easiest way to call {} externally is to proxy this call through a wallet. Try calling this with 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
+                    To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.", method_name.as_ref())
+                ))
             }
             MgmtMethod::InstallCode => {
                 let install_args = candid::Decode!(arg_value, CanisterInstall)
@@ -228,10 +235,12 @@ pub async fn exec(
             Some(true) => !opts.update,
             Some(false) => {
                 if opts.query {
-                    bail!(
-                        "Invalid method call: {} is not a query method.",
-                        method_name
-                    );
+                    return Err(anyhow!("Not a query method.")).with_context(|| {
+                        DiagnosedError::new(
+                            format!("{} is an update method, not a query method.", method_name),
+                            "Run the command without '--query'.".to_string(),
+                        )
+                    });
                 } else {
                     false
                 }
@@ -258,7 +267,8 @@ pub async fn exec(
         .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
-        bail!("Cannot provide cycles without proxying through the wallet (did you mean to use `canister --wallet <wallet id> call`?)");
+        return Err(anyhow!("Function caller is not a canister.")).with_context(|| DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
+        To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.".to_string()));
     }
 
     if is_query {

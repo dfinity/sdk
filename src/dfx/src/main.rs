@@ -2,7 +2,9 @@ use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
+use anyhow::Error;
 use clap::Parser;
+use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use semver::Version;
 use std::path::PathBuf;
 
@@ -99,11 +101,68 @@ fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
     (level >= 0, create_root_logger(level, mode))
 }
 
+fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
+    let mut stderr = util::stderr_wrapper::stderr_wrapper();
+
+    // print error/cause stack
+    for (level, cause) in err.chain().enumerate() {
+        if level == 0 {
+            stderr
+                .fg(term::color::RED)
+                .expect("Failed to set stderr output color.");
+            write!(stderr, "Error: ").expect("Failed to write to stderr.");
+            stderr
+                .reset()
+                .expect("Failed to reset stderr output color.");
+
+            writeln!(stderr, "{}", err).expect("Failed to write to stderr.");
+            continue;
+        }
+        if level == 1 {
+            stderr
+                .fg(term::color::YELLOW)
+                .expect("Failed to set stderr output color.");
+            write!(stderr, "Caused by: ").expect("Failed to write to stderr.");
+            stderr
+                .reset()
+                .expect("Failed to reset stderr output color.");
+
+            writeln!(stderr, "{}", err).expect("Failed to write to stderr.");
+        }
+        eprintln!("{:width$}{}", "", cause, width = level * 2);
+    }
+
+    // print diagnosis
+    if let Some(error_explanation) = error_diagnosis.0 {
+        stderr
+            .fg(term::color::YELLOW)
+            .expect("Failed to set stderr output color.");
+        writeln!(stderr, "Error explanation:").expect("Failed to write to stderr.");
+        stderr
+            .reset()
+            .expect("Failed to reset stderr output color.");
+
+        writeln!(stderr, "{}", error_explanation).expect("Failed to write to stderr.");
+    }
+    if let Some(action_suggestion) = error_diagnosis.1 {
+        stderr
+            .fg(term::color::YELLOW)
+            .expect("Failed to set stderr output color.");
+        writeln!(stderr, "How to resolve the error:").expect("Failed to write to stderr.");
+        stderr
+            .reset()
+            .expect("Failed to reset stderr output color.");
+
+        writeln!(stderr, "{}", action_suggestion).expect("Failed to write to stderr.");
+    }
+}
+
 fn main() {
     let cli_opts = CliOpts::parse();
     let (progress_bar, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let command = cli_opts.command;
+    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
@@ -117,7 +176,13 @@ fn main() {
                         env.get_logger(),
                         "Trace mode enabled. Lots of logs coming up."
                     );
-                    commands::exec(&env, command)
+                    match commands::exec(&env, command) {
+                        Err(e) => {
+                            error_diagnosis = diagnose(&env, &e);
+                            Err(e)
+                        }
+                        ok => ok,
+                    }
                 }
                 Err(e) => Err(e),
             }
@@ -125,17 +190,7 @@ fn main() {
         Err(e) => Err(e),
     };
     if let Err(err) = result {
-        for (level, cause) in err.chain().enumerate() {
-            if level == 0 {
-                eprintln!("Error: {}", err);
-                continue;
-            }
-            if level == 1 {
-                eprintln!("Caused by:");
-            }
-            eprintln!("{:width$}{}", "", cause, width = level * 2);
-        }
-
+        print_error_and_diagnosis(err, error_diagnosis);
         std::process::exit(255);
     }
 }
