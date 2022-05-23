@@ -43,7 +43,7 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
 
     let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
 

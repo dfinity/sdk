@@ -91,7 +91,7 @@ where
         .expect("No selected identity.")
         .to_string();
     // Network descriptor will always be set.
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
     let wallet =
         Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
 
@@ -128,7 +128,7 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
         .expect("No selected identity.")
         .to_string();
     // Network descriptor will always be set.
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
     fetch_root_key_if_needed(env).await?;
     let wallet =
         Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;

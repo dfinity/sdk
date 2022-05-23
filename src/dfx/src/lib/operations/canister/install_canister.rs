@@ -37,7 +37,7 @@ pub async fn install_canister(
     upgrade_unchanged: bool,
 ) -> DfxResult {
     let log = env.get_logger();
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
     if !network.is_ic && named_canister::get_ui_canister_id(network).is_none() {
         named_canister::install_ui_canister(env, network, None).await?;
     }

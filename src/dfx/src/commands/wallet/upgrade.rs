@@ -19,7 +19,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         .to_string();
 
     // Network descriptor will always be set.
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
 
     let canister_id = Identity::wallet_canister_id(env, network, &identity_name)?;
 

@@ -75,14 +75,13 @@ pub async fn exec(
     let with_cycles = opts.with_cycles.as_deref();
 
     let config_interface = config.get_config();
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
 
     let proxy_sender;
     if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
         let wallet = Identity::get_or_create_wallet_canister(
             env,
-            env.get_network_descriptor()
-                .expect("Couldn't get the network descriptor"),
+            env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
             false,
         )
