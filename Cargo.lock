@@ -1080,6 +1080,7 @@ dependencies = [
  "sysinfo",
  "tar",
  "tempfile",
+ "term",
  "thiserror",
  "tokio",
  "toml",
