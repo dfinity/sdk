@@ -10,11 +10,7 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    if !env
-        .get_network_descriptor()
-        .expect("no network descriptor")
-        .is_ic
-    {
+    if !env.get_network_descriptor().is_ic {
         agent
             .fetch_root_key()
             .await
@@ -31,11 +27,7 @@ pub async fn fetch_root_key_or_anyhow(env: &dyn Environment) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    if !env
-        .get_network_descriptor()
-        .expect("no network descriptor")
-        .is_ic
-    {
+    if !env.get_network_descriptor().is_ic {
         agent
             .fetch_root_key()
             .await
