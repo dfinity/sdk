@@ -81,7 +81,7 @@ Added ic-canister-http-adapter to the binary cache.
 
 == Motoko
 
-Updated Motoko from 0.6.26 to 0.6.27.
+Updated Motoko from 0.6.26 to 0.6.28.
 
 == Replica
 
