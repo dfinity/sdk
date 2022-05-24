@@ -18,14 +18,17 @@ You can use the following optional flags with the `dfx replica` command.
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
 | `-V`, `--version` | Displays version information. |
+| `--enable-bitcoin`| Enables bitcoin integration.  |
+| `--enable-canister-http` | Enables canister HTTP requests. |
 
 ## Options
 
 You can use the following option with the `dfx replica` command.
 
-| Option        | Description                                                                   |
-|---------------|-------------------------------------------------------------------------------|
-| `--port port` | Specifies the port the local canister execution environment should listen to. |
+| Option                    | Description                                                                   |
+|---------------------------|-------------------------------------------------------------------------------|
+| `--port port`             | Specifies the port the local canister execution environment should listen to. |
+| `--bitcoin-node host:port` | Specifies the address of a bitcoind node.  Implies `--enable-bitcoin`. |
 
 ## Examples
 

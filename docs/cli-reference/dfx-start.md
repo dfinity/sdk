@@ -16,10 +16,12 @@ You can use the following optional flags with the `dfx start` command.
 
 | Flag              | Description                                                                                                                                                                                                                                  |
 |-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--background`    | Starts the local canister execution environment and web server processes in the background and waits for a reply before returning to the shell.                                                                                              |
-| `--clean`         | Starts the local canister execution environment and web server processes in a clean state by removing checkpoints from your project cache. You can use this flag to set your project cache to a new state when troubleshooting or debugging. |
-| `-h`, `--help`    | Displays usage information.                                                                                                                                                                                                                  |
-| `-V`, `--version` | Displays version information.                                                                                                                                                                                                                |
+| `--background`           | Starts the local canister execution environment and web server processes in the background and waits for a reply before returning to the shell.                                                                                              |
+| `--clean`                | Starts the local canister execution environment and web server processes in a clean state by removing checkpoints from your project cache. You can use this flag to set your project cache to a new state when troubleshooting or debugging. |
+| `--enable-bitcoin` | Enables bitcoin integration. |
+| `--enable-canister-http` | Enables canister HTTP requests. |
+| `-h`, `--help`           | Displays usage information.                                                                                                                                                                                                                  |
+| `-V`, `--version`        | Displays version information.                                                                                                                                                                                                                |
 
 ## Options
 
@@ -28,6 +30,7 @@ You can use the following option with the `dfx start` command.
 | Option        | Description                                                                                                       |
 |---------------|-------------------------------------------------------------------------------------------------------------------|
 | `--host host` | Specifies the host interface IP address and port number to bind the frontend to. The default is `127.0.0.1:8000`. |
+| `--bitcoin-node host:port` | Specifies the address of a bitcoind node. Implies `--enable-bitcoin`. |
 
 ## Examples
 
