@@ -309,7 +309,7 @@ fn replica_start_thread(
             cmd.args(&["--http-port", &port.to_string()]);
         }
         if config.btc_adapter.enabled {
-            cmd.args(&["--subnet-features", "bitcoin_testnet_feature"]);
+            cmd.args(&["--subnet-features", "bitcoin_testnet"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
                 cmd.args(&[
                     "--bitcoin-testnet-uds-path",
