@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
-use crate::lib::provider::{create_agent_environment, get_network_descriptor};
+use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use anyhow::bail;
@@ -26,7 +26,7 @@ pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<Strin
         .get_selected_identity()
         .expect("No selected identity.")
         .to_string();
-    let network = get_network_descriptor(&agent_env, network)?;
+    let network = agent_env.get_network_descriptor();
 
     let canister_id = opts.canister_id;
     match CanisterId::from_text(&canister_id) {

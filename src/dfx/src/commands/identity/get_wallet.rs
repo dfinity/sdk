@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
-use crate::lib::provider::{create_agent_environment, get_network_descriptor};
+use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use clap::Parser;
@@ -21,7 +21,7 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
         .get_selected_identity()
         .expect("No selected identity.")
         .to_string();
-    let network = get_network_descriptor(&agent_env, network)?;
+    let network = agent_env.get_network_descriptor();
 
     runtime.block_on(async {
         println!(

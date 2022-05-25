@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::{create_agent_environment, get_network_descriptor};
+use crate::lib::provider::create_agent_environment;
 
 use anyhow::{anyhow, Context};
 use clap::Parser;
@@ -35,7 +35,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         .expect("No selected identity.")
         .to_string();
 
-    let network = get_network_descriptor(&agent_env, network)?;
+    let network = agent_env.get_network_descriptor();
 
     let canister_name = opts.canister_name.as_str();
     let canister_id = match Principal::from_text(canister_name) {
