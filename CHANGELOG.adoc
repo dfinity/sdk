@@ -3,6 +3,8 @@
 
 = UNRELEASED
 
+= 0.10.1
+
 == DFX
 
 === fix: Webpack config no longer uses CopyPlugin
