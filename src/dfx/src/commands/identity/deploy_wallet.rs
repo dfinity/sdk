@@ -17,7 +17,7 @@ pub struct DeployWalletOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<String>) -> DfxResult {
-    let agent_env = create_agent_environment(env, network.clone())?;
+    let agent_env = create_agent_environment(env, network)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;
@@ -32,7 +32,7 @@ pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<Strin
     match CanisterId::from_text(&canister_id) {
         Ok(id) => {
             runtime.block_on(async {
-                Identity::create_wallet(&agent_env, &network, &identity_name, Some(id)).await?;
+                Identity::create_wallet(&agent_env, network, &identity_name, Some(id)).await?;
                 DfxResult::Ok(())
             })?;
         }

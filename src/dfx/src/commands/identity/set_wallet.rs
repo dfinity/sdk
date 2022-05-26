@@ -24,7 +24,7 @@ pub struct SetWalletOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>) -> DfxResult {
-    let agent_env = create_agent_environment(env, network.clone())?;
+    let agent_env = create_agent_environment(env, network)?;
     let env = &agent_env;
     let log = env.get_logger();
 
@@ -100,7 +100,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         network.name,
         canister_id
     );
-    Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
+    Identity::set_wallet_id(env, network, &identity_name, canister_id)?;
     info!(log, "Wallet set successfully.");
 
     Ok(())

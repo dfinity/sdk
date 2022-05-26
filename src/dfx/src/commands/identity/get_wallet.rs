@@ -12,7 +12,7 @@ use tokio::runtime::Runtime;
 pub struct GetWalletOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>) -> DfxResult {
-    let agent_env = create_agent_environment(env, network.clone())?;
+    let agent_env = create_agent_environment(env, network)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;
@@ -26,7 +26,7 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
     runtime.block_on(async {
         println!(
             "{}",
-            Identity::get_or_create_wallet(&agent_env, &network, &identity_name, false).await?
+            Identity::get_or_create_wallet(&agent_env, network, &identity_name, false).await?
         );
         DfxResult::Ok(())
     })?;
