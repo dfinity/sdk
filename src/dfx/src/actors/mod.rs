@@ -86,11 +86,9 @@ pub fn start_canister_http_adapter_actor(
 pub fn start_emulator_actor(
     env: &dyn Environment,
     shutdown_controller: Addr<ShutdownController>,
+    emulator_port_path: PathBuf,
 ) -> DfxResult<Addr<Emulator>> {
     let ic_ref_path = env.get_cache().get_binary_command_path("ic-ref")?;
-
-    let temp_dir = env.get_temp_dir();
-    let emulator_port_path = temp_dir.join("ic-ref.port");
 
     // Touch the port file. This ensures it is empty prior to
     // handing it over to ic-ref. If we read the file and it has
