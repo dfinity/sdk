@@ -58,7 +58,7 @@ setup() {
     IC_COMMIT="b90edb9897718730f65e92eb4ff6057b1b25f766"
 
     if [[ -z "${DOWNLOAD_DIR}" ]]; then
-      DOWNLOAD_DIR=$(mktemp -d -t dfx-e2e-download)
+      export DOWNLOAD_DIR=$(mktemp -d -t dfx-e2e-xxxxxxxx)
     else
       echo "DOWNLOAD DIR is ${DOWNLOAD_DIR}."
     fi
@@ -75,7 +75,7 @@ setup() {
     get_wasm identity-canister.wasm
     get_wasm nns-ui-canister.wasm
 
-    NNS_URL="http://localhost:$(cat .dfx/replica-configuration/replica-1.port)"
+    export NNS_URL="http://localhost:$(cat .dfx/replica-configuration/replica-1.port)"
 
     "${DOWNLOAD_DIR}/ic-nns-init" \
       --url "$NNS_URL" \
@@ -87,6 +87,7 @@ teardown() {
     dfx_stop
 
     standard_teardown
+    rm -rf "$DOWNLOAD_DIR" || rm -rf "$DOWNLOAD_DIR"
 }
 
 @test "ledger balance & transfer" {
