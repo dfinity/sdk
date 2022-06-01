@@ -766,7 +766,7 @@ dfx canister --network=ic stop --all
 
 ## dfx canister uninstall-code
 
-Use the `dfx canister stop` command to stop a canister that is currently running on the {platform} or on the local canister execution environment.
+Use the `dfx canister uninstall-code` command to uninstall a canister that is currently running on the {platform} or on the local canister execution environment.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
@@ -795,7 +795,7 @@ You can use the following arguments with the `dfx canister uninstall-code` comma
 
 ### Examples
 
-You can use the `dfx canister uninstall` command to uninstall a specific canister or all canisters.
+You can use the `dfx canister uninstall-code` command to uninstall a specific canister or all canisters.
 
 To uninstall the `hello_world` canister, you can run the following command:
 
@@ -825,7 +825,7 @@ dfx canister update-settings [flag] [canister_name]
 
 ### Flags
 
-You can use the following optional flags with the `dfx canister uninstall-code` command.
+You can use the following optional flags with the `dfx canister update-settings` command.
 
 | Flag                         | Description                                                                                                                                                                                                                                                                                                                                                                              |
 |------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
