@@ -768,6 +768,8 @@ dfx canister --network=ic stop --all
 
 Use the `dfx canister uninstall-code` command to uninstall the code that a canister that is currently running on the {platform} or on the local canister execution environment.
 
+This method removes a canister’s code and state, making the canister empty again. Only the controller of the canister can uninstall code. Uninstalling a canister’s code will reject all calls that the canister has not yet responded to, and drop the canister’s code and state. Outstanding responses to the canister will not be processed, even if they arrive after code has been installed again. The canister is now empty. In particular, any incoming or queued calls will be rejected.
+
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
 ### Basic usage
