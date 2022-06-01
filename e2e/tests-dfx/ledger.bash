@@ -13,7 +13,7 @@ setup() {
 
     # The nns has been init with two accounts corresponding with identities above
     # Each has 10000 ICP
-    NO_CLOBBER="1" load $BATS_TEST_DIRNAME/../utils/setup_nns.bash
+    NO_CLOBBER="1" load "$BATS_TEST_DIRNAME"/../utils/setup_nns.bash
 }
 
 teardown() {
