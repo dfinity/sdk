@@ -7,6 +7,11 @@
 
 == DFX
 
+=== fix: Freezing Threshold now documented
+
+Calls made to retrieve the help output for `canister update-settings` was missing the `freezing-threshold` parameter.
+This is now included when running `dfx canister update-settings -h`.
+
 === fix: Webpack config no longer uses CopyPlugin
 
 Dfx already points to the asset canister's assets directory, and copying to disk could sometimes
