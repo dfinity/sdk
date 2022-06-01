@@ -46,6 +46,7 @@ get_wasm() {
 }
 
 setup() {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     standard_setup
     install_asset ledger
 
