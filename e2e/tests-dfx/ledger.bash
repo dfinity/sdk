@@ -57,12 +57,9 @@ setup() {
     # Setup NNS
     IC_COMMIT="b90edb9897718730f65e92eb4ff6057b1b25f766"
 
-    if [[ -z "${DOWNLOAD_DIR}" ]]; then
-      DOWNLOAD_DIR=$(mktemp -d -t dfx-e2e-xxxxxxxx)
-      export DOWNLOAD_DIR
-    else
-      echo "DOWNLOAD DIR is ${DOWNLOAD_DIR}."
-    fi
+    mkdir "$DFX_E2E_TEMP_DIR/download-dir"
+    DOWNLOAD_DIR="$DFX_E2E_TEMP_DIR/download-dir"
+    export DOWNLOAD_DIR
 
     get_binary ic-nns-init
     get_wasm registry-canister.wasm
@@ -76,7 +73,7 @@ setup() {
     get_wasm identity-canister.wasm
     get_wasm nns-ui-canister.wasm
 
-    local NNS_URL 
+    # local NNS_URL
     NNS_URL="http://localhost:$(cat .dfx/replica-configuration/replica-1.port)"
 
     "${DOWNLOAD_DIR}/ic-nns-init" \
