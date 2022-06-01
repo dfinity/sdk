@@ -13,7 +13,7 @@ setup() {
 
     # The nns has been init with two accounts corresponding with identities above
     # Each has 10000 ICP
-    NO_CLOBBER="1" load "$BATS_TEST_DIRNAME"/../utils/setup_nns.bash
+    NO_CLOBBER="1" bash "$BATS_TEST_DIRNAME"/../utils/setup_nns.bash
 }
 
 teardown() {
@@ -33,7 +33,7 @@ teardown() {
     assert_command dfx ledger transfer --amount 100 --memo 1 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 # to bob
     assert_match "Transfer sent at BlockHeight:"
 
-    # The sender paid transaction fee which is 0.0001 
+    # The sender(alice) paid transaction fee which is 0.0001 
     assert_command dfx ledger balance
     assert_match "9899.99990000 ICP"
 
