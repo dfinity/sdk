@@ -4,7 +4,7 @@ IC_COMMIT="b90edb9897718730f65e92eb4ff6057b1b25f766"
 
 if test -z "${NNS_ARTIFACTS}"
 then
-  NNS_ARTIFACTS=$(mktemp -d -t dfx-e2e-nns-artifacts)
+  NNS_ARTIFACTS=$(mktemp -d -t dfx-e2e-nns-artifacts-XXXX) # Linux mktemp requires Xs in suffix
   export NNS_ARTIFACTS
 else
   echo "NNS_ARTIFACTS is ${NNS_ARTIFACTS}."
