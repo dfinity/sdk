@@ -14,36 +14,36 @@ Depending on the subcommand, the options and flags you specify might apply to th
 
 When you have the SDK installed, you can use the following commands to specify the operation you want to perform. For reference information and examples that illustrate using these commands, select an appropriate command.
 
--   [dfx](dfx-parent)
+-   [dfx](./dfx-parent.md)
 
--   [dfx bootstrap](dfx-bootstrap)
+-   [dfx bootstrap](./dfx-bootstrap.md)
 
--   [dfx build](dfx-build)
+-   [dfx build](./dfx-build.md)
 
--   [dfx cache](dfx-cache)
+-   [dfx cache](./dfx-cache.md)
 
--   [dfx canister](dfx-canister)
+-   [dfx canister](./dfx-canister.md)
 
--   [dfx config](dfx-config)
+-   [dfx config](./dfx-config.md)
 
--   [dfx deploy](dfx-deploy)
+-   [dfx deploy](./dfx-deploy.md)
 
--   [dfx help](dfx-help)
+-   [dfx help](./dfx-help.md)
 
--   [dfx identity](dfx-identity)
+-   [dfx identity](./dfx-identity.md)
 
--   [dfx ledger](dfx-ledger)
+-   [dfx ledger](./dfx-ledger.md)
 
--   [dfx new](dfx-new)
+-   [dfx new](./dfx-new.md)
 
--   [dfx ping](dfx-ping)
+-   [dfx ping](./dfx-ping.md)
 
--   [dfx replica](dfx-replica)
+-   [dfx replica](./dfx-replica.md)
 
--   [dfx start](dfx-start)
+-   [dfx start](./dfx-start.md)
 
--   [dfx stop](dfx-stop)
+-   [dfx stop](./dfx-stop.md)
 
--   [dfx upgrade](dfx-upgrade)
+-   [dfx upgrade](./dfx-upgrade.md)
 
--   [dfx wallet](dfx-wallet)
+-   [dfx wallet](./dfx-wallet.md)

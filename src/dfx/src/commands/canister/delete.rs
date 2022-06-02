@@ -106,7 +106,7 @@ async fn delete_canister(
             None => match call_sender {
                 CallSender::Wallet(wallet_id) => Some(*wallet_id),
                 CallSender::SelectedId => {
-                    let network = env.get_network_descriptor().unwrap();
+                    let network = env.get_network_descriptor();
                     let agent_env = create_agent_environment(env, Some(network.name.clone()))?;
                     let identity_name = agent_env
                         .get_selected_identity()

@@ -120,7 +120,6 @@ pub async fn exec(
 
     let network = env
         .get_network_descriptor()
-        .expect("Cannot get network descriptor from environment.")
         .providers
         .first()
         .expect("Cannot get network provider (url).")

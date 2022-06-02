@@ -15,6 +15,7 @@ teardown() {
 }
 
 @test "canister call and sign" {
+    skip
     install_asset remote/call/actual
     dfx_start
     setup_actuallylocal_network
@@ -80,18 +81,19 @@ teardown() {
     # We expect dfx to notice that the method is in fact an update, which it knows from the remote candid definition.
     #
     assert_command_fail dfx canister --network actuallylocal call --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("call by principal with --query")'
-    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_match 'not a query method'
     assert_command_fail dfx canister --network actuallylocal call --query remote actual_update_mock_query_remote_candid_update '("call by name with --query")'
-    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_match 'not a query method'
 
     # And the same for dfx canister sign:
     assert_command_fail dfx canister --network actuallylocal sign --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("call by principal with --query")'
-    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_match 'not a query method'
     assert_command_fail dfx canister --network actuallylocal sign --query remote actual_update_mock_query_remote_candid_update '("call by name with --query")'
-    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_match 'not a query method'
 }
 
 @test "canister create <canister> fails for a remote canister" {
+    skip
     install_asset remote/actual
     dfx_start
     setup_actuallylocal_network
@@ -134,7 +136,7 @@ teardown() {
     cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
 
     assert_command_fail dfx canister --network actuallylocal install remote
-    assert_match "Error: Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
+    assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
 }
 
 @test "canister create --all and canister install --all skip remote canisters" {

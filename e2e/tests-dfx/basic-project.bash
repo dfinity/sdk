@@ -72,7 +72,7 @@ teardown() {
     assert_eq "4449444c00017d02"
 
     assert_command_fail dfx canister call --query hello inc
-    assert_match "inc is not a query method"
+    assert_match "Not a query method."
 
 
     dfx canister call hello inc

@@ -43,7 +43,7 @@ pub trait Environment {
     fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
 
     #[allow(clippy::needless_lifetimes)]
-    fn get_network_descriptor<'a>(&'a self) -> Option<&'a NetworkDescriptor>;
+    fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
 
     fn get_logger(&self) -> &slog::Logger;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
@@ -185,10 +185,10 @@ impl Environment for EnvironmentImpl {
         None
     }
 
-    fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
-        // create an AgentEnvironment explicitly, in order to specify network and agent.
-        // See install, build for examples.
-        None
+    fn get_network_descriptor(&self) -> &NetworkDescriptor {
+        // It's not valid to call get_network_descriptor on an EnvironmentImpl.
+        // All of the places that call this have an AgentEnvironment anyway.
+        unreachable!("NetworkDescriptor only available from an AgentEnvironment");
     }
 
     fn get_logger(&self) -> &slog::Logger {
@@ -290,8 +290,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         Some(&self.agent)
     }
 
-    fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
-        Some(&self.network_descriptor)
+    fn get_network_descriptor(&self) -> &NetworkDescriptor {
+        &self.network_descriptor
     }
 
     fn get_logger(&self) -> &slog::Logger {

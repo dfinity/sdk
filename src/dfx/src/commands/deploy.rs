@@ -111,8 +111,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
         let wallet = runtime.block_on(Identity::get_or_create_wallet_canister(
             &env,
-            env.get_network_descriptor()
-                .expect("Couldn't get the network descriptor"),
+            env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
             false,
         ))?;
@@ -141,7 +140,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
 fn display_urls(env: &dyn Environment) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let network: &NetworkDescriptor = env.get_network_descriptor().unwrap();
+    let network: &NetworkDescriptor = env.get_network_descriptor();
     let log = env.get_logger();
     let canister_id_store = CanisterIdStore::for_env(env)?;
 

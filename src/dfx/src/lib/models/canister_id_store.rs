@@ -33,7 +33,7 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     #[context("Failed to load canister id store.")]
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
-        let network_descriptor = env.get_network_descriptor().expect("no network descriptor");
+        let network_descriptor = env.get_network_descriptor();
         let store = CanisterIdStore::for_network(network_descriptor)?;
 
         let remote_ids = get_remote_ids(env)?;

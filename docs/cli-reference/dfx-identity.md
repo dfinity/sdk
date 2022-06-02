@@ -252,7 +252,7 @@ You can use the following optional flags with the `dfx identity remove` command.
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
+| `-V`, `--version` | Displays version information. || `--drop-wallets`  | Required if the identity has wallets configured so that users do not accidentally lose access to wallets.   |
 
 ### Arguments
 
@@ -277,6 +277,11 @@ Although you can delete the `default` identity if you have created other identit
 
     Identity error:
       Cannot delete the default identity
+
+If you have an identity with one or more wallets configured, it will only be deleted if you call it with `--drop-wallets`. This is made so that users don't accidentally lose access to their cycles wallets. If you try to delete an identity with at least one wallet configured, it will display the attached wallets like this:
+
+    This identity is connected to the following wallets:
+        identity 'mainnet' on network 'ic' has wallet rwlgt-iiaaa-aaaaa-aaaaa-cai
 
 ## dfx identity rename
 

@@ -3,6 +3,8 @@
 
 = UNRELEASED
 
+= 0.10.1
+
 == DFX
 
 === fix: Webpack config no longer uses CopyPlugin
@@ -16,6 +18,12 @@ On Linux, dfx 0.10.0 failed any operation with an HSM with the following error:
     Error: IO: Dynamic loading not supported
 
 The fix was to once again dynamically-link the Linux build.
+
+=== feat: error explanation and fixing instructions engine
+
+Dfx is now capable of providing explanations and remediation suggestions for entire categories of errors at a time.
+Explanations and suggestions will slowly be added over time.
+To see an example of an already existing suggestion, run `dfx deploy --network ic` while using an identity that has no wallet configured.
 
 === chore: add context to errors
 
@@ -71,17 +79,20 @@ Added ic-canister-http-adapter to the binary cache.
 
 == Dependencies
 
-=== Updated agent-rs to 0.16.0
+=== Updated agent-rs to 0.17.0
 
 == Motoko
 
-Updated Motoko from 0.6.26 to 0.6.27.
+Updated Motoko from 0.6.26 to 0.6.28.
 
 == Replica
 
-Updated replica to elected commit 2e16bb834b05d7eadbe1603c8046a96fe57a1868.
+Updated replica to elected commit b90edb9897718730f65e92eb4ff6057b1b25f766.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/61004[61004]
+* https://dashboard.internetcomputer.org/proposal/60222[60222]
+* https://dashboard.internetcomputer.org/proposal/59187[59187]
 * https://dashboard.internetcomputer.org/proposal/58479[58479]
 * https://dashboard.internetcomputer.org/proposal/58376[58376]
 * https://dashboard.internetcomputer.org/proposal/57843[57843]

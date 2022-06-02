@@ -14,6 +14,7 @@ use std::time::Duration;
 pub mod assets;
 pub mod clap;
 pub mod currency_conversion;
+pub mod stderr_wrapper;
 
 // The user can pass in port "0" to dfx start or dfx bootstrap i.e. "127.0.0.1:0" or "[::1]:0",
 // thus, we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
