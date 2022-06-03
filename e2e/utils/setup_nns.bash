@@ -1,6 +1,7 @@
 #! /bin/bash
 
-IC_COMMIT="b90edb9897718730f65e92eb4ff6057b1b25f766"
+# The commit hash was get from ic release note
+IC_COMMIT="3b5d893c0857c47715fc339112e5dd1dbfff77a8"
 
 if test -z "${NNS_ARTIFACTS}"
 then
