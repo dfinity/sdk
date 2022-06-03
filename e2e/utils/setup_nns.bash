@@ -3,13 +3,9 @@
 # The commit hash was get from ic release note
 IC_COMMIT="3b5d893c0857c47715fc339112e5dd1dbfff77a8"
 
-if test -z "${NNS_ARTIFACTS}"
-then
-  NNS_ARTIFACTS=$(mktemp -d -t dfx-e2e-nns-artifacts-XXXX) # Linux mktemp requires Xs in suffix
-  export NNS_ARTIFACTS
-else
-  echo "NNS_ARTIFACTS is ${NNS_ARTIFACTS}."
-fi
+NNS_ARTIFACTS=/tmp/dfx-e2e-nns-artifacts
+mkdir -p $NNS_ARTIFACTS
+export NNS_ARTIFACTS
 
 get_binary() {
   local FILENAME
