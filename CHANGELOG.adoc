@@ -7,6 +7,11 @@
 
 == DFX
 
+=== fix: Initialize replica with bitcoin regtest flag
+
+When the bitcoin feature is enabled, dfx was launching the replica with the "bitcoin_testnet" feature.
+The correct feature to use is "bitcoin_regtest".
+
 === fix: Webpack config no longer uses CopyPlugin
 
 Dfx already points to the asset canister's assets directory, and copying to disk could sometimes
