@@ -30,6 +30,10 @@ pub struct NotifyOpts {
     #[clap(validator(e8s_validator))]
     block_height: String,
 
+    /// Subaccount that the transfer was made from.
+    #[clap(long)]
+    from_subaccount: Option<Subaccount>,
+
     /// Specify the principal of the destination, either a canister id or a user principal.
     /// If the send transaction was for `create-canister`, specify the `controller` here.
     /// If the send transacction was for `top-up`, specify the `canister` here.
@@ -66,7 +70,7 @@ pub async fn exec(env: &dyn Environment, opts: NotifyOpts) -> DfxResult {
             Encode!(&NotifyCanisterArgs {
                 block_height,
                 max_fee,
-                from_subaccount: None,
+                from_subaccount: opts.from_subaccount,
                 to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
                 to_subaccount,
             })
