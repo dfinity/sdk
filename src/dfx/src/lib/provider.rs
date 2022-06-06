@@ -1,6 +1,7 @@
 use crate::config::dfinity::{Config, ConfigNetwork, NetworkType};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
+use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::{self, expiry_duration};
 
@@ -32,12 +33,12 @@ pub fn get_network_context() -> DfxResult<String> {
 
 // always returns at least one url
 #[context("Failed to get network descriptor.")]
-pub fn get_network_descriptor<'a>(
-    env: &'a (dyn Environment + 'a),
+pub fn get_network_descriptor(
+    config: Option<Arc<Config>>,
     network: Option<String>,
 ) -> DfxResult<NetworkDescriptor> {
     set_network_context(network);
-    let config = env.get_config().unwrap_or_else(|| {
+    let config = config.unwrap_or_else(|| {
         eprintln!("dfx.json not found, using default.");
         Arc::new(Config::from_str("{}").unwrap())
     });
@@ -61,10 +62,13 @@ pub fn get_network_descriptor<'a>(
                 r#type: network_provider.r#type,
                 is_ic: NetworkDescriptor::is_ic(&network_name.to_string(), &provider_urls),
                 providers: provider_urls,
+                local_server_descriptor: None,
             })
         }
         Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
-            let provider_urls = vec![format!("http://{}", local_provider.bind)];
+            let network_type = local_provider.r#type;
+            let bind_address = local_provider.bind;
+            let provider_urls = vec![format!("http://{}", bind_address)];
             let validated_urls = provider_urls
                 .iter()
                 .map(|provider| parse_provider_url(provider))
@@ -72,8 +76,9 @@ pub fn get_network_descriptor<'a>(
             validated_urls.map(|provider_urls| NetworkDescriptor {
                 name: network_name.to_string(),
                 providers: provider_urls,
-                r#type: local_provider.r#type,
+                r#type: network_type,
                 is_ic: false,
+                local_server_descriptor: Some(LocalServerDescriptor { bind: bind_address }),
             })
         }
         None => {
@@ -89,6 +94,7 @@ pub fn get_network_descriptor<'a>(
                     providers: vec![url],
                     r#type: NetworkType::Ephemeral,
                     is_ic,
+                    local_server_descriptor: None,
                 })
             } else {
                 Err(anyhow!("ComputeNetworkNotFound({})", network_name))
@@ -102,7 +108,7 @@ pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
     network: Option<String>,
 ) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = get_network_descriptor(env, network)?;
+    let network_descriptor = get_network_descriptor(env.get_config(), network)?;
     let timeout = expiry_duration();
     AgentEnvironment::new(env, network_descriptor, timeout)
 }
@@ -127,6 +133,72 @@ pub fn parse_provider_url(url: &str) -> DfxResult<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::dfinity::to_socket_addr;
+
+    #[test]
+    fn config_with_local_bind_addr() {
+        let config = Config::from_str(
+            r#"{
+            "networks": {
+                "local": {
+                    "bind": "localhost:8000"
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(Some(Arc::new(config)), None).unwrap();
+
+        assert_eq!(
+            network_descriptor
+                .local_server_descriptor()
+                .unwrap()
+                .bind_address()
+                .unwrap(),
+            to_socket_addr("localhost:8000").unwrap()
+        );
+    }
+
+    #[test]
+    fn config_returns_local_bind_address_if_no_local_network() {
+        let config = Config::from_str(
+            r#"{
+            "networks": {
+            }
+        }"#,
+        )
+        .unwrap();
+        let network_descriptor = get_network_descriptor(Some(Arc::new(config)), None).unwrap();
+
+        assert_eq!(
+            network_descriptor
+                .local_server_descriptor()
+                .unwrap()
+                .bind_address()
+                .unwrap(),
+            to_socket_addr("127.0.0.1:8000").unwrap()
+        );
+    }
+
+    #[test]
+    fn config_returns_local_bind_address_if_no_networks() {
+        let config = Config::from_str(
+            r#"{
+        }"#,
+        )
+        .unwrap();
+        let network_descriptor = get_network_descriptor(Some(Arc::new(config)), None).unwrap();
+
+        assert_eq!(
+            network_descriptor
+                .local_server_descriptor()
+                .unwrap()
+                .bind_address()
+                .unwrap(),
+            to_socket_addr("127.0.0.1:8000").unwrap()
+        );
+    }
 
     #[test]
     fn url_is_url() {
