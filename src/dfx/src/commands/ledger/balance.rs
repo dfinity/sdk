@@ -18,7 +18,7 @@ pub struct BalanceOpts {
     /// Specifies an AccountIdentifier to get the balance of
     of: Option<String>,
 
-    /// Subaccount of the selected identity to get the balance of 
+    /// Subaccount of the selected identity to get the balance of
     #[clap(long, conflicts_with("of"))]
     subaccount: Option<Subaccount>,
 
