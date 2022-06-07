@@ -41,6 +41,11 @@ impl<D: slog_term::Decorator> slog::Drain for PlainFormat<D> {
         values: &slog::OwnedKVList,
     ) -> Result<Self::Ok, Self::Err> {
         self.decorator.with_record(record, values, |decorator| {
+            decorator.start_level()?;
+            write!(decorator, "{}: ", record.level().as_str())?;
+
+            // start_whitespace resets to normal coloring
+            decorator.start_whitespace()?;
             decorator.start_msg()?;
             write!(decorator, "{}", record.msg())?;
 
@@ -56,10 +61,12 @@ impl<D: slog_term::Decorator> slog::Drain for PlainFormat<D> {
 /// Create a log drain.
 fn create_drain(mode: LoggingMode) -> Logger {
     match mode {
-        LoggingMode::Stderr => Logger::root(
-            PlainFormat::new(slog_term::PlainSyncDecorator::new(std::io::stderr())).fuse(),
-            slog::o!(),
-        ),
+        LoggingMode::Stderr => {
+            let decorator = slog_term::TermDecorator::new().build();
+            let drain = PlainFormat::new(decorator).fuse();
+            let async_drain = slog_async::Async::new(drain).build().fuse();
+            Logger::root(async_drain, slog::o!())
+        }
         LoggingMode::File(out) => {
             let file = File::create(out).expect("Couldn't open log file");
             let decorator = slog_term::PlainDecorator::new(file);

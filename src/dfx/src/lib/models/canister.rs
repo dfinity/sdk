@@ -13,12 +13,13 @@ use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
-use slog::Logger;
+use slog::{error, info, warn, Logger};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io::Read;
 use std::path::Path;
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
@@ -241,7 +242,9 @@ impl CanisterPool {
         }
     }
 
+    #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
+        self.run_cargo_audit()?;
         Ok(())
     }
 
@@ -441,6 +444,40 @@ impl CanisterPool {
             output.map_err(DfxError::new)?;
         }
 
+        Ok(())
+    }
+
+    fn contains_canister_of_type(&self, of_type: &str) -> bool {
+        self.canisters
+            .iter()
+            .any(|c| c.get_info().get_type() == of_type)
+    }
+
+    /// If the project contains rust canisters, this will run `cargo audit` and report any vulnerable dependencies.
+    fn run_cargo_audit(&self) -> DfxResult {
+        if self.contains_canister_of_type("rust")
+            && Command::new("cargo")
+                .arg("audit")
+                .arg("--version")
+                .output()
+                .is_ok()
+        {
+            info!(
+                self.logger,
+                "Checking for vulnerabilities in rust canisters."
+            );
+            let out = Command::new("cargo")
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .arg("audit")
+                .output()
+                .context("Failed to run 'cargo audit'.")?;
+            if !out.status.success() {
+                error!(self.logger, "Audit found vulnerabilities in rust canisters. Please address these problems as soon as possible!");
+            }
+        } else {
+            warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
+        }
         Ok(())
     }
 }
