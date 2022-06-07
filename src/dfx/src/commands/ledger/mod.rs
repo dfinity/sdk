@@ -112,6 +112,7 @@ pub async fn transfer(
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
+    from_subaccount: Option<Subaccount>,
     to: AccountIdBlob,
 ) -> DfxResult<BlockHeight> {
     let timestamp_nanos = SystemTime::now()
@@ -137,7 +138,7 @@ pub async fn transfer(
                     memo,
                     amount,
                     fee,
-                    from_subaccount: None,
+                    from_subaccount,
                     to,
                     created_at_time: Some(TimeStamp { timestamp_nanos }),
                 })
@@ -176,6 +177,7 @@ async fn transfer_and_notify(
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
+    from_subaccount: Option<Subaccount>,
     to_subaccount: Option<Subaccount>,
     max_fee: ICPTs,
 ) -> DfxResult<CyclesResponse> {
@@ -187,7 +189,16 @@ async fn transfer_and_notify(
 
     let to = AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, to_subaccount).to_address();
 
-    let block_height = transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, to).await?;
+    let block_height = transfer(
+        agent,
+        &MAINNET_LEDGER_CANISTER_ID,
+        memo,
+        amount,
+        fee,
+        from_subaccount,
+        to,
+    )
+    .await?;
 
     println!("Transfer sent at BlockHeight: {}", block_height);
 
@@ -197,7 +208,7 @@ async fn transfer_and_notify(
             Encode!(&NotifyCanisterArgs {
                 block_height,
                 max_fee,
-                from_subaccount: None,
+                from_subaccount,
                 to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
                 to_subaccount,
             })

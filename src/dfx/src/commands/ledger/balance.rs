@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{AccountBalanceArgs, MAINNET_LEDGER_CANISTER_ID};
-use crate::lib::nns_types::account_identifier::AccountIdentifier;
+use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 
 use anyhow::{anyhow, Context};
@@ -18,6 +18,10 @@ pub struct BalanceOpts {
     /// Specifies an AccountIdentifier to get the balance of
     of: Option<String>,
 
+    /// Subaccount of the selected identity to get the balance of
+    #[clap(long, conflicts_with("of"))]
+    subaccount: Option<Subaccount>,
+
     /// Canister ID of the ledger canister.
     #[clap(long)]
     ledger_canister_id: Option<Principal>,
@@ -27,10 +31,11 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
     let sender = env
         .get_selected_identity_principal()
         .expect("Selected identity not instantiated.");
+    let subacct = opts.subaccount;
     let acc_id = opts
         .of
         .map_or_else(
-            || Ok(AccountIdentifier::new(sender, None)),
+            || Ok(AccountIdentifier::new(sender, subacct)),
             |v| AccountIdentifier::from_str(&v),
         )
         .map_err(|err| anyhow!(err))?;

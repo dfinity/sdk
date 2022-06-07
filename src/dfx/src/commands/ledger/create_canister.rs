@@ -20,6 +20,9 @@ pub struct CreateCanisterOpts {
     /// Specify the controller of the new canister
     controller: String,
 
+    /// Subaccount to withdraw from
+    from_subaccount: Option<Subaccount>,
+
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
@@ -64,7 +67,16 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         .map_or(Ok(TRANSACTION_FEE), |v| ICPTs::from_str(&v))
         .map_err(|err| anyhow!(err))?;
 
-    let result = transfer_and_notify(env, memo, amount, fee, to_subaccount, max_fee).await?;
+    let result = transfer_and_notify(
+        env,
+        memo,
+        amount,
+        fee,
+        opts.from_subaccount,
+        to_subaccount,
+        max_fee,
+    )
+    .await?;
 
     match result {
         CyclesResponse::CanisterCreated(v) => {
