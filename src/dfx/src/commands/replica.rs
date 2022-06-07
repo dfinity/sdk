@@ -12,13 +12,15 @@ use crate::commands::start::{
     configure_btc_adapter_if_enabled, configure_canister_http_adapter_if_enabled,
     empty_writable_path,
 };
+use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
+use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 use anyhow::Context;
 use clap::Parser;
 use fn_error_context::context;
 use std::default::Default;
 use std::fs;
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Starts a local Internet Computer replica.
 #[derive(Parser)]
@@ -47,12 +49,13 @@ pub struct ReplicaOpts {
 /// Gets the configuration options for the Internet Computer replica.
 #[context("Failed to get replica config.")]
 fn get_config(
-    env: &dyn Environment,
-    opts: ReplicaOpts,
+    local_server_descriptor: &LocalServerDescriptor,
+    opts: &ReplicaOpts,
     replica_port_path: PathBuf,
+    state_root: &Path,
 ) -> DfxResult<ReplicaConfig> {
-    let config = get_config_from_file(env);
-    let port = get_port(&config, opts.port)?;
+    let config = &local_server_descriptor.replica;
+    let port = get_port(config, opts.port.as_deref())?;
     let mut http_handler: HttpHandlerConfig = Default::default();
     if port == 0 {
         http_handler.write_port_to = Some(replica_port_path);
@@ -60,26 +63,17 @@ fn get_config(
         http_handler.port = Some(port);
     };
 
-    let mut replica_config =
-        ReplicaConfig::new(&env.get_state_dir(), config.subnet_type.unwrap_or_default());
+    let mut replica_config = ReplicaConfig::new(state_root, config.subnet_type.unwrap_or_default());
     replica_config.http_handler = http_handler;
 
     Ok(replica_config)
-}
-
-/// Gets the configuration options for the Internet Computer replica as they were specified in the
-/// dfx configuration file.
-fn get_config_from_file(env: &dyn Environment) -> ConfigDefaultsReplica {
-    env.get_config().map_or(Default::default(), |config| {
-        config.get_config().get_defaults().get_replica().to_owned()
-    })
 }
 
 /// Gets the port number that the Internet Computer replica listens on. First checks if the port
 /// number was specified on the command-line using --port, otherwise checks if the port number was
 /// specified in the dfx configuration file, otherise defaults to 8080.
 #[context("Failed to get port.")]
-fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u16> {
+fn get_port(config: &ConfigDefaultsReplica, port: Option<&str>) -> DfxResult<u16> {
     port.map(|port| port.parse())
         .unwrap_or_else(|| {
             let default = 8080;
@@ -93,6 +87,10 @@ fn get_port(config: &ConfigDefaultsReplica, port: Option<String>) -> DfxResult<u
 /// replica at the moment), the proxy, and (if configured) the bitcoin adapter.
 pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let system = actix::System::new();
+
+    let network_descriptor =
+        get_network_descriptor(env.get_config(), None, LocalBindDetermination::AsConfigured)?;
+    let local_server_descriptor = network_descriptor.local_server_descriptor()?;
 
     let temp_dir = env.get_temp_dir();
     let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
@@ -115,10 +113,10 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     })?;
     let replica_port_path = empty_writable_path(replica_config_dir.join("replica-1.port"))?;
     let emulator_port_path = empty_writable_path(temp_dir.join("ic-ref.port"))?;
+    let state_root = env.get_state_dir();
 
-    let config = env.get_config_or_anyhow()?;
     let btc_adapter_config = configure_btc_adapter_if_enabled(
-        config.get_config(),
+        local_server_descriptor,
         &btc_adapter_config_path,
         &btc_adapter_socket_holder_path,
         opts.enable_bitcoin,
@@ -129,7 +127,7 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
         .and_then(|cfg| cfg.get_socket_path());
 
     let canister_http_adapter_config = configure_canister_http_adapter_if_enabled(
-        config.get_config(),
+        local_server_descriptor,
         &canister_http_adapter_config_path,
         &canister_http_adapter_socket_holder_path,
         opts.enable_canister_http,
@@ -137,6 +135,12 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
+    let mut replica_config = get_config(
+        local_server_descriptor,
+        &opts,
+        replica_port_path,
+        &state_root,
+    )?;
 
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
@@ -174,7 +178,6 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
                     (None, None)
                 };
 
-            let mut replica_config = get_config(env, opts, replica_port_path)?;
             if btc_adapter_config.is_some() {
                 replica_config = replica_config.with_btc_adapter_enabled();
                 if let Some(btc_adapter_socket) = btc_adapter_socket_path {
