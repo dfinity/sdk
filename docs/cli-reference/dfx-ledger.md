@@ -29,7 +29,7 @@ To view usage information for a specific subcommand, specify the subcommand and 
 
 ## dfx ledger account-id
 
-Use the `dfx ledger account-id` command to display the account identifier associated with the currently-active identity. Like the textual representation of your developer identity principal, the account identifier is derived from your private key and used to represent your identity in the ledger canister. The command can also be used to compute the account ids of other principals, canister aliases and subaccounts
+Use the `dfx ledger account-id` command to display the account identifier associated with the currently-active identity. Like the textual representation of your developer identity principal, the account identifier is derived from your private key and used to represent your identity in the ledger canister. The command can also be used to compute and display the account ids of other principals, canister aliases and subaccounts of your account.
 
 ### Basic usage
 
