@@ -8,10 +8,12 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 
 use anyhow::{anyhow, bail, Context};
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::{info, o, warn};
 use std::path::PathBuf;
+use std::process::Command;
 use std::process::Stdio;
 
 pub struct RustBuilder {
@@ -19,6 +21,7 @@ pub struct RustBuilder {
 }
 
 impl RustBuilder {
+    #[context("Failed to create RustBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(RustBuilder {
             logger: env.get_logger().new(o! {
@@ -29,6 +32,7 @@ impl RustBuilder {
 }
 
 impl CanisterBuilder for RustBuilder {
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
@@ -49,7 +53,7 @@ impl CanisterBuilder for RustBuilder {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>()?;
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context(|| format!("Failed to collect dependencies (canister ids) for canister {}.", info.get_name()))?;
         Ok(dependencies)
     }
 
@@ -57,6 +61,7 @@ impl CanisterBuilder for RustBuilder {
         info.get_type() == "rust"
     }
 
+    #[context("Failed to build Rust canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
         pool: &CanisterPool,
@@ -68,7 +73,7 @@ impl CanisterBuilder for RustBuilder {
 
         let canister_id = canister_info.get_canister_id().unwrap();
 
-        let mut cargo = std::process::Command::new("cargo");
+        let mut cargo = Command::new("cargo");
         cargo
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
@@ -92,27 +97,28 @@ impl CanisterBuilder for RustBuilder {
             self.logger,
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
         );
-        let output = cargo.output().context("Failed to run cargo build")?;
+        let output = cargo.output().context("Failed to run 'cargo build'.")?;
 
-        if std::process::Command::new("ic-cdk-optimizer")
+        if Command::new("ic-cdk-optimizer")
             .arg("--version")
             .output()
             .is_ok()
         {
-            let mut optimizer = std::process::Command::new("ic-cdk-optimizer");
-            let wasm_path = format!("target/wasm32-unknown-unknown/release/{}.wasm", package);
+            let mut optimizer = Command::new("ic-cdk-optimizer");
+            let wasm_path = rust_info.get_output_wasm_path();
             optimizer
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
                 .arg("-o")
-                .arg(&wasm_path)
-                .arg(&wasm_path);
+                .arg(wasm_path)
+                .arg(wasm_path);
             // The optimized wasm overwrites the original wasm.
             // Because the `get_output_wasm_path` must give the same path,
             // no matter optimized or not.
             info!(
                 self.logger,
-                "Executing: ic-cdk-optimizer -o {0} {0}", &wasm_path
+                "Executing: ic-cdk-optimizer -o {0} {0}",
+                wasm_path.display()
             );
             if !matches!(optimizer.status(), Ok(status) if status.success()) {
                 warn!(self.logger, "Failed to run ic-cdk-optimizer.");
@@ -148,7 +154,10 @@ Run `cargo install ic-cdk-optimizer` to install it.
         if output_idl_path.exists() {
             Ok(output_idl_path.to_path_buf())
         } else {
-            bail!("Candid file: {:?} doesn't exist.", output_idl_path);
+            bail!(
+                "Candid file: {} doesn't exist.",
+                output_idl_path.to_string_lossy()
+            );
         }
     }
 }

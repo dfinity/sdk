@@ -18,6 +18,13 @@ pub struct HttpHandlerConfig {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct BtcAdapterConfig {
+    pub enabled: bool,
+    pub socket_path: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct CanisterHttpAdapterConfig {
+    pub enabled: bool,
     pub socket_path: Option<PathBuf>,
 }
 
@@ -44,6 +51,7 @@ pub struct ReplicaConfig {
     pub artifact_pool: ArtifactPoolConfig,
     pub subnet_type: ReplicaSubnetType,
     pub btc_adapter: BtcAdapterConfig,
+    pub canister_http_adapter: CanisterHttpAdapterConfig,
 }
 
 impl ReplicaConfig {
@@ -63,27 +71,104 @@ impl ReplicaConfig {
                 consensus_pool_path: state_root.join("consensus_pool"),
             },
             subnet_type,
-            btc_adapter: BtcAdapterConfig { socket_path: None },
+            btc_adapter: BtcAdapterConfig {
+                enabled: false,
+                socket_path: None,
+            },
+            canister_http_adapter: CanisterHttpAdapterConfig {
+                enabled: false,
+                socket_path: None,
+            },
         }
     }
 
     #[allow(dead_code)]
-    pub fn with_port(&mut self, port: u16) -> &mut Self {
-        self.http_handler.port = Some(port);
-        self.http_handler.write_port_to = None;
-        self
+    pub fn with_port(self, port: u16) -> Self {
+        ReplicaConfig {
+            http_handler: self.http_handler.with_port(port),
+            ..self
+        }
     }
 
-    pub fn with_random_port(&mut self, write_port_to: &Path) -> Self {
-        self.http_handler.port = None;
-        self.http_handler.write_port_to = Some(write_port_to.to_path_buf());
-        let config = &*self;
-        config.clone()
+    pub fn with_random_port(self, write_port_to: &Path) -> Self {
+        ReplicaConfig {
+            http_handler: self.http_handler.with_random_port(write_port_to),
+            ..self
+        }
     }
 
-    pub fn with_btc_adapter_socket(&mut self, socket_path: PathBuf) -> Self {
-        self.btc_adapter.socket_path = Some(socket_path);
-        let config = &*self;
-        config.clone()
+    pub fn with_btc_adapter_enabled(self) -> Self {
+        ReplicaConfig {
+            btc_adapter: self.btc_adapter.with_enabled(),
+            ..self
+        }
+    }
+
+    pub fn with_btc_adapter_socket(self, socket_path: PathBuf) -> Self {
+        ReplicaConfig {
+            btc_adapter: self.btc_adapter.with_socket_path(socket_path),
+            ..self
+        }
+    }
+
+    pub fn with_canister_http_adapter_enabled(self) -> Self {
+        ReplicaConfig {
+            canister_http_adapter: self.canister_http_adapter.with_enabled(),
+            ..self
+        }
+    }
+    pub fn with_canister_http_adapter_socket(self, socket_path: PathBuf) -> Self {
+        ReplicaConfig {
+            canister_http_adapter: self.canister_http_adapter.with_socket_path(socket_path),
+            ..self
+        }
+    }
+}
+
+impl BtcAdapterConfig {
+    pub fn with_enabled(self) -> Self {
+        BtcAdapterConfig {
+            enabled: true,
+            ..self
+        }
+    }
+
+    pub fn with_socket_path(self, socket_path: PathBuf) -> Self {
+        BtcAdapterConfig {
+            socket_path: Some(socket_path),
+            ..self
+        }
+    }
+}
+
+impl CanisterHttpAdapterConfig {
+    pub fn with_enabled(self) -> Self {
+        CanisterHttpAdapterConfig {
+            enabled: true,
+            ..self
+        }
+    }
+
+    pub fn with_socket_path(self, socket_path: PathBuf) -> Self {
+        CanisterHttpAdapterConfig {
+            socket_path: Some(socket_path),
+            ..self
+        }
+    }
+}
+
+impl HttpHandlerConfig {
+    pub fn with_port(self, port: u16) -> Self {
+        HttpHandlerConfig {
+            port: Some(port),
+            write_port_to: None,
+        }
+    }
+
+    pub fn with_random_port(self, write_port_to: &Path) -> Self {
+        HttpHandlerConfig {
+            port: None,
+            write_port_to: Some(write_port_to.to_path_buf()),
+        }
     }
 }

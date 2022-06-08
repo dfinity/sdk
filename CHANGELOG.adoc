@@ -1,9 +1,9 @@
 = dfx changelog
 :doctype: book
 
-= Unreleased
+= UNRELEASED
 
-== DFX 
+== DFX
 
 === feat: Support for new ledger notify function
 
@@ -12,9 +12,167 @@ functions for doing the same. This should *mostly* be invisible to users, except
 failed, you would call `+dfx ledger notify+` after correcting the issue. In order to support the change, this command has been changed to two subcommands:
 `+dfx ledger notify create-canister+` and `+dfx ledger notify top-up+`.
 
+=== feat: `+--from-subaccount+`
+
+Previously, the ledger commands assumed all transfers were made from the default subaccount for the identity principal. This feature adds a `+--from-subaccount+` flag to `+dfx ledger transfer+`, `+dfx ledger create-canister+`, and `+dfx ledger top-up+`, to enable making transfers from a selected subaccount. A `+--subaccount+` flag is also added to `+dfx ledger balance+` for convenience. Subaccounts are expected as 64-character hex-strings (i.e. 32 bytes).
+
+=== fix: Freezing Threshold now documented
+
+Calls made to retrieve the help output for `canister update-settings` was missing the `freezing-threshold` parameter.
+This is now included when running `dfx canister update-settings -h`.
+
+= 0.10.1
+
+== DFX
+
+=== fix: Webpack config no longer uses CopyPlugin
+
+Dfx already points to the asset canister's assets directory, and copying to disk could sometimes
+lead to an annoying "too many open files" error.
+
+=== fix: HSMs are once again supported on Linux
+
+On Linux, dfx 0.10.0 failed any operation with an HSM with the following error:
+    Error: IO: Dynamic loading not supported
+
+The fix was to once again dynamically-link the Linux build.
+
+=== feat: error explanation and fixing instructions engine
+
+Dfx is now capable of providing explanations and remediation suggestions for entire categories of errors at a time.
+Explanations and suggestions will slowly be added over time.
+To see an example of an already existing suggestion, run `dfx deploy --network ic` while using an identity that has no wallet configured.
+
+=== chore: add context to errors
+
+Most errors that happen within dfx are now reported in much more detail. No more plain `File not found` without explanation what even was attempted.
+
+=== fix: identities with configured wallets are not broken anymore and removed only when using the --drop-wallets flag
+
+When an identity has a configured wallet, dfx no longer breaks the identity without actually removing it.
+Instead, if the --drop-wallets flag is specified, it properly removes everything and logs what wallets were linked,
+and when the flag is not specified, it does not remove anything.
+
+The behavior for identities without any configured wallets is unchanged.
+
+=== feat: bitcoin integration: dfx now generates the bitcoin adapter config file
+
+dfx command-line parameters for bitcoin integration:
+    dfx start   --enable-bitcoin  # use default node 127.0.0.1:18444
+    dfx start   --enable-bitcoin --bitcoin-node <node>
+
+The above examples also work for dfx replica.
+
+These default to values from dfx.json:
+    .defaults.bitcoin.nodes
+    .defaults.bitcoin.enabled
+
+The --bitcoin-node parameter, if specified on the command line, implies --enable-bitcoin.
+
+If --enable-bitcoin or .defaults.bitcoin.enabled is set, then dfx start/replica will launch the ic-btc-adapter process and configure the replica to communicate with it.
+
+
+=== feat: print wallet balance in a human readable form #2184
+
+Default behaviour changed for `+dfx wallet balance+`, it will now print cycles amount upscaled to trillions.
+
+New flag `+--precise+` added to `+dfx wallet balance+`. Allows to get exact amount of cycles in wallet (without upscaling).
+
+=== feat: canister http integration
+
+dfx command-line parameters for canister http requests integration:
+    dfx start --enable-canister-http
+    dfx replica --enable-canister-http
+
+This defaults to the following value in dfx.json:
+    .defaults.canister_http.enabled
+
+=== fix: specifying ic provider with a trailing slash is recognised correctly
+
+Specifying the network provider as `https://ic0.app/` instead of `https://ic0.app` is now recognised as the real IC network.
+
+=== Binary cache
+
+Added ic-canister-http-adapter to the binary cache.
+
+== Dependencies
+
+=== Updated agent-rs to 0.17.0
+
+== Motoko
+
+Updated Motoko from 0.6.26 to 0.6.28.
+
+== Replica
+
+Updated replica to elected commit b90edb9897718730f65e92eb4ff6057b1b25f766.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/61004[61004]
+* https://dashboard.internetcomputer.org/proposal/60222[60222]
+* https://dashboard.internetcomputer.org/proposal/59187[59187]
+* https://dashboard.internetcomputer.org/proposal/58479[58479]
+* https://dashboard.internetcomputer.org/proposal/58376[58376]
+* https://dashboard.internetcomputer.org/proposal/57843[57843]
+* https://dashboard.internetcomputer.org/proposal/57395[57395]
+
+== icx-proxy
+
+Updated icx-proxy to commit c312760a62b20931431ba45e5b0168ee79ea5cda
+
+* Added gzip and deflate body decoding before certification validation.
+* Fixed unzip and streaming bugs
+* Added Prometheus metrics endpoint
+* Added root and invalid ssl and dns mapping
+
 = 0.10.0
 
 == DFX
+
+=== feat: Use null as default value for opt arguments
+
+
+Before this, `deploy`ing a canister with an `opt Foo` init argument without specifying an `--argument` would lead to an error:
+
+[source, bash]
+----
+$ dfx deploy
+Error: Invalid data: Expected arguments but found none.
+----
+
+With this change, this isn't an error anymore, but instead `null` is passed as a value. In general, if the user does _not_ provide an `--argument`, and if the init method expects only `opt` arguments, then `dfx` will supply `null` for each argument.
+
+Note in particular that this does not try to match `opt` arguments for heterogeneous (`opt`/non-`opt`) signatures. Note moreover that this only impacts a case that would previously error out, so no existing (working) workflows should be affected.
+
+=== feat: dfx identity set-wallet now checks that the provided canister is actually a wallet
+
+This check was previously performed on local networks, but not on mainnet.
+
+=== feat: dfx canister call --candid <path to candid file> ...
+
+Allows one to provide the .did file for calls to an arbitrary canister.
+
+=== feat: Install arbitrary wasm into canisters
+
+You no longer need a DFX project setup with a build task to install an already-built wasm module into a canister ID. The new `+--wasm <path>+` flag to `+dfx canister install+` will bypass project configuration and install the wasm module at `+<path>+`. A DFX project setup is still recommended for general use; this should mostly be used for installing pre-built canisters. Note that DFX will also not perform its usual checks for API/ABI/stable-memory compatibility in this mode.
+
+=== feat: Support for 128-bit cycle counts
+
+Cycle counts can now exceed the previously set maximum of 2^64. The new limit is 2^128. A new wallet version has been bundled with this release that supports the new cycle count. You will not be able to use this feature with your existing wallets without running `+dfx wallet upgrade+`, but old wallets will still work just fine with old cycle counts.
+
+=== fix: dfx start will once again notice if dfx is already running
+
+dfx will once again display 'dfx is already running' if dfx is already running,
+rather than 'Address already in use'.
+
+As a consequence, after `dfx start` failed to notice that dfx was already running,
+it would replace .dfx/pid with an empty file.  Later invocations of `dfx stop`
+would display no output and return a successful exit code, but leave dfx running.
+
+=== fix: dfx canister update-settings <canister id> works even if the canister id is not known to the project.
+
+This makes the behavior match the usage text of the command:
+`<CANISTER> Specifies the canister name or id to update. You must specify either canister name/id or the --all option`
 
 === feat: dfx deploy --upgrade-unchanged or dfx canister install --mode upgrade --upgrade-unchanged
 
@@ -51,6 +209,10 @@ Example how to specify the subnet type:
 }
 ----
 
+=== feat: Introduce command for local cycles top-up
+
+`dfx ledger fabricate-cycles <canister (id)> <optional amount>` can be used during local development to create cycles out of thin air and add them to a canister. Instead of supplying a canister name or id it is also possible to use `--all` to add the cycles to every canister in the current project. When no amount is supplied, the command uses 10T cycles as default. Using this command with `--network ic` will result in an error.
+
 === feat: Private keys can be stored in encrypted format
 
 `dfx identity new` and `dfx identity import` now ask you for a password to encrypt the private key (PEM file) when it is stored on disk.
@@ -70,6 +232,10 @@ dfx identity import identity_name identity.pem
 === feat: Identity export
 
 If you want to get your identity out of dfx, you can use `dfx identity export identityname > exported_identity.pem`. But be careful with storing this file as it is not protected with your password.
+
+=== feat: Identity new/import now has a --force flag
+
+If you want to script identity creation and don't care about overwriting existing identities, you now can use the `--force` flag for the commands `dfx identity new` and `dfx identity import`.
 
 === fix: Do not automatically create a wallet on IC
 
@@ -99,21 +265,43 @@ then dfx start/replica will launch the ic-btc-adapter process.
 
 This integration is not yet complete, pending upcoming functionality in ic-starter.
 
+=== fix: report context of errors
+
+dfx now displays the context of an error in several places where previously the only error
+message would be something like "No such file or directory."
+
+=== chore: updates starter project for Node 18
+
+Webpack dev server now works for Node 18 (and should work for Node 17). A few packages are also upgraded
+
 == updating dependencies
 
 Updated to version 0.14.0 of agent-rs
 
+== Cycles wallet
+
+Module hash: bb001d1ebff044ba43c060956859f614963d05c77bd778468fce4de095fe8f92
+https://github.com/dfinity/cycles-wallet/commit/f18e9f5c2f96e9807b6f149c975e25638cc3356b
+
 == Replica
 
-Updated replica to blessed commit 7424ea8c83b86cd7867c0686eaeb2c0285450b12.
+Updated replica to elected commit b3788091fbdb8bed7e527d2df4cc5e50312f476c.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/57150[57150]
+* https://dashboard.internetcomputer.org/proposal/54964[54964]
+* https://dashboard.internetcomputer.org/proposal/53702[53702]
+* https://dashboard.internetcomputer.org/proposal/53231[53231]
 * https://dashboard.internetcomputer.org/proposal/53134[53134]
 * https://dashboard.internetcomputer.org/proposal/52627[52627]
 * https://dashboard.internetcomputer.org/proposal/52144[52144]
 * https://dashboard.internetcomputer.org/proposal/50282[50282]
 
 Added the ic-btc-adapter binary to the cache.
+
+== Motoko
+
+Updated Motoko from 0.6.25 to 0.6.26.
 
 = 0.9.3
 

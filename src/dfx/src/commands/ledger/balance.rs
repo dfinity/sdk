@@ -1,10 +1,10 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{AccountBalanceArgs, MAINNET_LEDGER_CANISTER_ID};
-use crate::lib::nns_types::account_identifier::AccountIdentifier;
+use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::{Decode, Encode};
 use clap::Parser;
 use ic_types::Principal;
@@ -18,6 +18,10 @@ pub struct BalanceOpts {
     /// Specifies an AccountIdentifier to get the balance of
     of: Option<String>,
 
+    /// Subaccount of the selected identity to get the balance of
+    #[clap(long, conflicts_with("of"))]
+    subaccount: Option<Subaccount>,
+
     /// Canister ID of the ledger canister.
     #[clap(long)]
     ledger_canister_id: Option<Principal>,
@@ -27,10 +31,11 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
     let sender = env
         .get_selected_identity_principal()
         .expect("Selected identity not instantiated.");
+    let subacct = opts.subaccount;
     let acc_id = opts
         .of
         .map_or_else(
-            || Ok(AccountIdentifier::new(sender, None)),
+            || Ok(AccountIdentifier::new(sender, subacct)),
             |v| AccountIdentifier::from_str(&v),
         )
         .map_err(|err| anyhow!(err))?;
@@ -44,13 +49,22 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
 
     let result = agent
         .query(&canister_id, ACCOUNT_BALANCE_METHOD)
-        .with_arg(Encode!(&AccountBalanceArgs {
-            account: acc_id.to_string()
-        })?)
+        .with_arg(
+            Encode!(&AccountBalanceArgs {
+                account: acc_id.to_string()
+            })
+            .context("Failed to encode arguments.")?,
+        )
         .call()
-        .await?;
+        .await
+        .with_context(|| {
+            format!(
+                "Failed query call to {} for method {}.",
+                canister_id, ACCOUNT_BALANCE_METHOD
+            )
+        })?;
 
-    let balance = Decode!(&result, ICPTs)?;
+    let balance = Decode!(&result, ICPTs).context("Failed to decode response.")?;
 
     println!("{}", balance);
 

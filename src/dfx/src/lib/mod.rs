@@ -1,6 +1,9 @@
+pub mod bitcoin;
 pub mod builders;
+pub mod canister_http;
 pub mod canister_info;
 pub mod config;
+pub mod diagnosis;
 pub mod dist;
 pub mod environment;
 pub mod error;
@@ -11,6 +14,7 @@ pub mod ledger_types;
 pub mod locations;
 pub mod logger;
 pub mod manifest;
+pub mod migrate;
 pub mod models;
 pub mod named_canister;
 pub mod network;

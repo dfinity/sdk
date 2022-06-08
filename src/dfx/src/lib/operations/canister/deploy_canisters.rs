@@ -11,6 +11,7 @@ use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 
 use anyhow::{anyhow, bail};
+use fn_error_context::context;
 use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -22,6 +23,7 @@ use std::convert::TryFrom;
 use std::time::Duration;
 
 #[allow(clippy::too_many_arguments)]
+#[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
@@ -41,7 +43,7 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
 
     let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
 
@@ -110,6 +112,7 @@ pub async fn deploy_canisters(
     Ok(())
 }
 
+#[context("Failed to collect canisters and their dependencies.")]
 fn canister_with_dependencies(
     config: &Config,
     some_canister: Option<&str>,
@@ -121,6 +124,7 @@ fn canister_with_dependencies(
     Ok(canister_names)
 }
 
+#[context("Failed while trying to register all canisters.")]
 async fn register_canisters(
     env: &dyn Environment,
     canister_names: &[String],
@@ -188,6 +192,7 @@ async fn register_canisters(
     Ok(())
 }
 
+#[context("Failed to build call canisters.")]
 fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Config) -> DfxResult {
     info!(env.get_logger(), "Building canisters...");
     let build_mode_check = false;
@@ -197,6 +202,7 @@ fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Co
 }
 
 #[allow(clippy::too_many_arguments)]
+#[context("Failed while trying to install all canisters.")]
 async fn install_canisters(
     env: &dyn Environment,
     canister_names: &[String],

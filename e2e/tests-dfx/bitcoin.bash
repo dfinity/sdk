@@ -16,15 +16,8 @@ teardown() {
     dfx_stop
     dfx_stop_replica_and_bootstrap
     standard_teardown
-
-    # created in bitcoin/patch.bash
-    rm -f "/tmp/e2e-ic-btc-adapter.$$.socket"
 }
 
-set_default_btc_adapter_config() {
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.defaults.bitcoin.btc_adapter_config="'"$(pwd)/testnet.config.json"'"' dfx.json)" >dfx.json
-}
 set_default_bitcoin_enabled() {
     # shellcheck disable=SC2094
     cat <<<"$(jq '.defaults.bitcoin.enabled=true' dfx.json)" >dfx.json
@@ -38,8 +31,6 @@ set_default_bitcoin_enabled() {
 
 @test "dfx restarts replica when ic-btc-adapter restarts" {
     dfx_new hello
-    install_asset bitcoin
-    set_default_btc_adapter_config
     set_default_bitcoin_enabled
     dfx_start
 
@@ -84,8 +75,6 @@ set_default_bitcoin_enabled() {
 
 @test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
     dfx_new hello
-    install_asset bitcoin
-    set_default_btc_adapter_config
     set_default_bitcoin_enabled
     dfx_start_replica_and_bootstrap
 
@@ -130,38 +119,39 @@ set_default_bitcoin_enabled() {
 }
 
 
-@test "dfx start --btc-adapter-config implies --enable-bitcoin" {
+@test "dfx start --bitcoin-node <node> implies --enable-bitcoin" {
     dfx_new hello
-    install_asset bitcoin
-    dfx_start "--btc-adapter-config" "$(pwd)/testnet.config.json"
+    dfx_start "--bitcoin-node" "127.0.0.1:18444"
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
 
-@test "dfx replica --btc-adapter-config implies --enable-bitcoin" {
+@test "dfx replica --bitcoin-node <node> implies --enable-bitcoin" {
     dfx_new hello
-    install_asset bitcoin
-    dfx_start_replica_and_bootstrap "--btc-adapter-config" "$(pwd)/testnet.config.json"
+    dfx_start_replica_and_bootstrap "--bitcoin-node" "127.0.0.1:18444"
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
 
 
-@test "dfx start/replica --enable-bitcoin without a btc adapter config fails" {
+@test "dfx start --enable-bitcoin with no other configuration succeeds" {
     dfx_new hello
-    install_asset bitcoin
 
-    assert_command_fail dfx start --enable-bitcoin
-    assert_eq "Error: Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json"
+    dfx_start --enable-bitcoin
 
-    assert_command_fail dfx replica --enable-bitcoin
-    assert_eq "Error: Bitcoin integration was enabled without either --btc-adapter-config or .defaults.bitcoin.btc_adapter_config in dfx.json"
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
+}
+
+@test "dfx replica --enable-bitcoin with no other configuration succeeds" {
+    dfx_new hello
+
+    dfx_start_replica_and_bootstrap --enable-bitcoin
+
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
 
 @test "can enable bitcoin through default configuration (dfx start)" {
     dfx_new hello
-    install_asset bitcoin
-    set_default_btc_adapter_config
     set_default_bitcoin_enabled
 
     dfx_start
@@ -171,11 +161,38 @@ set_default_bitcoin_enabled() {
 
 @test "can enable bitcoin through default configuration (dfx replica)" {
     dfx_new hello
-    install_asset bitcoin
-    set_default_btc_adapter_config
     set_default_bitcoin_enabled
 
     dfx_start_replica_and_bootstrap
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
+
+@test "dfx start with both bitcoin and canister http enabled" {
+    dfx_new hello
+
+    dfx_start --enable-bitcoin --enable-canister-http
+
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
+
+    install_asset greet
+    assert_command dfx deploy
+    assert_command dfx canister call hello greet '("Alpha")'
+    assert_eq '("Hello, Alpha!")'
+}
+
+@test "dfx replica+bootstrap with both bitcoin and canister http enabled" {
+    dfx_new hello
+
+    dfx_start_replica_and_bootstrap --enable-bitcoin --enable-canister-http
+
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
+
+    install_asset greet
+    assert_command dfx deploy
+    assert_command dfx canister call hello greet '("Alpha")'
+    assert_eq '("Hello, Alpha!")'
+}
+

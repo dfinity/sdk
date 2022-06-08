@@ -7,6 +7,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
 use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use ic_types::Principal;
 use semver::Version;
@@ -42,7 +43,7 @@ pub trait Environment {
     fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
 
     #[allow(clippy::needless_lifetimes)]
-    fn get_network_descriptor<'a>(&'a self) -> Option<&'a NetworkDescriptor>;
+    fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
 
     fn get_logger(&self) -> &slog::Logger;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
@@ -75,23 +76,19 @@ pub struct EnvironmentImpl {
 
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
-        let config = match Config::from_current_dir() {
-            Err(err) => {
-                if err.kind() == std::io::ErrorKind::NotFound {
-                    Ok(None)
-                } else {
-                    Err(err)
-                }
-            }
-            Ok(x) => Ok(Some(x)),
-        }?;
+        let config = Config::from_current_dir()?;
         let temp_dir = match &config {
             None => tempfile::tempdir()
                 .expect("Could not create a temporary directory.")
                 .into_path(),
             Some(c) => c.get_path().parent().unwrap().join(".dfx"),
         };
-        create_dir_all(&temp_dir)?;
+        create_dir_all(&temp_dir).with_context(|| {
+            format!(
+                "Failed to create temp directory {}.",
+                temp_dir.to_string_lossy()
+            )
+        })?;
 
         // Figure out which version of DFX we should be running. This will use the following
         // fallback sequence:
@@ -106,14 +103,16 @@ impl EnvironmentImpl {
                 None => dfx_version().clone(),
                 Some(c) => match &c.get_config().get_dfx() {
                     None => dfx_version().clone(),
-                    Some(v) => Version::parse(v)?,
+                    Some(v) => Version::parse(v)
+                        .with_context(|| format!("Failed to parse version from '{}'.", v))?,
                 },
             },
             Ok(v) => {
                 if v.is_empty() {
                     dfx_version().clone()
                 } else {
-                    Version::parse(&v)?
+                    Version::parse(&v)
+                        .with_context(|| format!("Failed to parse version from '{}'.", &v))?
                 }
             }
         };
@@ -186,10 +185,10 @@ impl Environment for EnvironmentImpl {
         None
     }
 
-    fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
-        // create an AgentEnvironment explicitly, in order to specify network and agent.
-        // See install, build for examples.
-        None
+    fn get_network_descriptor(&self) -> &NetworkDescriptor {
+        // It's not valid to call get_network_descriptor on an EnvironmentImpl.
+        // All of the places that call this have an AgentEnvironment anyway.
+        unreachable!("NetworkDescriptor only available from an AgentEnvironment");
     }
 
     fn get_logger(&self) -> &slog::Logger {
@@ -227,6 +226,7 @@ pub struct AgentEnvironment<'a> {
 }
 
 impl<'a> AgentEnvironment<'a> {
+    #[context("Failed to create AgentEnvironment for network '{}'.", network_descriptor.name)]
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
@@ -235,12 +235,17 @@ impl<'a> AgentEnvironment<'a> {
         let mut identity_manager = IdentityManager::new(backend)?;
         let identity = identity_manager.instantiate_selected_identity()?;
 
-        let agent_url = network_descriptor.providers.first().unwrap();
+        let agent_url = network_descriptor.providers.first().with_context(|| {
+            format!(
+                "Network '{}' does not specify any network providers.",
+                network_descriptor.name
+            )
+        })?;
         Ok(AgentEnvironment {
             backend,
             agent: create_agent(backend.get_logger().clone(), agent_url, identity, timeout)
                 .expect("Failed to construct agent."),
-            network_descriptor,
+            network_descriptor: network_descriptor.clone(),
             identity_manager,
         })
     }
@@ -285,8 +290,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         Some(&self.agent)
     }
 
-    fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
-        Some(&self.network_descriptor)
+    fn get_network_descriptor(&self) -> &NetworkDescriptor {
+        &self.network_descriptor
     }
 
     fn get_logger(&self) -> &slog::Logger {
@@ -320,7 +325,7 @@ pub struct AgentClient {
 
 impl AgentClient {
     pub fn new(logger: Logger, url: String) -> DfxResult<AgentClient> {
-        let url = reqwest::Url::parse(&url).context(format!("Invalid URL: {}", url))?;
+        let url = reqwest::Url::parse(&url).with_context(|| format!("Invalid URL: {}", url))?;
 
         let result = Self {
             logger,
@@ -335,6 +340,7 @@ impl AgentClient {
         Ok(result)
     }
 
+    #[context("Failed to determine http auth path.")]
     fn http_auth_path() -> DfxResult<PathBuf> {
         Ok(cache::get_cache_root()?.join("http_auth"))
     }
@@ -345,9 +351,11 @@ impl AgentClient {
         self.url.scheme() == "https" || self.url.host_str().unwrap_or("") == "localhost"
     }
 
+    #[context("Failed to read http auth map.")]
     fn read_http_auth_map(&self) -> DfxResult<BTreeMap<String, String>> {
         let p = &Self::http_auth_path()?;
-        let content = std::fs::read_to_string(p)?;
+        let content = std::fs::read_to_string(p)
+            .with_context(|| format!("Failed to read {}.", p.to_string_lossy()))?;
 
         // If there's an error parsing, simply use an empty map.
         Ok(
@@ -396,7 +404,13 @@ impl AgentClient {
         map.insert(host.to_string(), auth.to_string());
 
         let p = Self::http_auth_path()?;
-        std::fs::write(&p, serde_json::to_string(&map)?.as_bytes())?;
+        std::fs::write(
+            &p,
+            serde_json::to_string(&map)
+                .context("Failed to serialize http auth map.")?
+                .as_bytes(),
+        )
+        .with_context(|| format!("Failed to write to {}.", p.to_string_lossy()))?;
 
         Ok(p)
     }

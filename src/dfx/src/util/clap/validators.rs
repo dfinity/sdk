@@ -38,10 +38,17 @@ pub fn memo_validator(memo: &str) -> Result<(), String> {
 }
 
 pub fn cycle_amount_validator(cycles: &str) -> Result<(), String> {
-    if cycles.parse::<u64>().is_ok() {
+    if cycles.parse::<u128>().is_ok() {
         return Ok(());
     }
     Err("Must be a non negative amount.".to_string())
+}
+
+pub fn trillion_cycle_amount_validator(cycles: &str) -> Result<(), String> {
+    if format!("{}000000000000", cycles).parse::<u128>().is_ok() {
+        return Ok(());
+    }
+    Err("Must be a non negative amount. Currently only accepts whole numbers. Use --cycles otherwise.".to_string())
 }
 
 pub fn compute_allocation_validator(compute_allocation: &str) -> Result<(), String> {

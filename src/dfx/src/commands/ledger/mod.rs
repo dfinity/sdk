@@ -11,9 +11,10 @@ use crate::lib::provider::create_agent_environment;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use candid::{Decode, Encode};
 use clap::Parser;
+use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
@@ -29,6 +30,7 @@ const NOTIFY_CREATE_METHOD: &str = "notify_create_canister";
 mod account_id;
 mod balance;
 mod create_canister;
+mod fabricate_cycles;
 mod notify;
 mod top_up;
 mod transfer;
@@ -50,6 +52,7 @@ enum SubCommand {
     AccountId(account_id::AccountIdOpts),
     Balance(balance::BalanceOpts),
     CreateCanister(create_canister::CreateCanisterOpts),
+    FabricateCycles(fabricate_cycles::FabricateCyclesOpts),
     Notify(notify::NotifyOpts),
     TopUp(top_up::TopUpOpts),
     Transfer(transfer::TransferOpts),
@@ -63,6 +66,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
             SubCommand::AccountId(v) => account_id::exec(&agent_env, v).await,
             SubCommand::Balance(v) => balance::exec(&agent_env, v).await,
             SubCommand::CreateCanister(v) => create_canister::exec(&agent_env, v).await,
+            SubCommand::FabricateCycles(v) => fabricate_cycles::exec(&agent_env, v).await,
             SubCommand::Notify(v) => notify::exec(&agent_env, v).await,
             SubCommand::TopUp(v) => top_up::exec(&agent_env, v).await,
             SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
@@ -70,6 +74,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
     })
 }
 
+#[context("Failed to determine icp amount from supplied arguments.")]
 fn get_icpts_from_args(
     amount: &Option<String>,
     icp: &Option<String>,
@@ -101,12 +106,14 @@ fn get_icpts_from_args(
     }
 }
 
+#[context("Failed to transfer funds.")]
 pub async fn transfer(
     agent: &Agent,
     canister_id: &Principal,
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
+    from_subaccount: Option<Subaccount>,
     to: AccountIdBlob,
 ) -> DfxResult<BlockHeight> {
     let timestamp_nanos = SystemTime::now()
@@ -127,19 +134,23 @@ pub async fn transfer(
     let block_height: BlockHeight = loop {
         match agent
             .update(canister_id, TRANSFER_METHOD)
-            .with_arg(Encode!(&TransferArgs {
-                memo,
-                amount,
-                fee,
-                from_subaccount: None,
-                to,
-                created_at_time: Some(TimeStamp { timestamp_nanos }),
-            })?)
+            .with_arg(
+                Encode!(&TransferArgs {
+                    memo,
+                    amount,
+                    fee,
+                    from_subaccount,
+                    to,
+                    created_at_time: Some(TimeStamp { timestamp_nanos }),
+                })
+                .context("Failed to encode arguments.")?,
+            )
             .call_and_wait(waiter_with_timeout(expiry_duration()))
             .await
         {
             Ok(data) => {
-                let result = Decode!(&data, TransferResult)?;
+                let result = Decode!(&data, TransferResult)
+                    .context("Failed to decode transfer response.")?;
                 match result {
                     Ok(block_height) => break block_height,
                     Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
@@ -166,12 +177,13 @@ async fn transfer_cmc(
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
+    from_subaccount: Option<Subaccount>,
     to_principal: Principal,
 ) -> DfxResult<BlockHeight> {
     let to_subaccount = Subaccount::from(&to_principal);
     let to =
         AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, Some(to_subaccount)).to_address();
-    transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, to).await
+    transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, from_subaccount, to).await
 }
 
 async fn notify_create(
@@ -184,10 +196,11 @@ async fn notify_create(
         .with_arg(Encode!(&NotifyCreateCanisterArg {
             block_index: block_height,
             controller,
-        })?)
+        }).context("Failed to encode notify arguments.")?)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
-    let result = Decode!(&result, NotifyCreateCanisterResult)?;
+        .await
+        .context("Notify call failed.")?;
+    let result = Decode!(&result, NotifyCreateCanisterResult).context("Failed to decode notify response")?;
     Ok(result)
 }
 
@@ -201,10 +214,11 @@ async fn notify_top_up(
         .with_arg(Encode!(&NotifyTopUpArg {
             block_index: block_height,
             canister_id: canister,
-        })?)
+        }).context("Failed to encode notify arguments.")?)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
-    let result = Decode!(&result, NotifyTopUpResult)?;
+        .await
+        .context("Notify call failed.")?;
+    let result = Decode!(&result, NotifyTopUpResult).context("Failed to decode notify response")?;
     Ok(result)
 }
 

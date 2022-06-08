@@ -61,7 +61,6 @@ teardown() {
 
 @test "identity new: creates a new identity" {
     assert_command dfx identity new --disable-encryption alice
-    assert_match 'Creating identity: "alice".' "$stderr"
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
@@ -79,6 +78,15 @@ teardown() {
     assert_command dfx identity new --disable-encryption bob
     assert_command_fail dfx identity new --disable-encryption bob
     assert_match "Identity already exists"
+}
+
+@test "identity new: --force re-creates an identity" {
+    assert_command dfx identity new --disable-encryption alice
+    dfx identity use alice
+    PRINCIPAL_1="$(dfx identity get-principal)"
+    assert_command dfx identity new --disable-encryption --force alice
+    PRINCIPAL_2="$(dfx identity get-principal)"
+    assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
 }
 
 @test "identity new: create an HSM-backed identity" {
@@ -113,7 +121,6 @@ teardown() {
     assert_match 'alice anonymous default'
 
     assert_command dfx identity remove alice
-    assert_match 'Removing identity "alice".' "$stderr"
     assert_match 'Removed identity "alice".' "$stderr"
     assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 
@@ -123,6 +130,20 @@ teardown() {
 
 @test "identity remove: reports an error if no such identity" {
     assert_command_fail dfx identity remove charlie
+}
+
+@test "identity remove: only remove identities with configured wallet if --drop-wallets is specified" {
+    # There's no replica running, and no real wallet.  This is just a valid principal.
+    WALLET="rwlgt-iiaaa-aaaaa-aaaaa-cai"
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity use alice
+    assert_command dfx identity --network ic set-wallet --force "$WALLET"
+    assert_command dfx identity use default
+    assert_command_fail dfx identity remove alice
+    # make sure the configured wallet is displayed
+    assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
+    assert_command dfx identity remove alice --drop-wallets
+    assert_match "identity 'alice' on network 'ic' has wallet $WALLET"
 }
 
 @test "identity remove: cannot remove the non-default active identity" {
@@ -173,7 +194,6 @@ teardown() {
     local key="$x"
 
     assert_command dfx identity rename alice bob
-    assert_match 'Renaming identity "alice" to "bob".' "$stderr"
     assert_match 'Renamed identity "alice" to "bob".' "$stderr"
 
     assert_command dfx identity list
@@ -338,17 +358,32 @@ teardown() {
 @test "identity: import" {
     openssl ecparam -name secp256k1 -genkey -out identity.pem
     assert_command dfx identity import --disable-encryption alice identity.pem
-    assert_match 'Creating identity: "alice".' "$stderr"
-    assert_match 'Created identity: "alice".' "$stderr"
+    assert_match 'Imported identity: "alice".' "$stderr"
     assert_command diff identity.pem "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
+}
+
+@test "identity: import can only overwrite identity with --force" {
+    openssl ecparam -name secp256k1 -genkey -out identity.pem
+    openssl ecparam -name secp256k1 -genkey -out identity2.pem
+    assert_command dfx identity import --disable-encryption alice identity.pem
+    assert_match 'Imported identity: "alice".' "$stderr"
+    dfx identity use alice
+    PRINCIPAL_1="$(dfx identity get-principal)"
+
+    assert_command_fail dfx identity import --disable-encryption alice identity2.pem
+    assert_match "Identity already exists."
+    assert_command dfx identity import --disable-encryption --force alice identity2.pem
+    assert_match 'Imported identity: "alice".'
+    PRINCIPAL_2="$(dfx identity get-principal)"
+
+    assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
 }
 
 @test "identity: import default" {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity import --disable-encryption bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match 'Creating identity: "bob".' "$stderr"
-    assert_match 'Created identity: "bob".' "$stderr"
+    assert_match 'Imported identity: "bob".' "$stderr"
     assert_command diff "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_eq ""
 }
@@ -361,7 +396,6 @@ teardown() {
     echo -n 1 >> bob.pem
     tail -n 3 alice.pem > bob.pem
     assert_command_fail dfx identity import --disable-encryption bob bob.pem
-    assert_match 'Creating identity: "bob".' "$stderr"
     assert_match 'Invalid Ed25519 private key in PEM file' "$stderr"
 }
 

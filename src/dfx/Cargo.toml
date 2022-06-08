@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.9.3"
+version = "0.10.0"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -24,7 +24,7 @@ actix-server = "2.0.0"
 actix-web = { version = "4.0.0", features = [ "default", "openssl", "rustls" ] }
 aes-gcm = "0.9.4"
 anyhow = "1.0.56"
-argon2 = "0.3.4"
+argon2 = "0.4.0"
 atty = "0.2.13"
 base64 = "0.13.0"
 candid = { version = "0.7.10", features = [ "random" ] }
@@ -37,11 +37,13 @@ ctrlc = { version = "3.2.1", features = [ "termination" ] }
 dialoguer = "0.10.0"
 erased-serde = "0.3.18"
 flate2 = "1.0.11"
+fn-error-context = "0.2.0"
 futures = "0.3.21"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
 ic-types = "0.3.0"
 indicatif = "0.16.0"
+itertools = "0.10.3"
 lazy-init = "0.5.0"
 lazy_static = "1.4.0"
 libflate = "1.1.2"
@@ -73,36 +75,40 @@ slog-term = "2.9.0"
 sysinfo = "0.23.5"
 tar = "0.4.38"
 tempfile = "3.3.0"
+term = "0.7.0"
 thiserror = "1.0.20"
 tokio = { version = "1.17.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
-wasmparser = "0.83.0"
+wasmparser = "0.85.0"
 
 [dependencies.ic-agent]
-version = "0.14.0"
+version = "0.17.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "00fe152af028e196e18bedb30fc226f85c4dfe31"
+rev = "d170b0dd0fb87d741f642981fc1220ef448aeffb"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.14.0"
+version = "0.17.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "00fe152af028e196e18bedb30fc226f85c4dfe31"
+rev = "d170b0dd0fb87d741f642981fc1220ef448aeffb"
 
 [dependencies.ic-identity-hsm]
-version = "0.14.0"
+version = "0.17.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "00fe152af028e196e18bedb30fc226f85c4dfe31"
+rev = "d170b0dd0fb87d741f642981fc1220ef448aeffb"
 
 [dependencies.ic-utils]
-version = "0.14.0"
+version = "0.17.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "00fe152af028e196e18bedb30fc226f85c4dfe31"
+rev = "d170b0dd0fb87d741f642981fc1220ef448aeffb"
 
 [dev-dependencies]
 env_logger = "0.9"
 proptest = "1.0"
 mockito = "0.31.0"
 tempfile = "3.1.0"
+
+[features]
+vendored-openssl = ["openssl/vendored"]

@@ -156,3 +156,11 @@ teardown() {
     assert_match "subnet_type: System"
 
 }
+
+@test "dfx start detects if dfx is already running" {
+    dfx_new hello
+    dfx_start
+
+    assert_command_fail dfx start
+    assert_match "dfx is already running"
+}

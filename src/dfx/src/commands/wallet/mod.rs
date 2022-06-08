@@ -6,10 +6,13 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
+use anyhow::Context;
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use clap::Parser;
+use fn_error_context::context;
 use ic_utils::call::SyncCall;
+use ic_utils::interfaces::WalletCanister;
 use tokio::runtime::Runtime;
 
 mod add_controller;
@@ -77,6 +80,7 @@ pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
     })
 }
 
+#[context("Failed to call query function '{}' on wallet.", method)]
 async fn wallet_query<A, O>(env: &dyn Environment, method: &str, arg: A) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,
@@ -87,29 +91,27 @@ where
         .expect("No selected identity.")
         .to_string();
     // Network descriptor will always be set.
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
     let wallet =
         Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
 
-    let out: O = wallet.query_(method).with_arg(arg).build().call().await?;
+    let out: O = wallet
+        .query_(method)
+        .with_arg(arg)
+        .build()
+        .call()
+        .await
+        .context("Query to wallet failed.")?;
     Ok(out)
 }
 
+#[context("Failed to call update function '{}' on wallet.", method)]
 async fn wallet_update<A, O>(env: &dyn Environment, method: &str, arg: A) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
-    let identity_name = env
-        .get_selected_identity()
-        .expect("No selected identity.")
-        .to_string();
-    // Network descriptor will always be set.
-    let network = env.get_network_descriptor().unwrap();
-    let wallet =
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
-
-    fetch_root_key_if_needed(env).await?;
+    let wallet = get_wallet(env).await?;
     let out: O = wallet
         .update_(method)
         .with_arg(arg)
@@ -117,4 +119,18 @@ where
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
     Ok(out)
+}
+
+#[context("Failed to setup wallet caller.")]
+async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
+    let identity_name = env
+        .get_selected_identity()
+        .expect("No selected identity.")
+        .to_string();
+    // Network descriptor will always be set.
+    let network = env.get_network_descriptor();
+    fetch_root_key_if_needed(env).await?;
+    let wallet =
+        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+    Ok(wallet)
 }
