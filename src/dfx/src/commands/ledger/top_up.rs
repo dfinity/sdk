@@ -22,6 +22,7 @@ pub struct TopUpOpts {
     canister: String,
 
     /// Subaccount to withdraw from
+    #[clap(long)]
     from_subaccount: Option<Subaccount>,
 
     /// ICP to mint into cycles and deposit into destination canister
