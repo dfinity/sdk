@@ -183,7 +183,16 @@ async fn transfer_cmc(
     let to_subaccount = Subaccount::from(&to_principal);
     let to =
         AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, Some(to_subaccount)).to_address();
-    transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, from_subaccount, to).await
+    transfer(
+        agent,
+        &MAINNET_LEDGER_CANISTER_ID,
+        memo,
+        amount,
+        fee,
+        from_subaccount,
+        to,
+    )
+    .await
 }
 
 async fn notify_create(
@@ -193,14 +202,18 @@ async fn notify_create(
 ) -> DfxResult<NotifyCreateCanisterResult> {
     let result = agent
         .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_CREATE_METHOD)
-        .with_arg(Encode!(&NotifyCreateCanisterArg {
-            block_index: block_height,
-            controller,
-        }).context("Failed to encode notify arguments.")?)
+        .with_arg(
+            Encode!(&NotifyCreateCanisterArg {
+                block_index: block_height,
+                controller,
+            })
+            .context("Failed to encode notify arguments.")?,
+        )
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
         .context("Notify call failed.")?;
-    let result = Decode!(&result, NotifyCreateCanisterResult).context("Failed to decode notify response")?;
+    let result =
+        Decode!(&result, NotifyCreateCanisterResult).context("Failed to decode notify response")?;
     Ok(result)
 }
 
@@ -211,10 +224,13 @@ async fn notify_top_up(
 ) -> DfxResult<NotifyTopUpResult> {
     let result = agent
         .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_TOP_UP_METHOD)
-        .with_arg(Encode!(&NotifyTopUpArg {
-            block_index: block_height,
-            canister_id: canister,
-        }).context("Failed to encode notify arguments.")?)
+        .with_arg(
+            Encode!(&NotifyTopUpArg {
+                block_index: block_height,
+                canister_id: canister,
+            })
+            .context("Failed to encode notify arguments.")?,
+        )
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
         .context("Notify call failed.")?;

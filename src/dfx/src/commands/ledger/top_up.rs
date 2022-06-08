@@ -60,7 +60,8 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     let memo = Memo(MEMO_TOP_UP_CANISTER);
 
-    let to = Principal::from_text(opts.canister).context("Failed to parse target canister principal.")?;
+    let to = Principal::from_text(opts.canister)
+        .context("Failed to parse target canister principal.")?;
 
     let agent = env
         .get_agent()

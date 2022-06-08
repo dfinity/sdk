@@ -60,7 +60,8 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
 
     let memo = Memo(MEMO_CREATE_CANISTER);
 
-    let controller = Principal::from_text(opts.controller).context("Failed to parse controller principal.")?;
+    let controller =
+        Principal::from_text(opts.controller).context("Failed to parse controller principal.")?;
 
     let agent = env
         .get_agent()

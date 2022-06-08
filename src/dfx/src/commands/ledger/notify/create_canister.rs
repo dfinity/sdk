@@ -21,7 +21,8 @@ pub struct NotifyCreateOpts {
 pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
     // validated by e8s_validator
     let block_height = opts.block_height.parse::<u64>().unwrap();
-    let controller = Principal::from_text(opts.controller).context("Failed to parse destination principal.")?;
+    let controller =
+        Principal::from_text(opts.controller).context("Failed to parse destination principal.")?;
 
     let agent = env
         .get_agent()
