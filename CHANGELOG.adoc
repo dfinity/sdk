@@ -5,6 +5,13 @@
 
 == DFX
 
+=== feat: Support for new ledger notify function
+
+Ledger 7424ea8 deprecates the existing `+notify+` function with a switch parameter between creating and topping up a canister, and introduces two
+functions for doing the same. This should *mostly* be invisible to users, except that previously, if `+dfx ledger create-canister+` or `+dfx ledger top-up+`
+failed, you would call `+dfx ledger notify+` after correcting the issue. In order to support the change, this command has been changed to two subcommands:
+`+dfx ledger notify create-canister+` and `+dfx ledger notify top-up+`.
+
 === feat: `+--from-subaccount+`
 
 Previously, the ledger commands assumed all transfers were made from the default subaccount for the identity principal. This feature adds a `+--from-subaccount+` flag to `+dfx ledger transfer+`, `+dfx ledger create-canister+`, and `+dfx ledger top-up+`, to enable making transfers from a selected subaccount. A `+--subaccount+` flag is also added to `+dfx ledger balance+` for convenience. Subaccounts are expected as 64-character hex-strings (i.e. 32 bytes).
