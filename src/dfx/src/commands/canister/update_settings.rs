@@ -51,7 +51,7 @@ pub struct UpdateSettingsOpts {
     #[clap(long, validator(memory_allocation_validator))]
     memory_allocation: Option<String>,
 
-    #[clap(long, validator(freezing_threshold_validator), hide(true))]
+    #[clap(long, validator(freezing_threshold_validator))]
     freezing_threshold: Option<String>,
 }
 

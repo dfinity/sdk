@@ -9,6 +9,11 @@
 
 Previously, the ledger commands assumed all transfers were made from the default subaccount for the identity principal. This feature adds a `+--from-subaccount+` flag to `+dfx ledger transfer+`, `+dfx ledger create-canister+`, and `+dfx ledger top-up+`, to enable making transfers from a selected subaccount. A `+--subaccount+` flag is also added to `+dfx ledger balance+` for convenience. Subaccounts are expected as 64-character hex-strings (i.e. 32 bytes).
 
+=== fix: Freezing Threshold now documented
+
+Calls made to retrieve the help output for `canister update-settings` was missing the `freezing-threshold` parameter.
+This is now included when running `dfx canister update-settings -h`.
+
 = 0.10.1
 
 == DFX
