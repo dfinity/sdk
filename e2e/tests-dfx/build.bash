@@ -14,9 +14,10 @@ teardown() {
     standard_teardown
 }
 
-@test "build without cargo-audit installet cannot check for vulnerabilities" {
-  skip
-  run cargo uninstall cargo-audit
+@test "build without cargo-audit installed cannot check for vulnerabilities" {
+  # This test assumes that no cargo-audit is installed on the runner machine.
+  assert_command rustup default stable
+  assert_command rustup target add wasm32-unknown-unknown
   install_asset vulnerable_rust_deps
   dfx_start
   dfx canister create --all
@@ -25,7 +26,9 @@ teardown() {
 }
 
 @test "build with vulnerabilities in rust dependencies emits a warning" {
+  echo "CARGO: $(which cargo)"
   assert_command rustup default stable
+  assert_command rustup target add wasm32-unknown-unknown
   assert_command cargo install cargo-audit
   assert_command cargo audit --version
   install_asset vulnerable_rust_deps
@@ -33,8 +36,6 @@ teardown() {
   dfx canister create --all
   assert_command dfx build
   assert_match "Audit found vulnerabilities"
-  echo PASSED
-  exit 1
 }
 
 @test "build uses default build args" {
