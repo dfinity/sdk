@@ -109,3 +109,6 @@ env_logger = "0.9"
 proptest = "1.0"
 mockito = "0.31.0"
 tempfile = "3.1.0"
+
+[features]
+vendored-openssl = ["openssl/vendored"]

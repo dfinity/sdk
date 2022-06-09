@@ -1,13 +1,13 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{
-    AccountIdBlob, BlockHeight, CyclesResponse, Memo, NotifyCanisterArgs, TimeStamp, TransferArgs,
-    TransferError, TransferResult, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+    AccountIdBlob, BlockHeight, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult,
+    NotifyTopUpArg, NotifyTopUpResult, TimeStamp, TransferArgs, TransferError, TransferResult,
+    MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
 };
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::provider::create_agent_environment;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
 
@@ -24,7 +24,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 
 const TRANSFER_METHOD: &str = "transfer";
-const NOTIFY_METHOD: &str = "notify_dfx";
+const NOTIFY_TOP_UP_METHOD: &str = "notify_top_up";
+const NOTIFY_CREATE_METHOD: &str = "notify_create_canister";
 
 mod account_id;
 mod balance;
@@ -112,6 +113,7 @@ pub async fn transfer(
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
+    from_subaccount: Option<Subaccount>,
     to: AccountIdBlob,
 ) -> DfxResult<BlockHeight> {
     let timestamp_nanos = SystemTime::now()
@@ -137,7 +139,7 @@ pub async fn transfer(
                     memo,
                     amount,
                     fee,
-                    from_subaccount: None,
+                    from_subaccount,
                     to,
                     created_at_time: Some(TimeStamp { timestamp_nanos }),
                 })
@@ -170,44 +172,69 @@ pub async fn transfer(
     Ok(block_height)
 }
 
-#[context("Failed to perform transfer_and_notify.")]
-async fn transfer_and_notify(
-    env: &dyn Environment,
+async fn transfer_cmc(
+    agent: &Agent,
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
-    to_subaccount: Option<Subaccount>,
-    max_fee: ICPTs,
-) -> DfxResult<CyclesResponse> {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    from_subaccount: Option<Subaccount>,
+    to_principal: Principal,
+) -> DfxResult<BlockHeight> {
+    let to_subaccount = Subaccount::from(&to_principal);
+    let to =
+        AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, Some(to_subaccount)).to_address();
+    transfer(
+        agent,
+        &MAINNET_LEDGER_CANISTER_ID,
+        memo,
+        amount,
+        fee,
+        from_subaccount,
+        to,
+    )
+    .await
+}
 
-    fetch_root_key_if_needed(env).await?;
-
-    let to = AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, to_subaccount).to_address();
-
-    let block_height = transfer(agent, &MAINNET_LEDGER_CANISTER_ID, memo, amount, fee, to).await?;
-
-    println!("Transfer sent at BlockHeight: {}", block_height);
-
+async fn notify_create(
+    agent: &Agent,
+    controller: Principal,
+    block_height: BlockHeight,
+) -> DfxResult<NotifyCreateCanisterResult> {
     let result = agent
-        .update(&MAINNET_LEDGER_CANISTER_ID, NOTIFY_METHOD)
+        .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_CREATE_METHOD)
         .with_arg(
-            Encode!(&NotifyCanisterArgs {
-                block_height,
-                max_fee,
-                from_subaccount: None,
-                to_canister: MAINNET_CYCLE_MINTER_CANISTER_ID,
-                to_subaccount,
+            Encode!(&NotifyCreateCanisterArg {
+                block_index: block_height,
+                controller,
             })
             .context("Failed to encode notify arguments.")?,
         )
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
         .context("Notify call failed.")?;
+    let result =
+        Decode!(&result, NotifyCreateCanisterResult).context("Failed to decode notify response")?;
+    Ok(result)
+}
 
-    let result = Decode!(&result, CyclesResponse).context("Failed to decode notify response.")?;
+async fn notify_top_up(
+    agent: &Agent,
+    canister: Principal,
+    block_height: BlockHeight,
+) -> DfxResult<NotifyTopUpResult> {
+    let result = agent
+        .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_TOP_UP_METHOD)
+        .with_arg(
+            Encode!(&NotifyTopUpArg {
+                block_index: block_height,
+                canister_id: canister,
+            })
+            .context("Failed to encode notify arguments.")?,
+        )
+        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .await
+        .context("Notify call failed.")?;
+    let result = Decode!(&result, NotifyTopUpResult).context("Failed to decode notify response")?;
     Ok(result)
 }
 
