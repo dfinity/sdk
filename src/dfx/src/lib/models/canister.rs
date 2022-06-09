@@ -244,7 +244,14 @@ impl CanisterPool {
 
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
-        self.run_cargo_audit()?;
+        if self.contains_canister_of_type("rust") {
+            self.run_cargo_audit()?;
+        } else {
+            trace!(
+                self.logger,
+                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
+            )
+        }
         Ok(())
     }
 
@@ -453,36 +460,29 @@ impl CanisterPool {
             .any(|c| c.get_info().get_type() == of_type)
     }
 
-    /// If the project contains rust canisters, this will run `cargo audit` and report any vulnerable dependencies.
+    /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.
     fn run_cargo_audit(&self) -> DfxResult {
-        if self.contains_canister_of_type("rust") {
-            if dbg!(Command::new("cargo").arg("audit").arg("--version").output())
-                .map(|out| out.status.success())
-                .unwrap_or(false)
-            {
-                info!(
-                    self.logger,
-                    "Checking for vulnerabilities in rust canisters."
-                );
-                let out = Command::new("cargo")
-                    .stdout(Stdio::inherit())
-                    .stderr(Stdio::inherit())
-                    .arg("audit")
-                    .output()
-                    .context("Failed to run 'cargo audit'.")?;
-                if out.status.success() {
-                    info!(self.logger, "Audit found no vulnerabilities.")
-                } else {
-                    error!(self.logger, "Audit found vulnerabilities in rust canisters. Please address these problems as soon as possible!");
-                }
+        if dbg!(Command::new("cargo").arg("audit").arg("--version").output())
+            .map(|out| out.status.success())
+            .unwrap_or(false)
+        {
+            info!(
+                self.logger,
+                "Checking for vulnerabilities in rust canisters."
+            );
+            let out = Command::new("cargo")
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .arg("audit")
+                .output()
+                .context("Failed to run 'cargo audit'.")?;
+            if out.status.success() {
+                info!(self.logger, "Audit found no vulnerabilities.")
             } else {
-                warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
+                error!(self.logger, "Audit found vulnerabilities in rust canisters. Please address these problems as soon as possible!");
             }
         } else {
-            trace!(
-                self.logger,
-                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
-            )
+            warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
         }
         Ok(())
     }
