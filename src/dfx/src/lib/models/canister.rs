@@ -462,7 +462,10 @@ impl CanisterPool {
 
     /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.
     fn run_cargo_audit(&self) -> DfxResult {
-        if dbg!(Command::new("cargo").arg("audit").arg("--version").output())
+        if Command::new("cargo")
+            .arg("audit")
+            .arg("--version")
+            .output()
             .map(|out| out.status.success())
             .unwrap_or(false)
         {
