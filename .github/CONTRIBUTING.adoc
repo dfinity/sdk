@@ -10,7 +10,8 @@ sdk $ cargo build
 sdk $ cargo test
 ----
 
-Then use `cargo run` or the method of your choice to run `dfx`.
+Then use `cargo run` or the method of your choice to run `dfx`. Dfx will display the version `dfx 0.9.1-63-gd7020bbb`,
+even if you are compiling from the latest master.
 
 [source,bash]
 ----
