@@ -456,7 +456,7 @@ fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> Df
         .unwrap()
         .as_secs();
 
-    // Unix socket domain names can only be so long.
+    // Unix domain socket names can only be so long.
     // An attempt to use a path under .dfx/ resulted in this error:
     //    path must be shorter than libc::sockaddr_un.sun_path
     let uds_path = format!("/tmp/{}.{}.{}", prefix, pid, timestamp_seconds);
