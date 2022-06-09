@@ -3,8 +3,6 @@
 
 = UNRELEASED
 
-= 0.10.1
-
 == DFX
 
 === feat: Support for new ledger notify function
