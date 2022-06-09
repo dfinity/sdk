@@ -26,7 +26,6 @@ teardown() {
 }
 
 @test "build with vulnerabilities in rust dependencies emits a warning" {
-  echo "CARGO: $(which cargo)"
   assert_command rustup default stable
   assert_command rustup target add wasm32-unknown-unknown
   assert_command cargo install cargo-audit
