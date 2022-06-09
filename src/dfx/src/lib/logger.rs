@@ -17,21 +17,21 @@ pub enum LoggingMode {
     File(PathBuf),
 }
 
-/// A Slog formatter that writes to a term decorator, without any formatting.
-pub struct PlainFormat<D>
+/// A Slog formatter that writes to a term decorator.
+pub struct DfxFormat<D>
 where
     D: slog_term::Decorator,
 {
     decorator: D,
 }
 
-impl<D: slog_term::Decorator> PlainFormat<D> {
-    pub fn new(decorator: D) -> PlainFormat<D> {
-        PlainFormat { decorator }
+impl<D: slog_term::Decorator> DfxFormat<D> {
+    pub fn new(decorator: D) -> DfxFormat<D> {
+        DfxFormat { decorator }
     }
 }
 
-impl<D: slog_term::Decorator> slog::Drain for PlainFormat<D> {
+impl<D: slog_term::Decorator> slog::Drain for DfxFormat<D> {
     type Ok = ();
     type Err = std::io::Error;
 
@@ -41,11 +41,13 @@ impl<D: slog_term::Decorator> slog::Drain for PlainFormat<D> {
         values: &slog::OwnedKVList,
     ) -> Result<Self::Ok, Self::Err> {
         self.decorator.with_record(record, values, |decorator| {
-            decorator.start_level()?;
-            write!(decorator, "{}: ", record.level().as_str())?;
+            if record.level() <= slog::Level::Warning {
+                decorator.start_level()?;
+                write!(decorator, "{}: ", record.level().as_str())?;
+                // start_whitespace resets to normal coloring after printing the level
+                decorator.start_whitespace()?;
+            }
 
-            // start_whitespace resets to normal coloring
-            decorator.start_whitespace()?;
             decorator.start_msg()?;
             write!(decorator, "{}", record.msg())?;
 
@@ -63,7 +65,7 @@ fn create_drain(mode: LoggingMode) -> Logger {
     match mode {
         LoggingMode::Stderr => {
             let decorator = slog_term::TermDecorator::new().build();
-            let drain = PlainFormat::new(decorator).fuse();
+            let drain = DfxFormat::new(decorator).fuse();
             let async_drain = slog_async::Async::new(drain).build().fuse();
             Logger::root(async_drain, slog::o!())
         }
