@@ -247,6 +247,52 @@ To delete all of the canisters you have deployed on the `ic` {platform}, you can
 dfx canister --network=ic delete --all
 ```
 
+## dfx canister deposit-cycles
+
+Use the `dfx canister deposit-cycles` command to deposit cycles from your configured wallet into a canister.
+
+Note that you must have your cycles wallet configured for this to work.
+
+### Basic usage
+
+``` bash
+dfx canister deposit-cycles [amount of cycles] [--all | canister_name]
+```
+
+### Flags
+
+You can use the following optional flags with the `dfx canister deposit-cycles` command.
+
+| Flag              | Description                   |
+|-------------------|-------------------------------|
+| `-h`, `--help`    | Displays usage information.   |
+| `-V`, `--version` | Displays version information. |
+
+### Arguments
+
+You can use the following arguments with the `dfx canister deposit-cycles` command.
+
+| Argument        | Description                                                                                                                        |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `--all`         | Deposits the specified amount of cycles into all canisters configured in `dfx.json`. Note that you must specify `--all` or an individual canister name. |
+| `canister_name` | Specifies the name of the canister you want to deposit cycles into. Note that you must specify either a canister name or the `--all` option.    |
+
+### Examples
+
+You can use the `dfx canister deposit-cycles` command to add cycles to a specific canister or all canisters.
+
+To add 1T cycles to the canister called `hello`, you can run the following command:
+
+``` bash
+dfx canister deposit-cycles 1000000000000 hello
+```
+
+To add 2T cycles to all canister specified in `dfx.json`, you can run the following command:
+
+``` bash
+dfx canister deposit-cycles 2000000000000 --all
+```
+
 ## dfx canister id
 
 Use the `dfx canister id` command to output the canister identifier for a specific canister name.
