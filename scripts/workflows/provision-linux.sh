@@ -17,15 +17,7 @@ sudo mkdir /usr/local/lib/bats-support
 sudo tar --directory /usr/local/lib/bats-support --extract --file v$version.tar.gz --strip-components 1
 rm v$version.tar.gz
 
-# Packages needed for some tests
-if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
-    wget -O mitmproxy.tar.gz https://snapshots.mitmproxy.org/7.0.4/mitmproxy-7.0.4-linux.tar.gz
-    sudo tar --directory /usr/local/bin --extract --file mitmproxy.tar.gz
-    echo "mitmproxy version: $(mitmproxy --version)"
-fi
-if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ]; then
-    sudo apt-get install --yes expect
-fi
+# Modifications needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
     BITCOIN_CORE_VERSION=22.0
     BITCOIN_CORE_FILENAME="bitcoin-$BITCOIN_CORE_VERSION-x86_64-linux-gnu.tar.gz"
@@ -41,6 +33,14 @@ if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
 fi
 if [ "$E2E_TEST" = "tests-dfx/build.bash" ]; then
     cargo uninstall cargo-audit
+fi
+if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
+    wget -O mitmproxy.tar.gz https://snapshots.mitmproxy.org/7.0.4/mitmproxy-7.0.4-linux.tar.gz
+    sudo tar --directory /usr/local/bin --extract --file mitmproxy.tar.gz
+    echo "mitmproxy version: $(mitmproxy --version)"
+fi
+if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ]; then
+    sudo apt-get install --yes expect
 fi
 
 # Set environment variables.
