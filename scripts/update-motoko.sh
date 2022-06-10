@@ -10,8 +10,7 @@ fi
 
 VERSION=$1
 echo "Updating sources to version ${VERSION}"
-niv update motoko-base
-niv update motoko-base-tarball -a version=$VERSION
+niv update motoko-base -a version=$VERSION
 niv update motoko-x86_64-darwin -a version=$VERSION
 niv update motoko-x86_64-linux -a version=$VERSION
 
