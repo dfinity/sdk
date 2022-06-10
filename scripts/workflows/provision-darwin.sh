@@ -29,6 +29,9 @@ fi
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
      brew install bitcoin
 fi
+if [ "$E2E_TEST" = "tests-dfx/build.bash" ]; then
+    cargo uninstall cargo-audit
+fi
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"

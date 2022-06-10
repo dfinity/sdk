@@ -39,6 +39,9 @@ if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
         sudo install -m 0755 -o root -g root -t /usr/local/bin *
     )
 fi
+if [ "$E2E_TEST" = "tests-dfx/build.bash" ]; then
+    cargo uninstall cargo-audit
+fi
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"
