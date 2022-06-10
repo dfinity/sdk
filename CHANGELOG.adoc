@@ -3,6 +3,8 @@
 
 = UNRELEASED
 
+= 0.10.1
+
 == DFX
 
 === feat: Support for new ledger notify function
@@ -28,6 +30,25 @@ Calls made to retrieve the help output for `canister update-settings` was missin
 
 `WARN` and `ERROR` messages are now clearly labelled as such, and the labels are colored accordingly.
 This is now included when running `dfx canister update-settings -h`.
+
+=== fix: btc/canister http adapter socket not found by replica after restart
+
+After running `dfx start --enable-bitcoin` twice in a row (stopping dfx in between), the second
+launched replica would fail to connect to the btc adapter.  This is because ic-starter
+does not write a new configuration file if one already exists, so the configuration file
+used by the replica referred to one socket path, while dfx passed a different socket path
+to the btc adapter.
+
+Now dfx reuses the previously-used unix domain socket path, for both the btc adapter
+and for the canister http adapter.
+
+=== fix: dfx stop now waits until dfx and any child processes exit
+
+Previously, `dfx stop` would send the TERM signal to the running dfx and its child processes,
+and then exit immediately.
+
+This avoids interference between a dfx process performing cleanup at shutdown and
+a dfx process that is starting.
 
 = 0.10.1
 
