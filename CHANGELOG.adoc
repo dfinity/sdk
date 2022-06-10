@@ -42,6 +42,10 @@ a dfx process that is starting.
 
 == Dependencies
 
+== Motoko
+
+Updated Motoko from 0.6.28 to 0.6.29.
+
 == Replica
 
 Updated replica to elected commit 3b5d893c0857c47715fc339112e5dd1dbfff77a8.
