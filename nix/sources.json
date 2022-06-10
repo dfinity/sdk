@@ -140,18 +140,6 @@
         "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<tag>/binaries-linux.tar.gz"
     },
     "motoko-base": {
-        "branch": "next-moc",
-        "description": "The Motoko base library",
-        "homepage": null,
-        "owner": "dfinity",
-        "repo": "motoko-base",
-        "rev": "585671454aa0e92b73c64bf4b1dd6463885e6c51",
-        "sha256": "1sckvr53ja8390qzd4y81na7kxfmawlzj7z7iwn4yl9p3d1hcqc2",
-        "type": "tarball",
-        "url": "https://github.com/dfinity/motoko-base/archive/585671454aa0e92b73c64bf4b1dd6463885e6c51.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "motoko-base-tarball": {
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
