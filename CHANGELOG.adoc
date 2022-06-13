@@ -16,9 +16,17 @@ failed, you would call `+dfx ledger notify+` after correcting the issue. In orde
 
 Previously, the ledger commands assumed all transfers were made from the default subaccount for the identity principal. This feature adds a `+--from-subaccount+` flag to `+dfx ledger transfer+`, `+dfx ledger create-canister+`, and `+dfx ledger top-up+`, to enable making transfers from a selected subaccount. A `+--subaccount+` flag is also added to `+dfx ledger balance+` for convenience. Subaccounts are expected as 64-character hex-strings (i.e. 32 bytes).
 
+=== feat: cargo audit when building rust canisters
+
+When a canister with type `rust` is built and `cargo-audit` is installed, dfx will now check for vulnerabilities in the dependencies. If a vulnerability is found, dfx will recommend that the user update to a version without known vulnerabilities.
+
 === fix: Freezing Threshold now documented
 
 Calls made to retrieve the help output for `canister update-settings` was missing the `freezing-threshold` parameter.
+
+=== chore: warnings and errors are more visible
+
+`WARN` and `ERROR` messages are now clearly labelled as such, and the labels are colored accordingly.
 This is now included when running `dfx canister update-settings -h`.
 
 === fix: btc/canister http adapter socket not found by replica after restart
@@ -39,6 +47,16 @@ and then exit immediately.
 
 This avoids interference between a dfx process performing cleanup at shutdown and
 a dfx process that is starting.
+
+== Dependencies
+
+== Replica
+
+Updated replica to elected commit 3b5d893c0857c47715fc339112e5dd1dbfff77a8.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/63228[63228]
+* https://dashboard.internetcomputer.org/proposal/62143[62143]
 
 = 0.10.1
 
