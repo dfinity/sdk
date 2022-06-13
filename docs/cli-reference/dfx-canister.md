@@ -287,7 +287,7 @@ To add 1T cycles to the canister called `hello`, you can run the following comma
 dfx canister deposit-cycles 1000000000000 hello
 ```
 
-To add 2T cycles to all canister specified in `dfx.json`, you can run the following command:
+To add 2T cycles to each individual canister specified in `dfx.json`, you can run the following command:
 
 ``` bash
 dfx canister deposit-cycles 2000000000000 --all
