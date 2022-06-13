@@ -3,8 +3,6 @@
 
 = UNRELEASED
 
-= 0.10.1
-
 == DFX
 
 === feat: Support for new ledger notify function
@@ -49,6 +47,16 @@ and then exit immediately.
 
 This avoids interference between a dfx process performing cleanup at shutdown and
 a dfx process that is starting.
+
+== Dependencies
+
+== Replica
+
+Updated replica to elected commit 3b5d893c0857c47715fc339112e5dd1dbfff77a8.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/63228[63228]
+* https://dashboard.internetcomputer.org/proposal/62143[62143]
 
 = 0.10.1
 
