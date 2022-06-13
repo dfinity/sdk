@@ -103,5 +103,6 @@ do
     done
 done
 
-write_url "motoko-base-tarball"
-calculate_sha256 "motoko-base-tarball"
+write_url "motoko-base"
+calculate_sha256 "motoko-base"
+
