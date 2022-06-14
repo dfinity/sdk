@@ -4,6 +4,7 @@ use crate::lib::error::DfxResult;
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
+use json_pointer::JsonPointer;
 use serde_json::value::Value;
 
 /// Configures project options for your currently-selected project.
@@ -48,10 +49,11 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
         // Try to parse the type of the value (which is a string from the arguments) as
         // JSON. By default we will just assume the type is string (if all parsing fails).
         let value = serde_json::from_str::<Value>(&arg_value).unwrap_or(Value::String(arg_value));
-        *config
-            .get_mut_json()
-            .pointer_mut(config_path.as_str())
-            .ok_or_else(|| anyhow!("Config path does not exist at '{}'.", config_path))? = value;
+        let json = config.get_mut_json();
+        let ptr = config_path.parse::<JsonPointer<_, _>>()
+            .map_err(|e| anyhow!("Failed to parse config path {config_path}: {e:?}"))?;
+        *ptr.get_mut(json)
+            .map_err(|_| anyhow!("Config path does not exist at '{}'.", config_path))? = value;
         config.save()
     } else if let Some(value) = config.get_json().pointer(config_path.as_str()) {
         match format {

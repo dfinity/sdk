@@ -22,7 +22,7 @@ teardown() {
     assert_eq '"192.168.0.1:8000"'
 
     assert_command_fail dfx config non_existent
-
-    # We don't allow to change values that are non existent.
-    assert_command_fail dfx config non_existent 123
+    assert_command dfx config non_existent 123
+    assert_command dfx config non_existent  
+    assert_eq '"123"'
 }
