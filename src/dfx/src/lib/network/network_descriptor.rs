@@ -34,7 +34,10 @@ impl NetworkDescriptor {
     pub fn first_provider(&self) -> DfxResult<&str> {
         match self.providers.first() {
             Some(provider) => Ok(provider),
-            None => bail!("Network '{}' does not specify any network providers.", self.name),
+            None => bail!(
+                "Network '{}' does not specify any network providers.",
+                self.name
+            ),
         }
     }
 }
