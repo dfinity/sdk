@@ -8,7 +8,7 @@ use candid::{parser::value::IDLValue, IDLArgs};
 use fn_error_context::context;
 use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 

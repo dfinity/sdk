@@ -134,7 +134,7 @@ impl CanisterInfo {
             packtool: build_defaults.get_packtool(),
             args: build_defaults.get_args(),
             extras,
-            
+
             post_install,
         };
 
