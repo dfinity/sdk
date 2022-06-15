@@ -13,8 +13,8 @@ use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::info;
 use slog::Logger;
-use std::path::PathBuf;
-use std::process::Stdio;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 /// Set of extras that can be specified in the dfx.json.
 struct CustomBuilderExtra {
@@ -189,8 +189,16 @@ impl CanisterBuilder for CustomBuilder {
 
 fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
-
-    let mut cmd = std::process::Command::new(command_name);
+    let command_path = Path::new(command_name);
+    let mut cmd = if arguments.len() == 0
+        && command_path.components().count() == 1
+        && command_path.exists()
+    {
+        // handle "command.sh" with no ./
+        Command::new(format!("./{command_name}"))
+    } else {
+        Command::new(command_name)
+    };
 
     cmd.args(arguments)
         .stdout(Stdio::inherit())
