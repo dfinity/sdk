@@ -190,7 +190,7 @@ impl CanisterBuilder for CustomBuilder {
 fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
     let command_path = Path::new(command_name);
-    let mut cmd = if arguments.len() == 0
+    let mut cmd = if arguments.is_empty()
         && command_path.components().count() == 1
         && command_path.exists()
     {
