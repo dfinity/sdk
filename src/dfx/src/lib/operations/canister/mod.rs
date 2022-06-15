@@ -309,29 +309,19 @@ pub async fn provisional_deposit_cycles(
     Ok(())
 }
 
-/// Determines canister id and path to candid file for the chosen network.
 #[context(
     "Failed to get canister id and path to its candid definitions for '{}'.",
     canister_name
 )]
-pub fn get_cid_and_candid_path(
+pub fn get_local_cid_and_candid_path(
     env: &dyn Environment,
     canister_name: &str,
     maybe_canister_id: Option<CanisterId>,
 ) -> DfxResult<(CanisterId, Option<PathBuf>)> {
     let config = env.get_config_or_anyhow()?;
     let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
-    if canister_info.is_remote() {
-        Ok((
-            canister_info
-                .get_remote_id()
-                .expect("Remote canister has no remote id."),
-            canister_info.get_remote_candid(),
-        ))
-    } else {
-        Ok((
-            canister_info.get_canister_id()?,
-            canister_info.get_output_idl_path(),
-        ))
-    }
+    Ok((
+        canister_info.get_canister_id()?,
+        canister_info.get_output_idl_path(),
+    ))
 }

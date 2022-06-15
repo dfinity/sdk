@@ -8,6 +8,7 @@ use crate::lib::provider::get_network_context;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
+use core::panic;
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
@@ -281,7 +282,9 @@ impl CanisterInfo {
         } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else {
-            None
+            self.get_extra_optional("candid")
+                .unwrap_or(None)
+                .or(self.remote_candid.clone())
         }
     }
 

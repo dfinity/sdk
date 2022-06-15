@@ -4,7 +4,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::get_cid_and_candid_path;
+use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators::cycle_amount_validator;
@@ -207,7 +207,7 @@ pub async fn exec(
     let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
         Ok(id) => {
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_cid_and_candid_path(env, canister_name, Some(id))?
+                get_local_cid_and_candid_path(env, canister_name, Some(id))?
             } else {
                 // TODO fetch candid file from remote canister
                 (id, None)
@@ -215,7 +215,7 @@ pub async fn exec(
         }
         Err(_) => {
             let canister_id = canister_id_store.get(callee_canister)?;
-            get_cid_and_candid_path(env, callee_canister, Some(canister_id))?
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
         }
     };
     let maybe_candid_path = opts.candid.or(maybe_candid_path);

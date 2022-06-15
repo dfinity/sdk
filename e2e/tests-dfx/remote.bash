@@ -15,7 +15,6 @@ teardown() {
 }
 
 @test "canister call and sign" {
-    skip
     install_asset remote/call/actual
     dfx_start
     setup_actuallylocal_network
@@ -36,8 +35,6 @@ teardown() {
     setup_local_network
     # shellcheck disable=SC2094
     cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.remote.remote.candid="remote.did"' dfx.json)" >dfx.json
 
     # set up: remote method is update, local is query
     # call remote method as update to make a change
@@ -68,6 +65,12 @@ teardown() {
     assert_command dfx canister --network actuallylocal call --update remote make_struct '("A update by name", "B update by name")'
     assert_eq '(record { a = "A update by name"; b = "B update by name" })'
 
+    # This also should work when no canister type can be determined:
+    # shellcheck disable=SC2094
+    cat <<<"$(jq 'del(.canisters.remote.main)' dfx.json)" >dfx.json
+    assert_command dfx canister --network actuallylocal call --query  remote make_struct '("A query by name", "B query by name")'
+    assert_eq '(record { a = "A query by name"; b = "B query by name" })'
+
     # We can't check this for sign, because dfx canister send outputs something like this:
     #   To see the content of response, copy-paste the encoded string into cbor.me.
     #   Response: d9d9f7a2667374617475736[snip]2696e636970616c
@@ -93,7 +96,6 @@ teardown() {
 }
 
 @test "canister create <canister> fails for a remote canister" {
-    skip
     install_asset remote/actual
     dfx_start
     setup_actuallylocal_network
