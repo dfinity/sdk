@@ -48,6 +48,10 @@ and then exit immediately.
 This avoids interference between a dfx process performing cleanup at shutdown and
 a dfx process that is starting.
 
+=== fix: dfx ping no longer creates a default identity
+
+dfx ping now uses the anonymous identity, and no longer requires dfx.json to be present.
+
 == Dependencies
 
 == Replica

@@ -34,6 +34,19 @@ teardown() {
     assert_match "\"ic_api_version\""
 }
 
+@test "dfx ping does not require dfx.json" {
+    dfx_start
+    webserver_port=$(cat .dfx/webserver-port)
+
+    mkdir "$DFX_E2E_TEMP_DIR/not-a-project"
+    (
+        cd "$DFX_E2E_TEMP_DIR/not-a-project"
+
+        assert_command dfx ping http://127.0.0.1:"$webserver_port"
+        assert_match "\"ic_api_version\""
+    )
+}
+
 @test "dfx ping succeeds by network name" {
     dfx_start
     assert_command dfx ping local
