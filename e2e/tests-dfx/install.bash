@@ -84,6 +84,7 @@ teardown() {
 
 @test "install runs post-install tasks" {
     dfx_start
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.canisters.e2e_project."post-install"="sh -c \"echo hello\""' dfx.json)" >dfx.json
 
     assert_command dfx canister create --all
@@ -92,6 +93,7 @@ teardown() {
     assert_command dfx canister install --all
     assert_match hello
     
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.canisters.e2e_project."post-install"="sh -c \"return 1\""' dfx.json)" >dfx.json
     assert_command_fail dfx canister install --all
 }
