@@ -284,7 +284,7 @@ impl CanisterInfo {
         } else {
             self.get_extra_optional("candid")
                 .unwrap_or(None)
-                .or(self.remote_candid.clone())
+                .or_else(|| self.remote_candid.clone())
         }
     }
 
