@@ -81,3 +81,17 @@ teardown() {
     dfx canister create --all
     assert_command_fail dfx canister install --all --wasm "${archive:?}/wallet/0.10.0/wallet.wasm"
 }
+
+@test "install runs post-install tasks" {
+    dfx_start
+    cat <<<"$(jq '.canisters.e2e_project."post-install"="sh -c \"echo hello\""' dfx.json)" >dfx.json
+
+    assert_command dfx canister create --all
+    assert_command dfx build
+
+    assert_command dfx canister install --all
+    assert_match hello
+    
+    cat <<<"$(jq '.canisters.e2e_project."post-install"="sh -c \"return 1\""' dfx.json)" >dfx.json
+    assert_command_fail dfx canister install --all
+}

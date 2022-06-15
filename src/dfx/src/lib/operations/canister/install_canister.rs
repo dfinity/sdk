@@ -1,9 +1,11 @@
+use crate::lib::builders::environment_variables;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::installers::assets::post_install_store_assets;
+use crate::lib::models::canister::CanisterPool;
 use crate::lib::named_canister;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
@@ -17,10 +19,12 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+use itertools::Itertools;
 use openssl::sha::Sha256;
 use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 
 #[allow(clippy::too_many_arguments)]
@@ -35,6 +39,7 @@ pub async fn install_canister(
     call_sender: &CallSender,
     installed_module_hash: Option<Vec<u8>>,
     upgrade_unchanged: bool,
+    pool: Option<&CanisterPool>,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
@@ -157,6 +162,35 @@ pub async fn install_canister(
 
         info!(log, "Uploading assets to asset canister...");
         post_install_store_assets(canister_info, agent, timeout).await?;
+    }
+
+    if !canister_info.get_post_install().is_empty() {
+        let tmp;
+        let pool = match pool {
+            Some(pool) => pool,
+            None => {
+                tmp = env.get_config_or_anyhow()?.get_config().get_canister_names_with_dependencies(Some(canister_info.get_name())).and_then(|deps| CanisterPool::load(env, false, &deps)).context("Error collecting canisters for post-install task")?;
+                &tmp
+            }
+        };
+        let dependencies = pool.get_canister_list().iter().map(|can| can.canister_id()).collect_vec();
+        for task in canister_info.get_post_install() {
+            let words = shell_words::split(task).with_context(|| format!("Error interpreting post-install task `{task}`"))?;
+            let mut command = Command::new(&words[0]);
+            command.args(&words[1..]);
+            let vars = environment_variables(canister_info, &network.name, &pool, &dependencies);
+            for (key, val) in vars {
+                command.env(&*key, val);
+            }
+            command.stdin(Stdio::piped()).stdout(Stdio::inherit()).stderr(Stdio::inherit());
+            let status = command.status().with_context(|| format!("Error running post-install task `{task}`"))?;
+            if !status.success() {
+                match status.code() {
+                    Some(code) => bail!("The post-install task `{task}` failed with exit code {code}"),
+                    None => bail!("The post-install task `{task}` was terminated by a signal"),
+                }
+            }
+        }
     }
 
     Ok(())

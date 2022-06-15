@@ -8,6 +8,7 @@ use candid::{parser::value::IDLValue, IDLArgs};
 use fn_error_context::context;
 use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
+use serde::{Serialize, Deserialize};
 use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
@@ -218,5 +219,27 @@ pub fn blob_from_arguments(
             Ok(typed_args)
         }
         v => Err(error_unknown!("Invalid type: {}", v)),
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum SerdeVec<T> {
+    One(T),
+    Many(Vec<T>),
+}
+
+impl<T> SerdeVec<T> {
+    pub fn into_vec(self) -> Vec<T> {
+        match self {
+            Self::One(t) => vec![t],
+            Self::Many(ts) => ts,
+        }
+    }
+}
+
+impl<T> Default for SerdeVec<T> {
+    fn default() -> Self {
+        Self::Many(vec![])
     }
 }

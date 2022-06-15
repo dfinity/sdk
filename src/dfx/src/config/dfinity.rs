@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::util::SerdeVec;
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::{anyhow, Context};
@@ -62,6 +63,7 @@ pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 /// It only contains a type; everything else should be infered using the
 /// CanisterInfo type.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ConfigCanistersCanister {
     pub r#type: Option<String>,
 
@@ -70,6 +72,9 @@ pub struct ConfigCanistersCanister {
 
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
+
+    #[serde(default)]
+    pub post_install: SerdeVec<String>,
 
     #[serde(flatten)]
     pub extras: BTreeMap<String, Value>,

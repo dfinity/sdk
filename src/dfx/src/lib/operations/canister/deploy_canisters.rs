@@ -91,7 +91,7 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    build_canisters(env, &canisters_to_build, &config)?;
+    let pool = build_canisters(env, &canisters_to_build, &config)?;
 
     install_canisters(
         env,
@@ -104,6 +104,7 @@ pub async fn deploy_canisters(
         upgrade_unchanged,
         timeout,
         call_sender,
+        pool,
     )
     .await?;
 
@@ -193,12 +194,13 @@ async fn register_canisters(
 }
 
 #[context("Failed to build call canisters.")]
-fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Config) -> DfxResult {
+fn build_canisters(env: &dyn Environment, canister_names: &[String], config: &Config) -> DfxResult<CanisterPool> {
     info!(env.get_logger(), "Building canisters...");
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
 
-    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)
+    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)?;
+    Ok(canister_pool)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -214,6 +216,7 @@ async fn install_canisters(
     upgrade_unchanged: bool,
     timeout: Duration,
     call_sender: &CallSender,
+    pool: CanisterPool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -265,6 +268,7 @@ async fn install_canisters(
             call_sender,
             installed_module_hash,
             upgrade_unchanged,
+            Some(&pool),
         )
         .await?;
     }

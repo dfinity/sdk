@@ -50,6 +50,8 @@ pub struct CanisterInfo {
     packtool: Option<String>,
     args: Option<String>,
 
+    post_install: Vec<String>,
+
     extras: BTreeMap<String, serde_json::Value>,
 }
 
@@ -112,6 +114,8 @@ impl CanisterInfo {
             .cloned()
             .unwrap_or_else(|| "motoko".to_owned());
 
+        let post_install = canister_config.post_install.clone().into_vec();
+
         let canister_info = CanisterInfo {
             name: name.to_string(),
             canister_type,
@@ -130,6 +134,8 @@ impl CanisterInfo {
             packtool: build_defaults.get_packtool(),
             args: build_defaults.get_args(),
             extras,
+            
+            post_install,
         };
 
         let canister_args: Option<String> = canister_info.get_extra_optional("args")?;
@@ -231,6 +237,10 @@ impl CanisterInfo {
 
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+
+    pub fn get_post_install(&self) -> &[String] {
+        &self.post_install
     }
 
     pub fn get_args(&self) -> &Option<String> {
