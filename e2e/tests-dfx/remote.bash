@@ -65,7 +65,7 @@ teardown() {
     assert_command dfx canister --network actuallylocal call --update remote make_struct '("A update by name", "B update by name")'
     assert_eq '(record { a = "A update by name"; b = "B update by name" })'
 
-    # This also should work when no canister type can be determined:
+    # This also should work when no canister type can be determined / if no info but the bare minimum of remote id and remote candid is given:
     # shellcheck disable=SC2094
     cat <<<"$(jq 'del(.canisters.remote.main)' dfx.json)" >dfx.json
     assert_command dfx canister --network actuallylocal call --query  remote make_struct '("A query by name", "B query by name")'
