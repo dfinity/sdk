@@ -85,7 +85,7 @@ teardown() {
 @test "install runs post-install tasks" {
     dfx_start
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.e2e_project."post-install"="sh -c \"echo hello\""' dfx.json)" >dfx.json
+    cat <<<"$(jq '.canisters.e2e_project.post_install="sh -c \"echo hello\""' dfx.json)" >dfx.json
 
     assert_command dfx canister create --all
     assert_command dfx build
@@ -94,6 +94,27 @@ teardown() {
     assert_match hello
     
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.e2e_project."post-install"="sh -c \"return 1\""' dfx.json)" >dfx.json
-    assert_command_fail dfx canister install --all
+    cat <<<"$(jq '.canisters.e2e_project.post_install=["sh -c \"echo hello\"", "sh -c \"return 1\""]' dfx.json)" >dfx.json
+    assert_command_fail dfx canister install --all --mode upgrade
+    assert_match hello
+}
+
+@test "post-install tasks receive environment variables" {
+    dfx_start
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.canisters.e2e_project.post_install="sh -c \"echo hello $CANISTER_ID\""' dfx.json)" >dfx.json
+
+    assert_command dfx canister create --all
+    assert_command dfx build
+    id=$(dfx canister id e2e_project)
+
+    assert_command dfx canister install --all
+    assert_match "hello $id"
+    assert_command dfx canister install e2e_project --mode upgrade
+    assert_match "hello $id"
+
+    assert_command dfx deploy
+    assert_match "hello $id"
+    assert_command dfx deploy e2e_project
+    assert_match "hello $id"
 }
