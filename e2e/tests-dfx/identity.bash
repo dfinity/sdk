@@ -79,12 +79,21 @@ teardown() {
     assert_eq '(false)'
 }
 
-@test "dfx ping creates the default identity on first run" {
-    install_asset identity
+@test "dfx ping does not create a default identity" {
     dfx_start
+
+    assert_file_not_exists "$DFX_CONFIG_ROOT/.config/dfx/identity.json"
+    assert_file_not_exists "$DFX_CONFIG_ROOT/.config/dfx/identity/default/identity.pem"
+
     assert_command dfx ping
+
+    assert_file_not_exists "$DFX_CONFIG_ROOT/.config/dfx/identity.json"
+    assert_file_not_exists "$DFX_CONFIG_ROOT/.config/dfx/identity/default/identity.pem"
+
     # shellcheck disable=SC2154
-    assert_match 'Creating the "default" identity.' "$stderr"
+    assert_not_match 'Creating' "$stderr"
+    # shellcheck disable=SC2154
+    assert_not_match 'default' "$stderr"
     # shellcheck disable=SC2154
     assert_match "ic_api_version" "$stdout"
 }

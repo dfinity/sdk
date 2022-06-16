@@ -2,7 +2,9 @@
 
 Use the `dfx ping` command to check connectivity to the IC or a testnet. This command enables you to verify that you can connect to the environment where you want to deploy to.
 
-Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
+To ping your local server, please note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
+
+To ping mainnet, you can run `dfx ping ic` from any directory.
 
 ## Basic usage
 
