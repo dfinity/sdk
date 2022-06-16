@@ -182,8 +182,8 @@ impl SignedMessageV1 {
 
 mod date_time_utc {
     time::serde::format_description!(date_time, PrimitiveDateTime, "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC");
-    
-    use serde::{Serializer, Deserializer};
+
+    use serde::{Deserializer, Serializer};
     use time::{OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
     pub fn serialize<S: Serializer>(datetime: &OffsetDateTime, s: S) -> Result<S::Ok, S::Error> {
