@@ -63,7 +63,6 @@ pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 /// It only contains a type; everything else should be infered using the
 /// CanisterInfo type.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub struct ConfigCanistersCanister {
     pub r#type: Option<String>,
 
