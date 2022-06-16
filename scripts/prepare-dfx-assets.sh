@@ -108,8 +108,8 @@ download_motoko_binaries() {
 }
 
 download_motoko_base() {
-    URL="$MOTOKO_BASE_TARBALL_URL"
-    SHA256="$MOTOKO_BASE_TARBALL_SHA256"
+    URL="$MOTOKO_BASE_URL"
+    SHA256="$MOTOKO_BASE_SHA256"
     DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/motoko-base-tarball.tar.gz"
 
     download_url_and_check_sha "$URL" "$SHA256" "$DOWNLOAD_PATH"

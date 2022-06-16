@@ -94,15 +94,18 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let temp_dir = env.get_temp_dir();
     let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
     let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
+    let btc_adapter_socket_holder_path = temp_dir.join("ic-btc-adapter-socket-path");
     let canister_http_adapter_pid_file_path =
         empty_writable_path(temp_dir.join("ic-canister-http-adapter-pid"))?;
     let canister_http_adapter_config_path =
         empty_writable_path(temp_dir.join("ic-canister-http-config.json"))?;
+    let canister_http_adapter_socket_holder_path = temp_dir.join("ic-canister-http-socket-path");
 
     let config = env.get_config_or_anyhow()?;
     let btc_adapter_config = configure_btc_adapter_if_enabled(
         config.get_config(),
         &btc_adapter_config_path,
+        &btc_adapter_socket_holder_path,
         opts.enable_bitcoin,
         opts.bitcoin_node.clone(),
     )?;
@@ -113,6 +116,7 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     let canister_http_adapter_config = configure_canister_http_adapter_if_enabled(
         config.get_config(),
         &canister_http_adapter_config_path,
+        &canister_http_adapter_socket_holder_path,
         opts.enable_canister_http,
     )?;
     let canister_http_socket_path = canister_http_adapter_config

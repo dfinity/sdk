@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.10.0"
+version = "0.10.1"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -72,7 +72,7 @@ shell-words = "1.1.0"
 slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
 slog-term = "2.9.0"
-sysinfo = "0.23.5"
+sysinfo = "0.24.4"
 tar = "0.4.38"
 tempfile = "3.3.0"
 term = "0.7.0"
@@ -81,7 +81,7 @@ tokio = { version = "1.17.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
-wasmparser = "0.85.0"
+wasmparser = "0.86.0"
 
 [dependencies.ic-agent]
 version = "0.17.0"
