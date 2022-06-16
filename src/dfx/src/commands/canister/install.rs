@@ -67,7 +67,7 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let network = env.get_network_descriptor();
 
     if mode == InstallMode::Reinstall && (opts.canister.is_none() || opts.all) {
@@ -119,6 +119,7 @@ pub async fn exec(
             install_canister(
                 env,
                 agent,
+                &mut canister_id_store,
                 &canister_info,
                 &install_args,
                 mode,
@@ -158,6 +159,7 @@ pub async fn exec(
                 install_canister(
                     env,
                     agent,
+                    &mut canister_id_store,
                     &canister_info,
                     &install_args,
                     mode,
