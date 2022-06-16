@@ -208,9 +208,19 @@ fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
         cmd.env(key.as_ref(), value);
     }
 
-    let output = cmd
-        .output()
-        .with_context(|| format!("Error executing custom build step {:#?}", cmd))?;
+    let output = cmd.output().with_context(|| {
+        format!(
+            "Error executing custom build step {:#?} {}",
+            cmd,
+            if !arguments.is_empty() && command_path.components().count() == 1 {
+                format!(
+                    r#"(you may have meant to use "./{command_name}" instead of "{command_name}")"#
+                )
+            } else {
+                String::new()
+            }
+        )
+    })?;
     if output.status.success() {
         Ok(())
     } else {
