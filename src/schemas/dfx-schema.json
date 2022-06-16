@@ -1,0 +1,327 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+        "version": {
+            "type": "number",
+            "const": 1,
+            "title": "The version of the dfx.json format"
+        },
+        "canisters": {
+            "title": "The canisters contained in the project",
+            "description": "Each key is the name of a canister, and the value describes that canister to DFX.",
+            "type": "object",
+            "additionalProperties": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["rust", "motoko", "assets", "custom"],
+                        "title": "The type of project this canister is built from",
+                        "description": "The two supported languages are Rust and Motoko. The 'custom' type is used for an alternate language, with a custom build task. Finally, a pre-made assets canister can be deployed to act as a simple file assets host."
+                    },
+                    "declarations": {
+                        "type": "object",
+                        "title": "Options regarding where generated declarations are emitted",
+                        "properties": {
+                            "output": {
+                                "type": "string",
+                                "title": "The file path where declarations should be output to",
+                                "default": "src/declarations/<canister_name>"
+                            },
+                            "bindings": {
+                                "type": "array",
+                                "title": "Languages to generate definitions for",
+                                "items": {
+                                    "type": "string",
+                                    "enum": ["js", "ts", "mo", "did"]
+                                },
+                                "default": ["js", "ts", "did"]
+                            },
+                            "env_override": {
+                                "type": "string",
+                                "description": "A string to use in place of the canister name in the process.env variable in generated JS declarations"
+                            }
+                        }
+                    },
+                    "remote": {
+                        "type": "object",
+                        "title": "Settings to define remote canisters",
+                        "description": "Remote canisters are canisters that are already accessible on mainnet, but are mocked locally.",
+                        "properties": {
+                            "candid": {
+                                "type": "string",
+                                "title": "Path to the canister's Candid declarations"
+                            },
+                            "id": {
+                                "type": "object",
+                                "title": "Mapping from network name to canister ID.",
+                                "propertyNames": {
+                                    "default": "ic"
+                                },
+                                "additionalProperties": {
+                                    "$ref": "#/$defs/principal"
+                                }
+                            }
+                        }
+                    },
+                    "args": {
+                        "type": "array",
+                        "title": "Arguments to provide to the packtool",
+                        "items": {"type": "string"}
+                    },
+                    "initialization_values": {
+                        "type": "object",
+                        "title": "Settings for when the canister is initialized",
+                        "properties": {
+                            "compute_allocation": {
+                                "type": "integer",
+                                "title": "The compute allocation for a canister, as a percentage between 0 and 100",
+                                "description": "This represents the percentage of a canister's maximum compute capacity that the IC should commit to guaranteeing for the canister. If 0, computation is provided on a best-effort basis.",
+                                "minimum": 0,
+                                "maximum": 100,
+                                "default": 0
+                            },
+                            "memory_allocation": {
+                                "type": "integer",
+                                "title": "The memory allocation for a canister, from 0 to 256TiB",
+                                "description": "This represents the size, in bytes, that the IC guarantees to the canister and limits the canister to. If a canister attempts to exceed this value (and the value is nonzero), the attempt will fail. If 0, memory allocation is provided on a best-effort basis.",
+                                "minimum": 0,
+                                "exclusiveMaximum": 281474976710656,
+                                "default": 0
+                            },
+                            "freezing_threshold": {
+                                "type": "integer",
+                                "title": "The freezing threshold for a canister, from 0 to 2^64-1",
+                                "description": "This represents the time, in seconds, of 'runway' the IC tries to guarantee the canister. If the canister's persistent costs, like storage, will likely lead it to run out of cycles within this amount of time, then the IC will 'freeze' the canister. Attempts to call its methods will be rejected unconditionally. The canister also cannot make any calls that push its cycle count into freezing threshold range.",
+                                "minimum": 0,
+                                "exclusiveMaximum": 18446744073709551616,
+                                "default": 2592000
+                            }
+                        }
+                    },
+                    "dependencies": {
+                        "type": "array",
+                        "title": "List of local canisters this canister depends on",
+                        "description": "Dependency canisters will be created before this canister is built, and their principals and Candid paths will be available under the environment variables CANISTER_ID_<canister> and CANISTER_CANDID_PATH_<canister> respectively.",
+                        "items": {"type": "string"}
+                    },
+                    "frontend": {
+                        "title": "If set, provides a frontend URL when the canister is deployed"
+                    }
+                }
+            },
+            "allOf": [
+                {
+                    "if": { "properties": { "type": { "const": "rust" } } },
+                    "then": {
+                        "properties": {
+                            "package": {
+                                "type": "string",
+                                "title": "The Rust package to build"
+                            },
+                            "candid": {
+                                "type": "string",
+                                "title": "Path to the canister's Candid declarations"
+                            }
+                        },
+                        "required": ["package"],
+                        "if": { "properties": { "remote": { "properties": { "candid": {} } } } },
+                        "else": { "required": ["candid"] }
+                    }
+                },
+                {
+                    "if": { "properties": { "type": { "const": "motoko" } } },
+                    "then": {
+                        "properties": {
+                            "main": {
+                                "type": "string",
+                                "title": "Path to the main Motoko actor file"
+                            }
+                        },
+                        "required": ["main"]
+                    }
+                },
+                {
+                    "if": { "properties": { "type": { "const": "custom" } } },
+                    "then": {
+                        "properties": {
+                            "wasm": {
+                                "type": "string",
+                                "title": "Path to the built wasm file after the build task is run"
+                            },
+                            "candid": {
+                                "type": "string",
+                                "title": "Path to the canister's Candid declarations"
+                            },
+                            "build": {
+                                "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}],
+                                "title": "Command or list of commands to run to build this canister"
+                            }
+                        },
+                        "required": ["wasm", "build"],
+                        "if": { "properties": { "remote": { "properties": { "candid": {} } } } },
+                        "else": { "required": ["candid"] }
+                    }
+                },
+                {
+                    "if": { "properties": { "type": { "const": "assets" } } },
+                    "then": {
+                        "properties": {
+                            "source": {
+                                "type": "array",
+                                "title": "List of source paths for assets",
+                                "items": { "type": "string" }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "dfx": {
+            "type": "string",
+            "title": "The version of DFX this project file was written for",
+            "description": "If this version of DFX is installed, it will automatically be used; otherwise, it will warn."
+        },
+        "networks": {
+            "type": "object",
+            "title": "A map of known networks by their names",
+            "description": "This table is used by the --network param to select a replica address. The 'ic' and 'local' networks are predefined, and by default 'local' is used.",
+            "additionalProperties": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["ephemeral", "persistent"],
+                        "description": "If the network is ephemeral, canister IDs are stored in the transient folder ./.dfx; if the network is persistent, canister IDs are stored in ./canister_ids.json"
+                    }
+                },
+                "oneOf": [
+                    {
+                        "properties": {
+                            "bind": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    {
+                        "properties": {
+                            "providers": {
+                                "type": "array",
+                                "items": { "type": "string" }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "defaults": {
+            "type": "object",
+            "title": "Defaults for various command flags",
+            "properties": {
+                "bitcoin": {
+                    "type": "object",
+                    "title": "Bitcoin integration settings",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "title": "Whether to enable Bitcoin support",
+                            "description": "Corresponds to --enable-bitcoin in dfx start"
+                        },
+                        "nodes": {
+                            "type": "array",
+                            "title": "Addresses of nodes to connect to, in case discovery from seeds is not possible/sufficient",
+                            "description": "Corresponds to --bitcoin-node in dfx start",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "bootstrap": {
+                    "type": "object",
+                    "title": "Bootstrap server settings",
+                    "properties": {
+                        "ip": {
+                            "type": "string",
+                            "title": "The IP address for the bootstrap server to listen on",
+                            "description": "Corresponds to --ip in dfx boostrap",
+                            "default": "127.0.0.1"
+                        },
+                        "port": {
+                            "type": "integer",
+                            "title": "The port for the boostrap server to listen on",
+                            "description": "Corresponds to --port in dfx bootstrap",
+                            "default": "8081",
+                            "minimum": 0,
+                            "exclusiveMaximum": 65536
+                        },
+                        "timeout": {
+                            "type": "integer",
+                            "title": "The maximum number of seconds that the bootstrap server will wait for upstream requests to complete",
+                            "description": "Corresponds to --timeout in dfx bootstrap",
+                            "default": 30,
+                            "minimum": 0
+                        }
+                    }
+                },
+                "build": {
+                    "type": "object",
+                    "title": "Settings for building Motoko code",
+                    "properties": {
+                        "packtool": {
+                            "type": "string",
+                            "title": "The packtool to use"
+                        },
+                        "args": {
+                            "type": "string",
+                            "title": "The arguments to provide to the packtool"
+                        }
+                    } 
+                },
+                "canister_http": {
+                    "type": "object",
+                    "title": "Settings for canister outgoing HTTP calls",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "title": "Whether to enable canister HTTP call functionality",
+                            "description": "Corresponds to --enable-canister-http in dfx start"
+                        }
+                    }
+                },
+                "replica": {
+                    "type": "object",
+                    "title": "Settings for the local replica",
+                    "properties": {
+                        "port": {
+                            "type": "integer",
+                            "title": "The port for the replica to bind to",
+                            "description": "Corresponds to --port in dfx replica",
+                            "minimum": 0,
+                            "exclusiveMaximum": 65536
+                        },
+                        "subnet_type": {
+                            "type": "string",
+                            "enum": ["system", "application", "verifiedapplication"],
+                            "title": "The subnet to run canisters on",
+                            "description": "Unlike the application subnet, the system subnet performs no cycles accounting."
+                        }
+                    }
+                }
+            }
+        },
+        "profile": {
+            "type": "string",
+            "enum": ["debug", "release"],
+            "title": "The build profile for Motoko canisters",
+            "default": "debug"
+        }
+    },
+    "$defs": {
+        "principal": {
+            "type": "string",
+            "pattern": "^([a-z2-7]{5}-)+[a-z2-7]{1,5}"
+        }
+    }
+}
