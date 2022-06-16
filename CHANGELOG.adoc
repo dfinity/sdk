@@ -5,6 +5,8 @@
 
 == DFX
 
+=== fix: restores assets to webpack devserver
+
 === chore: updates webpack dependencies for dfx new project
 
 Resolves an issue where `+webpack-cli+` was was breaking when users tried to run `+npm start+` in a fresh project. For affected users of 0.10.1, you can resolve this issue manually by running `+npm install webpack@latest webpack-cli@latest terser-webpack-plugin@latest+`.
