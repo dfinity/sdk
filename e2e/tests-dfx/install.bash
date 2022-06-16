@@ -118,3 +118,16 @@ teardown() {
     assert_command dfx deploy e2e_project
     assert_match "hello $id"
 }
+
+@test "post-install tasks discover dependencies" {
+    dfx_start
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.canisters.e2e_project_assets.post_install="sh -c \"echo hello $CANISTER_ID_e2e_project\""' dfx.json)" >dfx.json
+
+    assert_command dfx canister create --all
+    assert_command dfx build
+    id=$(dfx canister id e2e_project)
+    
+    assert_command dfx canister install --all
+    assert_match "hello $id"
+}
