@@ -5,6 +5,10 @@
 
 == DFX
 
+=== chore: updates webpack dependencies for dfx new project
+
+Resolves an issue where `+webpack-cli+` was was breaking when users tried to run `+npm start+` in a fresh project. For affected users of 0.10.1, you can resolve this issue manually by running `+npm install webpack@latest webpack-cli@latest terser-webpack-plugin@latest+`.
+
 === feat: Support for new ledger notify function
 
 Ledger 7424ea8 deprecates the existing `+notify+` function with a switch parameter between creating and topping up a canister, and introduces two
@@ -60,9 +64,10 @@ Updated Motoko from 0.6.28 to 0.6.29.
 
 == Replica
 
-Updated replica to elected commit 3b5d893c0857c47715fc339112e5dd1dbfff77a8.
+Updated replica to elected commit ebb7d6d10d3140f12b9f9b343c061f8aab6e271a.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/64355[64355]
 * https://dashboard.internetcomputer.org/proposal/63228[63228]
 * https://dashboard.internetcomputer.org/proposal/62143[62143]
 
