@@ -1,5 +1,8 @@
 use crate::config::dfinity::NetworkType;
 use crate::config::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
+use crate::lib::error::DfxResult;
+
+use anyhow::bail;
 
 #[derive(Clone, Debug)]
 pub struct NetworkDescriptor {
@@ -25,6 +28,17 @@ impl NetworkDescriptor {
                 )
         };
         name_match || provider_match
+    }
+
+    /// Return the first provider in the list
+    pub fn first_provider(&self) -> DfxResult<&str> {
+        match self.providers.first() {
+            Some(provider) => Ok(provider),
+            None => bail!(
+                "Network '{}' does not specify any network providers.",
+                self.name
+            ),
+        }
     }
 }
 

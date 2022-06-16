@@ -145,11 +145,7 @@ dfx_start() {
 
 wait_until_replica_healthy() {
     echo "waiting for replica to become healthy"
-    (
-        # dfx ping has side effects, like creating a default identity.
-        DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
-        dfx ping --wait-healthy
-    )
+    dfx ping --wait-healthy
     echo "replica became healthy"
 }
 
