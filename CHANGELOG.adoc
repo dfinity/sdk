@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: rust, custom, and asset canisters now include candid:service metadata
+
+Motoko canisters already included this metadata.
+
 === fix: restores assets to webpack devserver
 
 === chore: updates webpack dependencies for dfx new project
