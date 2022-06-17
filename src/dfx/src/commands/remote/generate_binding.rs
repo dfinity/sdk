@@ -51,7 +51,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                     info!(
                         log,
                         "Candid file {} for canister {} does not exist. Skipping.",
-                        candid,
+                        candid.to_string_lossy(),
                         canister.get_name()
                     );
                     continue;
@@ -104,7 +104,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         log,
                         "Generated {} using {} for canister {}.",
                         main,
-                        candid,
+                        candid.to_string_lossy(),
                         canister.get_name()
                     )
                 }

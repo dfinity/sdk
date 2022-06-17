@@ -146,7 +146,7 @@ teardown() {
 
 @test "build succeeds with URL as network parameter" {
     dfx_start
-    webserver_port=$(cat .dfx/webserver-port)
+    webserver_port=$(get_webserver_port)
     dfx canister --network "http://127.0.0.1:$webserver_port" create --all
     assert_command dfx build --network "http://127.0.0.1:$webserver_port"
 }
