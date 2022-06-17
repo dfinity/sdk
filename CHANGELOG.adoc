@@ -9,6 +9,13 @@
 
 You can now add your own custom post-installation/post-deployment tasks to any canister type. The new `+post-install+` key for canister objects in `+dfx.json+` can be a command or list of commands, similar to the `+build+` key of `+custom+` canisters, and receives all the same environment variables. For example, to replicate the upload task performed with `+assets+` canisters, you might set `+"post-install": "icx-asset sync $CANISTER_ID dist"+`.
 
+=== feat: rust, custom, and asset canisters now include candid:service metadata
+
+Motoko canisters already included this metadata.
+
+Also added this metadata to the asset canister wasm, which will cause the next deploy to
+install this new version.
+
 === fix: restores assets to webpack devserver
 
 === chore: updates webpack dependencies for dfx new project
