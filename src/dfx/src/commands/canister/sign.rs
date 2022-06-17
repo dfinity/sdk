@@ -14,11 +14,12 @@ use ic_agent::RequestId;
 use ic_types::principal::Principal;
 
 use anyhow::{anyhow, bail, Context};
-use chrono::Utc;
 use clap::Parser;
 use humanize_rs::duration;
 use slog::info;
+use time::OffsetDateTime;
 
+use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -135,10 +136,9 @@ pub async fn exec(
     let expiration_system_time = SystemTime::now()
         .checked_add(timeout)
         .ok_or_else(|| anyhow!("Time wrapped around."))?;
-    let chorono_timeout = chrono::Duration::seconds(timeout.as_secs() as i64);
-    let creation = Utc::now();
+    let creation = OffsetDateTime::now_utc();
     let expiration = creation
-        .checked_add_signed(chorono_timeout)
+        .checked_add(timeout.try_into()?)
         .ok_or_else(|| anyhow!("Expiration datetime overflow."))?;
 
     let message_template = SignedMessageV1::new(
