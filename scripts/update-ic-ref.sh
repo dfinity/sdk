@@ -4,11 +4,11 @@ set -e
 
 #   $1 not set   ||   not running in repo root
 if [ -z ${1+x} ] || [ ! -f ./scripts/write-dfx-asset-sources.sh ]; then
-    echo "Usage: run ./scripts/update-replica.sh <SHA-to-update-to> in repo root"
+    echo "Usage: run ./scripts/update-ic-ref.sh <first 8 digits of commit SHA> in repo root"
     exit 1
 fi
 
-VERSION=$1
+VERSION="0.0.1-$1"
 echo "Updating sources to version ${VERSION}"
 niv update ic-ref-x86_64-linux -a version=$VERSION
 niv update ic-ref-x86_64-darwin -a version=$VERSION
