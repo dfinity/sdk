@@ -28,7 +28,7 @@ teardown() {
 
 @test "dfx ping succeeds by specific host:post" {
     dfx_start
-    webserver_port=$(cat .dfx/webserver-port)
+    webserver_port=$(get_webserver_port)
     assert_command dfx ping http://127.0.0.1:"$webserver_port"
 
     assert_match "\"ic_api_version\""
@@ -36,7 +36,7 @@ teardown() {
 
 @test "dfx ping does not require dfx.json" {
     dfx_start
-    webserver_port=$(cat .dfx/webserver-port)
+    webserver_port=$(get_webserver_port)
 
     mkdir "$DFX_E2E_TEMP_DIR/not-a-project"
     (
@@ -56,7 +56,7 @@ teardown() {
 
 @test "dfx ping succeeds by network name if network bind address is host:port format" {
     dfx_start
-    webserver_port=$(cat .dfx/webserver-port)
+    webserver_port=$(get_webserver_port)
     assert_command dfx config networks.local.bind '"127.0.0.1:'"$webserver_port"'"'
     assert_command dfx ping local
 
@@ -84,7 +84,7 @@ teardown() {
 
 @test "dfx ping can have a URL for network to ping" {
     dfx_start
-    webserver_port=$(cat .dfx/webserver-port)
+    webserver_port=$(get_webserver_port)
     assert_command dfx ping "http://127.0.0.1:$webserver_port"
     assert_match "\"ic_api_version\""
 }
