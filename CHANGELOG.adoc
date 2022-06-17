@@ -9,6 +9,13 @@
 
 The `+dfx config+` command has several issues and is ultimately a poor replacement for https://stedolan.github.io/jq/[`+jq+`]. The command is being deprecated, and will be removed in a later release; we recommend switching to `+jq+` or similar tools (e.g. `+ConvertTo-Json+` in PowerShell, `+to json+` in nushell, etc.)
 
+=== feat: rust, custom, and asset canisters now include candid:service metadata
+
+Motoko canisters already included this metadata.
+
+Also added this metadata to the asset canister wasm, which will cause the next deploy to
+install this new version.
+
 === fix: restores assets to webpack devserver
 
 === chore: updates webpack dependencies for dfx new project
