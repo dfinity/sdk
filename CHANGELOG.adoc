@@ -9,6 +9,8 @@
 
 The `+dfx config+` command has several issues and is ultimately a poor replacement for https://stedolan.github.io/jq/[`+jq+`]. The command is being deprecated, and will be removed in a later release; we recommend switching to `+jq+` or similar tools (e.g. `+ConvertTo-Json+` in PowerShell, `+to json+` in nushell, etc.)
 
+=== fix: restores assets to webpack devserver
+
 === chore: updates webpack dependencies for dfx new project
 
 Resolves an issue where `+webpack-cli+` was was breaking when users tried to run `+npm start+` in a fresh project. For affected users of 0.10.1, you can resolve this issue manually by running `+npm install webpack@latest webpack-cli@latest terser-webpack-plugin@latest+`.
@@ -37,6 +39,10 @@ Calls made to retrieve the help output for `canister update-settings` was missin
 `WARN` and `ERROR` messages are now clearly labelled as such, and the labels are colored accordingly.
 This is now included when running `dfx canister update-settings -h`.
 
+=== fix: canister call uses candid file if canister type cannot be determined
+
+The candid file specified in the field `canisters.<canister name>.candid` of dfx.json, or if that not exists `canisters.<canister name>.remote.candid`, is now used when running `dfx canister call`, even when dfx fails to determine the canister type.
+
 === fix: btc/canister http adapter socket not found by replica after restart
 
 After running `dfx start --enable-bitcoin` twice in a row (stopping dfx in between), the second
@@ -64,9 +70,10 @@ dfx ping now uses the anonymous identity, and no longer requires dfx.json to be 
 
 == Replica
 
-Updated replica to elected commit 3b5d893c0857c47715fc339112e5dd1dbfff77a8.
+Updated replica to elected commit ebb7d6d10d3140f12b9f9b343c061f8aab6e271a.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/64355[64355]
 * https://dashboard.internetcomputer.org/proposal/63228[63228]
 * https://dashboard.internetcomputer.org/proposal/62143[62143]
 

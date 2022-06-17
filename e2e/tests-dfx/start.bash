@@ -19,7 +19,7 @@ teardown() {
     assert_command dfx deploy
 
     ID=$(dfx canister id hello)
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID" -o ./web.txt --max-time 60
     assert_command diff .dfx/local/canisters/hello/hello.did ./web.txt
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt --max-time 60
@@ -38,7 +38,7 @@ teardown() {
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
-    REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
+    REPLICA_PID=$(get_replica_pid)
 
     echo "replica pid is $REPLICA_PID"
 
@@ -72,7 +72,7 @@ teardown() {
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
-    ICX_PROXY_PID=$(cat .dfx/icx-proxy-pid)
+    ICX_PROXY_PID=$(get_icx_proxy_pid)
 
     echo "icx-proxy pid is $ICX_PROXY_PID"
 
@@ -85,7 +85,7 @@ teardown() {
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
-    assert_command curl --fail http://localhost:"$(cat .dfx/webserver-port)"/sample-asset.txt?canisterId="$ID"
+    assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
@@ -99,8 +99,8 @@ teardown() {
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
-    REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
-    ICX_PROXY_PID=$(cat .dfx/icx-proxy-pid)
+    REPLICA_PID=$(get_replica_pid)
+    ICX_PROXY_PID=$(get_icx_proxy_pid)
 
     echo "replica pid is $REPLICA_PID"
     echo "icx-proxy pid is $ICX_PROXY_PID"
@@ -130,7 +130,7 @@ teardown() {
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
-    assert_command curl --fail http://localhost:"$(cat .dfx/webserver-port)"/sample-asset.txt?canisterId="$ID"
+    assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
 @test "dfx starts replica with subnet_type application" {
