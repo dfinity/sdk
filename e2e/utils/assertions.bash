@@ -195,6 +195,7 @@ assert_file_eventually_exists() {
     timeout="$2"
 
     timeout $timeout sh -c \
-      "until [ -f $filename ]; do echo waiting for $filename; sleep 1; done" \
-      || (echo "file $filename was never created" && ls && exit 1)
+      "until [ -f \"$filename\" ]; do echo waiting for \"$filename\"; sleep 1; done" \
+      || (echo "file \"$filename\" was never created" && ls && exit 1)
 }
+

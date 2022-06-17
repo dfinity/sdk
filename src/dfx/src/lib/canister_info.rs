@@ -8,6 +8,7 @@ use crate::lib::provider::get_network_context;
 use crate::util;
 
 use anyhow::{anyhow, bail, Context};
+use core::panic;
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
@@ -38,7 +39,7 @@ pub struct CanisterInfo {
 
     declarations_config: CanisterDeclarationsConfig,
     remote_id: Option<Principal>, // id on the currently selected network
-    remote_candid: Option<String>, // always exists if the field is configured
+    remote_candid: Option<PathBuf>, // always exists if the field is configured
 
     workspace_root: PathBuf,
     build_root: PathBuf,
@@ -115,18 +116,14 @@ impl CanisterInfo {
         let canister_info = CanisterInfo {
             name: name.to_string(),
             canister_type,
-
             declarations_config,
             remote_id,
             remote_candid,
-
             workspace_root: workspace_root.to_path_buf(),
             build_root,
             output_root,
             canister_root,
-
             canister_id,
-
             packtool: build_defaults.get_packtool(),
             args: build_defaults.get_args(),
             extras,
@@ -153,13 +150,16 @@ impl CanisterInfo {
     pub fn get_declarations_config(&self) -> &CanisterDeclarationsConfig {
         &self.declarations_config
     }
+    pub fn is_remote(&self) -> bool {
+        self.remote_id.is_some()
+    }
     pub fn get_remote_id(&self) -> Option<Principal> {
         self.remote_id
     }
-    pub fn get_remote_candid(&self) -> Option<String> {
+    pub fn get_remote_candid(&self) -> Option<PathBuf> {
         self.remote_candid.as_ref().cloned()
     }
-    pub fn get_remote_candid_if_remote(&self) -> Option<String> {
+    pub fn get_remote_candid_if_remote(&self) -> Option<PathBuf> {
         if self.remote_id.is_some() {
             self.get_remote_candid()
         } else {
@@ -282,7 +282,9 @@ impl CanisterInfo {
         } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else {
-            None
+            self.get_extra_optional("candid")
+                .unwrap_or(None)
+                .or_else(|| self.remote_candid.clone())
         }
     }
 
