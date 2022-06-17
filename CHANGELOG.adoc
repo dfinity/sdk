@@ -35,6 +35,10 @@ Calls made to retrieve the help output for `canister update-settings` was missin
 `WARN` and `ERROR` messages are now clearly labelled as such, and the labels are colored accordingly.
 This is now included when running `dfx canister update-settings -h`.
 
+=== fix: canister call uses candid file if canister type cannot be determined
+
+The candid file specified in the field `canisters.<canister name>.candid` of dfx.json, or if that not exists `canisters.<canister name>.remote.candid`, is now used when running `dfx canister call`, even when dfx fails to determine the canister type.
+
 === fix: btc/canister http adapter socket not found by replica after restart
 
 After running `dfx start --enable-bitcoin` twice in a row (stopping dfx in between), the second
