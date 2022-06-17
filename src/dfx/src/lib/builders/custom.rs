@@ -139,7 +139,8 @@ impl CanisterBuilder for CustomBuilder {
                 .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &vars, info.get_workspace_root()).with_context(|| format!("Failed to run {}.", command))?;
+                run_command(args, &vars, info.get_workspace_root())
+                    .with_context(|| format!("Failed to run {}.", command))?;
             }
         }
 
@@ -204,7 +205,9 @@ fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxRes
         cmd.env(key.as_ref(), value);
     }
 
-    let output = cmd.output().with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
+    let output = cmd
+        .output()
+        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
         Ok(())
     } else {
