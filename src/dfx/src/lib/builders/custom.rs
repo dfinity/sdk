@@ -6,6 +6,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 
+use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, Context};
 use console::style;
 use fn_error_context::context;
@@ -143,6 +144,8 @@ impl CanisterBuilder for CustomBuilder {
                     .with_context(|| format!("Failed to run {}.", command))?;
             }
         }
+
+        add_candid_service_metadata(&wasm, &candid)?;
 
         Ok(BuildOutput {
             canister_id,
