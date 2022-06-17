@@ -3,10 +3,15 @@
   "canisters": {
     "basic": {
       "main": "basic.mo",
-      "dependencies": [ "remote" ]
+      "dependencies": [
+        "remote"
+      ]
     },
     "remote": {
-      "main": "remote.mo"
+      "main": "remote.mo",
+      "remote": {
+        "candid": "remote.did"
+      }
     }
   },
   "defaults": {

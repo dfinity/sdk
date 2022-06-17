@@ -52,7 +52,7 @@ impl CanisterInfoFactory for RustCanisterInfo {
         let output_wasm_path =
             target_directory.join(format!("wasm32-unknown-unknown/release/{package}.wasm"));
         let candid = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
-            PathBuf::from(remote_candid)
+            remote_candid
         } else {
             info.get_extra::<PathBuf>("candid")?
         };
