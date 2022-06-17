@@ -205,6 +205,9 @@ dfx_start_replica_and_bootstrap() {
     timeout 5 sh -c \
         'until nc -z localhost $(cat .dfx/proxy-port); do echo waiting for bootstrap; sleep 1; done' \
         || (echo "could not connect to bootstrap on port $(cat .dfx/proxy-port)" && exit 1)
+    timeout 5 sh -c \
+        'until nc -z localhost $(cat .dfx/webserver-port); do echo waiting for webserver; sleep 1; done' \
+        || (echo "could not connect to webserver on port $(cat .dfx/webserver-port)" && exit 1)
 
     local proxy_port=$(cat .dfx/proxy-port)
     printf "Proxy Configured Port: %s\n", "${proxy_port}"
@@ -243,7 +246,7 @@ dfx_set_wallet() {
 }
 
 setup_actuallylocal_network() {
-    webserver_port=$(cat .dfx/webserver-port)
+    webserver_port=$(get_webserver_port)
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 }
@@ -251,9 +254,9 @@ setup_actuallylocal_network() {
 setup_local_network() {
     if [ "$USE_IC_REF" ]
     then
-        local replica_port=$(cat .dfx/ic-ref.port)
+        local replica_port=$(get_ic_ref_port)
     else
-        local replica_port=$(cat .dfx/replica-configuration/replica-1.port)
+        local replica_port=$(get_replica_port)
     fi
 
     # shellcheck disable=SC2094
@@ -263,4 +266,32 @@ setup_local_network() {
 use_wallet_wasm() {
     # shellcheck disable=SC2154
     export DFX_WALLET_WASM="${archive}/wallet/$1/wallet.wasm"
+}
+
+get_webserver_port() {
+  cat ".dfx/webserver-port"
+}
+
+get_replica_pid() {
+  cat ".dfx/replica-configuration/replica-pid"
+}
+
+get_ic_ref_port() {
+  cat ".dfx/ic-ref.port"
+
+}
+get_replica_port() {
+  cat ".dfx/replica-configuration/replica-1.port"
+}
+
+get_btc_adapter_pid() {
+  cat ".dfx/ic-btc-adapter-pid"
+}
+
+get_canister_http_adapter_pid() {
+  cat ".dfx/ic-canister-http-adapter-pid"
+}
+
+get_icx_proxy_pid() {
+  cat ".dfx/icx-proxy-pid"
 }

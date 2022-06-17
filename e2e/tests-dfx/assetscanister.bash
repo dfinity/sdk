@@ -64,7 +64,7 @@ teardown() {
     #    assert_match "error decoding url: second character after % is not a hex digit"
 
     ID=$(dfx canister id e2e_project_assets)
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
 
     assert_command curl --fail -vv http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
     # shellcheck disable=SC2154
@@ -110,7 +110,7 @@ teardown() {
     dfx canister call --query e2e_project_assets list '(record{})'
 
     ID=$(dfx canister id e2e_project_assets)
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
 
     assert_command curl -v --output not-compressed http://localhost:"$PORT"/notreally.js?canisterId="$ID"
     assert_not_match "content-encoding:"
@@ -223,7 +223,7 @@ teardown() {
     dfx canister install e2e_project_assets
 
     ID=$(dfx canister id e2e_project_assets)
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
     assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
     # shellcheck disable=SC2154
     assert_eq "cherries
@@ -256,7 +256,7 @@ CHERRIES" "$stdout"
     assert_command dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
     assert_command_fail dfx canister call --query e2e_project_assets get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
 
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
     CANISTER_ID=$(dfx canister id e2e_project_assets)
     curl -v --output curl-output.bin "http://localhost:$PORT/large-asset.bin?canisterId=$CANISTER_ID"
     diff src/e2e_project_assets/assets/large-asset.bin curl-output.bin
