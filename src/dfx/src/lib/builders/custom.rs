@@ -13,6 +13,7 @@ use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::info;
 use slog::Logger;
+use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -138,7 +139,7 @@ impl CanisterBuilder for CustomBuilder {
                 .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &vars).with_context(|| format!("Failed to run {}.", command))?;
+                run_command(args, &vars, info.get_workspace_root()).with_context(|| format!("Failed to run {}.", command))?;
             }
         }
 
@@ -187,20 +188,15 @@ impl CanisterBuilder for CustomBuilder {
     }
 }
 
-fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
+fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
-    let command_path = Path::new(command_name);
-    let mut cmd = if arguments.is_empty()
-        && command_path.components().count() == 1
-        && command_path.exists()
-    {
-        // handle "command.sh" with no ./
-        Command::new(format!("./{command_name}"))
-    } else {
-        Command::new(command_name)
-    };
+    let canonicalized = which::which_in(command_name, env::var_os("PATH"), cwd)
+        .with_context(|| format!("Cannot find command or file {command_name}"))?
+        .canonicalize()?;
+    let mut cmd = Command::new(&canonicalized);
 
     cmd.args(arguments)
+        .current_dir(cwd)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
 
@@ -208,19 +204,7 @@ fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
         cmd.env(key.as_ref(), value);
     }
 
-    let output = cmd.output().with_context(|| {
-        format!(
-            "Error executing custom build step {:#?} {}",
-            cmd,
-            if !arguments.is_empty() && command_path.components().count() == 1 {
-                format!(
-                    r#"(you may have meant to use "./{command_name}" instead of "{command_name}")"#
-                )
-            } else {
-                String::new()
-            }
-        )
-    })?;
+    let output = cmd.output().with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
         Ok(())
     } else {

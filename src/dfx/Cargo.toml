@@ -82,6 +82,7 @@ toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
 wasmparser = "0.85.0"
+which = "4.2.5"
 
 [dependencies.ic-agent]
 version = "0.17.0"
