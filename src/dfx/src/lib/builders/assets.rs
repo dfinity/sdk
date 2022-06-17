@@ -10,7 +10,6 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util;
 
-use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
@@ -114,10 +113,6 @@ impl CanisterBuilder for AssetsBuilder {
 
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
-
-        // remove this once the asset canister is built with a dfx that includes this information
-        // https://dfinity.atlassian.net/browse/SDK-553
-        add_candid_service_metadata(&wasm_path, &idl_path)?;
 
         Ok(BuildOutput {
             canister_id: info.get_canister_id().expect("Could not find canister ID."),
