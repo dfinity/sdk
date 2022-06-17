@@ -192,8 +192,9 @@ impl CanisterBuilder for CustomBuilder {
 fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
     let canonicalized = which::which_in(command_name, env::var_os("PATH"), cwd)
-        .with_context(|| format!("Cannot find command or file {command_name}"))?
-        .canonicalize()?;
+        .unwrap_or_else(|_| cwd.join(command_name))
+        .canonicalize()
+        .with_context(|| format!("Cannot find command or file {command_name}"))?;
     let mut cmd = Command::new(&canonicalized);
 
     cmd.args(arguments)
