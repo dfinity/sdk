@@ -8,7 +8,6 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::ReplicaConfig;
-use crate::lib::webserver::run_webserver;
 use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
 
@@ -161,12 +160,10 @@ pub fn exec(
         enable_canister_http,
     }: StartOpts,
 ) -> DfxResult {
-    let config = env.get_config_or_anyhow()?;
+    let _config = env.get_config_or_anyhow()?;
     let network_descriptor =
         get_network_descriptor(env.get_config(), None, LocalBindDetermination::AsConfigured)?;
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
-    let temp_dir = env.get_temp_dir();
-    let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = local_server_descriptor.dfx_pid_path();
     let state_root = local_server_descriptor.state_dir();
 
@@ -179,7 +176,7 @@ pub fn exec(
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if clean {
-        clean_state(temp_dir, &state_root)?;
+        clean_state(env.get_temp_dir(), &state_root)?;
     }
 
     let pid_file_path = empty_writable_path(pid_file_path)?;
@@ -318,22 +315,11 @@ pub fn exec(
             replica.recipient()
         };
 
-        let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
         let icx_proxy_config = IcxProxyConfig {
             bind: address_and_port,
-            proxy_port: webserver_bind.port(),
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
         };
-
-        run_webserver(
-            env.get_logger().clone(),
-            build_output_root,
-            network_descriptor,
-            config,
-            env.get_temp_dir().to_path_buf(),
-            webserver_bind,
-        )?;
 
         let proxy = start_icx_proxy_actor(
             env,

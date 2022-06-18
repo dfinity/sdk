@@ -36,9 +36,6 @@ pub struct IcxProxyConfig {
     /// where to listen.  Becomes argument like --address 127.0.0.1:3000
     pub bind: SocketAddr,
 
-    /// Port where webserver responding to /_/ requests to candid binds to
-    pub proxy_port: u16,
-
     /// fixed replica addresses
     pub replica_urls: Vec<Url>,
 
@@ -83,7 +80,6 @@ impl IcxProxy {
     fn start_icx_proxy(&mut self, replica_urls: Vec<Url>) -> DfxResult {
         let logger = self.logger.clone();
         let config = &self.config.icx_proxy_config;
-        let proxy_port = config.proxy_port;
         let icx_proxy_pid_path = &self.config.icx_proxy_pid_path;
         let icx_proxy_path = self.config.icx_proxy_path.to_path_buf();
         let fetch_root_key = config.fetch_root_key;
@@ -94,7 +90,6 @@ impl IcxProxy {
                 logger,
                 config.bind,
                 replica_urls,
-                proxy_port,
                 icx_proxy_path,
                 icx_proxy_pid_path.clone(),
                 receiver,
@@ -188,7 +183,6 @@ fn icx_proxy_start_thread(
     logger: Logger,
     address: SocketAddr,
     replica_urls: Vec<Url>,
-    proxy_port: u16,
     icx_proxy_path: PathBuf,
     icx_proxy_pid_path: PathBuf,
     receiver: Receiver<()>,
@@ -211,8 +205,7 @@ fn icx_proxy_start_thread(
             cmd.arg("--fetch-root-key");
         }
         let address = format!("{}", &address);
-        let proxy = format!("http://localhost:{}", proxy_port);
-        cmd.args(&["--address", &address, "--proxy", &proxy]);
+        cmd.args(&["--address", &address]);
         for url in replica_urls {
             let s = format!("{}", url);
             cmd.args(&["--replica", &s]);

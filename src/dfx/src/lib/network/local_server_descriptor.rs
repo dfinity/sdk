@@ -55,11 +55,6 @@ impl LocalServerDescriptor {
         self.data_directory.join("icx-proxy-pid")
     }
 
-    /// This file contains the port of the internal candid webserver, but only for `dfx bootstrap`
-    pub fn proxy_port_path(&self) -> PathBuf {
-        self.data_directory.join("proxy-port")
-    }
-
     /// This file contains the listening port of the ic-ref process
     pub fn ic_ref_port_path(&self) -> PathBuf {
         self.data_directory.join("ic-ref.port")
