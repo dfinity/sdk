@@ -5,6 +5,13 @@
 
 == DFX
 
+=== feat: rust, custom, and asset canisters now include candid:service metadata
+
+Motoko canisters already included this metadata.
+
+Also added this metadata to the asset canister wasm, which will cause the next deploy to
+install this new version.
+
 === fix: restores assets to webpack devserver
 
 === chore: updates webpack dependencies for dfx new project
@@ -77,6 +84,15 @@ This incorporates the following executed proposals:
 * https://dashboard.internetcomputer.org/proposal/64355[64355]
 * https://dashboard.internetcomputer.org/proposal/63228[63228]
 * https://dashboard.internetcomputer.org/proposal/62143[62143]
+
+== ic-ref
+
+Updated ic-ref to 0.0.1-173cbe84
+ - add ic0.performance_counter system interface
+ - add system API for ECDSA signing
+ - allow optional "error_code" field in responses
+ - support gzip-compressed canister modules
+ - enable canisters to send HTTP requests
 
 = 0.10.1
 
