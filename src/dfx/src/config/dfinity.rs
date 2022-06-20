@@ -83,7 +83,7 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub frontend: bool,
 
-    #[serde(flatten)]
+    #[serde(flatten, default)]
     pub type_specific: CanisterTypeProperties,
 
     pub main: Option<PathBuf>,
@@ -105,6 +105,12 @@ pub enum CanisterTypeProperties {
         candid: PathBuf,
         build: SerdeVec<String>,
     },
+}
+
+impl Default for CanisterTypeProperties {
+    fn default() -> Self {
+        Self::Motoko {}
+    }
 }
 
 impl CanisterTypeProperties {
