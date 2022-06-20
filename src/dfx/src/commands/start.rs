@@ -382,10 +382,7 @@ fn frontend_address(
         .transpose()
         .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
 
-    let mut address_and_port = match address_and_port {
-        Some(r) => Ok(r),
-        None => local_server_descriptor.bind_address(),
-    }?;
+    let mut address_and_port = address_and_port.unwrap_or(local_server_descriptor.bind_address);
 
     if !background {
         // Since the user may have provided port "0", we need to grab a dynamically
