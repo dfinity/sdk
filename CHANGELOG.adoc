@@ -71,6 +71,10 @@ dfx ping now uses the anonymous identity, and no longer requires dfx.json to be 
 
 == Dependencies
 
+== Motoko
+
+Updated Motoko from 0.6.28 to 0.6.29.
+
 == Replica
 
 Updated replica to elected commit 92e6b0ed36cdc9322a3588f46a8c8c7cc567e143.
