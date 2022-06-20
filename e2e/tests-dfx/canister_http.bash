@@ -29,8 +29,8 @@ set_default_canister_http_enabled() {
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
-    REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
-    CANISTER_HTTP_ADAPTER_PID=$(cat .dfx/ic-canister-http-adapter-pid)
+    REPLICA_PID=$(get_replica_pid)
+    CANISTER_HTTP_ADAPTER_PID=$(get_canister_http_adapter_pid)
 
     echo "replica pid is $REPLICA_PID"
     echo "ic-canister-http-adapter pid is $CANISTER_HTTP_ADAPTER_PID"
@@ -60,10 +60,10 @@ set_default_canister_http_enabled() {
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
-    assert_command curl --fail http://localhost:"$(cat .dfx/webserver-port)"/sample-asset.txt?canisterId="$ID"
+    assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx restarts replica when ic-canister-http-adapter restarts (replica and bootstrap)" {
+@test "dfx restarts replica when ic-canister-http-adapter restarts - replica and bootstrap" {
     dfx_new hello
     set_default_canister_http_enabled
     dfx_start_replica_and_bootstrap
@@ -73,11 +73,11 @@ set_default_canister_http_enabled() {
     assert_command dfx canister call hello greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
-    REPLICA_PID=$(cat .dfx/replica-configuration/replica-pid)
-    CANISTER_HTTP_ADAPTER_PID=$(cat .dfx/ic-canister-http-adapter-pid)
+    REPLICA_PID=$(get_replica_pid)
+    CANISTER_HTTP_ADAPTER_PID=$(get_canister_http_adapter_pid)
 
     echo "replica pid is $REPLICA_PID"
-    echo "replica port is $(cat .dfx/replica-configuration/replica-1.port)"
+    echo "replica port is $(get_replica_port)"
     echo "ic-canister-http-adapter pid is $CANISTER_HTTP_ADAPTER_PID"
 
     kill -KILL "$CANISTER_HTTP_ADAPTER_PID"
@@ -86,11 +86,9 @@ set_default_canister_http_enabled() {
 
     timeout 15s sh -x -c \
       "until curl --fail --verbose -o /dev/null http://localhost:\$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo \"waiting for replica to restart on port \$(cat .dfx/replica-configuration/replica-1.port)\"; sleep 1; done" \
-      || (echo "replica did not restart" && echo "last replica port was $(cat .dfx/replica-configuration/replica-1.port)" && ps aux && exit 1)
+      || (echo "replica did not restart" && echo "last replica port was $(get_replica_port)" && ps aux && exit 1)
     # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:"$(cat .dfx/replica-configuration/replica-1.port)"\" dfx.json)" >dfx.json
-    echo "dfx.json configured for new replica:"
-    cat dfx.json
+    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:"$(get_replica_port)"\" dfx.json)" >dfx.json
 
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \

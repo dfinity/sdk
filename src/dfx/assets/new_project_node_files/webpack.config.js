@@ -105,6 +105,7 @@ module.exports = {
         },
       },
     },
+    static: path.resolve(__dirname, "src", frontendDirectory, "assets"),
     hot: true,
     watchFiles: [path.resolve(__dirname, "src", frontendDirectory)],
     liveReload: true,

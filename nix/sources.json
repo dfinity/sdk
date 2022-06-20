@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "f10f232879003e9a0d3b120c534268faddbff874",
+        "rev": "49fb6c0b9418350332fa1e944ec83a5556ec5d91",
         "sha256": "0d11rir2m22jf1k0fjakx4b0n3w69i2hl7jhwnhq5dd8qfg2s31j",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/f10f232879003e9a0d3b120c534268faddbff874.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/49fb6c0b9418350332fa1e944ec83a5556ec5d91.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
@@ -90,20 +90,20 @@
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "1gnib9adb03jw334pl2a070w4hy40s13v7czcp090liijnhwayj0",
+        "sha256": "00n1s9bg7bilwzfqxvrlwcwh1bzswnwam912xy8zsppl3cbgqxrg",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ab8e3f5a-x86_64-darwin.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-173cbe84-x86_64-darwin.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-darwin.tar.gz",
-        "version": "0.0.1-ab8e3f5a"
+        "version": "0.0.1-173cbe84"
     },
     "ic-ref-x86_64-linux": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "0r50b38sf2bvfmb2w75cfcnnp1k29c9j8c3f4cfhgv4nw1dyij3j",
+        "sha256": "04m9hzs9d6d6iqg4xjvhrsyyyh99armjivwhn8501c1npw2gmr2i",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ab8e3f5a-x86_64-linux.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-173cbe84-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
-        "version": "0.0.1-ab8e3f5a"
+        "version": "0.0.1-173cbe84"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,

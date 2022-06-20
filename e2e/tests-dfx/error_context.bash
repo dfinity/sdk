@@ -53,7 +53,8 @@ teardown() {
 @test "address already in use" {
     dfx_start
 
-    address="$(jq -r .networks.local.bind dfx.json)"
+    port=$(get_webserver_port)
+    address="127.0.0.1:$port"
 
     # fool dfx start into thinking dfx isn't running
     mv .dfx/pid .dfx/hidden_pid
