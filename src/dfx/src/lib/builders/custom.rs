@@ -14,7 +14,6 @@ use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use slog::info;
 use slog::Logger;
-use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -194,10 +193,11 @@ impl CanisterBuilder for CustomBuilder {
 
 fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = which::which_in(command_name, env::var_os("PATH"), cwd)
-        .unwrap_or_else(|_| cwd.join(command_name))
+    let canonicalized = cwd
+        .join(command_name)
         .canonicalize()
-        .with_context(|| format!("Cannot find command or file {command_name}"))?;
+        .or_else(|_| which::which(command_name))
+        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
     let mut cmd = Command::new(&canonicalized);
 
     cmd.args(arguments)
