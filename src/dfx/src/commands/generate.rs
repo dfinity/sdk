@@ -41,7 +41,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         let canister_name = canister.get_name();
         let canister_id = store.get(canister_name)?;
         if let Some(info) = canister_pool.get_canister_info(&canister_id) {
-            if info.get_type() == "motoko" {
+            if info.is_motoko() {
                 build_before_generate = true;
             }
         }

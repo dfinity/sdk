@@ -1,8 +1,10 @@
 #![allow(dead_code)]
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::util::{PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::{anyhow, Context};
+use byte_unit::Byte;
 use fn_error_context::context;
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
@@ -11,6 +13,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::default::Default;
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
@@ -61,18 +64,67 @@ pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 /// A Canister configuration in the dfx.json config file.
 /// It only contains a type; everything else should be infered using the
 /// CanisterInfo type.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
-    pub r#type: Option<String>,
-
     #[serde(default)]
     pub declarations: CanisterDeclarationsConfig,
 
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
 
+    pub args: Option<String>,
+
+    #[serde(default)]
+    pub initialization_values: InitializationValues,
+
+    #[serde(default)]
+    pub dependencies: Vec<String>,
+
+    #[serde(default)]
+    pub frontend: bool,
+
     #[serde(flatten)]
-    pub extras: BTreeMap<String, Value>,
+    pub type_specific: CanisterTypeProperties,
+
+    pub main: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum CanisterTypeProperties {
+    Rust {
+        package: String,
+        candid: PathBuf,
+    },
+    Motoko {},
+    Assets {
+        source: Vec<PathBuf>,
+    },
+    Custom {
+        wasm: PathBuf,
+        candid: PathBuf,
+        build: SerdeVec<String>,
+    },
+}
+
+impl CanisterTypeProperties {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Rust { .. } => "rust",
+            Self::Motoko { .. } => "motoko",
+            Self::Assets { .. } => "assets",
+            Self::Custom { .. } => "custom",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct InitializationValues {
+    pub compute_allocation: Option<PossiblyStr<u64>>,
+    pub memory_allocation: Option<Byte>,
+    #[serde(with = "humantime_serde")]
+    pub freezing_threshold: Option<Duration>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -93,7 +145,7 @@ pub struct CanisterDeclarationsConfig {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBitcoin {
-    #[serde(default = "default_as_false")]
+    #[serde(default)]
     pub enabled: bool,
 
     /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
@@ -103,13 +155,8 @@ pub struct ConfigDefaultsBitcoin {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsCanisterHttp {
-    #[serde(default = "default_as_false")]
+    #[serde(default)]
     pub enabled: bool,
-}
-
-fn default_as_false() -> bool {
-    // sigh https://github.com/serde-rs/serde/issues/368
-    false
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -398,40 +445,40 @@ impl ConfigInterface {
     }
 
     #[context("Failed to get compute allocation for '{}'.", canister_name)]
-    pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
-        self.get_initialization_value(canister_name, "compute_allocation")
+    pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<u64>> {
+        Ok(self
+            .get_canister_config(canister_name)?
+            .initialization_values
+            .compute_allocation
+            .map(|x| x.0))
     }
 
     #[context("Failed to get memory allocation for '{}'.", canister_name)]
-    pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
-        self.get_initialization_value(canister_name, "memory_allocation")
+    pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<Byte>> {
+        Ok(self
+            .get_canister_config(canister_name)?
+            .initialization_values
+            .memory_allocation)
     }
 
     #[context("Failed to get freezing threshold for '{}'.", canister_name)]
-    pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<String>> {
-        self.get_initialization_value(canister_name, "freezing_threshold")
+    pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<Duration>> {
+        Ok(self
+            .get_canister_config(canister_name)?
+            .initialization_values
+            .freezing_threshold)
     }
 
-    fn get_initialization_value(
-        &self,
-        canister_name: &str,
-        field: &str,
-    ) -> DfxResult<Option<String>> {
-        let canister_map = (&self.canisters)
+    fn get_canister_config(&self, canister_name: &str) -> DfxResult<&ConfigCanistersCanister> {
+        let canister_map = self
+            .canisters
             .as_ref()
             .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
 
         let canister_config = canister_map
             .get(canister_name)
-            .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
-
-        canister_config
-            .extras
-            .get("initialization_values")
-            .and_then(|v| v.get(field))
-            .map(String::deserialize)
-            .transpose()
-            .map_err(|_| error_invalid_config!("Field {} is of the wrong type", field))
+            .with_context(|| format!("Cannot find canister '{canister_name}'."))?;
+        Ok(canister_config)
     }
 }
 
@@ -460,16 +507,10 @@ fn add_dependencies(
         .get(canister_name)
         .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
 
-    let deps = match canister_config.extras.get("dependencies") {
-        None => vec![],
-        Some(v) => Vec::<String>::deserialize(v)
-            .map_err(|_| error_invalid_config!("Field 'dependencies' is of the wrong type"))?,
-    };
-
     path.push(String::from(canister_name));
 
-    for canister in deps {
-        add_dependencies(all_canisters, names, path, &canister)?;
+    for canister in &canister_config.dependencies {
+        add_dependencies(all_canisters, names, path, canister)?;
     }
 
     path.pop();
@@ -810,13 +851,13 @@ mod tests {
             .get_compute_allocation("test_project")
             .unwrap()
             .unwrap();
-        assert_eq!("100", compute_allocation);
+        assert_eq!(100, compute_allocation);
 
         let memory_allocation = config_interface
             .get_memory_allocation("test_project")
             .unwrap()
             .unwrap();
-        assert_eq!("8GB", memory_allocation);
+        assert_eq!("8GB".parse::<Byte>().unwrap(), memory_allocation);
 
         let config_no_values = Config::from_str(
             r#"{

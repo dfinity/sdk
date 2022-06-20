@@ -4,11 +4,16 @@ use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 use anyhow::Context;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
+use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
 use fn_error_context::context;
 use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
+use serde::Serialize;
+use std::convert::TryFrom;
+use std::fmt::Display;
 use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
 use std::time::Duration;
 
 pub mod assets;
@@ -218,5 +223,55 @@ pub fn blob_from_arguments(
             Ok(typed_args)
         }
         v => Err(error_unknown!("Invalid type: {}", v)),
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum SerdeVec<T> {
+    One(T),
+    Many(Vec<T>),
+}
+
+impl<T> SerdeVec<T> {
+    pub fn into_vec(self) -> Vec<T> {
+        match self {
+            Self::One(t) => vec![t],
+            Self::Many(ts) => ts,
+        }
+    }
+}
+
+impl<T> Default for SerdeVec<T> {
+    fn default() -> Self {
+        Self::Many(vec![])
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum PossiblyStrInner<T> {
+    NotStr(T),
+    Str(String),
+}
+
+#[derive(Serialize, Deserialize, Default, Copy, Clone, Debug)]
+#[serde(try_from = "PossiblyStrInner<T>")]
+pub struct PossiblyStr<T>(pub T)
+where
+    T: FromStr,
+    T::Err: Display;
+
+impl<T> TryFrom<PossiblyStrInner<T>> for PossiblyStr<T>
+where
+    T: FromStr,
+    T::Err: Display,
+{
+    type Error = T::Err;
+    fn try_from(inner: PossiblyStrInner<T>) -> Result<Self, Self::Error> {
+        match inner {
+            PossiblyStrInner::NotStr(t) => Ok(Self(t)),
+            PossiblyStrInner::Str(str) => T::from_str(&str).map(Self),
+        }
     }
 }

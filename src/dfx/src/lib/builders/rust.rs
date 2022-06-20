@@ -10,7 +10,6 @@ use crate::lib::models::canister::CanisterPool;
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
-use serde::Deserialize;
 use slog::{info, o, warn};
 use std::path::PathBuf;
 use std::process::Command;
@@ -38,12 +37,7 @@ impl CanisterBuilder for RustBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        let deps = match info.get_extra_value("dependencies") {
-            None => vec![],
-            Some(v) => Vec::<String>::deserialize(v)
-                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
-        };
-        let dependencies = deps
+        let dependencies = info.get_dependencies()
             .iter()
             .map(|name| {
                 pool.get_first_canister_with_name(name)
@@ -55,10 +49,6 @@ impl CanisterBuilder for RustBuilder {
             })
             .collect::<DfxResult<Vec<CanisterId>>>().with_context(|| format!("Failed to collect dependencies (canister ids) for canister {}.", info.get_name()))?;
         Ok(dependencies)
-    }
-
-    fn supports(&self, info: &CanisterInfo) -> bool {
-        info.get_type() == "rust"
     }
 
     #[context("Failed to build Rust canister '{}'.", canister_info.get_name())]

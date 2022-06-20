@@ -7,6 +7,7 @@ use crate::lib::package_arguments::{self, PackageArguments};
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use fn_error_context::context;
+use std::path::PathBuf;
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
@@ -47,7 +48,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
 }
 
 #[context("Failed to determine main path.")]
-fn get_main_path(config: &ConfigInterface, canister_name: Option<String>) -> DfxResult<String> {
+fn get_main_path(config: &ConfigInterface, canister_name: Option<String>) -> DfxResult<PathBuf> {
     // TODO try and point at the actual dfx.json path
     let dfx_json = CONFIG_FILE_NAME;
 
@@ -80,24 +81,20 @@ fn get_main_path(config: &ConfigInterface, canister_name: Option<String>) -> Dfx
                 }
             }
         }?;
-
-    canister
-        .extras
-        .get("main")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| {
-            error_invalid_data!(
-                "Canister {0} lacks a 'main' element in {1}",
-                canister_name,
-                dfx_json
-            )
-        })
-        .map(|s| s.to_owned())
+    if let Some(main) = canister.main {
+        Ok(main)
+    } else {
+        Err(error_invalid_data!(
+            "Canister {0} lacks a 'main' element in {1}",
+            canister_name,
+            dfx_json
+        ))
+    }
 }
 
 fn run_ide(
     env: &dyn Environment,
-    main_path: String,
+    main_path: PathBuf,
     package_arguments: PackageArguments,
 ) -> DfxResult {
     let output = env
