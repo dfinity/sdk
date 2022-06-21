@@ -69,6 +69,11 @@ a dfx process that is starting.
 
 dfx ping now uses the anonymous identity, and no longer requires dfx.json to be present.
 
+=== fix: Initialize replica with bitcoin regtest flag
+
+When the bitcoin feature is enabled, dfx was launching the replica with the "bitcoin_testnet" feature.
+The correct feature to use is "bitcoin_regtest".
+
 == Dependencies
 
 == Motoko
