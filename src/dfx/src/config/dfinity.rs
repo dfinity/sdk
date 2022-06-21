@@ -96,7 +96,6 @@ pub enum CanisterTypeProperties {
         package: String,
         candid: PathBuf,
     },
-    Motoko {},
     Assets {
         source: Vec<PathBuf>,
     },
@@ -105,6 +104,8 @@ pub enum CanisterTypeProperties {
         candid: PathBuf,
         build: SerdeVec<String>,
     },
+    #[serde(other)]
+    Motoko,
 }
 
 impl Default for CanisterTypeProperties {
