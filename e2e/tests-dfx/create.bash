@@ -231,7 +231,6 @@ teardown() {
 }
 
 @test "canister-create on mainnet without wallet does not propagate the 404" {
-    dfx_start
     assert_command_fail dfx deploy --network ic --no-wallet
     assert_match 'dfx ledger create-canister'
 }
