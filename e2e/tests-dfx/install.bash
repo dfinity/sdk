@@ -83,50 +83,51 @@ teardown() {
 }
 
 @test "install runs post-install tasks" {
+    install_asset post_install
     dfx_start
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.e2e_project.post_install="sh -c \"echo hello\""' dfx.json)" >dfx.json
 
     assert_command dfx canister create --all
     assert_command dfx build
 
-    assert_command dfx canister install --all
+    assert_command dfx canister install postinstall
+    assert_match hello
+
+    assert_command dfx canister install postinstall_script
     assert_match hello
     
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.e2e_project.post_install=["sh -c \"echo hello\"", "sh -c \"return 1\""]' dfx.json)" >dfx.json
-    assert_command_fail dfx canister install --all --mode upgrade
+    echo 'return 1' >> postinstall.sh
+    assert_command_fail dfx canister install postinstall_script --mode upgrade
     assert_match hello
 }
 
 @test "post-install tasks receive environment variables" {
+    install_asset post_install
     dfx_start
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.e2e_project.post_install="sh -c \"echo hello $CANISTER_ID\""' dfx.json)" >dfx.json
+    echo 'echo $CANISTER_ID' >> postinstall.sh
 
     assert_command dfx canister create --all
     assert_command dfx build
-    id=$(dfx canister id e2e_project)
+    id=$(dfx canister id postinstall_script)
 
     assert_command dfx canister install --all
     assert_match "hello $id"
-    assert_command dfx canister install e2e_project --mode upgrade
+    assert_command dfx canister install postinstall_script --mode upgrade
     assert_match "hello $id"
 
     assert_command dfx deploy
     assert_match "hello $id"
-    assert_command dfx deploy e2e_project
+    assert_command dfx deploy postinstall_script
     assert_match "hello $id"
 }
 
 @test "post-install tasks discover dependencies" {
+    install_asset post_install
     dfx_start
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.e2e_project_assets.post_install="sh -c \"echo hello $CANISTER_ID_e2e_project\""' dfx.json)" >dfx.json
+    echo 'echo hello $CANISTER_ID_postinstall' >> postinstall.sh
 
     assert_command dfx canister create --all
     assert_command dfx build
-    id=$(dfx canister id e2e_project)
+    id=$(dfx canister id postinstall)
     
     assert_command dfx canister install --all
     assert_match "hello $id"

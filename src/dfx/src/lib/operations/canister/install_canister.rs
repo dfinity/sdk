@@ -212,16 +212,21 @@ fn run_post_install_task(
     pool: &CanisterPool,
     dependencies: &[Principal],
 ) -> DfxResult {
+    let cwd = canister.get_workspace_root();
     let words = shell_words::split(task)
         .with_context(|| format!("Error interpreting post-install task `{task}`"))?;
-    let mut command = Command::new(&words[0]);
+    let canonicalized = cwd.join(&words[0])
+        .canonicalize()
+        .or_else(|_| which::which(&words[0]))
+        .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
+    let mut command = Command::new(&canonicalized);
     command.args(&words[1..]);
     let vars = environment_variables(canister, &network.name, pool, dependencies);
     for (key, val) in vars {
         command.env(&*key, val);
     }
     command
-        .stdin(Stdio::piped())
+        .current_dir(cwd)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
     let status = command.status()?;
