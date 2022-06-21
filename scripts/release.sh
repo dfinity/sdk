@@ -27,7 +27,7 @@ term_reset() {
 
 get_parameters() {
     [ "$#" -eq 1 ] || die "Usage: $0 <n.n.n>"
-    [[ "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-(beta|alpha)\.[0-9]+)?$ ]] || \
+    [[ "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-([A-Za-z]+)\.[0-9]+)?$ ]] || \
         die "'$1' is not a valid semantic version"
 
     export FINAL_RELEASE_BRANCH="release-${BASH_REMATCH[1]}"
