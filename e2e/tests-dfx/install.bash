@@ -103,7 +103,7 @@ teardown() {
 @test "post-install tasks receive environment variables" {
     install_asset post_install
     dfx_start
-    echo 'echo $CANISTER_ID' >> postinstall.sh
+    echo "echo \$CANISTER_ID" >> postinstall.sh
 
     assert_command dfx canister create --all
     assert_command dfx build
@@ -123,7 +123,7 @@ teardown() {
 @test "post-install tasks discover dependencies" {
     install_asset post_install
     dfx_start
-    echo 'echo hello $CANISTER_ID_postinstall' >> postinstall.sh
+    echo "echo hello \$CANISTER_ID_postinstall" >> postinstall.sh
 
     assert_command dfx canister create --all
     assert_command dfx build
