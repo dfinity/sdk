@@ -142,6 +142,7 @@ teardown() {
   install_asset custom_canister
   dfx_start
   dfx canister create custom2
+  #shellcheck disable=SC2094
   cat <<<"$(jq '.canisters.custom2.build="ln"' dfx.json)" >dfx.json
   mv ./build.sh ./ln
 
