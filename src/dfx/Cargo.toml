@@ -28,7 +28,6 @@ argon2 = "0.4.0"
 atty = "0.2.13"
 base64 = "0.13.0"
 candid = { version = "0.7.10", features = [ "random" ] }
-chrono = "0.4.9"
 clap = { version = "3.1.6", features = [ "derive" ] }
 console = "0.15.0"
 crc32fast = "1.3.2"
@@ -42,6 +41,7 @@ futures = "0.3.21"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
 ic-types = "0.3.0"
+ic-wasm = "0.1.0"
 indicatif = "0.16.0"
 itertools = "0.10.3"
 lazy-init = "0.5.0"
@@ -72,16 +72,19 @@ shell-words = "1.1.0"
 slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
 slog-term = "2.9.0"
-sysinfo = "0.23.5"
+sysinfo = "0.24.4"
 tar = "0.4.38"
 tempfile = "3.3.0"
 term = "0.7.0"
 thiserror = "1.0.20"
+time = { version = "0.3.9", features = ["serde", "macros", "serde-human-readable"] }
 tokio = { version = "1.17.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
-wasmparser = "0.85.0"
+walrus = "0.19.0"
+wasmparser = "0.86.0"
+which = "4.2.5"
 
 [dependencies.ic-agent]
 version = "0.17.0"

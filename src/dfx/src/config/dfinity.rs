@@ -49,7 +49,7 @@ const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsRepli
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigCanistersCanisterRemote {
-    pub candid: Option<String>,
+    pub candid: Option<PathBuf>,
 
     // network -> canister ID
     pub id: BTreeMap<String, Principal>,
