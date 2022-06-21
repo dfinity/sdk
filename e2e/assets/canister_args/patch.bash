@@ -10,7 +10,7 @@ patch dfx.json <<EOF
 +      "main": "src/e2e_project/main.mo",
 +      "args" : ""
      },
-     "e2e_project_assets": {
+     "e2e_project_frontend": {
        "type": "assets",
 EOF
 

@@ -58,8 +58,8 @@ teardown() {
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
-    assert_command_fail dfx --identity alice canister update-settings hello_assets --controller bob
-    assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
+    assert_command_fail dfx --identity alice canister update-settings hello_frontend --controller bob
+    assert_match "Cannot find canister id. Please issue 'dfx canister create hello_frontend'."
 }
 
 @test "set controller with wallet" {
@@ -106,8 +106,8 @@ teardown() {
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
-    assert_command_fail dfx --identity alice canister --wallet "${ALICE_WALLET}" update-settings hello_assets --controller bob
-    assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
+    assert_command_fail dfx --identity alice canister --wallet "${ALICE_WALLET}" update-settings hello_frontend --controller bob
+    assert_match "Cannot find canister id. Please issue 'dfx canister create hello_frontend'."
 }
 
 @test "set controller with wallet 0.7.2" {
@@ -156,8 +156,8 @@ teardown() {
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
-    assert_command_fail dfx --identity alice canister update-settings hello_assets --controller bob
-    assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
+    assert_command_fail dfx --identity alice canister update-settings hello_frontend --controller bob
+    assert_match "Cannot find canister id. Please issue 'dfx canister create hello_frontend'."
 }
 
 @test "set controller without wallet but using wallet 0.7.2" {
@@ -206,8 +206,8 @@ teardown() {
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
-    assert_command_fail dfx --identity alice canister update-settings hello_assets --controller bob
-    assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
+    assert_command_fail dfx --identity alice canister update-settings hello_frontend --controller bob
+    assert_match "Cannot find canister id. Please issue 'dfx canister create hello_frontend'."
 }
 
 

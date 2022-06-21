@@ -108,16 +108,16 @@ validate_default_project() {
         echo "Calling the canister."
         $dfx_rc canister call hello_world greet everyone
 
-        hello_world_assets_canister_id=$($dfx_rc canister id hello_world_assets)
+        hello_world_frontend_canister_id=$($dfx_rc canister id hello_world_frontend)
         application_canister_id=$($dfx_rc canister id hello_world)
         candid_ui_id=$($dfx_rc canister id __Candid_UI)
-        export hello_world_assets_url="http://localhost:8000/?canisterId=$hello_world_assets_canister_id"
+        export hello_world_frontend_url="http://localhost:8000/?canisterId=$hello_world_frontend_canister_id"
         export candid_ui_url="http://localhost:8000/?canisterId=$candid_ui_id&id=$application_canister_id"
 
         echo
         echo "=================================================="
         echo "dfx project directory: $(pwd)"
-        echo "assets URL: $hello_world_assets_url"
+        echo "assets URL: $hello_world_frontend_url"
         echo "candid URL: $candid_ui_url"
         echo "=================================================="
         echo
@@ -125,7 +125,7 @@ validate_default_project() {
         echo "  - Open this URL in your web browser with empty cache or 'Private Browsing' mode"
         echo "  - Type a name and verify the response."
         echo
-        echo "  $hello_world_assets_url"
+        echo "  $hello_world_frontend_url"
         echo
         wait_for_response 'assets UI passes'
         echo

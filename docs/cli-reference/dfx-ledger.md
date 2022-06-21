@@ -210,7 +210,7 @@ The command displays output similar to the following:
 ```
 Fabricating 8000000000000 cycles onto hello
 Fabricated 8000000000000 cycles, updated balance: 11_899_662_119_932 cycles
-Fabricating 8000000000000 cycles onto hello_assets
+Fabricating 8000000000000 cycles onto hello_frontend
 Fabricated 8000000000000 cycles, updated balance: 11_899_075_504_924 cycles
 ```
 

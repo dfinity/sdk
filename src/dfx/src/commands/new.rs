@@ -268,7 +268,7 @@ fn scaffold_frontend_code(
 
         let frontend_value: serde_json::Map<String, Value> = [(
             "entrypoint".to_string(),
-            ("src/".to_owned() + project_name_str + "_assets/src/index.html").into(),
+            ("src/".to_owned() + project_name_str + "_frontend/src/index.html").into(),
         )]
         .iter()
         .cloned()
@@ -277,7 +277,7 @@ fn scaffold_frontend_code(
         // Only update the dfx.json and install node dependencies if we're not running in dry run.
         if !dry_run {
             let assets_canister_json = config_json
-                .pointer_mut(("/canisters/".to_owned() + project_name_str + "_assets").as_str())
+                .pointer_mut(("/canisters/".to_owned() + project_name_str + "_frontend").as_str())
                 .unwrap();
             assets_canister_json
                 .as_object_mut()
@@ -292,7 +292,7 @@ fn scaffold_frontend_code(
                 .as_array_mut()
                 .unwrap()
                 .push(Value::from(
-                    "dist/".to_owned() + project_name_str + "_assets/",
+                    "dist/".to_owned() + project_name_str + "_frontend/",
                 ));
 
             let pretty = serde_json::to_string_pretty(&config_json)

@@ -56,7 +56,7 @@ teardown() {
     dfx_start
     assert_command dfx canister create e2e_project
     assert_command_fail dfx build
-    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_assets'"
+    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend'"
 }
 
 @test "create succeeds with network parameter" {
@@ -173,21 +173,21 @@ teardown() {
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
 
     assert_command dfx canister create --controller alice e2e_project
-    assert_command dfx canister create --controller bob e2e_project_assets
+    assert_command dfx canister create --controller bob e2e_project_frontend
 
     assert_command dfx canister info e2e_project
     assert_match "Controllers: $ALICE_PRINCIPAL"
 
-    assert_command dfx canister info e2e_project_assets
+    assert_command dfx canister info e2e_project_frontend
     assert_match "Controllers: $BOB_PRINCIPAL"
 
     # check this first, because alice will deploy e2e_project in the next step
     assert_command_fail dfx --identity bob deploy e2e_project
     # this actually deploys e2e_project before failing, because it is a dependency
-    assert_command_fail dfx --identity alice deploy e2e_project_assets
+    assert_command_fail dfx --identity alice deploy e2e_project_frontend
 
     assert_command dfx --identity alice deploy e2e_project
-    assert_command dfx --identity bob deploy e2e_project_assets
+    assert_command dfx --identity bob deploy e2e_project_frontend
 }
 
 @test "create canister with multiple controllers" {
@@ -209,7 +209,7 @@ teardown() {
     # The certified assets canister will have added alice as an authorized user, because she was the caller
     # at initialization time.  Bob has to be added separately.  BUT, the canister has to be deployed first
     # in order to call the authorize method.
-    assert_command dfx --identity alice canister call e2e_project_assets authorize "(principal \"$BOB_PRINCIPAL\")"
+    assert_command dfx --identity alice canister call e2e_project_frontend authorize "(principal \"$BOB_PRINCIPAL\")"
 
     assert_command dfx --identity bob deploy
 }

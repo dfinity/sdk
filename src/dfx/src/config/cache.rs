@@ -166,10 +166,10 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             )
         })?;
 
-        let mut binary_cache_assets =
+        let mut binary_cache_frontend =
             util::assets::binary_cache().context("Failed to get asset binary cache.")?;
         // Write binaries and set them to be executable.
-        for file in binary_cache_assets
+        for file in binary_cache_frontend
             .entries()
             .context("Failed to get binary cache archive entires.")?
         {

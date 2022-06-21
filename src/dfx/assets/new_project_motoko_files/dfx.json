@@ -6,10 +6,10 @@
       "type": "motoko",
       "main": "src/{project_name}/main.mo"
     },
-    "{project_name}_assets": {
+    "{project_name}_frontend": {
       "type": "assets",
       "source": [
-        "src/{project_name}_assets/assets"
+        "src/{project_name}_frontend/assets"
       ],
       "dependencies": [
         "{project_name}"

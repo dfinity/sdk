@@ -389,7 +389,7 @@ dfx canister install --all
 
 #### Installing a specific canister
 
-You can also use the `dfx canister install` command to deploy a specific canister instead of all of the canisters in your project. For example, if you have a project with a `hello_world` canister and a `hello_world_assets` canister but only want to deploy the `hello_world` canister, you can deploy just that the canister by running the following command:
+You can also use the `dfx canister install` command to deploy a specific canister instead of all of the canisters in your project. For example, if you have a project with a `hello_world` canister and a `hello_world_frontend` canister but only want to deploy the `hello_world` canister, you can deploy just that the canister by running the following command:
 
 ``` bash
 dfx canister install hello_world
@@ -542,11 +542,11 @@ Although specifying a user identity name or principal is one potential use case,
 
 5.  Set the controller for a specified canister to use the wallet associated wit the sf-controller identity.
 
-        dfx canister set-controller open_sf_assets r7inp-6aaaa-aaaaa-aaabq-cai
+        dfx canister set-controller open_sf_frontend r7inp-6aaaa-aaaaa-aaabq-cai
 
-        Set "r7inp-6aaaa-aaaaa-aaabq-cai" as controller of "open_sf_assets".
+        Set "r7inp-6aaaa-aaaaa-aaabq-cai" as controller of "open_sf_frontend".
 
-    You can now use the wallet canister `r7inp-6aaaa-aaaaa-aaabq-cai` to send cycles or add custodians to the `open_sf_assets` canister.
+    You can now use the wallet canister `r7inp-6aaaa-aaaaa-aaabq-cai` to send cycles or add custodians to the `open_sf_frontend` canister.
 
 ## dfx canister send
 

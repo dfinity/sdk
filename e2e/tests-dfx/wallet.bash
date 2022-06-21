@@ -64,12 +64,12 @@ teardown() {
     # get Canister IDs to install the wasm onto
     dfx canister --network actuallylocal create hello
     ID=$(dfx canister --network actuallylocal id hello)
-    dfx canister --network actuallylocal create hello_assets
-    ID_TWO=$(dfx canister --network actuallylocal id hello_assets)
+    dfx canister --network actuallylocal create hello_frontend
+    ID_TWO=$(dfx canister --network actuallylocal id hello_frontend)
 
     # set controller to user
     dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
 
     assert_command_fail dfx identity --network actuallylocal set-wallet "${ID}"
     assert_not_match "Setting wallet for identity"
@@ -85,14 +85,14 @@ teardown() {
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello_assets
-    ID=$(dfx canister --network actuallylocal id hello_assets)
+    dfx canister --network actuallylocal create hello_frontend
+    ID=$(dfx canister --network actuallylocal id hello_frontend)
     dfx deploy --network actuallylocal hello
     ID_TWO=$(dfx canister --network actuallylocal id hello)
 
     # set controller to user
     dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
