@@ -9,14 +9,16 @@ setup() {
 }
 
 teardown() {
-    dfx_stop_replica_and_bootstrap
+    stop_dfx_replica
+    stop_dfx_bootstrap
 
     standard_teardown
 }
 
 @test "bootstrap fetches candid file" {
 
-    dfx_start_replica_and_bootstrap
+    dfx_replica
+    dfx_bootstrap
 
     dfx canister create --all
     dfx build
@@ -40,7 +42,8 @@ teardown() {
 }
 
 @test "bootstrap supports http requests" {
-    dfx_start_replica_and_bootstrap
+    dfx_replica
+    dfx_bootstrap
 
     dfx canister create --all
     dfx build
