@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: Better build scripts for type:custom
+
+Build scripts now always receive a CWD of the DFX project root, instead of wherever `+dfx+` was invoked from, and a bare script `+script.sh+` can be specified without needing to prefix with `+./+`.
+
 === feat: rust, custom, and asset canisters now include candid:service metadata
 
 Motoko canisters already included this metadata.
