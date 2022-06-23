@@ -204,6 +204,7 @@ You can use the following optional flags with the `dfx wallet balance` command.
 -------|---------
 |`-h`, `--help` |Displays usage information.
 |`-V`, `--version` |Displays version information.
+|`--precise` |Displays the exact balance, without scaling to trillions of cycles.
 
 ### Examples
 
@@ -216,7 +217,7 @@ dfx wallet balance
 This command displays the number of cycles in your cycles wallet. For example: 
 
 ```
-89000000000000 cycles.
+89.000 TC (trillion cycles).
 ```
 
 ## dfx wallet controllers
@@ -237,7 +238,6 @@ You can use the following optional flags with the `dfx wallet controllers` comma
 |Flag |Description
 |`-h`, `--help` |Displays usage information.
 |`-V`, `--version` |Displays version information.
-
 
 ### Examples
 

@@ -3,7 +3,7 @@ use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
-use crate::config::dfinity::{Config, ConfigInterface};
+use crate::config::dfinity::ConfigInterface;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
@@ -11,6 +11,7 @@ use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
+use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::run_webserver;
 use actix::Recipient;
@@ -24,6 +25,7 @@ use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -161,13 +163,17 @@ pub fn exec(
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let network_descriptor = get_network_descriptor(env, None)?;
+    let network_descriptor = get_network_descriptor(env.get_config(), None)?;
+    let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
     let state_root = env.get_state_dir();
 
     check_previous_process_running(&pid_file_path)?;
+
+    let btc_adapter_socket_holder_path = temp_dir.join("ic-btc-adapter-socket-path");
+    let canister_http_adapter_socket_holder_path = temp_dir.join("ic-canister-http-socket-path");
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
@@ -185,7 +191,8 @@ pub fn exec(
     let icx_proxy_pid_file_path = empty_writable_path(temp_dir.join("icx-proxy-pid"))?;
     let webserver_port_path = empty_writable_path(temp_dir.join("webserver-port"))?;
 
-    let (frontend_url, address_and_port) = frontend_address(host, &config, background)?;
+    let (frontend_url, address_and_port) =
+        frontend_address(host, local_server_descriptor, background)?;
 
     if background {
         send_background()?;
@@ -205,6 +212,7 @@ pub fn exec(
     let btc_adapter_config = configure_btc_adapter_if_enabled(
         config.get_config(),
         &btc_adapter_config_path,
+        &btc_adapter_socket_holder_path,
         enable_bitcoin,
         bitcoin_node,
     )?;
@@ -215,6 +223,7 @@ pub fn exec(
     let canister_http_adapter_config = configure_canister_http_adapter_if_enabled(
         config.get_config(),
         &canister_http_adapter_config_path,
+        &canister_http_adapter_socket_holder_path,
         enable_canister_http,
     )?;
     let canister_http_socket_path = canister_http_adapter_config
@@ -365,18 +374,15 @@ fn send_background() -> DfxResult<()> {
 #[context("Failed to get frontend address.")]
 fn frontend_address(
     host: Option<String>,
-    config: &Config,
+    local_server_descriptor: &LocalServerDescriptor,
     background: bool,
 ) -> DfxResult<(String, SocketAddr)> {
-    let mut address_and_port = host
+    let address_and_port = host
         .and_then(|host| Option::from(host.parse()))
-        .unwrap_or_else(|| {
-            Ok(config
-                .get_config()
-                .get_local_bind_address("localhost:8000")
-                .expect("could not get socket_addr"))
-        })
+        .transpose()
         .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
+
+    let mut address_and_port = address_and_port.unwrap_or(local_server_descriptor.bind_address);
 
     if !background {
         // Since the user may have provided port "0", we need to grab a dynamically
@@ -421,6 +427,7 @@ fn write_pid(pid_file_path: &Path) {
 pub fn configure_btc_adapter_if_enabled(
     config: &ConfigInterface,
     config_path: &Path,
+    uds_holder_path: &Path,
     enable_bitcoin: bool,
     nodes: Vec<SocketAddr>,
 ) -> DfxResult<Option<bitcoin::adapter::Config>> {
@@ -436,23 +443,48 @@ pub fn configure_btc_adapter_if_enabled(
         (_, _) => bitcoin::adapter::config::default_nodes(),
     };
 
-    let config = write_btc_adapter_config(config_path, nodes)?;
+    let config = write_btc_adapter_config(uds_holder_path, config_path, nodes)?;
     Ok(Some(config))
+}
+
+#[context("Failed to create persistent socket path for {} at {}.", prefix, uds_holder_path.to_string_lossy())]
+fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<PathBuf> {
+    let pid = sysinfo::get_current_pid()
+        .map_err(|s| anyhow!("Unable to obtain pid of current process: {}", s))?;
+    let timestamp_seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    // Unix domain socket names can only be so long.
+    // An attempt to use a path under .dfx/ resulted in this error:
+    //    path must be shorter than libc::sockaddr_un.sun_path
+    let uds_path = format!("/tmp/{}.{}.{}", prefix, pid, timestamp_seconds);
+    std::fs::write(uds_holder_path, &uds_path).with_context(|| {
+        format!(
+            "unable to write unix domain socket path to {}",
+            uds_holder_path.to_string_lossy()
+        )
+    })?;
+    Ok(PathBuf::from(uds_path))
+}
+
+#[context("Failed to get persistent socket path for {} at {}.", prefix, uds_holder_path.to_string_lossy())]
+fn get_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<PathBuf> {
+    if let Ok(uds_path) = std::fs::read_to_string(uds_holder_path) {
+        Ok(PathBuf::from(uds_path.trim()))
+    } else {
+        create_new_persistent_socket_path(uds_holder_path, prefix)
+    }
 }
 
 #[context("Failed to write btc adapter config to {}.", config_path.to_string_lossy())]
 fn write_btc_adapter_config(
+    uds_holder_path: &Path,
     config_path: &Path,
     nodes: Vec<SocketAddr>,
 ) -> DfxResult<bitcoin::adapter::Config> {
-    let pid = sysinfo::get_current_pid()
-        .map_err(|s| anyhow!("Unable to obtain pid of current process: {}", s))
-        .context("Unable to construct btc adapter socket path")?;
-
-    // Unix socket domain names can only be so long.
-    // An attempt to use a path under .dfx/ resulted in this error:
-    //    path must be shorter than libc::sockaddr_un.sun_path
-    let socket_path = PathBuf::from(format!("/tmp/ic-btc-adapter-socket.{}", pid));
+    let socket_path = get_persistent_socket_path(uds_holder_path, "ic-btc-adapter-socket")?;
 
     let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path);
 
@@ -478,6 +510,7 @@ pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
 pub fn configure_canister_http_adapter_if_enabled(
     config: &ConfigInterface,
     config_path: &Path,
+    uds_holder_path: &Path,
     enable_canister_http: bool,
 ) -> DfxResult<Option<canister_http::adapter::Config>> {
     let enable = enable_canister_http || config.get_defaults().get_canister_http().enabled;
@@ -486,14 +519,8 @@ pub fn configure_canister_http_adapter_if_enabled(
         return Ok(None);
     };
 
-    let pid = sysinfo::get_current_pid()
-        .map_err(|s| anyhow!("Unable to obtain pid: {}", s))
-        .context("Unable to construct canister http adapter socket path")?;
-
-    // Unix socket domain names can only be so long.
-    // An attempt to use a path under .dfx/ resulted in this error:
-    //    path must be shorter than libc::sockaddr_un.sun_path
-    let socket_path = PathBuf::from(format!("/tmp/ic-canister-http-adapter-socket.{}", pid));
+    let socket_path =
+        get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
 
     let adapter_config = canister_http::adapter::Config::new(socket_path);
 

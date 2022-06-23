@@ -16,7 +16,7 @@ teardown() {
 
 @test "dfx deploy shows a url for the frontend and for the candid interface" {
     dfx_start
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
 
     assert_command dfx deploy
     CANDID_UI_ID=$(dfx canister id __Candid_UI)
@@ -42,7 +42,7 @@ teardown() {
     dfx canister install --all
 
     ID=$(dfx canister id e2e_project_assets)
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
     assert_command curl http://localhost:"$PORT"/?canisterId="$ID"
     assert_match "logo.png"
 }

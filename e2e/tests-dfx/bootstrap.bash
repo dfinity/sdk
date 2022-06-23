@@ -23,7 +23,7 @@ teardown() {
     dfx canister install hello
 
     ID=$(dfx canister id hello)
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID" -o ./web.txt --max-time 60
     assert_command diff .dfx/local/canisters/hello/hello.did ./web.txt
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt --max-time 60
@@ -47,7 +47,7 @@ teardown() {
     dfx canister install hello_assets
 
     ID=$(dfx canister id hello_assets)
-    PORT=$(cat .dfx/webserver-port)
+    PORT=$(get_webserver_port)
     assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID" --max-time 60
     # shellcheck disable=SC2154
     assert_eq "This is a sample asset!" "$stdout"

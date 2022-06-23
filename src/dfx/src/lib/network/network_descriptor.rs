@@ -1,5 +1,9 @@
 use crate::config::dfinity::NetworkType;
 use crate::config::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
+use crate::lib::error::DfxResult;
+use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
+
+use anyhow::bail;
 
 #[derive(Clone, Debug)]
 pub struct NetworkDescriptor {
@@ -7,6 +11,7 @@ pub struct NetworkDescriptor {
     pub providers: Vec<String>,
     pub r#type: NetworkType,
     pub is_ic: bool,
+    pub local_server_descriptor: Option<LocalServerDescriptor>,
 }
 
 impl NetworkDescriptor {
@@ -25,6 +30,24 @@ impl NetworkDescriptor {
                 )
         };
         name_match || provider_match
+    }
+
+    /// Return the first provider in the list
+    pub fn first_provider(&self) -> DfxResult<&str> {
+        match self.providers.first() {
+            Some(provider) => Ok(provider),
+            None => bail!(
+                "Network '{}' does not specify any network providers.",
+                self.name
+            ),
+        }
+    }
+
+    pub fn local_server_descriptor(&self) -> DfxResult<&LocalServerDescriptor> {
+        match &self.local_server_descriptor {
+            Some(p) => Ok(p),
+            None => bail!("The '{}' network must be a local network", self.name),
+        }
     }
 }
 

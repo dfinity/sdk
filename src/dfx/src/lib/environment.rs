@@ -232,19 +232,14 @@ impl<'a> AgentEnvironment<'a> {
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
     ) -> DfxResult<Self> {
+        let logger = backend.get_logger().clone();
         let mut identity_manager = IdentityManager::new(backend)?;
         let identity = identity_manager.instantiate_selected_identity()?;
+        let url = network_descriptor.first_provider()?;
 
-        let agent_url = network_descriptor.providers.first().with_context(|| {
-            format!(
-                "Network '{}' does not specify any network providers.",
-                network_descriptor.name
-            )
-        })?;
         Ok(AgentEnvironment {
             backend,
-            agent: create_agent(backend.get_logger().clone(), agent_url, identity, timeout)
-                .expect("Failed to construct agent."),
+            agent: create_agent(logger, url, identity, timeout)?,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
         })
@@ -466,26 +461,23 @@ impl ic_agent::agent::http_transport::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent(
+#[context("Failed to create agent with url {}.", url)]
+pub fn create_agent(
     logger: Logger,
     url: &str,
     identity: Box<dyn Identity + Send + Sync>,
     timeout: Duration,
-) -> Option<Agent> {
-    AgentClient::new(logger, url.to_string())
-        .ok()
-        .and_then(|executor| {
-            Agent::builder()
-                .with_transport(
-                    ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(url)
-                        .unwrap()
-                        .with_password_manager(executor),
-                )
-                .with_boxed_identity(identity)
-                .with_ingress_expiry(Some(timeout))
-                .build()
-                .ok()
-        })
+) -> DfxResult<Agent> {
+    let executor = AgentClient::new(logger, url.to_string())?;
+    let agent = Agent::builder()
+        .with_transport(
+            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(url)?
+                .with_password_manager(executor),
+        )
+        .with_boxed_identity(identity)
+        .with_ingress_expiry(Some(timeout))
+        .build()?;
+    Ok(agent)
 }
 
 #[cfg(test)]

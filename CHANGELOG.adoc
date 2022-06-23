@@ -9,6 +9,102 @@
 
 The environment variable format `+CANISTER_CANDID_{name}+`, used in Rust projects, was deprecated in 0.9.2, to be unified with the variables `+CANISTER_CANDID_PATH_{name}+` which are used in other project types. It has now been removed. Note that you will need to update `+ic-cdk-macros+` if you use the `+#[import]+` macro.
 
+=== feat: Better build scripts for type:custom
+
+Build scripts now always receive a CWD of the DFX project root, instead of wherever `+dfx+` was invoked from, and a bare script `+script.sh+` can be specified without needing to prefix with `+./+`.
+
+=== feat: rust, custom, and asset canisters now include candid:service metadata
+
+Motoko canisters already included this metadata.
+
+Also added this metadata to the asset canister wasm, which will cause the next deploy to
+install this new version.
+
+=== fix: restores assets to webpack devserver
+
+=== chore: updates webpack dependencies for dfx new project
+
+Resolves an issue where `+webpack-cli+` was was breaking when users tried to run `+npm start+` in a fresh project. For affected users of 0.10.1, you can resolve this issue manually by running `+npm install webpack@latest webpack-cli@latest terser-webpack-plugin@latest+`.
+
+=== feat: Support for new ledger notify function
+
+Ledger 7424ea8 deprecates the existing `+notify+` function with a switch parameter between creating and topping up a canister, and introduces two
+functions for doing the same. This should *mostly* be invisible to users, except that previously, if `+dfx ledger create-canister+` or `+dfx ledger top-up+`
+failed, you would call `+dfx ledger notify+` after correcting the issue. In order to support the change, this command has been changed to two subcommands:
+`+dfx ledger notify create-canister+` and `+dfx ledger notify top-up+`.
+
+=== feat: `+--from-subaccount+`
+
+Previously, the ledger commands assumed all transfers were made from the default subaccount for the identity principal. This feature adds a `+--from-subaccount+` flag to `+dfx ledger transfer+`, `+dfx ledger create-canister+`, and `+dfx ledger top-up+`, to enable making transfers from a selected subaccount. A `+--subaccount+` flag is also added to `+dfx ledger balance+` for convenience. Subaccounts are expected as 64-character hex-strings (i.e. 32 bytes).
+
+=== feat: cargo audit when building rust canisters
+
+When a canister with type `rust` is built and `cargo-audit` is installed, dfx will now check for vulnerabilities in the dependencies. If a vulnerability is found, dfx will recommend that the user update to a version without known vulnerabilities.
+
+=== fix: Freezing Threshold now documented
+
+Calls made to retrieve the help output for `canister update-settings` was missing the `freezing-threshold` parameter.
+
+=== chore: warnings and errors are more visible
+
+`WARN` and `ERROR` messages are now clearly labelled as such, and the labels are colored accordingly.
+This is now included when running `dfx canister update-settings -h`.
+
+=== fix: canister call uses candid file if canister type cannot be determined
+
+The candid file specified in the field `canisters.<canister name>.candid` of dfx.json, or if that not exists `canisters.<canister name>.remote.candid`, is now used when running `dfx canister call`, even when dfx fails to determine the canister type.
+
+=== fix: btc/canister http adapter socket not found by replica after restart
+
+After running `dfx start --enable-bitcoin` twice in a row (stopping dfx in between), the second
+launched replica would fail to connect to the btc adapter.  This is because ic-starter
+does not write a new configuration file if one already exists, so the configuration file
+used by the replica referred to one socket path, while dfx passed a different socket path
+to the btc adapter.
+
+Now dfx reuses the previously-used unix domain socket path, for both the btc adapter
+and for the canister http adapter.
+
+=== fix: dfx stop now waits until dfx and any child processes exit
+
+Previously, `dfx stop` would send the TERM signal to the running dfx and its child processes,
+and then exit immediately.
+
+This avoids interference between a dfx process performing cleanup at shutdown and
+a dfx process that is starting.
+
+=== fix: dfx ping no longer creates a default identity
+
+dfx ping now uses the anonymous identity, and no longer requires dfx.json to be present.
+
+== Dependencies
+
+== Motoko
+
+Updated Motoko from 0.6.28 to 0.6.29.
+
+== Replica
+
+Updated replica to elected commit ebb7d6d10d3140f12b9f9b343c061f8aab6e271a.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/64355[64355]
+* https://dashboard.internetcomputer.org/proposal/63228[63228]
+* https://dashboard.internetcomputer.org/proposal/62143[62143]
+
+== ic-ref
+
+Updated ic-ref to 0.0.1-173cbe84
+ - add ic0.performance_counter system interface
+ - add system API for ECDSA signing
+ - allow optional "error_code" field in responses
+ - support gzip-compressed canister modules
+ - enable canisters to send HTTP requests
+
+= 0.10.1
+
+== DFX
+
 === fix: Webpack config no longer uses CopyPlugin
 
 Dfx already points to the asset canister's assets directory, and copying to disk could sometimes
@@ -85,13 +181,14 @@ Added ic-canister-http-adapter to the binary cache.
 
 == Motoko
 
-Updated Motoko from 0.6.26 to 0.6.27.
+Updated Motoko from 0.6.26 to 0.6.28.
 
 == Replica
 
-Updated replica to elected commit e7b57fc93c62d711829ee7ee8e5df47c3edfe932.
+Updated replica to elected commit b90edb9897718730f65e92eb4ff6057b1b25f766.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/61004[61004]
 * https://dashboard.internetcomputer.org/proposal/60222[60222]
 * https://dashboard.internetcomputer.org/proposal/59187[59187]
 * https://dashboard.internetcomputer.org/proposal/58479[58479]

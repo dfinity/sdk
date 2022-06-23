@@ -16,21 +16,24 @@ dfx canister call --help
 
 For reference information and examples that illustrate using `dfx canister` commands, select an appropriate command.
 
-| Command                               | Description               |
-|---------------------------------------|---------------------------|
-| [`call`](#dfx-canister-call)         | Calls a specified method on a deployed |
-| [`create`](#dfx-canister-create)     | Creates a new "empty" canister by registering a canister identifier on the {platform} or the local canister execution environment.|
-| [`delete`](#dfx-canister-delete)     | Deletes a currently stopped canister.                                                                                          |
-| `help`  | Displays usage information message for a specified subcommand.       |
-| [`id`](#dfx-canister-id)                         | Displays the identifier for a canister.   |
-| [`install`](#dfx-canister-install)               | Installs compiled code as a canister on the {platform} or the local canister execution environment. |
-| [`request-status`](#dfx-canister-request-status) | Requests the status of a call to a canister. |
-| [`set-controller`](#dfx-canister-set-controller) | Specifies the identity name or principal to use as the new controller for a specified canister on the {platform}.|
-| [`send`](#dfx-canister-send)                     | Send a previously-signed `message.json` to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons.|
-| [`sign`](#dfx-canister-send)                     | Create a signed `message.json` file before making a call to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons. |
-| [`start`](#dfx-canister-start)                   | Restarts a stopped canister. |
-| [`status`](#dfx-canister-status)                 | Requests the running status of a canister.|
-| [`stop`](#dfx-canister-stop)                     | Stops a currently running canister.|
+| Command                                            | Description                                                                                                                                                                                                                                                                                                       |
+|----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`call`](#dfx-canister-call)                       | Calls a specified method on a deployed                                                                                                                                                                                                                                                                            |
+| [`create`](#dfx-canister-create)                   | Creates a new "empty" canister by registering a canister identifier on the {platform} or the local canister execution environment.                                                                                                                                                                                |
+| [`delete`](#dfx-canister-delete)                   | Deletes a currently stopped canister.                                                                                                                                                                                                                                                                             |
+| [`deposit-cycles`](#dfx-canister-deposit-cycles)   | Deposit cycles into the specified canister.                                                                                                                                                                                                                                                                       |
+| `help`                                             | Displays usage information message for a specified subcommand.                                                                                                                                                                                                                                                    |
+| [`id`](#dfx-canister-id)                           | Displays the identifier for a canister.                                                                                                                                                                                                                                                                           |
+| [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller in a certified way.                                                                                                                                                                                                                           |
+| [`install`](#dfx-canister-install)                 | Installs compiled code as a canister on the {platform} or the local canister execution environment.                                                                                                                                                                                                               |
+| [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.                                                                                                                                                                                                                                                                      |
+| [`send`](#dfx-canister-send)                       | Send a previously-signed `message.json` to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons.                  |
+| [`sign`](#dfx-canister-send)                       | Create a signed `message.json` file before making a call to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons. |
+| [`start`](#dfx-canister-start)                     | Restarts a stopped canister.                                                                                                                                                                                                                                                                                      |
+| [`status`](#dfx-canister-status)                   | Requests the running status of a canister.                                                                                                                                                                                                                                                                        |
+| [`stop`](#dfx-canister-stop)                       | Stops a currently running canister.                                                                                                                                                                                                                                                                               |
+| [`uninstall-code`](#dfx-canister-uninstall-code)   | Uninstalls a canister, removing its code and state, on the Internet Computer network.                                                                                                                                                                                                                             |
+| [`update-settings`](#dfx-canister-update-settings) | Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.).                                                                                                                                                                                                      |
 
 ## Overriding the default deployment environment
 
@@ -244,6 +247,52 @@ To delete all of the canisters you have deployed on the `ic` {platform}, you can
 dfx canister --network=ic delete --all
 ```
 
+## dfx canister deposit-cycles
+
+Use the `dfx canister deposit-cycles` command to deposit cycles from your configured wallet into a canister.
+
+Note that you must have your cycles wallet configured for this to work.
+
+### Basic usage
+
+``` bash
+dfx canister deposit-cycles [amount of cycles] [--all | canister_name]
+```
+
+### Flags
+
+You can use the following optional flags with the `dfx canister deposit-cycles` command.
+
+| Flag              | Description                   |
+|-------------------|-------------------------------|
+| `-h`, `--help`    | Displays usage information.   |
+| `-V`, `--version` | Displays version information. |
+
+### Arguments
+
+You can use the following arguments with the `dfx canister deposit-cycles` command.
+
+| Argument        | Description                                                                                                                        |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `--all`         | Deposits the specified amount of cycles into all canisters configured in `dfx.json`. Note that you must specify `--all` or an individual canister name. |
+| `canister_name` | Specifies the name of the canister you want to deposit cycles into. Note that you must specify either a canister name or the `--all` option.    |
+
+### Examples
+
+You can use the `dfx canister deposit-cycles` command to add cycles to a specific canister or all canisters.
+
+To add 1T cycles to the canister called `hello`, you can run the following command:
+
+``` bash
+dfx canister deposit-cycles 1000000000000 hello
+```
+
+To add 2T cycles to each individual canister specified in `dfx.json`, you can run the following command:
+
+``` bash
+dfx canister deposit-cycles 2000000000000 --all
+```
+
 ## dfx canister id
 
 Use the `dfx canister id` command to output the canister identifier for a specific canister name.
@@ -424,12 +473,6 @@ dfx canister request-status 0x58d08e785445dcab4ff090463b9e8b12565a67bf436251d13e
 ```
 
 This command displays an error message if the request identifier is invalid or refused by the canister.
-
-## dfx canister set-controller
-
-Use the `dfx canister set-controller` command to specify the identity name or principal to use as the new **controller** for a specified canister on the {platform}. A controller identity has special rights to manage the canister it controls. For example, only a controlling identity can be used to install, upgrade, or delete the canister under its control.
-
-Note that you can specify either a user identity or a canister as a controller. You can also specify the controller identity by using its name or its principal.
 
 ### Basic usage
 
@@ -753,7 +796,7 @@ You can use the following arguments with the `dfx canister stop` command.
 
 ### Examples
 
-You can use the `dfx canister stop` command to start a specific canister or all canisters.
+You can use the `dfx canister stop` command to stop a specific canister or all canisters.
 
 To stop the `hello_world` canister, you can run the following command:
 
@@ -765,4 +808,97 @@ To stop all of the canisters you have deployed on the `ic` {platform}, you can r
 
 ``` bash
 dfx canister --network=ic stop --all
+```
+
+## dfx canister uninstall-code
+
+Use the `dfx canister uninstall-code` command to uninstall the code that a canister that is currently running on the {platform} or on the local canister execution environment.
+
+This method removes a canister’s code and state, making the canister empty again. Only the controller of the canister can uninstall code. Uninstalling a canister’s code will reject all calls that the canister has not yet responded to, and drop the canister’s code and state. Outstanding responses to the canister will not be processed, even if they arrive after code has been installed again. The canister is now empty. In particular, any incoming or queued calls will be rejected.
+
+Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
+
+### Basic usage
+
+``` bash
+dfx canister uninstall-code [flag] [--all | canister_name]
+```
+
+### Flags
+
+You can use the following optional flags with the `dfx canister uninstall-code` command.
+
+| Flag              | Description                   |
+|-------------------|-------------------------------|
+| `-h`, `--help`    | Displays usage information.   |
+
+### Arguments
+
+You can use the following arguments with the `dfx canister uninstall-code` command.
+
+| Argument        | Description                                                                                                                           |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| `--all`         | Uninstalls all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
+| `canister_name` | Specifies the name of the canister you want to uninstall. Note that you must specify either a canister name or the `--all` option.    |
+
+### Examples
+
+You can use the `dfx canister uninstall-code` command to uninstall a specific canister or all canisters.
+
+To uninstall the `hello_world` canister, you can run the following command:
+
+``` bash
+dfx canister uninstall-code hello_world
+```
+
+To uninstall all of the canisters you have deployed on the `ic` {platform}, you can run the following command:
+
+``` bash
+dfx canister --network=ic uninstall-code --all
+```
+
+## dfx canister update-settings
+
+Use the `dfx canister update-settings` command to update the settings of a canister running in the local execution environment.
+
+In most cases, you run this command to tune the amount of resources allocated to your canister. 
+
+Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
+
+### Basic usage
+
+``` bash
+dfx canister update-settings [flag] [canister_name]
+```
+
+### Flags
+
+You can use the following optional flags with the `dfx canister update-settings` command.
+
+| Flag                         | Description                                                                                                                                                                                                                                                                                                                                                                              |
+|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--add-controller`           | Add a principal to the list of controllers of the canister.                                                                                                                                                                                                                                                                                                                              |
+| `-c`, `--compute-allocation` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].                                                                                                                                                                                                                                                                                             |
+| `--controller`               | Specifies the identity name or the principal of the new controller.                                                                                                                                                                                                                                                                                                                      |
+| `-h`, `--help`               | Displays usage information.                                                                                                                                                                                                                                                                                                                                                              |
+| `--memory-allocation`        | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
+| `--remove-controller`        | Add a principal to the list of controllers of the canister.                                                                                                                                                                                                                                                                                                                              |
+| `--freezing-threshold`       | Set the [freezing threshold](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-create_canister) in seconds for a canister. This should be a value in the range [0..2^64^-1].                                                                                                                                                                                    |
+
+### Arguments
+
+You can use the following arguments with the `dfx canister update-settings` command.
+
+| Argument        | Description                                             |
+|-----------------|---------------------------------------------------------|
+| `canister_name` | Specifies the name of the canister you want to update.  |
+
+### Examples
+
+You can use the `dfx canister update-settings` command to update settings of a specific canister.
+
+To update the settings of the `hello_world` canister, you can run the following command:
+
+``` bash
+dfx canister update-settings --freezing-threshold 2592000 --compute-allocation 99 hello_world
 ```

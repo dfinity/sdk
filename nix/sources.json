@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "ef717584486104e0d035e0e211c18024074b9eb8",
-        "sha256": "1y50q6ld77agjgfqlsrxl6ywvp3f2pd6vy736ixilz43zxny39a3",
+        "rev": "49fb6c0b9418350332fa1e944ec83a5556ec5d91",
+        "sha256": "0d11rir2m22jf1k0fjakx4b0n3w69i2hl7jhwnhq5dd8qfg2s31j",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/ef717584486104e0d035e0e211c18024074b9eb8.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/49fb6c0b9418350332fa1e944ec83a5556ec5d91.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "agent-rs": {
@@ -34,19 +34,19 @@
     "canister-sandbox-x86_64-darwin": {
         "builtin": false,
         "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "03vc0f7j00p20s712ya7x9qk9f483wiksz8q4wj6zqsmk2hgspmw",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "148ygdgw9fmmw2y9w2r2qw5i3k9b4yn9hs9lpdmwcvg7lky78i3x",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-darwin/canister_sandbox.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-darwin/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/canister_sandbox.gz"
     },
     "canister-sandbox-x86_64-linux": {
         "builtin": false,
         "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "1awy481fqjgfmbr0cm0a57z8ddn4jidbgn5ld8s2q0jzwc7crgdb",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "16dzg5xdy9siwm92zh2mjklxyz6z04iwl5ysjn2pp629rxdha7pd",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-linux/canister_sandbox.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-linux/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/canister_sandbox.gz"
     },
     "common": {
@@ -57,68 +57,68 @@
     },
     "ic-btc-adapter-x86_64-darwin": {
         "builtin": false,
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "08nydv251kvqw8kxf7bdnrh8db43ky51w7l0dkm3pcmw430hrv5x",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "0wq75i6ih7czmb0jds8x6wmnq7n8yslvkpg9sqhjmsfkh6px4hfl",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-darwin/ic-btc-adapter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-darwin/ic-btc-adapter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/ic-btc-adapter.gz"
     },
     "ic-btc-adapter-x86_64-linux": {
         "builtin": false,
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "1b6mskqiighavnr69sqhzggmfc0g7amnnd1ii8x0lxzgpgkrq2sy",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "08q7vjrfbwai2ghpndf4ii644gkm3yph8v2h9cainp6kaf4xikkr",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-linux/ic-btc-adapter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-linux/ic-btc-adapter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/ic-btc-adapter.gz"
     },
     "ic-canister-http-adapter-x86_64-darwin": {
         "builtin": false,
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "10389cxkgzmr45vcwa296mfjh54wxc8634zh9hvcnr3qzfwi073x",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "0ndhsznvz2nqyxmjcznm7nz045vqbnm9pdfzi52hs3ri6aw9kxzp",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-darwin/ic-canister-http-adapter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-darwin/ic-canister-http-adapter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/ic-canister-http-adapter.gz"
     },
     "ic-canister-http-adapter-x86_64-linux": {
         "builtin": false,
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "1r0hlvsvp62kxjrbgz5ldmwgj5xbbig1d17h2yzjg55bskwr5h6p",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "1yrqwmgfsz0mw7y65p8xadf15kd967lmay2n7viclgkw623l2j1v",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-linux/ic-canister-http-adapter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-linux/ic-canister-http-adapter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/ic-canister-http-adapter.gz"
     },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "1gnib9adb03jw334pl2a070w4hy40s13v7czcp090liijnhwayj0",
+        "sha256": "00n1s9bg7bilwzfqxvrlwcwh1bzswnwam912xy8zsppl3cbgqxrg",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ab8e3f5a-x86_64-darwin.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-173cbe84-x86_64-darwin.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-darwin.tar.gz",
-        "version": "0.0.1-ab8e3f5a"
+        "version": "0.0.1-173cbe84"
     },
     "ic-ref-x86_64-linux": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "0r50b38sf2bvfmb2w75cfcnnp1k29c9j8c3f4cfhgv4nw1dyij3j",
+        "sha256": "04m9hzs9d6d6iqg4xjvhrsyyyh99armjivwhn8501c1npw2gmr2i",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ab8e3f5a-x86_64-linux.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-173cbe84-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
-        "version": "0.0.1-ab8e3f5a"
+        "version": "0.0.1-173cbe84"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "1lfm2wpsxqlgnqsfinv5j567vn22krg2cq5m17h62c77kmcjihw5",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "18bjbj8dghiwqp38xsmmq40dp8l10nmj3y3p7wbx0ydhmrrss6jr",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-darwin/ic-starter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-darwin/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/ic-starter.gz"
     },
     "ic-starter-x86_64-linux": {
         "builtin": false,
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "0bz4vm1cvj80xd8wmqgnzfgmrpb7x19sk75br8lxm4zdayxw59zq",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "19ik89j7jlkaf6z819fwmpa0c76dirn9x30wxr39sb20hybd76hw",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-linux/ic-starter.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-linux/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/ic-starter.gz"
     },
     "icx-proxy-x86_64-darwin": {
@@ -140,42 +140,30 @@
         "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<tag>/binaries-linux.tar.gz"
     },
     "motoko-base": {
-        "branch": "next-moc",
-        "description": "The Motoko base library",
-        "homepage": null,
-        "owner": "dfinity",
-        "repo": "motoko-base",
-        "rev": "6f80c49d0f708c11d95895893ef3237cc7b05234",
-        "sha256": "0dzdf607w2lrxnlfkcsnn8cr22m2f1q1if5vcy2miqrj8qz13jpv",
-        "type": "tarball",
-        "url": "https://github.com/dfinity/motoko-base/archive/6f80c49d0f708c11d95895893ef3237cc7b05234.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "motoko-base-tarball": {
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
-        "sha256": "1kd05ayp9s3v6y44il5p3f2gmmq9fhcragkiymjlxmwsfxqrd9qy",
+        "sha256": "13x15sva2707fw1258clr89hmvn2v7kacpz08kd13qv7pfnh2a58",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.27/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.29/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.6.27"
+        "version": "0.6.29"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "1qqg7nha7f2llmx4vjc8f0yxh422dg5srrzrykh40pmz71w5mlbg",
+        "sha256": "097yz116jpv7m6d0giadnpy363isd0fyksf6zgjgmz9s02yqjfms",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.27/motoko-macos-0.6.27.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.29/motoko-macos-0.6.29.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
-        "version": "0.6.27"
+        "version": "0.6.29"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "0q0zhndcc7aica9k4w0vi7z2wgap19d46r9ar99z2g2d9iddfijg",
+        "sha256": "1n7gi6vdjpma9sc4lah53g0hlkjqqpml4b6bkgay1bmqalcxfg8j",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.6.27/motoko-linux64-0.6.27.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.6.29/motoko-linux64-0.6.29.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
-        "version": "0.6.27"
+        "version": "0.6.29"
     },
     "napalm": {
         "branch": "master",
@@ -193,37 +181,37 @@
     "replica-x86_64-darwin": {
         "builtin": false,
         "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "1xj3933nf15mvjh1dbzpdmpk190c1hh86j7j9iwj4sg7zz7fq4ca",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "1yxirwis168dqxsfgwrzjn1x3kapz24k5z7nbk0wk9gh1hakb3zm",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-darwin/replica.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-darwin/replica.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/replica.gz"
     },
     "replica-x86_64-linux": {
         "builtin": false,
         "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "1piaqci44axhq729ra5vc8nxmrgivvpqf397rb8vgcz2g9ispqz6",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "08hwa7k7jf6zsxhycz75adccnjllcg8wbwnyl4ifqfqjx7p7f4b0",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-linux/replica.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-linux/replica.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/replica.gz"
     },
     "sandbox-launcher-x86_64-darwin": {
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "1nisq6yna3kbkk22a79l2j594azgpn28lsspjn3zrrgynvmsxz13",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "11qivdrvj7szg8qvbjh0nbgwsz7x31rbb9zz9yq2c2lb8nzlp1ka",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-darwin/sandbox_launcher.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-darwin/sandbox_launcher.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/sandbox_launcher.gz"
     },
     "sandbox-launcher-x86_64-linux": {
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
-        "rev": "e7b57fc93c62d711829ee7ee8e5df47c3edfe932",
-        "sha256": "0zddq3clhibwnx69fk8jb31crk7ijvc6an6cnxy2slyg0ah7r7g8",
+        "rev": "ebb7d6d10d3140f12b9f9b343c061f8aab6e271a",
+        "sha256": "1w8k4nzmjpj495z7p8scswp2a5yv971ndll6mvr4lapv2ijhzxnx",
         "type": "file",
-        "url": "https://download.dfinity.systems/blessed/ic/e7b57fc93c62d711829ee7ee8e5df47c3edfe932/sdk-release/x86_64-linux/sandbox_launcher.gz",
+        "url": "https://download.dfinity.systems/blessed/ic/ebb7d6d10d3140f12b9f9b343c061f8aab6e271a/sdk-release/x86_64-linux/sandbox_launcher.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/sandbox_launcher.gz"
     }
 }
