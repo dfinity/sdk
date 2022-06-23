@@ -17,12 +17,15 @@ teardown() {
 
 
     assert_command dfx config canisters.e2e_project.type
+    # shellcheck disable=SC2154
     assert_eq '"motoko"' "$stdout"
 
     assert_command dfx config canisters.e2e_project.type "rust"
+    # shellcheck disable=SC2154
     assert_eq "" "$stdout"
 
     assert_command dfx config canisters.e2e_project.type
+    # shellcheck disable=SC2154
     assert_eq '"rust"' "$stdout"
 
     assert_command_fail dfx config non_existent
