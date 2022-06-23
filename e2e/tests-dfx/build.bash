@@ -128,11 +128,26 @@ teardown() {
   install_asset custom_canister
   dfx_start
   dfx canister create --all
-  assert_command dfx build
+  assert_command dfx build custom
   assert_match "CUSTOM_CANISTER_BUILD_DONE"
+  assert_command dfx build custom2
+  assert_match "CUSTOM_CANISTER2_BUILD_DONE"
 
   dfx canister install --all
   assert_command dfx canister call custom fromQuery
+  assert_command dfx canister call custom2 fromQuery
+}
+
+@test "custom canister build script picks local executable first" {
+  install_asset custom_canister
+  dfx_start
+  dfx canister create custom2
+  #shellcheck disable=SC2094
+  cat <<<"$(jq '.canisters.custom2.build="ln"' dfx.json)" >dfx.json
+  mv ./build.sh ./ln
+
+  assert_command dfx build custom2
+  assert_match CUSTOM_CANISTER2_BUILD_DONE
 }
 
 @test "build succeeds with network parameter" {

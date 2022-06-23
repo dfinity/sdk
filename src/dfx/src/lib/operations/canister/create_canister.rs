@@ -9,6 +9,7 @@ use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
+use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::AgentError;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
@@ -85,14 +86,18 @@ pub async fn create_canister(
                             builder = builder.with_controller(controller);
                         }
                     };
-                    builder
+                    let res = builder
                         .with_optional_compute_allocation(settings.compute_allocation)
                         .with_optional_memory_allocation(settings.memory_allocation)
                         .with_optional_freezing_threshold(settings.freezing_threshold)
                         .call_and_wait(waiter_with_timeout(timeout))
-                        .await
-                        .context("Canister creation call failed.")?
-                        .0
+                        .await;
+                    if let Err(AgentError::HttpError(HttpErrorPayload { status: 404, .. })) = &res {
+                        bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
+                            To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
+                            using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.")
+                    }
+                    res.context("Canister creation call failed.")?.0
                 }
                 CallSender::Wallet(wallet_id) => {
                     let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;

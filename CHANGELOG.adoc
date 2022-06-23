@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: Better build scripts for type:custom
+
+Build scripts now always receive a CWD of the DFX project root, instead of wherever `+dfx+` was invoked from, and a bare script `+script.sh+` can be specified without needing to prefix with `+./+`.
+
 === feat: rust, custom, and asset canisters now include candid:service metadata
 
 Motoko canisters already included this metadata.
@@ -82,9 +86,12 @@ Updated Motoko from 0.6.28 to 0.6.29.
 
 == Replica
 
-Updated replica to elected commit ebb7d6d10d3140f12b9f9b343c061f8aab6e271a.
+Updated replica to elected commit 92e6b0ed36cdc9322a3588f46a8c8c7cc567e143.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/65530[65530]
+* https://dashboard.internetcomputer.org/proposal/65327[65327]
+* https://dashboard.internetcomputer.org/proposal/65043[65043]
 * https://dashboard.internetcomputer.org/proposal/64355[64355]
 * https://dashboard.internetcomputer.org/proposal/63228[63228]
 * https://dashboard.internetcomputer.org/proposal/62143[62143]
