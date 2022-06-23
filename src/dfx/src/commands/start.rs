@@ -3,7 +3,7 @@ use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
-use crate::config::dfinity::{Config, ConfigInterface};
+use crate::config::dfinity::ConfigInterface;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
@@ -11,6 +11,7 @@ use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
+use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::provider::get_network_descriptor;
 use crate::lib::webserver::run_webserver;
 use actix::Recipient;
@@ -162,7 +163,8 @@ pub fn exec(
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let network_descriptor = get_network_descriptor(env, None)?;
+    let network_descriptor = get_network_descriptor(env.get_config(), None)?;
+    let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = temp_dir.join("pid");
@@ -189,7 +191,8 @@ pub fn exec(
     let icx_proxy_pid_file_path = empty_writable_path(temp_dir.join("icx-proxy-pid"))?;
     let webserver_port_path = empty_writable_path(temp_dir.join("webserver-port"))?;
 
-    let (frontend_url, address_and_port) = frontend_address(host, &config, background)?;
+    let (frontend_url, address_and_port) =
+        frontend_address(host, local_server_descriptor, background)?;
 
     if background {
         send_background()?;
@@ -371,18 +374,15 @@ fn send_background() -> DfxResult<()> {
 #[context("Failed to get frontend address.")]
 fn frontend_address(
     host: Option<String>,
-    config: &Config,
+    local_server_descriptor: &LocalServerDescriptor,
     background: bool,
 ) -> DfxResult<(String, SocketAddr)> {
-    let mut address_and_port = host
+    let address_and_port = host
         .and_then(|host| Option::from(host.parse()))
-        .unwrap_or_else(|| {
-            Ok(config
-                .get_config()
-                .get_local_bind_address("localhost:8000")
-                .expect("could not get socket_addr"))
-        })
+        .transpose()
         .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
+
+    let mut address_and_port = address_and_port.unwrap_or(local_server_descriptor.bind_address);
 
     if !background {
         // Since the user may have provided port "0", we need to grab a dynamically

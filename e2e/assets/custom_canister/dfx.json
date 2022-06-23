@@ -6,6 +6,12 @@
       "candid": "main.did",
       "wasm": "main.wasm",
       "build": "echo CUSTOM_CANISTER_BUILD_DONE"
+    },
+    "custom2": {
+      "type": "custom",
+      "candid": "main.did",
+      "wasm": "main.wasm",
+      "build": "build.sh"
     }
   },
   "defaults": {
