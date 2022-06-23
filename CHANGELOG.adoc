@@ -9,6 +9,10 @@
 
 The environment variable format `+CANISTER_CANDID_{name}+`, used in Rust projects, was deprecated in 0.9.2, to be unified with the variables `+CANISTER_CANDID_PATH_{name}+` which are used in other project types. It has now been removed. Note that you will need to update `+ic-cdk-macros+` if you use the `+#[import]+` macro.
 
+=== feat: deprecate `+dfx config+` for removal
+
+The `+dfx config+` command has several issues and is ultimately a poor replacement for https://stedolan.github.io/jq/[`+jq+`]. The command is being deprecated, and will be removed in a later release; we recommend switching to `+jq+` or similar tools (e.g. `+ConvertTo-Json+` in PowerShell, `+to json+` in nushell, etc.)
+
 === feat: Better build scripts for type:custom
 
 Build scripts now always receive a CWD of the DFX project root, instead of wherever `+dfx+` was invoked from, and a bare script `+script.sh+` can be specified without needing to prefix with `+./+`.
@@ -85,9 +89,12 @@ Updated Motoko from 0.6.28 to 0.6.29.
 
 == Replica
 
-Updated replica to elected commit ebb7d6d10d3140f12b9f9b343c061f8aab6e271a.
+Updated replica to elected commit 92e6b0ed36cdc9322a3588f46a8c8c7cc567e143.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/65530[65530]
+* https://dashboard.internetcomputer.org/proposal/65327[65327]
+* https://dashboard.internetcomputer.org/proposal/65043[65043]
 * https://dashboard.internetcomputer.org/proposal/64355[64355]
 * https://dashboard.internetcomputer.org/proposal/63228[63228]
 * https://dashboard.internetcomputer.org/proposal/62143[62143]
