@@ -5,6 +5,8 @@
 
 == DFX
 
+=== fix: Added src/declarations to .gitignore for new projects
+
 === feat: deprecate `+dfx config+` for removal
 
 The `+dfx config+` command has several issues and is ultimately a poor replacement for https://stedolan.github.io/jq/[`+jq+`]. The command is being deprecated, and will be removed in a later release; we recommend switching to `+jq+` or similar tools (e.g. `+ConvertTo-Json+` in PowerShell, `+to json+` in nushell, etc.)
