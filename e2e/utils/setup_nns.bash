@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# Download NNS artifacts
+
 # The commit hash was get from ic release note
 IC_COMMIT="3b5d893c0857c47715fc339112e5dd1dbfff77a8"
 
@@ -60,3 +62,14 @@ get_wasm lifeline.wasm
 get_wasm genesis-token-canister.wasm
 get_wasm identity-canister.wasm
 get_wasm nns-ui-canister.wasm
+
+# Patch NNS canisters so the conversion rate can be set in the CMC
+
+pushd "$(dirname "$0")"
+DOCKER_BUILDKIT=1 docker build \
+  --target scratch \
+  -t "ledger" \
+  -f nns-canister.Dockerfile \
+  --build-arg=IC_COMMIT="$IC_COMMIT" \
+  -o "$NNS_ARTIFACTS" .
+popd
