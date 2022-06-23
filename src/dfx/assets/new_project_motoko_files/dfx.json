@@ -12,7 +12,7 @@
         "src/{project_name}_frontend/assets"
       ],
       "dependencies": [
-        "{project_name}"
+        "{project_name}_backend"
       ]
     }
   },
