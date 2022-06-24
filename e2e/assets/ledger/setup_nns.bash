@@ -2,8 +2,7 @@
 
 # Download NNS artifacts
 
-# The commit hash was get from ic release note
-IC_COMMIT="3b5d893c0857c47715fc339112e5dd1dbfff77a8"
+IC_COMMIT="ebb7d6d10d3140f12b9f9b343c061f8aab6e271a"
 
 NNS_ARTIFACTS=${NNS_ARTIFACTS:-/tmp/dfx-e2e-nns-artifacts}
 mkdir -p $NNS_ARTIFACTS
@@ -12,7 +11,7 @@ export NNS_ARTIFACTS
 get_binary() {
   local FILENAME
   FILENAME="$1"
-  if test -e "$NNS_ARTIFACTS/$FILENAME" && test -n "${NO_CLOBBER:-}"; then
+  if test -e "$NNS_ARTIFACTS/$FILENAME"; then
     return
   fi
   local TMP_FILE

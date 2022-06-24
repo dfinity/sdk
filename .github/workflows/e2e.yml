@@ -120,7 +120,10 @@ jobs:
       - name: Setup Docker
         uses: docker-practice/actions-setup-docker@v1
         if: matrix.test == 'dfx/ledger' && contains(matrix.os, 'macos')
-      - uses: satackey/action-docker-layer-caching@v0.0.11
+      - uses: actions/cache@v2
+        with:
+          path: /tmp/dfx-e2e-nns-artifacts
+          key: ebb7d6d10d3140f12b9f9b343c061f8aab6e271a # hardcoded pending a better idea
         if: matrix.test == 'dfx/ledger'
       - name: Prepare environment
         run: |
