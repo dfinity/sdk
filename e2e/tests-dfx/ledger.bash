@@ -112,5 +112,5 @@ tc_to_num() {
     assert_match "Canister was topped up with 5000000000000 cycles"
     balance_now=$(tc_to_num "$(dfx wallet balance)")
     
-    (( $balance_now - $balance > 4000000000000 ))
+    (( balance_now - balance > 4000000000000 ))
 }
