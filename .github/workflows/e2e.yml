@@ -118,7 +118,7 @@ jobs:
         if: contains(matrix.os, 'ubuntu')
         run: bash scripts/workflows/provision-linux.sh
       - name: Setup Docker
-        uses: docker-practice/actions-setup-docker@1.0.7
+        uses: docker-practice/actions-setup-docker@v1
         if: matrix.test == 'dfx/ledger' && contains(matrix.os, 'macos')
       - uses: satackey/action-docker-layer-caching@v0.0.11
         if: matrix.test == 'dfx/ledger'
