@@ -1,12 +1,13 @@
 #!/usr/bin/env bats
 
 load ../utils/_
-load ../utils/setup_nns
 
 setup() {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     standard_setup
     install_asset ledger
+    export NNS_ARTIFACTS=/tmp/dfx-e2e-nns-artifacts
+    ./setup_nns.bash
 
     dfx identity import --disable-encryption alice alice.pem
     dfx identity import --disable-encryption bob bob.pem
@@ -20,6 +21,10 @@ setup() {
       --url "$NNS_URL" \
       --initialize-ledger-with-test-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc\
       --wasm-dir "$NNS_ARTIFACTS"
+
+    # Set the XDR conversion rate. Locally, 1 XDR = 1 ICP = 1 TC.
+    dfx canister call rkp4c-7iaaa-aaaaa-aaaca-cai set_icp_xdr_conversion_rate \
+        '(record { data_source= "max"; xdr_permyriad_per_icp = 10000 : nat64 ; timestamp_seconds= '"$(date +%s)"' : nat64 })'
 }
 
 teardown() {
@@ -86,4 +91,26 @@ teardown() {
     assert_match "9999.99990000 ICP"
     assert_command dfx --identity alice ledger balance
     assert_match "9999.99990000 ICP"
+}
+tc_to_num() {
+    if [[ $1 =~ T ]]; then
+        echo "${1%%[^0-9]*}000000000000"
+    else
+        echo "${1%%[^0-9]*}"
+    fi
+}
+
+@test "ledger top-up" {
+    dfx identity use alice
+    assert_command dfx ledger balance
+    assert_match "10000.00000000 ICP"
+
+    wallet=$(dfx identity get-wallet)
+    balance=$(tc_to_num "$(dfx wallet balance)")
+
+    assert_command dfx ledger top-up "$wallet" --icp 5
+    assert_match "Canister was topped up with 5000000000000 cycles"
+    balance_now=$(tc_to_num "$(dfx wallet balance)")
+    
+    (( $balance_now - $balance > 4000000000000 ))
 }

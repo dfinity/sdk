@@ -5,7 +5,7 @@
 # The commit hash was get from ic release note
 IC_COMMIT="3b5d893c0857c47715fc339112e5dd1dbfff77a8"
 
-NNS_ARTIFACTS=/tmp/dfx-e2e-nns-artifacts
+NNS_ARTIFACTS=${NNS_ARTIFACTS:-/tmp/dfx-e2e-nns-artifacts}
 mkdir -p $NNS_ARTIFACTS
 export NNS_ARTIFACTS
 
