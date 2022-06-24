@@ -275,11 +275,6 @@ pub fn environment_variables<'a>(
                 Owned(format!("CANISTER_CANDID_PATH_{}", canister.get_name())),
                 Borrowed(candid_path),
             ));
-            //FIXME remove in 0.10
-            vars.push((
-                Owned(format!("CANISTER_CANDID_{}", canister.get_name())),
-                Borrowed(candid_path),
-            ));
         }
     }
     for canister in pool.get_canister_list() {
