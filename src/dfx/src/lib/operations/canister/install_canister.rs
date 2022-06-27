@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
-use crate::lib::installers::assets::post_install_store_frontend;
+use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::named_canister;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
@@ -156,7 +156,7 @@ pub async fn install_canister(
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_frontend(canister_info, agent, timeout).await?;
+        post_install_store_assets(canister_info, agent, timeout).await?;
     }
 
     Ok(())

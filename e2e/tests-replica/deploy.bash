@@ -26,7 +26,7 @@ teardown() {
     dfx_new hello
     dfx_start
     install_asset greet
-    assert_command dfx deploy hello
+    assert_command dfx deploy hello_backend
     assert_match 'Deploying: hello'
     assert_not_match 'hello_frontend'
 }
@@ -84,15 +84,15 @@ teardown() {
     # dfx deploy does the right thing, so it doesn't need to retry.
     # Therefore, there is no "attempting (install|upgrade)" message.
 
-    assert_command dfx deploy hello
+    assert_command dfx deploy hello_backend
     assert_match 'Installing code for canister'
 
-    assert_command dfx canister call hello greet '("First")'
+    assert_command dfx canister call hello_backend greet '("First")'
     assert_eq '("Hello, First!")'
 
-    assert_command dfx deploy hello --upgrade-unchanged
+    assert_command dfx deploy hello_backend --upgrade-unchanged
     assert_match 'Upgrading code for canister'
 
-    assert_command dfx canister call hello greet '("Second")'
+    assert_command dfx canister call hello_backend greet '("Second")'
     assert_eq '("Hello, Second!")'
 }

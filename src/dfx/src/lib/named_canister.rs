@@ -42,10 +42,10 @@ pub async fn install_ui_canister(
         env.get_logger(),
         "Creating UI canister on the {} network.", network.name
     );
-    let mut canister_frontend =
+    let mut canister_assets =
         util::assets::ui_canister().context("Failed to get ui canister assets.")?;
     let mut wasm = Vec::new();
-    for file in canister_frontend
+    for file in canister_assets
         .entries()
         .context("Failed to get ui canister asset entries.")?
     {

@@ -8,13 +8,13 @@ use ic_agent::Agent;
 use std::time::Duration;
 
 #[context("Failed to store assets in canister '{}'.", info.get_name())]
-pub async fn post_install_store_frontend(
+pub async fn post_install_store_assets(
     info: &CanisterInfo,
     agent: &Agent,
     timeout: Duration,
 ) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-    let output_frontend_path = assets_canister_info.get_output_frontend_path();
+    let output_assets_path = assets_canister_info.get_output_assets_path();
 
     let canister_id = info.get_canister_id().expect("Could not find canister ID.");
 
@@ -24,7 +24,7 @@ pub async fn post_install_store_frontend(
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    ic_asset::sync(&canister, output_frontend_path, timeout)
+    ic_asset::sync(&canister, output_assets_path, timeout)
         .await
         .with_context(|| {
             format!(

@@ -34,9 +34,9 @@ fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
     hex::encode(sha256.finish())
 }
 
-fn find_frontend() -> PathBuf {
-    println!("cargo:rerun-if-env-changed=DFX_frontend");
-    if let Ok(a) = env::var("DFX_frontend") {
+fn find_assets() -> PathBuf {
+    println!("cargo:rerun-if-env-changed=DFX_assets");
+    if let Ok(a) = env::var("DFX_assets") {
         PathBuf::from(a)
     } else {
         let project_root_dir = format!("{}/../..", env!("CARGO_MANIFEST_DIR"));
@@ -54,19 +54,19 @@ fn find_frontend() -> PathBuf {
         let hash_of_inputs = calculate_hash_of_inputs(&project_root_path);
 
         let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-        let dfx_frontend_path = out_dir.join("dfx-assets");
+        let dfx_assets_path = out_dir.join("dfx-assets");
         let last_hash_of_inputs_path = out_dir.join("dfx-assets-inputs-hash");
 
-        if dfx_frontend_path.exists() && last_hash_of_inputs_path.exists() {
+        if dfx_assets_path.exists() && last_hash_of_inputs_path.exists() {
             let last_hash_of_inputs = read_to_string(&last_hash_of_inputs_path)
                 .expect("unable to read last hash of inputs");
             if last_hash_of_inputs == hash_of_inputs {
-                return dfx_frontend_path;
+                return dfx_assets_path;
             }
         }
 
         let result = Command::new(&prepare_script_path)
-            .arg(&dfx_frontend_path)
+            .arg(&dfx_assets_path)
             .output()
             .expect("unable to run prepare script");
         if !result.status.success() {
@@ -80,7 +80,7 @@ fn find_frontend() -> PathBuf {
 
         fs::write(last_hash_of_inputs_path, hash_of_inputs)
             .expect("unable to write last hash of inputs");
-        dfx_frontend_path
+        dfx_assets_path
     }
 }
 
@@ -101,7 +101,7 @@ fn add_asset_archive(fn_name: &str, f: &mut File, assets_path: &Path) {
     write_archive_accessor(fn_name, f);
 }
 
-fn add_frontend_from_directory(fn_name: &str, f: &mut File, path: &str) {
+fn add_assets_from_directory(fn_name: &str, f: &mut File, path: &str) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
 
@@ -144,7 +144,7 @@ fn get_git_hash() -> Option<String> {
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
-    let loader_path = Path::new(&out_dir).join("load_frontend.rs");
+    let loader_path = Path::new(&out_dir).join("load_assets.rs");
     let mut f = File::create(&loader_path).unwrap();
 
     f.write_all(
@@ -158,23 +158,23 @@ fn main() {
     )
     .unwrap();
 
-    let dfx_frontend = find_frontend();
-    add_asset_archive("binary_cache", &mut f, &dfx_frontend);
-    add_asset_archive("assetstorage_canister", &mut f, &dfx_frontend);
-    add_asset_archive("wallet_canister", &mut f, &dfx_frontend);
-    add_asset_archive("ui_canister", &mut f, &dfx_frontend);
-    add_frontend_from_directory("language_bindings", &mut f, "assets/language_bindings");
-    add_frontend_from_directory(
+    let dfx_assets = find_assets();
+    add_asset_archive("binary_cache", &mut f, &dfx_assets);
+    add_asset_archive("assetstorage_canister", &mut f, &dfx_assets);
+    add_asset_archive("wallet_canister", &mut f, &dfx_assets);
+    add_asset_archive("ui_canister", &mut f, &dfx_assets);
+    add_assets_from_directory("language_bindings", &mut f, "assets/language_bindings");
+    add_assets_from_directory(
         "new_project_motoko_files",
         &mut f,
         "assets/new_project_motoko_files",
     );
-    add_frontend_from_directory(
+    add_assets_from_directory(
         "new_project_node_files",
         &mut f,
         "assets/new_project_node_files",
     );
-    add_frontend_from_directory(
+    add_assets_from_directory(
         "new_project_rust_files",
         &mut f,
         "assets/new_project_rust_files",

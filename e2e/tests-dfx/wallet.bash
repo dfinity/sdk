@@ -62,13 +62,13 @@ teardown() {
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello
-    ID=$(dfx canister --network actuallylocal id hello)
+    dfx canister --network actuallylocal create hello_backend
+    ID=$(dfx canister --network actuallylocal id hello_backend)
     dfx canister --network actuallylocal create hello_frontend
     ID_TWO=$(dfx canister --network actuallylocal id hello_frontend)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
     dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
 
     assert_command_fail dfx identity --network actuallylocal set-wallet "${ID}"
@@ -87,11 +87,11 @@ teardown() {
     # get Canister IDs to install the wasm onto
     dfx canister --network actuallylocal create hello_frontend
     ID=$(dfx canister --network actuallylocal id hello_frontend)
-    dfx deploy --network actuallylocal hello
-    ID_TWO=$(dfx canister --network actuallylocal id hello)
+    dfx deploy --network actuallylocal hello_backend
+    ID_TWO=$(dfx canister --network actuallylocal id hello_backend)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
     dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
 
     # We're testing on a local network so the create command actually creates a wallet
@@ -157,7 +157,7 @@ teardown() {
     WALLET=$(dfx identity get-wallet)
     assert_command dfx wallet balance
     assert_command dfx deploy --wallet "$WALLET"
-    assert_command dfx canister --wallet "$WALLET" call hello greet '("")' --with-cycles 1
+    assert_command dfx canister --wallet "$WALLET" call hello_backend greet '("")' --with-cycles 1
     dfx identity new alice --disable-encryption
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
     dfx wallet send "$ALICE_WALLET" 1
@@ -167,6 +167,6 @@ teardown() {
     dfx_new hello
     dfx_start
     dfx identity new alice --disable-encryption
-    dfx --identity alice deploy --no-wallet hello
-    assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello
+    dfx --identity alice deploy --no-wallet hello_backend
+    assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello_backend
 }

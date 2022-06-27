@@ -7,14 +7,14 @@ SDK_ROOT_DIR="$( cd -- "$(dirname -- "$( dirname -- "${BASH_SOURCE[0]}" )" )" &>
 # shellcheck disable=SC1090
 source "$SDK_ROOT_DIR/scripts/dfx-asset-sources.sh"
 
-DFX_frontend_FINAL_DIR=${1?'Must specify a destination directory.'}
+DFX_ASSETS_FINAL_DIR=${1?'Must specify a destination directory.'}
 
-DFX_frontend_TEMP_DIR=$(mktemp -d)
+DFX_ASSETS_TEMP_DIR=$(mktemp -d)
 BINARY_CACHE_TEMP_DIR=$(mktemp -d)
 DOWNLOAD_TEMP_DIR=$(mktemp -d)
 
 function cleanup {
-    rm -rf "$DFX_frontend_TEMP_DIR" "$BINARY_CACHE_TEMP_DIR" "$DOWNLOAD_TEMP_DIR"
+    rm -rf "$DFX_ASSETS_TEMP_DIR" "$BINARY_CACHE_TEMP_DIR" "$DOWNLOAD_TEMP_DIR"
 }
 trap cleanup EXIT
 
@@ -27,9 +27,9 @@ case "$OSTYPE" in
 esac
 
 add_canisters() {
-    tar -czf "$DFX_frontend_TEMP_DIR"/assetstorage_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./assetstorage.did ./assetstorage.wasm
-    tar -czf "$DFX_frontend_TEMP_DIR"/wallet_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./wallet.did ./wallet.wasm
-    tar -czf "$DFX_frontend_TEMP_DIR"/ui_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./ui.did ./ui.wasm
+    tar -czf "$DFX_ASSETS_TEMP_DIR"/assetstorage_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./assetstorage.did ./assetstorage.wasm
+    tar -czf "$DFX_ASSETS_TEMP_DIR"/wallet_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./wallet.did ./wallet.wasm
+    tar -czf "$DFX_ASSETS_TEMP_DIR"/ui_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./ui.did ./ui.wasm
 }
 
 download_url_and_check_sha() {
@@ -137,22 +137,22 @@ add_binary_cache() {
     download_motoko_binaries
     download_motoko_base
 
-    tar -czf "$DFX_frontend_TEMP_DIR"/binary_cache.tgz -C "$BINARY_CACHE_TEMP_DIR" .
+    tar -czf "$DFX_ASSETS_TEMP_DIR"/binary_cache.tgz -C "$BINARY_CACHE_TEMP_DIR" .
 }
 
-echo "Building $DFX_frontend_FINAL_DIR"
+echo "Building $DFX_ASSETS_FINAL_DIR"
 
 add_canisters
 add_binary_cache
 
-if [ -d "$DFX_frontend_FINAL_DIR" ]
+if [ -d "$DFX_ASSETS_FINAL_DIR" ]
 then
     (
-        cd "$DFX_frontend_FINAL_DIR"
+        cd "$DFX_ASSETS_FINAL_DIR"
         rm -f binary_cache.tgz assetstorage_canister.tgz wallet_canister.tgz ui_canister.tgz
     )
-    rmdir "$DFX_frontend_FINAL_DIR"
+    rmdir "$DFX_ASSETS_FINAL_DIR"
 fi
-mv "$DFX_frontend_TEMP_DIR" "$DFX_frontend_FINAL_DIR"
+mv "$DFX_ASSETS_TEMP_DIR" "$DFX_ASSETS_FINAL_DIR"
 
-echo "Built $DFX_frontend_FINAL_DIR"
+echo "Built $DFX_ASSETS_FINAL_DIR"

@@ -106,10 +106,10 @@ validate_default_project() {
         $dfx_rc deploy
 
         echo "Calling the canister."
-        $dfx_rc canister call hello_world greet everyone
+        $dfx_rc canister call hello_world_backend greet everyone
 
         hello_world_frontend_canister_id=$($dfx_rc canister id hello_world_frontend)
-        application_canister_id=$($dfx_rc canister id hello_world)
+        application_canister_id=$($dfx_rc canister id hello_world_backend)
         candid_ui_id=$($dfx_rc canister id __Candid_UI)
         export hello_world_frontend_url="http://localhost:8000/?canisterId=$hello_world_frontend_canister_id"
         export candid_ui_url="http://localhost:8000/?canisterId=$candid_ui_id&id=$application_canister_id"
@@ -117,7 +117,7 @@ validate_default_project() {
         echo
         echo "=================================================="
         echo "dfx project directory: $(pwd)"
-        echo "assets URL: $hello_world_frontend_url"
+        echo "frontend URL: $hello_world_frontend_url"
         echo "candid URL: $candid_ui_url"
         echo "=================================================="
         echo

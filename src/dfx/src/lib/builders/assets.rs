@@ -82,9 +82,9 @@ impl CanisterBuilder for AssetsBuilder {
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let mut canister_frontend = util::assets::assetstorage_canister()
+        let mut canister_assets = util::assets::assetstorage_canister()
             .context("Failed to get asset canister archive.")?;
-        for file in canister_frontend
+        for file in canister_assets
             .entries()
             .context("Failed to read asset canister archive entries.")?
         {
@@ -145,7 +145,7 @@ impl CanisterBuilder for AssetsBuilder {
 
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
 
-        build_frontend(
+        build_assets(
             pool.get_logger(),
             info.get_workspace_root(),
             &config.network_name,
@@ -155,7 +155,7 @@ impl CanisterBuilder for AssetsBuilder {
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
         assets_canister_info.assert_source_paths()?;
 
-        copy_frontend(pool.get_logger(), &assets_canister_info).with_context(|| {
+        copy_assets(pool.get_logger(), &assets_canister_info).with_context(|| {
             format!("Failed to copy assets for canister '{}'.", info.get_name())
         })?;
         Ok(())
@@ -174,9 +174,9 @@ impl CanisterBuilder for AssetsBuilder {
             .as_ref()
             .context("`declarations.output` must not be None")?;
 
-        let mut canister_frontend = util::assets::assetstorage_canister()
+        let mut canister_assets = util::assets::assetstorage_canister()
             .context("Failed to load asset canister archive.")?;
-        for file in canister_frontend
+        for file in canister_assets
             .entries()
             .context("Failed to read asset canister archive entries.")?
         {
@@ -238,31 +238,31 @@ fn delete_output_directory(
     info: &CanisterInfo,
     assets_canister_info: &AssetsCanisterInfo,
 ) -> DfxResult {
-    let output_frontend_path = assets_canister_info.get_output_frontend_path();
-    if output_frontend_path.exists() {
-        let output_frontend_path = output_frontend_path.canonicalize().with_context(|| {
+    let output_assets_path = assets_canister_info.get_output_assets_path();
+    if output_assets_path.exists() {
+        let output_assets_path = output_assets_path.canonicalize().with_context(|| {
             format!(
                 "Failed to canonicalize output assets path {}.",
-                output_frontend_path.to_string_lossy()
+                output_assets_path.to_string_lossy()
             )
         })?;
-        if !output_frontend_path.starts_with(info.get_workspace_root()) {
+        if !output_assets_path.starts_with(info.get_workspace_root()) {
             bail!(
                 "Directory at '{}' is outside the workspace root.",
-                output_frontend_path.display()
+                output_assets_path.display()
             );
         }
-        fs::remove_dir_all(&output_frontend_path).with_context(|| {
-            format!("Failed to remove {}.", output_frontend_path.to_string_lossy())
+        fs::remove_dir_all(&output_assets_path).with_context(|| {
+            format!("Failed to remove {}.", output_assets_path.to_string_lossy())
         })?;
     }
     Ok(())
 }
 
 #[context("Failed to copy assets.")]
-fn copy_frontend(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
+fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
     let source_paths = assets_canister_info.get_source_paths();
-    let output_frontend_path = assets_canister_info.get_output_frontend_path();
+    let output_assets_path = assets_canister_info.get_output_assets_path();
 
     for source_path in source_paths {
         // If the source doesn't exist, we ignore it.
@@ -276,21 +276,21 @@ fn copy_frontend(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInf
             continue;
         }
 
-        let input_frontend_path = source_path.as_path();
-        let walker = WalkDir::new(input_frontend_path).into_iter();
+        let input_assets_path = source_path.as_path();
+        let walker = WalkDir::new(input_assets_path).into_iter();
         for entry in walker.filter_entry(|e| !is_hidden(e)) {
             let entry = entry.with_context(|| {
                 format!(
                     "Failed to read an input asset entry in {}.",
-                    input_frontend_path.to_string_lossy()
+                    input_assets_path.to_string_lossy()
                 )
             })?;
             let source = entry.path();
             let relative = source
-                .strip_prefix(input_frontend_path)
+                .strip_prefix(input_assets_path)
                 .expect("cannot strip prefix");
 
-            let destination = output_frontend_path.join(relative);
+            let destination = output_assets_path.join(relative);
 
             // If the destination exists, we simply continue. We delete the output directory
             // prior to building so the only way this exists is if it's an output to one
@@ -318,16 +318,16 @@ fn copy_frontend(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInf
 }
 
 #[context("Failed to build frontend for network '{}'.", network_name)]
-fn build_frontend(
+fn build_assets(
     logger: &slog::Logger,
     project_root: &Path,
     network_name: &str,
     vars: Vec<super::Env<'_>>,
 ) -> DfxResult {
-    let build_frontend = project_root.join("package.json").exists();
+    let build_assets = project_root.join("package.json").exists();
     // If there is not a package.json, we don't have a frontend and can quit early.
 
-    if build_frontend {
+    if build_assets {
         // Frontend build.
         slog::info!(logger, "Building frontend...");
         let mut cmd = std::process::Command::new("npm");

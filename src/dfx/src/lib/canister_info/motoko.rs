@@ -12,7 +12,7 @@ pub struct MotokoCanisterInfo {
     output_stable_path: PathBuf,
     output_did_js_path: PathBuf,
     output_canister_js_path: PathBuf,
-    output_frontend_root: PathBuf,
+    output_assets_root: PathBuf,
 
     packtool: Option<String>,
     moc_args: Option<String>,
@@ -37,8 +37,8 @@ impl MotokoCanisterInfo {
     pub fn get_output_canister_js_path(&self) -> &Path {
         self.output_canister_js_path.as_path()
     }
-    pub fn get_output_frontend_root(&self) -> &Path {
-        self.output_frontend_root.as_path()
+    pub fn get_output_assets_root(&self) -> &Path {
+        self.output_assets_root.as_path()
     }
     pub fn get_output_root(&self) -> &Path {
         self.output_root.as_path()
@@ -75,7 +75,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let output_stable_path = output_wasm_path.with_extension("most");
         let output_did_js_path = output_wasm_path.with_extension("did.js");
         let output_canister_js_path = output_wasm_path.with_extension("js");
-        let output_frontend_root = output_root.join("assets");
+        let output_assets_root = output_root.join("assets");
 
         Ok(MotokoCanisterInfo {
             input_path,
@@ -86,7 +86,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
             output_stable_path,
             output_did_js_path,
             output_canister_js_path,
-            output_frontend_root,
+            output_assets_root,
             packtool: info.get_packtool().clone(),
             moc_args: info.get_args().clone(),
         })

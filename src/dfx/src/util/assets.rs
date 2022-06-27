@@ -4,7 +4,7 @@ use fn_error_context::context;
 use slog::info;
 use std::io::Read;
 
-include!(concat!(env!("OUT_DIR"), "/load_frontend.rs"));
+include!(concat!(env!("OUT_DIR"), "/load_assets.rs"));
 
 pub fn dfinity_logo() -> String {
     if atty::is(atty::Stream::Stdout) {
@@ -31,9 +31,9 @@ pub fn wallet_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
             .read_to_end(&mut wasm)
             .with_context(|| format!("Failed to read file content for {}.", dfx_wallet_wasm))?;
     } else {
-        let mut canister_frontend =
+        let mut canister_assets =
             wallet_canister().context("Failed to load wallet canister archive.")?;
-        for file in canister_frontend
+        for file in canister_assets
             .entries()
             .context("Failed to read wallet canister archive entries.")?
         {
