@@ -81,3 +81,54 @@ teardown() {
     dfx canister create --all
     assert_command_fail dfx canister install --all --wasm "${archive:?}/wallet/0.10.0/wallet.wasm"
 }
+
+@test "install runs post-install tasks" {
+    install_asset post_install
+    dfx_start
+
+    assert_command dfx canister create --all
+    assert_command dfx build
+
+    assert_command dfx canister install postinstall
+    assert_match 'hello-file'
+
+    assert_command dfx canister install postinstall_script
+    assert_match 'hello-script'
+    
+    echo 'return 1' >> postinstall.sh
+    assert_command_fail dfx canister install postinstall_script --mode upgrade
+    assert_match 'hello-script'
+}
+
+@test "post-install tasks receive environment variables" {
+    install_asset post_install
+    dfx_start
+    echo "echo hello \$CANISTER_ID" >> postinstall.sh
+
+    assert_command dfx canister create --all
+    assert_command dfx build
+    id=$(dfx canister id postinstall_script)
+
+    assert_command dfx canister install --all
+    assert_match "hello $id"
+    assert_command dfx canister install postinstall_script --mode upgrade
+    assert_match "hello $id"
+
+    assert_command dfx deploy
+    assert_match "hello $id"
+    assert_command dfx deploy postinstall_script
+    assert_match "hello $id"
+}
+
+@test "post-install tasks discover dependencies" {
+    install_asset post_install
+    dfx_start
+    echo "echo hello \$CANISTER_ID_postinstall" >> postinstall.sh
+
+    assert_command dfx canister create --all
+    assert_command dfx build
+    id=$(dfx canister id postinstall)
+    
+    assert_command dfx canister install postinstall_script
+    assert_match "hello $id"
+}
