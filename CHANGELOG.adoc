@@ -9,6 +9,15 @@
 
 You can now add your own custom post-installation/post-deployment tasks to any canister type. The new `+post-install+` key for canister objects in `+dfx.json+` can be a command or list of commands, similar to the `+build+` key of `+custom+` canisters, and receives all the same environment variables. For example, to replicate the upload task performed with `+assets+` canisters, you might set `+"post-install": "icx-asset sync $CANISTER_ID dist"+`.
 
+=== feat: assets are no longer copied from source directories before being uploaded to asset canister
+
+Assets are now uploaded directly from their source directories, rather than first being copied
+to an output directory.
+
+If you're using `dfx deploy`, you won't see any change in functionality.  If you're running
+`dfx canister install --mode=upgrade`, changed files in asset source directories will
+be detected and uploaded even without an intervening `dfx build`.
+
 === fix: Added src/declarations to .gitignore for new projects
 
 === fix: remove deprecated candid path environment variable
@@ -29,6 +38,10 @@ Motoko canisters already included this metadata.
 
 Also added this metadata to the asset canister wasm, which will cause the next deploy to
 install this new version.
+
+=== feat: Add safeguard to freezing threshold
+
+Some developers mistakenly think that the freezing threshold is measured in cycles, but it is actually measured in seconds. To stop them from accidentally freezing their canisters, setting a freezing threshold above 50M seconds (~1.5 years) now requires a confirmation.
 
 === fix: restores assets to webpack devserver
 
@@ -89,11 +102,15 @@ dfx ping now uses the anonymous identity, and no longer requires dfx.json to be 
 
 == Dependencies
 
-== Motoko
+=== Rust Agent
+
+Updated agent-rs to 0.18.0
+
+=== Motoko
 
 Updated Motoko from 0.6.28 to 0.6.29.
 
-== Replica
+=== Replica
 
 Updated replica to elected commit 92e6b0ed36cdc9322a3588f46a8c8c7cc567e143.
 This incorporates the following executed proposals:
@@ -105,7 +122,7 @@ This incorporates the following executed proposals:
 * https://dashboard.internetcomputer.org/proposal/63228[63228]
 * https://dashboard.internetcomputer.org/proposal/62143[62143]
 
-== ic-ref
+=== ic-ref
 
 Updated ic-ref to 0.0.1-173cbe84
  - add ic0.performance_counter system interface
