@@ -228,7 +228,7 @@ async fn install_canisters(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
     for canister_name in canister_names {
         let (install_mode, installed_module_hash) = if force_reinstall {
@@ -265,6 +265,7 @@ async fn install_canisters(
         install_canister(
             env,
             agent,
+            &mut canister_id_store,
             &canister_info,
             &install_args,
             install_mode,

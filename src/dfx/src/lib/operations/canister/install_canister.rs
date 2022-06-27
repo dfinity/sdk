@@ -6,6 +6,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::named_canister;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::waiter::waiter_with_timeout;
@@ -33,6 +34,7 @@ use std::time::Duration;
 pub async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
+    canister_id_store: &mut CanisterIdStore,
     canister_info: &CanisterInfo,
     args: &[u8],
     mode: InstallMode,
@@ -44,8 +46,8 @@ pub async fn install_canister(
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
-    if !network.is_ic && named_canister::get_ui_canister_id(network).is_none() {
-        named_canister::install_ui_canister(env, network, None).await?;
+    if !network.is_ic && named_canister::get_ui_canister_id(canister_id_store).is_none() {
+        named_canister::install_ui_canister(env, canister_id_store, None).await?;
     }
 
     let canister_id = canister_info.get_canister_id()?;
