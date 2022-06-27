@@ -87,3 +87,20 @@ teardown() {
     assert_command_fail dfx canister call hello greet '' --with-cycles 100
     assert_command dfx canister --wallet "$(dfx identity get-wallet)" call hello greet '' --with-cycles 100
 }
+
+@test "call by canister id outside of a project" {
+    install_asset greet
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install hello
+    ID="$(dfx canister id hello)"
+    NETWORK="http://localhost:$(cat .dfx/webserver-port)"
+    (
+        cd "$DFX_E2E_TEMP_DIR"
+        mkdir "not-a-project-dir"
+        cd "not-a-project-dir"
+        assert_command dfx canister --network "$NETWORK" call "$ID" greet '("you")'
+        assert_match '("Hello, you!")'
+    )
+}

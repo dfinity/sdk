@@ -5,6 +5,12 @@
 
 == DFX
 
+=== fix: dfx commands once again work from any subdirectory of a dfx project
+
+Running `dfx deploy`, `dfx canister id`, `dfx canister call` and so forth work as expected
+if run from within any subdirectory of a dfx project.  Previously, this would create
+canister_ids.json or .dfx/local/canister_ids.json within the subdirectory.
+
 === feat: assets are no longer copied from source directories before being uploaded to asset canister
 
 Assets are now uploaded directly from their source directories, rather than first being copied
