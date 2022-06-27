@@ -13,29 +13,16 @@ export NNS_ARTIFACTS
 get_binary() {
   local FILENAME
   FILENAME="$1"
-  if test -e "$NNS_ARTIFACTS/$FILENAME"; then
+  if [ -e "$NNS_ARTIFACTS/${FILENAME}_linux" ] && [ -e "$NNS_ARTIFACTS/${FILENAME}_macos" ]; then
     return
   fi
   local TMP_FILE
   TMP_FILE="$(mktemp)"
-  local OS
-  OS="$(uname)"
-  case "$OS" in
-  Darwin)
-    curl -s "https://download.dfinity.systems/ic/${IC_COMMIT}/nix-release/x86_64-darwin/${FILENAME}.gz" | gunzip >"$TMP_FILE"
-    ;;
-  Linux)
-    curl "https://download.dfinity.systems/ic/${IC_COMMIT}/release/${FILENAME}.gz" | gunzip >"$TMP_FILE"
-    ;;
-  *)
-    printf "ERROR: %s '%s'\n" \
-      "Cannot download binary" "$FILENAME" \
-      "Unsupported platform:" "$OS" \
-      >&2
-    exit 1
-    ;;
-  esac
-  install -m 755 "$TMP_FILE" "$NNS_ARTIFACTS/$FILENAME"
+  curl -s "https://download.dfinity.systems/ic/${IC_COMMIT}/nix-release/x86_64-darwin/${FILENAME}.gz" | gunzip >"$TMP_FILE"
+  install -m 755 "$TMP_FILE" "$NNS_ARTIFACTS/${FILENAME}_macos"
+  curl -s "https://download.dfinity.systems/ic/${IC_COMMIT}/release/${FILENAME}.gz" | gunzip >"$TMP_FILE"
+  install -m 755 "$TMP_FILE" "$NNS_ARTIFACTS/${FILENAME}_linux"
+  
   rm "$TMP_FILE"
 }
 
