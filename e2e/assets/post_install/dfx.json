@@ -3,7 +3,7 @@
   "canisters": {
     "postinstall": {
       "main": "main.mo",
-      "post_install": "echo hello"
+      "post_install": "echo hello-file"
     },
     "postinstall_script": {
       "main": "main.mo",

@@ -90,20 +90,20 @@ teardown() {
     assert_command dfx build
 
     assert_command dfx canister install postinstall
-    assert_match hello
+    assert_match 'hello-file'
 
     assert_command dfx canister install postinstall_script
-    assert_match hello
+    assert_match 'hello-script'
     
     echo 'return 1' >> postinstall.sh
     assert_command_fail dfx canister install postinstall_script --mode upgrade
-    assert_match hello
+    assert_match 'hello-script'
 }
 
 @test "post-install tasks receive environment variables" {
     install_asset post_install
     dfx_start
-    echo "echo \$CANISTER_ID" >> postinstall.sh
+    echo "echo hello \$CANISTER_ID" >> postinstall.sh
 
     assert_command dfx canister create --all
     assert_command dfx build
