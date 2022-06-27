@@ -198,14 +198,13 @@ fn run_post_install_tasks(
         .map(|can| can.canister_id())
         .collect_vec();
     for task in canister.get_post_install() {
-        run_post_install_task(env, canister, task, network, pool, &dependencies)?;
+        run_post_install_task(canister, task, network, pool, &dependencies)?;
     }
     Ok(())
 }
 
 #[context("Failed to run post-install task {task}")]
 fn run_post_install_task(
-    _: &dyn Environment,
     canister: &CanisterInfo,
     task: &str,
     network: &NetworkDescriptor,
