@@ -69,11 +69,11 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     // sanity checks
-    if let Some(ref threshold_string) = dbg!(&opts.freezing_threshold) {
+    if let Some(ref threshold_string) = opts.freezing_threshold {
         let threshold_in_seconds = threshold_string
             .parse::<u128>()
             .expect("freezing_threshold_validator did not properly validate.");
-        if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !*dbg!(&opts.confirm_very_long_freezing_threshold)
+        if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
         {
             return Err(DiagnosedError::new(
                 "The freezing threshold is defined in SECONDS before the canister would run out of cycles, not in cycles.".to_string(),
