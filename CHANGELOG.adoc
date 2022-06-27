@@ -35,6 +35,10 @@ Motoko canisters already included this metadata.
 Also added this metadata to the asset canister wasm, which will cause the next deploy to
 install this new version.
 
+=== feat: Add safeguard to freezing threshold
+
+Some developers mistakenly think that the freezing threshold is measured in cycles, but it is actually measured in seconds. To stop them from accidentally freezing their canisters, setting a freezing threshold above 50M seconds (~1.5 years) now requires a confirmation.
+
 === fix: restores assets to webpack devserver
 
 === chore: updates webpack dependencies for dfx new project
