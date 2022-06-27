@@ -129,6 +129,6 @@ teardown() {
     assert_command dfx build
     id=$(dfx canister id postinstall)
     
-    assert_command dfx canister install --all
+    assert_command dfx canister install postinstall_script
     assert_match "hello $id"
 }
