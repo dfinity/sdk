@@ -150,7 +150,7 @@ wait_until_replica_healthy() {
 }
 
 # Start the replica in the background.
-dfx_start_replica_and_bootstrap() {
+dfx_replica() {
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
@@ -193,7 +193,9 @@ dfx_start_replica_and_bootstrap() {
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
 
     wait_until_replica_healthy
+}
 
+dfx_bootstrap() {
     # This only works because we use the network by name
     #    (implicitly: --network local)
     # If we passed --network http://127.0.0.1:${replica_port}
@@ -216,11 +218,16 @@ dfx_start_replica_and_bootstrap() {
     printf "Webserver Configured Port: %s\n", "${webserver_port}"
 }
 
-# Start the replica in the background.
-dfx_stop_replica_and_bootstrap() {
+# Stop the `dfx replica` process that is running in the background.
+stop_dfx_replica() {
     [ "$DFX_REPLICA_PID" ] && kill -TERM "$DFX_REPLICA_PID"
+    unset DFX_REPLICA_PID
+}
 
+# Stop the `dfx bootstrap` process that is running in the background
+stop_dfx_bootstrap() {
     [ "$DFX_BOOTSTRAP_PID" ] && kill -TERM "$DFX_BOOTSTRAP_PID"
+    unset DFX_BOOTSTRAP_PID
 }
 
 # Stop the replica and verify it is very very stopped.
