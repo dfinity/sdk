@@ -117,14 +117,6 @@ jobs:
       - name: Provision Linux
         if: contains(matrix.os, 'ubuntu')
         run: bash scripts/workflows/provision-linux.sh
-      - name: Setup Docker
-        uses: docker-practice/actions-setup-docker@v1
-        if: matrix.test == 'dfx/ledger' && contains(matrix.os, 'macos')
-      - uses: actions/cache@v2
-        with:
-          path: /tmp/dfx-e2e-nns-artifacts
-          key: ebb7d6d10d3140f12b9f9b343c061f8aab6e271a # hardcoded pending a better idea
-        if: matrix.test == 'dfx/ledger'
       - name: Prepare environment
         run: |
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
