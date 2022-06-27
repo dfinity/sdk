@@ -2,6 +2,10 @@
 
 Use the `dfx config` command to view or configure settings in the configuration file for a current project. Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
+## This command has been deprecated.
+
+Use `jq` instead.
+
 ## Basic usage
 
 ``` bash

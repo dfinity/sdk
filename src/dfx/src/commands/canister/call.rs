@@ -147,14 +147,14 @@ pub fn get_effective_canister_id(
         })?;
         match method_name {
             MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
-                return Err(anyhow!("Method only callable by a canister.")).with_context(|| DiagnosedError::new(
+                return Err(DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",
                         method_name.as_ref()
                     ),
                     format!("The easiest way to call {} externally is to proxy this call through a wallet. Try calling this with 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
                     To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.", method_name.as_ref())
-                ))
+                )).context("Method only callable by a canister.");
             }
             MgmtMethod::InstallCode => {
                 let install_args = candid::Decode!(arg_value, CanisterInstall)
@@ -235,12 +235,11 @@ pub async fn exec(
             Some(true) => !opts.update,
             Some(false) => {
                 if opts.query {
-                    return Err(anyhow!("Not a query method.")).with_context(|| {
-                        DiagnosedError::new(
-                            format!("{} is an update method, not a query method.", method_name),
-                            "Run the command without '--query'.".to_string(),
-                        )
-                    });
+                    return Err(DiagnosedError::new(
+                        format!("{} is an update method, not a query method.", method_name),
+                        "Run the command without '--query'.".to_string(),
+                    ))
+                    .context("Not a query method.");
                 } else {
                     false
                 }
@@ -267,8 +266,8 @@ pub async fn exec(
         .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
-        return Err(anyhow!("Function caller is not a canister.")).with_context(|| DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
-        To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.".to_string()));
+        return Err(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
+        To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.".to_string())).context("Function caller is not a canister.");
     }
 
     if is_query {

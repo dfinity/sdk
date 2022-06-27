@@ -1758,16 +1758,18 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.17.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=d170b0dd0fb87d741f642981fc1220ef448aeffb#d170b0dd0fb87d741f642981fc1220ef448aeffb"
+version = "0.18.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 dependencies = [
  "async-trait",
  "base32",
  "base64",
  "byteorder",
+ "futures-util",
  "garcon",
  "hex",
  "http",
+ "http-body",
  "hyper-rustls",
  "ic-types",
  "k256",
@@ -1791,8 +1793,8 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.17.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=d170b0dd0fb87d741f642981fc1220ef448aeffb#d170b0dd0fb87d741f642981fc1220ef448aeffb"
+version = "0.18.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 dependencies = [
  "anyhow",
  "candid",
@@ -1814,8 +1816,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.17.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=d170b0dd0fb87d741f642981fc1220ef448aeffb#d170b0dd0fb87d741f642981fc1220ef448aeffb"
+version = "0.18.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1843,8 +1845,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.17.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=d170b0dd0fb87d741f642981fc1220ef448aeffb#d170b0dd0fb87d741f642981fc1220ef448aeffb"
+version = "0.18.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 dependencies = [
  "async-trait",
  "candid",
@@ -3010,6 +3012,7 @@ dependencies = [
  "tokio",
  "tokio-native-tls",
  "tokio-rustls",
+ "tokio-util",
  "tower-service",
  "url",
  "wasm-bindgen",
