@@ -1,1 +1,1 @@
-dfx config canisters/hello/main counter.mo
+dfx config canisters/hello_backend/main counter.mo
