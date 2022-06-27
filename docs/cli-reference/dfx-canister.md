@@ -542,11 +542,11 @@ Although specifying a user identity name or principal is one potential use case,
 
 5.  Set the controller for a specified canister to use the wallet associated wit the sf-controller identity.
 
-        dfx canister set-controller open_sf_frontend r7inp-6aaaa-aaaaa-aaabq-cai
+        dfx canister set-controller open_sf r7inp-6aaaa-aaaaa-aaabq-cai
 
-        Set "r7inp-6aaaa-aaaaa-aaabq-cai" as controller of "open_sf_frontend".
+        Set "r7inp-6aaaa-aaaaa-aaabq-cai" as controller of "open_sf".
 
-    You can now use the wallet canister `r7inp-6aaaa-aaaaa-aaabq-cai` to send cycles or add custodians to the `open_sf_frontend` canister.
+    You can now use the wallet canister `r7inp-6aaaa-aaaaa-aaabq-cai` to send cycles or add custodians to the `open_sf` canister.
 
 ## dfx canister send
 
