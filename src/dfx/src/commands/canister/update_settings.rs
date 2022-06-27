@@ -59,7 +59,8 @@ pub struct UpdateSettingsOpts {
     #[clap(long, validator(freezing_threshold_validator))]
     freezing_threshold: Option<String>,
 
-    #[clap(long, hide(true))]
+    /// Freezing thresholds above ~1.5 years require this flag as confirmation.
+    #[clap(long)]
     confirm_very_long_freezing_threshold: bool,
 }
 
