@@ -16,7 +16,7 @@ teardown() {
 
 @test "set freezing threshold" {
     dfx_start
-    assert_command dfx deploy
+    assert_command dfx deploy hello
 
     # trying to set threshold to 1T seconds, which should not work because it's likely a mistake
     assert_command_fail dfx canister update-settings hello --freezing-threshold 100000000000
