@@ -5,6 +5,35 @@
 
 == DFX
 
+=== fix: dfx commands once again work from any subdirectory of a dfx project
+
+Running `dfx deploy`, `dfx canister id`, `dfx canister call` and so forth work as expected
+if run from within any subdirectory of a dfx project.  Previously, this would create
+canister_ids.json or .dfx/local/canister_ids.json within the subdirectory.
+
+=== feat: Post-installation tasks
+
+You can now add your own custom post-installation/post-deployment tasks to any canister type. The new `+post-install+` key for canister objects in `+dfx.json+` can be a command or list of commands, similar to the `+build+` key of `+custom+` canisters, and receives all the same environment variables. For example, to replicate the upload task performed with `+assets+` canisters, you might set `+"post-install": "icx-asset sync $CANISTER_ID dist"+`.
+
+=== feat: assets are no longer copied from source directories before being uploaded to asset canister
+
+Assets are now uploaded directly from their source directories, rather than first being copied
+to an output directory.
+
+If you're using `dfx deploy`, you won't see any change in functionality.  If you're running
+`dfx canister install --mode=upgrade`, changed files in asset source directories will
+be detected and uploaded even without an intervening `dfx build`.
+
+=== fix: Added src/declarations to .gitignore for new projects
+
+=== fix: remove deprecated candid path environment variable
+
+The environment variable format `+CANISTER_CANDID_{name}+`, used in Rust projects, was deprecated in 0.9.2, to be unified with the variables `+CANISTER_CANDID_PATH_{name}+` which are used in other project types. It has now been removed. Note that you will need to update `+ic-cdk-macros+` if you use the `+#[import]+` macro.
+
+=== feat: deprecate `+dfx config+` for removal
+
+The `+dfx config+` command has several issues and is ultimately a poor replacement for https://stedolan.github.io/jq/[`+jq+`]. The command is being deprecated, and will be removed in a later release; we recommend switching to `+jq+` or similar tools (e.g. `+ConvertTo-Json+` in PowerShell, `+to json+` in nushell, etc.)
+
 === feat: Better build scripts for type:custom
 
 Build scripts now always receive a CWD of the DFX project root, instead of wherever `+dfx+` was invoked from, and a bare script `+script.sh+` can be specified without needing to prefix with `+./+`.
@@ -15,6 +44,10 @@ Motoko canisters already included this metadata.
 
 Also added this metadata to the asset canister wasm, which will cause the next deploy to
 install this new version.
+
+=== feat: Add safeguard to freezing threshold
+
+Some developers mistakenly think that the freezing threshold is measured in cycles, but it is actually measured in seconds. To stop them from accidentally freezing their canisters, setting a freezing threshold above 50M seconds (~1.5 years) now requires a confirmation.
 
 === fix: restores assets to webpack devserver
 
@@ -75,20 +108,27 @@ dfx ping now uses the anonymous identity, and no longer requires dfx.json to be 
 
 == Dependencies
 
-== Motoko
+=== Rust Agent
+
+Updated agent-rs to 0.18.0
+
+=== Motoko
 
 Updated Motoko from 0.6.28 to 0.6.29.
 
-== Replica
+=== Replica
 
-Updated replica to elected commit ebb7d6d10d3140f12b9f9b343c061f8aab6e271a.
+Updated replica to elected commit 92e6b0ed36cdc9322a3588f46a8c8c7cc567e143.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/65530[65530]
+* https://dashboard.internetcomputer.org/proposal/65327[65327]
+* https://dashboard.internetcomputer.org/proposal/65043[65043]
 * https://dashboard.internetcomputer.org/proposal/64355[64355]
 * https://dashboard.internetcomputer.org/proposal/63228[63228]
 * https://dashboard.internetcomputer.org/proposal/62143[62143]
 
-== ic-ref
+=== ic-ref
 
 Updated ic-ref to 0.0.1-173cbe84
  - add ic0.performance_counter system interface

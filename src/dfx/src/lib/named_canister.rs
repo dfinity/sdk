@@ -4,7 +4,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
@@ -23,14 +22,14 @@ const UI_CANISTER: &str = "__Candid_UI";
 #[context("Failed to install candid UI canister.")]
 pub async fn install_ui_canister(
     env: &dyn Environment,
-    network: &NetworkDescriptor,
+    id_store: &mut CanisterIdStore,
     some_canister_id: Option<Principal>,
 ) -> DfxResult<Principal> {
-    let mut id_store = CanisterIdStore::for_network(network)?;
+    let network = env.get_network_descriptor();
     if id_store.find(UI_CANISTER).is_some() {
         return Err(anyhow!(
             "UI canister already installed on {} network",
-            network.name
+            network.name,
         ));
     }
     fetch_root_key_if_needed(env).await?;
@@ -85,7 +84,6 @@ pub async fn install_ui_canister(
     );
     Ok(canister_id)
 }
-pub fn get_ui_canister_id(network: &NetworkDescriptor) -> Option<Principal> {
-    let id_store = CanisterIdStore::for_network(network).ok()?;
+pub fn get_ui_canister_id(id_store: &CanisterIdStore) -> Option<Principal> {
     id_store.find(UI_CANISTER)
 }

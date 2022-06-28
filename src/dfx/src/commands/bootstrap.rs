@@ -51,7 +51,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
     let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;
 
-    let network_descriptor = get_network_descriptor(env, opts.network)?;
+    let network_descriptor = get_network_descriptor(env.get_config(), opts.network)?;
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
@@ -118,6 +118,8 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
                 env.get_logger().clone(),
                 build_output_root,
                 network_descriptor,
+                config.get_project_root().to_path_buf(),
+                env.get_temp_dir().to_path_buf(),
                 webserver_bind,
             )?;
 

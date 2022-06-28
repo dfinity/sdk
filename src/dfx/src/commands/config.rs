@@ -5,6 +5,7 @@ use crate::lib::error::DfxResult;
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use serde_json::value::Value;
+use slog::warn;
 
 /// Configures project options for your currently-selected project.
 #[derive(Parser)]
@@ -24,6 +25,7 @@ pub struct ConfigOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
+    warn!(env.get_logger(), "`dfx config` is deprecated, and will be removed in the next release; consider using the `jq` tool or similar");
     // Cannot use the `env` variable as we need a mutable copy.
     let mut config: Config = env.get_config_or_anyhow()?.as_ref().clone();
 
