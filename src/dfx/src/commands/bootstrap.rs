@@ -118,6 +118,8 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
                 env.get_logger().clone(),
                 build_output_root,
                 network_descriptor,
+                config.get_project_root().to_path_buf(),
+                env.get_temp_dir().to_path_buf(),
                 webserver_bind,
             )?;
 
