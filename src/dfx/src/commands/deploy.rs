@@ -147,7 +147,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     let mut frontend_urls = BTreeMap::new();
     let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();
 
-    let ui_canister_id = named_canister::get_ui_canister_id(network);
+    let ui_canister_id = named_canister::get_ui_canister_id(&canister_id_store);
 
     if let Some(canisters) = &config.get_config().canisters {
         for (canister_name, canister_config) in canisters {
