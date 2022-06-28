@@ -1,11 +1,14 @@
+use crate::lib::builders::environment_variables;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::installers::assets::post_install_store_assets;
+use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::named_canister;
+use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
 use crate::util::{expiry_duration, read_module_metadata};
@@ -18,10 +21,12 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+use itertools::Itertools;
 use openssl::sha::Sha256;
 use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 
 #[allow(clippy::too_many_arguments)]
@@ -37,6 +42,7 @@ pub async fn install_canister(
     call_sender: &CallSender,
     installed_module_hash: Option<Vec<u8>>,
     upgrade_unchanged: bool,
+    pool: Option<&CanisterPool>,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
@@ -161,6 +167,79 @@ pub async fn install_canister(
         post_install_store_assets(canister_info, agent, timeout).await?;
     }
 
+    if !canister_info.get_post_install().is_empty() {
+        run_post_install_tasks(env, canister_info, network, pool)?;
+    }
+
+    Ok(())
+}
+
+#[context("Failed to run post-install tasks")]
+fn run_post_install_tasks(
+    env: &dyn Environment,
+    canister: &CanisterInfo,
+    network: &NetworkDescriptor,
+    pool: Option<&CanisterPool>,
+) -> DfxResult {
+    let tmp;
+    let pool = match pool {
+        Some(pool) => pool,
+        None => {
+            tmp = env
+                .get_config_or_anyhow()?
+                .get_config()
+                .get_canister_names_with_dependencies(Some(canister.get_name()))
+                .and_then(|deps| CanisterPool::load(env, false, &deps))
+                .context("Error collecting canisters for post-install task")?;
+            &tmp
+        }
+    };
+    let dependencies = pool
+        .get_canister_list()
+        .iter()
+        .map(|can| can.canister_id())
+        .collect_vec();
+    for task in canister.get_post_install() {
+        run_post_install_task(canister, task, network, pool, &dependencies)?;
+    }
+    Ok(())
+}
+
+#[context("Failed to run post-install task {task}")]
+fn run_post_install_task(
+    canister: &CanisterInfo,
+    task: &str,
+    network: &NetworkDescriptor,
+    pool: &CanisterPool,
+    dependencies: &[Principal],
+) -> DfxResult {
+    let cwd = canister.get_workspace_root();
+    let words = shell_words::split(task)
+        .with_context(|| format!("Error interpreting post-install task `{task}`"))?;
+    let canonicalized = cwd
+        .join(&words[0])
+        .canonicalize()
+        .or_else(|_| which::which(&words[0]))
+        .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
+    let mut command = Command::new(&canonicalized);
+    command.args(&words[1..]);
+    let vars = environment_variables(canister, &network.name, pool, dependencies);
+    for (key, val) in vars {
+        command.env(&*key, val);
+    }
+    command
+        .current_dir(cwd)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+    let status = command.status()?;
+    if !status.success() {
+        match status.code() {
+            Some(code) => {
+                bail!("The post-install task `{task}` failed with exit code {code}")
+            }
+            None => bail!("The post-install task `{task}` was terminated by a signal"),
+        }
+    }
     Ok(())
 }
 

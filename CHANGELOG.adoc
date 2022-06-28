@@ -11,6 +11,10 @@ Running `dfx deploy`, `dfx canister id`, `dfx canister call` and so forth work a
 if run from within any subdirectory of a dfx project.  Previously, this would create
 canister_ids.json or .dfx/local/canister_ids.json within the subdirectory.
 
+=== feat: Post-installation tasks
+
+You can now add your own custom post-installation/post-deployment tasks to any canister type. The new `+post-install+` key for canister objects in `+dfx.json+` can be a command or list of commands, similar to the `+build+` key of `+custom+` canisters, and receives all the same environment variables. For example, to replicate the upload task performed with `+assets+` canisters, you might set `+"post-install": "icx-asset sync $CANISTER_ID dist"+`.
+
 === feat: assets are no longer copied from source directories before being uploaded to asset canister
 
 Assets are now uploaded directly from their source directories, rather than first being copied

@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::util::SerdeVec;
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::{anyhow, Context};
@@ -70,6 +71,9 @@ pub struct ConfigCanistersCanister {
 
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
+
+    #[serde(default)]
+    pub post_install: SerdeVec<String>,
 
     #[serde(flatten)]
     pub extras: BTreeMap<String, Value>,

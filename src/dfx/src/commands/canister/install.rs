@@ -127,6 +127,7 @@ pub async fn exec(
                 call_sender,
                 installed_module_hash,
                 opts.upgrade_unchanged,
+                None,
             )
             .await
         }
@@ -167,6 +168,7 @@ pub async fn exec(
                     call_sender,
                     installed_module_hash,
                     opts.upgrade_unchanged,
+                    None,
                 )
                 .await?;
             }
