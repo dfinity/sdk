@@ -2,7 +2,7 @@ use crate::config::dfinity::{ConfigDefaults, ConfigDefaultsBootstrap};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
-use crate::lib::provider::get_network_descriptor;
+use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 use crate::lib::webserver::run_webserver;
 use crate::util::get_reusable_socket_addr;
 
@@ -51,7 +51,11 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
     let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;
 
-    let network_descriptor = get_network_descriptor(env.get_config(), opts.network)?;
+    let network_descriptor = get_network_descriptor(
+        env.get_config(),
+        opts.network,
+        LocalBindDetermination::AsConfigured,
+    )?;
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");

@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: dfx will look up the port of the running webserver from .dfx/webserver-port, if present
+
+After `dfx start --host 127.0.0.1:0`, the dfx webserver will listen on an ephemeral port.  It stores the port value in .dfx/webserver-port.  dfx will now look for this file, and if a port is contained within, use that port to connect to the dfx webserver.
+
 === fix: dfx commands once again work from any subdirectory of a dfx project
 
 Running `dfx deploy`, `dfx canister id`, `dfx canister call` and so forth work as expected

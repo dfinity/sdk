@@ -67,8 +67,10 @@ teardown() {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     dfx_start --host 127.0.0.1:12345
-    # dfx_start overwrites local bind with provided port arg, set it back to default
-    assert_command dfx config networks.local.bind '"127.0.0.1:8000"'
+
+    # Make dfx use the port from configuration:
+    rm .dfx/webserver-port
+
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.arbitrary.providers=["http://127.0.0.1:12345"]' dfx.json)" >dfx.json
 
@@ -76,7 +78,7 @@ teardown() {
     assert_match "\"ic_api_version\""
 
     assert_command_fail dfx ping
-    # this port won't match the ephemeral port that the ic ref picked
+    # this port won't match the ephemeral port that the replica picked
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.arbitrary.providers=["127.0.0.1:22113"]' dfx.json)" >dfx.json
     assert_command_fail dfx ping arbitrary
