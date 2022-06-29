@@ -23,7 +23,7 @@ pub async fn exec(env: &dyn Environment, opts: NotifyTopUpOpts) -> DfxResult {
     let block_height = opts.block_height.parse::<u64>().unwrap();
     let canister = Principal::from_text(&opts.canister).with_context(|| {
         format!(
-            "Failed to parse {} as destination principal.",
+            "Failed to parse {:?} as destination principal.",
             opts.canister
         )
     })?;
