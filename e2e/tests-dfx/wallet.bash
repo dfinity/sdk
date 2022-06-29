@@ -144,7 +144,7 @@ teardown() {
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
     assert_eq "$CALLER" "$WALLET"
 
-    assert_command dfx canister call e2e_project amInitializer
+    assert_command dfx canister call e2e_project_backend amInitializer
     assert_command dfx canister call "$WALLET" wallet_call \
         "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.

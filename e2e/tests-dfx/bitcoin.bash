@@ -31,7 +31,7 @@ set_default_bitcoin_enabled() {
 }
 
 @test "dfx restarts replica when ic-btc-adapter restarts" {
-    dfx_new hello_backend
+    dfx_new hello
     set_default_bitcoin_enabled
     dfx_start
 

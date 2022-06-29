@@ -185,8 +185,8 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  assert_command ls .dfx/local/canisters/e2e_project/
-  assert_command ls .dfx/local/canisters/e2e_project/e2e_project.wasm
+  assert_command ls .dfx/local/canisters/e2e_project_backend/
+  assert_command ls .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm
 }
 
 @test "build with wallet output for non-local network is in expected directory" {
