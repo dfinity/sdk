@@ -5,6 +5,7 @@
 [licenses]
 default = "deny"
 unlicensed = "allow"
+copyleft = "deny"
 
 allow = [
     "Apache-2.0",
@@ -18,11 +19,9 @@ allow = [
     "Zlib",
 ]
 
-deny = [
-    "GPL-1.0",
-    "GPL-2.0",
-    "GPL-3.0",
-]
+[[licenses.exceptions]]
+name = "abnf" # changed to MIT / APACHE since this version, plus it's a build dependency
+allow = ["AGPL-3.0"]
 
 [sources]
 allow-git = [ "https://github.com/dfinity/agent-rs.git" ]
