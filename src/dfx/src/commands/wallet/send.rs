@@ -28,8 +28,12 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
         canister: Principal,
         amount: u128,
     }
-    let canister = Principal::from_text(&opts.destination)
-        .context("Failed to parse destination principal.")?;
+    let canister = Principal::from_text(&opts.destination).with_context(|| {
+        format!(
+            "Failed to parse {} as destination principal.",
+            &opts.destination
+        )
+    })?;
     // amount has been validated by cycle_amount_validator
     let amount = opts.amount.parse::<u128>().unwrap();
     let res = get_wallet(env)
