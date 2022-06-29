@@ -22,3 +22,35 @@ teardown() {
     assert_command dfx canister id e2e_project_backend
     assert_match "$(jq -r .e2e_project_backend.local < .dfx/local/canister_ids.json)"
 }
+
+@test "id subcommand works from a subdirectory of the project - ephemeral id" {
+    install_asset id
+    dfx_start
+    dfx canister create --all
+    ID=$(dfx canister id e2e_project)
+    echo "canister id is $ID"
+
+    (
+        cd src
+        dfx canister id e2e_project
+        assert_command dfx canister id e2e_project
+        assert_eq "$ID"
+    )
+}
+
+@test "id subcommand works from a subdirectory of the project - persistent id" {
+    install_asset id
+
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .networks.local.type=\"persistent\" dfx.json)" >dfx.json
+    dfx_start
+    dfx canister create --all
+    ID=$(dfx canister id e2e_project)
+    echo "canister id is $ID"
+    (
+        cd src
+        dfx canister id e2e_project
+        assert_command dfx canister id e2e_project
+        assert_eq "$ID"
+    )
+}

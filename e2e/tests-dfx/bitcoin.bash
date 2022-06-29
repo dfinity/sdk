@@ -14,7 +14,8 @@ teardown() {
     bitcoin-cli -regtest stop
 
     dfx_stop
-    dfx_stop_replica_and_bootstrap
+    stop_dfx_replica
+    stop_dfx_bootstrap
     standard_teardown
 }
 
@@ -76,7 +77,8 @@ set_default_bitcoin_enabled() {
 @test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
     dfx_new hello
     set_default_bitcoin_enabled
-    dfx_start_replica_and_bootstrap
+    dfx_replica
+    dfx_bootstrap
 
     install_asset greet
     assert_command dfx deploy
@@ -128,7 +130,8 @@ set_default_bitcoin_enabled() {
 
 @test "dfx replica --bitcoin-node <node> implies --enable-bitcoin" {
     dfx_new hello
-    dfx_start_replica_and_bootstrap "--bitcoin-node" "127.0.0.1:18444"
+    dfx_replica "--bitcoin-node" "127.0.0.1:18444"
+    dfx_bootstrap
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
@@ -145,7 +148,7 @@ set_default_bitcoin_enabled() {
 @test "dfx replica --enable-bitcoin with no other configuration succeeds" {
     dfx_new hello
 
-    dfx_start_replica_and_bootstrap --enable-bitcoin
+    dfx_replica --enable-bitcoin
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
@@ -163,7 +166,7 @@ set_default_bitcoin_enabled() {
     dfx_new hello
     set_default_bitcoin_enabled
 
-    dfx_start_replica_and_bootstrap
+    dfx_replica
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
@@ -185,7 +188,8 @@ set_default_bitcoin_enabled() {
 @test "dfx replica+bootstrap with both bitcoin and canister http enabled" {
     dfx_new hello
 
-    dfx_start_replica_and_bootstrap --enable-bitcoin --enable-canister-http
+    dfx_replica --enable-bitcoin --enable-canister-http
+    dfx_bootstrap
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid

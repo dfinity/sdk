@@ -250,7 +250,7 @@ fn ensure_trailing_newline(s: String) -> String {
 
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
 
-fn environment_variables<'a>(
+pub fn environment_variables<'a>(
     info: &CanisterInfo,
     network_name: &'a str,
     pool: &'a CanisterPool,

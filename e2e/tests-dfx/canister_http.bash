@@ -10,7 +10,8 @@ setup() {
 
 teardown() {
     dfx_stop
-    dfx_stop_replica_and_bootstrap
+    stop_dfx_replica
+    stop_dfx_bootstrap
     standard_teardown
 }
 
@@ -66,7 +67,8 @@ set_default_canister_http_enabled() {
 @test "dfx restarts replica when ic-canister-http-adapter restarts - replica and bootstrap" {
     dfx_new hello
     set_default_canister_http_enabled
-    dfx_start_replica_and_bootstrap
+    dfx_replica
+    dfx_bootstrap
 
     install_asset greet
     assert_command dfx deploy
@@ -117,7 +119,7 @@ set_default_canister_http_enabled() {
 @test "dfx replica --enable-canister-http with no other configuration succeeds" {
     dfx_new hello
 
-    dfx_start_replica_and_bootstrap --enable-canister-http
+    dfx_replica --enable-canister-http
 
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
@@ -135,7 +137,7 @@ set_default_canister_http_enabled() {
     dfx_new hello
     set_default_canister_http_enabled
 
-    dfx_start_replica_and_bootstrap
+    dfx_replica
 
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }

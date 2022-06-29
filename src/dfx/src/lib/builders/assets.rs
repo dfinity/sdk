@@ -10,14 +10,13 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-use walkdir::WalkDir;
 
 /// Set of extras that can be specified in the dfx.json.
 struct AssetsBuilderExtra {
@@ -108,9 +107,6 @@ impl CanisterBuilder for AssetsBuilder {
             })?;
         }
 
-        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        delete_output_directory(info, &assets_canister_info)?;
-
         let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
         Ok(BuildOutput {
@@ -155,9 +151,6 @@ impl CanisterBuilder for AssetsBuilder {
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
         assets_canister_info.assert_source_paths()?;
 
-        copy_assets(pool.get_logger(), &assets_canister_info).with_context(|| {
-            format!("Failed to copy assets for canister '{}'.", info.get_name())
-        })?;
         Ok(())
     }
 
@@ -202,9 +195,6 @@ impl CanisterBuilder for AssetsBuilder {
                 })?;
         }
 
-        let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-        delete_output_directory(info, &assets_canister_info)?;
-
         // delete unpacked wasm file
         let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));
         if wasm_path.exists() {
@@ -223,98 +213,6 @@ impl CanisterBuilder for AssetsBuilder {
 
         Ok(idl_path_rename)
     }
-}
-
-fn is_hidden(entry: &walkdir::DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with('.'))
-        .unwrap_or(false)
-}
-
-#[context("Failed to delete output directory for canister '{}'.", info.get_name())]
-fn delete_output_directory(
-    info: &CanisterInfo,
-    assets_canister_info: &AssetsCanisterInfo,
-) -> DfxResult {
-    let output_assets_path = assets_canister_info.get_output_assets_path();
-    if output_assets_path.exists() {
-        let output_assets_path = output_assets_path.canonicalize().with_context(|| {
-            format!(
-                "Failed to canonicalize output assets path {}.",
-                output_assets_path.to_string_lossy()
-            )
-        })?;
-        if !output_assets_path.starts_with(info.get_workspace_root()) {
-            bail!(
-                "Directory at '{}' is outside the workspace root.",
-                output_assets_path.display()
-            );
-        }
-        fs::remove_dir_all(&output_assets_path).with_context(|| {
-            format!("Failed to remove {}.", output_assets_path.to_string_lossy())
-        })?;
-    }
-    Ok(())
-}
-
-#[context("Failed to copy assets.")]
-fn copy_assets(logger: &slog::Logger, assets_canister_info: &AssetsCanisterInfo) -> DfxResult {
-    let source_paths = assets_canister_info.get_source_paths();
-    let output_assets_path = assets_canister_info.get_output_assets_path();
-
-    for source_path in source_paths {
-        // If the source doesn't exist, we ignore it.
-        if !source_path.exists() {
-            slog::warn!(
-                logger,
-                r#"Source path "{}" does not exist."#,
-                source_path.to_string_lossy()
-            );
-
-            continue;
-        }
-
-        let input_assets_path = source_path.as_path();
-        let walker = WalkDir::new(input_assets_path).into_iter();
-        for entry in walker.filter_entry(|e| !is_hidden(e)) {
-            let entry = entry.with_context(|| {
-                format!(
-                    "Failed to read an input asset entry in {}.",
-                    input_assets_path.to_string_lossy()
-                )
-            })?;
-            let source = entry.path();
-            let relative = source
-                .strip_prefix(input_assets_path)
-                .expect("cannot strip prefix");
-
-            let destination = output_assets_path.join(relative);
-
-            // If the destination exists, we simply continue. We delete the output directory
-            // prior to building so the only way this exists is if it's an output to one
-            // of the build steps.
-            if destination.exists() {
-                continue;
-            }
-
-            if entry.file_type().is_dir() {
-                fs::create_dir(&destination).with_context(|| {
-                    format!("Failed to create {}.", destination.to_string_lossy())
-                })?;
-            } else {
-                fs::copy(&source, &destination).with_context(|| {
-                    format!(
-                        "Failed to copy {} to {}",
-                        source.to_string_lossy(),
-                        destination.to_string_lossy()
-                    )
-                })?;
-            }
-        }
-    }
-    Ok(())
 }
 
 #[context("Failed to build frontend for network '{}'.", network_name)]

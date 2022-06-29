@@ -39,3 +39,12 @@ teardown() {
     assert_command dfx canister send message-inc.json --status
     assert_match "To see the content of response, copy-paste the encoded string into cbor.me."
 }
+
+@test "sign outside of a dfx project" {
+    cd "$DFX_E2E_TEMP_DIR"
+    mkdir not-a-project-dir
+    cd not-a-project-dir
+
+    assert_command dfx canister --network ic sign --query rwlgt-iiaaa-aaaaa-aaaaa-cai read
+    assert_match "Query message generated at \[message.json\]"
+}
