@@ -53,6 +53,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     let fee = opts
         .fee
+        .as_ref()
         .map_or(Ok(TRANSACTION_FEE), |v| {
             ICPTs::from_str(&v).map_err(|err| anyhow!(err))
         })
@@ -60,8 +61,12 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     let memo = Memo(MEMO_TOP_UP_CANISTER);
 
-    let to = Principal::from_text(opts.canister)
-        .context("Failed to parse target canister principal.")?;
+    let to = Principal::from_text(&opts.canister).with_context(|| {
+        format!(
+            "Failed to parse {} as target canister principal.",
+            &opts.canister
+        )
+    })?;
 
     let agent = env
         .get_agent()
