@@ -63,7 +63,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
 
     let controller = Principal::from_text(&opts.controller).with_context(|| {
         format!(
-            "Failed to parse {} as controller principal.",
+            "Failed to parse {:?} as controller principal.",
             &opts.controller
         )
     })?;
