@@ -18,7 +18,7 @@ teardown() {
     install_asset greet
     assert_command dfx deploy
 
-    assert_command dfx canister call hello greet '("Banzai")'
+    assert_command dfx canister call hello_backend greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
 }
 
@@ -27,7 +27,7 @@ teardown() {
     dfx_start
     install_asset greet
     assert_command dfx deploy hello_backend
-    assert_match 'Deploying: hello'
+    assert_match 'Deploying: hello_backend'
     assert_not_match 'hello_frontend'
 }
 
@@ -36,7 +36,7 @@ teardown() {
     dfx_start
     install_asset greet
     assert_command dfx deploy hello_frontend
-    assert_match 'Deploying: hello hello_frontend'
+    assert_match 'Deploying: hello_backend hello_frontend'
 }
 
 @test "deploy a canister with non-circular shared dependencies" {
@@ -71,7 +71,7 @@ teardown() {
 
     assert_command dfx deploy --argument '("World")'
 
-    assert_command dfx canister call hello greet
+    assert_command dfx canister call hello_backend greet
     assert_match 'Hello, World'
 }
 

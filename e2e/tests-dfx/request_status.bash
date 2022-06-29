@@ -20,12 +20,12 @@ teardown() {
     dfx canister create --all
     dfx build
 
-    dfx canister install hello
+    dfx canister install hello_backend
 
-    assert_command dfx canister call --async hello greet Bob
+    assert_command dfx canister call --async hello_backend greet Bob
 
     # shellcheck disable=SC2154
-    assert_command dfx canister request-status --output raw "$stdout" "$(dfx canister id hello)"
+    assert_command dfx canister request-status --output raw "$stdout" "$(dfx canister id hello_backend)"
     assert_eq '4449444c0001710b48656c6c6f2c20426f6221'
 
 }

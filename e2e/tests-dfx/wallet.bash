@@ -125,12 +125,12 @@ teardown() {
     assert_command dfx build
     assert_command dfx canister --wallet "$WALLET" install --all
 
-    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project fromCall)
+    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project_backend fromCall)
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
     assert_eq "$CALLER" "$WALLET"
 
     assert_command dfx canister call "$WALLET" wallet_call \
-        "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
+        "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 }
 
@@ -140,13 +140,13 @@ teardown() {
     dfx_start
     WALLET=$(dfx identity get-wallet)
     assert_command dfx deploy --wallet "$WALLET"
-    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project fromCall)
+    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project_backend fromCall)
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
     assert_eq "$CALLER" "$WALLET"
 
     assert_command dfx canister call e2e_project amInitializer
     assert_command dfx canister call "$WALLET" wallet_call \
-        "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
+        "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 }
 

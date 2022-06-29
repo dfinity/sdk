@@ -30,13 +30,13 @@ set_default_bitcoin_enabled() {
 }
 
 @test "dfx restarts replica when ic-btc-adapter restarts" {
-    dfx_new hello
+    dfx_new hello_backend
     set_default_bitcoin_enabled
     dfx_start
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
     REPLICA_PID=$(get_replica_pid)
@@ -58,10 +58,10 @@ set_default_bitcoin_enabled() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
-    assert_command dfx canister call hello greet '("Omega")'
+    assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 
     ID=$(dfx canister id hello_frontend)
@@ -80,7 +80,7 @@ set_default_bitcoin_enabled() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
     REPLICA_PID=$(get_replica_pid)
@@ -111,10 +111,10 @@ set_default_bitcoin_enabled() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
-    assert_command dfx canister call hello greet '("Omega")'
+    assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 }
 
@@ -178,7 +178,7 @@ set_default_bitcoin_enabled() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 }
 
@@ -192,7 +192,7 @@ set_default_bitcoin_enabled() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 }
 

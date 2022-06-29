@@ -20,7 +20,7 @@ teardown() {
 
     assert_command dfx deploy
     CANDID_UI_ID=$(dfx canister id __Candid_UI)
-    APP_ID=$(dfx canister id e2e_project)
+    APP_ID=$(dfx canister id e2e_project_backend)
     ASSETS_ID=$(dfx canister id e2e_project_frontend)
     assert_match "e2e_project: http://127.0.0.1:$PORT/\?canisterId=$CANDID_UI_ID&id=$APP_ID"
     assert_match "e2e_project_frontend: http://127.0.0.1:$PORT/\?canisterId=$ASSETS_ID"
@@ -30,7 +30,7 @@ teardown() {
     cat <<<"$(jq '.networks.local.bind="localhost:'"$PORT"'"' dfx.json)" >dfx.json
 
     assert_command dfx deploy
-    assert_match "e2e_project: http://$CANDID_UI_ID.localhost:$PORT/\?id=$APP_ID"
+    assert_match "e2e_project_backend: http://$CANDID_UI_ID.localhost:$PORT/\?id=$APP_ID"
     assert_match "e2e_project_frontend: http://$ASSETS_ID.localhost:$PORT/"
 }
 
