@@ -16,18 +16,18 @@ teardown() {
 
 @test "set freezing threshold" {
     dfx_start
-    assert_command dfx deploy hello
+    assert_command dfx deploy hello_backend
 
     # trying to set threshold to 1T seconds, which should not work because it's likely a mistake
-    assert_command_fail dfx canister update-settings hello --freezing-threshold 100000000000
+    assert_command_fail dfx canister update-settings hello_backend --freezing-threshold 100000000000
     assert_match "SECONDS" # error message pointing to the error
 
     # with manual override it's ok
-    assert_command dfx canister update-settings hello --freezing-threshold 100000000000 --confirm-very-long-freezing-threshold
+    assert_command dfx canister update-settings hello_backend --freezing-threshold 100000000000 --confirm-very-long-freezing-threshold
 
     # to check if threshold is set correctly we have to un-freeze the canister by adding cycles. Fabricating 100T cycles onto it
-    assert_command dfx ledger fabricate-cycles --canister hello --t 100
-    assert_command dfx canister status hello
+    assert_command dfx ledger fabricate-cycles --canister hello_backend --t 100
+    assert_command dfx canister status hello_backend
     assert_match "Freezing threshold: 100_000_000_000"
 }
 

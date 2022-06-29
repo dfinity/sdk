@@ -93,8 +93,8 @@ teardown() {
     dfx_start
     dfx canister create --all
     dfx build
-    dfx canister install hello
-    ID="$(dfx canister id hello)"
+    dfx canister install hello_backend
+    ID="$(dfx canister id hello_backend)"
     NETWORK="http://localhost:$(cat .dfx/webserver-port)"
     (
         cd "$DFX_E2E_TEMP_DIR"

@@ -23,7 +23,7 @@ teardown() {
     assert_match "Controllers: ($WALLET_ID $SELF_ID|$SELF_ID $WALLET_ID) Module hash: None"
 
     dfx build hello_backend
-    RESULT="$(openssl dgst -sha256 .dfx/local/canisters/hello/hello.wasm)"
+    RESULT="$(openssl dgst -sha256 .dfx/local/canisters/hello_backend/hello.wasm)"
     # shellcheck disable=SC2034
     HASH="0x"
     HASH+=$(echo "${RESULT}" | cut -d' ' -f 2)
