@@ -12,7 +12,7 @@ use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::provider::get_network_descriptor;
+use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 use crate::lib::webserver::run_webserver;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
@@ -163,7 +163,8 @@ pub fn exec(
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let network_descriptor = get_network_descriptor(env.get_config(), None)?;
+    let network_descriptor =
+        get_network_descriptor(env.get_config(), None, LocalBindDetermination::AsConfigured)?;
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
