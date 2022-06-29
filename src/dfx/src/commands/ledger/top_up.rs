@@ -55,7 +55,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
         .fee
         .as_ref()
         .map_or(Ok(TRANSACTION_FEE), |v| {
-            ICPTs::from_str(&v).map_err(|err| anyhow!(err))
+            ICPTs::from_str(v).map_err(|err| anyhow!(err))
         })
         .context("Failed to determine fee.")?;
 
