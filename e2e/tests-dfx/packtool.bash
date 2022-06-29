@@ -41,12 +41,12 @@ teardown() {
     dfx_start
     dfx canister create --all
     dfx build
-    dfx canister install e2e_project
+    dfx canister install e2e_project_backend
 
-    assert_command dfx canister call e2e_project rate '("rust")'
+    assert_command dfx canister call e2e_project_backend rate '("rust")'
     assert_eq '("rust: So hot right now.")'
 
-    assert_command dfx canister call e2e_project rate '("php")'
+    assert_command dfx canister call e2e_project_backend rate '("php")'
     assert_eq '("php: No comment.")'
 }
 

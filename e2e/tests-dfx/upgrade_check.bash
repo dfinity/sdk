@@ -23,10 +23,10 @@ teardown() {
   install_asset upgrade
   dfx_start
   dfx deploy
-  dfx canister call hello inc '()'
-  dfx config canisters/hello/main v2.mo
+  dfx canister call hello_backend inc '()'
+  dfx config canisters/hello_backend/main v2.mo
   dfx deploy
-  assert_command dfx canister call hello read '()'
+  assert_command dfx canister call hello_backend read '()'
   assert_match "(1 : nat)"
 }
 
@@ -34,13 +34,13 @@ teardown() {
     install_asset upgrade
     dfx_start
     dfx deploy
-    dfx canister call hello inc '()'
-    dfx config canisters/hello/main v2_bad.mo
+    dfx canister call hello_backend inc '()'
+    dfx config canisters/hello_backend/main v2_bad.mo
     echo yes | (
       assert_command dfx deploy
       assert_match "Stable interface compatibility check failed"
     )
-    assert_command dfx canister call hello read '()'
+    assert_command dfx canister call hello_backend read '()'
     assert_match "(0 : nat)"
 }
 
@@ -48,11 +48,11 @@ teardown() {
     install_asset upgrade
     dfx_start
     dfx deploy
-    dfx canister call hello inc '()'
-    dfx config canisters/hello/main v2_bad.mo
+    dfx canister call hello_backend inc '()'
+    dfx config canisters/hello_backend/main v2_bad.mo
     dfx build
-    echo yes | dfx canister install hello --mode=reinstall
-    assert_command dfx canister call hello read '()'
+    echo yes | dfx canister install hello_backend --mode=reinstall
+    assert_command dfx canister call hello_backend read '()'
     assert_match "(0 : nat)"
 }
 
@@ -60,12 +60,12 @@ teardown() {
     install_asset upgrade
     dfx_start
     dfx deploy
-    dfx canister call hello inc '()'
-    dfx config canisters/hello/main v3_bad.mo
+    dfx canister call hello_backend inc '()'
+    dfx config canisters/hello_backend/main v3_bad.mo
     echo yes | (
       assert_command dfx deploy
       assert_match "Candid interface compatibility check failed"
     )
-    assert_command dfx canister call hello read2 '()'
+    assert_command dfx canister call hello_backend read2 '()'
     assert_match "(1 : int)"
 }

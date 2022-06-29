@@ -21,8 +21,8 @@ teardown() {
     dfx build e2e_project_assets
 
     #validate direct dependency built and is callable
-    assert_command dfx canister install e2e_project
-    assert_command dfx canister call e2e_project greet World
+    assert_command dfx canister install e2e_project_backend
+    assert_command dfx canister call e2e_project_backend greet World
 }
 
 @test "transitive dependencies are built" {
@@ -44,7 +44,7 @@ teardown() {
     dfx_start
     dfx canister create --all
     # only build motoko canister
-    dfx build e2e_project
+    dfx build e2e_project_backend
     # validate assets canister wasn't built and can't be installed
     assert_command_fail dfx canister install e2e_project_assets
     assert_match "No such file or directory"
@@ -55,10 +55,10 @@ teardown() {
     install_asset assetscanister
 
     dfx_start
-    dfx canister create e2e_project
-    dfx build e2e_project
-    assert_command dfx canister install e2e_project
-    assert_command dfx canister call e2e_project greet World
+    dfx canister create e2e_project_backend
+    dfx build e2e_project_backend
+    assert_command dfx canister install e2e_project_backend
+    assert_command dfx canister call e2e_project_backend greet World
 
     assert_command_fail dfx canister install e2e_project_assets
     assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_assets'."

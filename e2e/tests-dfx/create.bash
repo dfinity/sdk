@@ -123,7 +123,7 @@ teardown() {
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
 
     assert_command dfx canister create --all --controller "${ALICE_PRINCIPAL}"
-    assert_command dfx canister info e2e_project
+    assert_command dfx canister info e2e_project_backend
     assert_not_match "Controllers: ($ALICE_WALLET $ALICE_PRINCIPAL|$ALICE_PRINCIPAL $ALICE_WALLET)"
     assert_match "Controllers: $ALICE_PRINCIPAL"
 

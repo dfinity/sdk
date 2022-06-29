@@ -1,1 +1,1 @@
-dfx config canisters/hello/main greet.mo
+dfx config canisters/hello_backend/main greet.mo
