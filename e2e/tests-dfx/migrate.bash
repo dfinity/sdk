@@ -27,6 +27,8 @@ teardown() {
 }
 
 @test "detects the wallet being the sole controller" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref because uploading wallet.wasm as data takes too long"
+
     dfx_start
     dfx canister create e2e_project --controller "$(dfx identity get-wallet)" --no-wallet
     dfx build e2e_project
