@@ -99,8 +99,10 @@ set_default_bitcoin_enabled() {
     timeout 15s sh -x -c \
       "until curl --fail --verbose -o /dev/null http://localhost:\$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo \"waiting for replica to restart on port \$(cat .dfx/replica-configuration/replica-1.port)\"; sleep 1; done" \
       || (echo "replica did not restart" && echo "last replica port was $(get_replica_port)" && ps aux && exit 1)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:"$(get_replica_port)"\" dfx.json)" >dfx.json
+
+    # unfortunately bootstrap will never know about the new replica port.  This makes dfx bypass bootstrap:
+    overwrite_webserver_port "$(get_replica_port)"
+
     echo "dfx.json configured for new replica:"
     cat dfx.json
 

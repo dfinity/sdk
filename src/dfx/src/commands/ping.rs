@@ -3,6 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::Identity;
 use crate::lib::provider::{
     command_line_provider_to_url, get_network_context, get_network_descriptor,
+    LocalBindDetermination,
 };
 use crate::util::expiry_duration;
 
@@ -29,18 +30,22 @@ pub struct PingOpts {
 pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     // For ping, "provider" could either be a URL or a network name.
     // If not passed, we default to the "local" network.
-    let agent_url = get_network_descriptor(env.get_config(), opts.network)
-        .and_then(|network_descriptor| {
-            let url = network_descriptor.first_provider()?.to_string();
-            Ok(url)
-        })
-        .or_else::<DfxError, _>(|err| {
-            let logger = env.get_logger();
-            warn!(logger, "{}", err);
-            let network_name = get_network_context()?;
-            let url = command_line_provider_to_url(&network_name)?;
-            Ok(url)
-        })?;
+    let agent_url = get_network_descriptor(
+        env.get_config(),
+        opts.network,
+        LocalBindDetermination::ApplyRunningWebserverPort,
+    )
+    .and_then(|network_descriptor| {
+        let url = network_descriptor.first_provider()?.to_string();
+        Ok(url)
+    })
+    .or_else::<DfxError, _>(|err| {
+        let logger = env.get_logger();
+        warn!(logger, "{}", err);
+        let network_name = get_network_context()?;
+        let url = command_line_provider_to_url(&network_name)?;
+        Ok(url)
+    })?;
 
     let timeout = expiry_duration();
     let identity = Box::new(Identity::anonymous());

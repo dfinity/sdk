@@ -46,7 +46,7 @@ pub async fn exec(
         .context("Failed to create transport object.")?;
     let content = hex::decode(&message.content).context("Failed to decode message content.")?;
     let canister_id = Principal::from_text(message.canister_id.clone())
-        .with_context(|| format!("Failed to parse canister id {}.", message.canister_id))?;
+        .with_context(|| format!("Failed to parse canister id {:?}.", message.canister_id))?;
 
     if opts.status {
         if message.call_type.clone().as_str() != "update" {
