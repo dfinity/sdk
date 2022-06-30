@@ -63,7 +63,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     let to = Principal::from_text(&opts.canister).with_context(|| {
         format!(
-            "Failed to parse {} as target canister principal.",
+            "Failed to parse {:?} as target canister principal.",
             &opts.canister
         )
     })?;
