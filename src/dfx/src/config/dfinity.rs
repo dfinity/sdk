@@ -512,7 +512,8 @@ impl Config {
         Ok(Config::from_slice(path.to_path_buf(), &content)?)
     }
 
-    fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
+    #[context("Failed to read config from directory {}.", working_dir.to_string_lossy())]
+    pub fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
         let path = Config::resolve_config_path(working_dir)?;
         let maybe_config = path.map(|path| Config::from_file(&path)).transpose()?;
         Ok(maybe_config)
