@@ -15,6 +15,8 @@ teardown() {
 }
 
 @test "detects the wallet being outdated" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref because uploading wallet.wasm as data takes too long"
+
     use_wallet_wasm 0.7.2
     dfx_start
     WALLET=$(dfx identity get-wallet)
@@ -27,8 +29,6 @@ teardown() {
 }
 
 @test "detects the wallet being the sole controller" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref because uploading wallet.wasm as data takes too long"
-
     dfx_start
     dfx canister create e2e_project --controller "$(dfx identity get-wallet)" --no-wallet
     dfx build e2e_project
