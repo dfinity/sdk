@@ -12,25 +12,6 @@
         "url": "https://github.com/RustSec/advisory-db/archive/b4ed9228470b76218f4618ed46d9690ac41af09c.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "agent-rs": {
-        "branch": "main",
-        "repo": "https://github.com/dfinity/agent-rs",
-        "rev": "00fe152af028e196e18bedb30fc226f85c4dfe31",
-        "type": "git"
-    },
-    "bats-support": {
-        "branch": "v0.3.0",
-        "builtin": false,
-        "description": "Supporting library for Bats test helpers",
-        "homepage": null,
-        "owner": "ztombol",
-        "repo": "bats-support",
-        "rev": "24a72e14349690bcbf7c151b9d2d1cdd32d36eb1",
-        "sha256": "1sm1y752jrz41qm4bxivk1363ac5zpkyshkk156aqf2p5qjxgpp0",
-        "type": "tarball",
-        "url": "https://github.com/ztombol/bats-support/archive/24a72e14349690bcbf7c151b9d2d1cdd32d36eb1.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
     "canister-sandbox-x86_64-darwin": {
         "builtin": false,
         "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
@@ -48,12 +29,6 @@
         "type": "file",
         "url": "https://download.dfinity.systems/blessed/ic/75327e7e84d2c89770a49e775c7fd9e3e0af8e79/sdk-release/x86_64-linux/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/canister_sandbox.gz"
-    },
-    "common": {
-        "branch": "master",
-        "repo": "ssh://git@github.com/dfinity-lab/common",
-        "rev": "be8e4f53543be65cfbaa7738adf2c728fbc4cbda",
-        "type": "git"
     },
     "ic-btc-adapter-x86_64-darwin": {
         "builtin": false,
@@ -164,19 +139,6 @@
         "url": "https://github.com/dfinity/motoko/releases/download/0.6.29/motoko-linux64-0.6.29.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
         "version": "0.6.29"
-    },
-    "napalm": {
-        "branch": "master",
-        "builtin": false,
-        "description": "Support for building npm packages in Nix and lightweight npm registry",
-        "homepage": "",
-        "owner": "nmattia",
-        "repo": "napalm",
-        "rev": "4db4f253c78cfa8d8e8defb45dfe25e04409142a",
-        "sha256": "1rzj7a3r6wcsfjlzs5fj1min3rk8d8k9g9v00kmygdl1696mnkrb",
-        "type": "tarball",
-        "url": "https://github.com/nmattia/napalm/archive/4db4f253c78cfa8d8e8defb45dfe25e04409142a.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "replica-x86_64-darwin": {
         "builtin": false,
