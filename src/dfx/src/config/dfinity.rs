@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::lib::bitcoin::adapter::config::Level;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::SerdeVec;
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
@@ -26,6 +27,7 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
     enabled: false,
     nodes: None,
+    log_level: Level::Info,
 };
 
 const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
@@ -103,6 +105,10 @@ pub struct ConfigDefaultsBitcoin {
     /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
     #[serde(default)]
     pub nodes: Option<Vec<SocketAddr>>,
+
+    /// The logging level of the adapter (e.g. "info", "debug", "error", etc.)
+    #[serde(default)]
+    pub log_level: Level,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

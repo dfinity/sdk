@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 const BITCOIND_REGTEST_DEFAULT_PORT: u16 = 18444;
 
@@ -35,6 +36,45 @@ impl Default for IncomingSource {
     }
 }
 
+/// Represents the log level.
+#[derive(Clone, Debug, Serialize, Deserialize, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum Level {
+    Critical,
+    Error,
+    Warning,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl FromStr for Level {
+    type Err = String;
+
+    fn from_str(input: &str) -> Result<Level, Self::Err> {
+        match input {
+            "critical" => Ok(Level::Critical),
+            "error" => Ok(Level::Error),
+            "warning" => Ok(Level::Warning),
+            "info" => Ok(Level::Info),
+            "debug" => Ok(Level::Debug),
+            "trace" => Ok(Level::Trace),
+            other => Err(format!("Unknown log level: {}", other)),
+        }
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Level::Info
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LoggerConfig {
+    level: Level,
+}
+
 /// This struct contains configuration options for the BTC Adapter.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -50,15 +90,18 @@ pub struct Config {
     /// Specifies which unix domain socket should be used for serving incoming requests.
     #[serde(default)]
     pub incoming_source: IncomingSource,
+
+    pub logger: LoggerConfig,
 }
 
 impl Config {
-    pub fn new(nodes: Vec<SocketAddr>, uds_path: PathBuf) -> Config {
+    pub fn new(nodes: Vec<SocketAddr>, uds_path: PathBuf, log_level: Level) -> Config {
         Config {
             network: String::from("regtest"),
             nodes,
             idle_seconds: Some(FORCED_IDLE_SECONDS),
             incoming_source: IncomingSource::Path(uds_path),
+            logger: LoggerConfig { level: log_level },
         }
     }
 

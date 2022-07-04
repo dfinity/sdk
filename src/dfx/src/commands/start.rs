@@ -435,6 +435,7 @@ pub fn configure_btc_adapter_if_enabled(
     nodes: Vec<SocketAddr>,
 ) -> DfxResult<Option<bitcoin::adapter::Config>> {
     let enable = enable_bitcoin || !nodes.is_empty() || config.get_defaults().get_bitcoin().enabled;
+    let log_level = config.get_defaults().get_bitcoin().log_level;
 
     if !enable {
         return Ok(None);
@@ -446,7 +447,7 @@ pub fn configure_btc_adapter_if_enabled(
         (_, _) => bitcoin::adapter::config::default_nodes(),
     };
 
-    let config = write_btc_adapter_config(uds_holder_path, config_path, nodes)?;
+    let config = write_btc_adapter_config(uds_holder_path, config_path, nodes, log_level)?;
     Ok(Some(config))
 }
 
@@ -486,10 +487,11 @@ fn write_btc_adapter_config(
     uds_holder_path: &Path,
     config_path: &Path,
     nodes: Vec<SocketAddr>,
+    log_level: bitcoin::adapter::config::Level,
 ) -> DfxResult<bitcoin::adapter::Config> {
     let socket_path = get_persistent_socket_path(uds_holder_path, "ic-btc-adapter-socket")?;
 
-    let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path);
+    let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize btc adapter configuration to json")?;
