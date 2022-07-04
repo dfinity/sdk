@@ -37,7 +37,7 @@ impl Default for IncomingSource {
 }
 
 /// Represents the log level.
-#[derive(Clone, Debug, Serialize, Deserialize, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Level {
     Critical,

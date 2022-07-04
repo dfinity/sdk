@@ -97,7 +97,7 @@ pub struct CanisterDeclarationsConfig {
     pub env_override: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ConfigDefaultsBitcoin {
     #[serde(default = "default_as_false")]
     pub enabled: bool,
@@ -586,6 +586,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn find_dfinity_config_current_path() {
@@ -779,5 +780,84 @@ mod tests {
             .unwrap();
         assert_eq!(None, compute_allocation);
         assert_eq!(None, memory_allocation);
+    }
+
+    #[test]
+    fn get_bitcoin_config() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "nodes": ["127.0.0.1:18444"],
+                  "log_level": "info"
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: Level::Info
+            }
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config_default_log_level() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "nodes": ["127.0.0.1:18444"]
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: Level::Info // A default log level of "info" is assumed
+            }
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config_debug_log_level() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "log_level": "debug"
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: None,
+                log_level: Level::Debug
+            }
+        );
     }
 }
