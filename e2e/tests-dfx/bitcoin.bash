@@ -14,7 +14,8 @@ teardown() {
     bitcoin-cli -regtest stop
 
     dfx_stop
-    dfx_stop_replica_and_bootstrap
+    stop_dfx_replica
+    stop_dfx_bootstrap
     standard_teardown
 }
 
@@ -76,7 +77,8 @@ set_default_bitcoin_enabled() {
 @test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
     dfx_new hello
     set_default_bitcoin_enabled
-    dfx_start_replica_and_bootstrap
+    dfx_replica
+    dfx_bootstrap
 
     install_asset greet
     assert_command dfx deploy
@@ -97,8 +99,10 @@ set_default_bitcoin_enabled() {
     timeout 15s sh -x -c \
       "until curl --fail --verbose -o /dev/null http://localhost:\$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo \"waiting for replica to restart on port \$(cat .dfx/replica-configuration/replica-1.port)\"; sleep 1; done" \
       || (echo "replica did not restart" && echo "last replica port was $(get_replica_port)" && ps aux && exit 1)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:"$(get_replica_port)"\" dfx.json)" >dfx.json
+
+    # unfortunately bootstrap will never know about the new replica port.  This makes dfx bypass bootstrap:
+    overwrite_webserver_port "$(get_replica_port)"
+
     echo "dfx.json configured for new replica:"
     cat dfx.json
 
@@ -128,7 +132,8 @@ set_default_bitcoin_enabled() {
 
 @test "dfx replica --bitcoin-node <node> implies --enable-bitcoin" {
     dfx_new hello
-    dfx_start_replica_and_bootstrap "--bitcoin-node" "127.0.0.1:18444"
+    dfx_replica "--bitcoin-node" "127.0.0.1:18444"
+    dfx_bootstrap
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
@@ -145,7 +150,7 @@ set_default_bitcoin_enabled() {
 @test "dfx replica --enable-bitcoin with no other configuration succeeds" {
     dfx_new hello
 
-    dfx_start_replica_and_bootstrap --enable-bitcoin
+    dfx_replica --enable-bitcoin
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
@@ -163,7 +168,7 @@ set_default_bitcoin_enabled() {
     dfx_new hello
     set_default_bitcoin_enabled
 
-    dfx_start_replica_and_bootstrap
+    dfx_replica
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
@@ -185,7 +190,8 @@ set_default_bitcoin_enabled() {
 @test "dfx replica+bootstrap with both bitcoin and canister http enabled" {
     dfx_new hello
 
-    dfx_start_replica_and_bootstrap --enable-bitcoin --enable-canister-http
+    dfx_replica --enable-bitcoin --enable-canister-http
+    dfx_bootstrap
 
     assert_file_not_empty .dfx/ic-btc-adapter-pid
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid

@@ -7,6 +7,7 @@ use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::metadata::names::CANDID_SERVICE;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 
@@ -232,7 +233,7 @@ impl MotokoParams<'_> {
         };
         cmd.arg("--idl").arg("--stable-types");
         // TODO add a flag in dfx.json to opt-out public interface
-        cmd.arg("--public-metadata").arg("candid:service");
+        cmd.arg("--public-metadata").arg(CANDID_SERVICE);
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
             for (name, canister_id) in self.idl_map.iter() {

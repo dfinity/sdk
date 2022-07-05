@@ -248,7 +248,7 @@ impl<T> Default for SerdeVec<T> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, serde::Deserialize)]
 #[serde(untagged)]
 enum PossiblyStrInner<T> {
     NotStr(T),

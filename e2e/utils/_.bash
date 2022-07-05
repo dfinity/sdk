@@ -111,10 +111,6 @@ dfx_start() {
 
         test -f .dfx/ic-ref.port
         local port=$(cat .dfx/ic-ref.port)
-
-        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
-        local webserver_port=$(cat .dfx/webserver-port)
-        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${webserver_port}\" dfx.json) >dfx.json
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
@@ -129,11 +125,9 @@ dfx_start() {
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f ${dfx_config_root}/replica-1.port
         local port=$(cat ${dfx_config_root}/replica-1.port)
-
-        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
-        local webserver_port=$(cat .dfx/webserver-port)
-        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${webserver_port}\" dfx.json) >dfx.json
     fi
+
+    local webserver_port=$(cat .dfx/webserver-port)
 
     printf "Replica Configured Port: %s\n" "${port}"
     printf "Webserver Configured Port: %s\n" "${webserver_port}"
@@ -150,7 +144,7 @@ wait_until_replica_healthy() {
 }
 
 # Start the replica in the background.
-dfx_start_replica_and_bootstrap() {
+dfx_replica() {
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
@@ -193,7 +187,9 @@ dfx_start_replica_and_bootstrap() {
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
 
     wait_until_replica_healthy
+}
 
+dfx_bootstrap() {
     # This only works because we use the network by name
     #    (implicitly: --network local)
     # If we passed --network http://127.0.0.1:${replica_port}
@@ -216,11 +212,16 @@ dfx_start_replica_and_bootstrap() {
     printf "Webserver Configured Port: %s\n", "${webserver_port}"
 }
 
-# Start the replica in the background.
-dfx_stop_replica_and_bootstrap() {
+# Stop the `dfx replica` process that is running in the background.
+stop_dfx_replica() {
     [ "$DFX_REPLICA_PID" ] && kill -TERM "$DFX_REPLICA_PID"
+    unset DFX_REPLICA_PID
+}
 
+# Stop the `dfx bootstrap` process that is running in the background
+stop_dfx_bootstrap() {
     [ "$DFX_BOOTSTRAP_PID" ] && kill -TERM "$DFX_BOOTSTRAP_PID"
+    unset DFX_BOOTSTRAP_PID
 }
 
 # Stop the replica and verify it is very very stopped.
@@ -270,6 +271,9 @@ use_wallet_wasm() {
 
 get_webserver_port() {
   cat ".dfx/webserver-port"
+}
+overwrite_webserver_port() {
+  echo "$1" >".dfx/webserver-port"
 }
 
 get_replica_pid() {

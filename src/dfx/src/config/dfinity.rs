@@ -89,6 +89,9 @@ pub struct ConfigCanistersCanister {
     pub type_specific: Option<CanisterTypeProperties>,
 
     pub main: Option<PathBuf>,
+
+    #[serde(default)]
+    pub post_install: SerdeVec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -291,6 +294,7 @@ pub struct ConfigInterface {
 
 impl ConfigCanistersCanister {}
 
+#[context("Failed to convert '{}' to a SocketAddress.", s)]
 pub fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
     match s.to_socket_addrs() {
         Ok(mut a) => match a.next() {
@@ -378,17 +382,6 @@ impl ConfigInterface {
             )),
             _ => network,
         }
-    }
-
-    pub fn get_local_bind_address(&self, default: &str) -> DfxResult<SocketAddr> {
-        self.get_network("local")
-            .map(|network| match network {
-                ConfigNetwork::ConfigLocalProvider(local) => to_socket_addr(&local.bind),
-                _ => Err(anyhow!(
-                    "Expected there to be a local network with a bind address."
-                )),
-            })
-            .unwrap_or_else(|| to_socket_addr(default))
     }
 
     pub fn get_version(&self) -> u32 {
@@ -568,7 +561,8 @@ impl Config {
         Ok(Config::from_slice(path.to_path_buf(), &content)?)
     }
 
-    fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
+    #[context("Failed to read config from directory {}.", working_dir.to_string_lossy())]
+    pub fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
         let path = Config::resolve_config_path(working_dir)?;
         let maybe_config = path.map(|path| Config::from_file(&path)).transpose()?;
         Ok(maybe_config)
@@ -684,64 +678,6 @@ mod tests {
             Config::resolve_config_path(subdir_path.as_path())
                 .unwrap()
                 .unwrap(),
-        );
-    }
-
-    #[test]
-    fn config_with_local_bind_addr() {
-        let config = Config::from_str(
-            r#"{
-            "networks": {
-                "local": {
-                    "bind": "localhost:8000"
-                }
-            }
-        }"#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            config
-                .get_config()
-                .get_local_bind_address("1.2.3.4:123")
-                .ok(),
-            to_socket_addr("localhost:8000").ok()
-        );
-    }
-
-    #[test]
-    fn config_returns_local_bind_address_if_no_local_network() {
-        let config = Config::from_str(
-            r#"{
-            "networks": {
-            }
-        }"#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            config
-                .get_config()
-                .get_local_bind_address("1.2.3.4:123")
-                .ok(),
-            to_socket_addr("127.0.0.1:8000").ok()
-        );
-    }
-
-    #[test]
-    fn config_returns_local_bind_address_if_no_networks() {
-        let config = Config::from_str(
-            r#"{
-        }"#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            config
-                .get_config()
-                .get_local_bind_address("1.2.3.4:123")
-                .ok(),
-            to_socket_addr("127.0.0.1:8000").ok()
         );
     }
 

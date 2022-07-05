@@ -100,7 +100,7 @@ async fn delete_canister(
         match withdraw_cycles_to_canister {
             Some(ref target_canister_id) => {
                 Some(Principal::from_text(target_canister_id).with_context(|| {
-                    format!("Failed to read canister id {}.", target_canister_id)
+                    format!("Failed to read canister id {:?}.", target_canister_id)
                 })?)
             }
             None => match call_sender {
@@ -127,7 +127,7 @@ async fn delete_canister(
     let dank_target_principal = match withdraw_cycles_to_dank_principal {
         None => principal,
         Some(principal) => Principal::from_text(&principal)
-            .with_context(|| format!("Failed to read principal {}.", &principal))?,
+            .with_context(|| format!("Failed to read principal {:?}.", &principal))?,
     };
     fetch_root_key_if_needed(env).await?;
 
