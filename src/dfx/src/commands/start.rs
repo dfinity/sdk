@@ -487,7 +487,7 @@ fn write_btc_adapter_config(
     uds_holder_path: &Path,
     config_path: &Path,
     nodes: Vec<SocketAddr>,
-    log_level: bitcoin::adapter::config::Level,
+    log_level: bitcoin::adapter::config::BitcoinAdapterLogLevel,
 ) -> DfxResult<bitcoin::adapter::Config> {
     let socket_path = get_persistent_socket_path(uds_holder_path, "ic-btc-adapter-socket")?;
 

@@ -36,10 +36,10 @@ impl Default for IncomingSource {
     }
 }
 
-/// Represents the log level.
+/// Represents the log level of the bitcoin adapter.
 #[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum Level {
+pub enum BitcoinAdapterLogLevel {
     Critical,
     Error,
     Warning,
@@ -48,31 +48,31 @@ pub enum Level {
     Trace,
 }
 
-impl FromStr for Level {
+impl FromStr for BitcoinAdapterLogLevel {
     type Err = String;
 
-    fn from_str(input: &str) -> Result<Level, Self::Err> {
+    fn from_str(input: &str) -> Result<BitcoinAdapterLogLevel, Self::Err> {
         match input {
-            "critical" => Ok(Level::Critical),
-            "error" => Ok(Level::Error),
-            "warning" => Ok(Level::Warning),
-            "info" => Ok(Level::Info),
-            "debug" => Ok(Level::Debug),
-            "trace" => Ok(Level::Trace),
+            "critical" => Ok(BitcoinAdapterLogLevel::Critical),
+            "error" => Ok(BitcoinAdapterLogLevel::Error),
+            "warning" => Ok(BitcoinAdapterLogLevel::Warning),
+            "info" => Ok(BitcoinAdapterLogLevel::Info),
+            "debug" => Ok(BitcoinAdapterLogLevel::Debug),
+            "trace" => Ok(BitcoinAdapterLogLevel::Trace),
             other => Err(format!("Unknown log level: {}", other)),
         }
     }
 }
 
-impl Default for Level {
+impl Default for BitcoinAdapterLogLevel {
     fn default() -> Self {
-        Level::Info
+        BitcoinAdapterLogLevel::Info
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LoggerConfig {
-    level: Level,
+    level: BitcoinAdapterLogLevel,
 }
 
 /// This struct contains configuration options for the BTC Adapter.
@@ -95,7 +95,11 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(nodes: Vec<SocketAddr>, uds_path: PathBuf, log_level: Level) -> Config {
+    pub fn new(
+        nodes: Vec<SocketAddr>,
+        uds_path: PathBuf,
+        log_level: BitcoinAdapterLogLevel,
+    ) -> Config {
         Config {
             network: String::from("regtest"),
             nodes,

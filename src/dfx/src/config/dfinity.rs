@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::lib::bitcoin::adapter::config::Level;
+use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::SerdeVec;
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
@@ -27,7 +27,7 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
     enabled: false,
     nodes: None,
-    log_level: Level::Info,
+    log_level: BitcoinAdapterLogLevel::Info,
 };
 
 const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
@@ -108,7 +108,7 @@ pub struct ConfigDefaultsBitcoin {
 
     /// The logging level of the adapter (e.g. "info", "debug", "error", etc.)
     #[serde(default)]
-    pub log_level: Level,
+    pub log_level: BitcoinAdapterLogLevel,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -804,7 +804,7 @@ mod tests {
             &ConfigDefaultsBitcoin {
                 enabled: true,
                 nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: Level::Info
+                log_level: BitcoinAdapterLogLevel::Info
             }
         );
     }
