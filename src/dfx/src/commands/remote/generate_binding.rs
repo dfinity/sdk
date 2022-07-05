@@ -72,13 +72,14 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                     }
                 }
                 let (type_env, did_types) = check_candid_file(&candid)?;
-                let bindings = if main.ends_with(&".mo") {
+                let extension = main.extension().unwrap_or_default();
+                let bindings = if extension == "mo" {
                     Some(candid::bindings::motoko::compile(&type_env, &did_types))
-                } else if main.ends_with(&".rs") {
+                } else if extension == "rs" {
                     Some(candid::bindings::rust::compile(&type_env, &did_types))
-                } else if main.ends_with(&".js") {
+                } else if extension == "js" {
                     Some(candid::bindings::javascript::compile(&type_env, &did_types))
-                } else if main.ends_with(&".ts") {
+                } else if extension == "ts" {
                     Some(candid::bindings::typescript::compile(&type_env, &did_types))
                 } else {
                     info!(
