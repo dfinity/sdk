@@ -1,4 +1,3 @@
-use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
@@ -43,7 +42,8 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
     for canister in canister_pool.get_canister_list() {
         let info = canister.get_info();
         if let Some(candid) = info.get_remote_candid() {
-            if let CanisterTypeProperties::Motoko { main } = info.get_type_specific_properties() {
+            let main_optional = info.get_main_file();
+            if let Some(main) = main_optional {
                 if !candid.exists() {
                     info!(
                         log,

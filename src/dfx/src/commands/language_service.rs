@@ -1,6 +1,4 @@
-use crate::config::dfinity::{
-    CanisterTypeProperties, ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME,
-};
+use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME};
 use crate::error_invalid_data;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -83,12 +81,13 @@ fn get_main_path(config: &ConfigInterface, canister_name: Option<String>) -> Dfx
                 }
             }
         }?;
-    if let CanisterTypeProperties::Motoko { main } = canister.type_specific {
+    if let Some(main) = canister.main {
         Ok(main)
     } else {
         Err(error_invalid_data!(
-            "Canister {canister_name} in {dfx_json} should be type:motoko but is type:{}",
-            canister.type_specific.name(),
+            "Canister {0} lacks a 'main' element in {1}",
+            canister_name,
+            dfx_json
         ))
     }
 }

@@ -89,6 +89,7 @@ pub struct ConfigCanistersCanister {
 
     #[serde(default)]
     pub post_install: SerdeVec<String>,
+    pub main: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -106,9 +107,7 @@ pub enum CanisterTypeProperties {
         candid: PathBuf,
         build: SerdeVec<String>,
     },
-    Motoko {
-        main: PathBuf,
-    },
+    Motoko,
 }
 
 impl CanisterTypeProperties {
@@ -640,8 +639,8 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        let (mut package, mut source, mut candid, mut build, mut wasm, mut main, mut r#type) =
-            (None, None, None, None, None, None, None);
+        let (mut package, mut source, mut candid, mut build, mut wasm, mut r#type) =
+            (None, None, None, None, None, None);
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -649,15 +648,12 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 "candid" => candid = Some(map.next_value()?),
                 "build" => build = Some(map.next_value()?),
                 "wasm" => wasm = Some(map.next_value()?),
-                "main" => main = Some(map.next_value()?),
                 "type" => r#type = Some(map.next_value::<String>()?),
                 _ => continue,
             }
         }
         let props = match r#type.as_deref() {
-            Some("motoko") | None => CanisterTypeProperties::Motoko {
-                main: main.ok_or_else(|| missing_field("type"))?, // intentional
-            },
+            Some("motoko") | None => CanisterTypeProperties::Motoko,
             Some("rust") => CanisterTypeProperties::Rust {
                 candid: candid.ok_or_else(|| missing_field("candid"))?,
                 package: package.ok_or_else(|| missing_field("package"))?,
