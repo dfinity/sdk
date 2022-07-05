@@ -82,8 +82,7 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub dependencies: Vec<String>,
 
-    #[serde(default)]
-    pub frontend: bool,
+    pub frontend: Option<BTreeMap<String, String>>,
 
     #[serde(flatten)]
     pub type_specific: CanisterTypeProperties,

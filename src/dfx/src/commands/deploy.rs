@@ -164,7 +164,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
             if let Some(canister_id) = canister_id {
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
 
-                if canister_config.frontend {
+                if canister_config.frontend.is_some() {
                     let url = construct_frontend_url(network, &canister_id)?;
                     frontend_urls.insert(canister_name, url);
                 }
