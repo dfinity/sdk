@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
+use std::str::FromStr;
 
 const BITCOIND_REGTEST_DEFAULT_PORT: u16 = 18444;
 
@@ -35,6 +36,45 @@ impl Default for IncomingSource {
     }
 }
 
+/// Represents the log level of the bitcoin adapter.
+#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum BitcoinAdapterLogLevel {
+    Critical,
+    Error,
+    Warning,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl FromStr for BitcoinAdapterLogLevel {
+    type Err = String;
+
+    fn from_str(input: &str) -> Result<BitcoinAdapterLogLevel, Self::Err> {
+        match input {
+            "critical" => Ok(BitcoinAdapterLogLevel::Critical),
+            "error" => Ok(BitcoinAdapterLogLevel::Error),
+            "warning" => Ok(BitcoinAdapterLogLevel::Warning),
+            "info" => Ok(BitcoinAdapterLogLevel::Info),
+            "debug" => Ok(BitcoinAdapterLogLevel::Debug),
+            "trace" => Ok(BitcoinAdapterLogLevel::Trace),
+            other => Err(format!("Unknown log level: {}", other)),
+        }
+    }
+}
+
+impl Default for BitcoinAdapterLogLevel {
+    fn default() -> Self {
+        BitcoinAdapterLogLevel::Info
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LoggerConfig {
+    level: BitcoinAdapterLogLevel,
+}
+
 /// This struct contains configuration options for the BTC Adapter.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -50,15 +90,22 @@ pub struct Config {
     /// Specifies which unix domain socket should be used for serving incoming requests.
     #[serde(default)]
     pub incoming_source: IncomingSource,
+
+    pub logger: LoggerConfig,
 }
 
 impl Config {
-    pub fn new(nodes: Vec<SocketAddr>, uds_path: PathBuf) -> Config {
+    pub fn new(
+        nodes: Vec<SocketAddr>,
+        uds_path: PathBuf,
+        log_level: BitcoinAdapterLogLevel,
+    ) -> Config {
         Config {
             network: String::from("regtest"),
             nodes,
             idle_seconds: Some(FORCED_IDLE_SECONDS),
             incoming_source: IncomingSource::Path(uds_path),
+            logger: LoggerConfig { level: log_level },
         }
     }
 

@@ -5,6 +5,20 @@
 
 == DFX
 
+=== feat: Allow users to configure logging level of bitcoin adapter
+
+The bitcoin adapter's logging can be very verbose if debug logging is enabled, making it difficult to make sense of what's going on. On the other hand, these logs are useful for triaging problems.
+
+To get the best of both worlds, this release adds support for an additional configuration option in dfx.json:
+
+    "bitcoin": {
+      "enabled": true,
+      "nodes": ["127.0.0.1:18444"],
+      "log_level": "info" <------- users can now configure the log level
+    }
+
+By default, a log level of "info" is used, which is relatively quiet. Users can change it to "debug" for more verbose logging.
+
 === chore: update Candid UI canister with commit bffa0ae3c416e8aa3c92c33722a6b1cb31d0f1c3
 
 This includes the following changes:
