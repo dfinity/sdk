@@ -830,7 +830,7 @@ mod tests {
             &ConfigDefaultsBitcoin {
                 enabled: true,
                 nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: Level::Info // A default log level of "info" is assumed
+                log_level: BitcoinAdapterLogLevel::Info // A default log level of "info" is assumed
             }
         );
     }
@@ -856,7 +856,7 @@ mod tests {
             &ConfigDefaultsBitcoin {
                 enabled: true,
                 nodes: None,
-                log_level: Level::Debug
+                log_level: BitcoinAdapterLogLevel::Debug
             }
         );
     }
