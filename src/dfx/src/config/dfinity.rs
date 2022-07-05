@@ -83,8 +83,10 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub frontend: bool,
 
+    /// https://github.com/serde-rs/serde/issues/1626 default doesn't work with flatten.
+    /// using Option<T> as workaround, and unwrap_or_default() when accessing the field
     #[serde(flatten, default)]
-    pub type_specific: CanisterTypeProperties,
+    pub type_specific: Option<CanisterTypeProperties>,
 
     pub main: Option<PathBuf>,
 }

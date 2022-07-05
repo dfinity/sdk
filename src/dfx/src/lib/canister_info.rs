@@ -103,7 +103,7 @@ impl CanisterInfo {
 
         let output_root = build_root.join(name);
 
-        let type_specific = canister_config.type_specific.clone();
+        let type_specific = canister_config.type_specific.clone().unwrap_or_default();
 
         let args = match &canister_config.args {
             Some(args) if !args.is_empty() => canister_config.args.clone(),
