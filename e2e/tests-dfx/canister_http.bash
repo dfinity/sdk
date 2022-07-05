@@ -10,7 +10,8 @@ setup() {
 
 teardown() {
     dfx_stop
-    dfx_stop_replica_and_bootstrap
+    stop_dfx_replica
+    stop_dfx_bootstrap
     standard_teardown
 }
 
@@ -66,7 +67,8 @@ set_default_canister_http_enabled() {
 @test "dfx restarts replica when ic-canister-http-adapter restarts - replica and bootstrap" {
     dfx_new hello
     set_default_canister_http_enabled
-    dfx_start_replica_and_bootstrap
+    dfx_replica
+    dfx_bootstrap
 
     install_asset greet
     assert_command dfx deploy
@@ -87,8 +89,9 @@ set_default_canister_http_enabled() {
     timeout 15s sh -x -c \
       "until curl --fail --verbose -o /dev/null http://localhost:\$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo \"waiting for replica to restart on port \$(cat .dfx/replica-configuration/replica-1.port)\"; sleep 1; done" \
       || (echo "replica did not restart" && echo "last replica port was $(get_replica_port)" && ps aux && exit 1)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:"$(get_replica_port)"\" dfx.json)" >dfx.json
+
+    # unfortunately bootstrap will never know about the new replica port. This makes dfx bypass bootstrap:
+    overwrite_webserver_port "$(get_replica_port)"
 
     timeout 15s sh -c \
       'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
@@ -117,7 +120,7 @@ set_default_canister_http_enabled() {
 @test "dfx replica --enable-canister-http with no other configuration succeeds" {
     dfx_new hello
 
-    dfx_start_replica_and_bootstrap --enable-canister-http
+    dfx_replica --enable-canister-http
 
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
@@ -135,7 +138,7 @@ set_default_canister_http_enabled() {
     dfx_new hello
     set_default_canister_http_enabled
 
-    dfx_start_replica_and_bootstrap
+    dfx_replica
 
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }

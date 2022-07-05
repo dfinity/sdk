@@ -12,7 +12,6 @@ pub struct AssetsCanisterInfo {
 
     output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
-    output_assets_path: PathBuf,
 }
 
 impl AssetsCanisterInfo {
@@ -24,9 +23,6 @@ impl AssetsCanisterInfo {
     }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
-    }
-    pub fn get_output_assets_path(&self) -> &Path {
-        self.output_assets_path.as_path()
     }
 
     #[context("Failed to assert source paths.")]
@@ -72,14 +68,12 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
 
         let output_wasm_path = output_root.join(Path::new("assetstorage.wasm"));
         let output_idl_path = output_wasm_path.with_extension("did");
-        let output_assets_path = output_root.join(Path::new("assets"));
 
         Ok(AssetsCanisterInfo {
             input_root,
             source_paths,
             output_wasm_path,
             output_idl_path,
-            output_assets_path,
         })
     }
 }

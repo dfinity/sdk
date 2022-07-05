@@ -248,7 +248,7 @@ fn ensure_trailing_newline(s: String) -> String {
 
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
 
-fn environment_variables<'a>(
+pub fn environment_variables<'a>(
     info: &CanisterInfo,
     network_name: &'a str,
     pool: &'a CanisterPool,
@@ -271,11 +271,6 @@ fn environment_variables<'a>(
 
             vars.push((
                 Owned(format!("CANISTER_CANDID_PATH_{}", canister.get_name())),
-                Borrowed(candid_path),
-            ));
-            //FIXME remove in 0.10
-            vars.push((
-                Owned(format!("CANISTER_CANDID_{}", canister.get_name())),
                 Borrowed(candid_path),
             ));
         }

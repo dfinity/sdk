@@ -10,6 +10,9 @@
 # dfx temporary files
 .dfx/
 
+# generated files
+src/declarations/
+
 # rust
 target/
 

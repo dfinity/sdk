@@ -20,7 +20,7 @@ type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 #[derive(Clone, Debug)]
 pub struct CanisterIdStore {
     network_descriptor: NetworkDescriptor,
-    path: PathBuf,
+    path: Option<PathBuf>,
 
     // Only the canister ids read from/written to canister-ids.json
     // which does not include remote canister ids
@@ -34,7 +34,11 @@ impl CanisterIdStore {
     #[context("Failed to load canister id store.")]
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
         let network_descriptor = env.get_network_descriptor();
-        let store = CanisterIdStore::for_network(network_descriptor)?;
+        let config = env.get_config();
+        let project_root = config.map(|c| c.get_project_root().to_path_buf());
+        let project_root = project_root.as_deref();
+        let store =
+            CanisterIdStore::for_network(network_descriptor, project_root, env.get_temp_dir())?;
 
         let remote_ids = get_remote_ids(env)?;
 
@@ -45,20 +49,23 @@ impl CanisterIdStore {
     }
 
     #[context("Failed to load canister id store for network '{}'.", network_descriptor.name)]
-    pub fn for_network(network_descriptor: &NetworkDescriptor) -> DfxResult<Self> {
+    pub fn for_network(
+        network_descriptor: &NetworkDescriptor,
+        project_root: Option<&Path>,
+        project_temp_dir: &Path,
+    ) -> DfxResult<Self> {
         let path = match network_descriptor {
             NetworkDescriptor {
                 r#type: NetworkType::Persistent,
                 ..
-            } => PathBuf::from("canister_ids.json"),
+            } => project_root.map(|d| d.join("canister_ids.json")),
             NetworkDescriptor { name, .. } => {
-                PathBuf::from(&format!(".dfx/{}/canister_ids.json", name))
+                Some(project_temp_dir.join(name).join("canister_ids.json"))
             }
         };
-        let ids = if path.is_file() {
-            CanisterIdStore::load_ids(&path)?
-        } else {
-            CanisterIds::new()
+        let ids = match &path {
+            Some(path) if path.is_file() => CanisterIdStore::load_ids(path)?,
+            _ => CanisterIds::new(),
         };
 
         Ok(CanisterIdStore {
@@ -96,15 +103,22 @@ impl CanisterIdStore {
     }
 
     pub fn save_ids(&self) -> DfxResult {
+        let path = self
+            .path
+            .as_ref()
+            .unwrap_or_else(|| {
+                // the only callers of this method have already called Environment::get_config_or_anyhow
+                unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister ids")
+            });
         let content =
             serde_json::to_string_pretty(&self.ids).context("Failed to serialize ids.")?;
-        let parent = self.path.parent().unwrap();
+        let parent = path.parent().unwrap();
         if !parent.exists() {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("Failed to create {}.", parent.to_string_lossy()))?;
         }
-        std::fs::write(&self.path, content)
-            .with_context(|| format!("Cannot write to file at '{}'.", self.path.display()))
+        std::fs::write(&path, content)
+            .with_context(|| format!("Cannot write to file at '{}'.", path.display()))
     }
 
     pub fn find(&self, canister_name: &str) -> Option<CanisterId> {

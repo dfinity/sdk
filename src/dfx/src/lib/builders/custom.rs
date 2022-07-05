@@ -7,14 +7,15 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 
+use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, Context};
 use console::style;
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use slog::info;
 use slog::Logger;
-use std::path::PathBuf;
-use std::process::Stdio;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 /// Set of extras that can be specified in the dfx.json.
 struct CustomBuilderExtra {
@@ -116,9 +117,12 @@ impl CanisterBuilder for CustomBuilder {
                 .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &vars).with_context(|| format!("Failed to run {}.", command))?;
+                run_command(args, &vars, info.get_workspace_root())
+                    .with_context(|| format!("Failed to run {}.", command))?;
             }
         }
+
+        add_candid_service_metadata(&wasm, &candid)?;
 
         Ok(BuildOutput {
             canister_id,
@@ -165,12 +169,17 @@ impl CanisterBuilder for CustomBuilder {
     }
 }
 
-fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
+fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
-
-    let mut cmd = std::process::Command::new(command_name);
+    let canonicalized = cwd
+        .join(command_name)
+        .canonicalize()
+        .or_else(|_| which::which(command_name))
+        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
+    let mut cmd = Command::new(&canonicalized);
 
     cmd.args(arguments)
+        .current_dir(cwd)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
 
@@ -180,7 +189,7 @@ fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
 
     let output = cmd
         .output()
-        .with_context(|| format!("Error executing custom build step {:#?}", cmd))?;
+        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
         Ok(())
     } else {

@@ -14,6 +14,7 @@ flate2 = "1.0.11"
 hex = "0.4.2"
 openssl = "0.10.32"
 tar = "0.4.26"
+walkdir = "2.3.2"
 
 [dependencies]
 actix = "0.13.0"
@@ -44,6 +45,7 @@ hex = {version = "0.4.2", features = ["serde"] }
 humantime = "2.1.0"
 humantime-serde = "1.1.1"
 ic-types = "0.3.0"
+ic-wasm = "0.1.0"
 indicatif = "0.16.0"
 itertools = "0.10.3"
 lazy-init = "0.5.0"
@@ -83,28 +85,30 @@ tokio = { version = "1.17.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
+walrus = "0.19.0"
 wasmparser = "0.86.0"
+which = "4.2.5"
 
 [dependencies.ic-agent]
-version = "0.17.0"
+version = "0.18.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "d170b0dd0fb87d741f642981fc1220ef448aeffb"
+rev = "fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.17.0"
+version = "0.18.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "d170b0dd0fb87d741f642981fc1220ef448aeffb"
+rev = "fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 
 [dependencies.ic-identity-hsm]
-version = "0.17.0"
+version = "0.18.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "d170b0dd0fb87d741f642981fc1220ef448aeffb"
+rev = "fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 
 [dependencies.ic-utils]
-version = "0.17.0"
+version = "0.18.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "d170b0dd0fb87d741f642981fc1220ef448aeffb"
+rev = "fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 
 [dev-dependencies]
 env_logger = "0.9"

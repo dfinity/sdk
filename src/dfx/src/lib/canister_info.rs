@@ -48,6 +48,7 @@ pub struct CanisterInfo {
     type_specific: CanisterTypeProperties,
 
     dependencies: Vec<String>,
+    post_install: Vec<String>,
 }
 
 impl CanisterInfo {
@@ -109,6 +110,8 @@ impl CanisterInfo {
             _ => build_defaults.get_args(),
         };
 
+        let post_install = canister_config.post_install.clone().into_vec();
+
         let canister_info = CanisterInfo {
             name: name.to_string(),
             declarations_config,
@@ -123,6 +126,7 @@ impl CanisterInfo {
             args,
             type_specific,
             dependencies: canister_config.dependencies.clone(),
+            post_install,
         };
 
         Ok(canister_info)
@@ -180,6 +184,10 @@ impl CanisterInfo {
 
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+
+    pub fn get_post_install(&self) -> &[String] {
+        &self.post_install
     }
 
     pub fn get_args(&self) -> &Option<String> {
