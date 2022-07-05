@@ -1,4 +1,4 @@
-use anyhow::{ensure, Context};
+use anyhow::bail;
 
 use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
@@ -60,14 +60,15 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let build_root = info.get_build_root();
         let name = info.get_name();
         let idl_path = build_root.join("idl/");
-        ensure!(
-            matches!(info.type_specific, CanisterTypeProperties::Motoko { .. }),
-            "Attempted to construct a custom canister from a type:{} canister config",
-            info.type_specific.name()
-        );
-        let main_path = info
-            .get_main_file()
-            .context("`main` attribute is required on Motoko canisters in dfx.json")?;
+        let main_path = if let CanisterTypeProperties::Motoko { main } = info.type_specific.clone()
+        {
+            main
+        } else {
+            bail!(
+                "Attempted to construct a custom canister from a type:{} canister config",
+                info.type_specific.name()
+            )
+        };
         let input_path = workspace_root.join(&main_path);
         let output_root = build_root.join(name);
         let output_wasm_path = output_root.join(name).with_extension("wasm");

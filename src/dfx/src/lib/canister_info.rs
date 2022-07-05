@@ -48,7 +48,6 @@ pub struct CanisterInfo {
     type_specific: CanisterTypeProperties,
 
     dependencies: Vec<String>,
-    main: Option<PathBuf>,
 }
 
 impl CanisterInfo {
@@ -124,7 +123,6 @@ impl CanisterInfo {
             args,
             type_specific,
             dependencies: canister_config.dependencies.clone(),
-            main: canister_config.main.clone(),
         };
 
         Ok(canister_info)
@@ -178,10 +176,6 @@ impl CanisterInfo {
 
     pub fn get_dependencies(&self) -> &[String] {
         &self.dependencies
-    }
-
-    pub fn get_main_file(&self) -> Option<&Path> {
-        self.main.as_deref()
     }
 
     pub fn get_packtool(&self) -> &Option<String> {
