@@ -7,10 +7,12 @@ use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use fn_error_context::context;
 use ic_types::Principal;
-use serde::{Deserialize, Serialize};
+use serde::de::{Error as _, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
 use std::default::Default;
+use std::fmt;
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -87,7 +89,7 @@ pub struct ConfigCanistersCanister {
     pub type_specific: CanisterTypeProperties,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CanisterTypeProperties {
     Rust {
@@ -620,6 +622,70 @@ impl Config {
             format!("Failed to write config to {}.", self.path.to_string_lossy())
         })?;
         Ok(())
+    }
+}
+
+// grumble grumble https://github.com/serde-rs/serde/issues/2231
+impl<'de> Deserialize<'de> for CanisterTypeProperties {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_map(PropertiesVisitor)
+    }
+}
+
+struct PropertiesVisitor;
+
+impl<'de> Visitor<'de> for PropertiesVisitor {
+    type Value = CanisterTypeProperties;
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("canister type metadata")
+    }
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let missing_field = A::Error::missing_field;
+        // package, source, candid, build, wasm, main
+        let (mut package, mut source, mut candid, mut build, mut wasm, mut main, mut r#type) =
+            (None, None, None, None, None, None, None);
+        while let Some(key) = map.next_key::<String>()? {
+            match &*key {
+                "package" => package = Some(map.next_value()?),
+                "source" => source = Some(map.next_value()?),
+                "candid" => candid = Some(map.next_value()?),
+                "build" => build = Some(map.next_value()?),
+                "wasm" => wasm = Some(map.next_value()?),
+                "main" => main = Some(map.next_value()?),
+                "type" => r#type = Some(map.next_value::<String>()?),
+                _ => continue,
+            }
+        }
+        let props = match r#type.as_deref() {
+            Some("motoko") | None => CanisterTypeProperties::Motoko {
+                main: main.ok_or_else(|| missing_field("type"))?, // intentional
+            },
+            Some("rust") => CanisterTypeProperties::Rust {
+                candid: candid.ok_or_else(|| missing_field("candid"))?,
+                package: package.ok_or_else(|| missing_field("package"))?,
+            },
+            Some("assets") => CanisterTypeProperties::Assets {
+                source: source.ok_or_else(|| missing_field("source"))?,
+            },
+            Some("custom") => CanisterTypeProperties::Custom {
+                build: build.ok_or_else(|| missing_field("build"))?,
+                candid: candid.ok_or_else(|| missing_field("candid"))?,
+                wasm: wasm.ok_or_else(|| missing_field("wasm"))?,
+            },
+            Some(x) => {
+                return Err(A::Error::unknown_variant(
+                    x,
+                    &["motoko", "rust", "assets", "custom"],
+                ))
+            }
+        };
+        Ok(props)
     }
 }
 
