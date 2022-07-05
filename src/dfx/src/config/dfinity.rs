@@ -641,7 +641,6 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        // package, source, candid, build, wasm, main
         let (mut package, mut source, mut candid, mut build, mut wasm, mut main, mut r#type) =
             (None, None, None, None, None, None, None);
         while let Some(key) = map.next_key::<String>()? {
