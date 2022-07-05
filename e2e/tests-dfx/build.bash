@@ -122,7 +122,7 @@ teardown() {
   # shellcheck disable=SC2094
   cat <<<"$(jq '.canisters.e2e_project.type="unknown_canister_type"' dfx.json)" >dfx.json
   assert_command_fail dfx build
-  assert_match "Cannot find builder for canister"
+  assert_match 'unknown variant `unknown_canister_type`'
 }
 
 @test "can build a custom canister type" {
