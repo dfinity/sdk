@@ -5,13 +5,6 @@ use std::str::FromStr;
 
 const BITCOIND_REGTEST_DEFAULT_PORT: u16 = 18444;
 
-/// The btc adapter panics on macos if started within the first (idle seconds+1) seconds
-/// after reboot.
-/// The current default is 3600 seconds (1 hour).
-/// The previous default was 5 seconds, so using that until this issue is fixed in the adapter.
-/// See https://dfinity.atlassian.net/browse/SDK-465
-const FORCED_IDLE_SECONDS: u64 = 5;
-
 pub fn default_nodes() -> Vec<SocketAddr> {
     vec![SocketAddr::new(
         IpAddr::V4(Ipv4Addr::LOCALHOST),
@@ -83,10 +76,6 @@ pub struct Config {
     /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
     #[serde(default)]
     pub nodes: Vec<SocketAddr>,
-    /// The number of seconds that need to pass for the adapter to enter the
-    /// `Idle` state.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub idle_seconds: Option<u64>,
     /// Specifies which unix domain socket should be used for serving incoming requests.
     #[serde(default)]
     pub incoming_source: IncomingSource,
@@ -103,7 +92,6 @@ impl Config {
         Config {
             network: String::from("regtest"),
             nodes,
-            idle_seconds: Some(FORCED_IDLE_SECONDS),
             incoming_source: IncomingSource::Path(uds_path),
             logger: LoggerConfig { level: log_level },
         }
