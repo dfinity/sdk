@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
@@ -30,6 +31,7 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
 const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
     enabled: false,
     nodes: None,
+    log_level: BitcoinAdapterLogLevel::Info,
 };
 
 const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
@@ -146,7 +148,7 @@ pub struct CanisterDeclarationsConfig {
     pub env_override: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ConfigDefaultsBitcoin {
     #[serde(default)]
     pub enabled: bool,
@@ -154,6 +156,10 @@ pub struct ConfigDefaultsBitcoin {
     /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
     #[serde(default)]
     pub nodes: Option<Vec<SocketAddr>>,
+
+    /// The logging level of the adapter (e.g. "info", "debug", "error", etc.)
+    #[serde(default)]
+    pub log_level: BitcoinAdapterLogLevel,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -680,6 +686,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn find_dfinity_config_current_path() {
@@ -873,5 +880,84 @@ mod tests {
             .unwrap();
         assert_eq!(None, compute_allocation);
         assert_eq!(None, memory_allocation);
+    }
+
+    #[test]
+    fn get_bitcoin_config() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "nodes": ["127.0.0.1:18444"],
+                  "log_level": "info"
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: BitcoinAdapterLogLevel::Info
+            }
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config_default_log_level() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "nodes": ["127.0.0.1:18444"]
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: BitcoinAdapterLogLevel::Info // A default log level of "info" is assumed
+            }
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config_debug_log_level() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "log_level": "debug"
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: None,
+                log_level: BitcoinAdapterLogLevel::Debug
+            }
+        );
     }
 }
