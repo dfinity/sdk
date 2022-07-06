@@ -208,9 +208,9 @@ dfx ledger fabricate-cycles --all --amount 8000000000000
 The command displays output similar to the following:
 
 ```
-Fabricating 8000000000000 cycles onto hello
+Fabricating 8000000000000 cycles onto hello_backend
 Fabricated 8000000000000 cycles, updated balance: 11_899_662_119_932 cycles
-Fabricating 8000000000000 cycles onto hello_assets
+Fabricating 8000000000000 cycles onto hello_frontend
 Fabricated 8000000000000 cycles, updated balance: 11_899_075_504_924 cycles
 ```
 

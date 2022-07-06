@@ -41,14 +41,14 @@ You can specify the following arguments for the `dfx build` command.
 
 ## Examples
 
-You can use the `dfx build` command to build one or more WebAssembly modules from the programs specified in the `dfx.json` configuration file under the `canisters` key. For example, if your `dfx.json` configuration file defines one `hello_world` canister and one `hello_world_assets` canister [like this](../_attachments/sample-dfx.json), then running `dfx build` compiles two WebAssembly modules.
+You can use the `dfx build` command to build one or more WebAssembly modules from the programs specified in the `dfx.json` configuration file under the `canisters` key. For example, if your `dfx.json` configuration file defines one `hello_world_backend` canister and one `hello_world_frontend` canister [like this](../_attachments/sample-dfx.json), then running `dfx build` compiles two WebAssembly modules.
 
 Note that the file name and path to the programs on your file system must match the information specified in the `dfx.json` configuration file.
 
-In this example, the `hello_world` canister contains the main program code and the `hello_world_assets` canister store frontend code and assets. If you want to keep the `hello_world_assets` canister defined in the `dfx.json` file, but only build the backend program, you could run the following command:
+In this example, the `hello_world_backend` canister contains the main program code and the `hello_world_frontend` canister store frontend code and assets. If you want to keep the `hello_world_frontend` canister defined in the `dfx.json` file, but only build the backend program, you could run the following command:
 
 ``` bash
-dfx build hello_world
+dfx build hello_world_backend
 ```
 
 Building a specific canister is useful when you have multiple canisters defined in the dfx.json file, but want to test and debug operations for canisters independently.
