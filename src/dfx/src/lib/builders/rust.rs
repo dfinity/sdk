@@ -100,6 +100,7 @@ impl CanisterBuilder for RustBuilder {
         );
         let output = cargo.output().context("Failed to run 'cargo build'.")?;
 
+        info!(self.logger, "Optimizing WASM module.");
         let wasm_path = rust_info.get_output_wasm_path();
         let wasm = std::fs::read(wasm_path).expect("Could not read the WASM module.");
         let wasm_optimized =

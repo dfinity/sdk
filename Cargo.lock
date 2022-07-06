@@ -1909,7 +1909,7 @@ dependencies = [
 [[package]]
 name = "ic-wasm"
 version = "0.1.2"
-source = "git+https://github.com/dfinity/ic-wasm?branch=lwshang/optimize#5deb5c580f96d5350065ffe690ce37e4d12e0e44"
+source = "git+https://github.com/dfinity/ic-wasm?branch=lwshang/optimize#f532ceec1d40d4b8c4d63e3f15b040ed2e54abc9"
 dependencies = [
  "anyhow",
  "binaryen",
