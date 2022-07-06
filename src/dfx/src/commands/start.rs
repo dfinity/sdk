@@ -12,7 +12,7 @@ use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::provider::get_network_descriptor;
+use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 use crate::lib::webserver::run_webserver;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
@@ -163,7 +163,8 @@ pub fn exec(
     }: StartOpts,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let network_descriptor = get_network_descriptor(env.get_config(), None)?;
+    let network_descriptor =
+        get_network_descriptor(env.get_config(), None, LocalBindDetermination::AsConfigured)?;
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
@@ -317,6 +318,8 @@ pub fn exec(
             env.get_logger().clone(),
             build_output_root,
             network_descriptor,
+            config.get_project_root().to_path_buf(),
+            env.get_temp_dir().to_path_buf(),
             webserver_bind,
         )?;
 
@@ -432,6 +435,7 @@ pub fn configure_btc_adapter_if_enabled(
     nodes: Vec<SocketAddr>,
 ) -> DfxResult<Option<bitcoin::adapter::Config>> {
     let enable = enable_bitcoin || !nodes.is_empty() || config.get_defaults().get_bitcoin().enabled;
+    let log_level = config.get_defaults().get_bitcoin().log_level;
 
     if !enable {
         return Ok(None);
@@ -443,7 +447,7 @@ pub fn configure_btc_adapter_if_enabled(
         (_, _) => bitcoin::adapter::config::default_nodes(),
     };
 
-    let config = write_btc_adapter_config(uds_holder_path, config_path, nodes)?;
+    let config = write_btc_adapter_config(uds_holder_path, config_path, nodes, log_level)?;
     Ok(Some(config))
 }
 
@@ -483,10 +487,11 @@ fn write_btc_adapter_config(
     uds_holder_path: &Path,
     config_path: &Path,
     nodes: Vec<SocketAddr>,
+    log_level: bitcoin::adapter::config::BitcoinAdapterLogLevel,
 ) -> DfxResult<bitcoin::adapter::Config> {
     let socket_path = get_persistent_socket_path(uds_holder_path, "ic-btc-adapter-socket")?;
 
-    let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path);
+    let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize btc adapter configuration to json")?;

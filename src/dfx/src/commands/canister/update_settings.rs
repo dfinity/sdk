@@ -1,3 +1,4 @@
+use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::{
@@ -51,8 +52,16 @@ pub struct UpdateSettingsOpts {
     #[clap(long, validator(memory_allocation_validator))]
     memory_allocation: Option<String>,
 
+    /// Sets the freezing_threshold in SECONDS.
+    /// A canister is considered frozen whenever the IC estimates that the canister would be depleted of cycles
+    /// before freezing_threshold seconds pass, given the canister's current size and the IC's current cost for storage.
+    /// A frozen canister rejects any calls made to it.
     #[clap(long, validator(freezing_threshold_validator))]
     freezing_threshold: Option<String>,
+
+    /// Freezing thresholds above ~1.5 years require this flag as confirmation.
+    #[clap(long)]
+    confirm_very_long_freezing_threshold: bool,
 }
 
 pub async fn exec(
@@ -60,6 +69,20 @@ pub async fn exec(
     opts: UpdateSettingsOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
+    // sanity checks
+    if let Some(ref threshold_string) = opts.freezing_threshold {
+        let threshold_in_seconds = threshold_string
+            .parse::<u128>()
+            .expect("freezing_threshold_validator did not properly validate.");
+        if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
+        {
+            return Err(DiagnosedError::new(
+                "The freezing threshold is defined in SECONDS before the canister would run out of cycles, not in cycles.".to_string(),
+                "If you truly want to set a freezing threshold that is longer than a year, please run the same command, but with the flag --confirm-very-long-freezing-threshold to confirm you want to do this.".to_string(),
+            )).context("Misunderstanding is very likely.");
+        }
+    }
+
     let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
     let config_interface = config.get_config();

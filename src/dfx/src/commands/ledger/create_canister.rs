@@ -53,15 +53,20 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
 
     let fee = opts
         .fee
+        .as_ref()
         .map_or(Ok(TRANSACTION_FEE), |v| {
-            ICPTs::from_str(&v).map_err(|err| anyhow!(err))
+            ICPTs::from_str(v).map_err(|err| anyhow!(err))
         })
         .context("Failed to determine fee.")?;
 
     let memo = Memo(MEMO_CREATE_CANISTER);
 
-    let controller =
-        Principal::from_text(opts.controller).context("Failed to parse controller principal.")?;
+    let controller = Principal::from_text(&opts.controller).with_context(|| {
+        format!(
+            "Failed to parse {:?} as controller principal.",
+            &opts.controller
+        )
+    })?;
 
     let agent = env
         .get_agent()

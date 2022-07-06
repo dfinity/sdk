@@ -14,8 +14,12 @@ pub struct RemoveControllerOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: RemoveControllerOpts) -> DfxResult {
-    let controller =
-        Principal::from_text(opts.controller).context("Failed to parse controller principal.")?;
+    let controller = Principal::from_text(&opts.controller).with_context(|| {
+        format!(
+            "Failed to parse {:?} as controller principal.",
+            opts.controller
+        )
+    })?;
     wallet_update(env, "remove_controller", controller).await?;
     println!("Removed {} as a controller.", controller);
     Ok(())

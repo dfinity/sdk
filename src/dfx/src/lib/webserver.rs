@@ -19,6 +19,8 @@ use std::thread;
 struct CandidData {
     pub build_output_root: PathBuf,
     pub network_descriptor: NetworkDescriptor,
+    pub project_root: PathBuf,
+    pub project_temp_dir: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -42,8 +44,12 @@ async fn candid(
 ) -> Result<HttpResponse, Error> {
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
-    let store =
-        CanisterIdStore::for_network(network_descriptor).map_err(ErrorInternalServerError)?;
+    let store = CanisterIdStore::for_network(
+        network_descriptor,
+        Some(&data.project_root),
+        &data.project_temp_dir,
+    )
+    .map_err(ErrorInternalServerError)?;
 
     let candid_path = store
         .get_name(&id)
@@ -81,6 +87,8 @@ pub fn run_webserver(
     logger: Logger,
     build_output_root: PathBuf,
     network_descriptor: NetworkDescriptor,
+    project_root: PathBuf,
+    project_temp_dir: PathBuf,
     bind: SocketAddr,
 ) -> DfxResult {
     const SHUTDOWN_WAIT_TIME: u64 = 60;
@@ -88,6 +96,8 @@ pub fn run_webserver(
     let candid_data = web::Data::new(CandidData {
         build_output_root,
         network_descriptor,
+        project_root,
+        project_temp_dir,
     });
 
     let handler =

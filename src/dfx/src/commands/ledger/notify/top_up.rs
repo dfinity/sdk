@@ -21,8 +21,12 @@ pub struct NotifyTopUpOpts {
 pub async fn exec(env: &dyn Environment, opts: NotifyTopUpOpts) -> DfxResult {
     // validated by e8s_validator
     let block_height = opts.block_height.parse::<u64>().unwrap();
-    let canister =
-        Principal::from_text(opts.canister).context("Failed to parse destination principal.")?;
+    let canister = Principal::from_text(&opts.canister).with_context(|| {
+        format!(
+            "Failed to parse {:?} as destination principal.",
+            opts.canister
+        )
+    })?;
 
     let agent = env
         .get_agent()

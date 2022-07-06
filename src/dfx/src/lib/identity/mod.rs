@@ -570,13 +570,11 @@ impl Identity {
                 if !network.is_ic || create {
                     Identity::create_wallet(env, network, name, None).await
                 } else {
-                    Err(anyhow!(
-                        "Wallet not configured."
-                    )).with_context(|| DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
+                    Err(DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
                     "To use an identity with a configured wallet you can do one of the following:\n\
                     - Run the command for a network where you have a wallet configured. To do so, add '--network <network name>' to your command.\n\
                     - Switch to an identity that has a wallet configured using 'dfx identity use <identity name>'.\n\
-                    - Configure a wallet for this identity/network combination: 'dfx identity --network <network name> set-wallet <wallet id>'.".to_string()))
+                    - Configure a wallet for this identity/network combination: 'dfx identity --network <network name> set-wallet <wallet id>'.".to_string())).context("Wallet not configured.")
                 }
             }
             x => x,

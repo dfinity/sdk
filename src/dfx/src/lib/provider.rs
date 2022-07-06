@@ -1,9 +1,10 @@
-use crate::config::dfinity::{Config, ConfigNetwork, NetworkType};
+use crate::config::dfinity::{Config, ConfigLocalProvider, ConfigNetwork, NetworkType};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::{self, expiry_duration};
+use std::path::Path;
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
@@ -31,17 +32,27 @@ pub fn get_network_context() -> DfxResult<String> {
         .ok_or_else(|| anyhow!("Cannot find network context."))
 }
 
+pub enum LocalBindDetermination {
+    /// Use value from configuration
+    AsConfigured,
+
+    /// Get port of running server from webserver-port file
+    ApplyRunningWebserverPort,
+}
+
 // always returns at least one url
 #[context("Failed to get network descriptor for network '{}.", network.unwrap_or_else(||"local".to_string()))]
 pub fn get_network_descriptor(
     config: Option<Arc<Config>>,
     network: Option<String>,
+    local_bind_determination: LocalBindDetermination,
 ) -> DfxResult<NetworkDescriptor> {
     set_network_context(network.clone());
     let config = config.unwrap_or_else(|| {
         eprintln!("dfx.json not found, using default.");
         Arc::new(Config::from_str("{}").unwrap())
     });
+    let data_directory = config.get_temp_path();
     let config = config.as_ref().get_config();
     let network_name = get_network_context()?;
     match config.get_network(&network_name) {
@@ -69,7 +80,8 @@ pub fn get_network_descriptor(
         }
         Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
             let network_type = local_provider.r#type;
-            let bind_address = local_provider.bind;
+            let bind_address =
+                get_local_bind_address(local_provider, local_bind_determination, &data_directory)?;
             let provider_url = format!("http://{}", bind_address);
             let providers = vec![parse_provider_url(&provider_url)?];
             let local_server_descriptor = LocalServerDescriptor::new(bind_address)?;
@@ -103,12 +115,65 @@ pub fn get_network_descriptor(
     }
 }
 
+fn get_local_bind_address(
+    local_provider: ConfigLocalProvider,
+    local_bind_determination: LocalBindDetermination,
+    data_directory: &Path,
+) -> DfxResult<String> {
+    match local_bind_determination {
+        LocalBindDetermination::AsConfigured => Ok(local_provider.bind),
+        LocalBindDetermination::ApplyRunningWebserverPort => {
+            get_running_webserver_bind_address(data_directory, local_provider)
+        }
+    }
+}
+
+fn get_running_webserver_bind_address(
+    data_directory: &Path,
+    local_provider: ConfigLocalProvider,
+) -> DfxResult<String> {
+    let path = data_directory.join("webserver-port");
+    if path.exists() {
+        let s = std::fs::read_to_string(&path).with_context(|| {
+            format!(
+                "Unable to read webserver port from {}",
+                path.to_string_lossy()
+            )
+        })?;
+        let s = s.trim();
+        if s.is_empty() {
+            Ok(local_provider.bind)
+        } else {
+            let port = s.parse::<u16>().with_context(|| {
+                format!(
+                    "Unable to read contents of {} as a port value",
+                    path.to_string_lossy()
+                )
+            })?;
+            // converting to a socket address, and then setting the port,
+            // will unfortunately transform "localhost:port" to "[::1]:{port}",
+            // which the agent fails to connect with.
+            let host = match local_provider.bind.rfind(':') {
+                None => local_provider.bind,
+                Some(index) => local_provider.bind[0..index].to_string(),
+            };
+            Ok(format!("{}:{}", host, port))
+        }
+    } else {
+        Ok(local_provider.bind)
+    }
+}
+
 #[context("Failed to create AgentEnvironment.")]
 pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
     network: Option<String>,
 ) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = get_network_descriptor(env.get_config(), network)?;
+    let network_descriptor = get_network_descriptor(
+        env.get_config(),
+        network,
+        LocalBindDetermination::ApplyRunningWebserverPort,
+    )?;
     let timeout = expiry_duration();
     AgentEnvironment::new(env, network_descriptor, timeout)
 }
@@ -134,6 +199,106 @@ pub fn parse_provider_url(url: &str) -> DfxResult<String> {
 mod tests {
     use super::*;
     use crate::config::dfinity::to_socket_addr;
+    use std::fs;
+
+    #[test]
+    fn use_default_if_no_webserver_port_file() {
+        // no file - use default
+        test_with_webserver_port_file_contents(
+            LocalBindDetermination::ApplyRunningWebserverPort,
+            None,
+            "localhost:8000",
+        );
+    }
+
+    #[test]
+    fn use_port_if_have_file() {
+        // port file present and populated: reflected in socket address
+        test_with_webserver_port_file_contents(
+            LocalBindDetermination::ApplyRunningWebserverPort,
+            Some("1234"),
+            "localhost:1234",
+        );
+    }
+
+    #[test]
+    fn ignore_port_if_not_requested() {
+        // port file present and populated, but not asked for: ignored
+        test_with_webserver_port_file_contents(
+            LocalBindDetermination::AsConfigured,
+            Some("1234"),
+            "localhost:8000",
+        );
+    }
+
+    #[test]
+    fn extra_whitespace_in_webserver_port_is_ok() {
+        // trailing newline is ok
+        test_with_webserver_port_file_contents(
+            LocalBindDetermination::ApplyRunningWebserverPort,
+            Some("  \n3456 \n"),
+            "localhost:3456",
+        );
+    }
+
+    #[test]
+    fn ignore_empty_webserver_port_file() {
+        // empty is ok: ignore
+        test_with_webserver_port_file_contents(
+            LocalBindDetermination::ApplyRunningWebserverPort,
+            Some(""),
+            "localhost:8000",
+        );
+    }
+    #[test]
+    fn ignore_whitespace_only_webserver_port_file() {
+        // just whitespace is ok: ignore
+        test_with_webserver_port_file_contents(
+            LocalBindDetermination::ApplyRunningWebserverPort,
+            Some("\n"),
+            "localhost:8000",
+        );
+    }
+
+    fn test_with_webserver_port_file_contents(
+        local_bind_determination: LocalBindDetermination,
+        webserver_port_contents: Option<&str>,
+        expected_socket_addr: &str,
+    ) {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let project_dir = temp_dir.path().join("project");
+        fs::create_dir_all(&project_dir).unwrap();
+        let project_dfx_json = project_dir.join("dfx.json");
+        std::fs::write(
+            project_dfx_json,
+            r#"{
+            "networks": {
+                "local": {
+                    "bind": "localhost:8000"
+                }
+            }
+        }"#,
+        )
+        .unwrap();
+
+        if let Some(webserver_port_contents) = webserver_port_contents {
+            let dot_dfx_dir = project_dir.join(".dfx");
+            fs::create_dir_all(&dot_dfx_dir).unwrap();
+            std::fs::write(dot_dfx_dir.join("webserver-port"), webserver_port_contents).unwrap();
+        }
+
+        let config = Config::from_dir(&project_dir).unwrap().unwrap();
+        let network_descriptor =
+            get_network_descriptor(Some(Arc::new(config)), None, local_bind_determination).unwrap();
+
+        assert_eq!(
+            network_descriptor
+                .local_server_descriptor()
+                .unwrap()
+                .bind_address,
+            to_socket_addr(expected_socket_addr).unwrap()
+        );
+    }
 
     #[test]
     fn config_with_local_bind_addr() {
@@ -148,7 +313,12 @@ mod tests {
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(Some(Arc::new(config)), None).unwrap();
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
 
         assert_eq!(
             network_descriptor
@@ -172,7 +342,11 @@ mod tests {
         )
         .unwrap();
 
-        let result = get_network_descriptor(Some(Arc::new(config)), None);
+        let result = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        );
         assert!(result.is_err());
     }
 
@@ -185,7 +359,12 @@ mod tests {
         }"#,
         )
         .unwrap();
-        let network_descriptor = get_network_descriptor(Some(Arc::new(config)), None).unwrap();
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
 
         assert_eq!(
             network_descriptor
@@ -203,7 +382,12 @@ mod tests {
         }"#,
         )
         .unwrap();
-        let network_descriptor = get_network_descriptor(Some(Arc::new(config)), None).unwrap();
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
 
         assert_eq!(
             network_descriptor

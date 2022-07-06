@@ -21,7 +21,7 @@ pub async fn call_sender(_env: &dyn Environment, wallet: &Option<String>) -> Dfx
     let sender = if let Some(id) = wallet {
         CallSender::Wallet(
             Principal::from_text(&id)
-                .with_context(|| format!("Failed to read principal from {}.", id))?,
+                .with_context(|| format!("Failed to read principal from {:?}.", id))?,
         )
     } else {
         CallSender::SelectedId
