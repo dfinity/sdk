@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_agent::AgentError;
 use ic_types::Principal;
@@ -30,15 +30,23 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
     let controller_blob = agent
-        .read_state_canister_info(canister_id, "controllers")
-        .await?;
+        .read_state_canister_info(canister_id, "controllers", false)
+        .await
+        .with_context(|| format!("Failed to read controllers of canister {}.", canister_id))?;
     let cbor: Value = serde_cbor::from_slice(&controller_blob)
         .map_err(|_| anyhow!("Invalid cbor data in controllers canister info."))?;
     let controllers = if let Value::Array(vec) = cbor {
         vec.into_iter()
             .map(|elem: Value| {
                 if let Value::Bytes(bytes) = elem {
-                    Ok(Principal::try_from(&bytes)?.to_text())
+                    Ok(Principal::try_from(&bytes)
+                        .with_context(|| {
+                            format!(
+                                "Failed to construct principal of controller from bytes ({}).",
+                                hex::encode(&bytes)
+                            )
+                        })?
+                        .to_text())
                 } else {
                     bail!(
                         "Expected element in controllers to be of type bytes, got {:?}",
@@ -49,10 +57,11 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
             .collect::<DfxResult<Vec<String>>>()
     } else {
         bail!("Expected controllers to be an array, but got {:?}", cbor);
-    }?;
+    }
+    .context("Failed to determine controllers.")?;
 
     let module_hash_hex = match agent
-        .read_state_canister_info(canister_id, "module_hash")
+        .read_state_canister_info(canister_id, "module_hash", false)
         .await
     {
         Ok(blob) => format!("0x{}", hex::encode(&blob)),

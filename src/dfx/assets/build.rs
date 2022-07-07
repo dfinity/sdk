@@ -6,6 +6,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
+use walkdir::WalkDir;
 
 const INPUTS: &[&str] = &[
     "nix/sources.json",
@@ -88,6 +89,7 @@ fn add_asset_archive(fn_name: &str, f: &mut File, assets_path: &Path) {
     let filename_tgz = format!("{}.tgz", fn_name);
 
     let prebuilt_file = assets_path.join(&filename_tgz);
+    println!("cargo:rerun-if-changed={}", prebuilt_file.display());
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(&filename_tgz);
@@ -102,6 +104,12 @@ fn add_asset_archive(fn_name: &str, f: &mut File, assets_path: &Path) {
 }
 
 fn add_assets_from_directory(fn_name: &str, f: &mut File, path: &str) {
+    for file in WalkDir::new(path)
+        .into_iter()
+        .filter_map(|x| x.ok().filter(|entry| entry.file_type().is_file()))
+    {
+        println!("cargo:rerun-if-changed={}", file.path().display())
+    }
     let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
 
@@ -134,12 +142,11 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
 }
 
 fn get_git_hash() -> Option<String> {
-    let describe = Command::new("git").arg("describe").arg("--dirty").output();
-
-    if let Ok(output) = describe {
-        Some(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        None
+    match Command::new("git").arg("describe").arg("--dirty").output() {
+        Ok(output) if output.status.success() => {
+            Some(String::from_utf8_lossy(&output.stdout).to_string())
+        }
+        _ => None,
     }
 }
 

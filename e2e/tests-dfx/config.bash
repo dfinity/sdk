@@ -15,11 +15,18 @@ teardown() {
 @test "dfx config -- read/write" {
     assert_command_fail dfx config defaults/build/output
 
-    assert_command dfx config networks.local.bind "192.168.0.1:8000"
-    assert_eq ""
 
-    assert_command dfx config networks.local.bind
-    assert_eq '"192.168.0.1:8000"'
+    assert_command dfx config canisters.e2e_project.type
+    # shellcheck disable=SC2154
+    assert_eq '"motoko"' "$stdout"
+
+    assert_command dfx config canisters.e2e_project.type "rust"
+    # shellcheck disable=SC2154
+    assert_eq "" "$stdout"
+
+    assert_command dfx config canisters.e2e_project.type
+    # shellcheck disable=SC2154
+    assert_eq '"rust"' "$stdout"
 
     assert_command_fail dfx config non_existent
 

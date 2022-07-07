@@ -18,7 +18,7 @@ teardown() {
 @test "identity get-principal: the get-principal is the same as sender id" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new jose
+    assert_command dfx identity new --disable-encryption jose
 
     PRINCPAL_ID=$(dfx --identity jose identity get-principal)
 
@@ -38,7 +38,7 @@ teardown() {
 @test "identity get-principal (anonymous): the get-principal is the same as sender id" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new jose
+    assert_command dfx identity new --disable-encryption jose
 
     ANONYMOUS_PRINCIPAL_ID="2vxsx-fae"
 
@@ -79,12 +79,21 @@ teardown() {
     assert_eq '(false)'
 }
 
-@test "dfx ping creates the default identity on first run" {
-    install_asset identity
+@test "dfx ping does not create a default identity" {
     dfx_start
+
+    assert_file_not_exists "$DFX_CONFIG_ROOT/.config/dfx/identity.json"
+    assert_file_not_exists "$DFX_CONFIG_ROOT/.config/dfx/identity/default/identity.pem"
+
     assert_command dfx ping
+
+    assert_file_not_exists "$DFX_CONFIG_ROOT/.config/dfx/identity.json"
+    assert_file_not_exists "$DFX_CONFIG_ROOT/.config/dfx/identity/default/identity.pem"
+
     # shellcheck disable=SC2154
-    assert_match 'Creating the "default" identity.' "$stderr"
+    assert_not_match 'Creating' "$stderr"
+    # shellcheck disable=SC2154
+    assert_not_match 'default' "$stderr"
     # shellcheck disable=SC2154
     assert_match "ic_api_version" "$stdout"
 }
@@ -99,8 +108,8 @@ teardown() {
 @test "after using a specific identity while creating a canister, that user is the initializer" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     dfx --identity alice canister create --all
     assert_command dfx --identity alice build
@@ -129,7 +138,7 @@ teardown() {
 @test "after renaming an identity, the renamed identity is still initializer" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new alice
+    assert_command dfx identity new --disable-encryption alice
 
     dfx --identity alice canister create --all
     assert_command dfx --identity alice build

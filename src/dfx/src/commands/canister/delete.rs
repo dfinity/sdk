@@ -13,13 +13,15 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
 use crate::util::{blob_from_arguments, expiry_duration};
+use fn_error_context::context;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
 use ic_utils::interfaces::management_canister::CanisterStatus;
+use ic_utils::Argument;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -29,7 +31,9 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
-const WITHDRAWAL_COST: u64 = 10_000_000_000; // Emperically estimated.
+const DANK_PRINCIPAL: Principal =
+    Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
+const WITHDRAWAL_COST: u128 = 10_000_000_000; // Emperically estimated.
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a canister on the Internet Computer network.
@@ -69,6 +73,7 @@ pub struct CanisterDeleteOpts {
 }
 
 #[allow(clippy::too_many_arguments)]
+#[context("Failed to delete canister '{}'.", canister)]
 async fn delete_canister(
     env: &dyn Environment,
     canister: &str,
@@ -90,14 +95,18 @@ async fn delete_canister(
     let target_canister_id = if no_withdrawal {
         None
     } else if to_dank {
-        Some(Principal::from_text("aanaa-xaaaa-aaaah-aaeiq-cai")?)
+        Some(DANK_PRINCIPAL)
     } else {
         match withdraw_cycles_to_canister {
-            Some(ref target_canister_id) => Some(Principal::from_text(target_canister_id)?),
+            Some(ref target_canister_id) => {
+                Some(Principal::from_text(target_canister_id).with_context(|| {
+                    format!("Failed to read canister id {:?}.", target_canister_id)
+                })?)
+            }
             None => match call_sender {
                 CallSender::Wallet(wallet_id) => Some(*wallet_id),
                 CallSender::SelectedId => {
-                    let network = env.get_network_descriptor().unwrap();
+                    let network = env.get_network_descriptor();
                     let agent_env = create_agent_environment(env, Some(network.name.clone()))?;
                     let identity_name = agent_env
                         .get_selected_identity()
@@ -117,7 +126,8 @@ async fn delete_canister(
         .expect("Selected identity not instantiated.");
     let dank_target_principal = match withdraw_cycles_to_dank_principal {
         None => principal,
-        Some(principal) => Principal::from_text(principal)?,
+        Some(principal) => Principal::from_text(&principal)
+            .with_context(|| format!("Failed to read principal {:?}.", &principal))?,
     };
     fetch_root_key_if_needed(env).await?;
 
@@ -141,9 +151,9 @@ async fn delete_canister(
             // Set this principal to be a controller and default the other settings.
             let settings = CanisterSettings {
                 controllers: Some(vec![principal]),
-                compute_allocation: Some(ComputeAllocation::try_from(0).unwrap()),
+                compute_allocation: Some(ComputeAllocation::try_from(0u8).unwrap()),
                 memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
-                freezing_threshold: Some(FreezingThreshold::try_from(0).unwrap()),
+                freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
             };
             info!(log, "Setting the controller to identity princpal.");
             update_settings(env, canister_id, settings, timeout, call_sender).await?;
@@ -162,7 +172,8 @@ async fn delete_canister(
                 .with_raw_arg(args.to_vec())
                 .with_mode(mode);
             let install_result = install_builder
-                .build()?
+                .build()
+                .context("Failed to build InstallCode call.")?
                 .call_and_wait(waiter_with_timeout(timeout))
                 .await;
             if install_result.is_ok() {
@@ -174,7 +185,7 @@ async fn delete_canister(
                     &CallSender::SelectedId,
                 )
                 .await?;
-                let mut cycles = status.cycles.0.to_u64().unwrap();
+                let mut cycles = status.cycles.0.to_u128().unwrap();
                 if cycles > WITHDRAWAL_COST {
                     cycles -= WITHDRAWAL_COST;
 
@@ -199,22 +210,18 @@ async fn delete_canister(
                             cycles,
                             dank_target_principal
                         );
-                        let dank = ic_utils::Canister::builder()
-                            .with_agent(env.get_agent().ok_or_else(|| {
-                                anyhow!("Cannot get HTTP client from environment.")
-                            })?)
-                            .with_canister_id(target_canister_id)
-                            .build()
-                            .unwrap();
-                        let wallet = Identity::build_wallet_canister(canister_id, env)?;
+                        let wallet = Identity::build_wallet_canister(canister_id, env).await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
-                            .call_forward(
-                                dank.update_("mint").with_arg(opt_principal).build(),
+                            .call(
+                                target_canister_id,
+                                "mint",
+                                Argument::from_candid((opt_principal,)),
                                 cycles,
-                            )?
+                            )
                             .call_and_wait(waiter_with_timeout(timeout))
-                            .await?;
+                            .await
+                            .context("Failed mint call.")?;
                     }
                 } else {
                     info!(log, "Too few cycles to withdraw: {}.", cycles);

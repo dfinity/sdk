@@ -19,7 +19,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_network
 
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
     assert_command dfx --identity alice canister --network actuallylocal call remote write '("initial data in the remote canister")'
@@ -35,8 +35,6 @@ teardown() {
     setup_local_network
     # shellcheck disable=SC2094
     cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.remote.remote.candid="remote.did"' dfx.json)" >dfx.json
 
     # set up: remote method is update, local is query
     # call remote method as update to make a change
@@ -67,6 +65,12 @@ teardown() {
     assert_command dfx canister --network actuallylocal call --update remote make_struct '("A update by name", "B update by name")'
     assert_eq '(record { a = "A update by name"; b = "B update by name" })'
 
+    # This also should work when no canister type can be determined / if no info but the bare minimum of remote id and remote candid is given:
+    # shellcheck disable=SC2094
+    cat <<<"$(jq 'del(.canisters.remote.main)' dfx.json)" >dfx.json
+    assert_command dfx canister --network actuallylocal call --query  remote make_struct '("A query by name", "B query by name")'
+    assert_eq '(record { a = "A query by name"; b = "B query by name" })'
+
     # We can't check this for sign, because dfx canister send outputs something like this:
     #   To see the content of response, copy-paste the encoded string into cbor.me.
     #   Response: d9d9f7a2667374617475736[snip]2696e636970616c
@@ -80,15 +84,15 @@ teardown() {
     # We expect dfx to notice that the method is in fact an update, which it knows from the remote candid definition.
     #
     assert_command_fail dfx canister --network actuallylocal call --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("call by principal with --query")'
-    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_match 'not a query method'
     assert_command_fail dfx canister --network actuallylocal call --query remote actual_update_mock_query_remote_candid_update '("call by name with --query")'
-    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_match 'not a query method'
 
     # And the same for dfx canister sign:
     assert_command_fail dfx canister --network actuallylocal sign --query "$REMOTE_CANISTER_ID" actual_update_mock_query_remote_candid_update '("call by principal with --query")'
-    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_match 'not a query method'
     assert_command_fail dfx canister --network actuallylocal sign --query remote actual_update_mock_query_remote_candid_update '("call by name with --query")'
-    assert_eq 'Error: Invalid method call: actual_update_mock_query_remote_candid_update is not a query method.'
+    assert_match 'not a query method'
 }
 
 @test "canister create <canister> fails for a remote canister" {
@@ -96,7 +100,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_network
 
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
 
@@ -119,7 +123,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_network
 
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
 
@@ -134,7 +138,7 @@ teardown() {
     cat <<<"$(jq .canisters.remote.remote.id.actuallylocal=\""$REMOTE_CANISTER_ID"\" dfx.json)" >dfx.json
 
     assert_command_fail dfx canister --network actuallylocal install remote
-    assert_match "Error: Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
+    assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
 }
 
 @test "canister create --all and canister install --all skip remote canisters" {
@@ -146,7 +150,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
     assert_command dfx --identity alice canister --network actuallylocal call remote write '("this is data in the remote canister")'
@@ -215,7 +219,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
 
@@ -252,7 +256,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
 
     assert_command dfx --identity alice deploy --network actuallylocal
     assert_command dfx --identity alice canister --network actuallylocal call remote write '("this is data in the remote canister")'

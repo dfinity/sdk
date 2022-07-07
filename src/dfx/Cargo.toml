@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.9.2"
+version = "0.10.1"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -14,93 +14,105 @@ flate2 = "1.0.11"
 hex = "0.4.2"
 openssl = "0.10.32"
 tar = "0.4.26"
+walkdir = "2.3.2"
 
 [dependencies]
-actix = "0.10.0"
-actix-cors = "0.4.0"
-actix-files = "0.3.0"
-actix-http = { version = "2.2.2", default-features = false }
-actix-server = "1.0.4"
-actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
-anyhow = "1.0.51"
+actix = "0.13.0"
+actix-cors = "0.6.1"
+actix-files = "0.6.0"
+actix-http = { version = "3.0.3", default-features = false }
+actix-server = "2.0.0"
+actix-web = { version = "4.0.0", features = [ "default", "openssl", "rustls" ] }
+aes-gcm = "0.9.4"
+anyhow = "1.0.56"
+argon2 = "0.4.0"
 atty = "0.2.13"
 base64 = "0.13.0"
 candid = { version = "0.7.10", features = [ "random" ] }
-chrono = "0.4.9"
-clap = { version = "3.0.14", features = [ "derive" ] }
+clap = { version = "3.1.6", features = [ "derive" ] }
 console = "0.15.0"
-crc32fast = "1.3.0"
+crc32fast = "1.3.2"
 crossbeam = "0.8.1"
 ctrlc = { version = "3.2.1", features = [ "termination" ] }
-dialoguer = "0.9.0"
-erased-serde = "0.3.10"
+dialoguer = "0.10.0"
+erased-serde = "0.3.18"
 flate2 = "1.0.11"
-futures = "0.3.19"
+fn-error-context = "0.2.0"
+futures = "0.3.21"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
 ic-types = "0.3.0"
-indicatif = "0.13.0"
+ic-wasm = "0.1.0"
+indicatif = "0.16.0"
+itertools = "0.10.3"
 lazy-init = "0.5.0"
 lazy_static = "1.4.0"
-libflate = "1.1.1"
+libflate = "1.1.2"
 humanize-rs = "0.1.5"
 mime = "0.3.16"
-mime_guess = "2.0.3"
+mime_guess = "2.0.4"
 mockall = "0.11.0"
 net2 = "0.2.34"
 num-traits = "0.2"
 openssl = "0.10.32"
-pem = "1.0.1"
+pem = "1.0.2"
 petgraph = "0.6.0"
-rand = "0.7.2"
-regex = "1.3.1"
+rand = "0.8.5"
+regex = "1.5.5"
 ring = "0.16.11"
-reqwest = { version = "0.11.8", features = [ "blocking", "json", "rustls-tls" ] }
-rustls = "0.20.2"
-rust_decimal = "1.18.0"
-semver = "1.0.4"
+reqwest = { version = "0.11.9", features = [ "blocking", "json", "rustls-tls" ] }
+rustls = "0.20.4"
+rust_decimal = "1.22.0"
+semver = "1.0.6"
 serde = "1.0"
 serde_bytes = "0.11.2"
 serde_cbor = "0.11.1"
-serde_json = "1.0.73"
+serde_json = "1.0.79"
 serde_repr = "0.1.5"
-shell-words = "1.0.0"
+shell-words = "1.1.0"
 slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
-slog-term = "2.5.0"
-sysinfo = "0.9.6"
+slog-term = "2.9.0"
+sysinfo = "0.24.4"
 tar = "0.4.38"
-tempfile = "3.1.0"
+tempfile = "3.3.0"
+term = "0.7.0"
 thiserror = "1.0.20"
-tokio = { version = "1.5.0", features = [ "fs" ] }
+time = { version = "0.3.9", features = ["serde", "macros", "serde-human-readable"] }
+tokio = { version = "1.17.0", features = [ "fs" ] }
 toml = "0.5.5"
 url = "2.1.0"
 walkdir = "2.2.9"
-wasmparser = "0.81.0"
+walrus = "0.19.0"
+wasmparser = "0.87.0"
+which = "4.2.5"
 
 [dependencies.ic-agent]
-version = "0.12.1"
+version = "0.18.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+rev = "fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
-version = "0.12.1"
+version = "0.18.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+rev = "fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 
 [dependencies.ic-identity-hsm]
-version = "0.12.1"
+version = "0.18.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+rev = "fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 
 [dependencies.ic-utils]
-version = "0.12.1"
+version = "0.18.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "8ed6cb82c9aaca80e4c7c9dfe1889c2022a3f427"
+rev = "fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 
 [dev-dependencies]
 env_logger = "0.9"
 proptest = "1.0"
-mockito = "0.30.0"
+mockito = "0.31.0"
 tempfile = "3.1.0"
+
+[features]
+vendored-openssl = ["openssl/vendored"]

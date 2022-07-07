@@ -22,7 +22,13 @@ mkdir /usr/local/lib/bats-support
 tar --directory /usr/local/lib/bats-support --extract --file bats-support.tar.gz --strip-components 1
 rm bats-support.tar.gz
 
-# Packages needed for some tests
+# Modifications needed for some tests
+if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
+     brew install bitcoin
+fi
+if [ "$E2E_TEST" = "tests-dfx/build.bash" ]; then
+    cargo uninstall cargo-audit
+fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
      brew install mitmproxy
 fi

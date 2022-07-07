@@ -1,6 +1,8 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_data};
 
+use anyhow::Context;
+use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use libflate::gzip::Decoder;
 use semver::Version;
@@ -76,6 +78,7 @@ pub fn is_upgrade_necessary(latest_version: Option<&Version>, current: &Version)
     }
 }
 
+#[context("Failed to fetch latest version.")]
 pub fn get_latest_version(
     release_root: &str,
     timeout: Option<std::time::Duration>,
@@ -98,7 +101,7 @@ pub fn get_latest_version(
         None => reqwest::blocking::Client::builder(),
     };
 
-    let client = client.build()?;
+    let client = client.build().context("Failed to build client.")?;
     let response = client.get(manifest_url).send().map_err(DfxError::new)?;
     let status_code = response.status();
     b.finish_and_clear();
@@ -120,6 +123,11 @@ pub fn get_latest_version(
         .map(|v| v.clone())
 }
 
+#[context(
+    "Failed to get latest release for version {} and architecture {}.",
+    version,
+    arch
+)]
 pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxResult<()> {
     let url = reqwest::Url::parse(&format!(
         "{0}/downloads/dfx/{1}/{2}/dfx-{1}.tar.gz",
@@ -130,7 +138,7 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());
 
-    b.set_message(format!("Downloading {}", url).as_str());
+    b.set_message(format!("Downloading {}", url));
     b.enable_steady_tick(80);
     let mut response = reqwest::blocking::get(url).map_err(DfxError::new)?;
     let mut decoder = Decoder::new(&mut response)
@@ -139,11 +147,25 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
     let current_exe_path = env::current_exe().map_err(DfxError::new)?;
     let current_exe_dir = current_exe_path.parent().unwrap(); // This should not fail
     b.set_message("Unpacking");
-    archive.unpack(&current_exe_dir)?;
+    archive
+        .unpack(&current_exe_dir)
+        .with_context(|| format!("Failed to unpack to {}.", current_exe_dir.to_string_lossy()))?;
     b.set_message("Setting permissions");
-    let mut permissions = fs::metadata(&current_exe_path)?.permissions();
+    let mut permissions = fs::metadata(&current_exe_path)
+        .with_context(|| {
+            format!(
+                "Failed to read metadata for {}.",
+                current_exe_path.to_string_lossy()
+            )
+        })?
+        .permissions();
     permissions.set_mode(0o775); // FIXME Preserve existing permissions
-    fs::set_permissions(&current_exe_path, permissions)?;
+    fs::set_permissions(&current_exe_path, permissions).with_context(|| {
+        format!(
+            "Failed to set metadata for {}.",
+            current_exe_path.to_string_lossy()
+        )
+    })?;
     b.finish_with_message("Done");
     Ok(())
 }

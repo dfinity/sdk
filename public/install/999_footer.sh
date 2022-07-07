@@ -3,6 +3,7 @@
 # If DFX_RELEASE_ROOT is unset or empty, default it.
 SDK_WEBSITE="https://sdk.dfinity.org"
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
+DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
 DFX_VERSION="${DFX_VERSION:-}"
 
@@ -102,6 +103,13 @@ main() {
     need_cmd mktemp
     need_cmd chmod
     need_cmd mkdir
+    if check_cmd sha256sum; then
+        SHASUM=sha256sum
+    elif check_cmd shasum; then
+        SHASUM=shasum
+    else
+        err "need 'shasum' or 'sha256sum' (neither command found)"
+    fi
     need_cmd rm
     need_cmd tar
     need_cmd gzip
@@ -119,11 +127,24 @@ main() {
     # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
     # thus, make sure this handles archives
     log "Version found: $DFX_VERSION"
-    local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/dfx-${DFX_VERSION}.tar.gz"
+    case "$DFX_VERSION" in
+        0.[0-9].*)
+            local _dfx_tarball_filename="dfx-${DFX_VERSION}.tar.gz"
+            local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/${_dfx_tarball_filename}"
+            local _dfx_sha256_filename=""
+            ;;
+
+        *)
+            local _dfx_tarball_filename="dfx-${DFX_VERSION}-${_arch}.tar.gz"
+            local _dfx_url="${DFX_GITHUB_RELEASE_ROOT}/${DFX_VERSION}/${_dfx_tarball_filename}"
+            local _dfx_sha256_filename="${_dfx_tarball_filename}.sha256"
+            local _dfx_sha256_url="${_dfx_url}.sha256"
+            ;;
+    esac
 
     local _dir
     _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
-    local _dfx_archive="${_dir}/dfx.tar.gz"
+    local _dfx_archive="${_dir}/${_dfx_tarball_filename}"
     local _dfx_file="${_dir}/dfx"
 
     log "Creating uninstall script in ~/.cache/dfinity"
@@ -135,6 +156,14 @@ main() {
 
     ensure mkdir -p "$_dir"
     ensure downloader "$_dfx_url" "$_dfx_archive"
+    if [ -n "${_dfx_sha256_filename}" ]; then
+        log "Checking integrity of tarball..."
+        ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
+        (
+            ensure cd "${_dir}" >/dev/null
+            ensure $SHASUM -c "${_dfx_sha256_filename}"
+        )
+    fi
     tar -xf "$_dfx_archive" -O >"$_dfx_file"
     ensure chmod u+x "$_dfx_file"
 

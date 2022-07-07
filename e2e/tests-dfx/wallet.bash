@@ -16,8 +16,8 @@ teardown() {
     dfx_new hello
     dfx_start
 
-    dfx identity new alice
-    dfx identity new bob
+    dfx identity new --disable-encryption alice
+    dfx identity new --disable-encryption bob
 
     use_wallet_wasm 0.7.0
     assert_command dfx --identity alice identity get-wallet
@@ -79,39 +79,16 @@ teardown() {
     assert_eq "$ID"
 }
 
-@test "'dfx identity --network ic set-wallet' always bypasses wallet canister verification" {
-    dfx_new hello
-    dfx_start
-    setup_actuallylocal_network
-
-    # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello
-    ID=$(dfx canister --network actuallylocal id hello)
-    dfx canister --network actuallylocal create hello_assets
-    ID_TWO=$(dfx canister --network actuallylocal id hello_assets)
-
-    # set controller to user
-    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
-
-    assert_command_fail dfx identity set-wallet "${ID}"
-    assert_not_match "Setting wallet for identity"
-    assert_command dfx identity --network ic set-wallet "${ID}"
-    assert_match "Setting wallet for identity 'default' on network 'ic' to id '$ID'"
-    assert_command jq -r .identities.default.ic <"$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
-    assert_eq "$ID"
-}
-
 @test "deploy wallet" {
     dfx_new hello
     dfx_start
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello
-    ID=$(dfx canister --network actuallylocal id hello)
     dfx canister --network actuallylocal create hello_assets
-    ID_TWO=$(dfx canister --network actuallylocal id hello_assets)
+    ID=$(dfx canister --network actuallylocal id hello_assets)
+    dfx deploy --network actuallylocal hello
+    ID_TWO=$(dfx canister --network actuallylocal id hello)
 
     # set controller to user
     dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
@@ -125,8 +102,9 @@ teardown() {
     GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)
     assert_eq "$ID" "$GET_WALLET_RES"
 
-    assert_command dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
-    assert_match "The wallet canister \"${ID}\"\ already exists for user \"default\" on \"actuallylocal\" network."
+    # Command should fail on an already-deployed canister
+    assert_command_fail dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
+    assert_match "The wallet canister \"${ID_TWO}\"\ already exists for user \"default\" on \"actuallylocal\" network."
 }
 
 @test "wallet create wallet" {
@@ -170,4 +148,25 @@ teardown() {
     assert_command dfx canister call "$WALLET" wallet_call \
         "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
+}
+
+@test "a 64-bit wallet can still be called in the 128-bit context" {
+    use_wallet_wasm 0.8.2
+    dfx_new hello
+    dfx_start
+    WALLET=$(dfx identity get-wallet)
+    assert_command dfx wallet balance
+    assert_command dfx deploy --wallet "$WALLET"
+    assert_command dfx canister --wallet "$WALLET" call hello greet '("")' --with-cycles 1
+    dfx identity new alice --disable-encryption
+    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    dfx wallet send "$ALICE_WALLET" 1
+}
+
+@test "dfx canister deposit-cycles succeeds on a canister the caller does not own" {
+    dfx_new hello
+    dfx_start
+    dfx identity new alice --disable-encryption
+    dfx --identity alice deploy --no-wallet hello
+    assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello
 }

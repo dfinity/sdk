@@ -104,7 +104,7 @@ teardown() {
 
 @test "create accepts --controller <controller> named parameter, with controller by identity name" {
     dfx_start
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     
     
@@ -118,7 +118,7 @@ teardown() {
 
 @test "create accepts --controller <controller> named parameter, with controller by identity principal" {
     dfx_start
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
 
@@ -133,7 +133,7 @@ teardown() {
 
 @test "create accepts --controller <controller> named parameter, with controller by wallet principal" {
     dfx_start
-    dfx identity new alice
+    dfx identity new --disable-encryption alice
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
 
     assert_command dfx canister create --all --controller "${ALICE_WALLET}"
@@ -149,8 +149,8 @@ teardown() {
     # there is a different code path if the specified controller happens to be
     # the currently selected identity.
     dfx_start
-    dfx identity new alice
-    dfx identity new bob
+    dfx identity new --disable-encryption alice
+    dfx identity new --disable-encryption bob
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
 
     dfx identity use bob
@@ -167,8 +167,8 @@ teardown() {
 
 @test "create single controller accepts --controller <controller> named parameter, with controller by identity name" {
     dfx_start
-    dfx identity new alice
-    dfx identity new bob
+    dfx identity new --disable-encryption alice
+    dfx identity new --disable-encryption bob
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
 
@@ -192,8 +192,8 @@ teardown() {
 
 @test "create canister with multiple controllers" {
     dfx_start
-    dfx identity new alice
-    dfx identity new bob
+    dfx identity new --disable-encryption alice
+    dfx identity new --disable-encryption bob
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
     # awk step is to avoid trailing space
@@ -218,8 +218,8 @@ teardown() {
     use_wallet_wasm 0.7.2
 
     dfx_start
-    dfx identity new alice
-    dfx identity new bob
+    dfx identity new --disable-encryption alice
+    dfx identity new --disable-encryption bob
 
     assert_command_fail dfx --identity alice canister create --all --controller alice --controller bob
     assert_match "The wallet canister must be upgraded: The installed wallet does not support multiple controllers."
@@ -230,3 +230,7 @@ teardown() {
     assert_command dfx --identity alice canister create --all --controller alice --controller bob
 }
 
+@test "canister-create on mainnet without wallet does not propagate the 404" {
+    assert_command_fail dfx deploy --network ic --no-wallet
+    assert_match 'dfx ledger create-canister'
+}

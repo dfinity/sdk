@@ -22,23 +22,35 @@ pub struct NewIdentityOpts {
     /// A sequence of pairs of hex digits
     #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_hsm_key_id))]
     hsm_key_id: Option<String>,
+
+    /// DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk.
+    /// I you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
+    #[clap(long)]
+    disable_encryption: bool,
+
+    /// If the identity already exists, remove and re-create it.
+    #[clap(long)]
+    force: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
     let name = opts.identity.as_str();
 
     let log = env.get_logger();
-    info!(log, r#"Creating identity: "{}"."#, name);
 
     let creation_parameters = match (opts.hsm_pkcs11_lib_path, opts.hsm_key_id) {
-        (Some(pkcs11_lib_path), Some(key_id)) => Hardware(HardwareIdentityConfiguration {
-            pkcs11_lib_path,
-            key_id,
-        }),
-        _ => Pem(),
+        (Some(pkcs11_lib_path), Some(key_id)) => Hardware {
+            hsm: HardwareIdentityConfiguration {
+                pkcs11_lib_path,
+                key_id,
+            },
+        },
+        _ => Pem {
+            disable_encryption: opts.disable_encryption,
+        },
     };
 
-    IdentityManager::new(env)?.create_new_identity(name, creation_parameters)?;
+    IdentityManager::new(env)?.create_new_identity(name, creation_parameters, opts.force)?;
 
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())

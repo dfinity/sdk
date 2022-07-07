@@ -4,6 +4,7 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::create_agent_environment;
 use crate::util::check_candid_file;
 
+use anyhow::Context;
 use clap::Parser;
 use slog::info;
 use std::path::Path;
@@ -33,7 +34,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let log = env.get_logger();
 
-    //fetches specified canister, or all if canister is None (= --all is set)
+    //collects specified canister, or all if canister is None (= --all is set)
     let canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister.as_deref())?;
@@ -50,7 +51,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                     info!(
                         log,
                         "Candid file {} for canister {} does not exist. Skipping.",
-                        candid,
+                        candid.to_string_lossy(),
                         canister.get_name()
                     );
                     continue;
@@ -93,12 +94,17 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 };
 
                 if let Some(bindings_string) = bindings {
-                    std::fs::write(&main_path, &bindings_string)?;
+                    std::fs::write(&main_path, &bindings_string).with_context(|| {
+                        format!(
+                            "Failed to write bindings to {}.",
+                            main_path.to_string_lossy()
+                        )
+                    })?;
                     info!(
                         log,
                         "Generated {} using {} for canister {}.",
                         main,
-                        candid,
+                        candid.to_string_lossy(),
                         canister.get_name()
                     )
                 }

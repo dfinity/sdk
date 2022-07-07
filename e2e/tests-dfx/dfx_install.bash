@@ -15,7 +15,7 @@ teardown() {
 @test "dfx cache show does not install the dfx version into the cache" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
-    test -z "$(ls -A "$DFX_CONFIG_ROOT")"
+    test -z "$(ls -A "$DFX_CACHE_ROOT")"
 
     assert_command dfx cache show
 
@@ -23,8 +23,8 @@ teardown() {
     test ! -e "$(dfx cache show)"
 
     # it does create the empty versions directory though
-    test -d "$DFX_CONFIG_ROOT/.cache/dfinity/versions"
-    test -z "$(ls -A "$DFX_CONFIG_ROOT/.cache/dfinity/versions"``)"
+    test -d "$DFX_CACHE_ROOT/.cache/dfinity/versions"
+    test -z "$(ls -A "$DFX_CACHE_ROOT/.cache/dfinity/versions"``)"
 }
 
 @test "non-forced install populates an empty cache" {

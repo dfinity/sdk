@@ -168,6 +168,18 @@ assert_file_exists() {
     fi
 }
 
+assert_file_not_empty() {
+    filename="$1"
+
+    assert_file_exists "$filename"
+
+    if [[ ! -s $filename ]]; then
+        echo "$filename is empty" \
+        | batslib_decorate "Empty file" \
+        | fail
+    fi
+}
+
 assert_file_not_exists() {
     filename="$1"
 
@@ -183,6 +195,7 @@ assert_file_eventually_exists() {
     timeout="$2"
 
     timeout $timeout sh -c \
-      "until [ -f $filename ]; do echo waiting for $filename; sleep 1; done" \
-      || (echo "file $filename was never created" && ls && exit 1)
+      "until [ -f \"$filename\" ]; do echo waiting for \"$filename\"; sleep 1; done" \
+      || (echo "file \"$filename\" was never created" && ls && exit 1)
 }
+

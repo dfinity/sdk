@@ -5,6 +5,7 @@ load ../utils/_
 setup() {
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
+    export DFX_CACHE_ROOT="$x"
     export DFX_CONFIG_ROOT="$x"
     cd "$x" || exit
     export RUST_BACKTRACE=1
@@ -14,6 +15,7 @@ setup() {
 
 teardown() {
     dfx_stop
+    rm -rf "$DFX_CACHE_ROOT"
     rm -rf "$DFX_CONFIG_ROOT"
 }
 

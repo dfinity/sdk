@@ -7,7 +7,9 @@ use crate::lib::error::DfxResult;
 use crate::lib::provider::get_network_context;
 use crate::util;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
+use core::panic;
+use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use ic_types::Principal;
 use std::collections::BTreeMap;
@@ -37,7 +39,7 @@ pub struct CanisterInfo {
 
     declarations_config: CanisterDeclarationsConfig,
     remote_id: Option<Principal>, // id on the currently selected network
-    remote_candid: Option<String>, // always exists if the field is configured
+    remote_candid: Option<PathBuf>, // always exists if the field is configured
 
     workspace_root: PathBuf,
     build_root: PathBuf,
@@ -49,10 +51,13 @@ pub struct CanisterInfo {
     packtool: Option<String>,
     args: Option<String>,
 
+    post_install: Vec<String>,
+
     extras: BTreeMap<String, serde_json::Value>,
 }
 
 impl CanisterInfo {
+    #[context("Failed to load canister info for '{}'.", name)]
     pub fn load(
         config: &Config,
         name: &str,
@@ -65,7 +70,8 @@ impl CanisterInfo {
             .get_temp_path()
             .join(util::network_to_pathcompat(&network_name));
         let build_root = build_root.join("canisters");
-        std::fs::create_dir_all(&build_root)?;
+        std::fs::create_dir_all(&build_root)
+            .with_context(|| format!("Failed to create {}.", build_root.to_string_lossy()))?;
 
         let canister_map = (&config.get_config().canisters)
             .as_ref()
@@ -109,24 +115,24 @@ impl CanisterInfo {
             .cloned()
             .unwrap_or_else(|| "motoko".to_owned());
 
+        let post_install = canister_config.post_install.clone().into_vec();
+
         let canister_info = CanisterInfo {
             name: name.to_string(),
             canister_type,
-
             declarations_config,
             remote_id,
             remote_candid,
-
             workspace_root: workspace_root.to_path_buf(),
             build_root,
             output_root,
             canister_root,
-
             canister_id,
-
             packtool: build_defaults.get_packtool(),
             args: build_defaults.get_args(),
             extras,
+
+            post_install,
         };
 
         let canister_args: Option<String> = canister_info.get_extra_optional("args")?;
@@ -150,13 +156,16 @@ impl CanisterInfo {
     pub fn get_declarations_config(&self) -> &CanisterDeclarationsConfig {
         &self.declarations_config
     }
+    pub fn is_remote(&self) -> bool {
+        self.remote_id.is_some()
+    }
     pub fn get_remote_id(&self) -> Option<Principal> {
         self.remote_id
     }
-    pub fn get_remote_candid(&self) -> Option<String> {
+    pub fn get_remote_candid(&self) -> Option<PathBuf> {
         self.remote_candid.as_ref().cloned()
     }
-    pub fn get_remote_candid_if_remote(&self) -> Option<String> {
+    pub fn get_remote_candid_if_remote(&self) -> Option<PathBuf> {
         if self.remote_id.is_some() {
             self.get_remote_candid()
         } else {
@@ -172,6 +181,8 @@ impl CanisterInfo {
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
     }
+
+    #[context("Failed to get canister id for '{}'.", self.name)]
     pub fn get_canister_id(&self) -> DfxResult<CanisterId> {
         match &self.canister_id {
             Some(canister_id) => Ok(*canister_id),
@@ -193,6 +204,7 @@ impl CanisterInfo {
         self.extras.contains_key(name)
     }
 
+    #[context("Failed while trying to get field '{}' for canister '{}'.", name, self.name)]
     pub fn get_extra<T: serde::de::DeserializeOwned>(&self, name: &str) -> DfxResult<T> {
         self.get_extra_value(name)
             .ok_or_else(|| {
@@ -207,6 +219,7 @@ impl CanisterInfo {
             })
     }
 
+    #[context("Failed while trying to get optional config field '{}' for canister '{}'.", name, self.name)]
     pub fn get_extra_optional<T: serde::de::DeserializeOwned>(
         &self,
         name: &str,
@@ -224,6 +237,10 @@ impl CanisterInfo {
 
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+
+    pub fn get_post_install(&self) -> &[String] {
+        &self.post_install
     }
 
     pub fn get_args(&self) -> &Option<String> {
@@ -275,10 +292,13 @@ impl CanisterInfo {
         } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
             Some(info.get_output_idl_path().to_path_buf())
         } else {
-            None
+            self.get_extra_optional("candid")
+                .unwrap_or(None)
+                .or_else(|| self.remote_candid.clone())
         }
     }
 
+    #[context("Failed to create <Type>CanisterInfo for canister '{}'.", self.name, )]
     pub fn as_info<T: CanisterInfoFactory>(&self) -> DfxResult<T> {
         if T::supports(self) {
             T::create(self)

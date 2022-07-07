@@ -7,6 +7,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
 use clap::Parser;
+use fn_error_context::context;
 use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
@@ -23,6 +24,7 @@ pub struct CanisterStatusOpts {
     all: bool,
 }
 
+#[context("Failed to get canister status for '{}'.", canister)]
 async fn canister_status(
     env: &dyn Environment,
     canister: &str,
@@ -63,14 +65,13 @@ pub async fn exec(
     opts: CanisterStatusOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let config = env.get_config_or_anyhow()?;
-
     fetch_root_key_if_needed(env).await?;
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
         canister_status(env, canister, timeout, call_sender).await
     } else if opts.all {
+        let config = env.get_config_or_anyhow()?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 canister_status(env, canister, timeout, call_sender).await?;

@@ -55,14 +55,14 @@ pre_release_check() {
 
 #
 # build the release candidate and export these environment variables:
-#    sdk_rc                  SDK release candidate
-#    dfx_rc                    - dfx executable within
+#    dfx_rc                    dfx release candidate executable
 #
 build_release_candidate() {
     announce "Building dfx release candidate."
-    x="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
-    export sdk_rc=$x
-    export dfx_rc="$sdk_rc/bin/dfx"
+    cargo clean --release
+    cargo build --release --locked
+    x="$(pwd)/target/release/dfx"
+    export dfx_rc="$x"
 
     echo "Checking for dfx release candidate at $dfx_rc"
     test -x "$dfx_rc"
@@ -154,73 +154,59 @@ validate_default_project() {
 build_release_branch() {
 
     announce "Building branch $BRANCH for release $NEW_DFX_VERSION"
-    NIX_COMMAND=$(envsubst <<"EOF"
-        set -e
 
-        echo "Cleaning up cargo build files..."
-        $DRY_RUN_ECHO cargo clean
+    echo "Cleaning up cargo build files..."
+    $DRY_RUN_ECHO cargo clean --release
 
-        echo "Switching to branch: $BRANCH"
-        $DRY_RUN_ECHO git switch -c $BRANCH
+    echo "Switching to branch: $BRANCH"
+    $DRY_RUN_ECHO git switch -c "$BRANCH"
 
-        echo "Updating version in src/dfx/Cargo.toml"
-        # update first version in src/dfx/Cargo.toml to be NEW_DFX_VERSION
-        sed -i '0,/^version = ".*"/s//version = "$NEW_DFX_VERSION"/' src/dfx/Cargo.toml
+    echo "Updating version in src/dfx/Cargo.toml"
+    # update first version in src/dfx/Cargo.toml to be NEW_DFX_VERSION
+    # shellcheck disable=SC2094
+    cat <<<"$(awk 'NR==1,/^version = ".*"/{sub(/^version = ".*"/, "version = \"'"$NEW_DFX_VERSION"'\"")} 1' <src/dfx/Cargo.toml)" >src/dfx/Cargo.toml
 
-        echo "Building dfx with cargo."
-        cargo build
+    echo "Building dfx with cargo."
+    # not --locked, because Cargo.lock needs to be updated with the new version
+    # we already checked that it builds with --locked, when building the release candidate.
+    cargo build --release
 
-        echo "Appending version to public/manifest.json"
-        # Append the new version to `public/manifest.json` by appending it to the `versions` list.
-        cat <<<$(jq --indent 4 '.versions += ["$NEW_DFX_VERSION"]' public/manifest.json) >public/manifest.json
+    echo "Appending version to public/manifest.json"
+    # Append the new version to `public/manifest.json` by appending it to the `versions` list.
+    # shellcheck disable=SC2094
+    cat <<<"$(jq --indent 4 '.versions += ["'"$NEW_DFX_VERSION"'"]' public/manifest.json)" >public/manifest.json
 
-        echo "Creating release branch: $BRANCH"
-        $DRY_RUN_ECHO git add -u
-        $DRY_RUN_ECHO git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
-        $DRY_RUN_ECHO git push origin $BRANCH
+    echo "Creating release branch: $BRANCH"
+    $DRY_RUN_ECHO git add -u
+    $DRY_RUN_ECHO git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
+    $DRY_RUN_ECHO git push origin "$BRANCH"
 
-        echo "Please open a pull request to the $FINAL_RELEASE_BRANCH branch, review and approve it, then merge it manually."
-        echo "  (The automerge-squash label will not work because the PR is not to the master branch)"
-EOF
-    )
-    # echo "$NIX_COMMAND"
-    echo "Starting nix-shell."
-    nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
+    echo "Please open a pull request to the $FINAL_RELEASE_BRANCH branch, review and approve it, then merge it manually."
+    echo "  (The automerge-squash label will not work because the PR is not to the master branch)"
 
     wait_for_response 'PR merged'
 }
 
-update_stable_branch() {
-    announce 'Updating stable branch'
+tag_release_commit() {
+    announce 'Tagging release commit'
 
-    NIX_COMMAND=$(envsubst <<"EOF"
-        set -e
+    echo "Switching to the release branch."
+    $DRY_RUN_ECHO git switch "$FINAL_RELEASE_BRANCH"
 
-        echo "Switching to the stable branch."
-        $DRY_RUN_ECHO git switch stable
+    $DRY_RUN_ECHO git branch --set-upstream-to=origin/"$FINAL_RELEASE_BRANCH" "$FINAL_RELEASE_BRANCH"
 
-        echo "Pulling the remove stable branch into the local stable branch."
-        $DRY_RUN_ECHO git pull origin stable
+    echo "Pulling the remote branch"
+    $DRY_RUN_ECHO git pull
 
-        echo "Pulling the merged changes into the stable branch."
-        $DRY_RUN_ECHO git pull origin "$FINAL_RELEASE_BRANCH" --ff-only
+    echo "Creating a new tag $NEW_DFX_VERSION"
+    $DRY_RUN_ECHO git tag --annotate "$NEW_DFX_VERSION" --message "Release: $NEW_DFX_VERSION"
 
-        echo "Creating a new tag $NEW_DFX_VERSION"
-        $DRY_RUN_ECHO git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
+    echo "Displaying tags"
+    git log -1
+    git describe --always
 
-        echo "Displaying tags"
-        git log -1
-        git describe --always
-
-        echo "Pushing tag $NEW_DFX_VERSION"
-        $DRY_RUN_ECHO git push origin $NEW_DFX_VERSION
-
-        echo "Updating the stable branch."
-        $DRY_RUN_ECHO git push origin stable
-EOF
-)
-
-    nix-shell --option extra-binary-caches https://cache.dfinity.systems --command "$NIX_COMMAND"
+    echo "Pushing tag $NEW_DFX_VERSION"
+    $DRY_RUN_ECHO git push origin "$NEW_DFX_VERSION"
 }
 
 {
@@ -229,7 +215,7 @@ EOF
     build_release_candidate
     validate_default_project
     build_release_branch
-    update_stable_branch
+    tag_release_commit
 
     echo "All done!"
     exit

@@ -13,12 +13,13 @@ use ic_agent::AgentError;
 use ic_agent::RequestId;
 use ic_types::principal::Principal;
 
-use anyhow::{anyhow, bail};
-use chrono::Utc;
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use humanize_rs::duration;
 use slog::info;
+use time::OffsetDateTime;
 
+use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -120,7 +121,6 @@ pub async fn exec(
 
     let network = env
         .get_network_descriptor()
-        .expect("Cannot get network descriptor from environment.")
         .providers
         .first()
         .expect("Cannot get network provider (url).")
@@ -136,10 +136,9 @@ pub async fn exec(
     let expiration_system_time = SystemTime::now()
         .checked_add(timeout)
         .ok_or_else(|| anyhow!("Time wrapped around."))?;
-    let chorono_timeout = chrono::Duration::seconds(timeout.as_secs() as i64);
-    let creation = Utc::now();
+    let creation = OffsetDateTime::now_utc();
     let expiration = creation
-        .checked_add_signed(chorono_timeout)
+        .checked_add(timeout.try_into()?)
         .ok_or_else(|| anyhow!("Expiration datetime overflow."))?;
 
     let message_template = SignedMessageV1::new(
@@ -210,9 +209,10 @@ pub async fn exec(
         let message: SignedMessageV1 =
             serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
         // message from file guaranteed to have request_id becase it is a update message just generated
-        let request_id = RequestId::from_str(&message.request_id.unwrap())?;
+        let request_id = RequestId::from_str(&message.request_id.unwrap())
+            .context("Failed to parse request id.")?;
         let res = sign_agent
-            .request_status_raw(&request_id, canister_id)
+            .request_status_raw(&request_id, canister_id, false)
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {

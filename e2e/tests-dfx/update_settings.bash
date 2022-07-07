@@ -14,10 +14,27 @@ teardown() {
     standard_teardown
 }
 
+@test "set freezing threshold" {
+    dfx_start
+    assert_command dfx deploy hello
+
+    # trying to set threshold to 1T seconds, which should not work because it's likely a mistake
+    assert_command_fail dfx canister update-settings hello --freezing-threshold 100000000000
+    assert_match "SECONDS" # error message pointing to the error
+
+    # with manual override it's ok
+    assert_command dfx canister update-settings hello --freezing-threshold 100000000000 --confirm-very-long-freezing-threshold
+
+    # to check if threshold is set correctly we have to un-freeze the canister by adding cycles. Fabricating 100T cycles onto it
+    assert_command dfx ledger fabricate-cycles --canister hello --t 100
+    assert_command dfx canister status hello
+    assert_match "Freezing threshold: 100_000_000_000"
+}
+
 @test "set controller" {
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
     
@@ -64,8 +81,8 @@ teardown() {
 
 @test "set controller with wallet" {
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -114,8 +131,8 @@ teardown() {
     use_wallet_wasm 0.7.2
 
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -163,8 +180,8 @@ teardown() {
 @test "set controller without wallet but using wallet 0.7.2" {
     use_wallet_wasm 0.7.2
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
     
@@ -213,8 +230,8 @@ teardown() {
 
 @test "set multiple controllers" {
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -242,8 +259,8 @@ teardown() {
 }
 
 @test "set multiple controllers with wallet" {
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -273,8 +290,8 @@ teardown() {
 @test "set multiple controllers even with wallet 0.7.2" {
     use_wallet_wasm 0.7.2
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -304,8 +321,8 @@ teardown() {
 @test "set multiple controllers without wallet but using wallet 0.7.2" {
     use_wallet_wasm 0.7.2
     # Create two identities
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
 
     assert_command dfx identity use alice
 
@@ -334,9 +351,9 @@ teardown() {
 }
 
 @test "add controller to existing canister" {
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob
-    assert_command dfx identity new charlie
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob
+    assert_command dfx identity new --disable-encryption charlie
 
     dfx identity use alice
     dfx_start
@@ -360,9 +377,9 @@ teardown() {
 }
 
 @test "add controller to all canisters" {
-    assert_command dfx identity new alice
-    assert_command dfx identity new bob 
-    assert_command dfx identity new charlie
+    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --disable-encryption bob 
+    assert_command dfx identity new --disable-encryption charlie
 
     dfx identity use alice
     dfx_start
@@ -383,4 +400,30 @@ teardown() {
     assert_command dfx --identity bob canister update-settings --all --add-controller charlie
     assert_command dfx canister info hello
     assert_match "Controllers: $SORTED"
+}
+
+@test "update settings by canister id, when canister id is not known to the project" {
+    dfx_start
+    dfx deploy
+
+    CANISTER_ID=$(dfx canister id hello)
+
+    rm .dfx/local/canister_ids.json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .canisters={} dfx.json)" >dfx.json
+
+    assert_command dfx canister status "$CANISTER_ID"
+    assert_match 'Memory allocation: 0'
+    assert_match 'Compute allocation: 0'
+
+    dfx canister update-settings --memory-allocation 2GB "$CANISTER_ID"
+    assert_command dfx canister status "$CANISTER_ID"
+    assert_match 'Memory allocation: 2_000_000_000'
+    assert_match 'Compute allocation: 0'
+
+    # leaves the previous value alone
+    dfx canister update-settings --compute-allocation 4 "$CANISTER_ID"
+    assert_command dfx canister status "$CANISTER_ID"
+    assert_match 'Memory allocation: 2_000_000_000'
+    assert_match 'Compute allocation: 4'
 }

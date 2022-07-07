@@ -4,8 +4,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::package_arguments::{self, PackageArguments};
 
-use anyhow::{anyhow, bail};
-use clap::{AppSettings, Parser};
+use anyhow::{anyhow, bail, Context};
+use clap::Parser;
+use fn_error_context::context;
 use std::process::Stdio;
 
 const CANISTER_ARG: &str = "canister";
@@ -13,7 +14,7 @@ const CANISTER_ARG: &str = "canister";
 /// Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the
 /// end-user.
 #[derive(Parser)]
-#[clap(setting = AppSettings::Hidden)]
+#[clap(hide(true))]
 pub struct LanguageServiceOpts {
     /// Specifies the canister name. If you don't specify this argument, all canisters are
     /// processed.
@@ -45,6 +46,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
     }
 }
 
+#[context("Failed to determine main path.")]
 fn get_main_path(config: &ConfigInterface, canister_name: Option<String>) -> DfxResult<String> {
     // TODO try and point at the actual dfx.json path
     let dfx_json = CONFIG_FILE_NAME;
@@ -108,7 +110,8 @@ fn run_ide(
         .arg(main_path)
         // Tell the IDE where the stdlib and other packages are located
         .args(package_arguments)
-        .output()?;
+        .output()
+        .context("Failed to run 'mo-ide' binary.")?;
 
     if !output.status.success() {
         bail!(

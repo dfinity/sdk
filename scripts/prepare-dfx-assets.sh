@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 SDK_ROOT_DIR="$( cd -- "$(dirname -- "$( dirname -- "${BASH_SOURCE[0]}" )" )" &> /dev/null && pwd )"
 
@@ -18,7 +18,8 @@ function cleanup {
 }
 trap cleanup EXIT
 
-MACHINE=$(uname -m) # ex: x86_64
+# We use x86_64 even on Apple M1 (arm64), through rosetta
+MACHINE=x86_64
 case "$OSTYPE" in
     darwin*)  PLATFORM="darwin" ;;
     linux*)   PLATFORM="linux" ;;
@@ -91,6 +92,12 @@ download_ic_ref() {
     chmod 0500 "$BINARY_CACHE_TEMP_DIR/ic-ref"
 }
 
+download_icx_proxy() {
+    download_tarball "icx-proxy"
+
+    chmod 0500 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
+}
+
 download_motoko_binaries() {
     download_tarball "motoko"
 
@@ -100,50 +107,35 @@ download_motoko_binaries() {
     done
 }
 
-copy_motoko_base_from_clone() {
-    REV=$MOTOKO_BASE_REV
-    BRANCH=$MOTOKO_BASE_BRANCH
+download_motoko_base() {
+    URL="$MOTOKO_BASE_URL"
+    SHA256="$MOTOKO_BASE_SHA256"
+    DOWNLOAD_PATH="$DOWNLOAD_TEMP_DIR/motoko-base-tarball.tar.gz"
 
-    (
-        cd "$DOWNLOAD_TEMP_DIR" # ok technically we are not downloading
+    download_url_and_check_sha "$URL" "$SHA256" "$DOWNLOAD_PATH"
 
-        git clone -b "$BRANCH" --single-branch https://github.com/dfinity/motoko-base.git
-        (
-            cd motoko-base
-            git checkout "$REV"
-            cp -R src/ "$BINARY_CACHE_TEMP_DIR/base"
-        )
-    )
-}
+    mkdir "$DOWNLOAD_TEMP_DIR/motoko-base"
+    tar -xkvf "$DOWNLOAD_PATH" -C "$DOWNLOAD_TEMP_DIR/motoko-base"
 
-build_icx_proxy() {
-    BRANCH="$ICX_PROXY_BRANCH"
-    REV="$ICX_PROXY_REV"
-    REPO="$ICX_PROXY_REPO"
+    cp -R "$DOWNLOAD_TEMP_DIR/motoko-base/src/" "$BINARY_CACHE_TEMP_DIR/base"
+    chmod 0755 "$BINARY_CACHE_TEMP_DIR/base"
+    find "$BINARY_CACHE_TEMP_DIR/base" -type f -exec touch {} \; -exec chmod 0644 {} \;
 
-    (
-        cd "$DOWNLOAD_TEMP_DIR" # ok technically we are not downloading
-
-        git clone -b "$BRANCH" --single-branch "$REPO"
-        (
-            cd icx-proxy
-            git checkout "$REV"
-            cargo build --release -p icx-proxy
-            cp target/release/icx-proxy "$BINARY_CACHE_TEMP_DIR/icx-proxy"
-            chmod 0500 "$BINARY_CACHE_TEMP_DIR/icx-proxy"
-        )
-    )
+    chmod -R 0744 "$DOWNLOAD_TEMP_DIR/motoko-base"
+    rm -rf "$DOWNLOAD_TEMP_DIR/motoko-base"
 }
 
 add_binary_cache() {
+    download_binary "ic-btc-adapter"
+    download_binary "ic-canister-http-adapter"
     download_binary "replica"
     download_binary "canister_sandbox"
+    download_binary "sandbox_launcher"
     download_binary "ic-starter"
     download_ic_ref
+    download_icx_proxy
     download_motoko_binaries
-    copy_motoko_base_from_clone
-
-    build_icx_proxy
+    download_motoko_base
 
     tar -czf "$DFX_ASSETS_TEMP_DIR"/binary_cache.tgz -C "$BINARY_CACHE_TEMP_DIR" .
 }

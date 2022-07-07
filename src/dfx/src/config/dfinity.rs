@@ -1,8 +1,11 @@
 #![allow(dead_code)]
+use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::util::SerdeVec;
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
+use fn_error_context::context;
 use ic_types::Principal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,10 +17,21 @@ use std::path::{Path, PathBuf};
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
+    bitcoin: None,
     bootstrap: None,
     build: None,
+    canister_http: None,
     replica: None,
 };
+
+const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
+    enabled: false,
+    nodes: None,
+    log_level: BitcoinAdapterLogLevel::Info,
+};
+
+const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
+    ConfigDefaultsCanisterHttp { enabled: false };
 
 const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
@@ -31,14 +45,13 @@ const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
 };
 
 const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
-    message_gas_limit: None,
     port: None,
-    round_gas_limit: None,
+    subnet_type: None,
 };
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigCanistersCanisterRemote {
-    pub candid: Option<String>,
+    pub candid: Option<PathBuf>,
 
     // network -> canister ID
     pub id: BTreeMap<String, Principal>,
@@ -46,6 +59,7 @@ pub struct ConfigCanistersCanisterRemote {
 
 const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
+pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 
 /// A Canister configuration in the dfx.json config file.
 /// It only contains a type; everything else should be infered using the
@@ -59,6 +73,9 @@ pub struct ConfigCanistersCanister {
 
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
+
+    #[serde(default)]
+    pub post_install: SerdeVec<String>,
 
     #[serde(flatten)]
     pub extras: BTreeMap<String, Value>,
@@ -80,6 +97,31 @@ pub struct CanisterDeclarationsConfig {
     pub env_override: Option<String>,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ConfigDefaultsBitcoin {
+    #[serde(default = "default_as_false")]
+    pub enabled: bool,
+
+    /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
+    #[serde(default)]
+    pub nodes: Option<Vec<SocketAddr>>,
+
+    /// The logging level of the adapter (e.g. "info", "debug", "error", etc.)
+    #[serde(default)]
+    pub log_level: BitcoinAdapterLogLevel,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ConfigDefaultsCanisterHttp {
+    #[serde(default = "default_as_false")]
+    pub enabled: bool,
+}
+
+fn default_as_false() -> bool {
+    // sigh https://github.com/serde-rs/serde/issues/368
+    false
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
@@ -95,9 +137,8 @@ pub struct ConfigDefaultsBuild {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaultsReplica {
-    pub message_gas_limit: Option<u64>,
     pub port: Option<u16>,
-    pub round_gas_limit: Option<u64>,
+    pub subnet_type: Option<ReplicaSubnetType>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -124,6 +165,31 @@ impl NetworkType {
     }
     fn persistent() -> Self {
         NetworkType::Persistent
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ReplicaSubnetType {
+    System,
+    Application,
+    VerifiedApplication,
+}
+
+impl Default for ReplicaSubnetType {
+    fn default() -> Self {
+        ReplicaSubnetType::Application
+    }
+}
+
+impl ReplicaSubnetType {
+    /// Converts the value to the string expected by ic-starter for its --subnet-type argument
+    pub fn as_ic_starter_string(&self) -> String {
+        match self {
+            ReplicaSubnetType::System => "system".to_string(),
+            ReplicaSubnetType::Application => "application".to_string(),
+            ReplicaSubnetType::VerifiedApplication => "verified_application".to_string(),
+        }
     }
 }
 
@@ -160,8 +226,10 @@ pub enum Profile {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ConfigDefaults {
+    pub bitcoin: Option<ConfigDefaultsBitcoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
+    pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
@@ -177,6 +245,7 @@ pub struct ConfigInterface {
 
 impl ConfigCanistersCanister {}
 
+#[context("Failed to convert '{}' to a SocketAddress.", s)]
 pub fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
     match s.to_socket_addrs() {
         Ok(mut a) => match a.next() {
@@ -206,6 +275,12 @@ impl ConfigDefaultsBuild {
 }
 
 impl ConfigDefaults {
+    pub fn get_bitcoin(&self) -> &ConfigDefaultsBitcoin {
+        match &self.bitcoin {
+            Some(x) => x,
+            None => &EMPTY_CONFIG_DEFAULTS_BITCOIN,
+        }
+    }
     pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
         match &self.bootstrap {
             Some(x) => x,
@@ -216,6 +291,12 @@ impl ConfigDefaults {
         match &self.build {
             Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_BUILD,
+        }
+    }
+    pub fn get_canister_http(&self) -> &ConfigDefaultsCanisterHttp {
+        match &self.canister_http {
+            Some(x) => x,
+            None => &EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP,
         }
     }
     pub fn get_replica(&self) -> &ConfigDefaultsReplica {
@@ -231,23 +312,6 @@ impl ConfigInterface {
         match &self.defaults {
             Some(v) => v,
             _ => &EMPTY_CONFIG_DEFAULTS,
-        }
-    }
-    pub fn get_provider_url(&self, network: &str) -> DfxResult<Option<String>> {
-        match &self.networks {
-            Some(networks) => match networks.get(network) {
-                Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
-                    match network_provider.providers.first() {
-                        Some(provider) => Ok(Some(provider.clone())),
-                        None => Err(anyhow!("Cannot find providers for network '{}'.", network)),
-                    }
-                }
-                Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
-                    Ok(Some(local_provider.bind.clone()))
-                }
-                _ => Ok(None),
-            },
-            _ => Ok(None),
         }
     }
 
@@ -271,17 +335,6 @@ impl ConfigInterface {
         }
     }
 
-    pub fn get_local_bind_address(&self, default: &str) -> DfxResult<SocketAddr> {
-        self.get_network("local")
-            .map(|network| match network {
-                ConfigNetwork::ConfigLocalProvider(local) => to_socket_addr(&local.bind),
-                _ => Err(anyhow!(
-                    "Expected there to be a local network with a bind address."
-                )),
-            })
-            .unwrap_or_else(|| to_socket_addr(default))
-    }
-
     pub fn get_version(&self) -> u32 {
         self.version.unwrap_or(1)
     }
@@ -291,6 +344,7 @@ impl ConfigInterface {
 
     /// Return the names of the specified canister and all of its dependencies.
     /// If none specified, return the names of all canisters.
+    #[context("Failed to get canisters with their dependencies (for {}).", some_canister.unwrap_or("all canisters"))]
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
@@ -312,6 +366,11 @@ impl ConfigInterface {
         Ok(canister_names)
     }
 
+    #[context(
+        "Failed to figure out if canister '{}' has a remote id on network '{}'.",
+        canister,
+        network
+    )]
     pub fn get_remote_canister_id(
         &self,
         canister: &str,
@@ -329,18 +388,26 @@ impl ConfigInterface {
         Ok(maybe_principal)
     }
 
+    #[context(
+        "Failed while determining if canister '{}' is remote on network '{}'.",
+        canister,
+        network
+    )]
     pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
         Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
+    #[context("Failed to get compute allocation for '{}'.", canister_name)]
     pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "compute_allocation")
     }
 
+    #[context("Failed to get memory allocation for '{}'.", canister_name)]
     pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "memory_allocation")
     }
 
+    #[context("Failed to get freezing threshold for '{}'.", canister_name)]
     pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<String>> {
         self.get_initialization_value(canister_name, "freezing_threshold")
     }
@@ -368,6 +435,7 @@ impl ConfigInterface {
     }
 }
 
+#[context("Failed to add dependencies for canister '{}'.", canister_name)]
 fn add_dependencies(
     all_canisters: &BTreeMap<String, ConfigCanistersCanister>,
     names: &mut HashSet<String>,
@@ -419,11 +487,17 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
-    pub fn resolve_config_path(working_dir: &Path) -> Result<PathBuf, std::io::Error> {
-        let mut curr = PathBuf::from(working_dir).canonicalize()?;
+    #[context("Failed to resolve config path from {}.", working_dir.to_string_lossy())]
+    fn resolve_config_path(working_dir: &Path) -> DfxResult<Option<PathBuf>> {
+        let mut curr = PathBuf::from(working_dir).canonicalize().with_context(|| {
+            format!(
+                "Failed to canonicalize working dir path {:}.",
+                working_dir.to_string_lossy()
+            )
+        })?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
-                return Ok(curr.join(CONFIG_FILE_NAME));
+                return Ok(Some(curr.join(CONFIG_FILE_NAME)));
             } else {
                 curr.pop();
             }
@@ -431,27 +505,31 @@ impl Config {
 
         // Have to check if the config could be in the root (e.g. on VMs / CI).
         if curr.join(CONFIG_FILE_NAME).is_file() {
-            return Ok(curr.join(CONFIG_FILE_NAME));
+            return Ok(Some(curr.join(CONFIG_FILE_NAME)));
         }
 
-        Err(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "Config not found.",
-        ))
+        Ok(None)
     }
 
-    pub fn from_file(path: &Path) -> std::io::Result<Config> {
-        let content = std::fs::read(&path)?;
-        Config::from_slice(path.to_path_buf(), &content)
+    #[context("Failed to load config from {}.", path.to_string_lossy())]
+    fn from_file(path: &Path) -> DfxResult<Config> {
+        let content = std::fs::read(&path)
+            .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
+        Ok(Config::from_slice(path.to_path_buf(), &content)?)
     }
 
-    pub fn from_dir(working_dir: &Path) -> std::io::Result<Config> {
+    #[context("Failed to read config from directory {}.", working_dir.to_string_lossy())]
+    pub fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
         let path = Config::resolve_config_path(working_dir)?;
-        Config::from_file(&path)
+        let maybe_config = path.map(|path| Config::from_file(&path)).transpose()?;
+        Ok(maybe_config)
     }
 
-    pub fn from_current_dir() -> std::io::Result<Config> {
-        Config::from_dir(&std::env::current_dir()?)
+    #[context("Failed to read config from current working directory.")]
+    pub fn from_current_dir() -> DfxResult<Option<Config>> {
+        Config::from_dir(
+            &std::env::current_dir().context("Failed to determine current working dir.")?,
+        )
     }
 
     fn from_slice(path: PathBuf, content: &[u8]) -> std::io::Result<Config> {
@@ -498,7 +576,9 @@ impl Config {
     pub fn save(&self) -> DfxResult {
         let json_pretty = serde_json::to_string_pretty(&self.json)
             .map_err(|e| error_invalid_data!("Failed to serialize dfx.json: {}", e))?;
-        std::fs::write(&self.path, json_pretty)?;
+        std::fs::write(&self.path, json_pretty).with_context(|| {
+            format!("Failed to write config to {}.", self.path.to_string_lossy())
+        })?;
         Ok(())
     }
 }
@@ -506,6 +586,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn find_dfinity_config_current_path() {
@@ -518,7 +599,9 @@ mod tests {
 
         assert_eq!(
             config_path,
-            Config::resolve_config_path(config_path.parent().unwrap()).unwrap(),
+            Config::resolve_config_path(config_path.parent().unwrap())
+                .unwrap()
+                .unwrap(),
         );
     }
 
@@ -532,7 +615,9 @@ mod tests {
         std::fs::write(&config_path, "{}").unwrap();
 
         assert!(
-            Config::resolve_config_path(config_path.parent().unwrap().parent().unwrap()).is_err()
+            Config::resolve_config_path(config_path.parent().unwrap().parent().unwrap())
+                .unwrap()
+                .is_none()
         );
     }
 
@@ -548,65 +633,9 @@ mod tests {
 
         assert_eq!(
             config_path,
-            Config::resolve_config_path(subdir_path.as_path()).unwrap(),
-        );
-    }
-
-    #[test]
-    fn config_with_local_bind_addr() {
-        let config = Config::from_str(
-            r#"{
-            "networks": {
-                "local": {
-                    "bind": "localhost:8000"
-                }
-            }
-        }"#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            config
-                .get_config()
-                .get_local_bind_address("1.2.3.4:123")
-                .ok(),
-            to_socket_addr("localhost:8000").ok()
-        );
-    }
-
-    #[test]
-    fn config_returns_local_bind_address_if_no_local_network() {
-        let config = Config::from_str(
-            r#"{
-            "networks": {
-            }
-        }"#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            config
-                .get_config()
-                .get_local_bind_address("1.2.3.4:123")
-                .ok(),
-            to_socket_addr("127.0.0.1:8000").ok()
-        );
-    }
-
-    #[test]
-    fn config_returns_local_bind_address_if_no_networks() {
-        let config = Config::from_str(
-            r#"{
-        }"#,
-        )
-        .unwrap();
-
-        assert_eq!(
-            config
-                .get_config()
-                .get_local_bind_address("1.2.3.4:123")
-                .ok(),
-            to_socket_addr("127.0.0.1:8000").ok()
+            Config::resolve_config_path(subdir_path.as_path())
+                .unwrap()
+                .unwrap(),
         );
     }
 
@@ -751,5 +780,84 @@ mod tests {
             .unwrap();
         assert_eq!(None, compute_allocation);
         assert_eq!(None, memory_allocation);
+    }
+
+    #[test]
+    fn get_bitcoin_config() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "nodes": ["127.0.0.1:18444"],
+                  "log_level": "info"
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: BitcoinAdapterLogLevel::Info
+            }
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config_default_log_level() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "nodes": ["127.0.0.1:18444"]
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: BitcoinAdapterLogLevel::Info // A default log level of "info" is assumed
+            }
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config_debug_log_level() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "log_level": "debug"
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: None,
+                log_level: BitcoinAdapterLogLevel::Debug
+            }
+        );
     }
 }

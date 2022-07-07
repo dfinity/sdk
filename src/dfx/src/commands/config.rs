@@ -2,9 +2,10 @@ use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use serde_json::value::Value;
+use slog::warn;
 
 /// Configures project options for your currently-selected project.
 #[derive(Parser)]
@@ -24,6 +25,7 @@ pub struct ConfigOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
+    warn!(env.get_logger(), "`dfx config` is deprecated, and will be removed in the next release; consider using the `jq` tool or similar");
     // Cannot use the `env` variable as we need a mutable copy.
     let mut config: Config = env.get_config_or_anyhow()?.as_ref().clone();
 
@@ -56,7 +58,11 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
     } else if let Some(value) = config.get_json().pointer(config_path.as_str()) {
         match format {
             "text" => println!("{}", value),
-            "json" => println!("{}", serde_json::to_string_pretty(value)?),
+            "json" => println!(
+                "{}",
+                serde_json::to_string_pretty(value)
+                    .context("Failed to serialize config to json")?
+            ),
             _ => {}
         }
         Ok(())

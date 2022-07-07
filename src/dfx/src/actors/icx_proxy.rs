@@ -6,7 +6,7 @@ use crate::lib::error::{DfxError, DfxResult};
 
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use actix::{
-    Actor, ActorContext, ActorFuture, Addr, AsyncContext, Context, Handler, Recipient,
+    Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
 use crossbeam::channel::{unbounded, Receiver, Sender};
@@ -40,7 +40,7 @@ pub struct IcxProxyConfig {
     pub proxy_port: u16,
 
     /// fixed replica addresses
-    pub providers: Vec<Url>,
+    pub replica_urls: Vec<Url>,
 
     /// does the icx-proxy need to fetch the root key
     pub fetch_root_key: bool,
@@ -80,7 +80,7 @@ impl IcxProxy {
         }
     }
 
-    fn start_icx_proxy(&mut self, providers: Vec<Url>) -> DfxResult {
+    fn start_icx_proxy(&mut self, replica_urls: Vec<Url>) -> DfxResult {
         let logger = self.logger.clone();
         let config = &self.config.icx_proxy_config;
         let proxy_port = config.proxy_port;
@@ -89,15 +89,18 @@ impl IcxProxy {
         let fetch_root_key = config.fetch_root_key;
         let (sender, receiver) = unbounded();
 
-        let handle = icx_proxy_start_thread(
-            logger,
-            config.bind,
-            providers,
-            proxy_port,
-            icx_proxy_path,
-            icx_proxy_pid_path.clone(),
-            receiver,
-            fetch_root_key,
+        let handle = anyhow::Context::context(
+            icx_proxy_start_thread(
+                logger,
+                config.bind,
+                replica_urls,
+                proxy_port,
+                icx_proxy_path,
+                icx_proxy_pid_path.clone(),
+                receiver,
+                fetch_root_key,
+            ),
+            "Failed to start ICX proxy thread.",
         )?;
 
         self.thread_join = Some(handle);
@@ -132,8 +135,8 @@ impl Actor for IcxProxy {
             .shutdown_controller
             .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
 
-        if !self.config.icx_proxy_config.providers.is_empty() {
-            self.start_icx_proxy(self.config.icx_proxy_config.providers.clone())
+        if !self.config.icx_proxy_config.replica_urls.is_empty() {
+            self.start_icx_proxy(self.config.icx_proxy_config.replica_urls.clone())
                 .expect("Could not start icx-proxy");
         }
     }
@@ -184,7 +187,7 @@ impl Handler<Shutdown> for IcxProxy {
 fn icx_proxy_start_thread(
     logger: Logger,
     address: SocketAddr,
-    providers: Vec<Url>,
+    replica_urls: Vec<Url>,
     proxy_port: u16,
     icx_proxy_path: PathBuf,
     icx_proxy_pid_path: PathBuf,
@@ -210,8 +213,8 @@ fn icx_proxy_start_thread(
         let address = format!("{}", &address);
         let proxy = format!("http://localhost:{}", proxy_port);
         cmd.args(&["--address", &address, "--proxy", &proxy]);
-        for provider in providers {
-            let s = format!("{}", provider);
+        for url in replica_urls {
+            let s = format!("{}", url);
             cmd.args(&["--replica", &s]);
         }
         cmd.stdout(std::process::Stdio::inherit());

@@ -15,18 +15,20 @@ standard_setup() {
     export DFX_E2E_TEMP_DIR="$x"
 
     mkdir "$x/working-dir"
+    mkdir "$x/cache-root"
     mkdir "$x/config-root"
     mkdir "$x/home-dir"
 
     cd "$x/working-dir" || exit
 
     export HOME="$x/home-dir"
+    export DFX_CACHE_ROOT="$x/cache-root"
     export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
 }
 
 standard_teardown() {
-    rm -rf "$DFX_E2E_TEMP_DIR"
+    rm -rf "$DFX_E2E_TEMP_DIR" || rm -rf "$DFX_E2E_TEMP_DIR"
 }
 
 dfx_new_frontend() {
@@ -109,10 +111,6 @@ dfx_start() {
 
         test -f .dfx/ic-ref.port
         local port=$(cat .dfx/ic-ref.port)
-
-        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
-        local webserver_port=$(cat .dfx/webserver-port)
-        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${webserver_port}\" dfx.json) >dfx.json
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
@@ -127,11 +125,9 @@ dfx_start() {
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f ${dfx_config_root}/replica-1.port
         local port=$(cat ${dfx_config_root}/replica-1.port)
-
-        # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
-        local webserver_port=$(cat .dfx/webserver-port)
-        cat <<<$(jq .networks.local.bind=\"127.0.0.1:${webserver_port}\" dfx.json) >dfx.json
     fi
+
+    local webserver_port=$(cat .dfx/webserver-port)
 
     printf "Replica Configured Port: %s\n" "${port}"
     printf "Webserver Configured Port: %s\n" "${webserver_port}"
@@ -143,16 +139,12 @@ dfx_start() {
 
 wait_until_replica_healthy() {
     echo "waiting for replica to become healthy"
-    (
-        # dfx ping has side effects, like creating a default identity.
-        DFX_CONFIG_ROOT="$DFX_E2E_TEMP_DIR/dfx-ping-tmp"
-        dfx ping --wait-healthy
-    )
+    dfx ping --wait-healthy
     echo "replica became healthy"
 }
 
 # Start the replica in the background.
-dfx_start_replica_and_bootstrap() {
+dfx_replica() {
     dfx_patchelf
     if [ "$USE_IC_REF" ]
     then
@@ -185,20 +177,19 @@ dfx_start_replica_and_bootstrap() {
         local replica_port=$(cat ${dfx_config_root}/replica-1.port)
 
     fi
-    local webserver_port=$(cat .dfx/webserver-port)
-
-    # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
-    cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
 
     printf "Replica Configured Port: %s\n" "${replica_port}"
-    printf "Webserver Configured Port: %s\n" "${webserver_port}"
 
     timeout 5 sh -c \
         "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
 
-    wait_until_replica_healthy
+    # ping the replica directly, because the bootstrap (that launches icx-proxy, which dfx ping usually connects to)
+    # is not running yet
+    dfx ping --wait-healthy "http://127.0.0.1:${replica_port}"
+}
 
+dfx_bootstrap() {
     # This only works because we use the network by name
     #    (implicitly: --network local)
     # If we passed --network http://127.0.0.1:${replica_port}
@@ -210,20 +201,35 @@ dfx_start_replica_and_bootstrap() {
     timeout 5 sh -c \
         'until nc -z localhost $(cat .dfx/proxy-port); do echo waiting for bootstrap; sleep 1; done' \
         || (echo "could not connect to bootstrap on port $(cat .dfx/proxy-port)" && exit 1)
+    timeout 5 sh -c \
+        'until nc -z localhost $(cat .dfx/webserver-port); do echo waiting for webserver; sleep 1; done' \
+        || (echo "could not connect to webserver on port $(cat .dfx/webserver-port)" && exit 1)
+
+    wait_until_replica_healthy
 
     local proxy_port=$(cat .dfx/proxy-port)
     printf "Proxy Configured Port: %s\n", "${proxy_port}"
+
+    local webserver_port=$(cat .dfx/webserver-port)
+    printf "Webserver Configured Port: %s\n", "${webserver_port}"
 }
 
-# Start the replica in the background.
-dfx_stop_replica_and_bootstrap() {
+# Stop the `dfx replica` process that is running in the background.
+stop_dfx_replica() {
     [ "$DFX_REPLICA_PID" ] && kill -TERM "$DFX_REPLICA_PID"
+    unset DFX_REPLICA_PID
+}
 
+# Stop the `dfx bootstrap` process that is running in the background
+stop_dfx_bootstrap() {
     [ "$DFX_BOOTSTRAP_PID" ] && kill -TERM "$DFX_BOOTSTRAP_PID"
+    unset DFX_BOOTSTRAP_PID
 }
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
+    # to help tell if other icx-proxy processes are from this test:
+    echo "pwd: $(pwd)"
     # A suspicion: "address already is use" errors are due to an extra icx-proxy process.
     echo "icx-proxy processes:"
     ps aux | grep icx-proxy || echo "no ps/grep/icx-proxy output"
@@ -243,7 +249,7 @@ dfx_set_wallet() {
 }
 
 setup_actuallylocal_network() {
-    webserver_port=$(cat .dfx/webserver-port)
+    webserver_port=$(get_webserver_port)
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 }
@@ -251,9 +257,9 @@ setup_actuallylocal_network() {
 setup_local_network() {
     if [ "$USE_IC_REF" ]
     then
-        local replica_port=$(cat .dfx/ic-ref.port)
+        local replica_port=$(get_ic_ref_port)
     else
-        local replica_port=$(cat .dfx/replica-configuration/replica-1.port)
+        local replica_port=$(get_replica_port)
     fi
 
     # shellcheck disable=SC2094
@@ -263,4 +269,35 @@ setup_local_network() {
 use_wallet_wasm() {
     # shellcheck disable=SC2154
     export DFX_WALLET_WASM="${archive}/wallet/$1/wallet.wasm"
+}
+
+get_webserver_port() {
+  cat ".dfx/webserver-port"
+}
+overwrite_webserver_port() {
+  echo "$1" >".dfx/webserver-port"
+}
+
+get_replica_pid() {
+  cat ".dfx/replica-configuration/replica-pid"
+}
+
+get_ic_ref_port() {
+  cat ".dfx/ic-ref.port"
+
+}
+get_replica_port() {
+  cat ".dfx/replica-configuration/replica-1.port"
+}
+
+get_btc_adapter_pid() {
+  cat ".dfx/ic-btc-adapter-pid"
+}
+
+get_canister_http_adapter_pid() {
+  cat ".dfx/ic-canister-http-adapter-pid"
+}
+
+get_icx_proxy_pid() {
+  cat ".dfx/icx-proxy-pid"
 }
