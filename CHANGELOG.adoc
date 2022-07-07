@@ -9,7 +9,7 @@
 
 Optimize Rust canister WASM module via ic-wasm library instead of ic-cdk-optimizer.
 
-The actual optimization kept the same.
+The actual optimization was kept the same.
 
 === fix: Use default setting for BTC adapter idle seconds
 
