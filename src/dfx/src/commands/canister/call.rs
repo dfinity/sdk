@@ -6,7 +6,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
-use crate::util::clap::validators::cycle_amount_validator;
+use crate::util::clap::validators::{ cycle_amount_validator, file_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, bail, Context};
@@ -18,6 +18,7 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Canis
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::Wallet;
+use std::fs;
 use std::option::Option;
 use std::str::FromStr;
 
@@ -45,11 +46,14 @@ pub struct CanisterCallOpts {
     update: bool,
 
     /// Specifies the argument to pass to the method.
-    #[clap(conflicts_with("random"))]
+    #[clap(conflicts_with("random"), conflicts_with("argument-file"))]
     argument: Option<String>,
 
+    #[clap(long, validator(file_validator), conflicts_with("random"), conflicts_with("argument"))]
+    argument_file: Option<String>,
+
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"))]
+    #[clap(long, conflicts_with("argument"), conflicts_with("argument-file"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
@@ -184,7 +188,12 @@ pub async fn exec(
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
+    let arguments_from_file: Option<String> = opts.argument_file.map(|filename| {
+      fs::read_to_string(filename).unwrap()
+    });
     let arguments = opts.argument.as_deref();
+    let arguments = arguments_from_file.as_deref().or_else(|| arguments);
+
     let arg_type = opts.r#type.as_deref();
     let output_type = opts.output.as_deref();
     let is_query = if opts.r#async {

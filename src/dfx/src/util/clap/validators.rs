@@ -1,6 +1,7 @@
 use crate::lib::nns_types::icpts::ICPTs;
 use humanize_rs::bytes::{Bytes, Unit};
 use std::str::FromStr;
+use std::path::Path;
 
 pub fn is_request_id(v: &str) -> Result<(), String> {
     // A valid Request Id starts with `0x` and is a series of 64 hexadecimals.
@@ -42,6 +43,13 @@ pub fn cycle_amount_validator(cycles: &str) -> Result<(), String> {
         return Ok(());
     }
     Err("Must be a non negative amount.".to_string())
+}
+
+pub fn file_validator(path: &str) -> Result<(), String> {
+    if Path::new(path).exists() {
+        return Ok(());
+    }
+    Err("Path does not exist or is not a file.".to_string())
 }
 
 pub fn compute_allocation_validator(compute_allocation: &str) -> Result<(), String> {
