@@ -7,7 +7,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
-use crate::util::clap::validators::{ cycle_amount_validator, file_validator};
+use crate::util::clap::validators::{cycle_amount_validator, file_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, Context};
@@ -52,7 +52,12 @@ pub struct CanisterCallOpts {
     #[clap(conflicts_with("random"), conflicts_with("argument-file"))]
     argument: Option<String>,
 
-    #[clap(long, validator(file_validator), conflicts_with("random"), conflicts_with("argument"))]
+    #[clap(
+        long,
+        validator(file_validator),
+        conflicts_with("random"),
+        conflicts_with("argument")
+    )]
     argument_file: Option<String>,
 
     /// Specifies the config for generating random argument.
@@ -230,7 +235,7 @@ pub async fn exec(
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file: Option<String> = opts.argument_file.map(|filename| {
-      fs::read_to_string(filename).expect("Could not read arguments file to string.")
+        fs::read_to_string(filename).expect("Could not read arguments file to string.")
     });
     let arguments = opts.argument.as_deref();
     let arguments = arguments_from_file.as_deref().or_else(|| arguments);

@@ -1,7 +1,7 @@
 use crate::lib::nns_types::icpts::ICPTs;
 use humanize_rs::bytes::{Bytes, Unit};
-use std::str::FromStr;
 use std::path::Path;
+use std::str::FromStr;
 
 pub fn is_request_id(v: &str) -> Result<(), String> {
     // A valid Request Id starts with `0x` and is a series of 64 hexadecimals.
