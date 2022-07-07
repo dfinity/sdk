@@ -100,16 +100,9 @@ set_default_bitcoin_enabled() {
       "until curl --fail --verbose -o /dev/null http://localhost:\$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo \"waiting for replica to restart on port \$(cat .dfx/replica-configuration/replica-1.port)\"; sleep 1; done" \
       || (echo "replica did not restart" && echo "last replica port was $(get_replica_port)" && ps aux && exit 1)
 
-    # unfortunately bootstrap will never know about the new replica port.  This makes dfx bypass bootstrap:
-    overwrite_webserver_port "$(get_replica_port)"
-
-    echo "dfx.json configured for new replica:"
-    cat dfx.json
-
-    timeout 15s sh -c \
-      'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
-      || (echo "replica did not restart" && ps aux && exit 1)
-    wait_until_replica_healthy
+    # bootstrap doesn't detect the new replica port, so we have to restart it
+    stop_dfx_bootstrap
+    dfx_bootstrap
 
     # Sometimes initially get an error like:
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
