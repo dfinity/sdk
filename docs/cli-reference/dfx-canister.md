@@ -699,7 +699,7 @@ Note that you can only run this command from within the project directory struct
 ### Basic usage
 
 ``` bash
-dfx canister status [flag] [--all | canister_name]
+dfx canister status [--all | canister_name]
 ```
 
 ### Flags
