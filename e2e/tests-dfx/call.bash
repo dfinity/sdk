@@ -45,7 +45,7 @@ teardown() {
     assert_match '("Hello, Names are difficult!")'
 }
 
-@test "call subcommand accepts canister identifier as canister name" {
+@test "call subcommand accepts argument from a file" {
     install_asset greet
     dfx_start
     dfx canister create --all
