@@ -361,6 +361,50 @@ The command displays output similar to the following:
 75hes-oqbaa-aaaaa-aaaaa-aaaaa-aaaaa-aaaaa-q
 ```
 
+## dfx canister info
+
+Use the `dfx canister info` command to output a canister's controller and installed WASM module hash.
+
+### Basic usage
+
+``` bash
+dfx canister info canister
+```
+
+### Flags
+
+You can use the following optional flags with the `dfx canister info` command.
+
+| Flag              | Description                   |
+|-------------------|-------------------------------|
+| `-h`, `--help`    | Displays usage information.   |
+| `-V`, `--version` | Displays version information. |
+
+### Arguments
+
+You can use the following argument with the `dfx canister info` command.
+
+| Argument   | Description                                                                   |
+|------------|-------------------------------------------------------------------------------|
+| `canister` | Specifies the name or id of the canister for which you want to display data.  |
+
+### Examples
+
+You can use the `dfx canister info` command to display the canister controller and installed WASM module.
+
+To the data about the `hello_world` canister, you can run the following command:
+
+``` bash
+dfx canister info hello_world
+```
+
+The command displays output similar to the following:
+
+```
+Controllers: owdog-wiaaa-aaaad-qaaaq-cai
+Module hash: 0x2cfb6f216fd6ab367364c02960afbbc5c444f5481225ee676992ac9058fd41e3
+```
+
 ## dfx canister install
 
 Use the `dfx canister install` command to install compiled code as a canister on the Internet Computer or on the local canister execution environment.
