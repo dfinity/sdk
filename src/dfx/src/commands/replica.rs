@@ -12,10 +12,13 @@ use crate::commands::start::{
     configure_btc_adapter_if_enabled, configure_canister_http_adapter_if_enabled,
     empty_writable_path,
 };
+use anyhow::Context;
 use clap::Parser;
 use fn_error_context::context;
 use std::default::Default;
+use std::fs;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 /// Starts a local Internet Computer replica.
 #[derive(Parser)]
@@ -43,15 +46,15 @@ pub struct ReplicaOpts {
 
 /// Gets the configuration options for the Internet Computer replica.
 #[context("Failed to get replica config.")]
-fn get_config(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult<ReplicaConfig> {
+fn get_config(
+    env: &dyn Environment,
+    opts: ReplicaOpts,
+    replica_port_path: PathBuf,
+) -> DfxResult<ReplicaConfig> {
     let config = get_config_from_file(env);
     let port = get_port(&config, opts.port)?;
     let mut http_handler: HttpHandlerConfig = Default::default();
     if port == 0 {
-        let replica_port_path = env
-            .get_temp_dir()
-            .join("replica-configuration")
-            .join("replica-1.port");
         http_handler.write_port_to = Some(replica_port_path);
     } else {
         http_handler.port = Some(port);
@@ -101,6 +104,18 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
         empty_writable_path(temp_dir.join("ic-canister-http-config.json"))?;
     let canister_http_adapter_socket_holder_path = temp_dir.join("ic-canister-http-socket-path");
 
+    // dfx bootstrap will read these port files to find out which port to use,
+    // so we need to make sure only one has a valid port in it.
+    let replica_config_dir = temp_dir.join("replica-configuration");
+    fs::create_dir_all(&replica_config_dir).with_context(|| {
+        format!(
+            "Failed to create replica config directory {}.",
+            replica_config_dir.display()
+        )
+    })?;
+    let replica_port_path = empty_writable_path(replica_config_dir.join("replica-1.port"))?;
+    let emulator_port_path = empty_writable_path(temp_dir.join("ic-ref.port"))?;
+
     let config = env.get_config_or_anyhow()?;
     let btc_adapter_config = configure_btc_adapter_if_enabled(
         config.get_config(),
@@ -126,7 +141,7 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
         if opts.emulator {
-            start_emulator_actor(env, shutdown_controller)?;
+            start_emulator_actor(env, shutdown_controller, emulator_port_path)?;
         } else {
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
                 if let Some(ref btc_adapter_config) = btc_adapter_config {
@@ -159,7 +174,7 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
                     (None, None)
                 };
 
-            let mut replica_config = get_config(env, opts)?;
+            let mut replica_config = get_config(env, opts, replica_port_path)?;
             if btc_adapter_config.is_some() {
                 replica_config = replica_config.with_btc_adapter_enabled();
                 if let Some(btc_adapter_socket) = btc_adapter_socket_path {

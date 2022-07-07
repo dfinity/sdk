@@ -138,6 +138,13 @@ a dfx process that is starting.
 
 dfx ping now uses the anonymous identity, and no longer requires dfx.json to be present.
 
+=== dfx bootstrap now looks up the port of the local replica
+
+`dfx replica` writes the port of the running replica to one of these locations:
+  - .dfx/replica-configuration/replica-1.port
+  - .dfx/ic-ref.port
+`dfx bootstrap` will now use this port value, so it's no longer necessary to edit dfx.json after running `dfx replica`.
+
 == Dependencies
 
 === Rust Agent
