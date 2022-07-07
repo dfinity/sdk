@@ -238,7 +238,7 @@ pub async fn exec(
         fs::read_to_string(filename).expect("Could not read arguments file to string.")
     });
     let arguments = opts.argument.as_deref();
-    let arguments = arguments_from_file.as_deref().or_else(|| arguments);
+    let arguments = arguments_from_file.as_deref().or(arguments);
 
     let arg_type = opts.r#type.as_deref();
     let output_type = opts.output.as_deref();
