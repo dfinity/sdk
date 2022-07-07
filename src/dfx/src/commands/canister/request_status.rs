@@ -14,7 +14,7 @@ use ic_agent::{AgentError, RequestId};
 use ic_types::Principal;
 use std::str::FromStr;
 
-/// Requests the status of a specified call from a canister.
+/// Requests the status of a call from a canister.
 #[derive(Parser)]
 pub struct RequestStatusOpts {
     /// Specifies the request identifier.
