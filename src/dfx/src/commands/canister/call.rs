@@ -230,7 +230,7 @@ pub async fn exec(
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file: Option<String> = opts.argument_file.map(|filename| {
-      fs::read_to_string(filename).unwrap()
+      fs::read_to_string(filename).expect("Could not read arguments file to string.")
     });
     let arguments = opts.argument.as_deref();
     let arguments = arguments_from_file.as_deref().or_else(|| arguments);
