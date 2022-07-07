@@ -5,7 +5,7 @@ Use the `dfx canister` command with flags and subcommands to manage canister ope
 The basic syntax for running `dfx canister` commands is:
 
 ``` bash
-dfx canister [subcommand] [flag]
+dfx canister [canister flags] [subcommand] [subcommand flags]
 ```
 
 Depending on the `dfx canister` subcommand you specify, additional arguments, options, and flags might apply or be required. To view usage information for a specific `dfx canister` subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx canister call`, you can run the following command:
@@ -19,20 +19,20 @@ For reference information and examples that illustrate using `dfx canister` comm
 | Command                                            | Description                                       |
 |----------------------------------------------------|---------------------------------------------------|
 | [`call`](#dfx-canister-call)                       | Calls a specified method on a deployed canister.  |
-| [`create`](#dfx-canister-create)                   | Creates a new "empty" canister by registering a canister identifier on the Internet Computer or the local canister execution environment.  |
+| [`create`](#dfx-canister-create)                   | Creates an empty canister and associates the assigned Canister ID to the canister name.  |
 | [`delete`](#dfx-canister-delete)                   | Deletes a currently stopped canister.  |
 | [`deposit-cycles`](#dfx-canister-deposit-cycles)   | Deposit cycles into the specified canister.  |
 | `help`                                             | Displays usage information message for a specified subcommand.  |
-| [`id`](#dfx-canister-id)                           | Displays the identifier for a canister.  |
-| [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller in a certified way.  |
-| [`install`](#dfx-canister-install)                 | Installs compiled code as a canister on the Internet Computer or the local canister execution environment.  |
+| [`id`](#dfx-canister-id)                           | Displays the identifier of a canister.  |
+| [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller.  |
+| [`install`](#dfx-canister-install)                 | Installs compiled code in a canister.  |
 | [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.  |
-| [`send`](#dfx-canister-send)                       | Send a previously-signed `message.json` to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons.  |
-| [`sign`](#dfx-canister-send)                       | Create a signed `message.json` file before making a call to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons.  |
-| [`start`](#dfx-canister-start)                     | Restarts a stopped canister.  |
-| [`status`](#dfx-canister-status)                   | Requests the running status of a canister.  |
+| [`send`](#dfx-canister-send)                       | Send a previously-signed message.  |
+| [`sign`](#dfx-canister-send)                       | Sign a canister call and generate message file.  |
+| [`start`](#dfx-canister-start)                     | Starts a stopped canister.  |
+| [`status`](#dfx-canister-status)                   | Returns the current status of a canister: Running, Stopping, or Stopped.  |
 | [`stop`](#dfx-canister-stop)                       | Stops a currently running canister.  |
-| [`uninstall-code`](#dfx-canister-uninstall-code)   | Uninstalls a canister, removing its code and state, on the Internet Computer network.  |
+| [`uninstall-code`](#dfx-canister-uninstall-code)   | Uninstalls a canister, removing its code and state. Does not delete the canister.  |
 | [`update-settings`](#dfx-canister-update-settings) | Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.).  |
 
 ## Overriding the default deployment environment
@@ -56,10 +56,30 @@ The SDK comes with an alias of `ic`, which is configured to point to the Interne
 To illustrate, you can call a canister and function running on a testnet using a command similar to the following:
 
 ``` bash
-dfx canister --network \http://192.168.3.1:5678 call counter get
+dfx canister --network http://192.168.3.1:5678 call counter get
 ```
 
 Note that you must specify the `--network` parameter before the canister operation (`create` or `call`) and any additional arguments such as the canister name (`counter`), and function (`get`).
+
+## Performing a call through the wallet
+
+By default, most `dfx canister` commands to the Internet Computer are signed by and sent from your own principal. (Exceptions are commands that require cycles: `dfx canister create` and `dfx canister deposit-cycles`. Those automatically go through the wallet.) Occasionally, you may want to make a call from your wallet, e.g. when only your wallet is allowed to call a certain function. To send a call through your wallet, you can use the `--wallet` flag like this:
+
+``` bash
+dfx canister --wallet <wallet id> status <canister name>
+```
+
+As a concrete example, if you want to request the status of a canister on the ic that is only controlled by your wallet, you would do the following:
+
+``` bash
+dfx identity --network ic get-wallet
+```
+
+This command outputs your wallet's principal (e.g. `22ayq-aiaaa-aaaai-qgmma-cai`) on the `ic` network. Using this id, you can then query the status of the canister (let's assume the canister is called `my_canister_name`) as follows:
+
+``` bash
+dfx canister --network ic --wallet 22ayq-aiaaa-aaaai-qgmma-cai status
+```
 
 ## dfx canister call 
 

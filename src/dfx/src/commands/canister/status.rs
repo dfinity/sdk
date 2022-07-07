@@ -12,7 +12,7 @@ use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
-/// Returns the current status of the canister on the Internet Computer network: Running, Stopping, or Stopped.
+/// Returns the current status of a canister: Running, Stopping, or Stopped.
 #[derive(Parser)]
 pub struct CanisterStatusOpts {
     /// Specifies the name of the canister to return information for.

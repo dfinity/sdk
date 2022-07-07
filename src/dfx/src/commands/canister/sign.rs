@@ -26,7 +26,7 @@ use std::path::Path;
 use std::str::FromStr;
 use std::time::SystemTime;
 
-/// Sign a canister call and generate message file in json
+/// Sign a canister call and generate message file.
 #[derive(Parser)]
 pub struct CanisterSignOpts {
     /// Specifies the name of the canister to call.

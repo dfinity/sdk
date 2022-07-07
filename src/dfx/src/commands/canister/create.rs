@@ -20,8 +20,7 @@ use ic_agent::Identity as _;
 use ic_types::principal::Principal as CanisterId;
 use slog::info;
 
-/// Creates an empty canister on the Internet Computer and
-/// associates the Internet Computer assigned Canister ID to the canister name.
+/// Creates an empty canister and associates the assigned Canister ID to the canister name.
 #[derive(Parser)]
 pub struct CanisterCreateOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
