@@ -13,7 +13,7 @@ use std::convert::TryFrom;
 /// Get the hash of a canister’s WASM module and its current controller.
 #[derive(Parser)]
 pub struct InfoOpts {
-    /// Specifies the name or id of the canister to get its certified canister information.
+    /// Specifies the name or id of the canister to get its canister information.
     canister: String,
 }
 
