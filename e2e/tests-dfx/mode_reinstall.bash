@@ -125,12 +125,12 @@ teardown() {
     # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
     # so all the assert_match calls will fail.  http://mywiki.wooledge.org/BashFAQ/024
     echo "yes" | (
-        assert_command dfx deploy --mode=reinstall hello_assets
+        assert_command dfx deploy --mode=reinstall hello_frontend
 
-        assert_match "You are about to reinstall the hello_assets canister."
-        assert_not_match "You are about to reinstall the hello canister."
+        assert_match "You are about to reinstall the hello_frontend canister."
+        assert_not_match "You are about to reinstall the hello_backend canister."
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-        assert_match "Reinstalling code for canister hello_assets,"
+        assert_match "Reinstalling code for canister hello_frontend,"
     )
 
     # the hello canister should not have been upgraded (which would reset the non-stable var)

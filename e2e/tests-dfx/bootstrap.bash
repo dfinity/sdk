@@ -47,9 +47,9 @@ teardown() {
 
     dfx canister create --all
     dfx build
-    dfx canister install hello_assets
+    dfx canister install hello_frontend
 
-    ID=$(dfx canister id hello_assets)
+    ID=$(dfx canister id hello_frontend)
     PORT=$(get_webserver_port)
     assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID" --max-time 60
     # shellcheck disable=SC2154

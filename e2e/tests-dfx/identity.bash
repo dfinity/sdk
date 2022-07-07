@@ -123,15 +123,15 @@ teardown() {
     assert_eq '(false)'
 
     # these all fail (other identities are not initializer; cannot store assets):
-    assert_command_fail dfx --identity bob canister call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
-    assert_command_fail dfx --identity default canister call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
-    assert_command_fail dfx canister call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
-    assert_command_fail dfx canister call e2e_project_assets retrieve '("B")'
+    assert_command_fail dfx --identity bob canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+    assert_command_fail dfx --identity default canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+    assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+    assert_command_fail dfx canister call e2e_project_frontend retrieve '("B")'
 
     # but alice, the initializer, can store assets:
-    assert_command dfx --identity alice canister call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+    assert_command dfx --identity alice canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
     assert_eq '()'
-    assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
+    assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
     assert_eq '(blob "XWV")'
 }
 
@@ -155,8 +155,8 @@ teardown() {
     assert_command dfx --identity bob canister call e2e_project_backend amInitializer
     assert_eq '(true)'
 
-    assert_command dfx --identity bob canister call e2e_project_assets store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})'
+    assert_command dfx --identity bob canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})'
     assert_eq '()'
-    assert_command dfx canister call --output idl e2e_project_assets retrieve '("B")'
+    assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
     assert_eq '(blob "hello")'
 }
