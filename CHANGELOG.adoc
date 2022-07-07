@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: Read dfx canister call argument from a file
+
+Enables passing large arguments that cannot be passed directly in the command line.
+
 === fix: Use default setting for BTC adapter idle seconds
 
 A lower threshold was no longer necessary.
