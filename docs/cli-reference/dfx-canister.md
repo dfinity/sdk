@@ -608,12 +608,12 @@ You can use the following optional flags with the `dfx canister sign` command.
 
 You can specify the following options for the `dfx canister sign` command.
 
-| Option             | Description  |
-|--------------------|--------------|
-| `--expire-after`   | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m).  |
-| `--file <output>`  | Specifies the output file name. The default is `message.json`.  |
-| `--random <random>`| Specifies the configuration for generating random arguments.  |
-| `--type <type>`    | Specifies the data type for the argument when making a call using an argument. Possible values are `idl` and `raw`.  |
+| Option                       | Description  |
+|------------------------------|--------------|
+| `--expire-after <seconds>`   | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m).  |
+| `--file <output>`            | Specifies the output file name. The default is `message.json`.  |
+| `--random <random>`          | Specifies the configuration for generating random arguments.  |
+| `--type <type>`              | Specifies the data type for the argument when making a call using an argument. Possible values are `idl` and `raw`.  |
 
 ### Arguments
 
@@ -840,23 +840,30 @@ Note that you can only run this command from within the project directory struct
 ### Basic usage
 
 ``` bash
-dfx canister update-settings [flag] [canister_name]
+dfx canister update-settings [flags] [options] [canister_name | --all]
 ```
 
 ### Flags
 
 You can use the following optional flags with the `dfx canister update-settings` command.
 
-| Flag                         | Description                                                                                                                                                                                                                                                                                                                                                                              |
-|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--add-controller`           | Add a principal to the list of controllers of the canister.                                                                                                                                                                                                                                                                                                                              |
-| `-c`, `--compute-allocation` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].                                                                                                                                                                                                                                                                                             |
-| `--controller`               | Specifies the identity name or the principal of the new controller.                                                                                                                                                                                                                                                                                                                      |
-| `-h`, `--help`               | Displays usage information.                                                                                                                                                                                                                                                                                                                                                              |
-| `--memory-allocation`        | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
-| `--remove-controller`        | Removes a principal from the list of controllers of the canister. |
-| `--freezing-threshold`       | Set the [freezing threshold](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-create_canister) in seconds for a canister. This should be a value in the range [0..2^64^-1].                                                                                                                                                                                    |
+| Flag                                    | Description  |
+|-----------------------------------------|--------------|
+| `-h`, `--help`                          | Displays usage information.  |
 | `--confirm-very-long-freezing-threshold`| Freezing thresholds above ~1.5 years require this flag as confirmation. |
+
+### Options
+
+You can specify the following options for the `dfx canister update-settings` command.
+
+| Option                                     | Description  |
+|--------------------------------------------|--------------|
+| `--add-controller <principal>`             | Add a principal to the list of controllers of the canister.  |
+| `-c`, `--compute-allocation <allocation>`  | Specifies the canister's compute allocation. This should be a percent in the range [0..100].  |
+| `--controller <principal>`                 | Specifies the identity name or the principal of the new controller.  |
+| `--memory-allocation <allocation>`         | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
+| `--remove-controller <principal>`          | Removes a principal from the list of controllers of the canister. |
+| `--freezing-threshold <seconds>`           | Set the [freezing threshold](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-create_canister) in seconds for a canister. This should be a value in the range [0..2^64^-1]. Very long thresholds require the `--confirm-very-long-freezing-threshold` flag.  |
 
 ### Arguments
 
@@ -864,7 +871,8 @@ You can use the following arguments with the `dfx canister update-settings` comm
 
 | Argument        | Description                                             |
 |-----------------|---------------------------------------------------------|
-| `canister_name` | Specifies the name of the canister you want to update.  |
+| `--all`         | Updates all canisters you have specified in `dfx.json`. You must specify either canister name/id or the --all option.  |
+| `canister_name` | Specifies the name of the canister you want to update. You must specify either canister name/id or the --all option.  |
 
 ### Examples
 
