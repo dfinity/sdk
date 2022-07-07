@@ -40,7 +40,7 @@ pub struct CanisterCallOpts {
     #[clap(long)]
     r#async: bool,
 
-    /// Sends a query request to a canister.
+    /// Sends a query request to a canister instead of an update request.
     #[clap(long, conflicts_with("async"))]
     query: bool,
 
@@ -75,6 +75,7 @@ pub struct CanisterCallOpts {
 
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
+    /// Requires --wallet as a flag to `dfx canister`.
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
 
