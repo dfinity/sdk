@@ -419,30 +419,32 @@ dfx canister install [flag] [option] [--all | canister_name]
 
 You can use the following optional flags with the `dfx canister install` command.
 
-| Flag              | Description                                                                                                                                                      |
-|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--async`         | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment. |
-| `-h`, `--help`    | Displays usage information.                                                                                                                                      |
+| Flag              | Description  |
+|-------------------|--------------|
+| `--async-call`    | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment.  |
+| `-h`, `--help`    | Displays usage information.  |
+| `--upgrade-unchanged` | Upgrade the canister even if the .wasm did not change.  |
 
 ### Options
 
 You can use the following options with the `dfx canister install` command.
 
-| Option                                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-|---------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--argument <argument>`                           | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Option   | Description  |
+|----------|--------------|
+| `--argument <argument>`                           | Specifies an argument to pass to the canister during installation.  |
 | `--argument-type <argument-type>`                 | Specifies the data format for the argument when you install using the `--argument` option. The valid values are `idl` and `raw`. By default, you can specify arguments using the [Candid](../../developer-docs/build/languages/candid/candid-intro) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](../../developer-docs/build/languages/candid/candid-howto#idl-syntax) and [Supported types](../candid-ref.md). You can use `raw` as the argument type if you want to pass raw bytes to a canister. |
-| `-c`, `--compute-allocation <compute-allocation>` | Defines a compute allocation—essentially the equivalent of setting a CPU allocation—for canister execution. You can set this value as a percentage in the range of 0 to 100.                                                                                                                                                                                                                                                                                                                                                                                           |
-| `--memory-allocation <memory-allocation>`         | Specifies how much memory the canister is allowed to use in total. You can set this value in the range of 0 to 8MB.                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `-m`, `--mode <mode>`                             | Specifies whether you want to `install`, `reinstall`, or `upgrade` canisters. For more information about installation modes and canister management, see [Managing canisters](../../developer-docs/build/project-setup/manage-canisters).                                                                                                                                                                                                                                                                                                                                                          |
+| `-c`, `--compute-allocation <compute-allocation>` | Defines a compute allocation—essentially the equivalent of setting a CPU allocation—for canister execution. You can set this value as a percentage in the range of 0 to 100.  |
+| `--memory-allocation <memory-allocation>`         | Specifies how much memory the canister is allowed to use in total. You can set this value in the range of 0 to 8MB.  |
+| `-m`, `--mode <mode>`                             | Specifies whether you want to `install`, `reinstall`, or `upgrade` canisters. Defaults to `install`. For more information about installation modes and canister management, see [Managing canisters](../../developer-docs/build/project-setup/manage-canisters).  |
+| `--wasm <file.wasm>`                              | Specifies a particular WASM file to install, bypassing the dfx.json project settings.  |
 
 ### Arguments
 
 You can use the following arguments with the `dfx canister install` command.
 
-| Argument        | Description                                                                                                                                                                                                                                                  |
-|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--all`         | Enables you to install multiple canisters at once if you have a project `dfx.json` file that includes multiple canisters. Note that you must specify `--all` or an individual canister name.                                                                 |
+| Argument        | Description  |
+|-----------------|--------------|
+| `--all`         | Enables you to install multiple canisters at once if you have a project `dfx.json` file that includes multiple canisters. Note that you must specify `--all` or an individual canister name.  |
 | `canister_name` | Specifies the name of the canister to deploy. If you are not using the `--all` option, the canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file. |
 
 ### Examples
@@ -479,12 +481,12 @@ You can then use the request identifier to check the status of the request at a 
 
 #### Overriding the default deployment options
 
-If you want to deploy a canister on a testnet without changing the settings in your `dfx.json` configuration file, you can explicitly specify the testnet you want to connect to by using the `+--network` option.
+If you want to deploy a canister on a testnet without changing the settings in your `dfx.json` configuration file, you can explicitly specify the testnet you want to connect to by using the `--network` option.
 
 For example, you can specify a testnet URL by running a command similar to the following:
 
 ``` bash
-dfx canister --network \http://192.168.3.1:5678 install --all
+dfx canister --network http://192.168.3.1:5678 install --all
 ```
 
 Note that you must specify the network parameter before the canister operation (`install`) and before the canister name or `--all` flag.

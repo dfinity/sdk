@@ -49,7 +49,7 @@ pub struct CanisterInstallOpts {
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     argument_type: Option<String>,
 
-    /// Specifies a particular WASM file to install, bypassing the dfx.json project system.
+    /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
     #[clap(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 }
