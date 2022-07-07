@@ -746,7 +746,7 @@ Note that you can only run this command from within the project directory struct
 ### Basic usage
 
 ``` bash
-dfx canister stop [flag] [--all | canister_name]
+dfx canister stop [--all | canister_name]
 ```
 
 ### Flags
