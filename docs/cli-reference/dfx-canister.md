@@ -172,11 +172,9 @@ This example uses the raw data type to pass a hexadecimal to the `greet` functio
 
 ## dfx canister create
 
-Use the `dfx canister create` command to register one or more canister identifiers without compiled code. You must be connected to the local canister execution environment or the Internet Computer to run this command.
+Use the `dfx canister create` command to register one or more canister identifiers without compiled code. The new canister principals are then recorded in `canister_ids.json` for non-local networks. You must be connected to the local canister execution environment or the Internet Computer to run this command.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
-
-The first time you run the `dfx canister create` command to register an identifier, your public/private key pair credentials are used to create a `default` user identity. The credentials for the `default` user are migrated from `$HOME/.dfinity/identity/creds.pem` to `$HOME/.config/dfx/identity/default/identity.pem`.
 
 ### Basic usage
 
@@ -197,18 +195,22 @@ You can use the following optional flags with the `dfx canister create` command.
 
 You can use the following options with the `dfx canister create` command.
 
-| Option                             | Description                                                                                          |
-|------------------------------------|------------------------------------------------------------------------------------------------------|
-| `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles in a canister when it is created by your wallet. |
+| Option                                    | Description  |
+|-------------------------------------------|--------------|
+| `-c`, `--compute-allocation <allocation>` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].  |
+| `--controller <principal>`                | Specifies the identity name or the principal of the new controller.  |
+| `--memory-allocation <memory>`            | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet.  |
+| `--no-wallet`                             | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.  |
+| `--with-cycles <number-of-cycles>`        | Specifies the initial cycle balance to deposit into the newly created canister. The specified amount needs to take the canister create fee into account. This amount is deducted from the wallet's cycle balance.  |
 
 ### Arguments
 
 You can use the following argument with the `dfx canister create` command.
 
-| Argument        | Description|
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--all`         | Enables you to create multiple canister identifiers at once if you have a project `dfx.json` file that defines multiple canisters. Note that you must specify `--all` or an individual canister name.                                                                                                          |
-| `canister_name` | Specifies the name of the canister for which you want to register an identifier. If you are not using the `--all` option, the canister name is a required argument and must match at least one name that you have configured in the `canisters` section of the `dfx.json` configuration file for your project. |
+| Argument        | Description  |
+|-----------------|--------------|
+| `--all`         | Enables you to create multiple canister identifiers at once if you have a project `dfx.json` file that defines multiple canisters. Note that you must specify `--all` or an individual canister name.  |
+| `canister_name` | Specifies the name of the canister for which you want to register an identifier. If you are not using the `--all` option, the canister name is a required argument and must match at least one name that you have configured in the `canisters` section of the `dfx.json` configuration file for your project.  |
 
 ### Examples
 
