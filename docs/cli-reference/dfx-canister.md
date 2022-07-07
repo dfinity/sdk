@@ -320,7 +320,7 @@ dfx canister deposit-cycles 2000000000000 --all
 
 ## dfx canister id
 
-Use the `dfx canister id` command to output the canister identifier for a specific canister name.
+Use the `dfx canister id` command to output the canister identifier/principal for a specific canister name.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
