@@ -54,7 +54,7 @@ pub struct CanisterSignOpts {
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     r#type: Option<String>,
 
-    /// Specifies how long will the message be valid in seconds, default to be 300s (5 minutes)
+    /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
     #[clap(long, default_value("5m"))]
     expire_after: String,
 

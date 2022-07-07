@@ -608,51 +608,26 @@ You can use the following optional flags with the `dfx canister sign` command.
 
 You can specify the following options for the `dfx canister sign` command.
 
-<!-- <table>
-<colgroup>
-<col style="width: 32%" />
-<col style="width: 68%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: left;">Option</th>
-<th style="text-align: left;">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;"><p><code>--expire-after &lt;expire-after&gt;</code></p></td>
-<td style="text-align: left;"><p>Specifies how long will will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m)</p></td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><p><code>--file &lt;file&gt;</code></p></td>
-<td style="text-align: left;"><p>Specifies the output file name. The default is <code>message.json</code>.</p></td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;"><p><code>--random &lt;random&gt;</code></p></td>
-<td style="text-align: left;"><p>Specifies the configuration for generating random arguments.</p></td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><p><code>--type &lt;type&gt;</code></p></td>
-<td style="text-align: left;"><p>Specifies the data type for the argument when making a call using an argument.</p>
-<p>By default, you can specify arguments using the  (<code>idl</code>) syntax for data values. For information about using Candid and its supported types, see Interact with a service in a terminal</a> and . You can use <code>raw</code> as the argument type if you want to pass raw bytes.</p></td>
-</tr>
-</tbody>
-</table> -->
+| Option             | Description  |
+|--------------------|--------------|
+| `--expire-after`   | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m).  |
+| `--file <output>`  | Specifies the output file name. The default is `message.json`.  |
+| `--random <random>`| Specifies the configuration for generating random arguments.  |
+| `--type <type>`    | Specifies the data type for the argument when making a call using an argument. Possible values are `idl` and `raw`.  |
 
 ### Arguments
 
 You can specify the following arguments for the `dfx canister sign` command.
 
-| Argument        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file.                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Argument        | Description  |
+|-----------------|--------------|
+| `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file.  |
+| `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.  |
 | `argument`      | Specifies the argument to pass to the method. Depending on your program logic, the argument can be a required or optional argument. You can specify a data format type using the `--type` option if you pass an argument to the canister. By default, you can specify arguments using the [Candid](../candid-ref.md) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](../../developer-docs/build/languages/candid/candid-howto#idl-syntax) and [Supported types](../candid-ref#supported-types). You can use `raw` as the argument type if you want to pass raw bytes. |
 
 ### Examples
 
-Use the `dfx canister sign` command to create a signed `message.json` file using the principal associated with the identity you created using the Privacy Enhanced Mail (PEM) file by running a command similar to the following:
+Use the `dfx canister sign` command to create a signed `message.json` file using the selected identity by running a command similar to the following:
 
 `dfx canister --network=ic sign --expire-after=1h rno2w-sqaaa-aaaaa-aaacq-cai create_neurons ‘(“PUBLIC_KEY”)’`
 
