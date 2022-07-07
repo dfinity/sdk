@@ -1,6 +1,6 @@
 # dfx canister
 
-Use the `dfx canister` command with flags and subcommands to manage canister operations and interaction with the {platform} or the local canister execution environment. In most cases, you use `dfx canister` subcommands after you compile a program to manage the canister lifecycle and to perform key tasks such as calling program functions.
+Use the `dfx canister` command with flags and subcommands to manage canister operations and interaction with the Internet Computer or the local canister execution environment. In most cases, you use `dfx canister` subcommands after you compile a program to manage the canister lifecycle and to perform key tasks such as calling program functions.
 
 The basic syntax for running `dfx canister` commands is:
 
@@ -16,28 +16,28 @@ dfx canister call --help
 
 For reference information and examples that illustrate using `dfx canister` commands, select an appropriate command.
 
-| Command                                            | Description                                                                                                                                                                                                                                                                                                       |
-|----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`call`](#dfx-canister-call)                       | Calls a specified method on a deployed                                                                                                                                                                                                                                                                            |
-| [`create`](#dfx-canister-create)                   | Creates a new "empty" canister by registering a canister identifier on the {platform} or the local canister execution environment.                                                                                                                                                                                |
-| [`delete`](#dfx-canister-delete)                   | Deletes a currently stopped canister.                                                                                                                                                                                                                                                                             |
-| [`deposit-cycles`](#dfx-canister-deposit-cycles)   | Deposit cycles into the specified canister.                                                                                                                                                                                                                                                                       |
-| `help`                                             | Displays usage information message for a specified subcommand.                                                                                                                                                                                                                                                    |
-| [`id`](#dfx-canister-id)                           | Displays the identifier for a canister.                                                                                                                                                                                                                                                                           |
-| [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller in a certified way.                                                                                                                                                                                                                           |
-| [`install`](#dfx-canister-install)                 | Installs compiled code as a canister on the {platform} or the local canister execution environment.                                                                                                                                                                                                               |
-| [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.                                                                                                                                                                                                                                                                      |
-| [`send`](#dfx-canister-send)                       | Send a previously-signed `message.json` to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons.                  |
-| [`sign`](#dfx-canister-send)                       | Create a signed `message.json` file before making a call to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons. |
-| [`start`](#dfx-canister-start)                     | Restarts a stopped canister.                                                                                                                                                                                                                                                                                      |
-| [`status`](#dfx-canister-status)                   | Requests the running status of a canister.                                                                                                                                                                                                                                                                        |
-| [`stop`](#dfx-canister-stop)                       | Stops a currently running canister.                                                                                                                                                                                                                                                                               |
-| [`uninstall-code`](#dfx-canister-uninstall-code)   | Uninstalls a canister, removing its code and state, on the Internet Computer network.                                                                                                                                                                                                                             |
-| [`update-settings`](#dfx-canister-update-settings) | Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.).                                                                                                                                                                                                      |
+| Command                                            | Description                                       |
+|----------------------------------------------------|---------------------------------------------------|
+| [`call`](#dfx-canister-call)                       | Calls a specified method on a deployed canister.  |
+| [`create`](#dfx-canister-create)                   | Creates a new "empty" canister by registering a canister identifier on the Internet Computer or the local canister execution environment.  |
+| [`delete`](#dfx-canister-delete)                   | Deletes a currently stopped canister.  |
+| [`deposit-cycles`](#dfx-canister-deposit-cycles)   | Deposit cycles into the specified canister.  |
+| `help`                                             | Displays usage information message for a specified subcommand.  |
+| [`id`](#dfx-canister-id)                           | Displays the identifier for a canister.  |
+| [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller in a certified way.  |
+| [`install`](#dfx-canister-install)                 | Installs compiled code as a canister on the Internet Computer or the local canister execution environment.  |
+| [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.  |
+| [`send`](#dfx-canister-send)                       | Send a previously-signed `message.json` to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons.  |
+| [`sign`](#dfx-canister-send)                       | Create a signed `message.json` file before making a call to a specified canister identifier. For example, if you want to send a message that calls the network nervous system (NNS) governance canister to manage neurons, you might want to separate message signing from message delivery for security reasons.  |
+| [`start`](#dfx-canister-start)                     | Restarts a stopped canister.  |
+| [`status`](#dfx-canister-status)                   | Requests the running status of a canister.  |
+| [`stop`](#dfx-canister-stop)                       | Stops a currently running canister.  |
+| [`uninstall-code`](#dfx-canister-uninstall-code)   | Uninstalls a canister, removing its code and state, on the Internet Computer network.  |
+| [`update-settings`](#dfx-canister-update-settings) | Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.).  |
 
 ## Overriding the default deployment environment
 
-By default, `dfx canister` commands run on the local canister execution environment specified in the `dfx.json` file. If you want to send a `dfx canister` subcommand to the {platform} or a testnet without changing the settings in your `dfx.json` configuration file, you can explicitly specify the URL to connect to using the `--network` option.
+By default, `dfx canister` commands run on the local canister execution environment specified in the `dfx.json` file. If you want to send a `dfx canister` subcommand to the Internet Computer or a testnet without changing the settings in your `dfx.json` configuration file, you can explicitly specify the URL to connect to using the `--network` option.
 
 For example, to register unique canister identifiers for a project on the local canister execution environment, you can run the following command:
 
@@ -45,13 +45,13 @@ For example, to register unique canister identifiers for a project on the local 
 dfx canister create --all
 ```
 
-If you want to register unique canister identifiers for the same project on the {platform}, you can run the following command:
+If you want to register unique canister identifiers for the same project on the Internet Computer, you can run the following command:
 
 ``` bash
 dfx canister --network ic create --all
 ```
 
-The SDK comes with an alias of `ic`, which is configured to point to the {platform}. You can also pass a URL as a network option, or you can configure additional aliases in `dfx.json` under the `networks` configuration.
+The SDK comes with an alias of `ic`, which is configured to point to the Internet Computer. You can also pass a URL as a network option, or you can configure additional aliases in `dfx.json` under the `networks` configuration.
 
 To illustrate, you can call a canister and function running on a testnet using a command similar to the following:
 
@@ -77,7 +77,7 @@ You can use the following optional flags with the `dfx canister call` command.
 
 | Flag              | Description                                                                                                                                                                                                                                                                                                                                              |
 |-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--async`         | Enables you to continue without waiting for the result of the call to be returned by polling the local canister execution environment or the {platform}.                                                                                                                                                                                                 |
+| `--async`         | Enables you to continue without waiting for the result of the call to be returned by polling the local canister execution environment or the Internet Computer.                                                                                                                                                                                                 |
 | `-h`, `--help`    | Displays usage information.                                                                                                                                                                                                                                                                                                                              |
 | `--query`         | Enables you to send a query request to a deployed canister. For best performance, you should use this flag when you explicitly want to use the query method to retrieve information. For information about the difference between query and update calls, see [Canisters include both program and state](../../concepts/canisters-code#canister-state). |
 | `--update`        | Enables you to send an update request to a deployed canister. By default, canister calls use the update method.                                                                                                                                                                                                                                          |
@@ -110,7 +110,7 @@ You can use the `dfx canister call` command to invoke specific methods—with or
 dfx canister call counter get --async
 ```
 
-In this example, the command includes the `--async` option to indicate that you want to make a separate `request-status` call rather than waiting to poll the local canister execution environment or the {platform} for the result. The `--async` option is useful when processing an operation might take some time to complete. The option enables you to continue performing other operations then check for the result using a separate `dfx canister request-status` command. The returned result will be displayed as the IDL textual format.
+In this example, the command includes the `--async` option to indicate that you want to make a separate `request-status` call rather than waiting to poll the local canister execution environment or the Internet Computer for the result. The `--async` option is useful when processing an operation might take some time to complete. The option enables you to continue performing other operations then check for the result using a separate `dfx canister request-status` command. The returned result will be displayed as the IDL textual format.
 
 #### Using the IDL syntax
 
@@ -149,7 +149,7 @@ This example uses the raw data type to pass a hexadecimal to the `greet` functio
 
 ## dfx canister create
 
-Use the `dfx canister create` command to register one or more canister identifiers without compiled code. You must be connected to the local canister execution environment or the {platform} to run this command.
+Use the `dfx canister create` command to register one or more canister identifiers without compiled code. You must be connected to the local canister execution environment or the Internet Computer to run this command.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
@@ -203,7 +203,7 @@ dfx canister create --with-cycles 8000000000000 --all
 
 ## dfx canister delete
 
-Use the `dfx canister delete` command to delete a stopped canister from the local canister execution environment or on the {platform}.
+Use the `dfx canister delete` command to delete a stopped canister from the local canister execution environment or on the Internet Computer.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
@@ -241,7 +241,7 @@ To delete the `hello_world` canister, you can run the following command:
 dfx canister delete hello_world
 ```
 
-To delete all of the canisters you have deployed on the `ic` {platform}, you can run the following command:
+To delete all of the canisters you have deployed on the `ic` Internet Computer, you can run the following command:
 
 ``` bash
 dfx canister --network=ic delete --all
@@ -340,7 +340,7 @@ The command displays output similar to the following:
 
 ## dfx canister install
 
-Use the `dfx canister install` command to install compiled code as a canister on the {platform} or on the local canister execution environment.
+Use the `dfx canister install` command to install compiled code as a canister on the Internet Computer or on the local canister execution environment.
 
 ### Basic usage
 
@@ -354,7 +354,7 @@ You can use the following optional flags with the `dfx canister install` command
 
 | Flag              | Description                                                                                                                                                      |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--async`         | Enables you to continue without waiting for the result of the installation to be returned by polling the {platform} or the local canister execution environment. |
+| `--async`         | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment. |
 | `-h`, `--help`    | Displays usage information.                                                                                                                                      |
 | `-V`, `--version` | Displays version information.                                                                                                                                    |
 
@@ -381,7 +381,7 @@ You can use the following arguments with the `dfx canister install` command.
 
 ### Examples
 
-You can use the `dfx canister install` command to deploy WebAssembly you have compiled using the `dfx build` command as a canister on the {platform} or on the local canister execution environment. The most common use case is to install all of the canisters by running the following command:
+You can use the `dfx canister install` command to deploy WebAssembly you have compiled using the `dfx build` command as a canister on the Internet Computer or on the local canister execution environment. The most common use case is to install all of the canisters by running the following command:
 
 ``` bash
 dfx canister install --all
@@ -585,7 +585,7 @@ Use the `dfx canister send` command to send a signed message created using the `
 
 ## dfx canister sign
 
-Use the `dfx canister sign` command before sending a message with the `dfx canister send` command when you want to separate these steps, rather than using the single `dfx canister call` command. Using separate calls can add security to the transaction. For example, when creating your neuron stake, you might want to use the `dfx canister sign` command to create a signed `message.json` file using an air-gapped computer, then use the `dfx canister send` command to deliver the signed message from a computer connected to the {platform}.
+Use the `dfx canister sign` command before sending a message with the `dfx canister send` command when you want to separate these steps, rather than using the single `dfx canister call` command. Using separate calls can add security to the transaction. For example, when creating your neuron stake, you might want to use the `dfx canister sign` command to create a signed `message.json` file using an air-gapped computer, then use the `dfx canister send` command to deliver the signed message from a computer connected to the Internet Computer.
 
 ### Basic usage
 
@@ -656,7 +656,7 @@ Use the `dfx canister sign` command to create a signed `message.json` file using
 
 `dfx canister --network=ic sign --expire-after=1h rno2w-sqaaa-aaaaa-aaacq-cai create_neurons ‘(“PUBLIC_KEY”)’`
 
-This command illustrates how to creates a `message.json` file to create neurons on the {platform} specified by the `ic` alias, that is signed using your principal identifier as the message sender and with an expiration window that ends in one hour.
+This command illustrates how to creates a `message.json` file to create neurons on the Internet Computer specified by the `ic` alias, that is signed using your principal identifier as the message sender and with an expiration window that ends in one hour.
 
 Note that the time allotted to send a signed message is a fixed 5-minute window. The `--expire-after` option enables you to specify the point in time when the 5-minute window for sending the signed message should end. For example, if you set the `--expire-after` option to one hour (`1h`), you must wait at least 55 minutes before you send the generated message and the signature for the message is only valid during the 5-minute window ending in the 60th minute.
 
@@ -670,7 +670,7 @@ Send the signed message to the genesis token canister (GTC) to create a neuron o
 
 ## dfx canister start
 
-Use the `dfx canister start` command to restart a stopped canister on the {platform} or the local canister execution environment.
+Use the `dfx canister start` command to restart a stopped canister on the Internet Computer or the local canister execution environment.
 
 In most cases, you run this command after you have stopped a canister to properly terminate any pending requests as a prerequisite to upgrading the canister.
 
@@ -710,7 +710,7 @@ To start the `hello_world` canister, you can run the following command:
 dfx canister start hello_world
 ```
 
-To start all of the canisters you have deployed on the `ic` {platform}, you can run the following command:
+To start all of the canisters you have deployed on the `ic` Internet Computer, you can run the following command:
 
 ``` bash
 dfx canister --network=ic start --all
@@ -718,7 +718,7 @@ dfx canister --network=ic start --all
 
 ## dfx canister status
 
-Use the `dfx canister status` command to check whether a canister is currently running, in the process of stopping, or currently stopped on the {platform} or on the local canister execution environment.
+Use the `dfx canister status` command to check whether a canister is currently running, in the process of stopping, or currently stopped on the Internet Computer or on the local canister execution environment.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
@@ -756,7 +756,7 @@ To check the status of the `hello_world` canister, you can run the following com
 dfx canister status hello_world
 ```
 
-To check the status for all of the canisters you have deployed on the `ic` {platform}, you can run the following command:
+To check the status for all of the canisters you have deployed on the `ic` Internet Computer, you can run the following command:
 
 ``` bash
 dfx canister --network=ic status --all
@@ -764,7 +764,7 @@ dfx canister --network=ic status --all
 
 ## dfx canister stop
 
-Use the `dfx canister stop` command to stop a canister that is currently running on the {platform} or on the local canister execution environment.
+Use the `dfx canister stop` command to stop a canister that is currently running on the Internet Computer or on the local canister execution environment.
 
 In most cases, you run this command to properly terminate any pending requests as a prerequisite to upgrading the canister.
 
@@ -804,7 +804,7 @@ To stop the `hello_world` canister, you can run the following command:
 dfx canister stop hello_world
 ```
 
-To stop all of the canisters you have deployed on the `ic` {platform}, you can run the following command:
+To stop all of the canisters you have deployed on the `ic` Internet Computer, you can run the following command:
 
 ``` bash
 dfx canister --network=ic stop --all
@@ -812,7 +812,7 @@ dfx canister --network=ic stop --all
 
 ## dfx canister uninstall-code
 
-Use the `dfx canister uninstall-code` command to uninstall the code that a canister that is currently running on the {platform} or on the local canister execution environment.
+Use the `dfx canister uninstall-code` command to uninstall the code that a canister that is currently running on the Internet Computer or on the local canister execution environment.
 
 This method removes a canister’s code and state, making the canister empty again. Only the controller of the canister can uninstall code. Uninstalling a canister’s code will reject all calls that the canister has not yet responded to, and drop the canister’s code and state. Outstanding responses to the canister will not be processed, even if they arrive after code has been installed again. The canister is now empty. In particular, any incoming or queued calls will be rejected.
 
@@ -851,7 +851,7 @@ To uninstall the `hello_world` canister, you can run the following command:
 dfx canister uninstall-code hello_world
 ```
 
-To uninstall all of the canisters you have deployed on the `ic` {platform}, you can run the following command:
+To uninstall all of the canisters you have deployed on the `ic` Internet Computer, you can run the following command:
 
 ``` bash
 dfx canister --network=ic uninstall-code --all
