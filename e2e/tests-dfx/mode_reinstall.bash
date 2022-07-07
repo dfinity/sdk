@@ -108,17 +108,17 @@ teardown() {
     install_asset counter
     dfx deploy
 
-    assert_command dfx canister call hello read
+    assert_command dfx canister call hello_backend read
     assert_eq "(0 : nat)"
 
-    assert_command dfx canister call hello inc
+    assert_command dfx canister call hello_backend inc
     assert_eq "()"
 
-    assert_command dfx canister call hello read
+    assert_command dfx canister call hello_backend read
     assert_eq "(1 : nat)"
 
     dfx canister call hello inc
-    assert_command dfx canister call hello read
+    assert_command dfx canister call hello_backend read
     assert_eq "(2 : nat)"
 
 

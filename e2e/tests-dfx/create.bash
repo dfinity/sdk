@@ -32,7 +32,7 @@ teardown() {
     PRINCIPAL=$(dfx identity get-principal)
     WALLET=$(dfx identity get-wallet)
     assert_command dfx canister create --all
-    assert_command dfx canister info e2e_project
+    assert_command dfx canister info e2e_project_backend
     assert_match "Controllers: ($PRINCIPAL $WALLET|$WALLET $PRINCIPAL)"
 }
 
@@ -41,7 +41,7 @@ teardown() {
     PRINCIPAL=$(dfx identity get-principal)
     WALLET=$(dfx identity get-wallet)
     assert_command dfx canister create --all --no-wallet
-    assert_command dfx canister info e2e_project
+    assert_command dfx canister info e2e_project_backend
     assert_not_match "Controllers: ($PRINCIPAL $WALLET|$WALLET $PRINCIPAL)"
     assert_match "Controllers: $PRINCIPAL"
 }
@@ -109,7 +109,7 @@ teardown() {
     
     
     assert_command dfx canister create --all --controller alice
-    assert_command dfx canister info e2e_project
+    assert_command dfx canister info e2e_project_backend
     assert_match "Controllers: $ALICE_PRINCIPAL"
 
     assert_command_fail dfx deploy
@@ -137,7 +137,7 @@ teardown() {
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
 
     assert_command dfx canister create --all --controller "${ALICE_WALLET}"
-    assert_command dfx canister info e2e_project
+    assert_command dfx canister info e2e_project_backend
     assert_match "Controllers: $ALICE_WALLET"
 
     assert_command_fail dfx deploy
@@ -158,7 +158,7 @@ teardown() {
     assert_command dfx canister create --all --controller bob
 
     dfx identity use alice
-    assert_command dfx canister info e2e_project
+    assert_command dfx canister info e2e_project_backend
     assert_match "Controllers: $BOB_PRINCIPAL"
 
     assert_command_fail dfx deploy
@@ -200,7 +200,7 @@ teardown() {
     PRINCIPALS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
     assert_command dfx --identity alice canister create --all --controller alice --controller bob
-    assert_command dfx canister info e2e_project
+    assert_command dfx canister info e2e_project_backend
     assert_match "Controllers: ${PRINCIPALS_SORTED}"
 
     assert_command dfx --identity alice deploy
