@@ -51,7 +51,7 @@ pub struct CanisterDeleteOpts {
     #[clap(long)]
     no_withdrawal: bool,
 
-    /// Withdraw cycles from canister(s) to canister/wallet before deleting.
+    /// Withdraw cycles from canister(s) to the specified canister/wallet before deleting.
     #[clap(long, conflicts_with("no-withdrawal"))]
     withdraw_cycles_to_canister: Option<String>,
 

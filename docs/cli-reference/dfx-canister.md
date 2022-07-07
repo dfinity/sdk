@@ -101,7 +101,6 @@ You can use the following optional flags with the `dfx canister call` command.
 | `-h`, `--help`    | Displays usage information.  |
 | `--query`         | Sends a query request instead of an update request. For information about the difference between query and update calls, see [Canisters include both program and state](../../concepts/canisters-code#canister-state).  |
 | `--update`        | Sends an update request to a canister. This is the default if the method is not a query method.  |
-| `-V`, `--version` | Displays version information.  |
 
 ### Options
 
@@ -189,7 +188,6 @@ You can use the following optional flags with the `dfx canister create` command.
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Options
 
@@ -228,7 +226,7 @@ dfx canister create --with-cycles 8000000000000 --all
 
 ## dfx canister delete
 
-Use the `dfx canister delete` command to delete a stopped canister from the local canister execution environment or on the Internet Computer.
+Use the `dfx canister delete` command to delete a stopped canister from the local canister execution environment or the Internet Computer. By default, this withdraws remaining cycles to your wallet before deleting the canister.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
@@ -242,10 +240,11 @@ dfx canister delete [flag] [--all | canister_name]
 
 You can use the following optional flags with the `dfx canister delete` command.
 
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
+| Flag                        | Description                   |
+|-----------------------------|-------------------------------|
+| `-h`, `--help`              | Displays usage information.   |
+| `--no-withdrawal`           | Do not withdrawal cycles, just delete the canister.  |
+| `--withdraw-cycles-to-dank` | Withdraw cycles to dank with the current principal.  |
 
 ### Arguments
 
@@ -255,6 +254,8 @@ You can use the following arguments with the `dfx canister delete` command.
 |-----------------|------------------------------------------------------------------------------------------------------------------------------------|
 | `--all`         | Deletes all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
 | `canister_name` | Specifies the name of the canister you want to delete. Note that you must specify either a canister name or the `--all` option.    |
+| `--withdraw-cycles-to-canister <principal>` | Withdraw cycles from canister(s) to the specified canister/wallet before deleting.  |
+| `--withdraw-cycles-to-dank-principal <principal>` | Withdraw cycles to dank with the given principal.  |
 
 ### Examples
 
@@ -266,7 +267,7 @@ To delete the `hello_world` canister, you can run the following command:
 dfx canister delete hello_world
 ```
 
-To delete all of the canisters you have deployed on the `ic` Internet Computer, you can run the following command:
+To delete all of the canisters you have deployed on the `ic` Internet Computer and configured in your `dfx.json`, you can run the following command:
 
 ``` bash
 dfx canister --network=ic delete --all
@@ -291,7 +292,6 @@ You can use the following optional flags with the `dfx canister deposit-cycles` 
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -337,7 +337,6 @@ You can use the following optional flags with the `dfx canister id` command.
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -380,7 +379,6 @@ You can use the following optional flags with the `dfx canister info` command.
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -425,7 +423,6 @@ You can use the following optional flags with the `dfx canister install` command
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--async`         | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment. |
 | `-h`, `--help`    | Displays usage information.                                                                                                                                      |
-| `-V`, `--version` | Displays version information.                                                                                                                                    |
 
 ### Options
 
@@ -523,7 +520,6 @@ You can use the following optional flags with the `dfx canister request-status` 
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -556,7 +552,6 @@ You can use the following optional flags with the `dfx canister set-controller` 
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -636,7 +631,6 @@ You can use the following optional flags with the `dfx canister request-status` 
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -671,7 +665,6 @@ You can use the following optional flags with the `dfx canister sign` command.
 | `-h`, `--help`    | Displays usage information.                                                                              |
 | `--query`         | Sends a query request to a canister.                                                                     |
 | `--update`        | Sends an update request to the canister. This is the default method if the `--query` method is not used. |
-| `-V`, `--version` | Displays version information.                                                                            |
 
 ### Options
 
@@ -758,7 +751,6 @@ You can use the following optional flags with the `dfx canister start` command.
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -804,7 +796,6 @@ You can use the following optional flags with the `dfx canister status` command.
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -852,7 +843,6 @@ You can use the following optional flags with the `dfx canister stop` command.
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
