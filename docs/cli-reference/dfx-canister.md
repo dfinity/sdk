@@ -512,7 +512,7 @@ Use the `dfx canister request-status` command to request the status of a specifi
 ### Basic usage
 
 ``` bash
-dfx canister request-status request_id
+dfx canister request-status request_id [option]
 ```
 
 ### Flags
@@ -522,6 +522,14 @@ You can use the following optional flags with the `dfx canister request-status` 
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
+
+### Options
+
+You can use the following options with the `dfx canister request-status` command.
+
+| Option   | Description  |
+|----------|--------------|
+| `--output <output>`  | Specifies the format for displaying the method's return result. Possible values are `idl`, `raw` and `pp`, where `pp` is equivalent to `idl`, but is pretty-printed.  |
 
 ### Arguments
 
@@ -540,79 +548,6 @@ dfx canister request-status 0x58d08e785445dcab4ff090463b9e8b12565a67bf436251d13e
 ```
 
 This command displays an error message if the request identifier is invalid or refused by the canister.
-
-### Basic usage
-
-``` bash
-dfx canister set-controller [flag] canister new-controller
-```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister set-controller` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-
-### Arguments
-
-You must use the following arguments with the `dfx canister set-controller` command.
-
-| Argument           | Description                                                                                                                          |
-|--------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `<canister>`       | Specifies the canister name or canister identifier to be controlled by the identity you specify using the *new_controller* argument. |
-| `<new_controller>` | Specifies the identity name or principal of the controller.                                                                          |
-
-### Examples
-
-You can use the `dfx canister set-controller` command to specify a user or canister as the controlling identity for a specific canister.
-
-For example, you might create a new identity called `pubsadmin` then run the `dfx canister set-controller` to specify that you want the `pubsadmin` identity to be the controller of the `hello_world` canister by running the following commands:
-
-    dfx identity new pubsadmin
-    dfx canister set-controller hello_world pubsadmin
-
-To set the controlling identity using the textual representation of the identity principal, you might run a command similar to the following:
-
-    dfx canister set-controller hello_world wcp5u-pietp-k5jz4-sdaaz-g3x4l-zjzxa-lxnly-fp2mk-j3j77-25qat-pqe
-
-Although specifying a user identity name or principal is one potential use case, a more common scenario is to specify the wallet canister that you want to use to send cycles to the canister. The following steps illustrate this scenario when you are doing local development. For this example, assume you have created a project called `open_sf` with two canisters deployed on the local canister execution environment.
-
-1.  Create an identity—for example, `sf-controller`—to act as the controller.
-
-        dfx identity new sf-controller
-
-        Creating identity: "sf-controller".
-        Created identity: "sf-controller".
-
-2.  Make the new identity the active identity.
-
-        dfx identity use sf-controller
-
-        Using identity: "sf-controller".
-
-3.  Generate a wallet canister identifier for the new identity.
-
-        dfx identity get-wallet
-
-        Creating a wallet canister on the local canister execution environment.
-        r7inp-6aaaa-aaaaa-aaabq-cai
-        The wallet canister on the  the local canister execution environment for user "sf-controller" is "r7inp-6aaaa-aaaaa-aaabq-cai"
-
-4.  Switch the active identity to the current controller of the canister. For example, if the default identity was used to create the canister, you would run the following command:
-
-        dfx identity use default
-
-        Using identity: "default".
-
-5.  Set the controller for a specified canister to use the wallet associated wit the sf-controller identity.
-
-        dfx canister set-controller open_sf_assets r7inp-6aaaa-aaaaa-aaabq-cai
-
-        Set "r7inp-6aaaa-aaaaa-aaabq-cai" as controller of "open_sf_assets".
-
-    You can now use the wallet canister `r7inp-6aaaa-aaaaa-aaabq-cai` to send cycles or add custodians to the `open_sf_assets` canister.
 
 ## dfx canister send
 
