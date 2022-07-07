@@ -157,7 +157,7 @@ teardown() {
     WALLET=$(dfx identity get-wallet)
     assert_command dfx wallet balance
     assert_command dfx deploy --wallet "$WALLET"
-    assert_command dfx canister --wallet "$WALLET" call hello greet '("")' --with-cycles 1
+    assert_command dfx canister --wallet "$WALLET" call hello_backend greet '("")' --with-cycles 1
     dfx identity new alice --disable-encryption
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
     dfx wallet send "$ALICE_WALLET" 1
@@ -167,6 +167,6 @@ teardown() {
     dfx_new hello
     dfx_start
     dfx identity new alice --disable-encryption
-    dfx --identity alice deploy --no-wallet hello
+    dfx --identity alice deploy --no-wallet hello_backend
     assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello
 }

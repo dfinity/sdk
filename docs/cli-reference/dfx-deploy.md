@@ -50,7 +50,7 @@ You can use the `dfx deploy` command to deploy all or specific canisters on the 
 For example, to deploy the `hello` project on the hypothetical `ic-pubs` testnet configured in the `dfx.json` configuration file, you can run the following command:
 
 ``` bash
-dfx deploy hello --network ic-pubs
+dfx deploy hello_backend --network ic-pubs
 ```
 
 To deploy a project on the local canister execution environment and pass a single argument to the installation step, you can run a command similar to the following:
