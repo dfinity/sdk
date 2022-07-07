@@ -5,7 +5,7 @@ Use the `dfx canister` command with flags and subcommands to manage canister ope
 The basic syntax for running `dfx canister` commands is:
 
 ``` bash
-dfx canister [canister flags] [subcommand] [subcommand flags]
+dfx canister [canister flags] subcommand [subcommand flags]
 ```
 
 Depending on the `dfx canister` subcommand you specify, additional arguments, options, and flags might apply or be required. To view usage information for a specific `dfx canister` subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx canister call`, you can run the following command:
@@ -95,31 +95,34 @@ dfx canister call [option] canister_name method_name [argument] [flag]
 
 You can use the following optional flags with the `dfx canister call` command.
 
-| Flag              | Description                                                                                                                                                                                                                                                                                                                                              |
-|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--async`         | Enables you to continue without waiting for the result of the call to be returned by polling the local canister execution environment or the Internet Computer.                                                                                                                                                                                                 |
-| `-h`, `--help`    | Displays usage information.                                                                                                                                                                                                                                                                                                                              |
-| `--query`         | Enables you to send a query request to a deployed canister. For best performance, you should use this flag when you explicitly want to use the query method to retrieve information. For information about the difference between query and update calls, see [Canisters include both program and state](../../concepts/canisters-code#canister-state). |
-| `--update`        | Enables you to send an update request to a deployed canister. By default, canister calls use the update method.                                                                                                                                                                                                                                          |
-| `-V`, `--version` | Displays version information.                                                                                                                                                                                                                                                                                                                            |
+| Flag              | Description     |
+|-------------------|-----------------|
+| `--async`         | Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.  |
+| `-h`, `--help`    | Displays usage information.  |
+| `--query`         | Sends a query request instead of an update request. For information about the difference between query and update calls, see [Canisters include both program and state](../../concepts/canisters-code#canister-state).  |
+| `--update`        | Sends an update request to a canister. This is the default if the method is not a query method.  |
+| `-V`, `--version` | Displays version information.  |
 
 ### Options
 
 You can use the following options with the `dfx canister call` command.
 
-| Option              | Description                                                                                                              |
-|---------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `--output <output>` | Specifies the output format to use when displaying a method’s return result. The valid values are `idl` and `raw`.       |
-| `--type <type>`     | Specifies the data format for the argument when making the call using an argument. The valid values are `idl` and `raw`. |
+| Option                  | Description  |
+|-------------------------|--------------|
+| `--candid <file.did>`   | Provide the .did file with which to decode the response. Overrides value from dfx.json for project canisters.  |
+| `--output <output>`     | Specifies the output format to use when displaying a method’s return result. The valid values are `idl`, `pp` and `raw`. The `pp` option is equivalent to `idl`, but is pretty-printed.  |
+| `--random <random>`     | Specifies the config for generating random arguments.  |
+| `--type <type>`         | Specifies the data format for the argument when making the call using an argument. The valid values are `idl` and `raw`.  |
+| `--with-cycles <amount>`| Specifies the amount of cycles to send on the call. Deducted from the wallet. Requires `--wallet` as a flag to `dfx canister`.  |
 
 ### Arguments
 
 You can specify the following arguments for the `dfx canister call` command.
 
-| Argument        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Argument        | Description  |
+|-----------------|--------------|
+| `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file.  |
+| `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.  |
 | `argument`      | Specifies the argument to pass to the method. Depending on your program logic, the argument can be a required or optional argument. You can specify a data format type using the `--type` option if you pass an argument to the canister. By default, you can specify arguments using the [Candid](../../developer-docs/build/languages/candid/candid-intro) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](../../developer-docs/build/languages/candid/candid-howto#idl-syntax) and [Supported types](../candid-ref.md). You can use `raw` as the argument type if you want to pass raw bytes to a canister. |
 
 ### Examples
