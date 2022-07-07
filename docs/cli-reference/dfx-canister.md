@@ -568,6 +568,7 @@ You can use the following optional flags with the `dfx canister request-status` 
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
+| `--status`        | Send the signed request-status call in the message.  |
 
 ### Arguments
 
