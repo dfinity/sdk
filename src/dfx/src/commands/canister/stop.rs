@@ -11,7 +11,7 @@ use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
-/// Stops a canister that is currently running on the Internet Computer network.
+/// Stops a currently running canister.
 #[derive(Parser)]
 pub struct CanisterStopOpts {
     /// Specifies the name or id of the canister to stop.
