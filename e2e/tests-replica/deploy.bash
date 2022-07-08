@@ -76,7 +76,7 @@ teardown() {
 }
 
 @test "dfx deploy with InstallMode::Install on first invocation, InstallMode::Upgrade on second" {
-    dfx_new hello_backend
+    dfx_new hello
     install_asset greet
     dfx_start
 
