@@ -88,7 +88,7 @@ You can use the following options with the `dfx canister call` command.
 
 |Option |Description|
 --------|------------|
-|`--network <network>` |Specifies the environment (e.g., {platform} or testnet) of the controller you want to add.
+|`--network <network>` |Specifies the environment (e.g., Internet Computer or testnet) of the controller you want to add.
 
 ### Arguments
 
@@ -105,7 +105,13 @@ You can use the `dfx wallet add-controller` command to add a controller to your 
 
 
 ```
-dfx wallet --network=https://192.168.74.4 add-controller hpff-grjfd-tg7cj-hfeuj-olrjd-vbego-lpcax-ou5ld-oh7kr-kl9kt-yae
+dfx wallet add-controller b5quc-npdph-l6qp4-kur4u-oxljq-7uddl-vfdo6-x2uo5-6y4a6-4pt6v-7qe
+```
+
+The command displays output similar to the following:
+
+```
+Added b5quc-npdph-l6qp4-kur4u-oxljq-7uddl-vfdo6-x2uo5-6y4a6-4pt6v-7qe as a controller.
 ```
 
 ## dfx wallet addresses
@@ -133,6 +139,11 @@ You can use the following optional flags with the `dfx wallet add-controller` co
 
 You can use the `dfx wallet addresses` command to retrieve information on the addresses in your wallet's address book. For example:
 
+```
+dfx wallet --network ic addresses
+```
+
+The command displays the controllers and custodians for the cycles wallet with output similar to the following:
 
 ```
 dfx wallet addresses
@@ -142,7 +153,7 @@ Id: e7ptl-4x43t-zxcvh-n6s6c-k2dre-doy7l-bbo6h-ok8ik-msiz3-eoxhl-6qe, Kind: Unkno
 
 ## dfx wallet authorize
 
-Use the `dfx wallet authorize` command to authorize a custodian for the wallet. An identity assigned the role of custodian can perform the following actions on the cycles wallet:
+Use the `dfx wallet authorize` command to authorize a custodian for the wallet. An identity authorized as a custodian can perform the following actions on the cycles wallet:
 
 * Access wallet information.
 
@@ -183,6 +194,12 @@ For example, to add alice_auth as a custodian, specify her principal in the foll
 
 ```
 dfx wallet authorize dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae
+```
+
+This command outputs something similar to the following:
+
+```
+Authorized dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae as a custodian.
 ```
 
 ## dfx wallet balance
@@ -333,6 +350,12 @@ For example, to remove "alice_auth" as a custodian, specify her principal in the
 dfx wallet deauthorize dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae
 ```
 
+This command will output something similar to:
+
+```
+Deauthorized dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae as a custodian.
+```
+
 ## dfx wallet name
 
 Use the `dfx wallet name` command to display the name of the selected identity's cycles wallet if it has been set using the `dfx wallet set-name` command. 
@@ -399,10 +422,14 @@ For example, to remove alice_auth as a controller, specify her principal in the 
 ```
 dfx wallet remove-controller dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae
 ```
+The command outputs something similar to the following:
+```
+Removed dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae as a controller.
+```
 
 ## dfx wallet send
 
-Use the `dfx wallet send` command to send cycles from the selected identity's cycles wallet to another cycles wallet using the destination cycle wallet's Canister ID. 
+Use the `dfx wallet send` command to send cycles from the selected identity's cycles wallet to another cycles wallet using the destination cycle wallet's Canister ID. Keep in mind that the receiving canister must be a cycles wallet or have a `wallet_receive` method to accept the cycles.
 
 ### Basic usage
 
@@ -448,6 +475,8 @@ For example, to send 2,000,000,000 cycles from the cycles wallet of the selected
 ```
 dfx wallet send r7inp-6aaaa-aaaaa-aaabq-cai 2000000000
 ```
+
+If the transfer is successful, the command does not displays any output.
 
 ## dfx wallet set-name
 
