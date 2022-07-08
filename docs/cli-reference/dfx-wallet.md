@@ -88,7 +88,7 @@ You can use the following options with the `dfx canister call` command.
 
 |Option |Description|
 --------|------------|
-|`--network <network>` |Specifies the environment (e.g., {platform} or testnet) of the controller you want to add.
+|`--network <network>` |Specifies the environment (e.g., Internet Computer or testnet) of the controller you want to add.
 
 ### Arguments
 
