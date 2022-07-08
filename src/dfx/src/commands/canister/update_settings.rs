@@ -34,9 +34,11 @@ pub struct UpdateSettingsOpts {
     #[clap(long, multiple_occurrences(true))]
     controller: Option<Vec<String>>,
 
+    /// Add a principal to the list of controllers of the canister.
     #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
     add_controller: Option<Vec<String>>,
 
+    /// Removes a principal from the list of controllers of the canister.
     #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
     remove_controller: Option<Vec<String>>,
 
