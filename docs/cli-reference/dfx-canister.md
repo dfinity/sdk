@@ -108,6 +108,7 @@ You can use the following options with the `dfx canister call` command.
 
 | Option                  | Description  |
 |-------------------------|--------------|
+| `--argument-file`       | Specifies the file from which to read the argument to pass to the method.  |
 | `--candid <file.did>`   | Provide the .did file with which to decode the response. Overrides value from dfx.json for project canisters.  |
 | `--output <output>`     | Specifies the output format to use when displaying a method’s return result. The valid values are `idl`, `pp` and `raw`. The `pp` option is equivalent to `idl`, but is pretty-printed.  |
 | `--random <random>`     | Specifies the config for generating random arguments.  |
