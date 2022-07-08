@@ -12,7 +12,7 @@ use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use serde::Deserialize;
-use slog::{info, o, warn};
+use slog::{info, o};
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
@@ -100,38 +100,15 @@ impl CanisterBuilder for RustBuilder {
         );
         let output = cargo.output().context("Failed to run 'cargo build'.")?;
 
-        if Command::new("ic-cdk-optimizer")
-            .arg("--version")
-            .output()
-            .is_ok()
-        {
-            let mut optimizer = Command::new("ic-cdk-optimizer");
-            let wasm_path = rust_info.get_output_wasm_path();
-            optimizer
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .arg("-o")
-                .arg(wasm_path)
-                .arg(wasm_path);
-            // The optimized wasm overwrites the original wasm.
-            // Because the `get_output_wasm_path` must give the same path,
-            // no matter optimized or not.
-            info!(
-                self.logger,
-                "Executing: ic-cdk-optimizer -o {0} {0}",
-                wasm_path.display()
-            );
-            if !matches!(optimizer.status(), Ok(status) if status.success()) {
-                warn!(self.logger, "Failed to run ic-cdk-optimizer.");
-            }
-        } else {
-            warn!(
-                self.logger,
-                "ic-cdk-optimizer not installed, the output WASM module is not optimized in size.
-Run `cargo install ic-cdk-optimizer` to install it.
-                "
-            );
-        }
+        info!(self.logger, "Optimizing WASM module.");
+        let wasm_path = rust_info.get_output_wasm_path();
+        let wasm = std::fs::read(wasm_path).expect("Could not read the WASM module.");
+        let wasm_optimized =
+            ic_wasm::optimize::optimize(&wasm).map_err(|e| anyhow!(e.to_string()))?;
+        // The optimized wasm overwrites the original wasm.
+        // Because the `get_output_wasm_path` must give the same path,
+        // no matter optimized or not.
+        std::fs::write(wasm_path, wasm_optimized).expect("Could not write optimized WASM module.");
 
         if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);
