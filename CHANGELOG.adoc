@@ -19,7 +19,9 @@ The actual optimization was kept the same.
 
 === feat: Read dfx canister call argument from a file or stdin
 
-Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet` or `echo '( null )' | dfx canister call --argument-file -`.
+Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example:
+ * Named file: `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet`
+ * Stdin: `echo '( null )' | dfx canister call --argument-file - my_canister_name greet`
 
 === fix: Use default setting for BTC adapter idle seconds
 
