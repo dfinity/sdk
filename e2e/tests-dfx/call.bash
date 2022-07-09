@@ -45,6 +45,19 @@ teardown() {
     assert_match '("Hello, Names are difficult!")'
 }
 
+@test "call subcommand accepts argument from a file" {
+    install_asset greet
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install hello
+    TMP_NAME_FILE="$(mktemp)"
+    printf '("Names can be very long")' > "$TMP_NAME_FILE"
+    assert_command dfx canister call --argument-file "$TMP_NAME_FILE" "$(dfx canister id hello)" greet
+    assert_match '("Hello, Names can be very long!")'
+    rm "$TMP_NAME_FILE"
+}
+
 @test "call random value (pattern)" {
     install_asset greet
     dfx_start

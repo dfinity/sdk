@@ -5,10 +5,21 @@
 
 == DFX
 
+
 === feat: Enable threshold ecdsa signature
 
 ECDSA signature signing is now enabled by default in new projects, or by running `dfx start --clean`.
 A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created canisters.
+
+=== refactor: optimize from ic-wasm
+
+Optimize Rust canister WASM module via ic-wasm library instead of ic-cdk-optimizer.
+
+The actual optimization was kept the same.
+
+=== feat: Read dfx canister call argument from a file
+
+Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet`.
 
 === fix: Use default setting for BTC adapter idle seconds
 
@@ -140,6 +151,19 @@ a dfx process that is starting.
 === fix: dfx ping no longer creates a default identity
 
 dfx ping now uses the anonymous identity, and no longer requires dfx.json to be present.
+
+
+=== fix: Initialize replica with bitcoin regtest flag
+
+When the bitcoin feature is enabled, dfx was launching the replica with the "bitcoin_testnet" feature.
+The correct feature to use is "bitcoin_regtest".
+
+=== dfx bootstrap now looks up the port of the local replica
+
+`dfx replica` writes the port of the running replica to one of these locations:
+  - .dfx/replica-configuration/replica-1.port
+  - .dfx/ic-ref.port
+`dfx bootstrap` will now use this port value, so it's no longer necessary to edit dfx.json after running `dfx replica`.
 
 == Dependencies
 

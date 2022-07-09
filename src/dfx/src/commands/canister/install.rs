@@ -18,7 +18,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-/// Deploys compiled code as a canister on the Internet Computer.
+/// Installs compiled code in a canister.
 #[derive(Parser, Clone)]
 pub struct CanisterInstallOpts {
     /// Specifies the canister to deploy. You must specify either canister name/id or the --all option.
@@ -49,7 +49,7 @@ pub struct CanisterInstallOpts {
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     argument_type: Option<String>,
 
-    /// Specifies a particular WASM file to install, bypassing the dfx.json project system.
+    /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
     #[clap(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 }
