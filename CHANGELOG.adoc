@@ -5,6 +5,11 @@
 
 == DFX
 
+=== feat: Enable threshold ecdsa signature
+
+ECDSA signature signing is now enabled by default in new projects, or by running `dfx start --clean`.
+A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created canisters.
+
 === fix: Use default setting for BTC adapter idle seconds
 
 A lower threshold was no longer necessary.
