@@ -42,7 +42,7 @@ futures = "0.3.21"
 garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
 ic-types = "0.3.0"
-ic-wasm = "0.1.0"
+ic-wasm = { version = "0.1.3", default-features = false, features = ["optimize"]}
 indicatif = "0.16.0"
 itertools = "0.10.3"
 lazy-init = "0.5.0"

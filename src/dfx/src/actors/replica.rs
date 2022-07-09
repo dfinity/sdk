@@ -304,12 +304,14 @@ fn replica_start_thread(
             "rocksdb",
             "--subnet-type",
             &config.subnet_type.as_ic_starter_string(),
+            "--ecdsa-keyid",
+            "Secp256k1:dfx_test_key",
         ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);
         }
         if config.btc_adapter.enabled {
-            cmd.args(&["--subnet-features", "bitcoin_testnet"]);
+            cmd.args(&["--subnet-features", "bitcoin_regtest"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
                 cmd.args(&[
                     "--bitcoin-testnet-uds-path",

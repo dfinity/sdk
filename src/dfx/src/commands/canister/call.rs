@@ -53,6 +53,7 @@ pub struct CanisterCallOpts {
     #[clap(conflicts_with("random"), conflicts_with("argument-file"))]
     argument: Option<String>,
 
+    /// Specifies the file from which to read the argument to pass to the method.
     #[clap(
         long,
         validator(file_validator),
