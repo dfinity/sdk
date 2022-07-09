@@ -21,6 +21,7 @@ use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
 use std::fs;
+use std::io::{stdin, Read};
 use std::option::Option;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -236,7 +237,15 @@ pub async fn exec(
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file: Option<String> = opts.argument_file.map(|filename| {
-        fs::read_to_string(filename).expect("Could not read arguments file to string.")
+        if filename == "-" {
+            let mut content = String::new();
+            stdin()
+                .read_to_string(&mut content)
+                .expect("Could not read arguments from stdin to string.");
+            content
+        } else {
+            fs::read_to_string(filename).expect("Could not read arguments file to string.")
+        }
     });
     let arguments = opts.argument.as_deref();
     let arguments = arguments_from_file.as_deref().or(arguments);

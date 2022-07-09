@@ -58,6 +58,17 @@ teardown() {
     rm "$TMP_NAME_FILE"
 }
 
+@test "call subcommand accepts argument from stdin" {
+    install_asset greet
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install hello
+    printf '("stdin")' | assert_command dfx canister call --argument-file - "$(dfx canister id hello)" greet
+    assert_match '("Hello, stdin!")'
+    rm "$TMP_NAME_FILE"
+}
+
 @test "call random value (pattern)" {
     install_asset greet
     dfx_start
