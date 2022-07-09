@@ -17,9 +17,9 @@ Optimize Rust canister WASM module via ic-wasm library instead of ic-cdk-optimiz
 
 The actual optimization was kept the same.
 
-=== feat: Read dfx canister call argument from a file
+=== feat: Read dfx canister call argument from a file or stdin
 
-Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet`.
+Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet` or `echo '( null )' | dfx canister call --argument-file -`.
 
 === fix: Use default setting for BTC adapter idle seconds
 
