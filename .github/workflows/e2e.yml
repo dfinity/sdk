@@ -127,8 +127,7 @@ jobs:
           fi
           export
       - name: Run e2e test
-        # rust tests sometimes fail with a 35-minute timeout
-        run: timeout 2700 bats "e2e/$E2E_TEST"
+        run: timeout 1800 bats "e2e/$E2E_TEST"
 
   aggregate:
     name: e2e:required
