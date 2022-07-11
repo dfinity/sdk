@@ -94,7 +94,7 @@ dfx_start() {
     if [ "$E2E_STATIC_PORTS" ]; then
         FRONTEND_HOST="127.0.0.1:8000"
     else
-        # Start on random port for parallel test execution
+        # Start on random port for parallel test execution or to coexist with a local server
         FRONTEND_HOST="127.0.0.1:0"
     fi
 
