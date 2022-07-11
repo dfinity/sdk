@@ -136,6 +136,10 @@ teardown() {
   dfx canister install --all
   assert_command dfx canister call custom fromQuery
   assert_command dfx canister call custom2 fromQuery
+
+  # dfx sets the candid:service metadata
+  dfx canister metadata custom candid:service >installed.did
+  assert_command diff main.did installed.did
 }
 
 @test "custom canister build script picks local executable first" {

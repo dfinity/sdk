@@ -26,6 +26,7 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`id`](#dfx-canister-id)                           | Displays the identifier of a canister.  |
 | [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller.  |
 | [`install`](#dfx-canister-install)                 | Installs compiled code in a canister.  |
+| [`metadata`](#dfx-canister-metadata)               | Displays metadata in a canister.                  |
 | [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.  |
 | [`send`](#dfx-canister-send)                       | Send a previously-signed message.  |
 | [`sign`](#dfx-canister-send)                       | Sign a canister call and generate message file.  |
@@ -505,6 +506,51 @@ dfx canister install --all --compute-allocation 50
 With this setting, all of the canisters in the current projects are assigned a 50% allocation. When canisters in the project receive input messages to process, the messages are scheduled for execution. Over 100 execution cycles, each canister’s messages will be scheduled for processing at least 50 times.
 
 The default value for this option is 0—indicating that no specific allocation or scheduling is in effect. If all of your canisters use the default setting, processing occurs in a round-robin fashion.
+
+## dfx canister metadata
+
+Use the `dfx canister metadata` command to display metadata stored in a canister's WASM module.
+
+### Basic usage
+
+``` bash
+dfx canister metadata canister metadata-name
+```
+
+### Flags
+
+You can use the following optional flags with the `dfx canister metadata` command.
+
+| Flag              | Description                   |
+|-------------------|-------------------------------|
+| `-h`, `--help`    | Displays usage information.   |
+
+### Arguments
+
+You can use the following argument with the `dfx canister metadata` command.
+
+| Argument        | Description                                                                      |
+|-----------------|----------------------------------------------------------------------------------|
+| `canister`      | Specifies the name or id of the canister for which you want to display metadata. |
+| `metadata-name` | Specifies the name of the metadata which you want to display.                    |
+
+
+### Examples
+
+To display the candid service metadata for the `hello_world` canister, you can run the following command:
+
+``` bash
+dfx canister metadata hello_world candid:service
+```
+
+The command displays output similar to the following:
+
+```
+service : {
+  greet: (text) -> (text);
+}
+```
+
 
 ## dfx canister request-status
 

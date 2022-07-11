@@ -23,6 +23,11 @@ teardown() {
     assert_command dfx canister install hello_backend
     assert_command dfx canister call hello_backend greet dfinity
     assert_match '("Hello, dfinity!")'
+
+    # dfx sets the candid:service metadata
+    dfx canister metadata custom candid:service >installed.did
+    assert_command diff src/hello_backend/hello_backend.did installed.did
+
 }
 
 @test "rust canister can resolve dependencies" {

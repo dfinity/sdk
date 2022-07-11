@@ -13,6 +13,16 @@ After `dfx new <project>`, the canister names are:
 - `<project>_backend` (previously `<project>`)
 - `<project>_frontend` (previously `<project>_assets`)
 
+=== feat: new command: dfx canister metadata <canister> <name>
+
+For example, to query a canister's candid service definition: `dfx canister metadata hello_backend candid:service`
+
+=== refactor: deprecate /_/candid internal webserver
+
+The dfx internal webserver now only services the /_/candid endpoint.  This
+is now deprecated.  If you were using this to query candid definitions, you
+can instead use `dfx canister metadata`.
+
 === feat: Enable threshold ecdsa signature
 
 ECDSA signature signing is now enabled by default in new projects, or by running `dfx start --clean`.
