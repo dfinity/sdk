@@ -78,7 +78,7 @@ jobs:
       - name: Check dynamically-linked libraries (macos)
         run: |
           ACTUAL="$(otool -L ${{ matrix.binary_path }}/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
-          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libiconv.2.dylib /usr/lib/libresolv.9.dylib"
+          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libc++.1.dylib /usr/lib/libiconv.2.dylib /usr/lib/libresolv.9.dylib"
           echo "Dynamically-linked libraries:"
           echo "  Actual:   $ACTUAL"
           echo "  Expected: $EXPECTED"
@@ -90,7 +90,7 @@ jobs:
       - name: Check dynamically-linked libraries (ubuntu)
         run: |
           ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
-          EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libdl.so.2 libgcc_s.so.1 libm.so.6 libpthread.so.0 linux-vdso.so.1"
+          EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libdl.so.2 libgcc_s.so.1 libm.so.6 libpthread.so.0 libstdc++.so.6 linux-vdso.so.1"
           echo "Dynamically-linked libraries:"
           echo "  Actual:   $ACTUAL"
           echo "  Expected: $EXPECTED"
