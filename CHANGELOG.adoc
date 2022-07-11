@@ -5,15 +5,30 @@
 
 == DFX
 
+=== feat: renamed canisters in new projects to <project>_frontend and <project>_backend
+
+The names of canisters created for new projects have changed.
+After `dfx new <project>`, the canister names are:
+
+- `<project>_backend` (previously `<project>`)
+- `<project>_frontend` (previously `<project>_assets`)
+
+=== feat: Enable threshold ecdsa signature
+
+ECDSA signature signing is now enabled by default in new projects, or by running `dfx start --clean`.
+A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created canisters.
+
 === refactor: optimize from ic-wasm
 
 Optimize Rust canister WASM module via ic-wasm library instead of ic-cdk-optimizer.
 
 The actual optimization was kept the same.
 
-=== feat: Read dfx canister call argument from a file
+=== feat: Read dfx canister call argument from a file or stdin
 
-Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet`.
+Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example:
+ * Named file: `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet`
+ * Stdin: `echo '( null )' | dfx canister call --argument-file - my_canister_name greet`
 
 === fix: Use default setting for BTC adapter idle seconds
 
