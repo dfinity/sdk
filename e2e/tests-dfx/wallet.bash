@@ -91,7 +91,7 @@ teardown() {
     ID_TWO=$(dfx canister --network actuallylocal id hello_backend)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
     dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
 
     # We're testing on a local network so the create command actually creates a wallet

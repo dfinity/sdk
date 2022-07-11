@@ -346,7 +346,7 @@ teardown() {
     echo "yes" | assert_command dfx --identity alice canister install hello_backend -m reinstall
     echo "yes" | assert_command dfx --identity bob canister install hello_backend -m reinstall
 
-    assert_command dfx canister info hello
+    assert_command dfx canister info hello_backend
     assert_match "Controllers: ${PRINCIPALS_SORTED}"
 }
 
