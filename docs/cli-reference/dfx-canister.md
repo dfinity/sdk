@@ -458,10 +458,10 @@ dfx canister install --all
 
 #### Installing a specific canister
 
-You can also use the `dfx canister install` command to deploy a specific canister instead of all of the canisters in your project. For example, if you have a project with a `hello_world` canister and a `hello_world_assets` canister but only want to deploy the `hello_world` canister, you can deploy just that the canister by running the following command:
+You can also use the `dfx canister install` command to deploy a specific canister instead of all of the canisters in your project. For example, if you have a project with a `hello_world_backend` canister and a `hello_world_frontend` canister but only want to deploy the `hello_world_backend` canister, you can deploy just that the canister by running the following command:
 
 ``` bash
-dfx canister install hello_world
+dfx canister install hello_world_backend
 ```
 
 #### Sending an asynchronous request
@@ -469,7 +469,7 @@ dfx canister install hello_world
 If you want to submit a request to install the canister and return a request identifier to check on the status of your request later instead of waiting for the command to complete, you can run a command similar to the following:
 
 ``` bash
-dfx canister install hello_world --async
+dfx canister install hello_world_backend --async
 ```
 
 This command submits a request to install the canister and returns a request identifier similar to the following:
@@ -549,6 +549,7 @@ dfx canister request-status 0x58d08e785445dcab4ff090463b9e8b12565a67bf436251d13e
 ```
 
 This command displays an error message if the request identifier is invalid or refused by the canister.
+
 
 ## dfx canister send
 

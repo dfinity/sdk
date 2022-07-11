@@ -18,11 +18,10 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command dfx build hello
-    assert_command dfx build hello
+    assert_command dfx build hello_backend
     assert_match "Optimizing WASM module."
-    assert_command dfx canister install hello
-    assert_command dfx canister call hello greet dfinity
+    assert_command dfx canister install hello_backend
+    assert_command dfx canister call hello_backend greet dfinity
     assert_match '("Hello, dfinity!")'
 }
 
@@ -45,5 +44,5 @@ teardown() {
     export CARGO_TARGET_DIR
     dfx_start
     assert_command dfx deploy
-    assert_command dfx canister call e2e_project greet dfinity
+    assert_command dfx canister call e2e_project_backend greet dfinity
 }

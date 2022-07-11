@@ -5,6 +5,13 @@
 
 == DFX
 
+=== feat: renamed canisters in new projects to <project>_frontend and <project>_backend
+
+The names of canisters created for new projects have changed.
+After `dfx new <project>`, the canister names are:
+
+- `<project>_backend` (previously `<project>`)
+- `<project>_frontend` (previously `<project>_assets`)
 
 === feat: Enable threshold ecdsa signature
 
