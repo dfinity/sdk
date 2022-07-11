@@ -304,6 +304,8 @@ fn replica_start_thread(
             "rocksdb",
             "--subnet-type",
             &config.subnet_type.as_ic_starter_string(),
+            "--ecdsa-keyid",
+            "Secp256k1:dfx_test_key",
         ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);
