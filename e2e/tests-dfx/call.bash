@@ -123,7 +123,7 @@ teardown() {
     ID="$(dfx canister id hello)"
     NETWORK="http://localhost:$(cat .dfx/webserver-port)"
     (
-        cd "$DFX_E2E_TEMP_DIR"
+        cd "$E2E_TEMP_DIR"
         mkdir "not-a-project-dir"
         cd "not-a-project-dir"
         assert_command dfx canister --network "$NETWORK" call "$ID" greet '("you")'

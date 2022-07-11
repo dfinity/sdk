@@ -41,7 +41,7 @@ teardown() {
 }
 
 @test "sign outside of a dfx project" {
-    cd "$DFX_E2E_TEMP_DIR"
+    cd "$E2E_TEMP_DIR"
     mkdir not-a-project-dir
     cd not-a-project-dir
 

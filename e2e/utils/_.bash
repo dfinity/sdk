@@ -12,7 +12,7 @@ install_asset() {
 standard_setup() {
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
-    export DFX_E2E_TEMP_DIR="$x"
+    export E2E_TEMP_DIR="$x"
 
     mkdir "$x/working-dir"
     mkdir "$x/cache-root"
@@ -28,7 +28,7 @@ standard_setup() {
 }
 
 standard_teardown() {
-    rm -rf "$DFX_E2E_TEMP_DIR" || rm -rf "$DFX_E2E_TEMP_DIR"
+    rm -rf "$E2E_TEMP_DIR" || rm -rf "$E2E_TEMP_DIR"
 }
 
 dfx_new_frontend() {
@@ -91,12 +91,10 @@ dfx_patchelf() {
 dfx_start() {
     dfx_patchelf
 
-    if [ "$GITHUB_WORKSPACE" ]; then
-        # no need for random ports on github workflow; even using a random port we sometimes
-        # get 'address in use', so the hope is to avoid that by using a fixed port.
+    if [ "$E2E_STATIC_PORTS" ]; then
         FRONTEND_HOST="127.0.0.1:8000"
     else
-        # Start on random port for parallel test execution (needed on nix/hydra)
+        # Start on random port for parallel test execution
         FRONTEND_HOST="127.0.0.1:0"
     fi
 
