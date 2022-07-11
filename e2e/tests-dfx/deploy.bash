@@ -29,8 +29,8 @@ teardown() {
     dfx_start
     WALLET=$(dfx identity get-wallet)
     PRINCIPAL=$(dfx identity get-principal)
-    assert_command dfx deploy hello
-    assert_command dfx canister info hello
+    assert_command dfx deploy hello_backend
+    assert_command dfx canister info hello_backend
     assert_match "Controllers: ($WALLET $PRINCIPAL|$PRINCIPAL $WALLET)"
 }
 
@@ -38,8 +38,8 @@ teardown() {
     dfx_start
     WALLET=$(dfx identity get-wallet)
     PRINCIPAL=$(dfx identity get-principal)
-    assert_command dfx deploy hello --no-wallet
-    assert_command dfx canister info hello
+    assert_command dfx deploy hello_backend --no-wallet
+    assert_command dfx canister info hello_backend
     assert_not_match "Controllers: ($WALLET $PRINCIPAL|$PRINCIPAL $WALLET)"
     assert_match "Controllers: $PRINCIPAL"
 }
@@ -55,7 +55,7 @@ teardown() {
         assert_match "Installing code for"
     )
 
-    assert_command dfx canister call hello greet '("Banzai")'
+    assert_command dfx canister call hello_backend greet '("Banzai")'
     assert_eq '("Hello, Banzai!")'
 
     assert_command dfx deploy

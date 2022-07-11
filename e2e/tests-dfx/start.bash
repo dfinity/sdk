@@ -18,13 +18,13 @@ teardown() {
 
     assert_command dfx deploy
 
-    ID=$(dfx canister id hello)
+    ID=$(dfx canister id hello_backend)
     PORT=$(get_webserver_port)
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID" -o ./web.txt --max-time 60
-    assert_command diff .dfx/local/canisters/hello/hello.did ./web.txt
+    assert_command diff .dfx/local/canisters/hello_backend/hello_backend.did ./web.txt
     assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt --max-time 60
     # Relax diff as it's produced by two different compilers.
-    assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello/hello.did.js ./web.txt
+    assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello_backend/hello_backend.did.js ./web.txt
 }
 
 @test "dfx restarts the replica" {
@@ -35,7 +35,7 @@ teardown() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
     REPLICA_PID=$(get_replica_pid)
@@ -54,10 +54,10 @@ teardown() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
-    assert_command dfx canister call hello greet '("Omega")'
+    assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 }
 
@@ -69,7 +69,7 @@ teardown() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
     ICX_PROXY_PID=$(get_icx_proxy_pid)
@@ -79,7 +79,7 @@ teardown() {
     kill -KILL "$ICX_PROXY_PID"
     assert_process_exits "$ICX_PROXY_PID" 15s
 
-    ID=$(dfx canister id hello_assets)
+    ID=$(dfx canister id hello_frontend)
 
     timeout 15s sh -c \
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
@@ -96,7 +96,7 @@ teardown() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
     REPLICA_PID=$(get_replica_pid)
@@ -118,13 +118,13 @@ teardown() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
-    assert_command dfx canister call hello greet '("Omega")'
+    assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 
-    ID=$(dfx canister id hello_assets)
+    ID=$(dfx canister id hello_frontend)
 
     timeout 15s sh -c \
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
