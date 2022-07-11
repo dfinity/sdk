@@ -7,7 +7,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
-use crate::util::clap::validators::{cycle_amount_validator, file_validator};
+use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, Context};
@@ -21,6 +21,7 @@ use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
 use std::fs;
+use std::io::{stdin, Read};
 use std::option::Option;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -55,7 +56,7 @@ pub struct CanisterCallOpts {
     /// Specifies the file from which to read the argument to pass to the method.
     #[clap(
         long,
-        validator(file_validator),
+        validator(file_or_stdin_validator),
         conflicts_with("random"),
         conflicts_with("argument")
     )]
@@ -237,7 +238,15 @@ pub async fn exec(
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file: Option<String> = opts.argument_file.map(|filename| {
-        fs::read_to_string(filename).expect("Could not read arguments file to string.")
+        if filename == "-" {
+            let mut content = String::new();
+            stdin()
+                .read_to_string(&mut content)
+                .expect("Could not read arguments from stdin to string.");
+            content
+        } else {
+            fs::read_to_string(filename).expect("Could not read arguments file to string.")
+        }
     });
     let arguments = opts.argument.as_deref();
     let arguments = arguments_from_file.as_deref().or(arguments);

@@ -42,7 +42,7 @@ set_local_network_bitcoin_enabled() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
     REPLICA_PID=$(get_replica_pid)
@@ -64,13 +64,13 @@ set_local_network_bitcoin_enabled() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
-    assert_command dfx canister call hello greet '("Omega")'
+    assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 
-    ID=$(dfx canister id hello_assets)
+    ID=$(dfx canister id hello_frontend)
 
     timeout 15s sh -c \
       "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
@@ -87,7 +87,7 @@ set_local_network_bitcoin_enabled() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 
     REPLICA_PID=$(get_replica_pid)
@@ -113,10 +113,10 @@ set_local_network_bitcoin_enabled() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
-    assert_command dfx canister call hello greet '("Omega")'
+    assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
 }
 
@@ -190,7 +190,7 @@ set_local_network_bitcoin_enabled() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 }
 
@@ -205,7 +205,7 @@ set_local_network_bitcoin_enabled() {
 
     install_asset greet
     assert_command dfx deploy
-    assert_command dfx canister call hello greet '("Alpha")'
+    assert_command dfx canister call hello_backend greet '("Alpha")'
     assert_eq '("Hello, Alpha!")'
 }
 
