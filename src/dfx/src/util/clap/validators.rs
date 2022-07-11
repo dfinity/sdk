@@ -53,11 +53,12 @@ pub fn file_validator(path: &str) -> Result<(), String> {
 }
 
 pub fn file_or_stdin_validator(path: &str) -> Result<(), String> {
-   if path == "-" { // represents stdin
-      Ok(())
-   } else {
-      file_validator(path)
-   }
+    if path == "-" {
+        // represents stdin
+        Ok(())
+    } else {
+        file_validator(path)
+    }
 }
 
 pub fn trillion_cycle_amount_validator(cycles: &str) -> Result<(), String> {
