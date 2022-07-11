@@ -1739,8 +1739,6 @@ version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
 
-[[package
-
 [[package]]
 name = "humansize"
 version = "1.1.1"
