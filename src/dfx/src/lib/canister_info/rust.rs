@@ -36,7 +36,7 @@ impl CanisterInfoFactory for RustCanisterInfo {
             target_directory: PathBuf,
         }
         let metadata = Command::new("cargo")
-            .args(["metadata", "--no-deps", "--format-version=1"])
+            .args(["metadata", "--no-deps", "--format-version=1", "--locked"])
             .stderr(Stdio::inherit())
             .stdout(Stdio::piped())
             .output()

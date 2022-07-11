@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: Use `+--locked+` for Rust canisters
+
+`+dfx build+`, in Rust canisters, now uses the `+--locked+` flag when building with Cargo. To offset this, `+dfx new --type rust+` now runs `+cargo update+` on the resulting project.
+
 === refactor: optimize from ic-wasm
 
 Optimize Rust canister WASM module via ic-wasm library instead of ic-cdk-optimizer.

@@ -59,6 +59,7 @@ dfx_new_rust() {
     test -d ${project_name}
     test -f ${project_name}/dfx.json
     test -f ${project_name}/Cargo.toml
+    test -f ${project_name}/Cargo.lock
     cd ${project_name}
 
     echo PWD: $(pwd) >&2

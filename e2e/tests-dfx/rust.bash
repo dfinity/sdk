@@ -47,3 +47,12 @@ teardown() {
     assert_command dfx deploy
     assert_command dfx canister call e2e_project greet dfinity
 }
+
+@test "rust canister fails to build with missing lockfile" {
+    dfx_new_rust
+    rm -f ./Cargo.lock
+    dfx_start
+    assert_command_fail dfx deploy
+    cargo update
+    assert_command dfx deploy
+}
