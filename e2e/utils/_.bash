@@ -7,6 +7,7 @@ install_asset() {
     cp -R $ASSET_ROOT/* .
 
     [ -f ./patch.bash ] && source ./patch.bash
+    [ -f ./Cargo.toml ] && cargo update
 }
 
 standard_setup() {
