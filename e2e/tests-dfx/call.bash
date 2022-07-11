@@ -64,8 +64,11 @@ teardown() {
     dfx canister create --all
     dfx build
     dfx canister install hello
-    printf '("stdin")' | assert_command dfx canister call --argument-file - "$(dfx canister id hello)" greet
+    TMP_NAME_FILE="$(mktemp)"
+    printf '("stdin")' > "$TMP_NAME_FILE"
+    assert_command dfx canister call --argument-file - "$(dfx canister id hello)" greet < "$TMP_NAME_FILE"
     assert_match '("Hello, stdin!")'
+    rm "$TMP_NAME_FILE"
 }
 
 @test "call random value (pattern)" {
