@@ -53,7 +53,7 @@ teardown() {
     dfx canister install hello_backend
     TMP_NAME_FILE="$(mktemp)"
     printf '("Names can be very long")' > "$TMP_NAME_FILE"
-    assert_command dfx canister call --argument-file "$TMP_NAME_FILE" "$(dfx canister id hello_backend)" greet
+    assert_command dfx canister call --argument-file "$TMP_NAME_FILE" hello_backend greet
     assert_match '("Hello, Names can be very long!")'
     rm "$TMP_NAME_FILE"
 }
@@ -63,10 +63,10 @@ teardown() {
     dfx_start
     dfx canister create --all
     dfx build
-    dfx canister install hello
+    dfx canister install hello_backend
     TMP_NAME_FILE="$(mktemp)"
     printf '("stdin")' > "$TMP_NAME_FILE"
-    assert_command dfx canister call --argument-file - "$(dfx canister id hello)" greet < "$TMP_NAME_FILE"
+    assert_command dfx canister call --argument-file - hello_backend greet < "$TMP_NAME_FILE"
     assert_match '("Hello, stdin!")'
     rm "$TMP_NAME_FILE"
 }
