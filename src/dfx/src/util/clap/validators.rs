@@ -52,6 +52,14 @@ pub fn file_validator(path: &str) -> Result<(), String> {
     Err("Path does not exist or is not a file.".to_string())
 }
 
+pub fn file_or_stdin_validator(path: &str) -> Result<(), String> {
+   if path == "-" { // represents stdin
+      Ok(())
+   } else {
+      file_validator(path)
+   }
+}
+
 pub fn trillion_cycle_amount_validator(cycles: &str) -> Result<(), String> {
     if format!("{}000000000000", cycles).parse::<u128>().is_ok() {
         return Ok(());

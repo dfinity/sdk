@@ -7,7 +7,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
-use crate::util::clap::validators::{cycle_amount_validator, file_validator};
+use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, Context};
@@ -56,7 +56,7 @@ pub struct CanisterCallOpts {
     /// Specifies the file from which to read the argument to pass to the method.
     #[clap(
         long,
-        validator(file_validator),
+        validator(file_or_stdin_validator),
         conflicts_with("random"),
         conflicts_with("argument")
     )]
