@@ -1,1 +1,1 @@
-cat <<<"$(jq '.canisters.hello.main="greet.mo"' dfx.json)" >dfx.json
+cat <<<"$(jq '.canisters.hello_backend.main="greet.mo"' dfx.json)" >dfx.json

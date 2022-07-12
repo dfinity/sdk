@@ -1,1 +1,1 @@
-cat <<<"$(jq '.canisters.hello.main="recurse.mo"' dfx.json)" >dfx.json
+cat <<<"$(jq '.canisters.hello_backend.main="recurse.mo"' dfx.json)" >dfx.json
