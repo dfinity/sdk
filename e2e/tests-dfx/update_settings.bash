@@ -16,18 +16,18 @@ teardown() {
 
 @test "set freezing threshold" {
     dfx_start
-    assert_command dfx deploy hello
+    assert_command dfx deploy hello_backend
 
     # trying to set threshold to 1T seconds, which should not work because it's likely a mistake
-    assert_command_fail dfx canister update-settings hello --freezing-threshold 100000000000
+    assert_command_fail dfx canister update-settings hello_backend --freezing-threshold 100000000000
     assert_match "SECONDS" # error message pointing to the error
 
     # with manual override it's ok
-    assert_command dfx canister update-settings hello --freezing-threshold 100000000000 --confirm-very-long-freezing-threshold
+    assert_command dfx canister update-settings hello_backend --freezing-threshold 100000000000 --confirm-very-long-freezing-threshold
 
     # to check if threshold is set correctly we have to un-freeze the canister by adding cycles. Fabricating 100T cycles onto it
-    assert_command dfx ledger fabricate-cycles --canister hello --t 100
-    assert_command dfx canister status hello
+    assert_command dfx ledger fabricate-cycles --canister hello_backend --t 100
+    assert_command dfx canister status hello_backend
     assert_match "Freezing threshold: 100_000_000_000"
 }
 
@@ -42,36 +42,36 @@ teardown() {
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
 
-    dfx canister create hello
-    dfx build hello
-    dfx canister install hello
-    ID=$(dfx canister id hello)
+    dfx canister create hello_backend
+    dfx build hello_backend
+    dfx canister install hello_backend
+    ID=$(dfx canister id hello_backend)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister update-settings hello --controller bob
-    assert_match "Set controller of \"hello\" to: bob"
+    assert_command dfx canister update-settings hello_backend --controller bob
+    assert_match "Set controller of \"hello_backend\" to: bob"
 
     # Bob is controller, Alice cannot reinstall
-    echo "yes" | assert_command_fail dfx canister install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister install hello_backend -m reinstall
 
     # Bob can reinstall
-    echo "yes" | assert_command dfx --identity bob canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister install hello_backend -m reinstall
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
     assert_command dfx canister update-settings "$ID" --controller "${ALICE_PRINCIPAL}"
     assert_match "Set controller of \"${ID}\" to: ${ALICE_PRINCIPAL}"
-    echo "yes" | assert_command_fail dfx canister install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister install hello_backend -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity alice canister update-settings hello --controller "${BOB_PRINCIPAL}"
-    assert_match "Set controller of \"hello\" to: ${BOB_PRINCIPAL}"
+    assert_command dfx --identity alice canister update-settings hello_backend --controller "${BOB_PRINCIPAL}"
+    assert_match "Set controller of \"hello_backend\" to: ${BOB_PRINCIPAL}"
 
     assert_command dfx --identity bob canister update-settings "${ID}" --controller alice
     assert_match "Set controller of \"${ID}\" to: alice"
 
     # Set controller using invalid principal/identity fails
-    assert_command_fail dfx --identity alice canister update-settings hello --controller charlie
+    assert_command_fail dfx --identity alice canister update-settings hello_backend --controller charlie
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
@@ -90,36 +90,36 @@ teardown() {
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
     BOB_WALLET=$(dfx --identity bob identity get-wallet)
 
-    dfx canister --wallet "${ALICE_WALLET}" create hello
-    dfx build hello
-    dfx canister --wallet "${ALICE_WALLET}" install hello
-    ID=$(dfx canister id hello)
+    dfx canister --wallet "${ALICE_WALLET}" create hello_backend
+    dfx build hello_backend
+    dfx canister --wallet "${ALICE_WALLET}" install hello_backend
+    ID=$(dfx canister id hello_backend)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister --wallet "${ALICE_WALLET}" update-settings hello --controller "${BOB_WALLET}"
-    assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
+    assert_command dfx canister --wallet "${ALICE_WALLET}" update-settings hello_backend --controller "${BOB_WALLET}"
+    assert_match "Set controller of \"hello_backend\" to: ${BOB_WALLET}"
 
     # Bob is controller, Alice cannot reinstall
-    echo "yes" | assert_command_fail dfx canister --wallet "${ALICE_WALLET}" install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister --wallet "${ALICE_WALLET}" install hello_backend -m reinstall
 
     # Bob can reinstall
-    echo "yes" | assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" install hello -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" install hello_backend -m reinstall
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
     assert_command dfx canister --wallet "${BOB_WALLET}" update-settings "${ID}" --controller "${ALICE_WALLET}"
     assert_match "Set controller of \"${ID}\" to: ${ALICE_WALLET}"
-    echo "yes" | assert_command_fail dfx canister --wallet "${BOB_WALLET}" install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister --wallet "${BOB_WALLET}" install hello_backend -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity alice canister --wallet "${ALICE_WALLET}" update-settings hello --controller "${BOB_WALLET}"
-    assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
+    assert_command dfx --identity alice canister --wallet "${ALICE_WALLET}" update-settings hello_backend --controller "${BOB_WALLET}"
+    assert_match "Set controller of \"hello_backend\" to: ${BOB_WALLET}"
 
     assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" update-settings "${ID}" --controller alice
     assert_match "Set controller of \"${ID}\" to: alice"
 
     # Set controller using invalid principal/identity fails
-    assert_command_fail dfx --identity alice canister --wallet "${ALICE_WALLET}" update-settings hello --controller charlie
+    assert_command_fail dfx --identity alice canister --wallet "${ALICE_WALLET}" update-settings hello_backend --controller charlie
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
@@ -140,36 +140,36 @@ teardown() {
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
     BOB_WALLET=$(dfx --identity bob identity get-wallet)
 
-    dfx canister --wallet "${ALICE_WALLET}" create hello
-    dfx build hello
-    dfx canister --wallet "${ALICE_WALLET}" install hello
-    ID=$(dfx canister id hello)
+    dfx canister --wallet "${ALICE_WALLET}" create hello_backend
+    dfx build hello_backend
+    dfx canister --wallet "${ALICE_WALLET}" install hello_backend
+    ID=$(dfx canister id hello_backend)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister --wallet "${ALICE_WALLET}" update-settings hello --controller "${BOB_WALLET}"
-    assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
+    assert_command dfx canister --wallet "${ALICE_WALLET}" update-settings hello_backend --controller "${BOB_WALLET}"
+    assert_match "Set controller of \"hello_backend\" to: ${BOB_WALLET}"
 
     # Bob is controller, Alice cannot reinstall
-    echo "yes" | assert_command_fail dfx canister --wallet "${ALICE_WALLET}" install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister --wallet "${ALICE_WALLET}" install hello_backend -m reinstall
 
     # Bob can reinstall
-    echo "yes" | assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" install hello -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" install hello_backend -m reinstall
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
     assert_command dfx canister --wallet "${BOB_WALLET}" update-settings "${ID}" --controller "${ALICE_WALLET}"
     assert_match "Set controller of \"${ID}\" to: ${ALICE_WALLET}"
-    echo "yes" | assert_command_fail dfx canister --wallet "${BOB_WALLET}" install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister --wallet "${BOB_WALLET}" install hello_backend -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity alice canister --wallet "${ALICE_WALLET}" update-settings hello --controller "${BOB_WALLET}"
-    assert_match "Set controller of \"hello\" to: ${BOB_WALLET}"
+    assert_command dfx --identity alice canister --wallet "${ALICE_WALLET}" update-settings hello_backend --controller "${BOB_WALLET}"
+    assert_match "Set controller of \"hello_backend\" to: ${BOB_WALLET}"
 
     assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" update-settings "${ID}" --controller alice
     assert_match "Set controller of \"${ID}\" to: alice"
 
     # Set controller using invalid principal/identity fails
-    assert_command_fail dfx --identity alice canister update-settings hello --controller charlie
+    assert_command_fail dfx --identity alice canister update-settings hello_backend --controller charlie
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
@@ -189,37 +189,37 @@ teardown() {
     ALICE_PRINCIPAL=$(dfx --identity alice identity get-principal)
     BOB_PRINCIPAL=$(dfx --identity bob identity get-principal)
 
-    dfx canister create hello
-    dfx canister --wallet "$(dfx identity get-wallet)" update-settings hello --add-controller "$ALICE_PRINCIPAL"
-    dfx build hello
-    dfx canister install hello
-    ID=$(dfx canister id hello)
+    dfx canister create hello_backend
+    dfx canister --wallet "$(dfx identity get-wallet)" update-settings hello_backend --add-controller "$ALICE_PRINCIPAL"
+    dfx build hello_backend
+    dfx canister install hello_backend
+    ID=$(dfx canister id hello_backend)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister update-settings hello --controller bob
-    assert_match "Set controller of \"hello\" to: bob"
+    assert_command dfx canister update-settings hello_backend --controller bob
+    assert_match "Set controller of \"hello_backend\" to: bob"
 
     # Bob is controller, Alice cannot reinstall
-    echo "yes" | assert_command_fail dfx canister install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister install hello_backend -m reinstall
 
     # Bob can reinstall
-    echo "yes" | assert_command dfx --identity bob canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister install hello_backend -m reinstall
 
     assert_command dfx identity use bob
     # Set controller using canister id and principal
     assert_command dfx canister update-settings "$ID" --controller "${ALICE_PRINCIPAL}"
     assert_match "Set controller of \"${ID}\" to: ${ALICE_PRINCIPAL}"
-    echo "yes" | assert_command_fail dfx canister install hello -m reinstall
+    echo "yes" | assert_command_fail dfx canister install hello_backend -m reinstall
 
     # Set controller using combination of name/id and identity/principal
-    assert_command dfx --identity alice canister update-settings hello --controller "${BOB_PRINCIPAL}"
-    assert_match "Set controller of \"hello\" to: ${BOB_PRINCIPAL}"
+    assert_command dfx --identity alice canister update-settings hello_backend --controller "${BOB_PRINCIPAL}"
+    assert_match "Set controller of \"hello_backend\" to: ${BOB_PRINCIPAL}"
 
     assert_command dfx --identity bob canister update-settings "${ID}" --controller alice
     assert_match "Set controller of \"${ID}\" to: alice"
 
     # Set controller using invalid principal/identity fails
-    assert_command_fail dfx --identity alice canister update-settings hello --controller charlie
+    assert_command_fail dfx --identity alice canister update-settings hello_backend --controller charlie
     assert_match "Identity charlie does not exist"
 
     # Set controller using invalid canister name/id fails
@@ -241,20 +241,20 @@ teardown() {
     # awk step is to avoid trailing space
     PRINCIPALS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    dfx canister create hello
-    dfx build hello
-    dfx canister install hello
-    ID=$(dfx canister id hello)
+    dfx canister create hello_backend
+    dfx build hello_backend
+    dfx canister install hello_backend
+    ID=$(dfx canister id hello_backend)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister update-settings hello --controller "${ALICE_PRINCIPAL}" --controller "${BOB_PRINCIPAL}"
-    assert_match "Set controllers of \"hello\" to: $PRINCIPALS_SORTED"
+    assert_command dfx canister update-settings hello_backend --controller "${ALICE_PRINCIPAL}" --controller "${BOB_PRINCIPAL}"
+    assert_match "Set controllers of \"hello_backend\" to: $PRINCIPALS_SORTED"
 
     # Both can reinstall
-    echo "yes" | assert_command dfx --identity alice canister install hello -m reinstall
-    echo "yes" | assert_command dfx --identity bob canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity alice canister install hello_backend -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister install hello_backend -m reinstall
 
-    assert_command dfx canister info hello
+    assert_command dfx canister info hello_backend
     assert_match "Controllers: ${PRINCIPALS_SORTED}"
 }
 
@@ -270,20 +270,20 @@ teardown() {
     # awk step is to avoid trailing space
     WALLETS_SORTED=$(echo "${ALICE_WALLET}" "${BOB_WALLET}" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    dfx canister create hello
-    dfx build hello
-    dfx canister install hello
-    ID=$(dfx canister id hello)
+    dfx canister create hello_backend
+    dfx build hello_backend
+    dfx canister install hello_backend
+    ID=$(dfx canister id hello_backend)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister --wallet "${ALICE_WALLET}" update-settings hello --controller "${ALICE_WALLET}" --controller "${BOB_WALLET}"
-    assert_match "Set controllers of \"hello\" to: ${WALLETS_SORTED}"
+    assert_command dfx canister --wallet "${ALICE_WALLET}" update-settings hello_backend --controller "${ALICE_WALLET}" --controller "${BOB_WALLET}"
+    assert_match "Set controllers of \"hello_backend\" to: ${WALLETS_SORTED}"
 
     # Both can reinstall
-    echo "yes" | assert_command dfx --identity alice canister --wallet "${ALICE_WALLET}" install hello -m reinstall
-    echo "yes" | assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" install hello -m reinstall
+    echo "yes" | assert_command dfx --identity alice canister --wallet "${ALICE_WALLET}" install hello_backend -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" install hello_backend -m reinstall
 
-    assert_command dfx canister info hello
+    assert_command dfx canister info hello_backend
     assert_match "Controllers: ${WALLETS_SORTED}"
 }
 
@@ -301,20 +301,20 @@ teardown() {
     # awk step is to avoid trailing space
     WALLETS_SORTED=$(echo "${ALICE_WALLET}" "${BOB_WALLET}" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    dfx canister create hello
-    dfx build hello
-    dfx canister --wallet "${ALICE_WALLET}" install hello
-    ID=$(dfx canister id hello)
+    dfx canister create hello_backend
+    dfx build hello_backend
+    dfx canister --wallet "${ALICE_WALLET}" install hello_backend
+    ID=$(dfx canister id hello_backend)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister --wallet "${ALICE_WALLET}" update-settings hello --controller "${ALICE_WALLET}" --controller "${BOB_WALLET}"
-    assert_match "Set controllers of \"hello\" to: $WALLETS_SORTED"
+    assert_command dfx canister --wallet "${ALICE_WALLET}" update-settings hello_backend --controller "${ALICE_WALLET}" --controller "${BOB_WALLET}"
+    assert_match "Set controllers of \"hello_backend\" to: $WALLETS_SORTED"
 
     # Both can reinstall
-    echo "yes" | assert_command dfx --identity alice canister --wallet "${ALICE_WALLET}" install hello -m reinstall
-    echo "yes" | assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" install hello -m reinstall
+    echo "yes" | assert_command dfx --identity alice canister --wallet "${ALICE_WALLET}" install hello_backend -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister --wallet "${BOB_WALLET}" install hello_backend -m reinstall
 
-    assert_command dfx canister info hello
+    assert_command dfx canister info hello_backend
     assert_match "Controllers: ${WALLETS_SORTED}"
 }
 
@@ -332,21 +332,21 @@ teardown() {
     # awk step is to avoid trailing space
     PRINCIPALS_SORTED=$(echo "$ALICE_PRINCIPAL" "$BOB_PRINCIPAL" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s",$1,$2}' )
 
-    dfx canister create hello
-    dfx canister --wallet "$(dfx identity get-wallet)" update-settings hello --add-controller "$ALICE_PRINCIPAL"
-    dfx build hello
-    dfx canister install hello
-    ID=$(dfx canister id hello)
+    dfx canister create hello_backend
+    dfx canister --wallet "$(dfx identity get-wallet)" update-settings hello_backend --add-controller "$ALICE_PRINCIPAL"
+    dfx build hello_backend
+    dfx canister install hello_backend
+    ID=$(dfx canister id hello_backend)
 
     # Set controller using canister name and identity name
-    assert_command dfx canister update-settings hello --controller "${ALICE_PRINCIPAL}" --controller "${BOB_PRINCIPAL}"
-    assert_match "Set controllers of \"hello\" to: $PRINCIPALS_SORTED"
+    assert_command dfx canister update-settings hello_backend --controller "${ALICE_PRINCIPAL}" --controller "${BOB_PRINCIPAL}"
+    assert_match "Set controllers of \"hello_backend\" to: $PRINCIPALS_SORTED"
 
     # Both can reinstall
-    echo "yes" | assert_command dfx --identity alice canister install hello -m reinstall
-    echo "yes" | assert_command dfx --identity bob canister install hello -m reinstall
+    echo "yes" | assert_command dfx --identity alice canister install hello_backend -m reinstall
+    echo "yes" | assert_command dfx --identity bob canister install hello_backend -m reinstall
 
-    assert_command dfx canister info hello
+    assert_command dfx canister info hello_backend
     assert_match "Controllers: ${PRINCIPALS_SORTED}"
 }
 
@@ -364,15 +364,15 @@ teardown() {
     CHARLIE=$(dfx --identity charlie identity get-principal)
     SORTED=$(echo "$ALICE" "$ALICE_WALLET" "$BOB" "$CHARLIE" | tr " " "\n" | sort | tr "\n" " " | awk '{printf "%s %s %s %s",$1,$2,$3,$4}' )
     
-    dfx canister create hello
-    dfx build hello
-    dfx canister install hello
+    dfx canister create hello_backend
+    dfx build hello_backend
+    dfx canister install hello_backend
     
     # make bob a controller
-    assert_command dfx canister update-settings hello --add-controller bob
+    assert_command dfx canister update-settings hello_backend --add-controller bob
     # check that bob has the authority to make someone else a controller
-    assert_command dfx --identity bob canister update-settings hello --add-controller charlie
-    assert_command dfx canister info hello
+    assert_command dfx --identity bob canister update-settings hello_backend --add-controller charlie
+    assert_command dfx canister info hello_backend
     assert_match "Controllers: $SORTED"
 }
 
@@ -398,7 +398,7 @@ teardown() {
     assert_command dfx canister update-settings --all --add-controller bob
     # check that bob has the authority to make someone else a controller
     assert_command dfx --identity bob canister update-settings --all --add-controller charlie
-    assert_command dfx canister info hello
+    assert_command dfx canister info hello_backend
     assert_match "Controllers: $SORTED"
 }
 
@@ -406,7 +406,7 @@ teardown() {
     dfx_start
     dfx deploy
 
-    CANISTER_ID=$(dfx canister id hello)
+    CANISTER_ID=$(dfx canister id hello_backend)
 
     rm .dfx/local/canister_ids.json
     # shellcheck disable=SC2094

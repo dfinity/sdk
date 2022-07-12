@@ -1,4 +1,8 @@
-use crate::config::dfinity::{Config, ConfigLocalProvider, ConfigNetwork, NetworkType};
+use crate::config::dfinity::{
+    Config, ConfigLocalProvider, ConfigNetwork, NetworkType, EMPTY_CONFIG_DEFAULTS_BITCOIN,
+    EMPTY_CONFIG_DEFAULTS_BOOTSTRAP, EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP,
+    EMPTY_CONFIG_DEFAULTS_REPLICA,
+};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
@@ -79,12 +83,40 @@ pub fn get_network_descriptor(
             })
         }
         Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
+            let project_defaults = config.get_defaults();
+            let bitcoin = local_provider
+                .bitcoin
+                .clone()
+                .or_else(|| project_defaults.bitcoin.clone())
+                .unwrap_or(EMPTY_CONFIG_DEFAULTS_BITCOIN);
+            let bootstrap = local_provider
+                .bootstrap
+                .clone()
+                .or_else(|| project_defaults.bootstrap.clone())
+                .unwrap_or(EMPTY_CONFIG_DEFAULTS_BOOTSTRAP);
+            let canister_http = local_provider
+                .canister_http
+                .clone()
+                .or_else(|| project_defaults.canister_http.clone())
+                .unwrap_or(EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP);
+            let replica = local_provider
+                .replica
+                .clone()
+                .or_else(|| project_defaults.replica.clone())
+                .unwrap_or(EMPTY_CONFIG_DEFAULTS_REPLICA);
+
             let network_type = local_provider.r#type;
             let bind_address =
                 get_local_bind_address(local_provider, local_bind_determination, &data_directory)?;
             let provider_url = format!("http://{}", bind_address);
             let providers = vec![parse_provider_url(&provider_url)?];
-            let local_server_descriptor = LocalServerDescriptor::new(bind_address)?;
+            let local_server_descriptor = LocalServerDescriptor::new(
+                bind_address,
+                bitcoin,
+                bootstrap,
+                canister_http,
+                replica,
+            )?;
             Ok(NetworkDescriptor {
                 name: network_name.to_string(),
                 providers,
@@ -198,8 +230,15 @@ pub fn parse_provider_url(url: &str) -> DfxResult<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::dfinity::to_socket_addr;
+    use crate::config::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
+    use crate::config::dfinity::{
+        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
+        ConfigDefaultsReplica,
+    };
+    use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
     use std::fs;
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::str::FromStr;
 
     #[test]
     fn use_default_if_no_webserver_port_file() {
@@ -395,6 +434,304 @@ mod tests {
                 .unwrap()
                 .bind_address,
             to_socket_addr("127.0.0.1:8000").unwrap()
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "nodes": ["127.0.0.1:18444"],
+                  "log_level": "info"
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
+        let bitcoin_config = &network_descriptor
+            .local_server_descriptor()
+            .unwrap()
+            .bitcoin;
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: BitcoinAdapterLogLevel::Info
+            }
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config_default_log_level() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "nodes": ["127.0.0.1:18444"]
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
+        let bitcoin_config = &network_descriptor
+            .local_server_descriptor()
+            .unwrap()
+            .bitcoin;
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: BitcoinAdapterLogLevel::Info // A default log level of "info" is assumed
+            }
+        );
+    }
+
+    #[test]
+    fn get_bitcoin_config_debug_log_level() {
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "bitcoin": {
+                  "enabled": true,
+                  "log_level": "debug"
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
+        let bitcoin_config = &network_descriptor
+            .local_server_descriptor()
+            .unwrap()
+            .bitcoin;
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: None,
+                log_level: BitcoinAdapterLogLevel::Debug
+            }
+        );
+    }
+
+    #[test]
+    fn bitcoin_config_on_local_network() {
+        let config = Config::from_str(
+            r#"{
+              "networks": {
+                "local": {
+                  "bind": "127.0.0.1:8000",
+                  "bitcoin": {
+                    "enabled": true,
+                    "nodes": ["127.0.0.1:18444"],
+                    "log_level": "info"
+                  }
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
+        let bitcoin_config = &network_descriptor
+            .local_server_descriptor()
+            .unwrap()
+            .bitcoin;
+
+        assert_eq!(
+            bitcoin_config,
+            &ConfigDefaultsBitcoin {
+                enabled: true,
+                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
+                log_level: BitcoinAdapterLogLevel::Info
+            }
+        );
+    }
+
+    #[test]
+    fn replica_config_on_local_network() {
+        let config = Config::from_str(
+            r#"{
+              "networks": {
+                "local": {
+                  "bind": "127.0.0.1:8000",
+                  "replica": {
+                    "subnet_type": "verifiedapplication",
+                    "port": 17001
+                  }
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
+        let replica_config = &network_descriptor
+            .local_server_descriptor()
+            .unwrap()
+            .replica;
+
+        assert_eq!(
+            replica_config,
+            &ConfigDefaultsReplica {
+                subnet_type: Some(VerifiedApplication),
+                port: Some(17001)
+            }
+        );
+    }
+
+    #[test]
+    fn replica_config_on_local_network_overrides_default() {
+        // Defaults are not combined.
+        // Here the 'default' level specifies a port, but it's ignored due to the
+        // network-level setting.
+        let config = Config::from_str(
+            r#"{
+              "defaults": {
+                "replica": {
+                  "port": 13131
+                }
+              },
+              "networks": {
+                "local": {
+                  "bind": "127.0.0.1:8000",
+                  "replica": {
+                    "subnet_type": "system"
+                  }
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
+        let replica_config = &network_descriptor
+            .local_server_descriptor()
+            .unwrap()
+            .replica;
+
+        assert_eq!(
+            replica_config,
+            &ConfigDefaultsReplica {
+                subnet_type: Some(System),
+                port: None
+            }
+        );
+    }
+
+    #[test]
+    fn canister_http_config_on_local_network() {
+        let config = Config::from_str(
+            r#"{
+              "networks": {
+                "local": {
+                  "bind": "127.0.0.1:8000",
+                  "canister_http": {
+                    "enabled": true
+                  }
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
+        let canister_http_config = &network_descriptor
+            .local_server_descriptor()
+            .unwrap()
+            .canister_http;
+
+        assert_eq!(
+            canister_http_config,
+            &ConfigDefaultsCanisterHttp { enabled: true }
+        );
+    }
+
+    #[test]
+    fn bootstrap_config_on_local_network() {
+        let config = Config::from_str(
+            r#"{
+              "networks": {
+                "local": {
+                  "bind": "127.0.0.1:8000",
+                  "bootstrap": {
+                    "ip": "0.0.0.0",
+                    "port": 12002,
+                    "timeout": 60000
+                  }
+                }
+              }
+        }"#,
+        )
+        .unwrap();
+
+        let network_descriptor = get_network_descriptor(
+            Some(Arc::new(config)),
+            None,
+            LocalBindDetermination::AsConfigured,
+        )
+        .unwrap();
+        let bootstrap_config = &network_descriptor
+            .local_server_descriptor()
+            .unwrap()
+            .bootstrap;
+
+        assert_eq!(
+            bootstrap_config,
+            &ConfigDefaultsBootstrap {
+                ip: Some(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))),
+                port: Some(12002),
+                timeout: Some(60000)
+            }
         );
     }
 

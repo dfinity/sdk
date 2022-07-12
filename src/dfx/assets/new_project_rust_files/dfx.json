@@ -2,18 +2,18 @@
   "version": 1,
   "dfx": "{dfx_version}",
   "canisters": {
-    "{project_name}": {
+    "{project_name}_backend": {
       "type": "rust",
-      "package": "{project_name}",
-      "candid": "src/{project_name}/{project_name}.did"
+      "package": "{project_name}_backend",
+      "candid": "src/{project_name}_backend/{project_name}_backend.did"
     },
-    "{project_name}_assets": {
+    "{project_name}_frontend": {
       "type": "assets",
       "source": [
-        "src/{project_name}_assets/assets"
+        "src/{project_name}_frontend/assets"
       ],
       "dependencies": [
-        "{project_name}"
+        "{project_name}_backend"
       ]
     }
   },

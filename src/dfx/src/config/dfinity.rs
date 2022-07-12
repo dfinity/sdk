@@ -24,16 +24,16 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     replica: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
+pub const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
     enabled: false,
     nodes: None,
     log_level: BitcoinAdapterLogLevel::Info,
 };
 
-const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
+pub const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
     ConfigDefaultsCanisterHttp { enabled: false };
 
-const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
+pub const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
     port: None,
     timeout: None,
@@ -44,7 +44,7 @@ const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
     args: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
+pub const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
     port: None,
     subnet_type: None,
 };
@@ -97,7 +97,7 @@ pub struct CanisterDeclarationsConfig {
     pub env_override: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ConfigDefaultsBitcoin {
     #[serde(default = "default_as_false")]
     pub enabled: bool,
@@ -111,7 +111,7 @@ pub struct ConfigDefaultsBitcoin {
     pub log_level: BitcoinAdapterLogLevel,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ConfigDefaultsCanisterHttp {
     #[serde(default = "default_as_false")]
     pub enabled: bool,
@@ -122,7 +122,7 @@ fn default_as_false() -> bool {
     false
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
     pub port: Option<u16>,
@@ -135,7 +135,7 @@ pub struct ConfigDefaultsBuild {
     pub args: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ConfigDefaultsReplica {
     pub port: Option<u16>,
     pub subnet_type: Option<ReplicaSubnetType>,
@@ -207,6 +207,11 @@ pub struct ConfigLocalProvider {
 
     #[serde(default = "NetworkType::ephemeral")]
     pub r#type: NetworkType,
+
+    pub bitcoin: Option<ConfigDefaultsBitcoin>,
+    pub bootstrap: Option<ConfigDefaultsBootstrap>,
+    pub canister_http: Option<ConfigDefaultsCanisterHttp>,
+    pub replica: Option<ConfigDefaultsReplica>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -275,34 +280,10 @@ impl ConfigDefaultsBuild {
 }
 
 impl ConfigDefaults {
-    pub fn get_bitcoin(&self) -> &ConfigDefaultsBitcoin {
-        match &self.bitcoin {
-            Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_BITCOIN,
-        }
-    }
-    pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
-        match &self.bootstrap {
-            Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_BOOTSTRAP,
-        }
-    }
     pub fn get_build(&self) -> &ConfigDefaultsBuild {
         match &self.build {
             Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_BUILD,
-        }
-    }
-    pub fn get_canister_http(&self) -> &ConfigDefaultsCanisterHttp {
-        match &self.canister_http {
-            Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP,
-        }
-    }
-    pub fn get_replica(&self) -> &ConfigDefaultsReplica {
-        match &self.replica {
-            Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_REPLICA,
         }
     }
 }
@@ -324,6 +305,10 @@ impl ConfigInterface {
             ("local", None) => Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
                 bind: String::from(DEFAULT_LOCAL_BIND),
                 r#type: NetworkType::Ephemeral,
+                bitcoin: None,
+                bootstrap: None,
+                canister_http: None,
+                replica: None,
             })),
             ("ic", _) => Some(ConfigNetwork::ConfigNetworkProvider(
                 ConfigNetworkProvider {
@@ -586,7 +571,6 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
 
     #[test]
     fn find_dfinity_config_current_path() {
@@ -780,84 +764,5 @@ mod tests {
             .unwrap();
         assert_eq!(None, compute_allocation);
         assert_eq!(None, memory_allocation);
-    }
-
-    #[test]
-    fn get_bitcoin_config() {
-        let config = Config::from_str(
-            r#"{
-              "defaults": {
-                "bitcoin": {
-                  "enabled": true,
-                  "nodes": ["127.0.0.1:18444"],
-                  "log_level": "info"
-                }
-              }
-        }"#,
-        )
-        .unwrap();
-
-        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
-
-        assert_eq!(
-            bitcoin_config,
-            &ConfigDefaultsBitcoin {
-                enabled: true,
-                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: BitcoinAdapterLogLevel::Info
-            }
-        );
-    }
-
-    #[test]
-    fn get_bitcoin_config_default_log_level() {
-        let config = Config::from_str(
-            r#"{
-              "defaults": {
-                "bitcoin": {
-                  "enabled": true,
-                  "nodes": ["127.0.0.1:18444"]
-                }
-              }
-        }"#,
-        )
-        .unwrap();
-
-        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
-
-        assert_eq!(
-            bitcoin_config,
-            &ConfigDefaultsBitcoin {
-                enabled: true,
-                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: BitcoinAdapterLogLevel::Info // A default log level of "info" is assumed
-            }
-        );
-    }
-
-    #[test]
-    fn get_bitcoin_config_debug_log_level() {
-        let config = Config::from_str(
-            r#"{
-              "defaults": {
-                "bitcoin": {
-                  "enabled": true,
-                  "log_level": "debug"
-                }
-              }
-        }"#,
-        )
-        .unwrap();
-
-        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
-
-        assert_eq!(
-            bitcoin_config,
-            &ConfigDefaultsBitcoin {
-                enabled: true,
-                nodes: None,
-                log_level: BitcoinAdapterLogLevel::Debug
-            }
-        );
     }
 }

@@ -10,7 +10,7 @@ This section lists the environment variables that are currently supported with e
 
 Use environment variables with the `CANISTER_CANDID_PATH` prefix to reference the path to the Candid description file for the canisters that are listed as dependencies in the `dfx.json` file for your project.
 
-For example, if you have a `whoami_assets` canister that lists `whoami` under the `dependencies` key, you could use the `CANISTER_CANDID_PATH_whoami_assets` environment variable to refer to the location of the `whoami.did` file, which for local development might be:
+For example, if you have a `whoami_frontend` canister that lists `whoami` under the `dependencies` key, you could use the `CANISTER_CANDID_PATH_whoami_frontend` environment variable to refer to the location of the `whoami.did` file, which for local development might be:
 
     $PROJECT_ROOT/.dfx/local/canisters/whoami/whoami.did
 
