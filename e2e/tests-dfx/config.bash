@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
     standard_setup
 
-    dfx_new
+    dfx_new_rust
 }
 
 teardown() {
@@ -18,15 +18,16 @@ teardown() {
 
     assert_command dfx config canisters.e2e_project_backend.type
     # shellcheck disable=SC2154
-    assert_eq '"motoko"' "$stdout"
+    assert_eq '"rust"' "$stdout"
 
-    assert_command dfx config canisters.e2e_project_backend.type "rust"
+    assert_command dfx config canisters.e2e_project_backend.type "motoko"
     # shellcheck disable=SC2154
     assert_eq "" "$stdout"
+    cat dfx.json
 
     assert_command dfx config canisters.e2e_project_backend.type
     # shellcheck disable=SC2154
-    assert_eq '"rust"' "$stdout"
+    assert_eq '"motoko"' "$stdout"
 
     assert_command_fail dfx config non_existent
 
