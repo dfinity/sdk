@@ -30,7 +30,7 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`send`](#dfx-canister-send)                       | Send a previously-signed message.  |
 | [`sign`](#dfx-canister-send)                       | Sign a canister call and generate message file.  |
 | [`start`](#dfx-canister-start)                     | Starts a stopped canister.  |
-| [`status`](#dfx-canister-status)                   | Returns the current status of a canister: Running, Stopping, or Stopped.  |
+| [`status`](#dfx-canister-status)                   | Returns the current status of a canister as defined [here](https://internetcomputer.org/docs/current/references/ic-interface-spec#ic-canister_status).  |
 | [`stop`](#dfx-canister-stop)                       | Stops a currently running canister.  |
 | [`uninstall-code`](#dfx-canister-uninstall-code)   | Uninstalls a canister, removing its code and state. Does not delete the canister.  |
 | [`update-settings`](#dfx-canister-update-settings) | Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.).  |
