@@ -127,7 +127,7 @@ teardown() {
 
   # If canister type is invalid, `dfx stop` fails
   # shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.e2e_project.type="unknown_canister_type"' dfx.json)" >dfx.json
+  cat <<<"$(jq '.canisters.e2e_project.type="motoko"' dfx.json)" >dfx.json
 }
 
 @test "can build a custom canister type" {
