@@ -1,1 +1,1 @@
-dfx config canisters/certificate/main certificate.mo
+cat <<<"$(jq '.canisters.certificate.main="certificate.mo"' dfx.json)" >dfx.json

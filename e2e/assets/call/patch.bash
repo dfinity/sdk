@@ -1,1 +1,1 @@
-dfx config canisters/hello/main call.mo
+cat <<<"$(jq '.canisters.hello.main="call.mo"' dfx.json)" >dfx.json

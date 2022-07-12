@@ -24,7 +24,7 @@ teardown() {
   dfx_start
   dfx deploy
   dfx canister call hello inc '()'
-  dfx config canisters/hello/main v2.mo
+  cat <<<"$(jq '.canisters.hello.main="v2.mo"' dfx.json)" >dfx.json
   dfx deploy
   assert_command dfx canister call hello read '()'
   assert_match "(1 : nat)"
@@ -35,7 +35,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello inc '()'
-    dfx config canisters/hello/main v2_bad.mo
+    cat <<<"$(jq '.canisters.hello.main="v2_bad.mo"' dfx.json)" >dfx.json
     echo yes | (
       assert_command dfx deploy
       assert_match "Stable interface compatibility check failed"
@@ -49,7 +49,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello inc '()'
-    dfx config canisters/hello/main v2_bad.mo
+    cat <<<"$(jq '.canisters.hello.main="v2_bad.mo"' dfx.json)" >dfx.json
     dfx build
     echo yes | dfx canister install hello --mode=reinstall
     assert_command dfx canister call hello read '()'
@@ -61,7 +61,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello inc '()'
-    dfx config canisters/hello/main v3_bad.mo
+    cat <<<"$(jq '.canisters.hello.main="v3_bad.mo"' dfx.json)" >dfx.json
     echo yes | (
       assert_command dfx deploy
       assert_match "Candid interface compatibility check failed"

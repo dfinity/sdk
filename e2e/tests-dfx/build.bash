@@ -118,7 +118,7 @@ teardown() {
 
 @test "build fails if canister type is not supported" {
   dfx_start
-  dfx config canisters.e2e_project.type unknown_canister_type
+  cat <<<"$(jq '.canisters.e2e_project.type="unknown_canister_type"' dfx.json)" >dfx.json
   dfx canister create --all
   assert_command_fail dfx build
   assert_match "Cannot find builder for canister"

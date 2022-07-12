@@ -1,1 +1,1 @@
-dfx config canisters/hello/main recurse.mo
+cat <<<"$(jq '.canisters.hello.main="recurse.mo"' dfx.json)" >dfx.json
