@@ -37,9 +37,9 @@ const canisterEnvVariables = initCanisterEnv();
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
-const frontendDirectory = "{project_name}_assets";
+const frontendDirectory = "{project_name}_frontend";
 
-const asset_entry = path.join("src", frontendDirectory, "src", "index.html");
+const frontend_entry = path.join("src", frontendDirectory, "src", "index.html");
 
 module.exports = {
   target: "web",
@@ -47,7 +47,7 @@ module.exports = {
   entry: {
     // The frontend.entrypoint points to the HTML file for this build, so we need
     // to replace the extension to `.js`.
-    index: path.join(__dirname, asset_entry).replace(/\.html$/, ".js"),
+    index: path.join(__dirname, frontend_entry).replace(/\.html$/, ".js"),
   },
   devtool: isDevelopment ? "source-map" : false,
   optimization: {
@@ -82,7 +82,7 @@ module.exports = {
   // },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, asset_entry),
+      template: path.join(__dirname, frontend_entry),
       cache: false,
     }),
     new webpack.EnvironmentPlugin({

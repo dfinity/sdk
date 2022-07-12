@@ -1,6 +1,6 @@
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
-use crate::config::dfinity::{ConfigDefaults, ConfigDefaultsBootstrap};
+use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
@@ -12,7 +12,6 @@ use anyhow::{anyhow, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use slog::info;
-use std::default::Default;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::Path;
 use url::Url;
@@ -49,15 +48,14 @@ pub struct BootstrapOpts {
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let config_defaults = get_config_defaults_from_file(env);
-    let base_config_bootstrap = config_defaults.get_bootstrap().to_owned();
-    let config_bootstrap = apply_arguments(&base_config_bootstrap, env, opts.clone())?;
-
     let network_descriptor = get_network_descriptor(
         env.get_config(),
-        opts.network,
+        opts.network.clone(),
         LocalBindDetermination::AsConfigured,
     )?;
+    let local_server_descriptor = network_descriptor.local_server_descriptor()?;
+    let config_bootstrap = apply_arguments(&local_server_descriptor.bootstrap, opts)?;
+
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
@@ -165,7 +163,6 @@ fn verify_unique_ports(providers: &[url::Url], bind: &SocketAddr) -> DfxResult {
 #[context("Failed to determine bootstrap server configuration.")]
 fn apply_arguments(
     config: &ConfigDefaultsBootstrap,
-    _env: &dyn Environment,
     opts: BootstrapOpts,
 ) -> DfxResult<ConfigDefaultsBootstrap> {
     let ip = get_ip(config, opts.ip.as_deref())?;
@@ -175,14 +172,6 @@ fn apply_arguments(
         ip: Some(ip),
         port: Some(port),
         timeout: Some(timeout),
-    })
-}
-
-/// Gets the configuration options for the bootstrap server as they were specified in the dfx
-/// configuration file.
-fn get_config_defaults_from_file(env: &dyn Environment) -> ConfigDefaults {
-    env.get_config().map_or(Default::default(), |config| {
-        config.get_config().get_defaults().to_owned()
     })
 }
 
