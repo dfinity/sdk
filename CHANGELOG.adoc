@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat: Add additional logging from bitcoin canister in replica.
+
+Configures the replica to emit additional logging from the bitcoin canister whenever the bitcoin feature is enabled. This helps show useful information to developers, such as the bitcoin height that the replica currently sees.
+
 === feat: renamed canisters in new projects to <project>_frontend and <project>_backend
 
 The names of canisters created for new projects have changed.
@@ -170,9 +174,33 @@ The correct feature to use is "bitcoin_regtest".
 === dfx bootstrap now looks up the port of the local replica
 
 `dfx replica` writes the port of the running replica to one of these locations:
-  - .dfx/replica-configuration/replica-1.port
-  - .dfx/ic-ref.port
+
+- .dfx/replica-configuration/replica-1.port
+- .dfx/ic-ref.port
+
 `dfx bootstrap` will now use this port value, so it's no longer necessary to edit dfx.json after running `dfx replica`.
+
+=== feat: dfx.json local network settings can be set on the local network, rather than defaults
+
+In `dfx.json`, the `bootstrap`, `bitcoin`, `canister_http`, and `replica` settings can
+now be specified on the local network, rather than in the `defaults` field.
+If one of these four fields is set for the local network, the corresponding field
+in `defaults` will be ignored.
+
+Example:
+[source, json]
+----
+{
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "canister_http": {
+        "enabled": true
+      }
+    }
+  }
+}
+----
 
 == Dependencies
 
@@ -186,9 +214,10 @@ Updated Motoko from 0.6.28 to 0.6.29.
 
 === Replica
 
-Updated replica to elected commit 91de076616c096addc0d4dced18bcc8581a9e530.
+Updated replica to elected commit 406881b17f1cbc703713e80316dd6fea003738ba.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/69116[69116]
 * https://dashboard.internetcomputer.org/proposal/67990[67990]
 * https://dashboard.internetcomputer.org/proposal/67483[67483]
 * https://dashboard.internetcomputer.org/proposal/66895[66895]

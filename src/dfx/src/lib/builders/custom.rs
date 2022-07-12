@@ -1,6 +1,7 @@
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
+use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
@@ -11,7 +12,6 @@ use anyhow::{anyhow, Context};
 use console::style;
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
-use serde::Deserialize;
 use slog::info;
 use slog::Logger;
 use std::path::{Path, PathBuf};
@@ -33,12 +33,7 @@ struct CustomBuilderExtra {
 impl CustomBuilderExtra {
     #[context("Failed to create CustomBuilderExtra for canister '{}'.", info.get_name())]
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
-        let deps = match info.get_extra_value("dependencies") {
-            None => vec![],
-            Some(v) => Vec::<String>::deserialize(v)
-                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
-        };
-        let dependencies = deps
+        let dependencies = info.get_dependencies()
             .iter()
             .map(|name| {
                 pool.get_first_canister_with_name(name)
@@ -49,23 +44,10 @@ impl CustomBuilderExtra {
                     )
             })
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
-
-        let wasm = info
-            .get_output_wasm_path()
-            .expect("Missing wasm key in JSON.");
-        let candid = info
-            .get_output_idl_path()
-            .expect("Missing candid key in JSON.");
-        let build = if let Some(json) = info.get_extra_value("build") {
-            if let Ok(s) = String::deserialize(json.clone()) {
-                vec![s]
-            } else {
-                Vec::<String>::deserialize(json)
-                    .context("Failed to deserialize json in 'build'.")?
-            }
-        } else {
-            vec![]
-        };
+        let info = info.as_info::<CustomCanisterInfo>()?;
+        let wasm = info.get_output_wasm_path().to_owned();
+        let candid = info.get_output_idl_path().to_owned();
+        let build = info.get_build_tasks().to_owned();
 
         Ok(CustomBuilderExtra {
             dependencies,
@@ -96,10 +78,6 @@ impl CustomBuilder {
 }
 
 impl CanisterBuilder for CustomBuilder {
-    fn supports(&self, info: &CanisterInfo) -> bool {
-        info.get_type() == "custom"
-    }
-
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,

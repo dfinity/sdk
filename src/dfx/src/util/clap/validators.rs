@@ -1,5 +1,5 @@
 use crate::lib::nns_types::icpts::ICPTs;
-use humanize_rs::bytes::{Bytes, Unit};
+use byte_unit::{Byte, ByteUnit};
 use std::path::Path;
 use std::str::FromStr;
 
@@ -80,9 +80,9 @@ pub fn compute_allocation_validator(compute_allocation: &str) -> Result<(), Stri
 pub fn memory_allocation_validator(memory_allocation: &str) -> Result<(), String> {
     // This limit should track MAX_MEMORY_ALLOCATION
     // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/rs/types/types/src/lib.rs#L492
-    let limit = Bytes::new(12, Unit::GiByte).map_err(|_| "Parse Overflow.")?;
-    if let Ok(bytes) = memory_allocation.parse::<Bytes>() {
-        if bytes.size() <= limit.size() {
+    let limit = Byte::from_unit(12., ByteUnit::GiB).expect("Parse Overflow.");
+    if let Ok(bytes) = memory_allocation.parse::<Byte>() {
+        if bytes.get_bytes() <= limit.get_bytes() {
             return Ok(());
         }
     }
