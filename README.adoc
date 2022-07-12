@@ -30,6 +30,15 @@ dfx help
 
 See our contributing guidelines link:.github/CONTRIBUTING.adoc[here].
 
+=== Building DFX
+
+Building `dfx` is very simple:
+
+[source, bash]
+----
+cargo build
+----
+
 == Release Process
 
 DFX is released in two steps:

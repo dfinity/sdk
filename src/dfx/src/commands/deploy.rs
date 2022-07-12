@@ -183,13 +183,13 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
         info!(log, "URLs:");
         let green = Style::new().green();
         if !frontend_urls.is_empty() {
-            info!(log, "  Frontend:");
+            info!(log, "  Frontend canister via browser");
             for (name, url) in frontend_urls {
                 info!(log, "    {}: {}", name, green.apply_to(url));
             }
         }
         if !candid_urls.is_empty() {
-            info!(log, "  Candid:");
+            info!(log, "  Backend canister via Candid interface:");
             for (name, url) in candid_urls {
                 info!(log, "    {}: {}", name, green.apply_to(url));
             }

@@ -62,14 +62,14 @@ teardown() {
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello
-    ID=$(dfx canister --network actuallylocal id hello)
-    dfx canister --network actuallylocal create hello_assets
-    ID_TWO=$(dfx canister --network actuallylocal id hello_assets)
+    dfx canister --network actuallylocal create hello_backend
+    ID=$(dfx canister --network actuallylocal id hello_backend)
+    dfx canister --network actuallylocal create hello_frontend
+    ID_TWO=$(dfx canister --network actuallylocal id hello_frontend)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
 
     assert_command_fail dfx identity --network actuallylocal set-wallet "${ID}"
     assert_not_match "Setting wallet for identity"
@@ -85,14 +85,14 @@ teardown() {
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello_assets
-    ID=$(dfx canister --network actuallylocal id hello_assets)
-    dfx deploy --network actuallylocal hello
-    ID_TWO=$(dfx canister --network actuallylocal id hello)
+    dfx canister --network actuallylocal create hello_frontend
+    ID=$(dfx canister --network actuallylocal id hello_frontend)
+    dfx deploy --network actuallylocal hello_backend
+    ID_TWO=$(dfx canister --network actuallylocal id hello_backend)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_assets --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
@@ -125,12 +125,12 @@ teardown() {
     assert_command dfx build
     assert_command dfx canister --wallet "$WALLET" install --all
 
-    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project fromCall)
+    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project_backend fromCall)
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
     assert_eq "$CALLER" "$WALLET"
 
     assert_command dfx canister call "$WALLET" wallet_call \
-        "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
+        "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 }
 
@@ -140,13 +140,13 @@ teardown() {
     dfx_start
     WALLET=$(dfx identity get-wallet)
     assert_command dfx deploy --wallet "$WALLET"
-    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project fromCall)
+    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project_backend fromCall)
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
     assert_eq "$CALLER" "$WALLET"
 
-    assert_command dfx canister call e2e_project amInitializer
+    assert_command dfx canister call e2e_project_backend amInitializer
     assert_command dfx canister call "$WALLET" wallet_call \
-        "(record { canister = principal \"$(dfx canister id e2e_project)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
+        "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
     assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
 }
 
@@ -157,7 +157,7 @@ teardown() {
     WALLET=$(dfx identity get-wallet)
     assert_command dfx wallet balance
     assert_command dfx deploy --wallet "$WALLET"
-    assert_command dfx canister --wallet "$WALLET" call hello greet '("")' --with-cycles 1
+    assert_command dfx canister --wallet "$WALLET" call hello_backend greet '("")' --with-cycles 1
     dfx identity new alice --disable-encryption
     ALICE_WALLET=$(dfx --identity alice identity get-wallet)
     dfx wallet send "$ALICE_WALLET" 1
@@ -167,6 +167,6 @@ teardown() {
     dfx_new hello
     dfx_start
     dfx identity new alice --disable-encryption
-    dfx --identity alice deploy --no-wallet hello
-    assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello
+    dfx --identity alice deploy --no-wallet hello_backend
+    assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello_backend
 }

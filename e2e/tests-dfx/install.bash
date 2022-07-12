@@ -44,7 +44,7 @@ teardown() {
 
     assert_command dfx canister install --all
 
-    assert_match "Installing code for canister e2e_project"
+    assert_match "Installing code for canister e2e_project_backend"
 }
 
 @test "install succeeds with network name" {
@@ -54,7 +54,7 @@ teardown() {
 
     assert_command dfx canister --network local install --all
 
-    assert_match "Installing code for canister e2e_project"
+    assert_match "Installing code for canister e2e_project_backend"
 }
 
 @test "install fails with network name that is not in dfx.json" {
@@ -71,8 +71,8 @@ teardown() {
     dfx_start
     dfx canister create --all
     wallet="${archive:?}/wallet/0.10.0/wallet.wasm"
-    assert_command dfx canister install e2e_project --wasm "$wallet"
-    assert_command dfx canister info e2e_project
+    assert_command dfx canister install e2e_project_backend --wasm "$wallet"
+    assert_command dfx canister info e2e_project_backend
     assert_match "Module hash: 0x$(sha2sum "$wallet" | head -c 64)"
 }
 

@@ -7,10 +7,10 @@
 
 To learn more before you start coding, see the documentation available online:
 
-- Quick Start: https://sdk.dfinity.org/docs/quickstart/quickstart-intro.html
-- SDK Developer Tools: https://sdk.dfinity.org/docs/developers-guide/sdk-guide.html
-- Motoko Language Guide: https://sdk.dfinity.org/docs/language-guide/motoko.html
-- Motoko Quick Reference: https://sdk.dfinity.org/docs/language-guide/language-manual.html
+- Quick Start: https://internetcomputer.org/docs/current/developer-docs/quickstart/hello10mins/
+- SDK Developer Tools: https://internetcomputer.org/docs/current/developer-docs/build/install-upgrade-remove/
+- Motoko Language Guide: https://internetcomputer.org/docs/current/developer-docs/build/languages/motoko/
+- Motoko Quick Reference: https://internetcomputer.org/docs/current/developer-docs/build/languages/motoko/language-manual
 
 If you want to work on programs right away, try the following commands to get started:
 
