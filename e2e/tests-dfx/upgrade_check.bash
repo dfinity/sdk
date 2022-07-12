@@ -24,6 +24,7 @@ teardown() {
   dfx_start
   dfx deploy
   dfx canister call hello_backend inc '()'
+    # shellcheck disable=SC2094
   cat <<<"$(jq '.canisters.hello_backend.main="v2.mo"' dfx.json)" >dfx.json
   dfx deploy
   assert_command dfx canister call hello_backend read '()'
@@ -35,6 +36,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello_backend inc '()'
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.canisters.hello_backend.main="v2_bad.mo"' dfx.json)" >dfx.json
     echo yes | (
       assert_command dfx deploy
@@ -49,6 +51,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello_backend inc '()'
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.canisters.hello_backend.main="v2_bad.mo"' dfx.json)" >dfx.json
     dfx build
     echo yes | dfx canister install hello_backend --mode=reinstall
@@ -61,6 +64,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello_backend inc '()'
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.canisters.hello_backend.main="v3_bad.mo"' dfx.json)" >dfx.json
     echo yes | (
       assert_command dfx deploy

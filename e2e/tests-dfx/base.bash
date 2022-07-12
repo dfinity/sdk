@@ -31,6 +31,7 @@ teardown() {
 
 @test "does not provide base library if there is a packtool" {
     install_asset base
+    # shellcheck disable=SC2094
     cat <<<"$(jq '.defaults.build.packtool="echo"' dfx.json)" >dfx.json
 
     dfx_start

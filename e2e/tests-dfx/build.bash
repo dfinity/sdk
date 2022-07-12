@@ -118,6 +118,7 @@ teardown() {
 
 @test "build fails if canister type is not supported" {
   dfx_start
+  # shellcheck disable=SC2094
   cat <<<"$(jq '.canisters.e2e_project_backend.type="unknown_canister_type"' dfx.json)" >dfx.json
   dfx canister create --all
   assert_command_fail dfx build

@@ -57,6 +57,7 @@ teardown() {
 @test "dfx ping succeeds by network name if network bind address is host:port format" {
     dfx_start
     webserver_port=$(get_webserver_port)
+    # shellcheck disable=SC2094
     assert_command cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$webserver_port"'"' dfx.json)" >dfx.json
     assert_command dfx ping local
 
