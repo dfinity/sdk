@@ -20,6 +20,11 @@ set_default_canister_http_enabled() {
     cat <<<"$(jq '.defaults.canister_http.enabled=true' dfx.json)" >dfx.json
 }
 
+set_local_network_canister_http_enabled() {
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.networks.local.canister_http.enabled=true' dfx.json)" >dfx.json
+}
+
 @test "dfx restarts replica when ic-canister-http-adapter restarts" {
     dfx_new hello
     set_default_canister_http_enabled
@@ -124,6 +129,15 @@ set_default_canister_http_enabled() {
 @test "can enable http through default configuration (dfx start)" {
     dfx_new hello
     set_default_canister_http_enabled
+
+    dfx_start
+
+    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
+}
+
+@test "can enable http through local network configuration (dfx start)" {
+    dfx_new hello
+    set_local_network_canister_http_enabled
 
     dfx_start
 
