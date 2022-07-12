@@ -9,7 +9,8 @@
       "main": "main.mo"
     },
     "npm_missing": {
-      "type": "assets"
+      "type": "assets",
+      "source": []
     },
     "asset_bad_source_path": {
       "type": "assets",
