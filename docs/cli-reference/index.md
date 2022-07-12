@@ -24,8 +24,6 @@ When you have the SDK installed, you can use the following commands to specify t
 
 -   [dfx canister](./dfx-canister.md)
 
--   [dfx config](./dfx-config.md)
-
 -   [dfx deploy](./dfx-deploy.md)
 
 -   [dfx help](./dfx-help.md)
