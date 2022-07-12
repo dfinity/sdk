@@ -30,11 +30,11 @@ teardown() {
 
 @test "detects the wallet being the sole controller" {
     dfx_start
-    dfx canister create e2e_project --controller "$(dfx identity get-wallet)" --no-wallet
-    dfx build e2e_project
+    dfx canister create e2e_project_backend --controller "$(dfx identity get-wallet)" --no-wallet
+    dfx build e2e_project_backend
     assert_command dfx diagnose
     assert_match "dfx canister update-settings"
-    assert_command_fail dfx canister install e2e_project
+    assert_command_fail dfx canister install e2e_project_backend
     assert_command dfx fix
-    assert_command dfx canister install e2e_project
+    assert_command dfx canister install e2e_project_backend
 }

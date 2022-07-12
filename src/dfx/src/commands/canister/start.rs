@@ -11,7 +11,7 @@ use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
-/// Starts a canister on the Internet Computer network.
+/// Starts a stopped canister.
 #[derive(Parser)]
 pub struct CanisterStartOpts {
     /// Specifies the name or id of the canister to start. You must specify either a canister name/id or the --all flag.

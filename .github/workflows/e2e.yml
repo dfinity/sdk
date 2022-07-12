@@ -90,8 +90,8 @@ jobs:
               time dfx start --background
           fi
           time dfx deploy
-          time dfx canister call smoke greet '("fire")'
-          time curl --fail http://localhost:8000/sample-asset.txt?canisterId=$(dfx canister id smoke_assets)
+          time dfx canister call smoke_backend greet '("fire")'
+          time curl --fail http://localhost:8000/sample-asset.txt?canisterId=$(dfx canister id smoke_frontend)
           time dfx stop
 
   test:
@@ -127,8 +127,7 @@ jobs:
           fi
           export
       - name: Run e2e test
-        # rust tests sometimes fail with a 30-minute timeout
-        run: timeout 2100 bats "e2e/$E2E_TEST"
+        run: timeout 1800 bats "e2e/$E2E_TEST"
 
   aggregate:
     name: e2e:required

@@ -3,11 +3,10 @@ queue_rules:
     conditions:
       - "#approved-reviews-by>=1"
       - "#changes-requested-reviews-by=0"
-      - status-success=hydra:dfinity-ci-build:evaluation
-      - status-success=hydra:dfinity-ci-build:sdk:required
       - status-success=audit:required
       - status-success=e2e:required
       - status-success=fmt:required
+      - status-success=license-check:required
       - status-success=lint:required
       - status-success=prepare-dfx-assets:required
       - base=master
@@ -18,11 +17,10 @@ pull_request_rules:
     conditions:
       - "#approved-reviews-by>=1"
       - "#changes-requested-reviews-by=0"
-      - status-success=hydra:dfinity-ci-build:evaluation
-      - status-success=hydra:dfinity-ci-build:sdk:required
       - status-success=audit:required
       - status-success=e2e:required
       - status-success=fmt:required
+      - status-success=license-check:required
       - status-success=lint:required
       - status-success=prepare-dfx-assets:required
       - base=master

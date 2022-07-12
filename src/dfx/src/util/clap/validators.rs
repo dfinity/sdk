@@ -1,5 +1,6 @@
 use crate::lib::nns_types::icpts::ICPTs;
 use humanize_rs::bytes::{Bytes, Unit};
+use std::path::Path;
 use std::str::FromStr;
 
 pub fn is_request_id(v: &str) -> Result<(), String> {
@@ -42,6 +43,22 @@ pub fn cycle_amount_validator(cycles: &str) -> Result<(), String> {
         return Ok(());
     }
     Err("Must be a non negative amount.".to_string())
+}
+
+pub fn file_validator(path: &str) -> Result<(), String> {
+    if Path::new(path).exists() {
+        return Ok(());
+    }
+    Err("Path does not exist or is not a file.".to_string())
+}
+
+pub fn file_or_stdin_validator(path: &str) -> Result<(), String> {
+    if path == "-" {
+        // represents stdin
+        Ok(())
+    } else {
+        file_validator(path)
+    }
 }
 
 pub fn trillion_cycle_amount_validator(cycles: &str) -> Result<(), String> {

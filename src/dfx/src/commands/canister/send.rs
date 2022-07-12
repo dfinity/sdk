@@ -12,7 +12,7 @@ use ic_types::Principal;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 
-/// Send a signed message
+/// Send a previously-signed message.
 #[derive(Parser)]
 pub struct CanisterSendOpts {
     /// Specifies the file name of the message

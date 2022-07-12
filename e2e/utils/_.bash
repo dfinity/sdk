@@ -177,8 +177,6 @@ dfx_replica() {
         local replica_port=$(cat ${dfx_config_root}/replica-1.port)
 
     fi
-    # Overwrite the default networks.local.bind 127.0.0.1:8000 with allocated port
-    cat <<<$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json) >dfx.json
 
     printf "Replica Configured Port: %s\n" "${replica_port}"
 
@@ -186,7 +184,9 @@ dfx_replica() {
         "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
 
-    wait_until_replica_healthy
+    # ping the replica directly, because the bootstrap (that launches icx-proxy, which dfx ping usually connects to)
+    # is not running yet
+    dfx ping --wait-healthy "http://127.0.0.1:${replica_port}"
 }
 
 dfx_bootstrap() {
@@ -204,6 +204,8 @@ dfx_bootstrap() {
     timeout 5 sh -c \
         'until nc -z localhost $(cat .dfx/webserver-port); do echo waiting for webserver; sleep 1; done' \
         || (echo "could not connect to webserver on port $(cat .dfx/webserver-port)" && exit 1)
+
+    wait_until_replica_healthy
 
     local proxy_port=$(cat .dfx/proxy-port)
     printf "Proxy Configured Port: %s\n", "${proxy_port}"

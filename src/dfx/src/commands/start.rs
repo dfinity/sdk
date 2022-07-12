@@ -3,17 +3,16 @@ use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
-use crate::config::dfinity::ConfigInterface;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
+use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::ReplicaConfig;
+use crate::lib::webserver::run_webserver;
 use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
 
 use crate::actors::icx_proxy::IcxProxyConfig;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
-use crate::lib::webserver::run_webserver;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
@@ -192,6 +191,19 @@ pub fn exec(
     let icx_proxy_pid_file_path = empty_writable_path(temp_dir.join("icx-proxy-pid"))?;
     let webserver_port_path = empty_writable_path(temp_dir.join("webserver-port"))?;
 
+    // dfx bootstrap will read these port files to find out which port to use,
+    // so we need to make sure only one has a valid port in it.
+    let replica_config_dir = temp_dir.join("replica-configuration");
+    fs::create_dir_all(&replica_config_dir).with_context(|| {
+        format!(
+            "Failed to create replica config directory {}.",
+            replica_config_dir.display()
+        )
+    })?;
+
+    let replica_port_path = empty_writable_path(replica_config_dir.join("replica-1.port"))?;
+    let emulator_port_path = empty_writable_path(temp_dir.join("ic-ref.port"))?;
+
     let (frontend_url, address_and_port) =
         frontend_address(host, local_server_descriptor, background)?;
 
@@ -211,7 +223,7 @@ pub fn exec(
     )?;
 
     let btc_adapter_config = configure_btc_adapter_if_enabled(
-        config.get_config(),
+        local_server_descriptor,
         &btc_adapter_config_path,
         &btc_adapter_socket_holder_path,
         enable_bitcoin,
@@ -222,7 +234,7 @@ pub fn exec(
         .and_then(|cfg| cfg.get_socket_path());
 
     let canister_http_adapter_config = configure_canister_http_adapter_if_enabled(
-        config.get_config(),
+        local_server_descriptor,
         &canister_http_adapter_config_path,
         &canister_http_adapter_socket_holder_path,
         enable_canister_http,
@@ -230,13 +242,18 @@ pub fn exec(
     let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
+    let subnet_type = local_server_descriptor
+        .replica
+        .subnet_type
+        .unwrap_or_default();
 
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let emulator = start_emulator_actor(env, shutdown_controller.clone())?;
+            let emulator =
+                start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
             emulator.recipient()
         } else {
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
@@ -270,17 +287,6 @@ pub fn exec(
                     (None, None)
                 };
 
-            let replica_port_path = env
-                .get_temp_dir()
-                .join("replica-configuration")
-                .join("replica-1.port");
-
-            let subnet_type = config
-                .get_config()
-                .get_defaults()
-                .get_replica()
-                .subnet_type
-                .unwrap_or_default();
             let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
                 .with_random_port(&replica_port_path);
             if btc_adapter_config.is_some() {
@@ -310,7 +316,7 @@ pub fn exec(
         let icx_proxy_config = IcxProxyConfig {
             bind: address_and_port,
             proxy_port: webserver_bind.port(),
-            providers: vec![],
+            replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
         };
 
@@ -428,20 +434,20 @@ fn write_pid(pid_file_path: &Path) {
 
 #[context("Failed to configure btc adapter.")]
 pub fn configure_btc_adapter_if_enabled(
-    config: &ConfigInterface,
+    local_server_descriptor: &LocalServerDescriptor,
     config_path: &Path,
     uds_holder_path: &Path,
     enable_bitcoin: bool,
     nodes: Vec<SocketAddr>,
 ) -> DfxResult<Option<bitcoin::adapter::Config>> {
-    let enable = enable_bitcoin || !nodes.is_empty() || config.get_defaults().get_bitcoin().enabled;
-    let log_level = config.get_defaults().get_bitcoin().log_level;
+    let enable = enable_bitcoin || !nodes.is_empty() || local_server_descriptor.bitcoin.enabled;
+    let log_level = local_server_descriptor.bitcoin.log_level;
 
     if !enable {
         return Ok(None);
     };
 
-    let nodes = match (nodes, &config.get_defaults().get_bitcoin().nodes) {
+    let nodes = match (nodes, &local_server_descriptor.bitcoin.nodes) {
         (cli_nodes, _) if !cli_nodes.is_empty() => cli_nodes,
         (_, Some(default_nodes)) if !default_nodes.is_empty() => default_nodes.clone(),
         (_, _) => bitcoin::adapter::config::default_nodes(),
@@ -513,12 +519,12 @@ pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
 
 #[context("Failed to configure canister http adapter.")]
 pub fn configure_canister_http_adapter_if_enabled(
-    config: &ConfigInterface,
+    local_server_descriptor: &LocalServerDescriptor,
     config_path: &Path,
     uds_holder_path: &Path,
     enable_canister_http: bool,
 ) -> DfxResult<Option<canister_http::adapter::Config>> {
-    let enable = enable_canister_http || config.get_defaults().get_canister_http().enabled;
+    let enable = enable_canister_http || local_server_descriptor.canister_http.enabled;
 
     if !enable {
         return Ok(None);

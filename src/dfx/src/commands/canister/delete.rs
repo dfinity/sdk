@@ -36,7 +36,7 @@ const DANK_PRINCIPAL: Principal =
 const WITHDRAWAL_COST: u128 = 10_000_000_000; // Emperically estimated.
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
-/// Deletes a canister on the Internet Computer network.
+/// Deletes a currently stopped canister.
 #[derive(Parser)]
 pub struct CanisterDeleteOpts {
     /// Specifies the name of the canister to delete.
@@ -51,7 +51,7 @@ pub struct CanisterDeleteOpts {
     #[clap(long)]
     no_withdrawal: bool,
 
-    /// Withdraw cycles from canister(s) to canister/wallet before deleting.
+    /// Withdraw cycles from canister(s) to the specified canister/wallet before deleting.
     #[clap(long, conflicts_with("no-withdrawal"))]
     withdraw_cycles_to_canister: Option<String>,
 
