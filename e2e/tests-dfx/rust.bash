@@ -25,7 +25,7 @@ teardown() {
     assert_match '("Hello, dfinity!")'
 
     # dfx sets the candid:service metadata
-    dfx canister metadata custom candid:service >installed.did
+    dfx canister metadata hello_backend candid:service >installed.did
     assert_command diff src/hello_backend/hello_backend.did installed.did
 
 }
