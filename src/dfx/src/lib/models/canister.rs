@@ -120,18 +120,11 @@ impl CanisterPool {
             _ => None,
         };
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
-
-        if let Some(builder) = pool_helper.builder_pool.get(&info) {
-            pool_helper
-                .canisters_map
-                .insert(0, Arc::new(Canister::new(info, builder)));
-            Ok(())
-        } else {
-            Err(anyhow!(
-                "Cannot find builder for canister '{}'.",
-                info.get_name().to_string()
-            ))
-        }
+        let builder = pool_helper.builder_pool.get(&info);
+        pool_helper
+            .canisters_map
+            .insert(0, Arc::new(Canister::new(info, builder)));
+        Ok(())
     }
 
     #[context(
@@ -244,7 +237,7 @@ impl CanisterPool {
 
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
-        if self.contains_canister_of_type("rust") {
+        if self.canisters.iter().any(|can| can.info.is_rust()) {
             self.run_cargo_audit()?;
         } else {
             trace!(
@@ -452,12 +445,6 @@ impl CanisterPool {
         }
 
         Ok(())
-    }
-
-    fn contains_canister_of_type(&self, of_type: &str) -> bool {
-        self.canisters
-            .iter()
-            .any(|c| c.get_info().get_type() == of_type)
     }
 
     /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.

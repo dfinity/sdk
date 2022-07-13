@@ -1,18 +1,22 @@
 #![allow(dead_code)]
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::util::SerdeVec;
+use crate::util::{PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::{anyhow, Context};
+use byte_unit::Byte;
 use fn_error_context::context;
 use ic_types::Principal;
-use serde::{Deserialize, Serialize};
+use serde::de::{Error as _, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
 use std::default::Default;
+use std::fmt;
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
@@ -24,16 +28,16 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     replica: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
+pub const EMPTY_CONFIG_DEFAULTS_BITCOIN: ConfigDefaultsBitcoin = ConfigDefaultsBitcoin {
     enabled: false,
     nodes: None,
     log_level: BitcoinAdapterLogLevel::Info,
 };
 
-const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
+pub const EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP: ConfigDefaultsCanisterHttp =
     ConfigDefaultsCanisterHttp { enabled: false };
 
-const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
+pub const EMPTY_CONFIG_DEFAULTS_BOOTSTRAP: ConfigDefaultsBootstrap = ConfigDefaultsBootstrap {
     ip: None,
     port: None,
     timeout: None,
@@ -44,7 +48,7 @@ const EMPTY_CONFIG_DEFAULTS_BUILD: ConfigDefaultsBuild = ConfigDefaultsBuild {
     args: None,
 };
 
-const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
+pub const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsReplica {
     port: None,
     subnet_type: None,
 };
@@ -64,21 +68,68 @@ pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 /// A Canister configuration in the dfx.json config file.
 /// It only contains a type; everything else should be infered using the
 /// CanisterInfo type.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigCanistersCanister {
-    pub r#type: Option<String>,
-
     #[serde(default)]
     pub declarations: CanisterDeclarationsConfig,
 
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
 
+    pub args: Option<String>,
+
     #[serde(default)]
-    pub post_install: SerdeVec<String>,
+    pub initialization_values: InitializationValues,
+
+    #[serde(default)]
+    pub dependencies: Vec<String>,
+
+    pub frontend: Option<BTreeMap<String, String>>,
 
     #[serde(flatten)]
-    pub extras: BTreeMap<String, Value>,
+    pub type_specific: CanisterTypeProperties,
+
+    #[serde(default)]
+    pub post_install: SerdeVec<String>,
+    pub main: Option<PathBuf>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum CanisterTypeProperties {
+    Rust {
+        package: String,
+        candid: PathBuf,
+    },
+    Assets {
+        source: Vec<PathBuf>,
+    },
+    Custom {
+        wasm: PathBuf,
+        candid: PathBuf,
+        build: SerdeVec<String>,
+    },
+    Motoko,
+}
+
+impl CanisterTypeProperties {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Rust { .. } => "rust",
+            Self::Motoko { .. } => "motoko",
+            Self::Assets { .. } => "assets",
+            Self::Custom { .. } => "custom",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct InitializationValues {
+    pub compute_allocation: Option<PossiblyStr<u64>>,
+    pub memory_allocation: Option<Byte>,
+    #[serde(with = "humantime_serde")]
+    pub freezing_threshold: Option<Duration>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -97,9 +148,9 @@ pub struct CanisterDeclarationsConfig {
     pub env_override: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ConfigDefaultsBitcoin {
-    #[serde(default = "default_as_false")]
+    #[serde(default)]
     pub enabled: bool,
 
     /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
@@ -111,9 +162,9 @@ pub struct ConfigDefaultsBitcoin {
     pub log_level: BitcoinAdapterLogLevel,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ConfigDefaultsCanisterHttp {
-    #[serde(default = "default_as_false")]
+    #[serde(default)]
     pub enabled: bool,
 }
 
@@ -122,7 +173,7 @@ fn default_as_false() -> bool {
     false
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
     pub port: Option<u16>,
@@ -135,7 +186,7 @@ pub struct ConfigDefaultsBuild {
     pub args: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct ConfigDefaultsReplica {
     pub port: Option<u16>,
     pub subnet_type: Option<ReplicaSubnetType>,
@@ -207,6 +258,11 @@ pub struct ConfigLocalProvider {
 
     #[serde(default = "NetworkType::ephemeral")]
     pub r#type: NetworkType,
+
+    pub bitcoin: Option<ConfigDefaultsBitcoin>,
+    pub bootstrap: Option<ConfigDefaultsBootstrap>,
+    pub canister_http: Option<ConfigDefaultsCanisterHttp>,
+    pub replica: Option<ConfigDefaultsReplica>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -275,34 +331,10 @@ impl ConfigDefaultsBuild {
 }
 
 impl ConfigDefaults {
-    pub fn get_bitcoin(&self) -> &ConfigDefaultsBitcoin {
-        match &self.bitcoin {
-            Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_BITCOIN,
-        }
-    }
-    pub fn get_bootstrap(&self) -> &ConfigDefaultsBootstrap {
-        match &self.bootstrap {
-            Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_BOOTSTRAP,
-        }
-    }
     pub fn get_build(&self) -> &ConfigDefaultsBuild {
         match &self.build {
             Some(x) => x,
             None => &EMPTY_CONFIG_DEFAULTS_BUILD,
-        }
-    }
-    pub fn get_canister_http(&self) -> &ConfigDefaultsCanisterHttp {
-        match &self.canister_http {
-            Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP,
-        }
-    }
-    pub fn get_replica(&self) -> &ConfigDefaultsReplica {
-        match &self.replica {
-            Some(x) => x,
-            None => &EMPTY_CONFIG_DEFAULTS_REPLICA,
         }
     }
 }
@@ -324,6 +356,10 @@ impl ConfigInterface {
             ("local", None) => Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
                 bind: String::from(DEFAULT_LOCAL_BIND),
                 r#type: NetworkType::Ephemeral,
+                bitcoin: None,
+                bootstrap: None,
+                canister_http: None,
+                replica: None,
             })),
             ("ic", _) => Some(ConfigNetwork::ConfigNetworkProvider(
                 ConfigNetworkProvider {
@@ -398,40 +434,40 @@ impl ConfigInterface {
     }
 
     #[context("Failed to get compute allocation for '{}'.", canister_name)]
-    pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
-        self.get_initialization_value(canister_name, "compute_allocation")
+    pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<u64>> {
+        Ok(self
+            .get_canister_config(canister_name)?
+            .initialization_values
+            .compute_allocation
+            .map(|x| x.0))
     }
 
     #[context("Failed to get memory allocation for '{}'.", canister_name)]
-    pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<String>> {
-        self.get_initialization_value(canister_name, "memory_allocation")
+    pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<Byte>> {
+        Ok(self
+            .get_canister_config(canister_name)?
+            .initialization_values
+            .memory_allocation)
     }
 
     #[context("Failed to get freezing threshold for '{}'.", canister_name)]
-    pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<String>> {
-        self.get_initialization_value(canister_name, "freezing_threshold")
+    pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<Duration>> {
+        Ok(self
+            .get_canister_config(canister_name)?
+            .initialization_values
+            .freezing_threshold)
     }
 
-    fn get_initialization_value(
-        &self,
-        canister_name: &str,
-        field: &str,
-    ) -> DfxResult<Option<String>> {
-        let canister_map = (&self.canisters)
+    fn get_canister_config(&self, canister_name: &str) -> DfxResult<&ConfigCanistersCanister> {
+        let canister_map = self
+            .canisters
             .as_ref()
             .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
 
         let canister_config = canister_map
             .get(canister_name)
-            .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
-
-        canister_config
-            .extras
-            .get("initialization_values")
-            .and_then(|v| v.get(field))
-            .map(String::deserialize)
-            .transpose()
-            .map_err(|_| error_invalid_config!("Field {} is of the wrong type", field))
+            .with_context(|| format!("Cannot find canister '{canister_name}'."))?;
+        Ok(canister_config)
     }
 }
 
@@ -460,16 +496,10 @@ fn add_dependencies(
         .get(canister_name)
         .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
 
-    let deps = match canister_config.extras.get("dependencies") {
-        None => vec![],
-        Some(v) => Vec::<String>::deserialize(v)
-            .map_err(|_| error_invalid_config!("Field 'dependencies' is of the wrong type"))?,
-    };
-
     path.push(String::from(canister_name));
 
-    for canister in deps {
-        add_dependencies(all_canisters, names, path, &canister)?;
+    for canister in &canister_config.dependencies {
+        add_dependencies(all_canisters, names, path, canister)?;
     }
 
     path.pop();
@@ -583,10 +613,69 @@ impl Config {
     }
 }
 
+// grumble grumble https://github.com/serde-rs/serde/issues/2231
+impl<'de> Deserialize<'de> for CanisterTypeProperties {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_map(PropertiesVisitor)
+    }
+}
+
+struct PropertiesVisitor;
+
+impl<'de> Visitor<'de> for PropertiesVisitor {
+    type Value = CanisterTypeProperties;
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("canister type metadata")
+    }
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let missing_field = A::Error::missing_field;
+        let (mut package, mut source, mut candid, mut build, mut wasm, mut r#type) =
+            (None, None, None, None, None, None);
+        while let Some(key) = map.next_key::<String>()? {
+            match &*key {
+                "package" => package = Some(map.next_value()?),
+                "source" => source = Some(map.next_value()?),
+                "candid" => candid = Some(map.next_value()?),
+                "build" => build = Some(map.next_value()?),
+                "wasm" => wasm = Some(map.next_value()?),
+                "type" => r#type = Some(map.next_value::<String>()?),
+                _ => continue,
+            }
+        }
+        let props = match r#type.as_deref() {
+            Some("motoko") | None => CanisterTypeProperties::Motoko,
+            Some("rust") => CanisterTypeProperties::Rust {
+                candid: candid.ok_or_else(|| missing_field("candid"))?,
+                package: package.ok_or_else(|| missing_field("package"))?,
+            },
+            Some("assets") => CanisterTypeProperties::Assets {
+                source: source.ok_or_else(|| missing_field("source"))?,
+            },
+            Some("custom") => CanisterTypeProperties::Custom {
+                build: build.ok_or_else(|| missing_field("build"))?,
+                candid: candid.ok_or_else(|| missing_field("candid"))?,
+                wasm: wasm.ok_or_else(|| missing_field("wasm"))?,
+            },
+            Some(x) => {
+                return Err(A::Error::unknown_variant(
+                    x,
+                    &["motoko", "rust", "assets", "custom"],
+                ))
+            }
+        };
+        Ok(props)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
 
     #[test]
     fn find_dfinity_config_current_path() {
@@ -754,13 +843,13 @@ mod tests {
             .get_compute_allocation("test_project")
             .unwrap()
             .unwrap();
-        assert_eq!("100", compute_allocation);
+        assert_eq!(100, compute_allocation);
 
         let memory_allocation = config_interface
             .get_memory_allocation("test_project")
             .unwrap()
             .unwrap();
-        assert_eq!("8GB", memory_allocation);
+        assert_eq!("8GB".parse::<Byte>().unwrap(), memory_allocation);
 
         let config_no_values = Config::from_str(
             r#"{
@@ -780,84 +869,5 @@ mod tests {
             .unwrap();
         assert_eq!(None, compute_allocation);
         assert_eq!(None, memory_allocation);
-    }
-
-    #[test]
-    fn get_bitcoin_config() {
-        let config = Config::from_str(
-            r#"{
-              "defaults": {
-                "bitcoin": {
-                  "enabled": true,
-                  "nodes": ["127.0.0.1:18444"],
-                  "log_level": "info"
-                }
-              }
-        }"#,
-        )
-        .unwrap();
-
-        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
-
-        assert_eq!(
-            bitcoin_config,
-            &ConfigDefaultsBitcoin {
-                enabled: true,
-                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: BitcoinAdapterLogLevel::Info
-            }
-        );
-    }
-
-    #[test]
-    fn get_bitcoin_config_default_log_level() {
-        let config = Config::from_str(
-            r#"{
-              "defaults": {
-                "bitcoin": {
-                  "enabled": true,
-                  "nodes": ["127.0.0.1:18444"]
-                }
-              }
-        }"#,
-        )
-        .unwrap();
-
-        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
-
-        assert_eq!(
-            bitcoin_config,
-            &ConfigDefaultsBitcoin {
-                enabled: true,
-                nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: BitcoinAdapterLogLevel::Info // A default log level of "info" is assumed
-            }
-        );
-    }
-
-    #[test]
-    fn get_bitcoin_config_debug_log_level() {
-        let config = Config::from_str(
-            r#"{
-              "defaults": {
-                "bitcoin": {
-                  "enabled": true,
-                  "log_level": "debug"
-                }
-              }
-        }"#,
-        )
-        .unwrap();
-
-        let bitcoin_config = config.get_config().get_defaults().get_bitcoin();
-
-        assert_eq!(
-            bitcoin_config,
-            &ConfigDefaultsBitcoin {
-                enabled: true,
-                nodes: None,
-                log_level: BitcoinAdapterLogLevel::Debug
-            }
-        );
     }
 }
