@@ -13,7 +13,6 @@ use crate::util;
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
-use serde::Deserialize;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
@@ -27,12 +26,7 @@ struct AssetsBuilderExtra {
 impl AssetsBuilderExtra {
     #[context("Failed to create AssetBuilderExtra for canister '{}'.", info.get_name())]
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
-        let deps = match info.get_extra_value("dependencies") {
-            None => vec![],
-            Some(v) => Vec::<String>::deserialize(v)
-                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
-        };
-        let dependencies = deps
+        let dependencies = info.get_dependencies()
             .iter()
             .map(|name| {
                 pool.get_first_canister_with_name(name)
@@ -61,10 +55,6 @@ impl AssetsBuilder {
 }
 
 impl CanisterBuilder for AssetsBuilder {
-    fn supports(&self, info: &CanisterInfo) -> bool {
-        info.get_type() == "assets"
-    }
-
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
@@ -122,12 +112,7 @@ impl CanisterBuilder for AssetsBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult {
-        let deps = match info.get_extra_value("dependencies") {
-            None => vec![],
-            Some(v) => Vec::<String>::deserialize(v)
-                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
-        };
-        let dependencies = deps
+        let dependencies = info.get_dependencies()
             .iter()
             .map(|name| {
                 pool.get_first_canister_with_name(name)

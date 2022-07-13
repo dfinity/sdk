@@ -163,14 +163,13 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
             };
             if let Some(canister_id) = canister_id {
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
-                let is_frontend = canister_config.extras.get("frontend").is_some();
 
-                if is_frontend {
+                if canister_config.frontend.is_some() {
                     let url = construct_frontend_url(network, &canister_id)?;
                     frontend_urls.insert(canister_name, url);
                 }
 
-                if canister_info.get_type() != "assets" {
+                if !canister_info.is_assets() {
                     let url = construct_ui_canister_url(network, &canister_id, ui_canister_id)?;
                     if let Some(ui_canister_url) = url {
                         candid_urls.insert(canister_name, ui_canister_url);

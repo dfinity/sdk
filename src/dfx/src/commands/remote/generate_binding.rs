@@ -7,7 +7,6 @@ use crate::util::check_candid_file;
 use anyhow::Context;
 use clap::Parser;
 use slog::info;
-use std::path::Path;
 
 /// Generate bindings for remote canisters from their .did declarations
 #[derive(Parser)]
@@ -43,11 +42,9 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
     for canister in canister_pool.get_canister_list() {
         let info = canister.get_info();
         if let Some(candid) = info.get_remote_candid() {
-            let main_optional: Option<String> = info.get_extra_optional("main")?;
+            let main_optional = info.get_main_file();
             if let Some(main) = main_optional {
-                let main_path = Path::new(&main);
-                let candid_path = Path::new(&candid);
-                if !candid_path.exists() {
+                if !candid.exists() {
                     info!(
                         log,
                         "Candid file {} for canister {} does not exist. Skipping.",
@@ -56,55 +53,53 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                     );
                     continue;
                 }
-                if main_path.exists() {
+                if main.exists() {
                     if opts.overwrite {
                         info!(
                             log,
                             "Overwriting main file {} of canister {}.",
-                            main,
+                            main.display(),
                             canister.get_name()
                         );
                     } else {
                         info!(
                             log,
                             "Main file {} of canister {} already exists. Skipping. Use --overwrite if you want to re-create it.",
-                            main,
+                            main.display(),
                             canister.get_name()
                         );
                         continue;
                     }
                 }
-                let (type_env, did_types) = check_candid_file(candid_path)?;
-                let bindings = if main.ends_with(&".mo") {
+                let (type_env, did_types) = check_candid_file(&candid)?;
+                let extension = main.extension().unwrap_or_default();
+                let bindings = if extension == "mo" {
                     Some(candid::bindings::motoko::compile(&type_env, &did_types))
-                } else if main.ends_with(&".rs") {
+                } else if extension == "rs" {
                     Some(candid::bindings::rust::compile(&type_env, &did_types))
-                } else if main.ends_with(&".js") {
+                } else if extension == "js" {
                     Some(candid::bindings::javascript::compile(&type_env, &did_types))
-                } else if main.ends_with(&".ts") {
+                } else if extension == "ts" {
                     Some(candid::bindings::typescript::compile(&type_env, &did_types))
                 } else {
                     info!(
                         log,
                         "Unsupported filetype found in {}.main: {}. Use one of the following: .mo, .rs, .js, .ts",
                         canister.get_name(),
-                        main
+                        main.display()
                     );
                     None
                 };
 
                 if let Some(bindings_string) = bindings {
-                    std::fs::write(&main_path, &bindings_string).with_context(|| {
-                        format!(
-                            "Failed to write bindings to {}.",
-                            main_path.to_string_lossy()
-                        )
+                    std::fs::write(&main, &bindings_string).with_context(|| {
+                        format!("Failed to write bindings to {}.", main.display())
                     })?;
                     info!(
                         log,
                         "Generated {} using {} for canister {}.",
-                        main,
-                        candid.to_string_lossy(),
+                        main.display(),
+                        candid.display(),
                         canister.get_name()
                     )
                 }

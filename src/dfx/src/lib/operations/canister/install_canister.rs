@@ -82,7 +82,7 @@ pub async fn install_canister(
             }
         }
     }
-    if canister_info.get_type() == "motoko" && matches!(mode, InstallMode::Upgrade) {
+    if canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade) {
         use crate::lib::canister_info::motoko::MotokoCanisterInfo;
         let info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let stable_path = info.get_output_stable_path();
@@ -139,7 +139,7 @@ pub async fn install_canister(
         .await?;
     }
 
-    if canister_info.get_type() == "assets" {
+    if canister_info.is_assets() {
         if let CallSender::Wallet(wallet_id) = call_sender {
             let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
