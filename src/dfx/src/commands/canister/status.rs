@@ -12,7 +12,7 @@ use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
-/// Returns the current status of a canister: Running, Stopping, or Stopped.
+/// Returns the current status of a canister: Running, Stopping, or Stopped. Also carries information like balance, current settings, memory used and everything returned by 'info'.
 #[derive(Parser)]
 pub struct CanisterStatusOpts {
     /// Specifies the name of the canister to return information for.
