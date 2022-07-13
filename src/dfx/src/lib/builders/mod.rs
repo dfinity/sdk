@@ -12,6 +12,7 @@ use anyhow::{bail, Context};
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::io::Read;
 use std::path::PathBuf;
@@ -43,9 +44,6 @@ pub struct BuildOutput {
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.
 pub trait CanisterBuilder {
-    /// Returns true if this builder supports building the canister.
-    fn supports(&self, info: &CanisterInfo) -> bool;
-
     /// Returns the dependencies of this canister, if any. This should not be a transitive
     /// list.
     fn get_dependencies(
@@ -330,26 +328,26 @@ impl BuildConfig {
 }
 
 pub struct BuilderPool {
-    builders: Vec<Arc<dyn CanisterBuilder>>,
+    builders: BTreeMap<&'static str, Arc<dyn CanisterBuilder>>,
 }
 
 impl BuilderPool {
     #[context("Failed to create new builder pool.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
-        let builders: Vec<Arc<dyn CanisterBuilder>> = vec![
-            Arc::new(assets::AssetsBuilder::new(env)?),
-            Arc::new(custom::CustomBuilder::new(env)?),
-            Arc::new(motoko::MotokoBuilder::new(env)?),
-            Arc::new(rust::RustBuilder::new(env)?),
-        ];
+        let builders = BTreeMap::from([
+            (
+                "assets",
+                Arc::new(assets::AssetsBuilder::new(env)?) as Arc<dyn CanisterBuilder>,
+            ),
+            ("custom", Arc::new(custom::CustomBuilder::new(env)?)),
+            ("motoko", Arc::new(motoko::MotokoBuilder::new(env)?)),
+            ("rust", Arc::new(rust::RustBuilder::new(env)?)),
+        ]);
 
         Ok(Self { builders })
     }
 
-    pub fn get(&self, info: &CanisterInfo) -> Option<Arc<dyn CanisterBuilder>> {
-        self.builders
-            .iter()
-            .find(|builder| builder.supports(info))
-            .map(Arc::clone)
+    pub fn get(&self, info: &CanisterInfo) -> Arc<dyn CanisterBuilder> {
+        self.builders[info.get_type_specific_properties().name()].clone()
     }
 }

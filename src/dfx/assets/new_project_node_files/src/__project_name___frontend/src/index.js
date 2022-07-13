@@ -1,4 +1,4 @@
-import { {project_name} } from "../../declarations/{project_name}";
+import { {project_name}_backend } from "../../declarations/{project_name}_backend";
 
 document.querySelector("form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -9,7 +9,7 @@ document.querySelector("form").addEventListener("submit", async (e) => {
   button.setAttribute("disabled", true);
 
   // Interact with foo actor, calling the greet method
-  const greeting = await {project_name}.greet(name);
+  const greeting = await {project_name}_backend.greet(name);
 
   button.removeAttribute("disabled");
 

@@ -18,11 +18,11 @@ teardown() {
     dfx_start
     dfx canister create --all
     #specify build for only assets_canister
-    dfx build e2e_project_assets
+    dfx build e2e_project_frontend
 
     #validate direct dependency built and is callable
-    assert_command dfx canister install e2e_project
-    assert_command dfx canister call e2e_project greet World
+    assert_command dfx canister install e2e_project_backend
+    assert_command dfx canister call e2e_project_backend greet World
 }
 
 @test "transitive dependencies are built" {
@@ -44,9 +44,9 @@ teardown() {
     dfx_start
     dfx canister create --all
     # only build motoko canister
-    dfx build e2e_project
+    dfx build e2e_project_backend
     # validate assets canister wasn't built and can't be installed
-    assert_command_fail dfx canister install e2e_project_assets
+    assert_command_fail dfx canister install e2e_project_frontend
     assert_match "No such file or directory"
 }
 
@@ -55,21 +55,21 @@ teardown() {
     install_asset assetscanister
 
     dfx_start
-    dfx canister create e2e_project
-    dfx build e2e_project
-    assert_command dfx canister install e2e_project
-    assert_command dfx canister call e2e_project greet World
+    dfx canister create e2e_project_backend
+    dfx build e2e_project_backend
+    assert_command dfx canister install e2e_project_backend
+    assert_command dfx canister call e2e_project_backend greet World
 
-    assert_command_fail dfx canister install e2e_project_assets
-    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_assets'."
-    dfx canister create e2e_project_assets
-    dfx build e2e_project_assets
-    dfx canister install e2e_project_assets
+    assert_command_fail dfx canister install e2e_project_frontend
+    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend'."
+    dfx canister create e2e_project_frontend
+    dfx build e2e_project_frontend
+    dfx canister install e2e_project_frontend
 
-    assert_command dfx canister call --query e2e_project_assets retrieve '("/binary/noise.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
     assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
 
-    assert_command dfx canister call --query e2e_project_assets retrieve '("/text-with-newlines.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
     assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
 }
 

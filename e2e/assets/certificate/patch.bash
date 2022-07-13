@@ -1,1 +1,1 @@
-dfx config canisters/certificate/main certificate.mo
+dfx config canisters/certificate_backend/main certificate.mo

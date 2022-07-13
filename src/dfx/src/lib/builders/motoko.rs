@@ -102,10 +102,6 @@ impl CanisterBuilder for MotokoBuilder {
             .collect())
     }
 
-    fn supports(&self, info: &CanisterInfo) -> bool {
-        info.get_type() == "motoko"
-    }
-
     #[context("Failed to build Motoko canister '{}'.", canister_info.get_name())]
     fn build(
         &self,

@@ -1,3 +1,6 @@
+use anyhow::{ensure, Context};
+
+use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
 use std::path::{Path, PathBuf};
@@ -52,18 +55,19 @@ impl MotokoCanisterInfo {
 }
 
 impl CanisterInfoFactory for MotokoCanisterInfo {
-    fn supports(info: &CanisterInfo) -> bool {
-        info.get_type() == "motoko"
-    }
-
     fn create(info: &CanisterInfo) -> DfxResult<MotokoCanisterInfo> {
         let workspace_root = info.get_workspace_root();
         let build_root = info.get_build_root();
         let name = info.get_name();
         let idl_path = build_root.join("idl/");
-
-        let main_path = info.get_extra::<PathBuf>("main")?;
-
+        ensure!(
+            matches!(info.type_specific, CanisterTypeProperties::Motoko { .. }),
+            "Attempted to construct a custom canister from a type:{} canister config",
+            info.type_specific.name()
+        );
+        let main_path = info
+            .get_main_file()
+            .context("`main` attribute is required on Motoko canisters in dfx.json")?;
         let input_path = workspace_root.join(&main_path);
         let output_root = build_root.join(name);
         let output_wasm_path = output_root.join(name).with_extension("wasm");
