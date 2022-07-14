@@ -210,9 +210,11 @@ Updated Motoko from 0.6.28 to 0.6.29.
 
 === Replica
 
-Updated replica to elected commit 91de076616c096addc0d4dced18bcc8581a9e530.
+Updated replica to elected commit 8993849de5fab76e796d67750facee55a0bf6649.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/69804[69804]
+* https://dashboard.internetcomputer.org/proposal/69116[69116]
 * https://dashboard.internetcomputer.org/proposal/67990[67990]
 * https://dashboard.internetcomputer.org/proposal/67483[67483]
 * https://dashboard.internetcomputer.org/proposal/66895[66895]
