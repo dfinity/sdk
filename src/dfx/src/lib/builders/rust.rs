@@ -74,7 +74,8 @@ impl CanisterBuilder for RustBuilder {
             .arg("wasm32-unknown-unknown")
             .arg("--release")
             .arg("-p")
-            .arg(package);
+            .arg(package)
+            .arg("--locked");
 
         let dependencies = self
             .get_dependencies(pool, canister_info)
@@ -87,7 +88,8 @@ impl CanisterBuilder for RustBuilder {
 
         info!(
             self.logger,
-            "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
+            "Executing: cargo build --target wasm32-unknown-unknown --release -p {} --locked",
+            package
         );
         let output = cargo.output().context("Failed to run 'cargo build'.")?;
 

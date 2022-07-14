@@ -8,7 +8,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::{assets, check_candid_file};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
@@ -449,6 +449,29 @@ impl CanisterPool {
 
     /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.
     fn run_cargo_audit(&self) -> DfxResult {
+        let location = Command::new("cargo")
+            .args(["locate-project", "--message-format=plain", "--workspace"])
+            .output()
+            .context("Failed to run 'cargo locate-project'.")?;
+        if !location.status.success() {
+            bail!(
+                "'cargo locate-project' failed: {}",
+                String::from_utf8_lossy(&location.stderr)
+            );
+        }
+        let location = Path::new(std::str::from_utf8(&location.stdout)?);
+        if !location
+            .parent()
+            .expect("Cargo.toml with no parent")
+            .join("Cargo.lock")
+            .exists()
+        {
+            warn!(
+                self.logger,
+                "Skipped audit step as there is no Cargo.lock file."
+            );
+            return Ok(());
+        }
         if Command::new("cargo")
             .arg("audit")
             .arg("--version")
