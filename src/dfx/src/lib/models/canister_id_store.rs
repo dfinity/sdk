@@ -45,7 +45,7 @@ impl CanisterIdStore {
     pub fn new(
         network_descriptor: &NetworkDescriptor,
         config: Option<Arc<Config>>,
-        project_temp_dir: &Path,
+        project_temp_dir: Option<&Path>,
     ) -> DfxResult<Self> {
         let project_root = config.as_ref().map(|c| c.get_project_root().to_path_buf());
         let project_root = project_root.as_deref();
@@ -56,7 +56,7 @@ impl CanisterIdStore {
                 ..
             } => project_root.map(|d| d.join("canister_ids.json")),
             NetworkDescriptor { name, .. } => {
-                Some(project_temp_dir.join(name).join("canister_ids.json"))
+                project_temp_dir.map(|tempdir| tempdir.join(name).join("canister_ids.json"))
             }
         };
         let ids = match &path {
