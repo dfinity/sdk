@@ -176,7 +176,7 @@ pub fn exec(
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if clean {
-        clean_state(env.get_temp_dir(), &state_root)?;
+        clean_state(&local_server_descriptor.data_directory, &state_root)?;
     }
 
     let pid_file_path = empty_writable_path(pid_file_path)?;
