@@ -16,7 +16,7 @@ use fn_error_context::context;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{AgentError, Signature};
 use ic_identity_hsm::HardwareIdentity;
-use ic_types::Principal;
+use candid::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};

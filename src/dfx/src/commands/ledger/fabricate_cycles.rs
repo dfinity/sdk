@@ -12,7 +12,7 @@ use crate::util::expiry_duration;
 
 use clap::Parser;
 use fn_error_context::context;
-use ic_types::Principal;
+use candid::Principal;
 use slog::info;
 use std::time::Duration;
 

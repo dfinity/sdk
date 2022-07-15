@@ -15,7 +15,7 @@ use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use console::Style;
 use fn_error_context::context;
-use ic_types::Principal;
+use candid::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::str::FromStr;

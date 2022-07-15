@@ -18,7 +18,7 @@ use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::identity::Identity;
-use ic_types::principal::Principal as CanisterId;
+use candid::Principal as CanisterId;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Parser)]

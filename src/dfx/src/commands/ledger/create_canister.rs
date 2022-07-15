@@ -10,7 +10,7 @@ use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
-use ic_types::principal::Principal;
+use candid::Principal;
 use std::str::FromStr;
 
 const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;

@@ -13,7 +13,7 @@ use crate::lib::package_arguments::{self, PackageArguments};
 
 use anyhow::Context;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
+use candid::Principal as CanisterId;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;

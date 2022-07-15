@@ -14,7 +14,7 @@ use anyhow::{anyhow, Context};
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
+use candid::Principal as CanisterId;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
 use ic_utils::interfaces::management_canister::MgmtMethod;

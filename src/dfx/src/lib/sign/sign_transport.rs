@@ -2,7 +2,7 @@ use super::signed_message::SignedMessageV1;
 
 use ic_agent::agent::ReplicaV2Transport;
 use ic_agent::{AgentError, RequestId};
-use ic_types::Principal;
+use candid::Principal;
 
 use std::fs::{File, OpenOptions};
 use std::future::Future;

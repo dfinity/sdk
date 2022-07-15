@@ -4,7 +4,7 @@ use crate::lib::error::DfxResult;
 
 use anyhow::Context;
 use clap::Parser;
-use ic_types::Principal;
+use candid::Principal;
 
 /// Remove a wallet controller.
 #[derive(Parser)]

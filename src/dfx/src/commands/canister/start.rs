@@ -7,7 +7,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
 use clap::Parser;
-use ic_types::Principal;
+use candid::Principal;
 use slog::info;
 use std::time::Duration;
 

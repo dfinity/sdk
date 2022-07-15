@@ -11,7 +11,7 @@ use crate::util::expiry_duration;
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
-use ic_types::Principal;
+use candid::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;

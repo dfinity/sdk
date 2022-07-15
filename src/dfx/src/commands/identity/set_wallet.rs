@@ -7,7 +7,7 @@ use crate::lib::provider::create_agent_environment;
 
 use anyhow::{anyhow, Context};
 use clap::Parser;
-use ic_types::Principal;
+use candid::Principal;
 use ic_utils::interfaces::wallet::BalanceResult;
 use slog::{error, info};
 use tokio::runtime::Runtime;

@@ -18,7 +18,7 @@ use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
-use ic_types::Principal;
+use candid::Principal;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;

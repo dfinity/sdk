@@ -44,7 +44,7 @@ garcon = { version = "0.2", features = ["async"] }
 hex = {version = "0.4.2", features = ["serde"] }
 humantime = "2.1.0"
 humantime-serde = "1.1.1"
-ic-types = "0.4.0"
+# ic-types = "0.4.0"
 ic-wasm = { version = "0.1.3", default-features = false, features = ["optimize"]}
 indicatif = "0.16.0"
 itertools = "0.10.3"

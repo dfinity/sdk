@@ -4,7 +4,7 @@ use crate::lib::error::DfxResult;
 use anyhow::{bail, Context};
 use fn_error_context::context;
 use ic_agent::identity::BasicIdentity;
-use ic_types::principal::Principal;
+use candid::Principal;
 use openssl::ec::EcKey;
 use openssl::nid::Nid;
 

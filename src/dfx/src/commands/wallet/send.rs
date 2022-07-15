@@ -8,7 +8,7 @@ use crate::util::expiry_duration;
 use anyhow::{anyhow, Context};
 use candid::CandidType;
 use clap::Parser;
-use ic_types::Principal;
+use candid::Principal;
 
 /// Send cycles to another cycles wallet.
 #[derive(Parser)]

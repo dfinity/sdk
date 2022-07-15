@@ -7,7 +7,7 @@ use crate::lib::nns_types::icpts::ICPTs;
 use anyhow::{anyhow, Context};
 use candid::{Decode, Encode};
 use clap::Parser;
-use ic_types::Principal;
+use candid::Principal;
 use std::str::FromStr;
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";

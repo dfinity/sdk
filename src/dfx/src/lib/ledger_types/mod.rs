@@ -6,7 +6,7 @@
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::ICPTs;
 use candid::CandidType;
-use ic_types::principal::Principal;
+use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 

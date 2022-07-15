@@ -6,7 +6,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 
 use anyhow::bail;
 use clap::Parser;
-use ic_types::principal::Principal as CanisterId;
+use candid::Principal as CanisterId;
 use tokio::runtime::Runtime;
 
 /// Installs the wallet WASM to the provided canister id.

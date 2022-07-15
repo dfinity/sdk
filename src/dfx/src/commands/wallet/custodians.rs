@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use clap::Parser;
-use ic_types::Principal;
+use candid::Principal;
 
 /// List the wallet's custodians.
 #[derive(Parser)]

@@ -22,8 +22,8 @@ use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::Argument;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use num_traits::cast::ToPrimitive;

@@ -9,7 +9,7 @@ use crate::lib::progress_bar::ProgressBar;
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
-use ic_types::Principal;
+use candid::Principal;
 use semver::Version;
 use slog::{Logger, Record};
 use std::borrow::Cow;

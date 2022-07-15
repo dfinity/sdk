@@ -10,8 +10,8 @@ use crate::util;
 use anyhow::{anyhow, Context};
 use core::panic;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
-use ic_types::Principal;
+use candid::Principal as CanisterId;
+use candid::Principal;
 use std::path::{Path, PathBuf};
 
 use self::rust::RustCanisterInfo;

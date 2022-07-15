@@ -6,7 +6,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use ic_agent::AgentError;
-use ic_types::Principal;
+use candid::Principal;
 use serde_cbor::Value;
 use std::convert::TryFrom;
 

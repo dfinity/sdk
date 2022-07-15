@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 
 use clap::Parser;
-use ic_types::principal::Principal;
+use candid::Principal;
 
 /// Prints the identifier of a canister.
 #[derive(Parser)]

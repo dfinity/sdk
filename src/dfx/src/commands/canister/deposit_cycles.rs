@@ -9,7 +9,7 @@ use crate::util::expiry_duration;
 
 use anyhow::{bail, Context};
 use clap::Parser;
-use ic_types::Principal;
+use candid::Principal;
 use slog::info;
 use std::time::Duration;
 

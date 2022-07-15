@@ -1098,7 +1098,6 @@ dependencies = [
  "ic-agent",
  "ic-asset",
  "ic-identity-hsm",
- "ic-types",
  "ic-utils",
  "ic-wasm",
  "indicatif",

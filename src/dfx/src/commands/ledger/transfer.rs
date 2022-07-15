@@ -9,7 +9,7 @@ use crate::util::clap::validators::{e8s_validator, icpts_amount_validator, memo_
 
 use anyhow::{anyhow, Context};
 use clap::Parser;
-use ic_types::Principal;
+use candid::Principal;
 use std::str::FromStr;
 
 /// Transfer ICP from the user to the destination account identifier.

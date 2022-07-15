@@ -2,7 +2,7 @@ use crate::lib::error::DfxResult;
 
 use fn_error_context::context;
 use ic_agent::RequestId;
-use ic_types::principal::Principal;
+use candid::Principal;
 
 use anyhow::{anyhow, bail, Context};
 use serde::{Deserialize, Serialize};

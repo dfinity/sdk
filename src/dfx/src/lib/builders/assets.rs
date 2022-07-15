@@ -12,7 +12,7 @@ use crate::util;
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
+use candid::Principal as CanisterId;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
