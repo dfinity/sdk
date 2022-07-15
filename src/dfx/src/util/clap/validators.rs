@@ -119,7 +119,7 @@ pub fn project_name_validator(name: &str) -> Result<(), String> {
                 Err(format!(
                     r#"Invalid character(s): "{}""#,
                     m.iter()
-                        .fold(String::new(), |acc, &num| acc + &num.to_string())
+                        .fold(String::new(), |acc, &num| acc + num)
                 ))
             }
         } else {
