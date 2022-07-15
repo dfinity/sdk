@@ -335,7 +335,7 @@ CHERRIES" "$stdout"
 }
 
 # TODO verify if assets aren't being uploaded even if there is no asset canister?
-@test "asset configuration via .ic-assets.json" {
+@test "asset configuration via .ic-assets.jsonanotheranother" {
     cd ..
     rm -rf e2e_project
     dfx_new_frontend
@@ -348,20 +348,19 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    echo "usingamjuzing"
     echo $(which dfx)
     echo $PORT
     echo $ID
     export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
     echo $CURL_ME
-    assert_command curl --head $CURL_ME
+    assert_command curl --head "$CURL_ME"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 
     # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "another asset configuration via .ic-assets.json" {
+@test "another asset configuration via .ic-assets.jsoanotheranothern" {
     install_asset assetscanister
 
     dfx_start
@@ -371,20 +370,19 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    echo "usingamjuzing"
     echo $(which dfx)
     echo $PORT
     echo $ID
     export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
     echo $CURL_ME
-    assert_command curl --head $CURL_ME
+    assert_command curl --head "$CURL_ME"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 
     # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "another another asset configuration via .ic-assets.json" {
+@test "another another asset conanotheranotheranotherfiguration via .ic-assets.json" {
     install_asset assetscanister
 
     dfx_start
@@ -404,19 +402,18 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    echo "usingamjuzing"
     echo $(which dfx)
     echo $PORT
     echo $ID
     export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
     echo $CURL_ME
-    assert_command curl --head $CURL_ME
+    assert_command curl --head "$CURL_ME"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 }
 
 # TODO verify if assets aren't being uploaded even if there is no asset canister?
-@test "asset configuration via .ic-assets.json" {
+@test "asset configuration via .ic-aanotheranotheranotherssets.json" {
     cd ..
     rm -rf e2e_project
     dfx_new_frontend
@@ -429,20 +426,19 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    echo "usingamjuzing"
     echo $(which dfx)
     echo $PORT
     echo $ID
     export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
     echo $CURL_ME
-    assert_command curl --head $CURL_ME
+    assert_command curl --head "$CURL_ME"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 
     # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "another asset configuration via .ic-assets.json" {
+@test "another anotheranotheranotherasset configuration via .ic-assets.json" {
     install_asset assetscanister
 
     dfx_start
@@ -458,14 +454,14 @@ CHERRIES" "$stdout"
     echo $ID
     export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
     echo $CURL_ME
-    assert_command curl --head $CURL_ME
+    assert_command curl --head "$CURL_ME"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 
     # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "another another asset configuration via .ic-assets.json" {
+@test "another anotanotherher asset configuration via .ic-assets.json" {
     install_asset assetscanister
 
     dfx_start
@@ -491,7 +487,7 @@ CHERRIES" "$stdout"
     echo $ID
     export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
     echo $CURL_ME
-    assert_command curl --head $CURL_ME
+    assert_command curl --head "$CURL_ME"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 }
