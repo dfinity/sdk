@@ -154,6 +154,7 @@ jobs:
         with:
           name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
 
+      - name: Just fail
         run: |
           just making sure during testing
           exit 1
