@@ -3,9 +3,42 @@
 
 = UNRELEASED
 
-=== Updated agent-rs to 0.19.0
+== Dependencies
+
+=== Updated `+agent-rs+` to 0.20.0
+=== Updated `+candid+` to 0.7.15
 
 == DFX
+
+=== feat: support for configuring assets in assets canister
+- The `+.ic-assets.json+` file should be placed inside directory with assets, or it's subdirectories. Multiple config files can be used (nested in subdirectories). Example of `.ic-assets.json` file format:
+[source, json]
+----
+[
+    {
+        "match": ".*",
+        "cache": {
+            "max_age": 20
+        },
+        "headers": {
+            "X-Content-Type-Options": "nosniff"
+        },
+        "ignore": false
+    },
+    {
+        "match": "**/*",
+        "headers": null
+    },
+    {
+        "match": "file.json",
+        "ignore": true
+    }
+]
+----
+- Configuring assets works only during asset creation.
+- `headers` from multiple applicable rules are being stacked/concatenated, unless `null` is specified, which resets/empties the headers.
+- Both `"headers": {}` and absence of `headers` field don't have any effect on end result.
+- Valid JSON format is required, i.e. the array of maps, `+match+` field is required. Only the following fields are accepted: `+cache+`, `+ignore+`, `+headers+`, `+match+`. The glob pattern has to be valid.
 
 === feat: Use `+--locked+` for Rust canisters
 
