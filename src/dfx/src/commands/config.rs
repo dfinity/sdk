@@ -35,7 +35,7 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
     // We replace `.` with `/` so the user can use `path.value.field` instead of forcing him
     // to use `path/value/field`. Since none of our keys have slashes or tildes in them it
     // won't be a problem.
-    let mut config_path = config_path.replace(".", "/");
+    let mut config_path = config_path.replace('.', "/");
     // We change config path to starts with a `/` if it doesn't already. This is because
     // JSON pointers can be relative, but we don't have a place to start if is it.
     if !config_path.starts_with('/') {
