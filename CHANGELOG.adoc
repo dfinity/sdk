@@ -47,7 +47,7 @@
 - The way `+ignore+` field works:
 +
 . If a directory is ignored, file and directories within it cannot be un-ignored.
-. A file can be ignored and un-ignored many times, as long as it's parent directory hasn't been ignored.
+. A file can be ignored and un-ignored many times, as long as any of its parent directories haven't been ignored.
 ++
 
 === feat: Use `+--locked+` for Rust canisters
