@@ -79,7 +79,7 @@ teardown() {
     dfx canister create --all
     assert_command dfx build
     dfx canister install --all
-    assert_command dfx canister call e2e_project greet World
+    assert_command dfx canister call e2e_project_backend greet World
     assert_match "10World"
 }
 
@@ -95,9 +95,9 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  cp .dfx/local/canisters/e2e_project/e2e_project.wasm ./old.wasm
+  cp .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm ./old.wasm
   assert_command dfx build
-  assert_command diff .dfx/local/canisters/e2e_project/e2e_project.wasm ./old.wasm
+  assert_command diff .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm ./old.wasm
 }
 
 @test "build outputs warning" {
@@ -118,10 +118,16 @@ teardown() {
 
 @test "build fails if canister type is not supported" {
   dfx_start
-  dfx config canisters.e2e_project.type unknown_canister_type
   dfx canister create --all
+  # shellcheck disable=SC2094
+  cat <<<"$(jq '.canisters.e2e_project.type="unknown_canister_type"' dfx.json)" >dfx.json
   assert_command_fail dfx build
-  assert_match "Cannot find builder for canister"
+  # shellcheck disable=SC2016
+  assert_match 'unknown variant `unknown_canister_type`'
+
+  # If canister type is invalid, `dfx stop` fails
+  # shellcheck disable=SC2094
+  cat <<<"$(jq '.canisters.e2e_project.type="motoko"' dfx.json)" >dfx.json
 }
 
 @test "can build a custom canister type" {
@@ -185,8 +191,8 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  assert_command ls .dfx/local/canisters/e2e_project/
-  assert_command ls .dfx/local/canisters/e2e_project/e2e_project.wasm
+  assert_command ls .dfx/local/canisters/e2e_project_backend/
+  assert_command ls .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm
 }
 
 @test "build with wallet output for non-local network is in expected directory" {
@@ -196,6 +202,6 @@ teardown() {
 
   dfx canister --network actuallylocal create --all
   assert_command dfx build --network actuallylocal
-  assert_command ls .dfx/actuallylocal/canisters/e2e_project/
-  assert_command ls .dfx/actuallylocal/canisters/e2e_project/e2e_project.wasm
+  assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/
+  assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/e2e_project_backend.wasm
 }

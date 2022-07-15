@@ -17,7 +17,7 @@ use slog::{info, warn, Logger};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 use tar::Archive;
 
@@ -268,7 +268,7 @@ fn scaffold_frontend_code(
 
         let frontend_value: serde_json::Map<String, Value> = [(
             "entrypoint".to_string(),
-            ("src/".to_owned() + project_name_str + "_assets/src/index.html").into(),
+            ("src/".to_owned() + project_name_str + "_frontend/src/index.html").into(),
         )]
         .iter()
         .cloned()
@@ -277,7 +277,7 @@ fn scaffold_frontend_code(
         // Only update the dfx.json and install node dependencies if we're not running in dry run.
         if !dry_run {
             let assets_canister_json = config_json
-                .pointer_mut(("/canisters/".to_owned() + project_name_str + "_assets").as_str())
+                .pointer_mut(("/canisters/".to_owned() + project_name_str + "_frontend").as_str())
                 .unwrap();
             assets_canister_json
                 .as_object_mut()
@@ -292,7 +292,7 @@ fn scaffold_frontend_code(
                 .as_array_mut()
                 .unwrap()
                 .push(Value::from(
-                    "dist/".to_owned() + project_name_str + "_assets/",
+                    "dist/".to_owned() + project_name_str + "_frontend/",
                 ));
 
             let pretty = serde_json::to_string_pretty(&config_json)
@@ -423,7 +423,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         #[cfg(target_os = "macos")]
         {
             let mut should_git = true;
-            if let Ok(code) = std::process::Command::new("xcode-select")
+            if let Ok(code) = Command::new("xcode-select")
                 .arg("-p")
                 .stderr(Stdio::null())
                 .stdout(Stdio::null())
@@ -446,6 +446,28 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         #[cfg(not(target_os = "macos"))]
         {
             init_git(log, project_name)?;
+        }
+
+        if opts.r#type == "rust" {
+            // dfx build will use --locked, so update the lockfile beforehand
+            const MSG: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
+            if let Ok(code) = Command::new("cargo")
+                .arg("update")
+                .arg("--manifest-path")
+                .arg(project_name.join("Cargo.toml"))
+                .stderr(Stdio::inherit())
+                .stdout(Stdio::inherit())
+                .status()
+            {
+                if !code.success() {
+                    warn!(log, "Failed to run `cargo update`. {MSG}");
+                }
+            } else {
+                warn!(
+                    log,
+                    "Failed to run `cargo update` - is Cargo installed? {MSG}"
+                )
+            }
         }
     }
 

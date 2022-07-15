@@ -15,7 +15,6 @@ use ic_types::principal::Principal;
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
-use humanize_rs::duration;
 use slog::info;
 use time::OffsetDateTime;
 
@@ -26,7 +25,7 @@ use std::path::Path;
 use std::str::FromStr;
 use std::time::SystemTime;
 
-/// Sign a canister call and generate message file in json
+/// Sign a canister call and generate message file.
 #[derive(Parser)]
 pub struct CanisterSignOpts {
     /// Specifies the name of the canister to call.
@@ -54,7 +53,7 @@ pub struct CanisterSignOpts {
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     r#type: Option<String>,
 
-    /// Specifies how long will the message be valid in seconds, default to be 300s (5 minutes)
+    /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
     #[clap(long, default_value("5m"))]
     expire_after: String,
 
@@ -130,7 +129,7 @@ pub async fn exec(
         .get_selected_identity_principal()
         .expect("Selected identity not instantiated.");
 
-    let timeout = duration::parse(&opts.expire_after)
+    let timeout = humantime::parse_duration(&opts.expire_after)
         .map_err(|_| anyhow!("Cannot parse expire_after as a duration (e.g. `1h`, `1h 30m`)"))?;
     //let timeout = Duration::from_secs(opts.expire_after);
     let expiration_system_time = SystemTime::now()

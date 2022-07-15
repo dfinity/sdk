@@ -507,6 +507,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
 
 [[package]]
+name = "binaryen"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "783bea139d75b6a565b13fab54d12ec4d58724a9458598ad7283d578f4f8777a"
+dependencies = [
+ "binaryen-sys",
+]
+
+[[package]]
+name = "binaryen-sys"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86e9636d01b92f2df45dce29c35a9e3724687c1055bb4472fb4b829cc4a5a561"
+dependencies = [
+ "cc",
+ "cmake",
+ "heck 0.3.3",
+ "regex",
+]
+
+[[package]]
 name = "binread"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -620,15 +641,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bstr"
-version = "0.2.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
-dependencies = [
- "memchr",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -639,6 +651,16 @@ name = "byte-tools"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3b5ca7a04898ad4bcd41c90c5285445ff5b791899bb1b0abdd2a2aa791211d7"
+
+[[package]]
+name = "byte-unit"
+version = "4.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95ebf10dda65f19ff0f42ea15572a359ed60d7fc74fdc984d90310937be0014b"
+dependencies = [
+ "serde",
+ "utf8-width",
+]
 
 [[package]]
 name = "byteorder"
@@ -771,6 +793,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
 dependencies = [
  "os_str_bytes",
+]
+
+[[package]]
+name = "cmake"
+version = "0.1.48"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8ad8cef104ac57b68b89df3208164d228503abbdce70f6880ffa3d970e7443a"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -994,17 +1025,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derivative"
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "derive_more"
 version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1019,7 +1039,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1032,6 +1052,7 @@ dependencies = [
  "argon2",
  "atty",
  "base64",
+ "byte-unit",
  "candid",
  "clap",
  "console",
@@ -1046,7 +1067,8 @@ dependencies = [
  "futures",
  "garcon",
  "hex",
- "humanize-rs",
+ "humantime",
+ "humantime-serde",
  "ic-agent",
  "ic-asset",
  "ic-identity-hsm",
@@ -1588,17 +1610,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "globset"
-version = "0.4.9"
+name = "glob"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a1e17342619edbc21a964c2afbeb6c820c6a2560032872f397bb97ea127bd0a"
-dependencies = [
- "aho-corasick",
- "bstr",
- "fnv",
- "log",
- "regex",
-]
+checksum = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
 
 [[package]]
 name = "group"
@@ -1725,16 +1740,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
 
 [[package]]
-name = "humanize-rs"
-version = "0.1.5"
+name = "humansize"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "016b02deb8b0c415d8d56a6f0ab265e50c22df61194e37f9be75ed3a722de8a6"
+checksum = "02296996cb8796d7c6e3bc2d9211b7802812d36999a51bb754123ead7d37d026"
 
 [[package]]
 name = "humantime"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
+
+[[package]]
+name = "humantime-serde"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57a3db5ea5923d99402c94e9feb261dc5ee9b4efa158b0315f788cf549cc200c"
+dependencies = [
+ "humantime",
+ "serde",
+]
 
 [[package]]
 name = "hyper"
@@ -1791,8 +1816,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.19.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=1ecd579cf42eb01356537ecfc16e9c2451a5c8f9#1ecd579cf42eb01356537ecfc16e9c2451a5c8f9"
+version = "0.18.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 dependencies = [
  "async-trait",
  "base32",
@@ -1826,35 +1851,31 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.19.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=1ecd579cf42eb01356537ecfc16e9c2451a5c8f9#1ecd579cf42eb01356537ecfc16e9c2451a5c8f9"
+version = "0.18.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 dependencies = [
  "anyhow",
  "candid",
- "derivative",
  "flate2",
  "futures",
  "futures-intrusive",
  "garcon",
- "globset",
  "hex",
  "ic-agent",
  "ic-types",
  "ic-utils",
  "mime",
  "mime_guess",
- "pathdiff",
  "serde",
  "serde_bytes",
- "serde_json",
  "sha2 0.10.2",
  "walkdir",
 ]
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.19.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=1ecd579cf42eb01356537ecfc16e9c2451a5c8f9#1ecd579cf42eb01356537ecfc16e9c2451a5c8f9"
+version = "0.18.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1882,8 +1903,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.19.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=1ecd579cf42eb01356537ecfc16e9c2451a5c8f9#1ecd579cf42eb01356537ecfc16e9c2451a5c8f9"
+version = "0.18.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
 dependencies = [
  "async-trait",
  "candid",
@@ -1903,13 +1924,14 @@ dependencies = [
 
 [[package]]
 name = "ic-wasm"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98f30356f66151c27e681c22b9775466e409bc52f1f7aad3ce9c2f7566492358"
+checksum = "41e494b1607f1d7b1e07041e711dd6b15e885edbc7802d02eb7fd3ad70ee5e06"
 dependencies = [
- "anyhow",
+ "binaryen",
  "candid",
- "clap",
+ "humansize",
+ "wabt",
  "walrus",
 ]
 
@@ -2597,12 +2619,6 @@ name = "paste"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c520e05135d6e763148b6426a837e239041653ba7becd2e538c076c738025fc"
-
-[[package]]
-name = "pathdiff"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "pem"
@@ -3939,6 +3955,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "utf8-width"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5190c9442dcdaf0ddd50f37420417d219ae5261bbf5db120d0f9bab996c9cba1"
+
+[[package]]
 name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3949,6 +3971,29 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "wabt"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00bef93d5e6c81a293bccf107cf43aa47239382f455ba14869d36695d8963b9c"
+dependencies = [
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "wabt-sys",
+]
+
+[[package]]
+name = "wabt-sys"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a4e043159f63e16986e713e9b5e1c06043df4848565bf672e27c523864c7791"
+dependencies = [
+ "cc",
+ "cmake",
+ "glob",
+]
 
 [[package]]
 name = "wait-timeout"

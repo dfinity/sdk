@@ -20,8 +20,7 @@ use ic_agent::Identity as _;
 use ic_types::principal::Principal as CanisterId;
 use slog::info;
 
-/// Creates an empty canister on the Internet Computer and
-/// associates the Internet Computer assigned Canister ID to the canister name.
+/// Creates an empty canister and associates the assigned Canister ID to the canister name.
 #[derive(Parser)]
 pub struct CanisterCreateOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
@@ -46,7 +45,7 @@ pub struct CanisterCreateOpts {
     compute_allocation: Option<String>,
 
     /// Specifies how much memory the canister is allowed to use in total.
-    /// This should be a value in the range [0..12 GiB]
+    /// This should be a value in the range [0..12 GiB].
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.

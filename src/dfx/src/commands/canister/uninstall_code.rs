@@ -11,7 +11,8 @@ use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
-/// Uninstalls a canister, removing its code and state, on the Internet Computer network.
+/// Uninstalls a canister, removing its code and state.
+/// Does not delete the canister.
 #[derive(Parser)]
 pub struct UninstallCodeOpts {
     /// Specifies the name or id of the canister to uinstall.

@@ -8,7 +8,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::{assets, check_candid_file};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
 use ic_types::principal::Principal as CanisterId;
 use petgraph::graph::{DiGraph, NodeIndex};
@@ -120,18 +120,11 @@ impl CanisterPool {
             _ => None,
         };
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
-
-        if let Some(builder) = pool_helper.builder_pool.get(&info) {
-            pool_helper
-                .canisters_map
-                .insert(0, Arc::new(Canister::new(info, builder)));
-            Ok(())
-        } else {
-            Err(anyhow!(
-                "Cannot find builder for canister '{}'.",
-                info.get_name().to_string()
-            ))
-        }
+        let builder = pool_helper.builder_pool.get(&info);
+        pool_helper
+            .canisters_map
+            .insert(0, Arc::new(Canister::new(info, builder)));
+        Ok(())
     }
 
     #[context(
@@ -244,7 +237,7 @@ impl CanisterPool {
 
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
-        if self.contains_canister_of_type("rust") {
+        if self.canisters.iter().any(|can| can.info.is_rust()) {
             self.run_cargo_audit()?;
         } else {
             trace!(
@@ -454,14 +447,31 @@ impl CanisterPool {
         Ok(())
     }
 
-    fn contains_canister_of_type(&self, of_type: &str) -> bool {
-        self.canisters
-            .iter()
-            .any(|c| c.get_info().get_type() == of_type)
-    }
-
     /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.
     fn run_cargo_audit(&self) -> DfxResult {
+        let location = Command::new("cargo")
+            .args(["locate-project", "--message-format=plain", "--workspace"])
+            .output()
+            .context("Failed to run 'cargo locate-project'.")?;
+        if !location.status.success() {
+            bail!(
+                "'cargo locate-project' failed: {}",
+                String::from_utf8_lossy(&location.stderr)
+            );
+        }
+        let location = Path::new(std::str::from_utf8(&location.stdout)?);
+        if !location
+            .parent()
+            .expect("Cargo.toml with no parent")
+            .join("Cargo.lock")
+            .exists()
+        {
+            warn!(
+                self.logger,
+                "Skipped audit step as there is no Cargo.lock file."
+            );
+            return Ok(());
+        }
         if Command::new("cargo")
             .arg("audit")
             .arg("--version")

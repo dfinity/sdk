@@ -10,9 +10,8 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
-use humanize_rs::bytes::Bytes;
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
@@ -146,32 +145,30 @@ async fn register_canisters(
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
             let config_interface = config.get_config();
-            let compute_allocation =
-                config_interface
-                    .get_compute_allocation(canister_name)?
-                    .map(|arg| {
-                        ComputeAllocation::try_from(arg.parse::<u64>().unwrap())
-                            .expect("Compute Allocation must be a percentage.")
-                    });
-            let memory_allocation =
-                config_interface
-                    .get_memory_allocation(canister_name)?
-                    .map(|arg| {
-                        MemoryAllocation::try_from(
-                        u64::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
-                    )
-                    .expect(
-                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
-                    )
-                    });
+            let compute_allocation = config_interface
+                .get_compute_allocation(canister_name)?
+                .map(|arg| {
+                    ComputeAllocation::try_from(arg)
+                        .context("Compute Allocation must be a percentage.")
+                })
+                .transpose()?;
+            let memory_allocation = config_interface
+                .get_memory_allocation(canister_name)?
+                .map(|arg| {
+                    u64::try_from(arg.get_bytes())
+                        .map_err(|e| anyhow!(e))
+                        .and_then(|n| Ok(MemoryAllocation::try_from(n)?))
+                        .context(
+                            "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                        )
+                })
+                .transpose()?;
             let freezing_threshold =
                 config_interface
                     .get_freezing_threshold(canister_name)?
                     .map(|arg| {
-                        FreezingThreshold::try_from(
-                            u128::try_from(arg.parse::<Bytes>().unwrap().size()).unwrap(),
-                        )
-                        .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
+                        FreezingThreshold::try_from(arg.as_secs())
+                            .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
                     });
             let controllers = None;
             create_canister(
