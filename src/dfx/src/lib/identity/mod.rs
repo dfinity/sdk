@@ -12,11 +12,11 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use fn_error_context::context;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{AgentError, Signature};
 use ic_identity_hsm::HardwareIdentity;
-use candid::Principal;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};

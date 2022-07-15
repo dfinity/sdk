@@ -7,11 +7,11 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use clap::Parser;
 use garcon::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
-use candid::Principal;
 use std::str::FromStr;
 
 /// Requests the status of a call from a canister.

@@ -8,8 +8,8 @@ use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
 use anyhow::{bail, Context};
-use clap::Parser;
 use candid::Principal;
+use clap::Parser;
 use slog::info;
 use std::time::Duration;
 

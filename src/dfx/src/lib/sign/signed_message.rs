@@ -1,8 +1,8 @@
 use crate::lib::error::DfxResult;
 
+use candid::Principal;
 use fn_error_context::context;
 use ic_agent::RequestId;
-use candid::Principal;
 
 use anyhow::{anyhow, bail, Context};
 use serde::{Deserialize, Serialize};

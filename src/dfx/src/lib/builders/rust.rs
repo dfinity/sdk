@@ -9,8 +9,8 @@ use crate::lib::models::canister::CanisterPool;
 
 use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
-use fn_error_context::context;
 use candid::Principal as CanisterId;
+use fn_error_context::context;
 
 use slog::{info, o};
 use std::path::PathBuf;

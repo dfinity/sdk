@@ -7,8 +7,8 @@ use crate::lib::identity::{
 };
 
 use anyhow::{anyhow, bail, Context};
-use fn_error_context::context;
 use candid::Principal;
+use fn_error_context::context;
 use pem::{encode, Pem};
 use ring::{rand, rand::SecureRandom, signature};
 use serde::{Deserialize, Serialize};

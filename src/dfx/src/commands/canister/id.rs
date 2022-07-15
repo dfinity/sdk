@@ -2,8 +2,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 
-use clap::Parser;
 use candid::Principal;
+use clap::Parser;
 
 /// Prints the identifier of a canister.
 #[derive(Parser)]

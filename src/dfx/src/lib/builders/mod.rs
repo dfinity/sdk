@@ -9,8 +9,8 @@ use crate::lib::provider::get_network_context;
 use crate::util::{self, check_candid_file};
 
 use anyhow::{bail, Context};
-use fn_error_context::context;
 use candid::Principal as CanisterId;
+use fn_error_context::context;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;

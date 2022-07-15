@@ -8,10 +8,10 @@ use crate::lib::provider::get_network_context;
 use crate::util;
 
 use anyhow::{anyhow, Context};
-use core::panic;
-use fn_error_context::context;
 use candid::Principal as CanisterId;
 use candid::Principal;
+use core::panic;
+use fn_error_context::context;
 use std::path::{Path, PathBuf};
 
 use self::rust::RustCanisterInfo;

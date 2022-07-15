@@ -6,8 +6,8 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
-use clap::Parser;
 use candid::Principal;
+use clap::Parser;
 use slog::info;
 use std::time::Duration;
 

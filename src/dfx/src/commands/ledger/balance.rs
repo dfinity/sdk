@@ -5,9 +5,9 @@ use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use candid::{Decode, Encode};
 use clap::Parser;
-use candid::Principal;
 use std::str::FromStr;
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";

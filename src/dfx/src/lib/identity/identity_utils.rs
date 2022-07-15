@@ -2,9 +2,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use anyhow::{bail, Context};
+use candid::Principal;
 use fn_error_context::context;
 use ic_agent::identity::BasicIdentity;
-use candid::Principal;
 use openssl::ec::EcKey;
 use openssl::nid::Nid;
 

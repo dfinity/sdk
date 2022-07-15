@@ -12,8 +12,8 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 
 use anyhow::Context;
-use fn_error_context::context;
 use candid::Principal as CanisterId;
+use fn_error_context::context;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
