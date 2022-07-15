@@ -144,7 +144,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     needs: build_dfx
-    if: ${{ env.GITHUB_REF_TYPE }} == 'tag'
+    if: env.GITHUB_REF_TYPE== 'tag'
     strategy:
       fail-fast: false
       matrix:
