@@ -31,6 +31,7 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
+#[allow(deprecated)]
 const DANK_PRINCIPAL: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
 const WITHDRAWAL_COST: u128 = 10_000_000_000; // Emperically estimated.
