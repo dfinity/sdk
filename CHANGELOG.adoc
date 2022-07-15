@@ -46,6 +46,8 @@
 +
 - The way `+ignore+` field works:
 +
+. By default, files that begin with a `.` are ignored, while all other files are included.
+. The `.ignore` field overrides this, if present.
 . If a directory is ignored, file and directories within it cannot be un-ignored.
 . A file can be ignored and un-ignored many times, as long as any of its parent directories haven't been ignored.
 ++
