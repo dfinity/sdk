@@ -35,7 +35,7 @@
     }
 ]
 ----
-- Configuring assets works only during asset creation.
+- Configuring assets works only during asset creation - any changes to `+.ic-assets.json+` files won't have any effect effect for assets that have already been created. We are working on follow up implementation with improvements to handle updating these properties.
 - `headers` from multiple applicable rules are being stacked/concatenated, unless `null` is specified, which resets/empties the headers.
 - Both `"headers": {}` and absence of `headers` field don't have any effect on end result.
 - Valid JSON format is required, i.e. the array of maps, `+match+` field is required. Only the following fields are accepted: `+cache+`, `+ignore+`, `+headers+`, `+match+`. The glob pattern has to be valid.
