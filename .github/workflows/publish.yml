@@ -36,10 +36,16 @@ jobs:
             tar: tar
     steps:
       - uses: actions/checkout@v2
+
       - name: Setup environment variables
         run: |
           echo "OPENSSL_STATIC=yes" >> $GITHUB_ENV
           echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
+
+      # GITHUB_REF_NAME will be something link 2353/merge for branch builds, which isn't great as a dfx version
+      - name: Set dfx version (tag builds only)
+        if: github.ref_type == 'tag'
+        run: |
           echo "DFX_VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
           echo "TARBALL_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
           echo "SHA256_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
