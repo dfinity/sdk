@@ -39,6 +39,16 @@
 - `headers` from multiple applicable rules are being stacked/concatenated, unless `null` is specified, which resets/empties the headers.
 - Both `"headers": {}` and absence of `headers` field don't have any effect on end result.
 - Valid JSON format is required, i.e. the array of maps, `+match+` field is required. Only the following fields are accepted: `+cache+`, `+ignore+`, `+headers+`, `+match+`. The glob pattern has to be valid.
+* The way matching rules work:
++
+. The most deeply nested config file takes precedens over the one in parent dir. In other words, properties from a rule matching a file in a subdirectory override properties from a rule matching a file in a parent directory
+. Order of rules withing file matters - last rule in config file takes precedens over the first one
++
+* The way `+ignore+` field works:
++
+. If a directory is ignored, file and directories within it cannot be un-ignored.
+. A file can be ignored and un-ignored many times, as long as it's parent directory hasn't been ignored.
++
 
 === feat: Use `+--locked+` for Rust canisters
 
