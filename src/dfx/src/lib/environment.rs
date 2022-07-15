@@ -30,8 +30,6 @@ pub trait Environment {
     /// invocations by other processes in the same project should
     /// return the same configuration directory.
     fn get_temp_dir(&self) -> &Path;
-    /// Return the directory where state for replica(s) is kept.
-    fn get_state_dir(&self) -> PathBuf;
     fn get_version(&self) -> &Version;
 
     /// This is value of the name passed to dfx `--identity <name>`
@@ -83,12 +81,8 @@ impl EnvironmentImpl {
                 .into_path(),
             Some(c) => c.get_path().parent().unwrap().join(".dfx"),
         };
-        create_dir_all(&temp_dir).with_context(|| {
-            format!(
-                "Failed to create temp directory {}.",
-                temp_dir.to_string_lossy()
-            )
-        })?;
+        create_dir_all(&temp_dir)
+            .with_context(|| format!("Failed to create temp directory {}.", temp_dir.display()))?;
 
         // Figure out which version of DFX we should be running. This will use the following
         // fallback sequence:
@@ -165,10 +159,6 @@ impl Environment for EnvironmentImpl {
 
     fn get_temp_dir(&self) -> &Path {
         &self.temp_dir
-    }
-
-    fn get_state_dir(&self) -> PathBuf {
-        self.get_temp_dir().join("state")
     }
 
     fn get_version(&self) -> &Version {
@@ -267,10 +257,6 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_temp_dir(&self) -> &Path {
         self.backend.get_temp_dir()
-    }
-
-    fn get_state_dir(&self) -> PathBuf {
-        self.backend.get_state_dir()
     }
 
     fn get_version(&self) -> &Version {
