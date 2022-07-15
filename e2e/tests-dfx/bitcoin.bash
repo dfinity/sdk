@@ -24,6 +24,11 @@ set_default_bitcoin_enabled() {
     cat <<<"$(jq '.defaults.bitcoin.enabled=true' dfx.json)" >dfx.json
 }
 
+set_local_network_bitcoin_enabled() {
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.networks.local.bitcoin.enabled=true' dfx.json)" >dfx.json
+}
+
 @test "noop" {
     assert_command bitcoin-cli -regtest createwallet "test"
     ADDRESS="$(bitcoin-cli -regtest getnewaddress)"
@@ -151,6 +156,15 @@ set_default_bitcoin_enabled() {
 @test "can enable bitcoin through default configuration (dfx start)" {
     dfx_new hello
     set_default_bitcoin_enabled
+
+    dfx_start
+
+    assert_file_not_empty .dfx/ic-btc-adapter-pid
+}
+
+@test "can enable bitcoin through local network configuration (dfx start)" {
+    dfx_new hello
+    set_local_network_bitcoin_enabled
 
     dfx_start
 
