@@ -113,14 +113,14 @@ jobs:
         if: contains(matrix.os, 'ubuntu')
 
       - name: Create tarball of binaries and sha256 of tarball
-        if: ${{ env.GITHUB_REF_TYPE }} == 'tag'
+        if: github.ref_type == 'tag'
         run: |
           ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_FILENAME }} dfx
           shasum -a 256 ${{ env.TARBALL_FILENAME }} > $SHA256_FILENAME
           shasum -c $SHA256_FILENAME
 
       - name: Upload Artifacts
-        if: ${{ env.GITHUB_REF_TYPE }} == 'tag'
+        if: github.ref_type == 'tag'
         uses: actions/upload-artifact@v2
         with:
           name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
@@ -143,8 +143,8 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
     needs: build_dfx
-    if: env.GITHUB_REF_TYPE== 'tag'
     strategy:
       fail-fast: false
       matrix:
