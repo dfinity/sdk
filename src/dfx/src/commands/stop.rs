@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 
 use anyhow::bail;
 use clap::Parser;
@@ -61,7 +62,9 @@ fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
 }
 
 pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
-    let pid_file_path = env.get_temp_dir().join("pid");
+    let network_descriptor =
+        get_network_descriptor(env.get_config(), None, LocalBindDetermination::AsConfigured)?;
+    let pid_file_path = network_descriptor.local_server_descriptor()?.dfx_pid_path();
     if pid_file_path.exists() {
         // Read and verify it's not running. If it is just return.
         if let Ok(s) = std::fs::read_to_string(&pid_file_path) {

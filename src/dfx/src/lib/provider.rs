@@ -111,6 +111,7 @@ pub fn get_network_descriptor(
             let provider_url = format!("http://{}", bind_address);
             let providers = vec![parse_provider_url(&provider_url)?];
             let local_server_descriptor = LocalServerDescriptor::new(
+                data_directory,
                 bind_address,
                 bitcoin,
                 bootstrap,
