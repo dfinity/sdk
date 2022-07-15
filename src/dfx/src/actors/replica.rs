@@ -40,9 +40,9 @@ pub struct Config {
     pub ic_starter_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub replica_path: PathBuf,
+    pub replica_pid_path: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
-    pub replica_configuration_dir: PathBuf,
     pub btc_adapter_ready_subscribe: Option<Recipient<BtcAdapterReadySubscribe>>,
     pub canister_http_adapter_ready_subscribe: Option<Recipient<CanisterHttpAdapterReadySubscribe>>,
 }
@@ -128,7 +128,7 @@ impl Replica {
 
         // Create a replica config.
         let config = &self.config.replica_config;
-        let replica_pid_path = self.config.replica_configuration_dir.join("replica-pid");
+        let replica_pid_path = self.config.replica_pid_path.to_path_buf();
 
         let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
