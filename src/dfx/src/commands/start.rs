@@ -167,13 +167,14 @@ pub fn exec(
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let temp_dir = env.get_temp_dir();
     let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
-    let pid_file_path = temp_dir.join("pid");
-    let state_root = env.get_state_dir();
+    let pid_file_path = local_server_descriptor.dfx_pid_path();
+    let state_root = local_server_descriptor.state_dir();
 
     check_previous_process_running(&pid_file_path)?;
 
-    let btc_adapter_socket_holder_path = temp_dir.join("ic-btc-adapter-socket-path");
-    let canister_http_adapter_socket_holder_path = temp_dir.join("ic-canister-http-socket-path");
+    let btc_adapter_socket_holder_path = local_server_descriptor.btc_adapter_socket_holder_path();
+    let canister_http_adapter_socket_holder_path =
+        local_server_descriptor.canister_http_adapter_socket_holder_path();
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
@@ -182,18 +183,21 @@ pub fn exec(
     }
 
     let pid_file_path = empty_writable_path(pid_file_path)?;
-    let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
-    let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
+    let btc_adapter_pid_file_path =
+        empty_writable_path(local_server_descriptor.btc_adapter_pid_path())?;
+    let btc_adapter_config_path =
+        empty_writable_path(local_server_descriptor.btc_adapter_config_path())?;
     let canister_http_adapter_pid_file_path =
-        empty_writable_path(temp_dir.join("ic-canister-http-adapter-pid"))?;
+        empty_writable_path(local_server_descriptor.canister_http_adapter_pid_path())?;
     let canister_http_adapter_config_path =
-        empty_writable_path(temp_dir.join("ic-canister-http-config.json"))?;
-    let icx_proxy_pid_file_path = empty_writable_path(temp_dir.join("icx-proxy-pid"))?;
-    let webserver_port_path = empty_writable_path(temp_dir.join("webserver-port"))?;
+        empty_writable_path(local_server_descriptor.canister_http_adapter_config_path())?;
+    let icx_proxy_pid_file_path =
+        empty_writable_path(local_server_descriptor.icx_proxy_pid_path())?;
+    let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
-    let replica_config_dir = temp_dir.join("replica-configuration");
+    let replica_config_dir = local_server_descriptor.replica_configuration_dir();
     fs::create_dir_all(&replica_config_dir).with_context(|| {
         format!(
             "Failed to create replica config directory {}.",
@@ -201,8 +205,8 @@ pub fn exec(
         )
     })?;
 
-    let replica_port_path = empty_writable_path(replica_config_dir.join("replica-1.port"))?;
-    let emulator_port_path = empty_writable_path(temp_dir.join("ic-ref.port"))?;
+    let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
+    let emulator_port_path = empty_writable_path(local_server_descriptor.ic_ref_port_path())?;
 
     let (frontend_url, address_and_port) =
         frontend_address(host, local_server_descriptor, background)?;
@@ -246,6 +250,7 @@ pub fn exec(
         .replica
         .subnet_type
         .unwrap_or_default();
+    let network_descriptor = network_descriptor.clone();
 
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
@@ -287,8 +292,8 @@ pub fn exec(
                     (None, None)
                 };
 
-            let mut replica_config = ReplicaConfig::new(&env.get_state_dir(), subnet_type)
-                .with_random_port(&replica_port_path);
+            let mut replica_config =
+                ReplicaConfig::new(&state_root, subnet_type).with_random_port(&replica_port_path);
             if btc_adapter_config.is_some() {
                 replica_config = replica_config.with_btc_adapter_enabled();
                 if let Some(btc_adapter_socket) = btc_adapter_socket_path {
@@ -305,6 +310,7 @@ pub fn exec(
             let replica = start_replica_actor(
                 env,
                 replica_config,
+                local_server_descriptor,
                 shutdown_controller.clone(),
                 btc_adapter_ready_subscribe,
                 canister_http_adapter_ready_subscribe,
