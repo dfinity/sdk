@@ -8,7 +8,7 @@ use clap::Parser;
 use ic_types::Principal;
 use std::io::{stdout, Write};
 
-/// Sign a canister call and generate message file.
+/// Displays metadata in a canister.
 #[derive(Parser)]
 pub struct CanisterMetadataOpts {
     /// Specifies the name of the canister to call.
