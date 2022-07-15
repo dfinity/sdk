@@ -42,7 +42,7 @@
 - The way matching rules work:
 +
 . The most deeply nested config file takes precedence over the one in parent dir. In other words, properties from a rule matching a file in a subdirectory override properties from a rule matching a file in a parent directory
-. Order of rules withing file matters - last rule in config file takes precedens over the first one
+. Order of rules within file matters - last rule in config file takes precedence over the first one
 +
 - The way `+ignore+` field works:
 +
