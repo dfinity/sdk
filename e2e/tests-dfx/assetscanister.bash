@@ -333,3 +333,165 @@ CHERRIES" "$stdout"
     assert_command dfx canister call --query e2e_project_frontend list  '(record{})'
     assert_not_match '"/will-delete-this.txt"'
 }
+
+# TODO verify if assets aren't being uploaded even if there is no asset canister?
+@test "asset configuration via .ic-assets.json" {
+    cd ..
+    rm -rf e2e_project
+    dfx_new_frontend
+    install_asset assetscanister
+
+    dfx_start
+
+    dfx deploy e2e_project_frontend --no-wallet
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    echo "usingamjuzing"
+    echo $(which dfx)
+    echo $PORT
+    echo $ID
+    export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+    echo $CURL_ME
+    assert_command curl --head $CURL_ME
+    # shellcheck disable=SC2154
+    assert_match "x-header: x-value"
+
+    # assert_not_match '"/will-delete-this.txt"'
+}
+
+@test "another asset configuration via .ic-assets.json" {
+    install_asset assetscanister
+
+    dfx_start
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    echo "usingamjuzing"
+    echo $(which dfx)
+    echo $PORT
+    echo $ID
+    export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+    echo $CURL_ME
+    assert_command curl --head $CURL_ME
+    # shellcheck disable=SC2154
+    assert_match "x-header: x-value"
+
+    # assert_not_match '"/will-delete-this.txt"'
+}
+
+@test "another another asset configuration via .ic-assets.json" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx canister create --all
+
+    touch src/e2e_project_frontend/assets/index.html
+    touch src/e2e_project_frontend/assets/logo.png
+    touch src/e2e_project_frontend/assets/index.js
+    touch src/e2e_project_frontend/assets/main.css
+    touch src/e2e_project_frontend/assets/index.js.map
+    touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
+    touch src/e2e_project_frontend/assets/index.js.LICENSE
+
+    dfx build
+    dfx canister install e2e_project_frontend
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    echo "usingamjuzing"
+    echo $(which dfx)
+    echo $PORT
+    echo $ID
+    export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+    echo $CURL_ME
+    assert_command curl --head $CURL_ME
+    # shellcheck disable=SC2154
+    assert_match "x-header: x-value"
+}
+
+# TODO verify if assets aren't being uploaded even if there is no asset canister?
+@test "asset configuration via .ic-assets.json" {
+    cd ..
+    rm -rf e2e_project
+    dfx_new_frontend
+    install_asset assetscanister
+
+    dfx_start
+
+    dfx deploy e2e_project_frontend --no-wallet
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    echo "usingamjuzing"
+    echo $(which dfx)
+    echo $PORT
+    echo $ID
+    export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
+    echo $CURL_ME
+    assert_command curl --head $CURL_ME
+    # shellcheck disable=SC2154
+    assert_match "x-header: x-value"
+
+    # assert_not_match '"/will-delete-this.txt"'
+}
+
+@test "another asset configuration via .ic-assets.json" {
+    install_asset assetscanister
+
+    dfx_start
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    echo "usingamjuzing"
+    echo $(which dfx)
+    echo $PORT
+    echo $ID
+    export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
+    echo $CURL_ME
+    assert_command curl --head $CURL_ME
+    # shellcheck disable=SC2154
+    assert_match "x-header: x-value"
+
+    # assert_not_match '"/will-delete-this.txt"'
+}
+
+@test "another another asset configuration via .ic-assets.json" {
+    install_asset assetscanister
+
+    dfx_start
+    dfx canister create --all
+
+    touch src/e2e_project_frontend/assets/index.html
+    touch src/e2e_project_frontend/assets/logo.png
+    touch src/e2e_project_frontend/assets/index.js
+    touch src/e2e_project_frontend/assets/main.css
+    touch src/e2e_project_frontend/assets/index.js.map
+    touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
+    touch src/e2e_project_frontend/assets/index.js.LICENSE
+
+    dfx build
+    dfx canister install e2e_project_frontend
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    echo "usingamjuzing"
+    echo $(which dfx)
+    echo $PORT
+    echo $ID
+    export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
+    echo $CURL_ME
+    assert_command curl --head $CURL_ME
+    # shellcheck disable=SC2154
+    assert_match "x-header: x-value"
+}

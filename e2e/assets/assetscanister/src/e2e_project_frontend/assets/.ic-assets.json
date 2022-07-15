@@ -1,0 +1,25 @@
+[
+  {
+    "match": "ignored.txt",
+    "ignore": true
+  },
+  {
+    "match": "*",
+    "cache": {
+      "max_age": 500
+    },
+    "headers": {
+      "x-header": "x-value"
+    }
+  },
+  {
+    "match": ".*",
+    "ignore": false,
+    "cache": {
+      "max_age": 888
+    },
+    "headers": {
+      "x-extra-header": "x-extra-value"
+    }
+  }
+]
