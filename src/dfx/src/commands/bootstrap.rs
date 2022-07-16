@@ -3,6 +3,7 @@ use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::config::dfinity::ConfigDefaultsBootstrap;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 use crate::lib::webserver::run_webserver;
@@ -58,7 +59,8 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
 
     let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
     let build_output_root = build_output_root.join("canisters");
-    let icx_proxy_pid_file_path = env.get_temp_dir().join("icx-proxy-pid");
+    let icx_proxy_pid_file_path = local_server_descriptor.icx_proxy_pid_path();
+    let proxy_port_path = local_server_descriptor.proxy_port_path();
 
     let replica_urls = get_replica_urls(env, &network_descriptor)?;
 
@@ -69,7 +71,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
         get_reusable_socket_addr(config_bootstrap.ip.unwrap(), config_bootstrap.port.unwrap())
             .context("Failed to find socket address for the HTTP server.")?;
 
-    let webserver_port_path = env.get_temp_dir().join("webserver-port");
+    let webserver_port_path = local_server_descriptor.webserver_port_path();
     std::fs::write(&webserver_port_path, "").with_context(|| {
         format!(
             "Failed to write/clear webserver port file {}.",
@@ -91,7 +93,6 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
             let shutdown_controller = start_shutdown_controller(env)?;
 
             let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
-            let proxy_port_path = env.get_temp_dir().join("proxy-port");
             std::fs::write(&proxy_port_path, "").with_context(|| {
                 format!(
                     "Failed to write/clear proxy port file {}.",
@@ -208,8 +209,8 @@ fn get_replica_urls(
     network_descriptor: &NetworkDescriptor,
 ) -> DfxResult<Vec<Url>> {
     if network_descriptor.name == "local" {
-        if let Some(port) = get_running_replica_port(env)? {
-            let local_server_descriptor = network_descriptor.local_server_descriptor()?;
+        let local_server_descriptor = network_descriptor.local_server_descriptor()?;
+        if let Some(port) = get_running_replica_port(env, local_server_descriptor)? {
             let mut socket_addr = local_server_descriptor.bind_address;
             socket_addr.set_port(port);
             let url = format!("http://{}", socket_addr);
@@ -220,15 +221,15 @@ fn get_replica_urls(
     get_providers(network_descriptor)
 }
 
-fn get_running_replica_port(env: &dyn Environment) -> DfxResult<Option<u16>> {
+fn get_running_replica_port(
+    env: &dyn Environment,
+    local_server_descriptor: &LocalServerDescriptor,
+) -> DfxResult<Option<u16>> {
     let logger = env.get_logger();
     // dfx start and dfx replica both write these as empty, and then
     // populate one with a port.
-    let emulator_port_path = env.get_temp_dir().join("ic-ref.port");
-    let replica_port_path = env
-        .get_temp_dir()
-        .join("replica-configuration")
-        .join("replica-1.port");
+    let emulator_port_path = local_server_descriptor.ic_ref_port_path();
+    let replica_port_path = local_server_descriptor.replica_port_path();
 
     match read_port_from(&replica_port_path)? {
         Some(port) => {

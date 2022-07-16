@@ -13,6 +13,7 @@ mod deposit_cycles;
 mod id;
 mod info;
 mod install;
+mod metadata;
 mod request_status;
 mod send;
 mod sign;
@@ -51,6 +52,7 @@ enum SubCommand {
     Id(id::CanisterIdOpts),
     Info(info::InfoOpts),
     Install(install::CanisterInstallOpts),
+    Metadata(metadata::CanisterMetadataOpts),
     RequestStatus(request_status::RequestStatusOpts),
     Send(send::CanisterSendOpts),
     Sign(sign::CanisterSignOpts),
@@ -75,6 +77,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Id(v) => id::exec(&agent_env, v).await,
             SubCommand::Install(v) => install::exec(&agent_env, v, &call_sender).await,
             SubCommand::Info(v) => info::exec(&agent_env, v).await,
+            SubCommand::Metadata(v) => metadata::exec(&agent_env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
             SubCommand::Send(v) => send::exec(&agent_env, v, &call_sender).await,
             SubCommand::Sign(v) => sign::exec(&agent_env, v, &call_sender).await,
