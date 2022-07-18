@@ -335,30 +335,78 @@ CHERRIES" "$stdout"
 }
 
 # TODO verify if assets aren't being uploaded even if there is no asset canister?
-@test "asset configuration via .iq-assets.json" {
-    cd ..
-    rm -rf e2e_project
-    dfx_new_frontend
+#
+
+# @test "asset configuration via .iq-assets.json" {
+#     cd ..
+#     rm -rf e2e_project
+#     dfx_new_frontend
+#     install_asset assetscanister
+
+#     dfx_start
+
+#     dfx deploy e2e_project_frontend --no-wallet
+
+#     ID=$(dfx canister id e2e_project_frontend)
+#     PORT=$(get_webserver_port)
+
+#     assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+#     # shellcheck disable=SC2154
+#     assert_match "x-header: x-value"
+
+#     # assert_not_match '"/will-delete-this.txt"'
+# }
+
+@test "asset configuration via .ic-assets.json" {
     install_asset assetscanister
 
     dfx_start
 
-    dfx deploy e2e_project_frontend --no-wallet
-
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
-
-    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-    # shellcheck disable=SC2154
-    assert_match "x-header: x-value"
-
-    # assert_not_match '"/will-delete-this.txt"'
-}
-
-@test "asset configuration via .if-assets.json" {
-    install_asset assetscanister
-
-    dfx_start
+    mkdir src/e2e_project_frontend/assets/.well-known
+    touch src/e2e_project_frontend/assets/.well-known/thing.json
+    echo '[
+      {
+        "match": "ignored.txt",
+        "ignore": true
+      },
+      {
+        "match": "*",
+        "cache": {
+          "max_age": 500
+        },
+        "headers": {
+          "x-header": "x-value"
+        }
+      },
+      {
+        "match": ".*",
+        "ignore": false,
+        "cache": {
+          "max_age": 888
+        },
+        "headers": {
+          "x-extra-header": "x-extra-value"
+        }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json
+    echo '[
+      {
+        "match": "*",
+        "headers": {
+          "x-well-known-header": "x-well-known-value"
+        }
+      },
+      {
+        "match": "*.json",
+        "cache": {
+          "max_age": 1000
+        }
+      },
+      {
+        "match": "file.txt",
+        "headers": null
+      }
+    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
 
     dfx deploy
 
@@ -368,56 +416,54 @@ CHERRIES" "$stdout"
     assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
-
-    # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "asset configuration via .iw-assets.json" {
-    install_asset assetscanister
+# @test "asset configuration via .iw-assets.json" {
+#     install_asset assetscanister
 
-    dfx_start
-    dfx canister create --all
+#     dfx_start
+#     dfx canister create --all
 
-    touch src/e2e_project_frontend/assets/index.html
-    touch src/e2e_project_frontend/assets/logo.png
-    touch src/e2e_project_frontend/assets/index.js
-    touch src/e2e_project_frontend/assets/main.css
-    touch src/e2e_project_frontend/assets/index.js.map
-    touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
-    touch src/e2e_project_frontend/assets/index.js.LICENSE
+#     touch src/e2e_project_frontend/assets/index.html
+#     touch src/e2e_project_frontend/assets/logo.png
+#     touch src/e2e_project_frontend/assets/index.js
+#     touch src/e2e_project_frontend/assets/main.css
+#     touch src/e2e_project_frontend/assets/index.js.map
+#     touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
+#     touch src/e2e_project_frontend/assets/index.js.LICENSE
 
-    dfx build
-    dfx canister install e2e_project_frontend
+#     dfx build
+#     dfx canister install e2e_project_frontend
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
+#     ID=$(dfx canister id e2e_project_frontend)
+#     PORT=$(get_webserver_port)
 
-    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-    # shellcheck disable=SC2154
-    assert_match "x-header: x-value"
-}
+#     assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+#     # shellcheck disable=SC2154
+#     assert_match "x-header: x-value"
+# }
 
-@test "asset configuration via .ic-assets.json" {
-    install_asset assetscanister
+# @test "asset configuration via .ic-assets.json" {
+#     install_asset assetscanister
 
-    dfx_start
-    dfx canister create --all
+#     dfx_start
+#     dfx canister create --all
 
-    touch src/e2e_project_frontend/assets/index.html
-    touch src/e2e_project_frontend/assets/logo.png
-    touch src/e2e_project_frontend/assets/index.js
-    touch src/e2e_project_frontend/assets/main.css
-    touch src/e2e_project_frontend/assets/index.js.map
-    touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
-    touch src/e2e_project_frontend/assets/index.js.LICENSE
+#     touch src/e2e_project_frontend/assets/index.html
+#     touch src/e2e_project_frontend/assets/logo.png
+#     touch src/e2e_project_frontend/assets/index.js
+#     touch src/e2e_project_frontend/assets/main.css
+#     touch src/e2e_project_frontend/assets/index.js.map
+#     touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
+#     touch src/e2e_project_frontend/assets/index.js.LICENSE
 
-    dfx build
-    dfx canister install e2e_project_frontend
+#     dfx build
+#     dfx canister install e2e_project_frontend
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
+#     ID=$(dfx canister id e2e_project_frontend)
+#     PORT=$(get_webserver_port)
 
-    assert_command curl --head "http://localhost:$PORT/index.html?canisterId=$ID"
-    # shellcheck disable=SC2154
-    assert_match "x-header: x-value"
-}
+#     assert_command curl --head "http://localhost:$PORT/index.html?canisterId=$ID"
+#     # shellcheck disable=SC2154
+#     assert_match "x-header: x-value"
+# }
