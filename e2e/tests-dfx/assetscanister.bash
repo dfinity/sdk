@@ -349,10 +349,6 @@ CHERRIES" "$stdout"
 
     echo '[
       {
-        "match": "ignored.txt",
-        "ignore": true
-      },
-      {
         "match": "*",
         "cache": {
           "max_age": 500
@@ -370,6 +366,10 @@ CHERRIES" "$stdout"
         "headers": {
           "x-extra-header": "x-extra-value"
         }
+      },
+      {
+        "match": "ignored.txt",
+        "ignore": true
       }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json
     echo '[
@@ -451,7 +451,6 @@ CHERRIES" "$stdout"
     echo '[
       {
         "match": "*",
-        "ignore": false,
         "headers": {
           "x-header": "x-value"
         }
