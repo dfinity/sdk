@@ -334,36 +334,19 @@ CHERRIES" "$stdout"
     assert_not_match '"/will-delete-this.txt"'
 }
 
-# TODO verify if assets aren't being uploaded even if there is no asset canister?
-#
-
-# @test "asset configuration via .iq-assets.json" {
-#     cd ..
-#     rm -rf e2e_project
-#     dfx_new_frontend
-#     install_asset assetscanister
-
-#     dfx_start
-
-#     dfx deploy e2e_project_frontend --no-wallet
-
-#     ID=$(dfx canister id e2e_project_frontend)
-#     PORT=$(get_webserver_port)
-
-#     assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-#     # shellcheck disable=SC2154
-#     assert_match "x-header: x-value"
-
-#     # assert_not_match '"/will-delete-this.txt"'
-# }
-
 @test "asset configuration via .ic-assets.json" {
     install_asset assetscanister
 
     dfx_start
 
+    touch src/e2e_project_frontend/assets/ignored.txt
+    touch src/e2e_project_frontend/assets/index.html
+    touch src/e2e_project_frontend/assets/.hidden.txt
+
     mkdir src/e2e_project_frontend/assets/.well-known
     touch src/e2e_project_frontend/assets/.well-known/thing.json
+    touch src/e2e_project_frontend/assets/.well-known/file.txt
+
     echo '[
       {
         "match": "ignored.txt",
@@ -414,56 +397,97 @@ CHERRIES" "$stdout"
     PORT=$(get_webserver_port)
 
     assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-    # shellcheck disable=SC2154
+    assert_match "x-extra-header: x-extra-value"
     assert_match "x-header: x-value"
+    assert_match "x-well-known-header: x-well-known-value"
+    assert_match "cache-control: max-age=1000"
+
+    assert_command curl --head "http://localhost:$PORT/.well-known/file.txt?canisterId=$ID"
+    assert_match "cache-control: max-age=888"
+    assert_not_match "x-well-known-header: x-well-known-value"
+    assert_not_match "x-header: x-value"
+    assert_not_match "x-extra-header: x-extra-value"
+
+    assert_command curl --head "http://localhost:$PORT/index.html?canisterId=$ID"
+    assert_match "cache-control: max-age=500"
+    assert_match "x-header: x-value"
+    assert_not_match "x-extra-header: x-extra-value"
+
+    assert_command curl --head "http://localhost:$PORT/.hidden.txt?canisterId=$ID"
+    assert_match "cache-control: max-age=888"
+    assert_not_match "x-header: x-value"
+    assert_not_match "x-extra-header: x-extra-value"
+
+    assert_command_fail curl --head "http://localhost:$PORT/ignored.txt?canisterId=$ID"
 }
 
-# @test "asset configuration via .iw-assets.json" {
-#     install_asset assetscanister
+@test "asset configuration via .ic-assets.json - nested dot directories" {
+    install_asset assetscanister
 
-#     dfx_start
-#     dfx canister create --all
+    dfx_start
 
-#     touch src/e2e_project_frontend/assets/index.html
-#     touch src/e2e_project_frontend/assets/logo.png
-#     touch src/e2e_project_frontend/assets/index.js
-#     touch src/e2e_project_frontend/assets/main.css
-#     touch src/e2e_project_frontend/assets/index.js.map
-#     touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
-#     touch src/e2e_project_frontend/assets/index.js.LICENSE
+    touch src/e2e_project_frontend/assets/thing.json
+    touch src/e2e_project_frontend/assets/.ignored-by-defualt.txt
 
-#     dfx build
-#     dfx canister install e2e_project_frontend
+    mkdir src/e2e_project_frontend/assets/.well-known
+    touch src/e2e_project_frontend/assets/.well-known/thing.json
 
-#     ID=$(dfx canister id e2e_project_frontend)
-#     PORT=$(get_webserver_port)
+    mkdir src/e2e_project_frontend/assets/.well-known/.hidden
+    touch src/e2e_project_frontend/assets/.well-known/.hidden/ignored.txt
 
-#     assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-#     # shellcheck disable=SC2154
-#     assert_match "x-header: x-value"
-# }
+    mkdir src/e2e_project_frontend/assets/.well-known/.another-hidden
+    touch src/e2e_project_frontend/assets/.well-known/.another-hidden/ignored.txt
 
-# @test "asset configuration via .ic-assets.json" {
-#     install_asset assetscanister
+    echo '[
+      {
+        "match": ".well-known",
+        "igonre": false
+      },
+      {
+        "match": "**/*",
+        "cache": { "max_age": 2000 }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json
+    echo '[
+      {
+        "match": "*",
+        "ignore": "false",
+        "headers": {
+          "x-header": "x-value"
+        }
+      },
+      {
+        "match": ".hidden",
+        "ignore": "true"
+      }
 
-#     dfx_start
-#     dfx canister create --all
+    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
+    echo '[
+      {
+        "match": "*",
+        "ignore": "false"
+      }
+    ]' > src/e2e_project_frontend/assets/.well-known/.hidden/.ic-assets.json
+    echo '[
+      {
+        "match": "*",
+        "ignore": "false"
+      }
+    ]' > src/e2e_project_frontend/assets/.well-known/.another-hidden/.ic-assets.json
 
-#     touch src/e2e_project_frontend/assets/index.html
-#     touch src/e2e_project_frontend/assets/logo.png
-#     touch src/e2e_project_frontend/assets/index.js
-#     touch src/e2e_project_frontend/assets/main.css
-#     touch src/e2e_project_frontend/assets/index.js.map
-#     touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
-#     touch src/e2e_project_frontend/assets/index.js.LICENSE
+    dfx deploy
 
-#     dfx build
-#     dfx canister install e2e_project_frontend
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
 
-#     ID=$(dfx canister id e2e_project_frontend)
-#     PORT=$(get_webserver_port)
+    assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+    assert_match "cache-control: max-age=2000"
+    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+    assert_match "cache-control: max-age=2000"
+    assert_match "x-header: x-value"
 
-#     assert_command curl --head "http://localhost:$PORT/index.html?canisterId=$ID"
-#     # shellcheck disable=SC2154
-#     assert_match "x-header: x-value"
-# }
+    assert_command_fail curl --head "http://localhost:$PORT/.ignored-by-defualt.txt?canisterId=$ID"
+    assert_command_fail curl --head "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
+    assert_command_fail curl --head "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
+
+}
