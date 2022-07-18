@@ -107,6 +107,7 @@ pub enum CanisterTypeProperties {
     Custom {
         wasm: PathBuf,
         candid: PathBuf,
+        #[serde(default)]
         build: SerdeVec<String>,
     },
     Motoko,

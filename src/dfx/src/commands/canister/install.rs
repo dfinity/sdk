@@ -113,7 +113,7 @@ pub async fn exec(
                 .with_context(|| format!("Failed to load canister info for {}.", canister))?;
             let maybe_path = canister_info.get_output_idl_path();
             let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-            let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
+            let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
             let installed_module_hash =
                 read_module_hash(agent, &canister_id_store, &canister_info).await?;
             install_canister(
@@ -155,7 +155,7 @@ pub async fn exec(
                 let installed_module_hash =
                     read_module_hash(agent, &canister_id_store, &canister_info).await?;
 
-                let install_args = [];
+                let install_args = || Ok(vec![]);
 
                 install_canister(
                     env,
