@@ -91,23 +91,23 @@ which = "4.2.5"
 [dependencies.ic-agent]
 version = "0.20.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "253f1a76522c630f08f83eabb24e8b49f754cb9e"
+rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 features = ["reqwest"]
 
 [dependencies.ic-asset]
 version = "0.20.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "253f1a76522c630f08f83eabb24e8b49f754cb9e"
+rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 
 [dependencies.ic-identity-hsm]
 version = "0.20.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "253f1a76522c630f08f83eabb24e8b49f754cb9e"
+rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 
 [dependencies.ic-utils]
 version = "0.20.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "253f1a76522c630f08f83eabb24e8b49f754cb9e"
+rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 
 [dev-dependencies]
 env_logger = "0.9"
