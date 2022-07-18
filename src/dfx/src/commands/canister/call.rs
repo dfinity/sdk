@@ -11,10 +11,10 @@ use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_valida
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, Context};
+use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
 use ic_utils::interfaces::management_canister::MgmtMethod;

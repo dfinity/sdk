@@ -8,10 +8,10 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
-use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::fs;

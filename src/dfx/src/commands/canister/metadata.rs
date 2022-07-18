@@ -4,8 +4,8 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::Environment;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use std::io::{stdout, Write};
 
 /// Displays metadata in a canister.

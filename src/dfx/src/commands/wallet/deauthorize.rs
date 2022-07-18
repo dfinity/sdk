@@ -3,8 +3,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use anyhow::Context;
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 
 /// Deauthorize a wallet custodian.
 #[derive(Parser)]

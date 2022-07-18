@@ -6,9 +6,9 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
+use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
-use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 

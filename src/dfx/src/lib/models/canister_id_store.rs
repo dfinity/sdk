@@ -4,8 +4,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, Context};
+use candid::Principal as CanisterId;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;

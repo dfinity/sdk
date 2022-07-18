@@ -6,8 +6,8 @@ use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
+use candid::Principal;
 use fn_error_context::context;
-use ic_types::Principal;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
