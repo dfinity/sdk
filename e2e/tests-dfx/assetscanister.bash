@@ -415,8 +415,8 @@ CHERRIES" "$stdout"
 
     assert_command curl --head "http://localhost:$PORT/.hidden.txt?canisterId=$ID"
     assert_match "cache-control: max-age=888"
-    assert_not_match "x-header: x-value"
-    assert_not_match "x-extra-header: x-extra-value"
+    assert_match "x-header: x-value"
+    assert_match "x-extra-header: x-extra-value"
 
     assert_command_fail curl --head "http://localhost:$PORT/ignored.txt?canisterId=$ID"
 }
@@ -441,7 +441,7 @@ CHERRIES" "$stdout"
     echo '[
       {
         "match": ".well-known",
-        "igonre": false
+        "ignore": false
       },
       {
         "match": "**/*",
@@ -460,7 +460,6 @@ CHERRIES" "$stdout"
         "match": ".hidden",
         "ignore": "true"
       }
-
     ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
     echo '[
       {
