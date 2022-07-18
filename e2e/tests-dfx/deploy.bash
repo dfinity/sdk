@@ -62,3 +62,13 @@ teardown() {
     assert_not_match "Installing code for"
     assert_match "is already installed"
 }
+
+@test "deploying a dependent doesn't require already-installed dependencies to take args" {
+    install_asset deploy_deps
+    dfx_start
+    assert_command dfx deploy dependency --argument '("dfx")'
+    touch dependency.mo
+    assert_command dfx deploy dependent
+    assert_command dfx canister call dependency greet
+    assert_match "Hello, dfx!"
+}
