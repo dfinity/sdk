@@ -335,7 +335,7 @@ CHERRIES" "$stdout"
 }
 
 # TODO verify if assets aren't being uploaded even if there is no asset canister?
-@test "asset configuration via .ic-assets.jsonanotheranother" {
+@test "asset configuration via .iq-assets.json" {
     cd ..
     rm -rf e2e_project
     dfx_new_frontend
@@ -360,7 +360,7 @@ CHERRIES" "$stdout"
     # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "another asset configuration via .ic-assets.jsoanotheranothern" {
+@test "asset configuration via .if-assets.json" {
     install_asset assetscanister
 
     dfx_start
@@ -382,7 +382,7 @@ CHERRIES" "$stdout"
     # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "another another asset conanotheranotheranotherfiguration via .ic-assets.json" {
+@test "asset configuration via .iw-assets.json" {
     install_asset assetscanister
 
     dfx_start
@@ -413,7 +413,7 @@ CHERRIES" "$stdout"
 }
 
 # TODO verify if assets aren't being uploaded even if there is no asset canister?
-@test "asset configuration via .ic-aanotheranotheranotherssets.json" {
+@test "asset configuration via .ig-assets.json" {
     cd ..
     rm -rf e2e_project
     dfx_new_frontend
@@ -438,7 +438,7 @@ CHERRIES" "$stdout"
     # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "another anotheranotheranotherasset configuration via .ic-assets.json" {
+@test "asset configuration via .ip-assets.json" {
     install_asset assetscanister
 
     dfx_start
@@ -461,7 +461,7 @@ CHERRIES" "$stdout"
     # assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "another anotanotherher asset configuration via .ic-assets.json" {
+@test "asset configuration via .ic-assets.json" {
     install_asset assetscanister
 
     dfx_start
