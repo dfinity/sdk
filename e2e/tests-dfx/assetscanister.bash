@@ -348,12 +348,7 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    echo $(which dfx)
-    echo $PORT
-    echo $ID
-    export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-    echo $CURL_ME
-    assert_command curl --head "$CURL_ME"
+    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 
@@ -370,12 +365,7 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    echo $(which dfx)
-    echo $PORT
-    echo $ID
-    export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-    echo $CURL_ME
-    assert_command curl --head "$CURL_ME"
+    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 
@@ -402,63 +392,9 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    echo $(which dfx)
-    echo $PORT
-    echo $ID
-    export CURL_ME="http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-    echo $CURL_ME
-    assert_command curl --head "$CURL_ME"
+    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
-}
-
-# TODO verify if assets aren't being uploaded even if there is no asset canister?
-@test "asset configuration via .ig-assets.json" {
-    cd ..
-    rm -rf e2e_project
-    dfx_new_frontend
-    install_asset assetscanister
-
-    dfx_start
-
-    dfx deploy e2e_project_frontend --no-wallet
-
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
-
-    echo $(which dfx)
-    echo $PORT
-    echo $ID
-    export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
-    echo $CURL_ME
-    assert_command curl --head "$CURL_ME"
-    # shellcheck disable=SC2154
-    assert_match "x-header: x-value"
-
-    # assert_not_match '"/will-delete-this.txt"'
-}
-
-@test "asset configuration via .ip-assets.json" {
-    install_asset assetscanister
-
-    dfx_start
-
-    dfx deploy
-
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
-
-    echo "usingamjuzing"
-    echo $(which dfx)
-    echo $PORT
-    echo $ID
-    export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
-    echo $CURL_ME
-    assert_command curl --head "$CURL_ME"
-    # shellcheck disable=SC2154
-    assert_match "x-header: x-value"
-
-    # assert_not_match '"/will-delete-this.txt"'
 }
 
 @test "asset configuration via .ic-assets.json" {
@@ -481,13 +417,7 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    echo "usingamjuzing"
-    echo $(which dfx)
-    echo $PORT
-    echo $ID
-    export CURL_ME="http://localhost:$PORT/index.html?canisterId=$ID"
-    echo $CURL_ME
-    assert_command curl --head "$CURL_ME"
+    assert_command curl --head "http://localhost:$PORT/index.html?canisterId=$ID"
     # shellcheck disable=SC2154
     assert_match "x-header: x-value"
 }
