@@ -66,7 +66,6 @@ Configures the replica to emit additional logging from the bitcoin canister when
 
 Prior to 0.11.0, a custom canister's `+build+` field could be left off if `+dfx build+` was never invoked. To aid in deploying prebuilt canisters, this behavior is now formalized; omitting `+build+` is equivalent to `+build: []+`.
 
-
 === feat: Use `+--locked+` for Rust canisters
 
 `+dfx build+`, in Rust canisters, now uses the `+--locked+` flag when building with Cargo. To offset this, `+dfx new --type rust+` now runs `+cargo update+` on the resulting project.
