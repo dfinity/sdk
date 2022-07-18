@@ -349,6 +349,10 @@ CHERRIES" "$stdout"
 
     echo '[
       {
+        "match": "ignored.txt",
+        "ignore": true
+      },
+      {
         "match": "*",
         "cache": {
           "max_age": 500
@@ -418,7 +422,8 @@ CHERRIES" "$stdout"
     assert_match "x-header: x-value"
     assert_match "x-extra-header: x-extra-value"
 
-    assert_command_fail curl --head -f "http://localhost:$PORT/ignored.txt?canisterId=$ID"
+    assert_command curl -vv "http://localhost:$PORT/ignored.txt?canisterId=$ID"
+    assert_match "HTTP/1.1 404 Not Found"
 }
 
 @test "asset configuration via .ic-assets.json - nested dot directories" {
