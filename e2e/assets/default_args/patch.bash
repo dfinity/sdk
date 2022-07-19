@@ -1,3 +1,3 @@
 #!/dev/null
 
-dfx config defaults/build/args -- "--compacting-gcX"
+cat <<<"$(jq '.defaults.build.args="--compacting-gcX"' dfx.json)" >dfx.json

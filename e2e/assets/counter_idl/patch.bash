@@ -1,1 +1,1 @@
-dfx config canisters/hello_backend/main counter_idl.mo
+cat <<<"$(jq '.canisters.hello_backend.main="counter_idl.mo"' dfx.json)" >dfx.json

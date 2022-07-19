@@ -13,4 +13,4 @@ patch dfx.json <<EOF
        "type": "assets",
 EOF
 
-dfx config defaults/build/args -- "--error-detail 5 --compacting-gcX"
+cat <<<"$(jq '.defaults.build.args="--error-detail 5 --compacting-gcX"' dfx.json)" >dfx.json
