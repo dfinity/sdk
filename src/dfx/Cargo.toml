@@ -9,10 +9,6 @@ build = "assets/build.rs"
 name = "dfx"
 path = "src/main.rs"
 
-[[bin]]
-name = "dfx-schema"
-path = "src/dfx-schema.rs"
-
 [build-dependencies]
 flate2 = "1.0.11"
 hex = "0.4.2"
