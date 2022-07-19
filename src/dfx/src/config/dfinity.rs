@@ -8,6 +8,7 @@ use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use fn_error_context::context;
 use ic_types::Principal;
+use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
@@ -53,11 +54,12 @@ pub const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsR
     subnet_type: None,
 };
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigCanistersCanisterRemote {
     pub candid: Option<PathBuf>,
 
     // network -> canister ID
+    #[schemars(with = "BTreeMap<String, String>")]
     pub id: BTreeMap<String, Principal>,
 }
 
@@ -68,7 +70,7 @@ pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 /// A Canister configuration in the dfx.json config file.
 /// It only contains a type; everything else should be infered using the
 /// CanisterInfo type.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub declarations: CanisterDeclarationsConfig,
@@ -94,7 +96,7 @@ pub struct ConfigCanistersCanister {
     pub main: Option<PathBuf>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CanisterTypeProperties {
     Rust {
@@ -123,16 +125,18 @@ impl CanisterTypeProperties {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 pub struct InitializationValues {
     pub compute_allocation: Option<PossiblyStr<u64>>,
+    #[schemars(with = "Option<u64>")]
     pub memory_allocation: Option<Byte>,
     #[serde(with = "humantime_serde")]
+    #[schemars(with = "Option<String>")]
     pub freezing_threshold: Option<Duration>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct CanisterDeclarationsConfig {
     // Directory to place declarations for that canister
     // Default is "src/declarations/<canister_name>"
@@ -148,7 +152,7 @@ pub struct CanisterDeclarationsConfig {
     pub env_override: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBitcoin {
     #[serde(default)]
     pub enabled: bool,
@@ -162,7 +166,7 @@ pub struct ConfigDefaultsBitcoin {
     pub log_level: BitcoinAdapterLogLevel,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsCanisterHttp {
     #[serde(default)]
     pub enabled: bool,
@@ -173,26 +177,26 @@ fn default_as_false() -> bool {
     false
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBootstrap {
     pub ip: Option<IpAddr>,
     pub port: Option<u16>,
     pub timeout: Option<u64>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBuild {
     pub packtool: Option<String>,
     pub args: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsReplica {
     pub port: Option<u16>,
     pub subnet_type: Option<ReplicaSubnetType>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
     // We store ephemeral canister ids in .dfx/{network}/canister_ids.json
@@ -219,7 +223,7 @@ impl NetworkType {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ReplicaSubnetType {
     System,
@@ -244,7 +248,7 @@ impl ReplicaSubnetType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigNetworkProvider {
     pub providers: Vec<String>,
 
@@ -252,7 +256,7 @@ pub struct ConfigNetworkProvider {
     pub r#type: NetworkType,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigLocalProvider {
     pub bind: String,
 
@@ -265,14 +269,14 @@ pub struct ConfigLocalProvider {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ConfigNetwork {
     ConfigNetworkProvider(ConfigNetworkProvider),
     ConfigLocalProvider(ConfigLocalProvider),
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub enum Profile {
     // debug is for development only
     Debug,
@@ -280,7 +284,7 @@ pub enum Profile {
     Release,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaults {
     pub bitcoin: Option<ConfigDefaultsBitcoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
@@ -289,7 +293,7 @@ pub struct ConfigDefaults {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigInterface {
     pub profile: Option<Profile>,
     pub version: Option<u32>,
