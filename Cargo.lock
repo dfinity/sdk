@@ -706,7 +706,7 @@ dependencies = [
  "codespan-reporting",
  "fake",
  "hex",
- "ic-types 0.4.0",
+ "ic-types",
  "lalrpop",
  "lalrpop-util",
  "leb128",
@@ -1867,7 +1867,7 @@ dependencies = [
  "http",
  "http-body",
  "hyper-rustls",
- "ic-types 0.3.0",
+ "ic-types",
  "k256",
  "leb128",
  "mime",
@@ -1924,21 +1924,6 @@ dependencies = [
  "pkcs11",
  "sha2 0.10.2",
  "simple_asn1",
- "thiserror",
-]
-
-[[package]]
-name = "ic-types"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a67e4edc28c09d29ab97b50410245c91d71756eaf3956212e3488cd6eb75fda4"
-dependencies = [
- "crc32fast",
- "data-encoding",
- "hex",
- "serde",
- "serde_bytes",
- "sha2 0.10.2",
  "thiserror",
 ]
 
