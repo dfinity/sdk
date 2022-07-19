@@ -641,6 +641,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bstr"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1031,6 +1040,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derivative"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1045,7 +1065,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "actix",
  "actix-cors",
@@ -1078,7 +1098,6 @@ dependencies = [
  "ic-agent",
  "ic-asset",
  "ic-identity-hsm",
- "ic-types 0.3.0",
  "ic-utils",
  "ic-wasm",
  "indicatif",
@@ -1622,6 +1641,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
 
 [[package]]
+name = "globset"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a1e17342619edbc21a964c2afbeb6c820c6a2560032872f397bb97ea127bd0a"
+dependencies = [
+ "aho-corasick",
+ "bstr",
+ "fnv",
+ "log",
+ "regex",
+]
+
+[[package]]
 name = "group"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1822,8 +1854,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.18.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
+version = "0.20.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7#2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 dependencies = [
  "async-trait",
  "base32",
@@ -1857,31 +1889,34 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.18.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
+version = "0.20.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7#2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 dependencies = [
  "anyhow",
  "candid",
+ "derivative",
  "flate2",
  "futures",
  "futures-intrusive",
  "garcon",
+ "globset",
  "hex",
  "ic-agent",
- "ic-types 0.3.0",
  "ic-utils",
  "mime",
  "mime_guess",
+ "pathdiff",
  "serde",
  "serde_bytes",
+ "serde_json",
  "sha2 0.10.2",
  "walkdir",
 ]
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.18.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
+version = "0.20.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7#2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1894,16 +1929,16 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e78ec6f58886cdc252d6f912dc794211bd6bbc39ddc9dcda434b2dc16c335b3"
+checksum = "a67e4edc28c09d29ab97b50410245c91d71756eaf3956212e3488cd6eb75fda4"
 dependencies = [
- "base32",
  "crc32fast",
+ "data-encoding",
  "hex",
  "serde",
  "serde_bytes",
- "sha2 0.9.9",
+ "sha2 0.10.2",
  "thiserror",
 ]
 
@@ -1924,8 +1959,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.18.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=fef27d1c1dc7b82ec903c8a256a38d3e488dc31b#fef27d1c1dc7b82ec903c8a256a38d3e488dc31b"
+version = "0.20.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7#2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 dependencies = [
  "async-trait",
  "candid",
@@ -2640,6 +2675,12 @@ name = "paste"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c520e05135d6e763148b6426a837e239041653ba7becd2e538c076c738025fc"
+
+[[package]]
+name = "pathdiff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "pem"

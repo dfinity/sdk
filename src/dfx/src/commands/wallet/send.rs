@@ -7,8 +7,8 @@ use crate::util::expiry_duration;
 
 use anyhow::{anyhow, Context};
 use candid::CandidType;
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 
 /// Send cycles to another cycles wallet.
 #[derive(Parser)]
@@ -40,11 +40,11 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
         .await?
         .wallet_send(canister, amount, waiter_with_timeout(expiry_duration()))
         .await;
-    Ok(res.map_err(|err| {
+    res.map_err(|err| {
         anyhow!(
             "Sending cycles to {} failed with: {}",
             opts.destination,
             err
         )
-    })?)
+    })
 }

@@ -3,8 +3,8 @@ use crate::lib::error::DfxResult;
 
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
+use candid::Principal;
 use fn_error_context::context;
-use ic_types::principal::Principal;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };

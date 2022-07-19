@@ -8,8 +8,8 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator, memo_validator};
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use std::str::FromStr;
 
 /// Transfer ICP from the user to the destination account identifier.

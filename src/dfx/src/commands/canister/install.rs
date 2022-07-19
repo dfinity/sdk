@@ -8,10 +8,10 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
-use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::fs;
@@ -113,7 +113,7 @@ pub async fn exec(
                 .with_context(|| format!("Failed to load canister info for {}.", canister))?;
             let maybe_path = canister_info.get_output_idl_path();
             let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
-            let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
+            let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
             let installed_module_hash =
                 read_module_hash(agent, &canister_id_store, &canister_info).await?;
             install_canister(
@@ -155,7 +155,7 @@ pub async fn exec(
                 let installed_module_hash =
                     read_module_hash(agent, &canister_id_store, &canister_info).await?;
 
-                let install_args = [];
+                let install_args = || Ok(vec![]);
 
                 install_canister(
                     env,

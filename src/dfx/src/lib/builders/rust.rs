@@ -9,10 +9,10 @@ use crate::lib::models::canister::CanisterPool;
 
 use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
+use candid::Principal as CanisterId;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
-use serde::Deserialize;
-use slog::{info, o, warn};
+
+use slog::{info, o};
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
