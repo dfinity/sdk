@@ -13,6 +13,10 @@ After `dfx new <project>`, the canister names are:
 - `<project>_backend` (previously `<project>`)
 - `<project>_frontend` (previously `<project>_assets`)
 
+=== feat: print dfx.json schema
+
+dfx is now capable of displaying the schema for `dfx.json`. You can see the schema by running `dfx schema` or write the schema to a file with `dfx schema --outfile path/to/file/schema.json`.
+
 === feat: Enable threshold ecdsa signature
 
 ECDSA signature signing is now enabled by default in new projects, or by running `dfx start --clean`.
