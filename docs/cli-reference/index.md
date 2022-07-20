@@ -40,6 +40,8 @@ When you have the SDK installed, you can use the following commands to specify t
 
 -   [dfx replica](./dfx-replica.md)
 
+-   [dfx schema](./dfx-schema.md)
+
 -   [dfx start](./dfx-start.md)
 
 -   [dfx stop](./dfx-stop.md)
