@@ -27,7 +27,7 @@ export const createActor = (canisterId, options) => {
   return Actor.createActor(idlFactory, {
     agent,
     canisterId,
-    ...options ? options.actorOptions : {},
+    ...(options ? options.actorOptions : {}),
   });
 };
   
