@@ -94,7 +94,7 @@ pub fn print_idl_blob(
 
 pub async fn read_module_metadata(
     agent: &ic_agent::Agent,
-    canister_id: ic_types::Principal,
+    canister_id: candid::Principal,
     metadata: &str,
 ) -> Option<String> {
     Some(

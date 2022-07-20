@@ -4,8 +4,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, Context};
+use candid::Principal as CanisterId;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
@@ -180,7 +180,7 @@ impl CanisterIdStore {
     pub fn remove(&mut self, canister_name: &str) -> DfxResult<()> {
         let network_name = &self.network_descriptor.name;
         if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
-            network_name_to_canister_id.remove(&network_name.to_string());
+            network_name_to_canister_id.remove(network_name);
         }
         self.save_ids()
     }

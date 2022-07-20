@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.58.1' ]
+        rust: [ '1.60.0' ]
         os: [ ubuntu-latest, macos-latest ]
 
     steps:

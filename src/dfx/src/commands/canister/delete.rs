@@ -22,8 +22,8 @@ use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::Argument;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use num_traits::cast::ToPrimitive;
@@ -31,6 +31,7 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
+#[allow(deprecated)]
 const DANK_PRINCIPAL: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
 const WITHDRAWAL_COST: u128 = 10_000_000_000; // Emperically estimated.

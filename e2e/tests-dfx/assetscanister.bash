@@ -333,3 +333,176 @@ CHERRIES" "$stdout"
     assert_command dfx canister call --query e2e_project_frontend list  '(record{})'
     assert_not_match '"/will-delete-this.txt"'
 }
+
+@test "asset configuration via .ic-assets.json" {
+    install_asset assetscanister
+
+    dfx_start
+
+    touch src/e2e_project_frontend/assets/ignored.txt
+    touch src/e2e_project_frontend/assets/index.html
+    touch src/e2e_project_frontend/assets/.hidden.txt
+
+    mkdir src/e2e_project_frontend/assets/.well-known
+    touch src/e2e_project_frontend/assets/.well-known/thing.json
+    touch src/e2e_project_frontend/assets/.well-known/file.txt
+
+    echo '[
+      {
+        "match": "ignored.txt",
+        "ignore": true
+      },
+      {
+        "match": "*",
+        "cache": {
+          "max_age": 500
+        },
+        "headers": {
+          "x-header": "x-value"
+        }
+      },
+      {
+        "match": ".*",
+        "ignore": false,
+        "cache": {
+          "max_age": 888
+        },
+        "headers": {
+          "x-extra-header": "x-extra-value"
+        }
+      },
+      {
+        "match": "ignored.txt",
+        "ignore": true
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json
+    echo '[
+      {
+        "match": "*",
+        "headers": {
+          "x-well-known-header": "x-well-known-value"
+        }
+      },
+      {
+        "match": "*.json",
+        "cache": {
+          "max_age": 1000
+        }
+      },
+      {
+        "match": "file.txt",
+        "headers": null
+      }
+    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+    assert_match "x-extra-header: x-extra-value"
+    assert_match "x-header: x-value"
+    assert_match "x-well-known-header: x-well-known-value"
+    assert_match "cache-control: max-age=1000"
+
+    assert_command curl --head "http://localhost:$PORT/.well-known/file.txt?canisterId=$ID"
+    assert_match "cache-control: max-age=888"
+    assert_not_match "x-well-known-header: x-well-known-value"
+    assert_not_match "x-header: x-value"
+    assert_not_match "x-extra-header: x-extra-value"
+
+    assert_command curl --head "http://localhost:$PORT/index.html?canisterId=$ID"
+    assert_match "cache-control: max-age=500"
+    assert_match "x-header: x-value"
+    assert_not_match "x-extra-header: x-extra-value"
+
+    assert_command curl --head "http://localhost:$PORT/.hidden.txt?canisterId=$ID"
+    assert_match "cache-control: max-age=888"
+    assert_match "x-header: x-value"
+    assert_match "x-extra-header: x-extra-value"
+
+    # assert_command curl -vv "http://localhost:$PORT/ignored.txt?canisterId=$ID"
+    # assert_match "HTTP/1.1 404 Not Found"
+    # from logs:
+    # Staging contents of new and changed assets:
+    #   /sample-asset.txt 1/1 (24 bytes)
+    #   /text-with-newlines.txt 1/1 (36 bytes)
+    #   /.well-known/file.txt 1/1 (0 bytes)
+    #   /index.html 1/1 (0 bytes)
+    #   /.hidden.txt 1/1 (0 bytes)
+    #   /binary/noise.txt 1/1 (19 bytes)
+    #   /.well-known/thing.json 1/1 (0 bytes)
+}
+
+@test "asset configuration via .ic-assets.json - nested dot directories" {
+    install_asset assetscanister
+
+    dfx_start
+
+    touch src/e2e_project_frontend/assets/thing.json
+    touch src/e2e_project_frontend/assets/.ignored-by-defualt.txt
+
+    mkdir src/e2e_project_frontend/assets/.well-known
+    touch src/e2e_project_frontend/assets/.well-known/thing.json
+
+    mkdir src/e2e_project_frontend/assets/.well-known/.hidden
+    touch src/e2e_project_frontend/assets/.well-known/.hidden/ignored.txt
+
+    mkdir src/e2e_project_frontend/assets/.well-known/.another-hidden
+    touch src/e2e_project_frontend/assets/.well-known/.another-hidden/ignored.txt
+
+    echo '[
+      {
+        "match": ".well-known",
+        "ignore": false
+      },
+      {
+        "match": "**/*",
+        "cache": { "max_age": 2000 }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json
+    echo '[
+      {
+        "match": "*",
+        "headers": {
+          "x-header": "x-value"
+        }
+      },
+      {
+        "match": ".hidden",
+        "ignore": true
+      }
+    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
+    echo '[
+      {
+        "match": "*",
+        "ignore": false
+      }
+    ]' > src/e2e_project_frontend/assets/.well-known/.hidden/.ic-assets.json
+    echo '[
+      {
+        "match": "*",
+        "ignore": false
+      }
+    ]' > src/e2e_project_frontend/assets/.well-known/.another-hidden/.ic-assets.json
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+    assert_match "cache-control: max-age=2000"
+    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+    assert_match "cache-control: max-age=2000"
+    assert_match "x-header: x-value"
+
+    assert_command curl -vv "http://localhost:$PORT/.ignored-by-defualt.txt?canisterId=$ID"
+    assert_match "HTTP/1.1 404 Not Found"
+    assert_command curl -vv "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
+    assert_match "HTTP/1.1 404 Not Found"
+    assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
+    assert_match "HTTP/1.1 404 Not Found"
+
+}

@@ -9,8 +9,9 @@ use crate::lib::models::canister::CanisterPool;
 
 use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
+use candid::Principal as CanisterId;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
+
 use slog::{info, o};
 use std::path::PathBuf;
 use std::process::Command;
@@ -73,7 +74,8 @@ impl CanisterBuilder for RustBuilder {
             .arg("wasm32-unknown-unknown")
             .arg("--release")
             .arg("-p")
-            .arg(package);
+            .arg(package)
+            .arg("--locked");
 
         let dependencies = self
             .get_dependencies(pool, canister_info)
@@ -86,7 +88,8 @@ impl CanisterBuilder for RustBuilder {
 
         info!(
             self.logger,
-            "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
+            "Executing: cargo build --target wasm32-unknown-unknown --release -p {} --locked",
+            package
         );
         let output = cargo.output().context("Failed to run 'cargo build'.")?;
 

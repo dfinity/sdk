@@ -9,9 +9,9 @@ use crate::lib::sign::signed_message::SignedMessageV1;
 
 use crate::util::{blob_from_arguments, get_candid_type};
 
+use candid::Principal;
 use ic_agent::AgentError;
 use ic_agent::RequestId;
-use ic_types::principal::Principal;
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;

@@ -10,9 +10,9 @@ use crate::util::clap::validators::{
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
 use crate::util::expiry_duration;
 
+use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
-use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 

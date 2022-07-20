@@ -120,14 +120,14 @@ teardown() {
   dfx_start
   dfx canister create --all
   # shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.e2e_project.type="unknown_canister_type"' dfx.json)" >dfx.json
+  cat <<<"$(jq '.canisters.e2e_project_backend.type="unknown_canister_type"' dfx.json)" >dfx.json
   assert_command_fail dfx build
   # shellcheck disable=SC2016
   assert_match 'unknown variant `unknown_canister_type`'
 
   # If canister type is invalid, `dfx stop` fails
   # shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.e2e_project.type="motoko"' dfx.json)" >dfx.json
+  cat <<<"$(jq '.canisters.e2e_project_backend.type="motoko"' dfx.json)" >dfx.json
 }
 
 @test "can build a custom canister type" {
@@ -142,6 +142,10 @@ teardown() {
   dfx canister install --all
   assert_command dfx canister call custom fromQuery
   assert_command dfx canister call custom2 fromQuery
+
+  # dfx sets the candid:service metadata
+  dfx canister metadata custom candid:service >installed.did
+  assert_command diff main.did installed.did
 }
 
 @test "custom canister build script picks local executable first" {

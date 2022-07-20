@@ -15,9 +15,9 @@ use crate::util::clap::validators::{
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal as CanisterId;
 use clap::Parser;
 use ic_agent::Identity as _;
-use ic_types::principal::Principal as CanisterId;
 use slog::info;
 
 /// Creates an empty canister and associates the assigned Canister ID to the canister name.

@@ -7,6 +7,7 @@ install_asset() {
     cp -R $ASSET_ROOT/* .
 
     [ -f ./patch.bash ] && source ./patch.bash
+    [ ! -f ./Cargo.toml ] || cargo update
 }
 
 standard_setup() {
@@ -59,6 +60,7 @@ dfx_new_rust() {
     test -d ${project_name}
     test -f ${project_name}/dfx.json
     test -f ${project_name}/Cargo.toml
+    test -f ${project_name}/Cargo.lock
     cd ${project_name}
 
     echo PWD: $(pwd) >&2
