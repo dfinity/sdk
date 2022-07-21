@@ -10,7 +10,6 @@
 
 == DFX
 
-
 === feat: support for configuring assets in assets canister
 - The `+.ic-assets.json+` file should be placed inside directory with assets, or its subdirectories. Multiple config files can be used (nested in subdirectories). Example of `.ic-assets.json` file format:
 [source, json]
