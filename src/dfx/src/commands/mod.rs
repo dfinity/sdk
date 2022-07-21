@@ -19,6 +19,7 @@ mod new;
 mod ping;
 mod remote;
 mod replica;
+mod schema;
 mod start;
 mod stop;
 mod toolchain;
@@ -44,6 +45,7 @@ pub enum Command {
     Ping(ping::PingOpts),
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
+    Schema(schema::SchemaOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
     Toolchain(toolchain::ToolchainOpts),
@@ -69,6 +71,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Ping(v) => ping::exec(env, v),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
+        Command::Schema(v) => schema::exec(env, v),
         Command::Start(v) => start::exec(env, v),
         Command::Stop(v) => stop::exec(env, v),
         Command::Toolchain(v) => toolchain::exec(env, v),
