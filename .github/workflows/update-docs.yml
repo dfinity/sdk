@@ -1,0 +1,32 @@
+name: Update Documentation
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  builds:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ["1.60.0"]
+        os: [ macos-latest ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download built dfx from e2e tests
+        uses: dawidd6/action-download-artifact@v2
+          workflow: e2e.yml
+          name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
+          path: ${{ matrix.binary_path }}/dfx
+      - name: Show download worked
+        run: dfx --version
+      - name: Update docs/dfx-json-schema.json
+        run: |
+          dfx schema --outfile docs/dfx-json-schema.json
+          if ! git diff-index --quiet HEAD; then
+            git add docs/dfx-json-schema.json
+            git commit -m "update dfx-json-schema" 
+            git push
+          fi
