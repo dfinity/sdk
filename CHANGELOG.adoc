@@ -79,9 +79,11 @@ A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created ca
 
 === Replica
 
-Updated replica to elected commit 8680de8ebefab1cd313a1db24f5218c4ce477b90.
+Updated replica to elected commit f7aa3e565f34666b6172090a1eeba70d0128981b.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/71164[71164]
+* https://dashboard.internetcomputer.org/proposal/70375[70375]
 * https://dashboard.internetcomputer.org/proposal/70002[70002]
 
 = 0.11.0
