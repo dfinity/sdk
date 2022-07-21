@@ -1,6 +1,6 @@
 name: Update Docs
 on:
-  pull_request:
+  pull_request
 
 jobs:
   update_dfx_json_schema:
@@ -11,17 +11,10 @@ jobs:
         rust: ["1.60.0"]
         os: [ ubuntu-20.04 ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3.0.2
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
@@ -36,7 +29,7 @@ jobs:
         run: |
           cargo run -- schema --outfile docs/dfx-json-schema.json
           cat docs/dfx-json-schema.json
-          if ! git diff-index --quiet HEAD; then
+          if ! git diff-index --quiet HEAD -- docs/dfx-json-schema.json; then
             git config user.name "GitHub Actions Bot"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add docs/dfx-json-schema.json
