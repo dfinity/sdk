@@ -29,10 +29,8 @@ jobs:
         run: |
           cargo run -- schema --outfile docs/dfx-json-schema.json
           cat docs/dfx-json-schema.json
-          if ! git diff-index --quiet HEAD -- docs/dfx-json-schema.json; then
-            git config user.name "GitHub Actions Bot"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add docs/dfx-json-schema.json
-            git commit -m "update dfx-json-schema" 
-            git push
-          fi
+          git config user.name "GitHub Actions Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/dfx-json-schema.json
+          git commit -m "update dfx-json-schema" || true
+          git push
