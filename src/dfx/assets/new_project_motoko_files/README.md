@@ -17,7 +17,7 @@ If you want to start working on your project right away, you might want to try t
 ```bash
 cd {project_name}/
 dfx help
-dfx config --help
+dfx canister --help
 ```
 
 ## Running the project locally

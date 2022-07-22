@@ -9,6 +9,7 @@ use slog::warn;
 
 /// Configures project options for your currently-selected project.
 #[derive(Parser)]
+#[clap(hide(true))]
 pub struct ConfigOpts {
     /// Specifies the name of the configuration option to set or read.
     /// Use the period delineated path to specify the option to set or read.
