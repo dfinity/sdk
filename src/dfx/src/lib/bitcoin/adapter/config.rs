@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
@@ -30,7 +31,7 @@ impl Default for IncomingSource {
 }
 
 /// Represents the log level of the bitcoin adapter.
-#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum BitcoinAdapterLogLevel {
     Critical,

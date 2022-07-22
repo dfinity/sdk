@@ -14,6 +14,10 @@
 
 Patches a JavaScript language binding compatibility issue encountered in web browsers which do not support the (?.) operator.
 
+=== feat: print dfx.json schema
+
+dfx is now capable of displaying the schema for `dfx.json`. You can see the schema by running `dfx schema` or write the schema to a file with `dfx schema --outfile path/to/file/schema.json`.
+
 === feat: support for configuring assets in assets canister
 - The `+.ic-assets.json+` file should be placed inside directory with assets, or its subdirectories. Multiple config files can be used (nested in subdirectories). Example of `.ic-assets.json` file format:
 [source, json]
@@ -82,9 +86,11 @@ A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created ca
 
 === Replica
 
-Updated replica to elected commit 8680de8ebefab1cd313a1db24f5218c4ce477b90.
+Updated replica to elected commit f7aa3e565f34666b6172090a1eeba70d0128981b.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/71164[71164]
+* https://dashboard.internetcomputer.org/proposal/70375[70375]
 * https://dashboard.internetcomputer.org/proposal/70002[70002]
 
 = 0.11.0
@@ -98,6 +104,8 @@ After `dfx new <project>`, the canister names are:
 
 - `<project>_backend` (previously `<project>`)
 - `<project>_frontend` (previously `<project>_assets`)
+
+=== feat: Enable threshold ecdsa signature
 
 === feat: new command: dfx canister metadata <canister> <name>
 
