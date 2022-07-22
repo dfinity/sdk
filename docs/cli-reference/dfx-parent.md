@@ -7,7 +7,7 @@ Use the `dfx` parent command with flags and subcommands to specify the operation
 ## Basic usage
 
 ``` bash
-dfx [option] [subcommand] [flag]
+dfx [subcommand] [flag]
 ```
 
 ## Flags
@@ -77,7 +77,7 @@ You can use the `--verbose` and `--quiet` flags to increment or decrement the lo
 Adding a `--quiet` flag decreases the logging level. For example, to remove all messages, you can run a command similar the following:
 
 ``` bash
-dfx -qqqq build
+dfx build -qqqq
 ```
 
 Keep in mind that using TRACE level logging (`--vv`) generates a lot of log messages that can affect performance and should only be used when required for troubleshooting or analysis.
@@ -85,7 +85,7 @@ Keep in mind that using TRACE level logging (`--vv`) generates a lot of log mess
 To output log messages to a file named `newlog.txt` and display the messages on your terminal when creating a new project, you can run a command similar to the following:
 
 ``` bash
-dfx --log tee --logfile newlog.txt new hello_world
+dfx new hello_world --log tee --logfile newlog.txt
 ```
 
 ### Specifying a user identity
@@ -96,4 +96,4 @@ In the most common use case, you use the `--identity` option to call specific ca
 
 For example, you might want to test whether the `devops` user identity can call the `modify_profile` function for the `accounts` canister by running the following command:
 
-    dfx --identity devops canister call accounts modify_profile '("Kris Smith")'
+    dfx canister call accounts modify_profile '("Kris Smith")' --identity devops

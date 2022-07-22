@@ -45,7 +45,7 @@ teardown() {
     # can't write it?
     chmod u=r,go= .dfx/local/wallets.json
     assert_command dfx identity new --disable-encryption alice
-    assert_command_fail dfx --identity alice identity get-wallet
+    assert_command_fail dfx identity get-wallet --identity alice
     assert_match "Unable to write .*/.dfx/local/wallets.json"
     assert_match "Permission denied"
 }

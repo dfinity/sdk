@@ -162,14 +162,14 @@ teardown() {
 
 @test "build succeeds with network parameter" {
   dfx_start
-  dfx canister --network local create --all
+  dfx canister create --all --network local
   assert_command dfx build --network local
 }
 
 @test "build succeeds with URL as network parameter" {
     dfx_start
     webserver_port=$(get_webserver_port)
-    dfx canister --network "http://127.0.0.1:$webserver_port" create --all
+    dfx canister create --all --network "http://127.0.0.1:$webserver_port"
     assert_command dfx build --network "http://127.0.0.1:$webserver_port"
 }
 
@@ -178,7 +178,7 @@ teardown() {
 
   setup_actuallylocal_network
 
-  assert_command dfx canister --network actuallylocal create --all
+  assert_command dfx canister create --all --network actuallylocal
   assert_command dfx build --network actuallylocal
 }
 
@@ -187,7 +187,7 @@ teardown() {
   setup_actuallylocal_network
   assert_command dfx_set_wallet
 
-  assert_command dfx canister --network actuallylocal create --all
+  assert_command dfx canister create --all --network actuallylocal
   assert_command dfx build --network actuallylocal
 }
 
@@ -204,7 +204,7 @@ teardown() {
   setup_actuallylocal_network
   assert_command dfx_set_wallet
 
-  dfx canister --network actuallylocal create --all
+  dfx canister create --all --network actuallylocal
   assert_command dfx build --network actuallylocal
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/e2e_project_backend.wasm

@@ -22,10 +22,10 @@ teardown() {
     dfx_set_wallet
     assert_command dfx_set_wallet
 
-    assert_command dfx canister --network actuallylocal create --all
+    assert_command dfx canister create --all --network actuallylocal
 
     # canister creates writes to a spinner (stderr), not stdout
-    assert_command dfx canister --network actuallylocal id e2e_project_backend
+    assert_command dfx canister id e2e_project_backend --network actuallylocal
     assert_match "$(jq -r .e2e_project_backend.actuallylocal <canister_ids.json)"
 }
 
@@ -34,23 +34,23 @@ teardown() {
 
     setup_actuallylocal_network
     # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json)" >dfx.json
+    cat <<<"$(jq '.networks.actuallylocal.type="ephemeral"' dfx.json)" >dfx.json
     assert_command dfx_set_wallet
 
-    assert_command dfx canister --network actuallylocal create --all
+    assert_command dfx canister create --all --network actuallylocal
 
     # canister creates writes to a spinner (stderr), not stdout
-    assert_command dfx canister --network actuallylocal id e2e_project_backend
+    assert_command dfx canister id e2e_project_backend --network actuallylocal
     assert_match "$(jq -r .e2e_project_backend.actuallylocal <.dfx/actuallylocal/canister_ids.json)"
 }
 
 @test "create stores canister ids for default-ephemeral local networks in .dfx/{network}canister_ids.json" {
     dfx_start
 
-    assert_command dfx canister --network local create --all
+    assert_command dfx canister create --all --network local
 
     # canister creates writes to a spinner (stderr), not stdout
-    assert_command dfx canister --network local id e2e_project_backend
+    assert_command dfx canister id e2e_project_backend --network local
     assert_match "$(jq -r .e2e_project_backend.local <.dfx/local/canister_ids.json)"
 }
 
@@ -59,12 +59,12 @@ teardown() {
     dfx_start
 
     # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.type=\"persistent\" dfx.json)" >dfx.json
+    cat <<<"$(jq '.networks.local.type="persistent"' dfx.json)" >dfx.json
 
-    assert_command dfx canister --network local create --all
+    assert_command dfx canister create --all --network local
 
     # canister creates writes to a spinner (stderr), not stdout
-    assert_command dfx canister --network local id e2e_project_backend
+    assert_command dfx canister id e2e_project_backend --network local
     assert_match "$(jq -r .e2e_project_backend.local <canister_ids.json)"
 }
 
@@ -80,5 +80,5 @@ teardown() {
     setup_actuallylocal_network
 
     assert_command_fail dfx build --network actuallylocal
-    assert_match "Cannot find canister id. Please issue 'dfx canister --network actuallylocal create e2e_project"
+    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project --network actuallylocal"
 }
