@@ -33,18 +33,23 @@ pub struct BaseOpts<T: Args> {
 
 #[derive(Args)]
 struct EnvOpts {
+    /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
     #[clap(long, short('v'), parse(from_occurrences))]
     verbose: u64,
 
+    /// Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.
     #[clap(long, short('q'), parse(from_occurrences))]
     quiet: u64,
 
+    /// The logging mode to use. You can log to stderr, a file, or both.
     #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]))]
     logmode: String,
 
+    /// The file to log to, if logging to a file (see --logmode).
     #[clap(long)]
     logfile: Option<String>,
 
+    /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
     #[clap(long)]
     identity: Option<String>,
 }

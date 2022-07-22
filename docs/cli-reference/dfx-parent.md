@@ -17,7 +17,7 @@ You can use the following optional flags with the `dfx` parent command or with a
 | Flag                 | Description                                     |
 |----------------------|-------------------------------------------------|
 | `-h`, `--help`       | Displays usage information.                     |
-| ` -q`, `--quiet` | Suppresses informational messages.              |
+| `-q`, `--quiet`      | Suppresses informational messages.              |
 | `-v`, `--verbose`    | Displays detailed information about operations. |
 | `-V`, `--version`    | Displays version information.                   |
 
@@ -27,7 +27,7 @@ You can use the following options with the `dfx` command.
 
 | Option                         | Description                                     |
 |--------------------------------|-------------------------------------------------|
-| `-- identity <identity>`       | Specifies the user identity to use when running a command.                                                     |
+| `--identity <identity>`        | Specifies the user identity to use when running a command.                                                     |
 | `--logfile <logfile>`          | Writes log file messages to the specified log file name if you use the `--log file` logging option.              |
 | `--log <logmode>`              | Specifies the logging mode to use. + You can set the log mode to one of the following:<br />- `stderr` to log messages to the standard error facility.<br />- `tee` to write messages to both standard output and to a specified file name.<br />- `file` to write messages to a specified file name.<br />The default logging mode is stderr.|
 
