@@ -8,6 +8,7 @@ use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use candid::Principal;
 use fn_error_context::context;
+use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
@@ -53,11 +54,20 @@ pub const EMPTY_CONFIG_DEFAULTS_REPLICA: ConfigDefaultsReplica = ConfigDefaultsR
     subnet_type: None,
 };
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+/// # Remote Canister Configuration
+/// This field allows canisters to be marked 'remote' for certain networks.
+/// On networks where this canister contains a remote ID, the canister is not deployed.
+/// Instead it is assumed to exist already under control of a different project.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigCanistersCanisterRemote {
+    /// # Remote Candid File
+    /// On networks where this canister is marked 'remote', this candid file is used instead of the one declared in the canister settings.
     pub candid: Option<PathBuf>,
 
-    // network -> canister ID
+    /// # Network to Remote ID Mapping
+    /// This field contains mappings from network names to remote canister IDs (Principals).
+    /// For all networks listed here, this canister is considered 'remote'.
+    #[schemars(with = "BTreeMap<String, String>")]
     pub id: BTreeMap<String, Principal>,
 }
 
@@ -65,51 +75,91 @@ const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 
-/// A Canister configuration in the dfx.json config file.
-/// It only contains a type; everything else should be infered using the
-/// CanisterInfo type.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+/// # Canister Configuration
+/// Configurations for a single canister.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigCanistersCanister {
+    /// # Declarations Configuration
+    /// Defines which canister interface declarations to generate,
+    /// and where to generate them.
     #[serde(default)]
     pub declarations: CanisterDeclarationsConfig,
 
+    /// # Remote Configuration
+    /// Used to mark the canister as 'remote' on certain networks.
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
 
+    /// # Canister Argument
+    /// This field defines a static argument to use when deploying the canister.
     pub args: Option<String>,
 
+    /// # Resource Allocation Settings
+    /// Defines initial values for resource allocation settings.
     #[serde(default)]
     pub initialization_values: InitializationValues,
 
+    /// # Dependencies
+    /// Defines on which canisters this canister depends on.
     #[serde(default)]
     pub dependencies: Vec<String>,
 
+    /// # Force Frontend URL
+    /// Mostly unused.
+    /// If this value is not null, a frontend URL is displayed after deployment even if the canister type is not 'asset'.
     pub frontend: Option<BTreeMap<String, String>>,
 
+    /// # Type-Specific Canister Properties
+    /// Depending on the canister type, different fields are required.
+    /// These are defined in this object.
     #[serde(flatten)]
     pub type_specific: CanisterTypeProperties,
 
+    /// # Post-Install Commands
+    /// One or more commands to run post canister installation.
     #[serde(default)]
     pub post_install: SerdeVec<String>,
+
+    /// # Path to Canister Entry Point
+    /// Entry point for e.g. Motoko Compiler.
     pub main: Option<PathBuf>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CanisterTypeProperties {
+    /// # Rust-Specific Properties
     Rust {
+        /// # Package Name
+        /// Name of the rust package that compiles to this canister's WASM.
         package: String,
+
+        /// # Candid File
+        /// Path of this canister's candid interface declaration.
         candid: PathBuf,
     },
+    /// # Asset-Specific Properties
     Assets {
+        /// # Asset Source Folder
+        /// Folders from which assets are uploaded.
         source: Vec<PathBuf>,
     },
+    /// # Custom-Specific Properties
     Custom {
+        /// # WASM Path
+        /// Path to WASM to be installed.
         wasm: PathBuf,
+
+        /// # Candid File
+        /// Path to this canister's candid interface declaration.
         candid: PathBuf,
-        #[serde(default)]
+
+        /// # Build Commands
+        /// Commands that are executed in order to produce this canister's WASM module.
+        /// Expected to produce the WASM in the path specified by the 'wasm' field.
         build: SerdeVec<String>,
     },
+    /// # Motoko-Specific Properties
     Motoko,
 }
 
@@ -124,47 +174,72 @@ impl CanisterTypeProperties {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+/// # Initial Resource Allocations
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 pub struct InitializationValues {
+    /// # Compute Allocation
+    /// Must be a number between 0 and 100, inclusively.
+    /// It indicates how much compute power should be guaranteed to this canister, expressed as a percentage of the maximum compute power that a single canister can allocate.
     pub compute_allocation: Option<PossiblyStr<u64>>,
+
+    /// # Memory Allocation
+    /// Maximum memory (in bytes) this canister is allowed to occupy.
+    #[schemars(with = "Option<u64>")]
     pub memory_allocation: Option<Byte>,
+
+    /// # Freezing Threshold
+    /// Freezing threshould of the canister, measured in seconds.
+    /// Valid inputs are numbers (seconds) or strings parsable by humantime (e.g. "15days 2min 2s").
     #[serde(with = "humantime_serde")]
+    #[schemars(with = "Option<String>")]
     pub freezing_threshold: Option<Duration>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+/// # Declarations Configuration
+/// Configurations about which canister interface declarations to generate,
+/// and where to generate them.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct CanisterDeclarationsConfig {
-    // Directory to place declarations for that canister
-    // Default is "src/declarations/<canister_name>"
+    /// # Declaration Output Directory
+    /// Directory to place declarations for that canister.
+    /// Default is 'src/declarations/<canister_name>'.
     pub output: Option<PathBuf>,
 
-    // A list of languages to generate type declarations
-    // Supported options are "js", "ts", "did", "mo"
-    // default is ["js", "ts", "did"]
+    /// # Languages to generate
+    /// A list of languages to generate type declarations.
+    /// Supported options are 'js', 'ts', 'did', 'mo'.
+    /// Default is ['js', 'ts', 'did'].
     pub bindings: Option<Vec<String>>,
 
-    // A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID
-    // in the "src/dfx/assets/language_bindings/canister.js" template
+    /// # Canister ID ENV Override
+    /// A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID
+    /// in the 'src/dfx/assets/language_bindings/canister.js' template.
     pub env_override: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+/// # Bitcoin Adapter Configuration
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBitcoin {
+    /// # Enable Bitcoin Adapter
     #[serde(default)]
     pub enabled: bool,
 
-    /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient)
+    /// # Available Nodes
+    /// Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).
     #[serde(default)]
     pub nodes: Option<Vec<SocketAddr>>,
 
-    /// The logging level of the adapter (e.g. "info", "debug", "error", etc.)
+    /// # Logging Level
+    /// The logging level of the adapter.
     #[serde(default)]
     pub log_level: BitcoinAdapterLogLevel,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// # HTTP Adapter Configuration
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsCanisterHttp {
+    /// # Enable HTTP Adapter
     #[serde(default)]
     pub enabled: bool,
 }
@@ -174,26 +249,48 @@ fn default_as_false() -> bool {
     false
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// # Bootstrap Server Configuration
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBootstrap {
+    /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
     pub ip: Option<IpAddr>,
+
+    /// Specifies the port number that the bootstrap server listens on. Defaults to 8081.
     pub port: Option<u16>,
+
+    /// Specifies the maximum number of seconds that the bootstrap server
+    /// will wait for upstream requests to complete. Defaults to 30.
     pub timeout: Option<u64>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+/// # Build Process Configuration
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBuild {
+    /// Main command to run the packtool.
     pub packtool: Option<String>,
+
+    /// Arguments for packtool.
     pub args: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// # Local Replica Configuration
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsReplica {
+    /// Port the replica listens on.
     pub port: Option<u16>,
+
+    /// # Subnet Type
+    /// Determines the subnet type the replica will run as.
+    /// Affects things like cycles accounting, message size limits, cycle limits.
+    /// Defaults to 'application'.
     pub subnet_type: Option<ReplicaSubnetType>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+// Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
+/// # Network Type
+/// Type 'ephemeral' is used for networks that are regularly reset.
+/// Type 'perstistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
     // We store ephemeral canister ids in .dfx/{network}/canister_ids.json
@@ -220,7 +317,7 @@ impl NetworkType {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ReplicaSubnetType {
     System,
@@ -245,18 +342,24 @@ impl ReplicaSubnetType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// # Custom Network Configuration
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigNetworkProvider {
+    /// The URL(s) this network can be reached at.
     pub providers: Vec<String>,
 
+    /// Persistence type of this network.
     #[serde(default = "NetworkType::persistent")]
     pub r#type: NetworkType,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// # Local Replica Configuration
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigLocalProvider {
+    /// Bind address for the webserver.
     pub bind: String,
 
+    /// Persistence type of this network.
     #[serde(default = "NetworkType::ephemeral")]
     pub r#type: NetworkType,
 
@@ -266,14 +369,14 @@ pub struct ConfigLocalProvider {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ConfigNetwork {
     ConfigNetworkProvider(ConfigNetworkProvider),
     ConfigLocalProvider(ConfigLocalProvider),
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub enum Profile {
     // debug is for development only
     Debug,
@@ -281,7 +384,8 @@ pub enum Profile {
     Release,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+/// Defaults to use on dfx start.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaults {
     pub bitcoin: Option<ConfigDefaultsBitcoin>,
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
@@ -290,13 +394,26 @@ pub struct ConfigDefaults {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+/// # dfx.json
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigInterface {
     pub profile: Option<Profile>,
+
+    /// Used to keep track of dfx.json versions.
     pub version: Option<u32>,
+
+    /// # dfx version
+    /// Pins the dfx version for this project.
     pub dfx: Option<String>,
+
+    /// Mapping between canisters and their settings.
     pub canisters: Option<BTreeMap<String, ConfigCanistersCanister>>,
+
+    /// Defaults for dfx start.
     pub defaults: Option<ConfigDefaults>,
+
+    /// Mapping between network names and their configurations.
+    /// Networks 'ic' and 'local' are implicitly defined.
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
 }
 

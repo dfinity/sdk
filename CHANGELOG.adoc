@@ -10,6 +10,9 @@
 
 == DFX
 
+=== feat: print dfx.json schema
+
+dfx is now capable of displaying the schema for `dfx.json`. You can see the schema by running `dfx schema` or write the schema to a file with `dfx schema --outfile path/to/file/schema.json`.
 
 === feat: support for configuring assets in assets canister
 - The `+.ic-assets.json+` file should be placed inside directory with assets, or its subdirectories. Multiple config files can be used (nested in subdirectories). Example of `.ic-assets.json` file format:
@@ -97,6 +100,8 @@ After `dfx new <project>`, the canister names are:
 
 - `<project>_backend` (previously `<project>`)
 - `<project>_frontend` (previously `<project>_assets`)
+
+=== feat: Enable threshold ecdsa signature
 
 === feat: new command: dfx canister metadata <canister> <name>
 
