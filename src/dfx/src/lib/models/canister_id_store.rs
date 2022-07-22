@@ -145,11 +145,7 @@ impl CanisterIdStore {
             } else {
                 format!(" --network {}", self.network_descriptor.name)
             };
-            anyhow!(
-                "Cannot find canister id. Please issue 'dfx canister create {}{}'.",
-                network,
-                canister_name,
-            )
+            anyhow!("Cannot find canister id. Please issue 'dfx canister create {canister_name}{network}'.")
         })
     }
 
