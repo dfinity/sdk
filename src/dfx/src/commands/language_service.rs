@@ -3,11 +3,12 @@ use crate::error_invalid_data;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::lib::provider::create_agent_environment;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use std::path::PathBuf;
@@ -46,24 +47,31 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
 
         let mut package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
 
-        // Include actor alias and IDL flags
+        // Include actor alias flags
         let canister_names = config
             .get_config()
             .get_canister_names_with_dependencies(None)?;
         let agent_env = create_agent_environment(env, None /* opts.network */)?;
-        let pool = CanisterPool::load(&agent_env, false, &canister_names)?;
+        let canister_id_store = CanisterIdStore::for_env(&agent_env)?;
+        for canister_name in canister_names.into_iter() {
+            match Principal::from_text(canister_name.clone())
+                .or_else(|_| canister_id_store.get(&canister_name[..]))
+            {
+                Ok(canister_id) => package_arguments.append(&mut vec![
+                    "--actor-alias".to_owned(),
+                    canister_name,
+                    Principal::to_text(&canister_id),
+                ]),
+                Err(_) => (),
+            };
+        }
+
+        // Add IDL directory flag
         let build_config = BuildConfig::from_config(&config)?;
-        pool.build(&build_config)?;
-        pool.get_canister_list().iter().for_each(|canister| {
-            if let Some(output) = canister.get_build_output() {
-                package_arguments.push(format!(
-                    "--actor-alias {} {}",
-                    canister.get_name(),
-                    output.canister_id.to_text()
-                ))
-            }
-        });
-        package_arguments.push(format!("--actor-idl {}", build_config.idl_root.to_string_lossy()));
+        package_arguments.append(&mut vec![
+            "--actor-idl".to_owned(),
+            (*build_config.get_lsp_root().to_string_lossy()).to_owned(),
+        ]);
 
         run_ide(env, main_path, package_arguments)
     } else {
