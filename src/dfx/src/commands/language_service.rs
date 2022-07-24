@@ -52,7 +52,8 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
             .get_canister_names_with_dependencies(None)?;
         let agent_env = create_agent_environment(env, None /* opts.network */)?;
         let pool = CanisterPool::load(&agent_env, false, &canister_names)?;
-        pool.build(&BuildConfig::from_config(&config)?)?;
+        let build_config = BuildConfig::from_config(&config)?;
+        pool.build(&build_config)?;
         pool.get_canister_list().iter().for_each(|canister| {
             if let Some(output) = canister.get_build_output() {
                 package_arguments.push(format!(
@@ -69,6 +70,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
                 //     ))
             }
         });
+        package_arguments.push(format!("--actor-idl {}", build_config.idl_root.to_string_lossy()));
 
         // // Add canister alias paths (short-term fix for dfinity/vscode-motoko#25)
         // if let Some(canisters) = config.get_config().canisters.as_ref() {
@@ -85,8 +87,8 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         //     }
         // }
 
-        // return Err(anyhow!("{:?}", package_arguments));
-        run_ide(env, main_path, package_arguments)
+        return Err(anyhow!("{:?}", package_arguments));
+        // run_ide(env, main_path, package_arguments)
     } else {
         Err(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
     }
