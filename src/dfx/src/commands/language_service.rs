@@ -46,7 +46,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
 
         let mut package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
 
-        // Build project and load canister aliases (short-term fix for dfinity/vscode-motoko#25)
+        // Include actor alias and IDL flags
         let canister_names = config
             .get_config()
             .get_canister_names_with_dependencies(None)?;
@@ -61,34 +61,11 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
                     canister.get_name(),
                     output.canister_id.to_text()
                 ))
-                // } else {
-                //     // canister.build(&pool, build_config)
-                //     package_arguments.push(format!(
-                //         "--actor-alias {} {}",
-                //         canister.get_name(),
-                //         "UNKNOWN"
-                //     ))
             }
         });
         package_arguments.push(format!("--actor-idl {}", build_config.idl_root.to_string_lossy()));
 
-        // // Add canister alias paths (short-term fix for dfinity/vscode-motoko#25)
-        // if let Some(canisters) = config.get_config().canisters.as_ref() {
-        //     for (name, canister) in canisters {
-        //         if let Some(main) = canister.main.as_ref() {
-        //             let path = main.clone().to_string_lossy();
-        //             let import_path =
-        //             package_arguments.push(format!(
-        //                 "--actor-alias {} \"{}\"",
-        //                 name,
-        //                 import_path
-        //             ))
-        //         }
-        //     }
-        // }
-
-        return Err(anyhow!("{:?}", package_arguments));
-        // run_ide(env, main_path, package_arguments)
+        run_ide(env, main_path, package_arguments)
     } else {
         Err(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
     }
