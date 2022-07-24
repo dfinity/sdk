@@ -1,8 +1,11 @@
 use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME};
 use crate::error_invalid_data;
+use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
+use crate::lib::provider::create_agent_environment;
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
@@ -40,7 +43,49 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
             .get_defaults()
             .get_build()
             .get_packtool();
-        let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
+
+        let mut package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
+
+        // Build project and load canister aliases (short-term fix for dfinity/vscode-motoko#25)
+        let canister_names = config
+            .get_config()
+            .get_canister_names_with_dependencies(None)?;
+        let agent_env = create_agent_environment(env, None /* opts.network */)?;
+        let pool = CanisterPool::load(&agent_env, false, &canister_names)?;
+        pool.build(&BuildConfig::from_config(&config)?)?;
+        pool.get_canister_list().iter().for_each(|canister| {
+            if let Some(output) = canister.get_build_output() {
+                package_arguments.push(format!(
+                    "--actor-alias {} {}",
+                    canister.get_name(),
+                    output.canister_id.to_text()
+                ))
+                // } else {
+                //     // canister.build(&pool, build_config)
+                //     package_arguments.push(format!(
+                //         "--actor-alias {} {}",
+                //         canister.get_name(),
+                //         "UNKNOWN"
+                //     ))
+            }
+        });
+
+        // // Add canister alias paths (short-term fix for dfinity/vscode-motoko#25)
+        // if let Some(canisters) = config.get_config().canisters.as_ref() {
+        //     for (name, canister) in canisters {
+        //         if let Some(main) = canister.main.as_ref() {
+        //             let path = main.clone().to_string_lossy();
+        //             let import_path =
+        //             package_arguments.push(format!(
+        //                 "--actor-alias {} \"{}\"",
+        //                 name,
+        //                 import_path
+        //             ))
+        //         }
+        //     }
+        // }
+
+        // return Err(anyhow!("{:?}", package_arguments));
         run_ide(env, main_path, package_arguments)
     } else {
         Err(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
