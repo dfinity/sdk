@@ -7,9 +7,9 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
-use ic_types::Principal;
 use semver::Version;
 use slog::{Logger, Record};
 use std::borrow::Cow;

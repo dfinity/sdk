@@ -1,6 +1,6 @@
 use crate::lib::error::DfxError;
 
-use ic_types::principal::Principal;
+use candid::Principal;
 use std::process::ExitStatus;
 use thiserror::Error;
 

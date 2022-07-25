@@ -9,6 +9,7 @@ use candid::{parser::value::IDLValue, IDLArgs};
 use fn_error_context::context;
 use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
+use schemars::JsonSchema;
 use serde::Serialize;
 use std::convert::TryFrom;
 use std::fmt::Display;
@@ -93,7 +94,7 @@ pub fn print_idl_blob(
 
 pub async fn read_module_metadata(
     agent: &ic_agent::Agent,
-    canister_id: ic_types::Principal,
+    canister_id: candid::Principal,
     metadata: &str,
 ) -> Option<String> {
     Some(
@@ -226,7 +227,7 @@ pub fn blob_from_arguments(
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
 #[serde(untagged)]
 pub enum SerdeVec<T> {
     One(T),
@@ -255,7 +256,7 @@ enum PossiblyStrInner<T> {
     Str(String),
 }
 
-#[derive(Serialize, Deserialize, Default, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Copy, Clone, Debug, JsonSchema)]
 #[serde(try_from = "PossiblyStrInner<T>")]
 pub struct PossiblyStr<T>(pub T)
 where

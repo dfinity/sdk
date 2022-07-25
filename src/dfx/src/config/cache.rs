@@ -261,7 +261,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
 pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> DfxResult<PathBuf> {
     install_version(version, false)?;
 
-    let env_var_name = format!("DFX_{}_PATH", binary_name.replace("-", "_").to_uppercase());
+    let env_var_name = format!("DFX_{}_PATH", binary_name.replace('-', "_").to_uppercase());
 
     if let Ok(path) = std::env::var(env_var_name) {
         return Ok(PathBuf::from(path));

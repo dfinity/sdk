@@ -6,14 +6,16 @@
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::ICPTs;
 use candid::CandidType;
-use ic_types::principal::Principal;
+use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Id of the ledger canister on the IC.
+#[allow(deprecated)]
 pub const MAINNET_LEDGER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x01]);
 
+#[allow(deprecated)]
 pub const MAINNET_CYCLE_MINTER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01]);
 

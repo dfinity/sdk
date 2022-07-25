@@ -4,9 +4,9 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use clap::Parser;
 use ic_agent::AgentError;
-use ic_types::Principal;
 use serde_cbor::Value;
 use std::convert::TryFrom;
 

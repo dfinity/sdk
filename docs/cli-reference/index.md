@@ -24,8 +24,6 @@ When you have the SDK installed, you can use the following commands to specify t
 
 -   [dfx canister](./dfx-canister.md)
 
--   [dfx config](./dfx-config.md)
-
 -   [dfx deploy](./dfx-deploy.md)
 
 -   [dfx help](./dfx-help.md)
@@ -39,6 +37,8 @@ When you have the SDK installed, you can use the following commands to specify t
 -   [dfx ping](./dfx-ping.md)
 
 -   [dfx replica](./dfx-replica.md)
+
+-   [dfx schema](./dfx-schema.md)
 
 -   [dfx start](./dfx-start.md)
 

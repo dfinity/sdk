@@ -52,7 +52,8 @@ teardown() {
 
 @test "failure to invoke the package tool reports the command line and reason" {
     install_asset packtool
-    dfx config defaults/build/packtool "./no-such-command that command cannot be invoked"
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.defaults.build.packtool="./no-such-command that command cannot be invoked"' dfx.json)" >dfx.json
 
     dfx_start
     dfx canister create --all
@@ -64,7 +65,8 @@ teardown() {
 
 @test "failure in execution reports the command line and exit code" {
     install_asset packtool
-    dfx config defaults/build/packtool "sh ./command-that-fails.bash"
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.defaults.build.packtool="sh ./command-that-fails.bash"' dfx.json)" >dfx.json
 
     dfx_start
     dfx canister create --all

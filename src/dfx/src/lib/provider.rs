@@ -739,7 +739,7 @@ mod tests {
     #[test]
     fn url_is_url() {
         assert_eq!(
-            command_line_provider_to_url(&"http://127.0.0.1:8000".to_string()).unwrap(),
+            command_line_provider_to_url("http://127.0.0.1:8000").unwrap(),
             "http://127.0.0.1:8000"
         );
     }
@@ -747,7 +747,7 @@ mod tests {
     #[test]
     fn addr_and_port_to_url() {
         assert_eq!(
-            command_line_provider_to_url(&"127.0.0.1:8000".to_string()).unwrap(),
+            command_line_provider_to_url("127.0.0.1:8000").unwrap(),
             "http://127.0.0.1:8000"
         );
     }
