@@ -54,8 +54,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         let agent_env = create_agent_environment(env, None /* opts.network */)?;
         let canister_id_store = CanisterIdStore::for_env(&agent_env)?;
         for canister_name in canister_names {
-            if let Ok(canister_id) = canister_id_store.get(&canister_name)
-            {
+            if let Ok(canister_id) = canister_id_store.get(&canister_name) {
                 package_arguments.append(&mut vec![
                     "--actor-alias".to_owned(),
                     canister_name,
