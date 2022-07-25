@@ -53,16 +53,14 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
             .get_canister_names_with_dependencies(None)?;
         let agent_env = create_agent_environment(env, None /* opts.network */)?;
         let canister_id_store = CanisterIdStore::for_env(&agent_env)?;
-        for canister_name in canister_names.into_iter() {
-            match Principal::from_text(canister_name.clone())
-                .or_else(|_| canister_id_store.get(&canister_name[..]))
+        for canister_name in canister_names {
+            if let Ok(canister_id) = canister_id_store.get(&canister_name)
             {
-                Ok(canister_id) => package_arguments.append(&mut vec![
+                package_arguments.append(&mut vec![
                     "--actor-alias".to_owned(),
                     canister_name,
                     Principal::to_text(&canister_id),
-                ]),
-                Err(_) => (),
+                ])
             };
         }
 
