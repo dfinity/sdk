@@ -776,7 +776,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 source: source.ok_or_else(|| missing_field("source"))?,
             },
             Some("custom") => CanisterTypeProperties::Custom {
-                build: build.ok_or_else(|| missing_field("build"))?,
+                build: build.unwrap_or_default(),
                 candid: candid.ok_or_else(|| missing_field("candid"))?,
                 wasm: wasm.ok_or_else(|| missing_field("wasm"))?,
             },
