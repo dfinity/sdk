@@ -328,7 +328,7 @@ impl BuildConfig {
 
     // Persistent language service directory
     pub fn get_lsp_root(&self) -> PathBuf {
-        self.build_root.join("lsp/")
+        self.idl_root.join("lsp/")
     }
 }
 
