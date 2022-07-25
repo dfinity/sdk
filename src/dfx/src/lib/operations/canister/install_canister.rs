@@ -110,9 +110,7 @@ pub async fn install_canister(
         }
     }
 
-    let wasm_path = canister_info
-        .get_output_wasm_path()
-        .expect("Cannot get WASM output path.");
+    let wasm_path = canister_info.get_build_wasm_path();
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
 

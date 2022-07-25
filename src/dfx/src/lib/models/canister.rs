@@ -8,6 +8,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::{assets, check_candid_file};
 
+use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
@@ -325,6 +326,9 @@ impl CanisterPool {
                     wasm_file_path.to_string_lossy()
                 )
             })?;
+        }
+        if build_output.add_candid_service_metadata {
+            add_candid_service_metadata(&wasm_file_path, &idl_file_path)?;
         }
 
         // And then create an canisters/IDL folder with canister DID files per canister ID.

@@ -7,7 +7,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 
-use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use console::style;
@@ -104,6 +103,7 @@ impl CanisterBuilder for CustomBuilder {
         let canister_id = info.get_canister_id().unwrap();
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
 
+        let mut add_candid_service_metadata = false;
         for command in build {
             info!(
                 self.logger,
@@ -117,17 +117,17 @@ impl CanisterBuilder for CustomBuilder {
                 .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
+                add_candid_service_metadata = true;
                 run_command(args, &vars, info.get_workspace_root())
                     .with_context(|| format!("Failed to run {}.", command))?;
             }
         }
 
-        add_candid_service_metadata(&wasm, &candid)?;
-
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
             idl: IdlBuildOutput::File(candid),
+            add_candid_service_metadata,
         })
     }
 

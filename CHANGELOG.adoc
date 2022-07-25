@@ -3,12 +3,11 @@
 
 = UNRELEASED
 
-== Dependencies
-
-=== Updated `+agent-rs+` to 0.20.0
-=== Updated `+candid+` to 0.7.15
-
 == DFX
+
+=== fix: dfx now only adds candid:service metadata to custom canisters that have at least one build step
+
+This way, if a canister uses a premade canister wasm, dfx will use it as-is.
 
 === feat: print dfx.json schema
 
@@ -79,6 +78,10 @@ ECDSA signature signing is now enabled by default in new projects, or by running
 A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created canisters.
 
 == Dependencies
+
+=== Updated `+agent-rs+` to 0.20.0
+
+=== Updated `+candid+` to 0.7.15
 
 === Replica
 
