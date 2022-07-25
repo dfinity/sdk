@@ -1,3 +1,4 @@
+use crate::config::dfinity::Config;
 use crate::lib::error::DfxResult;
 use crate::lib::locations::canister_did_location;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -14,12 +15,13 @@ use serde::Deserialize;
 use slog::{info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::thread;
 
 struct CandidData {
     pub build_output_root: PathBuf,
     pub network_descriptor: NetworkDescriptor,
-    pub project_root: PathBuf,
+    pub config: Arc<Config>,
     pub project_temp_dir: PathBuf,
 }
 
@@ -44,9 +46,9 @@ async fn candid(
 ) -> Result<HttpResponse, Error> {
     let id = info.canister_id;
     let network_descriptor = &data.network_descriptor;
-    let store = CanisterIdStore::for_network(
+    let store = CanisterIdStore::new(
         network_descriptor,
-        Some(&data.project_root),
+        Some(data.config.clone()),
         &data.project_temp_dir,
     )
     .map_err(ErrorInternalServerError)?;
@@ -87,7 +89,7 @@ pub fn run_webserver(
     logger: Logger,
     build_output_root: PathBuf,
     network_descriptor: NetworkDescriptor,
-    project_root: PathBuf,
+    config: Arc<Config>,
     project_temp_dir: PathBuf,
     bind: SocketAddr,
 ) -> DfxResult {
@@ -96,7 +98,7 @@ pub fn run_webserver(
     let candid_data = web::Data::new(CandidData {
         build_output_root,
         network_descriptor,
-        project_root,
+        config,
         project_temp_dir,
     });
 
