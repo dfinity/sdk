@@ -330,7 +330,7 @@ impl CanisterPool {
         let canister_id = canister.canister_id();
 
         // Copy DID files to IDL and LSP directories
-        for root in [&build_config.idl_root, &build_config.get_lsp_root()] {
+        for root in [&build_config.idl_root, &build_config.lsp_root] {
             let idl_file_path = root.join(canister_id.to_text()).with_extension("did");
 
             std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {

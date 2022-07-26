@@ -73,7 +73,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         let build_config = BuildConfig::from_config(&config)?;
         package_arguments.append(&mut vec![
             "--actor-idl".to_owned(),
-            (*build_config.get_lsp_root().to_string_lossy()).to_owned(),
+            (*build_config.lsp_root.to_string_lossy()).to_owned(),
         ]);
 
         run_ide(env, main_path, package_arguments)
