@@ -59,12 +59,13 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         let canister_id_store =
             CanisterIdStore::new(&network_descriptor, env.get_config(), env.get_temp_dir())?;
         for canister_name in canister_names {
-            if let Ok(canister_id) = canister_id_store.get(&canister_name) {
-                package_arguments.append(&mut vec![
+            match canister_id_store.get(&canister_name) {
+                Ok(canister_id) => package_arguments.append(&mut vec![
                     "--actor-alias".to_owned(),
                     canister_name,
                     Principal::to_text(&canister_id),
-                ])
+                ]),
+                Err(err) => eprintln!("{}", err),
             };
         }
 
