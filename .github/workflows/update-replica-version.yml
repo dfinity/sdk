@@ -72,27 +72,22 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: |
+          const { repo, owner } = context.repo;
+
           let elected_replicas = await github.request("GET ${{ env.IC_RELEASES_API }}");
           core.startGroup('elected_replicas fetched from ic-api.internetcomputer.org');
           core.info(JSON.stringify(elected_replicas, null, 2));
           core.endGroup();
 
-          let releases = await github.rest.repos.listReleases({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            per_page: 100
-          });
-          core.startGroup('list of releases from this repo');
-          core.info(JSON.stringify(releases, null, 2));
+          let latest_dfx_release = await github.rest.repos.getLatestRelease({ owner, repo });
+          core.startGroup('latest dfx release');
+          core.info(JSON.stringify(latest_dfx_release, null, 2));
           core.endGroup();
-
-          let latest_dfx_release = releases.data.filter(el => !el.draft && !el.prerelease)[0];
-          core.info("latest_dfx_release = ", latest_dfx_release);
 
           const re = /replica version used: ([a-f0-9]+)/g;
           let latest_release_replica_version;
           try {
-            latest_release_replica_version = re.exec(latest_dfx_release.body)[1];
+            latest_release_replica_version = re.exec(latest_dfx_release.data.body)[1];
             core.info(`latest_release_replica_version = ${latest_release_replica_version}`);
           } catch {
             latest_release_replica_version = "";
@@ -106,7 +101,6 @@ jobs:
           core.info(JSON.stringify(new_proposals_since_last_release, null, 2));
           core.endGroup();
 
-          const { repo, owner } = context.repo;
           const new_replica_sha__short = "${{ env.REPLICA_VERSION }}".substring(0, 8);
           const pr_create_result = await github.rest.pulls.create({
             title: `chore: update replica version to ${new_replica_sha__short}`,
