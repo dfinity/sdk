@@ -9,6 +9,10 @@
 
 This way, if a canister uses a premade canister wasm, dfx will use it as-is.
 
+=== fix: improve browser compatibility for the JavaScript language binding
+
+Patches a JavaScript language binding compatibility issue encountered in web browsers which do not support the (?.) operator.
+
 === feat: print dfx.json schema
 
 dfx is now capable of displaying the schema for `dfx.json`. You can see the schema by running `dfx schema` or write the schema to a file with `dfx schema --outfile path/to/file/schema.json`.
