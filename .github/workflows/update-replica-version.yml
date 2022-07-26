@@ -101,7 +101,7 @@ jobs:
 
           let idx = elected_replicas.data.data.findIndex(el => el.replica_version_id === latest_release_replica_version);
           core.info(`idx = ${idx}`);
-          let new_proposals_since_last_release = elected_replicas.data.data.slice(idx);
+          let new_proposals_since_last_release = elected_replicas.data.data.slice(0,idx+1);
           core.startGroup('new proposals since last release');
           core.info(JSON.stringify(new_proposals_since_last_release, null, 2));
           core.endGroup();
