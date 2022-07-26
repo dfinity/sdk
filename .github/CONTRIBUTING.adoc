@@ -88,7 +88,7 @@ What that means is your PR title should start with one of the following prefix:
 === Updating the Replica
 
 ==== Using GitHub Action
-. Head over to https://github.com/dfinity/sdk/actions/workflows/update-replica-version.yml[the GitHub Aciton].
+. Head over to https://github.com/dfinity/sdk/actions/workflows/update-replica-version.yml[the GitHub Action].
 . Click "Run workflow" button, choose appropriate options (you're probably fine with using defaults), and click "Run workflow" (the green one). 
 . Depending on the selected options, the workflow will run anything between 3 to 35 minutes. After that time, a new PR will be created.
 . The PR contains the content that needs to be pasted into CHANGELOG.adoc, as well as the link for editing the CHANGELOG.adoc directly on the branch of that PR.
