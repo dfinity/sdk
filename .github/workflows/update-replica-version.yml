@@ -74,11 +74,6 @@ jobs:
         script: |
           const { repo, owner } = context.repo;
 
-          let elected_replicas = await github.request("GET ${{ env.IC_RELEASES_API }}");
-          core.startGroup('elected_replicas fetched from ic-api.internetcomputer.org');
-          core.info(JSON.stringify(elected_replicas, null, 2));
-          core.endGroup();
-
           let latest_dfx_release = await github.rest.repos.getLatestRelease({ owner, repo });
           core.startGroup('latest dfx release');
           core.info(JSON.stringify(latest_dfx_release, null, 2));
@@ -94,9 +89,15 @@ jobs:
             core.warning("the phrase \"replica version used: <SHA>\" has not been found in latest GitHub Release");
           }
 
-          let idx = elected_replicas.data.data.findIndex(el => el.replica_version_id === latest_release_replica_version);
-          core.info(`idx = ${idx}`);
-          let new_proposals_since_last_release = elected_replicas.data.data.slice(0, idx);
+          let elected_replicas = await github.request("GET ${{ env.IC_RELEASES_API }}");
+          core.startGroup('elected_replicas fetched from ic-api.internetcomputer.org');
+          core.info(JSON.stringify(elected_replicas, null, 2));
+          core.endGroup();
+
+          let idx_start = elected_replicas.data.data.findIndex(el => el.replica_version_id === "${{ env.REPLICA_VERSION }}");
+          let idx_end = elected_replicas.data.data.findIndex(el => el.replica_version_id === latest_release_replica_version);
+          core.info(`idx_start:idx_end is ${idx_start}:${idx_end}`);
+          let new_proposals_since_last_release = elected_replicas.data.data.slice(idx_start, idx_end);
           core.startGroup('new proposals since last release');
           core.info(JSON.stringify(new_proposals_since_last_release, null, 2));
           core.endGroup();
