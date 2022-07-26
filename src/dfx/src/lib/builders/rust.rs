@@ -7,7 +7,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 
-use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
@@ -107,15 +106,11 @@ impl CanisterBuilder for RustBuilder {
             bail!("Failed to compile the rust package: {}", package);
         }
 
-        add_candid_service_metadata(
-            rust_info.get_output_wasm_path(),
-            rust_info.get_output_idl_path(),
-        )?;
-
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(rust_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(rust_info.get_output_idl_path().to_path_buf()),
+            add_candid_service_metadata: true,
         })
     }
 
