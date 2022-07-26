@@ -40,6 +40,7 @@ pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
+    pub add_candid_service_metadata: bool,
 }
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.
