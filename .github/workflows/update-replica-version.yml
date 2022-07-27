@@ -71,6 +71,7 @@ jobs:
     - name: create Pull Request, with CHANGELOG.adoc entry suggestion 
       uses: actions/github-script@v6
       with:
+        github-token: ${{ secrets.NIV_UPDATER_TOKEN }} # act on behalf of https://github.com/dfinity-bot 
         script: |
           const { repo, owner } = context.repo;
 
