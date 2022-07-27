@@ -164,6 +164,7 @@ impl CanisterBuilder for MotokoBuilder {
                 .expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
+            add_candid_service_metadata: false,
         })
     }
 

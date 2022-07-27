@@ -3,12 +3,19 @@
 
 = UNRELEASED
 
-== Dependencies
-
-=== Updated `+agent-rs+` to 0.20.0
-=== Updated `+candid+` to 0.7.15
-
 == DFX
+
+=== fix: dfx now only adds candid:service metadata to custom canisters that have at least one build step
+
+This way, if a canister uses a premade canister wasm, dfx will use it as-is.
+
+=== fix: "canister alias not defined" in the Motoko language server
+
+It is now possible to develop multiple-canister projects using the https://marketplace.visualstudio.com/items?itemName=dfinity-foundation.vscode-motoko[Motoko VSCode extension].
+
+=== fix: improve browser compatibility for the JavaScript language binding
+
+Patches a JavaScript language binding compatibility issue encountered in web browsers which do not support the (?.) operator.
 
 === feat: print dfx.json schema
 
@@ -80,11 +87,17 @@ A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created ca
 
 == Dependencies
 
+=== Updated `+agent-rs+` to 0.20.0
+
+=== Updated `+candid+` to 0.7.15
+
 === Replica
 
-Updated replica to elected commit f7aa3e565f34666b6172090a1eeba70d0128981b.
+Updated replica to elected commit 6e86169e98904047833ba6133e5413d2758d90eb.
 This incorporates the following executed proposals:
 
+* https://dashboard.internetcomputer.org/proposal/72225[72225]
+* https://dashboard.internetcomputer.org/proposal/71669[71669]
 * https://dashboard.internetcomputer.org/proposal/71164[71164]
 * https://dashboard.internetcomputer.org/proposal/70375[70375]
 * https://dashboard.internetcomputer.org/proposal/70002[70002]

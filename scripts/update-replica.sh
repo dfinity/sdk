@@ -26,9 +26,10 @@ niv update sandbox-launcher-x86_64-linux -a rev=$SHA
 echo "Writing asset sources"
 ./scripts/write-dfx-asset-sources.sh
 
-read -r -p "Update the ledger for e2e tests? (y/n)" yn
-if [[ ! $yn =~ [nN] ]]; then
-    ./scripts/update-nns.bash "$SHA"
-fi
+for arg in "$@"; do
+    if [ "$arg" = '--update-nns' ]; then
+        ./scripts/update-nns.bash "$SHA"
+    fi
+done
 
 echo "Done. Don't forget to update CHANGELOG.adoc"
