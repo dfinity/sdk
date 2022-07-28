@@ -5,6 +5,8 @@
 
 == DFX
 
+fix: dfx new --no-frontend no longer creates an unneccesary asset canister
+
 === fix: dfx now only adds candid:service metadata to custom canisters that have at least one build step
 
 This way, if a canister uses a premade canister wasm, dfx will use it as-is.
