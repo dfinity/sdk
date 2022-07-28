@@ -7,8 +7,8 @@ use ic_agent::agent::ReplicaV2Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 

@@ -9,8 +9,8 @@ use crate::lib::provider::get_network_context;
 use crate::util::{self, check_candid_file};
 
 use anyhow::{bail, Context};
+use candid::Principal as CanisterId;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
@@ -40,6 +40,7 @@ pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
+    pub add_candid_service_metadata: bool,
 }
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.
@@ -298,6 +299,8 @@ pub struct BuildConfig {
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
+    /// The root for all language server files.
+    pub lsp_root: PathBuf,
     /// The root for all build files.
     pub build_root: PathBuf,
 }
@@ -307,15 +310,16 @@ impl BuildConfig {
     pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
-        let build_root = config.get_temp_path().join(&network_name);
-        let build_root = build_root.join("canisters");
+        let network_root = config.get_temp_path().join(&network_name);
+        let canister_root = network_root.join("canisters");
 
         Ok(BuildConfig {
             network_name,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
-            build_root: build_root.clone(),
-            idl_root: build_root.join("idl/"),
+            build_root: canister_root.clone(),
+            idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
+            lsp_root: network_root.join("lsp/"),
         })
     }
 

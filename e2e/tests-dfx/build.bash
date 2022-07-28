@@ -120,14 +120,14 @@ teardown() {
   dfx_start
   dfx canister create --all
   # shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.e2e_project.type="unknown_canister_type"' dfx.json)" >dfx.json
+  cat <<<"$(jq '.canisters.e2e_project_backend.type="unknown_canister_type"' dfx.json)" >dfx.json
   assert_command_fail dfx build
   # shellcheck disable=SC2016
   assert_match 'unknown variant `unknown_canister_type`'
 
   # If canister type is invalid, `dfx stop` fails
   # shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.e2e_project.type="motoko"' dfx.json)" >dfx.json
+  cat <<<"$(jq '.canisters.e2e_project_backend.type="motoko"' dfx.json)" >dfx.json
 }
 
 @test "can build a custom canister type" {
@@ -138,10 +138,15 @@ teardown() {
   assert_match "CUSTOM_CANISTER_BUILD_DONE"
   assert_command dfx build custom2
   assert_match "CUSTOM_CANISTER2_BUILD_DONE"
+  assert_command dfx build custom3
 
   dfx canister install --all
   assert_command dfx canister call custom fromQuery
   assert_command dfx canister call custom2 fromQuery
+
+  # dfx sets the candid:service metadata
+  dfx canister metadata custom candid:service >installed.did
+  assert_command diff main.did installed.did
 }
 
 @test "custom canister build script picks local executable first" {
@@ -204,4 +209,27 @@ teardown() {
   assert_command dfx build --network actuallylocal
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/e2e_project_backend.wasm
+}
+
+@test "does not add candid:service metadata for a custom canister if there are no build steps" {
+  install_asset prebuilt_custom_canister
+
+  dfx_start
+  dfx deploy
+
+  # this canister has a build step, so dfx sets the candid metadata
+  dfx canister metadata custom_with_build_step candid:service >from_canister.txt
+  diff custom_with_build_step.did from_canister.txt
+
+  # this canister doesn't have a build step, so dfx leaves the candid metadata as-is
+  dfx canister metadata prebuilt_custom_no_build candid:service >from_canister.txt
+  diff main.did from_canister.txt
+
+  # this canister has a build step, but it is an empty string, so dfx leaves the candid:service metadata as-is
+  dfx canister metadata prebuilt_custom_blank_build candid:service >from_canister.txt
+  diff main.did from_canister.txt
+
+  # this canister has a build step, but it is an empty array, so dfx leaves the candid:service metadata as-is
+  dfx canister metadata prebuilt_custom_empty_build candid:service >from_canister.txt
+  diff main.did from_canister.txt
 }

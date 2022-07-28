@@ -87,6 +87,14 @@ What that means is your PR title should start with one of the following prefix:
 
 === Updating the Replica
 
+==== Using GitHub Action
+. Head over to https://github.com/dfinity/sdk/actions/workflows/update-replica-version.yml[the GitHub Action].
+. Click "Run workflow" button, choose appropriate options (you're probably fine with using defaults), and click "Run workflow" (the green one). 
+. Depending on the selected options, the workflow will run anything between 3 to 35 minutes. After that time, a new PR will be created.
+. The PR contains the content that needs to be pasted into CHANGELOG.adoc, as well as the link for editing the CHANGELOG.adoc directly on the branch of that PR.
+. After making changes to the CHANGELOG.adoc file, PR is ready for review.
+
+==== Locally
 To update the replica to a given $SHA from the dfinity repo, execute the following:
 [source,bash]
 ----
@@ -101,6 +109,8 @@ To update Motoko to a given $VERSION from the motoko and motoko-base repos, exec
 ----
 # Requires niv to run. To install niv, run nix-env -iA nixpkgs.niv
 ./scripts/update-motoko.sh $VERSION
+# if you want to also update ledger canisters for e2e tests, use:
+./scripts/update-motoko.sh $VERSION --update-nns
 ----
 
 === Licenses

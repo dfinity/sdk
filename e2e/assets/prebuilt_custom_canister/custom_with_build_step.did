@@ -1,0 +1,11 @@
+service : {
+  // custom_with_build_step
+  fromCall: () -> (principal);
+  isMyself: (principal) -> (bool) query;
+
+  fromQuery: () -> (principal) query;
+
+  getCanisterId: () -> (principal) query;
+
+  amInitializer: () -> (bool) query;
+}

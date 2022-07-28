@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use anyhow::{anyhow, Context};
-use ic_types::Principal;
+use candid::Principal;
 
 use clap::Parser;
 

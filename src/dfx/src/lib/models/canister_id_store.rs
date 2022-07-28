@@ -1,14 +1,15 @@
-use crate::config::dfinity::NetworkType;
+use crate::config::dfinity::{Config, NetworkType};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, Context};
+use candid::Principal as CanisterId;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 type CanisterName = String;
 type NetworkName = String;
@@ -33,27 +34,22 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     #[context("Failed to load canister id store.")]
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
-        let network_descriptor = env.get_network_descriptor();
-        let config = env.get_config();
-        let project_root = config.map(|c| c.get_project_root().to_path_buf());
-        let project_root = project_root.as_deref();
-        let store =
-            CanisterIdStore::for_network(network_descriptor, project_root, env.get_temp_dir())?;
-
-        let remote_ids = get_remote_ids(env)?;
-
-        Ok(CanisterIdStore {
-            remote_ids,
-            ..store
-        })
+        CanisterIdStore::new(
+            env.get_network_descriptor(),
+            env.get_config(),
+            env.get_temp_dir(),
+        )
     }
 
     #[context("Failed to load canister id store for network '{}'.", network_descriptor.name)]
-    pub fn for_network(
+    pub fn new(
         network_descriptor: &NetworkDescriptor,
-        project_root: Option<&Path>,
+        config: Option<Arc<Config>>,
         project_temp_dir: &Path,
     ) -> DfxResult<Self> {
+        let project_root = config.as_ref().map(|c| c.get_project_root().to_path_buf());
+        let project_root = project_root.as_deref();
+        let remote_ids = get_remote_ids(config)?;
         let path = match network_descriptor {
             NetworkDescriptor {
                 r#type: NetworkType::Persistent,
@@ -72,7 +68,7 @@ impl CanisterIdStore {
             network_descriptor: network_descriptor.clone(),
             path,
             ids,
-            remote_ids: None,
+            remote_ids,
         })
     }
 
@@ -180,15 +176,15 @@ impl CanisterIdStore {
     pub fn remove(&mut self, canister_name: &str) -> DfxResult<()> {
         let network_name = &self.network_descriptor.name;
         if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
-            network_name_to_canister_id.remove(&network_name.to_string());
+            network_name_to_canister_id.remove(network_name);
         }
         self.save_ids()
     }
 }
 
 #[context("Failed to get remote ids.")]
-fn get_remote_ids(env: &dyn Environment) -> DfxResult<Option<CanisterIds>> {
-    let config = if let Some(cfg) = env.get_config() {
+fn get_remote_ids(config: Option<Arc<Config>>) -> DfxResult<Option<CanisterIds>> {
+    let config = if let Some(cfg) = config {
         cfg
     } else {
         return Ok(None);

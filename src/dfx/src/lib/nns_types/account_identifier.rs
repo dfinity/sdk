@@ -6,7 +6,7 @@
 
 use anyhow::Context;
 use candid::CandidType;
-use ic_types::principal::Principal;
+use candid::Principal;
 use openssl::sha::Sha224;
 use serde::{de, de::Error, Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};

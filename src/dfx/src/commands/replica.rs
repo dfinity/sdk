@@ -92,28 +92,30 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
         get_network_descriptor(env.get_config(), None, LocalBindDetermination::AsConfigured)?;
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
 
-    let temp_dir = env.get_temp_dir();
-    let btc_adapter_pid_file_path = empty_writable_path(temp_dir.join("ic-btc-adapter-pid"))?;
-    let btc_adapter_config_path = empty_writable_path(temp_dir.join("ic-btc-adapter-config.json"))?;
-    let btc_adapter_socket_holder_path = temp_dir.join("ic-btc-adapter-socket-path");
+    let btc_adapter_pid_file_path =
+        empty_writable_path(local_server_descriptor.btc_adapter_pid_path())?;
+    let btc_adapter_config_path =
+        empty_writable_path(local_server_descriptor.btc_adapter_config_path())?;
+    let btc_adapter_socket_holder_path = local_server_descriptor.btc_adapter_socket_holder_path();
     let canister_http_adapter_pid_file_path =
-        empty_writable_path(temp_dir.join("ic-canister-http-adapter-pid"))?;
+        empty_writable_path(local_server_descriptor.canister_http_adapter_pid_path())?;
     let canister_http_adapter_config_path =
-        empty_writable_path(temp_dir.join("ic-canister-http-config.json"))?;
-    let canister_http_adapter_socket_holder_path = temp_dir.join("ic-canister-http-socket-path");
+        empty_writable_path(local_server_descriptor.canister_http_adapter_config_path())?;
+    let canister_http_adapter_socket_holder_path =
+        local_server_descriptor.canister_http_adapter_socket_holder_path();
 
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
-    let replica_config_dir = temp_dir.join("replica-configuration");
+    let replica_config_dir = local_server_descriptor.replica_configuration_dir();
     fs::create_dir_all(&replica_config_dir).with_context(|| {
         format!(
             "Failed to create replica config directory {}.",
             replica_config_dir.display()
         )
     })?;
-    let replica_port_path = empty_writable_path(replica_config_dir.join("replica-1.port"))?;
-    let emulator_port_path = empty_writable_path(temp_dir.join("ic-ref.port"))?;
-    let state_root = env.get_state_dir();
+    let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
+    let emulator_port_path = empty_writable_path(local_server_descriptor.ic_ref_port_path())?;
+    let state_root = local_server_descriptor.state_dir();
 
     let btc_adapter_config = configure_btc_adapter_if_enabled(
         local_server_descriptor,
@@ -194,6 +196,7 @@ pub fn exec(env: &dyn Environment, opts: ReplicaOpts) -> DfxResult {
             start_replica_actor(
                 env,
                 replica_config,
+                local_server_descriptor,
                 shutdown_controller,
                 btc_adapter_ready_subscribe,
                 canister_http_adapter_ready_subscribe,

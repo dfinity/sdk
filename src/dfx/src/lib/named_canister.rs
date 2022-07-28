@@ -10,8 +10,8 @@ use crate::util;
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use fn_error_context::context;
-use ic_types::Principal;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;

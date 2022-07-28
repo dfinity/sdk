@@ -15,11 +15,8 @@ pub async fn post_install_store_assets(
     timeout: Duration,
 ) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
-    let source_paths: Vec<&Path> = assets_canister_info
-        .get_source_paths()
-        .iter()
-        .map(|d| d.as_path())
-        .collect();
+    let source_paths = assets_canister_info.get_source_paths();
+    let source_paths: Vec<&Path> = source_paths.iter().map(|p| p.as_path()).collect::<_>();
 
     let canister_id = info
         .get_canister_id()

@@ -5,6 +5,107 @@
 
 == DFX
 
+=== fix: dfx now only adds candid:service metadata to custom canisters that have at least one build step
+
+This way, if a canister uses a premade canister wasm, dfx will use it as-is.
+
+=== fix: "canister alias not defined" in the Motoko language server
+
+It is now possible to develop multiple-canister projects using the https://marketplace.visualstudio.com/items?itemName=dfinity-foundation.vscode-motoko[Motoko VSCode extension].
+
+=== fix: improve browser compatibility for the JavaScript language binding
+
+Patches a JavaScript language binding compatibility issue encountered in web browsers which do not support the (?.) operator.
+
+=== feat: print dfx.json schema
+
+dfx is now capable of displaying the schema for `dfx.json`. You can see the schema by running `dfx schema` or write the schema to a file with `dfx schema --outfile path/to/file/schema.json`.
+
+=== feat: support for configuring assets in assets canister
+- The `+.ic-assets.json+` file should be placed inside directory with assets, or its subdirectories. Multiple config files can be used (nested in subdirectories). Example of `.ic-assets.json` file format:
+[source, json]
+----
+[
+    {
+        "match": ".*",
+        "cache": {
+            "max_age": 20
+        },
+        "headers": {
+            "X-Content-Type-Options": "nosniff"
+        },
+        "ignore": false
+    },
+    {
+        "match": "**/*",
+        "headers": null
+    },
+    {
+        "match": "file.json",
+        "ignore": true
+    }
+]
+----
+- Configuring assets works only during asset creation - any changes to `+.ic-assets.json+` files won't have any effect effect for assets that have already been created. We are working on follow up implementation with improvements to handle updating these properties.
+- `headers` from multiple applicable rules are being stacked/concatenated, unless `null` is specified, which resets/empties the headers.
+- Both `"headers": {}` and absence of `headers` field don't have any effect on end result.
+- Valid JSON format is required, i.e. the array of maps, `+match+` field is required. Only the following fields are accepted: `+cache+`, `+ignore+`, `+headers+`, `+match+`. The glob pattern has to be valid.
+- The way matching rules work:
++
+. The most deeply nested config file takes precedence over the one in parent dir. In other words, properties from a rule matching a file in a subdirectory override properties from a rule matching a file in a parent directory
+. Order of rules within file matters - last rule in config file takes precedence over the first one
++
+- The way `+ignore+` field works:
++
+. By default, files that begin with a `.` are ignored, while all other files are included.
+. The `.ignore` field overrides this, if present.
+. If a directory is ignored, file and directories within it cannot be un-ignored.
+. A file can be ignored and un-ignored many times, as long as any of its parent directories haven't been ignored.
+++
+
+
+=== fix: Allow `+dfx deploy+` to not take arguments for canisters not being installed
+
+A longstanding bug with `+dfx deploy+` is that if an installation is skipped (usually an implicitly included dependency), it still requires arguments even if the installed canister doesn't. As of this release that bug is now fixed.
+
+=== feat: Add additional logging from bitcoin canister in replica.
+
+Configures the replica to emit additional logging from the bitcoin canister whenever the bitcoin feature is enabled. This helps show useful information to developers, such as the bitcoin height that the replica currently sees.
+
+=== fix: make `+build+` field optional for custom canisters
+
+Prior to 0.11.0, a custom canister's `+build+` field could be left off if `+dfx build+` was never invoked. To aid in deploying prebuilt canisters, this behavior is now formalized; omitting `+build+` is equivalent to `+build: []+`.
+
+=== feat: Use `+--locked+` for Rust canisters
+
+`+dfx build+`, in Rust canisters, now uses the `+--locked+` flag when building with Cargo. To offset this, `+dfx new --type rust+` now runs `+cargo update+` on the resulting project.
+
+=== feat: Enable threshold ecdsa signature
+
+ECDSA signature signing is now enabled by default in new projects, or by running `dfx start --clean`.
+A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created canisters.
+
+== Dependencies
+
+=== Updated `+agent-rs+` to 0.20.0
+
+=== Updated `+candid+` to 0.7.15
+
+=== Replica
+
+Updated replica to elected commit 6e86169e98904047833ba6133e5413d2758d90eb.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/72225[72225]
+* https://dashboard.internetcomputer.org/proposal/71669[71669]
+* https://dashboard.internetcomputer.org/proposal/71164[71164]
+* https://dashboard.internetcomputer.org/proposal/70375[70375]
+* https://dashboard.internetcomputer.org/proposal/70002[70002]
+
+= 0.11.0
+
+== DFX
+
 === feat: renamed canisters in new projects to <project>_frontend and <project>_backend
 
 The names of canisters created for new projects have changed.
@@ -15,12 +116,19 @@ After `dfx new <project>`, the canister names are:
 
 === feat: Enable threshold ecdsa signature
 
-ECDSA signature signing is now enabled by default in new projects, or by running `dfx start --clean`.
-A test key id "Secp256k1:dfx_test_key" is ready to be used by locally created canisters.
+=== feat: new command: dfx canister metadata <canister> <name>
+
+For example, to query a canister's candid service definition: `dfx canister metadata hello_backend candid:service`
+
+=== refactor: deprecate /_/candid internal webserver
+
+The dfx internal webserver now only services the /_/candid endpoint.  This
+is now deprecated.  If you were using this to query candid definitions, you
+can instead use `dfx canister metadata`.
 
 === refactor: optimize from ic-wasm
 
-Optimize Rust canister WASM module via ic-wasm library instead of ic-cdk-optimizer.
+Optimize Rust canister WASM module via ic-wasm library instead of ic-cdk-optimizer. A separate installation of ic-cdk-optimizer is no longer needed.
 
 The actual optimization was kept the same.
 
@@ -214,7 +322,6 @@ Updated replica to elected commit 8993849de5fab76e796d67750facee55a0bf6649.
 This incorporates the following executed proposals:
 
 * https://dashboard.internetcomputer.org/proposal/69804[69804]
-* https://dashboard.internetcomputer.org/proposal/69116[69116]
 * https://dashboard.internetcomputer.org/proposal/67990[67990]
 * https://dashboard.internetcomputer.org/proposal/67483[67483]
 * https://dashboard.internetcomputer.org/proposal/66895[66895]

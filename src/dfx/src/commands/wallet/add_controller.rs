@@ -3,8 +3,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use anyhow::Context;
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 
 /// Add a wallet controller.
 #[derive(Parser)]

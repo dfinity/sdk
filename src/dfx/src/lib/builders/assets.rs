@@ -11,8 +11,8 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util;
 
 use anyhow::{anyhow, Context};
+use candid::Principal as CanisterId;
 use fn_error_context::context;
-use ic_types::principal::Principal as CanisterId;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
@@ -103,6 +103,7 @@ impl CanisterBuilder for AssetsBuilder {
             canister_id: info.get_canister_id().expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(wasm_path),
             idl: IdlBuildOutput::File(idl_path),
+            add_candid_service_metadata: false,
         })
     }
 

@@ -15,8 +15,11 @@ pub struct AssetsCanisterInfo {
 }
 
 impl AssetsCanisterInfo {
-    pub fn get_source_paths(&self) -> &Vec<PathBuf> {
-        &self.source_paths
+    pub fn get_source_paths(&self) -> Vec<PathBuf> {
+        self.source_paths
+            .iter()
+            .map(|sp| self.input_root.join(sp))
+            .collect::<_>()
     }
     pub fn get_output_wasm_path(&self) -> &Path {
         self.output_wasm_path.as_path()
