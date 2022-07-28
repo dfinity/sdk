@@ -5,6 +5,12 @@
 
 == DFX
 
+=== fix: dfx wallet upgrade: improved error message if there is no wallet to upgrade
+
+= 0.11.1
+
+== DFX
+
 === fix: dfx now only adds candid:service metadata to custom canisters that have at least one build step
 
 This way, if a canister uses a premade canister wasm, dfx will use it as-is.

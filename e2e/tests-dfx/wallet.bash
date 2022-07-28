@@ -170,3 +170,8 @@ teardown() {
     dfx --identity alice deploy --no-wallet hello_backend
     assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello_backend
 }
+
+@test "detects if there is no wallet to upgrade" {
+    assert_command_fail dfx wallet upgrade
+    assert_match "There is no wallet defined for identity 'default' on network 'local'. Nothing to do."
+}
