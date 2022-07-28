@@ -2,14 +2,14 @@
   "version": 1,
   "dfx": "{{dfx_version}}",
   "canisters": {
-    "{{project_name}}": {
+    "{{project_name}}_backend": {
       "type": "motoko",
-      "main": "src/{{project_name}}/main.mo"
+      "main": "src/{{project_name}}_backend/main.mo"
     }{{#if include_frontend}},
-    "{{project_name}}_assets": {
+    "{{project_name}}_frontend": {
       "type": "assets",
-      "source": ["src/{{project_name}}_assets/assets"],
-      "dependencies": ["{{project_name}}"]
+      "source": ["src/{{project_name}}_frontend/assets"],
+      "dependencies": ["{{project_name}}_backend"]
     }{{/if}}
   },
   "defaults": {
