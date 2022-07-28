@@ -158,12 +158,12 @@ fn is_template(p: &Path) -> bool {
     if ext.is_none() {
         return false;
     }
-    
+
     let ext = ext.unwrap();
     if ext != "hbs" {
         return false;
     }
-    
+
     true
 }
 
