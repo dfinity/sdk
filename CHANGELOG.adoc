@@ -5,6 +5,18 @@
 
 == DFX
 
+=== fix: dfx deploy and dfx canister install write .old.did files under .dfx/
+
+When dfx deploy and dfx canister install upgrade a canister, they ensure that the
+new candid interface is compatible with the previous candid interface.  They write
+a file with extension .old.did that contains the previous interface.  In some
+circumstances these files could be written in the project directory.  dfx now
+always writes them under the .dfx/ directory.
+
+= 0.11.1
+
+== DFX
+
 === fix: dfx now only adds candid:service metadata to custom canisters that have at least one build step
 
 This way, if a canister uses a premade canister wasm, dfx will use it as-is.
