@@ -564,8 +564,8 @@ impl Identity {
         name: &str,
         create: bool,
     ) -> DfxResult<Principal> {
-        match Identity::wallet_canister_id(env, network, name) {
-            Err(_) => {
+        match Identity::wallet_canister_id(env, network, name)? {
+            None => {
                 // If the network is not the IC, we ignore the error and create a new wallet for the identity.
                 if !network.is_ic || create {
                     Identity::create_wallet(env, network, name, None).await
@@ -577,7 +577,7 @@ impl Identity {
                     - Configure a wallet for this identity/network combination: 'dfx identity --network <network name> set-wallet <wallet id>'.".to_string())).context("Wallet not configured.")
                 }
             }
-            x => x,
+            Some(principal) => Ok(principal),
         }
     }
 
@@ -586,31 +586,19 @@ impl Identity {
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
-    ) -> DfxResult<Principal> {
+    ) -> DfxResult<Option<Principal>> {
         let wallet_path = Identity::get_wallet_config_file(env, network, name)?;
         if !wallet_path.exists() {
-            return Err(anyhow!(
-                "Failed to find wallet file {}.",
-                wallet_path.to_string_lossy()
-            ));
+            return Ok(None);
         }
 
         let config = Identity::load_wallet_config(&wallet_path)?;
 
-        let wallet_network = config.identities.get(name).ok_or_else(|| {
-            anyhow!(
-                "Could not find wallet for \"{}\" on \"{}\" network.",
-                name,
-                network.name.clone()
-            )
-        })?;
-        Ok(*wallet_network.networks.get(&network.name).ok_or_else(|| {
-            anyhow!(
-                "Could not find wallet for \"{}\" on \"{}\" network.",
-                name,
-                network.name.clone()
-            )
-        })?)
+        let maybe_wallet_principal = config
+            .identities
+            .get(name)
+            .and_then(|wallet_network| wallet_network.networks.get(&network.name).cloned());
+        Ok(maybe_wallet_principal)
     }
 
     #[context("Failed to construct wallet canister caller.")]

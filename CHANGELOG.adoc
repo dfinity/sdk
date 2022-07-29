@@ -5,6 +5,8 @@
 
 == DFX
 
+=== fix: dfx wallet upgrade: improved error message if there is no wallet to upgrade
+
 === fix: dfx deploy and dfx canister install write .old.did files under .dfx/
 
 When dfx deploy and dfx canister install upgrade a canister, they ensure that the
