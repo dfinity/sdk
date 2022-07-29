@@ -149,6 +149,21 @@ teardown() {
   assert_command diff main.did installed.did
 }
 
+@test "upgrade check writes .old.did under .dfx" {
+  install_asset custom_canister
+  dfx_start
+  dfx deploy
+
+  echo yes | dfx deploy --mode=reinstall custom
+
+  # dfx intentionally leaves this file after creating it for comparison,
+  # so that the developer can look at the differences too.
+  # This test makes sure that the file is created under the .dfx/ directory,
+  # which is where other temporary / build artifacts go.
+  assert_file_not_exists ./main.old.did
+  assert_file_exists .dfx/local/canisters/custom/custom.old.did
+}
+
 @test "custom canister build script picks local executable first" {
   install_asset custom_canister
   dfx_start
