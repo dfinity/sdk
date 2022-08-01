@@ -5,6 +5,19 @@
 
 == DFX
 
+=== feat!: move all the flags to the end
+
+Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are all positioned after the final subcommand. In prior versions, a command might look like:
+[source, bash]
+----
+dfx --identity alice canister --network ic --wallet "$WALLET" create --all
+----
+This command should now read:
+[source, bash]
+----
+dfx canister create --all --network ic --wallet "$WALLET" --identity alice
+----
+
 === feat!: removed the internal webserver
 
 This is a breaking change.  The only thing this was still serving was the /_/candid endpoint.  If you need to retrieve the candid interface for a local canister, you can use `dfx canister metadata <canister> candid:service`.
@@ -22,19 +35,6 @@ always writes them under the .dfx/ directory.
 = 0.11.1
 
 == DFX
-
-=== feat!: move all the flags to the end
-
-Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are all positioned after the final subcommand. In prior versions, a command might look like:
-[source, bash]
-----
-dfx --identity alice canister --network ic --wallet "$WALLET" create --all
-----
-This command should now read:
-[source, bash]
-----
-dfx canister create --all --network ic --wallet "$WALLET" --identity alice
-----
 
 === fix: dfx now only adds candid:service metadata to custom canisters that have at least one build step
 
