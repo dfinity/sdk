@@ -34,31 +34,26 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     #[context("Failed to load canister id store.")]
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
-        CanisterIdStore::new(
-            env.get_network_descriptor(),
-            env.get_config(),
-            env.get_temp_dir(),
-        )
+        CanisterIdStore::new(env.get_network_descriptor(), env.get_config())
     }
 
     #[context("Failed to load canister id store for network '{}'.", network_descriptor.name)]
     pub fn new(
         network_descriptor: &NetworkDescriptor,
         config: Option<Arc<Config>>,
-        project_temp_dir: &Path,
     ) -> DfxResult<Self> {
-        let project_root = config.as_ref().map(|c| c.get_project_root().to_path_buf());
-        let project_root = project_root.as_deref();
-        let remote_ids = get_remote_ids(config)?;
         let path = match network_descriptor {
             NetworkDescriptor {
                 r#type: NetworkType::Persistent,
                 ..
-            } => project_root.map(|d| d.join("canister_ids.json")),
-            NetworkDescriptor { name, .. } => {
-                Some(project_temp_dir.join(name).join("canister_ids.json"))
-            }
+            } => config
+                .as_ref()
+                .map(|c| c.get_project_root().join("canister_ids.json")),
+            NetworkDescriptor { name, .. } => config
+                .as_ref()
+                .map(|c| c.get_temp_path().join(name).join("canister_ids.json")),
         };
+        let remote_ids = get_remote_ids(config)?;
         let ids = match &path {
             Some(path) if path.is_file() => CanisterIdStore::load_ids(path)?,
             _ => CanisterIds::new(),
