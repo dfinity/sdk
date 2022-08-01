@@ -58,7 +58,7 @@ pub async fn install_canister(
             let candid_path = canister_info
                 .get_output_idl_path()
                 .expect("Generated did file not found");
-            let deployed_path = candid_path.with_extension("old.did");
+            let deployed_path = canister_info.get_build_idl_path().with_extension("old.did");
             std::fs::write(&deployed_path, candid).with_context(|| {
                 format!(
                     "Failed to write candid to {}.",
@@ -110,9 +110,7 @@ pub async fn install_canister(
         }
     }
 
-    let wasm_path = canister_info
-        .get_output_wasm_path()
-        .expect("Cannot get WASM output path.");
+    let wasm_path = canister_info.get_build_wasm_path();
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
 

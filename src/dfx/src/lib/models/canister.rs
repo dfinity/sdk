@@ -8,6 +8,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::{assets, check_candid_file};
 
+use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
@@ -326,21 +327,26 @@ impl CanisterPool {
                 )
             })?;
         }
+        if build_output.add_candid_service_metadata {
+            add_candid_service_metadata(&wasm_file_path, &idl_file_path)?;
+        }
 
-        // And then create an canisters/IDL folder with canister DID files per canister ID.
-        let idl_root = &build_config.idl_root;
         let canister_id = canister.canister_id();
-        let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
 
-        std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
-            format!(
-                "Failed to create {}.",
-                idl_file_path.parent().unwrap().to_string_lossy()
-            )
-        })?;
-        std::fs::copy(&build_idl_path, &idl_file_path)
-            .map(|_| {})
-            .map_err(DfxError::from)?;
+        // Copy DID files to IDL and LSP directories
+        for root in [&build_config.idl_root, &build_config.lsp_root] {
+            let idl_file_path = root.join(canister_id.to_text()).with_extension("did");
+
+            std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
+                format!(
+                    "Failed to create {}.",
+                    idl_file_path.parent().unwrap().to_string_lossy()
+                )
+            })?;
+            std::fs::copy(&build_idl_path, &idl_file_path)
+                .map(|_| {})
+                .map_err(DfxError::from)?;
+        }
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 

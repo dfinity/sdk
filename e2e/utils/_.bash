@@ -201,16 +201,10 @@ dfx_bootstrap() {
     export DFX_BOOTSTRAP_PID=$!
 
     timeout 5 sh -c \
-        'until nc -z localhost $(cat .dfx/proxy-port); do echo waiting for bootstrap; sleep 1; done' \
-        || (echo "could not connect to bootstrap on port $(cat .dfx/proxy-port)" && exit 1)
-    timeout 5 sh -c \
         'until nc -z localhost $(cat .dfx/webserver-port); do echo waiting for webserver; sleep 1; done' \
         || (echo "could not connect to webserver on port $(cat .dfx/webserver-port)" && exit 1)
 
     wait_until_replica_healthy
-
-    local proxy_port=$(cat .dfx/proxy-port)
-    printf "Proxy Configured Port: %s\n", "${proxy_port}"
 
     local webserver_port=$(cat .dfx/webserver-port)
     printf "Webserver Configured Port: %s\n", "${webserver_port}"
