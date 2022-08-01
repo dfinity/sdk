@@ -5,6 +5,10 @@
 
 == DFX
 
+=== fix: dfx no longer adds candid:service metadata to custom canisters
+
+Instead, you can use https://github.com/dfinity/ic-wasm in your custom canister's build step if necessary.
+
 === feat!: removed the internal webserver
 
 This is a breaking change.  The only thing this was still serving was the /_/candid endpoint.  If you need to retrieve the candid interface for a local canister, you can use `dfx canister metadata <canister> candid:service`.
