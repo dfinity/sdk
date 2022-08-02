@@ -27,7 +27,7 @@ pub struct CliOpts {
 pub struct BaseOpts<T: Args> {
     #[clap(flatten)]
     command_opts: T,
-    #[clap(flatten)]
+    #[clap(flatten, next_help_heading = "COMMON")]
     env_opts: EnvOpts,
 }
 
