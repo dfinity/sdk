@@ -310,6 +310,10 @@ fn replica_start_thread(
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);
         }
+        // Enable canister sandboxing to be consistent with the mainnet.
+        // The flag will be removed on the `ic-starter` side once this
+        // change is rolled out without any issues.
+        cmd.args(&["--subnet-features", "canister_sandboxing"]);
         if config.btc_adapter.enabled {
             cmd.args(&["--subnet-features", "bitcoin_regtest"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
