@@ -9,7 +9,10 @@
 
 This is a breaking change.  The only thing this was still serving was the /_/candid endpoint.  If you need to retrieve the candid interface for a local canister, you can use `dfx canister metadata <canister> candid:service`.
 
-=== fix: dfx wallet upgrade: improved error message if there is no wallet to upgrade
+=== fix: dfx wallet upgrade: improved error messages:
+
+- if there is no wallet to upgrade
+- if trying to upgrade a local wallet from outside of a project directory
 
 === fix: dfx deploy and dfx canister install write .old.did files under .dfx/
 
