@@ -290,10 +290,12 @@ impl Identity {
                     .join(name)
                     .join(WALLET_CONFIG_FILENAME)
             }
-            NetworkType::Ephemeral => env
-                .get_temp_dir()
-                .join("local")
-                .join(WALLET_CONFIG_FILENAME),
+            NetworkType::Ephemeral => {
+                env.get_project_temp_dir()
+                    .ok_or_else(||anyhow!("It's only possible to interact with a wallet for a local network from a project directory."))?
+                    .join("local")
+                    .join(WALLET_CONFIG_FILENAME)
+            }
         })
     }
 
@@ -470,16 +472,15 @@ impl Identity {
                 persistent_wallet_path,
             )?;
         }
-        let local_wallet_path = env
-            .get_temp_dir()
-            .join("local")
-            .join(WALLET_CONFIG_FILENAME);
-        if local_wallet_path.exists() {
-            Identity::rename_wallet_global_config_key(
-                original_identity,
-                renamed_identity,
-                local_wallet_path,
-            )?;
+        if let Some(temp_dir) = env.get_project_temp_dir() {
+            let local_wallet_path = temp_dir.join("local").join(WALLET_CONFIG_FILENAME);
+            if local_wallet_path.exists() {
+                Identity::rename_wallet_global_config_key(
+                    original_identity,
+                    renamed_identity,
+                    local_wallet_path,
+                )?;
+            }
         }
         Ok(())
     }

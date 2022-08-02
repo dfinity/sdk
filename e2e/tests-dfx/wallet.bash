@@ -172,6 +172,12 @@ teardown() {
 }
 
 @test "detects if there is no wallet to upgrade" {
+    dfx_new hello
     assert_command_fail dfx wallet upgrade
     assert_match "There is no wallet defined for identity 'default' on network 'local'. Nothing to do."
+}
+
+@test "cannot interact with a wallet for a local network outside of a project directory" {
+    assert_command_fail dfx wallet upgrade
+    assert_match "It's only possible to interact with a wallet for a local network from a project directory."
 }
