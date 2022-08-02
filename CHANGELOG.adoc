@@ -23,6 +23,10 @@ a file with extension .old.did that contains the previous interface.  In some
 circumstances these files could be written in the project directory.  dfx now
 always writes them under the .dfx/ directory.
 
+=== feat: enable canister sandboxing
+
+Canister sandboxing is enabled to be consistent with the mainnet.
+
 = 0.11.1
 
 == DFX
