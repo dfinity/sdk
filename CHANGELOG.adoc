@@ -5,6 +5,10 @@
 
 == DFX
 
+=== feat!: changed update-settings syntax
+
+When using `+dfx canister update-settings+`, it is easy to mistake `+--controller+` for `+--add-controller+`. For this reason `+--controller+` has been renamed to `+--set-controller+`.
+
 === feat!: removed the internal webserver
 
 This is a breaking change.  The only thing this was still serving was the /_/candid endpoint.  If you need to retrieve the candid interface for a local canister, you can use `dfx canister metadata <canister> candid:service`.
