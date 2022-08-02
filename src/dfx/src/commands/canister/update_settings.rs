@@ -32,7 +32,7 @@ pub struct UpdateSettingsOpts {
 
     /// Specifies the identity name or the principal of the new controller.
     #[clap(long, multiple_occurrences(true))]
-    controller: Option<Vec<String>>,
+    set_controller: Option<Vec<String>>,
 
     /// Add a principal to the list of controllers of the canister.
     #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
@@ -90,7 +90,7 @@ pub async fn exec(
     let config_interface = config.get_config();
     fetch_root_key_if_needed(env).await?;
 
-    let controllers: Option<DfxResult<Vec<_>>> = opts.controller.as_ref().map(|controllers| {
+    let controllers: Option<DfxResult<Vec<_>>> = opts.set_controller.as_ref().map(|controllers| {
         let y: DfxResult<Vec<_>> = controllers
             .iter()
             .map(|controller| controller_to_principal(env, controller))
@@ -99,7 +99,7 @@ pub async fn exec(
     });
     let controllers = controllers
         .transpose()
-        .context("Failed to determine all new controllers given in --controllers.")?;
+        .context("Failed to determine all new controllers given in --set-controller.")?;
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
@@ -253,7 +253,7 @@ fn controller_to_principal(env: &dyn Environment, controller: &str) -> DfxResult
 }
 
 fn display_controller_update(opts: &UpdateSettingsOpts, canister_name_or_id: &str) {
-    if let Some(new_controllers) = opts.controller.as_ref() {
+    if let Some(new_controllers) = opts.set_controller.as_ref() {
         let mut controllers = new_controllers.clone();
         controllers.sort();
 

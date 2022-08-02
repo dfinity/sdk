@@ -68,8 +68,8 @@ teardown() {
     ID_TWO=$(dfx canister --network actuallylocal id hello_frontend)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_backend --set-controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_frontend --set-controller "$(dfx identity get-principal)"
 
     assert_command_fail dfx identity --network actuallylocal set-wallet "${ID}"
     assert_not_match "Setting wallet for identity"
@@ -91,8 +91,8 @@ teardown() {
     ID_TWO=$(dfx canister --network actuallylocal id hello_backend)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_backend --set-controller "$(dfx identity get-principal)"
+    dfx canister --network actuallylocal update-settings hello_frontend --set-controller "$(dfx identity get-principal)"
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
