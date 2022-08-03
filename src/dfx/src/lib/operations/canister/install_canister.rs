@@ -162,10 +162,14 @@ pub async fn install_canister(
                     }
                     sleep(Duration::from_millis(500)).await;
                 } else {
-                    bail!("The reported module hash is neither the existing module or the new one. \
+                    bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
                         It has likely been modified while this command is running. \
                         The state of the canister is unknown. \
-                        For this reason, no post-installation tasks have been run, including asset uploads.")
+                        For this reason, no post-installation tasks have been run, including asset uploads.",
+                        old = installed_module_hash.map_or_else(|| "none".to_string(), hex::encode),
+                        new = hex::encode(new_hash),
+                        reported = hex::encode(reported_hash),
+                    )
                 }
             }
             Err(AgentError::LookupPathAbsent(_) | AgentError::LookupPathUnknown(_)) => {
