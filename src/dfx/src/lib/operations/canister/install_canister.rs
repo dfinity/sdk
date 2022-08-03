@@ -117,9 +117,7 @@ pub async fn install_canister(
     let new_hash = sha256(&wasm_module);
 
     if mode == InstallMode::Upgrade
-        && installed_module_hash
-            .as_deref()
-            .map_or(true, |old_hash| old_hash == new_hash)
+        && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash)
         && !upgrade_unchanged
     {
         println!(
