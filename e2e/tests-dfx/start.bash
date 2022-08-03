@@ -12,21 +12,6 @@ teardown() {
     standard_teardown
 }
 
-@test "candid interface available through dfx start" {
-    dfx_new hello
-    dfx_start
-
-    assert_command dfx deploy
-
-    ID=$(dfx canister id hello_backend)
-    PORT=$(get_webserver_port)
-    assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID" -o ./web.txt --max-time 60
-    assert_command diff .dfx/local/canisters/hello_backend/hello_backend.did ./web.txt
-    assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt --max-time 60
-    # Relax diff as it's produced by two different compilers.
-    assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello_backend/hello_backend.did.js ./web.txt
-}
-
 @test "dfx restarts the replica" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
