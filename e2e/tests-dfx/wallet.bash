@@ -68,8 +68,8 @@ teardown() {
     ID_TWO=$(dfx canister id hello_frontend --network actuallylocal)
 
     # set controller to user
-    dfx canister update-settings hello_backend --controller "$(dfx identity get-principal)" --network actuallylocal
-    dfx canister update-settings hello_frontend --controller "$(dfx identity get-principal)" --network actuallylocal
+    dfx canister update-settings hello_backend --set-controller "$(dfx identity get-principal)" --network actuallylocal
+    dfx canister update-settings hello_frontend --set-controller "$(dfx identity get-principal)" --network actuallylocal
 
     assert_command_fail dfx identity set-wallet "${ID}" --network actuallylocal
     assert_not_match "Setting wallet for identity"
@@ -91,8 +91,8 @@ teardown() {
     ID_TWO=$(dfx canister id hello_backend --network actuallylocal)
 
     # set controller to user
-    dfx canister update-settings hello_backend --controller "$(dfx identity get-principal)" --network actuallylocal
-    dfx canister update-settings hello_frontend --controller "$(dfx identity get-principal)" --network actuallylocal
+    dfx canister update-settings hello_backend --set-controller "$(dfx identity get-principal)" --network actuallylocal
+    dfx canister update-settings hello_frontend --set-controller "$(dfx identity get-principal)" --network actuallylocal
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
@@ -172,6 +172,12 @@ teardown() {
 }
 
 @test "detects if there is no wallet to upgrade" {
+    dfx_new hello
     assert_command_fail dfx wallet upgrade
     assert_match "There is no wallet defined for identity 'default' on network 'local'. Nothing to do."
+}
+
+@test "cannot interact with a wallet for a local network outside of a project directory" {
+    assert_command_fail dfx wallet upgrade
+    assert_match "It's only possible to interact with a wallet for a local network from a project directory."
 }
