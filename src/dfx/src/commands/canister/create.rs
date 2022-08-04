@@ -127,19 +127,19 @@ pub async fn exec(
         }
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),
-            config_interface,
+            Some(config_interface),
             Some(canister_name),
         )
         .with_context(|| format!("Failed to read compute allocation of {}.", canister_name))?;
         let memory_allocation = get_memory_allocation(
             opts.memory_allocation.clone(),
-            config_interface,
+            Some(config_interface),
             Some(canister_name),
         )
         .with_context(|| format!("Failed to read memory allocation of {}.", canister_name))?;
         let freezing_threshold = get_freezing_threshold(
             opts.freezing_threshold.clone(),
-            config_interface,
+            Some(config_interface),
             Some(canister_name),
         )
         .with_context(|| format!("Failed to read freezing threshold of {}.", canister_name))?;
@@ -177,7 +177,7 @@ pub async fn exec(
                 }
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
@@ -185,7 +185,7 @@ pub async fn exec(
                 })?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
@@ -193,7 +193,7 @@ pub async fn exec(
                 })?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
