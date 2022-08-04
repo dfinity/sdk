@@ -35,11 +35,11 @@ pub struct UpdateSettingsOpts {
     set_controller: Option<Vec<String>>,
 
     /// Add a principal to the list of controllers of the canister.
-    #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
+    #[clap(long, multiple_occurrences(true), conflicts_with("set-controller"))]
     add_controller: Option<Vec<String>>,
 
     /// Removes a principal from the list of controllers of the canister.
-    #[clap(long, multiple_occurrences(true), conflicts_with("controller"))]
+    #[clap(long, multiple_occurrences(true), conflicts_with("set-controller"))]
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
@@ -85,9 +85,7 @@ pub async fn exec(
         }
     }
 
-    let config = env.get_config_or_anyhow()?;
     let timeout = expiry_duration();
-    let config_interface = config.get_config();
     fetch_root_key_if_needed(env).await?;
 
     let controllers: Option<DfxResult<Vec<_>>> = opts.set_controller.as_ref().map(|controllers| {
@@ -104,6 +102,8 @@ pub async fn exec(
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
     if let Some(canister_name_or_id) = opts.canister.as_deref() {
+        let config = env.get_config();
+        let config_interface = config.as_ref().map(|config| config.get_config());
         let mut controllers = controllers;
         let canister_id = CanisterId::from_text(canister_name_or_id)
             .or_else(|_| canister_id_store.get(canister_name_or_id))?;
@@ -161,13 +161,15 @@ pub async fn exec(
         display_controller_update(&opts, canister_name_or_id);
     } else if opts.all {
         // Update all canister settings.
-        if let Some(canisters) = &config.get_config().canisters {
+        let config = env.get_config_or_anyhow()?;
+        let config_interface = config.get_config();
+        if let Some(canisters) = &config_interface.canisters {
             for canister_name in canisters.keys() {
                 let mut controllers = controllers.clone();
                 let canister_id = canister_id_store.get(canister_name)?;
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
@@ -175,7 +177,7 @@ pub async fn exec(
                 })?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
@@ -183,7 +185,7 @@ pub async fn exec(
                 })?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
