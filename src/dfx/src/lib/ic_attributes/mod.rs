@@ -20,13 +20,15 @@ pub struct CanisterSettings {
 #[context("Failed to get compute allocation.")]
 pub fn get_compute_allocation(
     compute_allocation: Option<String>,
-    config_interface: &ConfigInterface,
+    config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<ComputeAllocation>> {
-    let compute_allocation = match (compute_allocation, canister_name) {
-        (Some(compute_allocation), _) => Some(compute_allocation.parse::<u64>()?),
-        (None, Some(canister_name)) => config_interface.get_compute_allocation(canister_name)? as _,
-        (None, None) => None,
+    let compute_allocation = match (compute_allocation, config_interface, canister_name) {
+        (Some(compute_allocation), _, _) => Some(compute_allocation.parse::<u64>()?),
+        (None, Some(config_interface), Some(canister_name)) => {
+            config_interface.get_compute_allocation(canister_name)? as _
+        }
+        _ => None,
     };
     compute_allocation
         .map(|arg| {
@@ -38,13 +40,15 @@ pub fn get_compute_allocation(
 #[context("Failed to get memory allocation.")]
 pub fn get_memory_allocation(
     memory_allocation: Option<String>,
-    config_interface: &ConfigInterface,
+    config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<MemoryAllocation>> {
-    let memory_allocation = match (memory_allocation, canister_name) {
-        (Some(memory_allocation), _) => Some(memory_allocation.parse::<Byte>()?),
-        (None, Some(canister_name)) => config_interface.get_memory_allocation(canister_name)?,
-        (None, None) => None,
+    let memory_allocation = match (memory_allocation, config_interface, canister_name) {
+        (Some(memory_allocation), _, _) => Some(memory_allocation.parse::<Byte>()?),
+        (None, Some(config_interface), Some(canister_name)) => {
+            config_interface.get_memory_allocation(canister_name)?
+        }
+        _ => None,
     };
     memory_allocation
         .map(|arg| {
@@ -59,15 +63,15 @@ pub fn get_memory_allocation(
 #[context("Failed to get freezing threshold.")]
 pub fn get_freezing_threshold(
     freezing_threshold: Option<String>,
-    config_interface: &ConfigInterface,
+    config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<FreezingThreshold>> {
-    let freezing_threshold = match (freezing_threshold, canister_name) {
-        (Some(freezing_threshold), _) => Some(freezing_threshold.parse::<u64>()?),
-        (None, Some(canister_name)) => config_interface
+    let freezing_threshold = match (freezing_threshold, config_interface, canister_name) {
+        (Some(freezing_threshold), _, _) => Some(freezing_threshold.parse::<u64>()?),
+        (None, Some(config_interface), Some(canister_name)) => config_interface
             .get_freezing_threshold(canister_name)?
             .map(|dur| dur.as_secs()),
-        (None, None) => None,
+        _ => None,
     };
     freezing_threshold
         .map(|arg| {
