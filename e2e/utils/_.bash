@@ -240,7 +240,7 @@ dfx_stop() {
 
 dfx_set_wallet() {
   export WALLET_CANISTER_ID=$(dfx identity get-wallet)
-  assert_command dfx identity  --network actuallylocal set-wallet ${WALLET_CANISTER_ID} --force
+  assert_command dfx identity set-wallet ${WALLET_CANISTER_ID} --force --network actuallylocal
   assert_match 'Wallet set successfully.'
 }
 
@@ -259,7 +259,7 @@ setup_local_network() {
     fi
 
     # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json)" >dfx.json
+    cat <<<"$(jq ".networks.local.bind=\"127.0.0.1:${replica_port}\"" dfx.json)" >dfx.json
 }
 
 use_wallet_wasm() {

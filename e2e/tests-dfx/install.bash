@@ -52,7 +52,7 @@ teardown() {
     dfx canister create --all
     dfx build
 
-    assert_command dfx canister --network local install --all
+    assert_command dfx canister install --all --network local
 
     assert_match "Installing code for canister e2e_project_backend"
 }
@@ -62,7 +62,7 @@ teardown() {
     dfx canister create --all
     dfx build
 
-    assert_command_fail dfx canister --network nosuch install --all
+    assert_command_fail dfx canister install --all --network nosuch
 
     assert_match "ComputeNetworkNotFound.*nosuch"
 }

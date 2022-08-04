@@ -9,11 +9,11 @@ use slog::info;
 #[derive(Parser)]
 pub struct UseOpts {
     /// The identity to use.
-    identity: String,
+    new_identity: String,
 }
 
 pub fn exec(env: &dyn Environment, opts: UseOpts) -> DfxResult {
-    let identity = opts.identity.as_str();
+    let identity = opts.new_identity.as_str();
 
     let log = env.get_logger();
     info!(log, r#"Using identity: "{}"."#, identity);

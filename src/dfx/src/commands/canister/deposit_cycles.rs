@@ -65,7 +65,7 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     if call_sender == &CallSender::SelectedId {
-        bail!("The deposit cycles call needs to proxied via the wallet canister. Please run this command using 'dfx canister --wallet <your wallet id> deposit-cycles <other arguments>'.");
+        bail!("The deposit cycles call needs to be proxied via the wallet canister. Please run this command using 'dfx canister deposit-cycles --wallet <your wallet id> <other arguments>'.");
     }
 
     // amount has been validated by cycle_amount_validator
