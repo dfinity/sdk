@@ -37,6 +37,20 @@ teardown() {
     standard_teardown
 }
 
+@test "ledger account-id" {
+    dfx identity use alice
+    assert_command dfx ledger account-id
+    assert_match 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+
+    assert_command dfx ledger account-id --of-principal fg7gi-vyaaa-aaaal-qadca-cai
+    assert_match a014842f64a22e59887162a79c7ca7eb02553250704780ec4d954f12d0ea0b18
+
+    # --of-canister accepts both canister alias and canister principal
+    assert_command dfx canister create dummy_canister
+    assert_command dfx ledger account-id --of-canister "$(dfx canister id dummy_canister)"
+    assert_eq "$(dfx ledger account-id --of-canister dummy_canister)"
+}
+
 @test "ledger balance & transfer" {
     dfx identity use alice
     assert_command dfx ledger account-id
