@@ -16,6 +16,7 @@ use crate::util::{expiry_duration, read_module_metadata};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
+use garcon::{Delay, Waiter};
 use ic_agent::{Agent, AgentError};
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
@@ -28,7 +29,6 @@ use std::collections::HashSet;
 use std::io::stdin;
 use std::process::{Command, Stdio};
 use std::time::Duration;
-use tokio::time::sleep;
 
 #[allow(clippy::too_many_arguments)]
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
@@ -138,6 +138,11 @@ pub async fn install_canister(
         )
         .await?;
     }
+    let mut waiter = Delay::builder()
+        .with(Delay::count_timeout(30))
+        .exponential_backoff_capped(Duration::from_millis(500), 1.4, Duration::from_secs(5))
+        .build();
+    waiter.start();
     let mut times = 0;
     loop {
         match agent
@@ -152,13 +157,16 @@ pub async fn install_canister(
                     .map_or(true, |old_hash| old_hash == reported_hash)
                 {
                     times += 1;
-                    if times % 4 == 0 {
+                    if times > 3 {
                         info!(
                             env.get_logger(),
                             "Waiting for module change to be reflected in system state tree..."
                         )
                     }
-                    sleep(Duration::from_millis(500)).await;
+                    waiter.async_wait().await
+                        .map_err(|_| anyhow!("Timed out waiting for the module to update to the new hash in the state tree. \
+                            Something may have gone wrong with the upload. \
+                            No post-installation tasks have been run, including asset uploads."))?;
                 } else {
                     bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
                         It has likely been modified while this command is running. \
@@ -172,13 +180,16 @@ pub async fn install_canister(
             }
             Err(AgentError::LookupPathAbsent(_) | AgentError::LookupPathUnknown(_)) => {
                 times += 1;
-                if times % 4 == 0 {
+                if times > 3 {
                     info!(
                         env.get_logger(),
                         "Waiting for module change to be reflected in system state tree..."
                     )
                 }
-                sleep(Duration::from_millis(500)).await;
+                waiter.async_wait().await
+                    .map_err(|_| anyhow!("Timed out waiting for the module to update to the new hash in the state tree. \
+                        Something may have gone wrong with the upload. \
+                        No post-installation tasks have been run, including asset uploads."))?;
             }
             Err(e) => bail!(e),
         }
