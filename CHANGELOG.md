@@ -725,7 +725,7 @@ See [Upgrade compatibility](https://smartcontracts.org/docs/language-guide/compa
 
 ### feat: Unified environment variables across build commands
 
-The three canister types that use a custom build tool - `assets`, `rust`, and `custom` - now all support the same set of environment variables during the build task: 
+The three canister types that use a custom build tool - `assets`, `rust`, and `custom` - now all support the same set of environment variables during the build task:
 
 * `DFX_VERSION` - The version of DFX that was used to build the canister.
 * `DFX_NETWORK` - The network name being built for. Usually `ic` or `local`.
@@ -1024,7 +1024,7 @@ You can now declare "rust" canisters in dfx.json.
 ```
 
 Don't forget to place a `Cargo.toml` in your project root.
-Then dfx will build the rust canister with your rust toolchain. 
+Then dfx will build the rust canister with your rust toolchain.
 Please also make sure that you have added the WebAssembly compilation target.
 
 ``` bash
@@ -1317,7 +1317,7 @@ Added defensive checks to the wallet's remove_controller and deauthorize methods
 When using `dfx canister sign` to generate a update message, a corresponding
 request_status message is also signed and append to the json as `signed_request_status`.
 Then after sending the update message, the user can check the request_status using
-`dfx canister send message.json --status`. 
+`dfx canister send message.json --status`.
 
 ### fix: wallet will not proxy dfx canister call by default
 
