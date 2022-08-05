@@ -16,6 +16,7 @@ use crate::{
 use candid::{candid_method, Principal};
 use ic_cdk::api::{caller, data_certificate, set_certified_data, time, trap};
 use ic_cdk_macros::{query, update};
+use state_machine::AssetProperties;
 use std::cell::RefCell;
 
 thread_local! {
@@ -154,6 +155,26 @@ fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
 #[candid_method(query)]
 fn list() -> Vec<AssetDetails> {
     STATE.with(|s| s.borrow().list_assets())
+}
+
+#[query]
+#[candid_method(query)]
+fn get_asset_properties(key: Key) -> AssetProperties {
+    STATE.with(|s| match s.borrow().get_asset_properties(&key) {
+        Ok(properties) => properties,
+        Err(msg) => trap(&msg),
+    })
+}
+
+#[update(guard = "is_authorized")]
+#[candid_method(update)]
+fn set_asset_properties(arg: SetAssetPropertiesArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().set_asset_properties(arg, time()) {
+            trap(&msg);
+        }
+        set_certified_data(&s.borrow().root_hash());
+    })
 }
 
 #[query]

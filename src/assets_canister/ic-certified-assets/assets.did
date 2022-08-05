@@ -7,6 +7,9 @@ type CreateAssetArguments = record {
   key: Key;
   content_type: text;
   max_age: opt nat64;
+  // max headers: worth of 512Kb
+  // possibly check both client side and canisetr side
+  // communicate about the limits!
   headers: opt vec HeaderField;
 };
 
@@ -18,6 +21,13 @@ type SetAssetContentArguments = record {
   sha256: opt blob;
 };
 
+// TODO: comment
+type SetAssetPropertiesArguments = record {
+  key: Key;
+  max_age: text;
+  headers: opt vec HeaderField;
+  redirect: opt AssetRedirect;
+};
 // Remove content for an asset, by content encoding
 type UnsetAssetContentArguments = record {
   key: Key;
@@ -35,13 +45,14 @@ type ClearArguments = record {};
 type BatchOperationKind = variant {
   CreateAsset: CreateAssetArguments;
   SetAssetContent: SetAssetContentArguments;
-
+  SetAssetProperties: SetAssetPropertiesArguments;
   UnsetAssetContent: UnsetAssetContentArguments;
   DeleteAsset: DeleteAssetArguments;
 
   Clear: ClearArguments;
 };
 
+// max key size = 256, max value size = 4092
 type HeaderField = record { text; text; };
 
 type HttpRequest = record {
@@ -77,6 +88,11 @@ type StreamingStrategy = variant {
   };
 };
 
+type AssetProperties = record {
+  max_age: opt nat64;
+  headers: opt vec HeaderField;
+};
+
 service: {
 
   get: (record {
@@ -108,7 +124,16 @@ service: {
       length: nat; // Size of this encoding's blob. Calculated when uploading assets.
       modified: Time;
     };
+    properties_sha256: opt blob;
+    properties: opt AssetProperties;
+    paging: opt record {
+      next_page_continuation: opt nat;
+      // TODO: API
+    }
   }) query;
+
+  set_asset_properties: (SetAssetPropertiesArguments) -> ();
+  get_asset_properties : (key: text) -> ( AssetProperties ) query;
 
   create_batch : (record {}) -> (record { batch_id: BatchId });
 

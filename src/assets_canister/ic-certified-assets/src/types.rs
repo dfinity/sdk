@@ -10,6 +10,8 @@ pub type BatchId = Nat;
 pub type ChunkId = Nat;
 pub type Key = String;
 
+// TODO: consider wrapping both max_age and headers into single type
+
 // IDL Types
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -26,6 +28,13 @@ pub struct SetAssetContentArguments {
     pub content_encoding: String,
     pub chunk_ids: Vec<ChunkId>,
     pub sha256: Option<ByteBuf>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct SetAssetPropertiesArguments {
+    pub key: Key,
+    pub max_age: String,
+    pub headers: Option<Vec<HeaderField>>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -46,6 +55,7 @@ pub struct ClearArguments {}
 pub enum BatchOperation {
     CreateAsset(CreateAssetArguments),
     SetAssetContent(SetAssetContentArguments),
+    SetAssetProperties(SetAssetPropertiesArguments),
     UnsetAssetContent(UnsetAssetContentArguments),
     DeleteAsset(DeleteAssetArguments),
     Clear(ClearArguments),
