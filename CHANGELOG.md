@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat!: remove `dfx config`
+
+`dfx config` has been removed. Please update Bash scripts to use `jq`, PowerShell scripts to use `ConvertTo-Json`, nushell scripts to use `to json`, etc.
+
 ### feat!: move all the flags to the end
 
 Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are all positioned after the final subcommand. In prior versions, a command might look like:
