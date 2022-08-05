@@ -15,7 +15,7 @@ pub struct AccountIdOpts {
     pub of_principal: Option<Principal>,
 
     #[clap(long, value_name = "ALIAS")]
-    /// Alias or name of the canister controlling the account.
+    /// Alias or principal of the canister controlling the account.
     pub of_canister: Option<String>,
 
     #[clap(long, value_name = "SUBACCOUNT")]

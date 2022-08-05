@@ -45,7 +45,7 @@ You can use the following optional flags with the `dfx ledger account-id` comman
 |------------------------------|--------------------------------------------------------|
 | `-h`, `--help`               | Displays usage information.                            |
 | `-V`, `--version`            | Displays version information.                          |
-| `--of-canister <ALIAS>`      | Alias or name of the canister controlling the account  |
+| `--of-canister <ALIAS>`      | Alias or principal of the canister controlling the account  |
 | `--of-principal <PRINCIPAL>` | Principal controlling the account                      |
 | `-subaccount <SUBACCOUNT>`   | Subaccount identifier (64 character long hex string)   |
 
