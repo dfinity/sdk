@@ -28,7 +28,7 @@ teardown() {
     # calling canister status with different identity provokes HTTP 403
     assert_command_fail dfx canister status hello_backend
     assert_match "not part of the controllers" # this is part of the error explanation
-    assert_match "'dfx canister \(--network ic\) update-settings --add-controller <controller principal to add> <canister id/name or --all>'" # this is part of the solution
+    assert_match "'dfx canister update-settings --add-controller <controller principal to add> <canister id/name or --all> \(--network ic\)'" # this is part of the solution
 }
 
 @test "Instruct user to set a wallet" {
@@ -40,5 +40,5 @@ teardown() {
     # this will fail because no wallet is configured for alice on network ic
     assert_command_fail dfx deploy --network ic
     assert_match "requires a configured wallet" # this is part of the error explanation
-    assert_match "'dfx identity --network <network name> set-wallet <wallet id>'" # this is part of the solution
+    assert_match "'dfx identity set-wallet <wallet id> --network <network name>'" # this is part of the solution
 }

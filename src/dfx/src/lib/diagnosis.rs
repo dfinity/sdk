@@ -64,14 +64,14 @@ fn diagnose_http_403() -> Diagnosis {
     let error_explanation = "Each canister has a set of controllers. Only those controllers have access to the canister's management functions (like install_code or stop_canister).\n\
         The principal you are using to call a management function is not part of the controllers.";
     let action_suggestion = "To make the management function call succeed, you have to make sure the principal that calls the function is a controller.
-To see the current controllers of a canister, use the 'dfx canister (--network ic) info' command.
+To see the current controllers of a canister, use the 'dfx canister info (--network ic)' command.
 To figure out which principal is calling the management function, look at the command you entered:
     If you used '--wallet <wallet id>', then the wallet's principal (the '<wallet id>') is calling the function.
     If you used '--no-wallet' or none of the flags, then your own principal is calling the function. You can see your own principal by running 'dfx identity get-principal'.
-To add a principal to the list of controllers, one of the existing controllers has to add the new principal. The base command to do this is 'dfx canister (--network ic) update-settings --add-controller <controller principal to add> <canister id/name or --all>'.
-If your wallet is a controller, but not your own principal, then you have to make your wallet perform the call by adding '--wallet <your wallet id>' to the command (before the 'update-settings' subcommand).
+To add a principal to the list of controllers, one of the existing controllers has to add the new principal. The base command to do this is 'dfx canister update-settings --add-controller <controller principal to add> <canister id/name or --all> (--network ic)'.
+If your wallet is a controller, but not your own principal, then you have to make your wallet perform the call by adding '--wallet <your wallet id>' to the command.
 
-The most common way this error is solved is by running 'dfx canister --network ic --wallet \"$(dfx identity get-wallet)\" update-settings --all --add-controller \"$(dfx identity get-principal)\"'.";
+The most common way this error is solved is by running 'dfx canister update-settings --network ic --wallet \"$(dfx identity get-wallet)\" --all --add-controller \"$(dfx identity get-principal)\"'.";
     (
         Some(error_explanation.to_string()),
         Some(action_suggestion.to_string()),
