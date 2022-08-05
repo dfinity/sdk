@@ -20,15 +20,15 @@ teardown() {
     dfx_start
     assert_command dfx identity new --disable-encryption jose
 
-    PRINCPAL_ID=$(dfx --identity jose identity get-principal)
+    PRINCPAL_ID=$(dfx identity get-principal --identity jose)
 
-    dfx --identity jose canister create e2e_project_backend
-    dfx --identity jose build e2e_project_backend
-    dfx --identity jose canister install e2e_project_backend
+    dfx canister create e2e_project_backend --identity jose
+    dfx build e2e_project_backend --identity jose
+    dfx canister install e2e_project_backend --identity jose
 
-    assert_command dfx --identity jose canister call e2e_project_backend amInitializer
+    assert_command dfx canister call e2e_project_backend amInitializer --identity jose
 
-    SENDER_ID=$(dfx --identity jose canister call e2e_project_backend fromCall)
+    SENDER_ID=$(dfx canister call e2e_project_backend fromCall --identity jose)
 
     if [ "$PRINCPAL_ID" -ne "$SENDER_ID" ]; then
       echo "IDs did not match: Principal '${PRINCPAL_ID}' != Sender '${SENDER_ID}'..." | fail
@@ -42,17 +42,17 @@ teardown() {
 
     ANONYMOUS_PRINCIPAL_ID="2vxsx-fae"
 
-    PRINCIPAL_ID=$(dfx --identity anonymous identity get-principal)
+    PRINCIPAL_ID=$(dfx identity get-principal --identity anonymous)
 
     if [ "$PRINCIPAL_ID" -ne "$ANONYMOUS_PRINCIPAL_ID" ]; then
       echo "IDs did not match: Principal '${ANONYMOUS_PRINCIPAL_ID}' != Sender '${PRINCIPAL_ID}'..." | fail
     fi
 
-    dfx --identity jose canister create e2e_project_backend
-    dfx --identity jose build e2e_project_backend
-    dfx --identity jose canister install e2e_project_backend
+    dfx canister create e2e_project_backend --identity jose
+    dfx build e2e_project_backend --identity jose
+    dfx canister install e2e_project_backend --identity jose
 
-    SENDER_ID=$(dfx --identity anonymous canister call e2e_project_backend fromCall)
+    SENDER_ID=$(dfx canister call e2e_project_backend fromCall --identity anonymous)
 
     if [ "$ANONYMOUS_PRINCIPAL_ID" -ne "$SENDER_ID" ]; then
       echo "IDs did not match: Principal '${ANONYMOUS_PRINCIPAL_ID}' != Sender '${SENDER_ID}'..." | fail
@@ -111,25 +111,25 @@ teardown() {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity new --disable-encryption bob
 
-    dfx --identity alice canister create --all
-    assert_command dfx --identity alice build
-    assert_command dfx --identity alice canister install --all
+    dfx canister create --all --identity alice
+    assert_command dfx build --identity alice
+    assert_command dfx canister install --all --identity alice
 
     # The user Identity's principal is the initializer
-    assert_command dfx --identity alice canister call e2e_project_backend amInitializer
+    assert_command dfx canister call e2e_project_backend amInitializer --identity alice
     assert_eq '(true)'
 
-    assert_command dfx --identity bob canister call e2e_project_backend amInitializer
+    assert_command dfx canister call e2e_project_backend amInitializer --identity bob
     assert_eq '(false)'
 
     # these all fail (other identities are not initializer; cannot store assets):
-    assert_command_fail dfx --identity bob canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
-    assert_command_fail dfx --identity default canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+    assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity bob
+    assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity default
     assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
     assert_command_fail dfx canister call e2e_project_frontend retrieve '("B")'
 
     # but alice, the initializer, can store assets:
-    assert_command dfx --identity alice canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+    assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity alice
     assert_eq '()'
     assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
     assert_eq '(blob "XWV")'
@@ -140,10 +140,10 @@ teardown() {
     dfx_start
     assert_command dfx identity new --disable-encryption alice
 
-    dfx --identity alice canister create --all
-    assert_command dfx --identity alice build
-    assert_command dfx --identity alice canister install --all
-    assert_command dfx --identity alice canister call e2e_project_backend amInitializer
+    dfx canister create --all --identity alice
+    assert_command dfx build --identity alice
+    assert_command dfx canister install --all --identity alice
+    assert_command dfx canister call e2e_project_backend amInitializer --identity alice
     assert_eq '(true)'
     assert_command dfx canister call e2e_project_backend amInitializer
     assert_eq '(false)'
@@ -152,10 +152,10 @@ teardown() {
 
     assert_command dfx identity whoami
     assert_eq 'default'
-    assert_command dfx --identity bob canister call e2e_project_backend amInitializer
+    assert_command dfx canister call e2e_project_backend amInitializer --identity bob
     assert_eq '(true)'
 
-    assert_command dfx --identity bob canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})'
+    assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})' --identity bob
     assert_eq '()'
     assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
     assert_eq '(blob "hello")'
