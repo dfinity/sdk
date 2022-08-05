@@ -45,6 +45,6 @@ teardown() {
     mkdir not-a-project-dir
     cd not-a-project-dir
 
-    assert_command dfx canister --network ic sign --query rwlgt-iiaaa-aaaaa-aaaaa-cai read
+    assert_command dfx canister sign --query rwlgt-iiaaa-aaaaa-aaaaa-cai read --network ic
     assert_match "Query message generated at \[message.json\]"
 }

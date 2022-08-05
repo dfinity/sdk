@@ -4,6 +4,17 @@
 
 ## DFX
 
+### feat!: move all the flags to the end
+
+Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are all positioned after the final subcommand. In prior versions, a command might look like:
+```bash
+dfx --identity alice canister --network ic --wallet "$WALLET" create --all
+```
+This command should now read:
+```bash
+dfx canister create --all --network ic --wallet "$WALLET" --identity alice
+```
+
 ### feat!: changed update-settings syntax
 
 When using `dfx canister update-settings`, it is easy to mistake `--controller` for `--add-controller`. For this reason `--controller` has been renamed to `--set-controller`.

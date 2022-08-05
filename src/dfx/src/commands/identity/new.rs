@@ -13,7 +13,7 @@ use IdentityCreationParameters::{Hardware, Pem};
 #[derive(Parser)]
 pub struct NewIdentityOpts {
     /// The identity to create.
-    identity: String,
+    new_identity: String,
 
     /// The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"
     #[clap(long, requires("hsm-key-id"))]
@@ -24,7 +24,7 @@ pub struct NewIdentityOpts {
     hsm_key_id: Option<String>,
 
     /// DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk.
-    /// I you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
+    /// If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
     #[clap(long)]
     disable_encryption: bool,
 
@@ -34,7 +34,7 @@ pub struct NewIdentityOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
-    let name = opts.identity.as_str();
+    let name = opts.new_identity.as_str();
 
     let log = env.get_logger();
 
