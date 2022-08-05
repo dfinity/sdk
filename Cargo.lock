@@ -451,6 +451,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fff2a6927b3bb87f9595d67196a70493f627687a71d87a0d692242c33f58c11"
 
 [[package]]
+name = "certified-assets"
+version = "0.2.4"
+dependencies = [
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-certified-assets",
+]
+
+[[package]]
 name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -461,6 +470,20 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "chrono"
+version = "0.4.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6127248204b9aba09a362f6c930ef6a78f2c1b2215f8a7b398c06e1083f17af0"
+dependencies = [
+ "js-sys",
+ "num-integer",
+ "num-traits",
+ "time 0.1.44",
+ "wasm-bindgen",
+ "winapi",
+]
 
 [[package]]
 name = "cipher"
@@ -718,6 +741,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ee2393c4a91429dffb4bedf19f4d6abf27d8a732c8ce4980305d782e5426d57"
 
 [[package]]
+name = "delay"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8546bb2c80129c9c85cd2b44e160b917f34a8b7ce9f3af675502cf9960e33d62"
+
+[[package]]
 name = "der"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -767,7 +796,7 @@ dependencies = [
  "humantime",
  "humantime-serde",
  "ic-agent",
- "ic-asset",
+ "ic-asset 0.20.0 (git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7)",
  "ic-identity-hsm",
  "ic-utils",
  "ic-wasm",
@@ -808,7 +837,7 @@ dependencies = [
  "tempfile",
  "term",
  "thiserror",
- "time",
+ "time 0.3.11",
  "tokio",
  "toml",
  "url",
@@ -1293,7 +1322,7 @@ checksum = "4eb1a864a501629691edf6c15a593b7a51eebaa1e8468e9ddc623de7c9b58ec6"
 dependencies = [
  "cfg-if 1.0.0",
  "libc",
- "wasi",
+ "wasi 0.11.0+wasi-snapshot-preview1",
 ]
 
 [[package]]
@@ -1556,6 +1585,34 @@ dependencies = [
 [[package]]
 name = "ic-asset"
 version = "0.20.0"
+dependencies = [
+ "anyhow",
+ "candid",
+ "derivative",
+ "flate2",
+ "futures",
+ "futures-intrusive",
+ "garcon",
+ "globset",
+ "hex",
+ "ic-agent",
+ "ic-utils",
+ "mime",
+ "mime_guess",
+ "mockito",
+ "pathdiff",
+ "proptest",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha2 0.10.2",
+ "tempfile",
+ "walkdir",
+]
+
+[[package]]
+name = "ic-asset"
+version = "0.20.0"
 source = "git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7#2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 dependencies = [
  "anyhow",
@@ -1577,6 +1634,60 @@ dependencies = [
  "serde_json",
  "sha2 0.10.2",
  "walkdir",
+]
+
+[[package]]
+name = "ic-cdk"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "141341c2cb26c4e5f196d5b64305c677b1abebe093eefbe2c622b4a2e6de8a9f"
+dependencies = [
+ "candid",
+ "cfg-if 1.0.0",
+ "serde",
+]
+
+[[package]]
+name = "ic-cdk-macros"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5196f57df320b206129d4aae96a0cea72ea2759a5c82651bbb60d721f834998"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_tokenstream",
+ "syn",
+]
+
+[[package]]
+name = "ic-certified-assets"
+version = "0.2.4"
+dependencies = [
+ "base64",
+ "candid",
+ "hex",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-certified-map",
+ "num-traits",
+ "serde",
+ "serde_bytes",
+ "serde_cbor",
+ "sha2 0.9.9",
+]
+
+[[package]]
+name = "ic-certified-map"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76c7889064a08b87d6ccf3241e7a5b4dfded4863ec724d24441dfc16df2b3023"
+dependencies = [
+ "serde",
+ "serde_bytes",
+ "sha2 0.9.9",
 ]
 
 [[package]]
@@ -1640,6 +1751,31 @@ dependencies = [
  "humansize",
  "wabt",
  "walrus",
+]
+
+[[package]]
+name = "icx-asset"
+version = "0.20.0"
+dependencies = [
+ "anyhow",
+ "candid",
+ "chrono",
+ "clap",
+ "delay",
+ "garcon",
+ "humantime",
+ "ic-agent",
+ "ic-asset 0.20.0 (git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7)",
+ "ic-utils",
+ "libflate",
+ "num-traits",
+ "pem",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "walkdir",
 ]
 
 [[package]]
@@ -1942,7 +2078,7 @@ checksum = "57ee1c23c7c63b0c9250c339ffdc69255f110b298b901b9f6c82547b7b87caaf"
 dependencies = [
  "libc",
  "log",
- "wasi",
+ "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys",
 ]
 
@@ -3049,6 +3185,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_tokenstream"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6deb15c3a535e81438110111d90168d91721652f502abb147f31cde129f683d"
+dependencies = [
+ "proc-macro2",
+ "serde",
+ "syn",
+]
+
+[[package]]
 name = "serde_urlencoded"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3136,7 +3283,7 @@ dependencies = [
  "num-bigint 0.4.3",
  "num-traits",
  "thiserror",
- "time",
+ "time 0.3.11",
 ]
 
 [[package]]
@@ -3179,7 +3326,7 @@ dependencies = [
  "slog",
  "term",
  "thread_local",
- "time",
+ "time 0.3.11",
 ]
 
 [[package]]
@@ -3400,6 +3547,17 @@ dependencies = [
 
 [[package]]
 name = "time"
+version = "0.1.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6db9e6914ab8b1ae1c260a4ae7a49b6c5611b40328a735b21862567685e73255"
+dependencies = [
+ "libc",
+ "wasi 0.10.0+wasi-snapshot-preview1",
+ "winapi",
+]
+
+[[package]]
+name = "time"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72c91f41dcb2f096c05f0873d667dceec1087ce5bcf984ec8ffb19acddbb3217"
@@ -3458,7 +3616,19 @@ dependencies = [
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
+ "tokio-macros",
  "winapi",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9724f9a975fb987ef7a3cd9be0350edcbe130698af5b8f7a631e23d42d052484"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3733,6 +3903,12 @@ dependencies = [
  "log",
  "try-lock",
 ]
+
+[[package]]
+name = "wasi"
+version = "0.10.0+wasi-snapshot-preview1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "wasi"
