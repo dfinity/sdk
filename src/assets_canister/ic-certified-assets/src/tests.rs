@@ -37,6 +37,7 @@ impl AssetBuilder {
             max_age: None,
             encodings: vec![],
             headers: None,
+            redirects: None,
         }
     }
 
@@ -107,6 +108,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             content_type: asset.content_type,
             max_age: asset.max_age,
             headers: asset.headers,
+            redirects: None,
         }));
 
         for (enc, chunks) in asset.encodings {

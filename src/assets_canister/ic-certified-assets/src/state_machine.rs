@@ -31,6 +31,7 @@ type Timestamp = Int;
 pub struct AssetProperties {
     pub max_age: Option<u64>,
     pub headers: Option<Vec<HeaderField>>,
+    pub redirect: Option<AssetRedirect>,
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
@@ -43,11 +44,19 @@ pub struct AssetEncoding {
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
+pub struct AssetRedirect {
+    pub from: String,
+    pub to: String,
+    pub bot_user_agents: Vec<String>,
+}
+
+#[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
+    pub redirect: Option<AssetRedirect>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -137,6 +146,7 @@ impl State {
                     encodings: HashMap::new(),
                     max_age: arg.max_age,
                     headers: arg.headers,
+                    redirect: None,
                 },
             );
         }

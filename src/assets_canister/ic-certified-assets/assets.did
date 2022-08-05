@@ -11,6 +11,7 @@ type CreateAssetArguments = record {
   // possibly check both client side and canisetr side
   // communicate about the limits!
   headers: opt vec HeaderField;
+  redirect: opt AssetRedirect;
 };
 
 // Add or change content for an asset, by content encoding
@@ -28,6 +29,14 @@ type SetAssetPropertiesArguments = record {
   headers: opt vec HeaderField;
   redirect: opt AssetRedirect;
 };
+
+// TODO: comment
+type AssetRedirect = record {
+  from: text;
+  to: text;
+  bot_user_agents: vec text;
+};
+
 // Remove content for an asset, by content encoding
 type UnsetAssetContentArguments = record {
   key: Key;
@@ -91,6 +100,7 @@ type StreamingStrategy = variant {
 type AssetProperties = record {
   max_age: opt nat64;
   headers: opt vec HeaderField;
+  redirect: opt AssetRedirect
 };
 
 service: {

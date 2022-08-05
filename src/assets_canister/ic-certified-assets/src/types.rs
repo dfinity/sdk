@@ -20,6 +20,14 @@ pub struct CreateAssetArguments {
     pub content_type: String,
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
+    pub redirects: Option<AssetRedirectArguments>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct AssetRedirectArguments {
+    pub from: String,
+    pub to: String,
+    pub things: Vec<String>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
