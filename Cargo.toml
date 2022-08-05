@@ -1,6 +1,10 @@
 [workspace]
 members = [
     "src/dfx",
+    "src/assets_canister/ic-asset",
+    "src/assets_canister/icx-asset",
+    "src/assets_canister/ic-certified-assets",
+    "src/assets_canister/certified-assets",
 ]
 
 [patch.crates-io.ic-agent]
