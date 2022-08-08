@@ -84,7 +84,7 @@ teardown() {
 
 @test "ledger subaccounts" {
     subacct=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
-    assert_command dfx --identity bob ledger account-id --subaccount "$subacct"
+    assert_command dfx ledger account-id --identity bob --subaccount "$subacct"
     assert_match 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
 
     dfx identity use alice
@@ -107,7 +107,7 @@ teardown() {
     assert_match "10000.00000000 ICP"
     assert_command dfx ledger balance --subaccount "$subacct"
     assert_match "9999.99990000 ICP"
-    assert_command dfx --identity alice ledger balance
+    assert_command dfx ledger balance --identity alice
     assert_match "9999.99990000 ICP"
 }
 tc_to_num() {

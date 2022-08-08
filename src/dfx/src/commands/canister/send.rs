@@ -29,7 +29,7 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     if *call_sender != CallSender::SelectedId {
-        bail!("`sign` currently doesn't support proxy through wallet canister, please use `dfx canister --no-wallet send ...`.");
+        bail!("`send` currently doesn't support proxying through the wallet canister, please use `dfx canister send --no-wallet ...`.");
     }
     let file_name = opts.file_name;
     let path = Path::new(&file_name);

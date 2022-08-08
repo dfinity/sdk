@@ -31,9 +31,9 @@ teardown() {
 
   x=$(cat port)
   export PORT="$x"
-  dfx canister --provider "http://localhost:$PORT" install --all
-  dfx canister --provider "http://localhost:$PORT" call e2e_project greet '("Blueberry")'
-  assert_command_fail dfx canister call --provider "http://localhost:$PORT" e2e_project greet '("Blueberry")'
+  dfx canister install --all --provider "http://localhost:$PORT"
+  dfx canister call e2e_project greet '("Blueberry")' --provider "http://localhost:$PORT"
+  assert_command_fail dfx canister call e2e_project greet '("Blueberry")' --provider "http://localhost:$PORT"
   assert_command_fail dfx canister call e2e_project greet '("Blueberry")'
 }
 
@@ -54,15 +54,15 @@ teardown() {
 @test "network as URL creates the expected name" {
     dfx_start
     webserver_port=$(get_webserver_port)
-    dfx canister --network "http://127.0.0.1:$webserver_port" create --all
+    dfx canister create --all --network "http://127.0.0.1:$webserver_port"
     [ -d ".dfx/http___127_0_0_1_$webserver_port" ]
 }
 
 @test "network as URL does not create unexpected names" {
     dfx_start
     webserver_port=$(get_webserver_port)
-    dfx canister --network "http://127.0.0.1:$webserver_port" create --all
-    dfx build --network "http://127.0.0.1:$webserver_port" --all
-    dfx canister --network "http://127.0.0.1:$webserver_port" install --all
+    dfx canister create --all --network "http://127.0.0.1:$webserver_port"
+    dfx build --all --network "http://127.0.0.1:$webserver_port"
+    dfx canister install --all --network "http://127.0.0.1:$webserver_port"
     assert_eq 1 "$(find .dfx/http* -maxdepth 0 | wc -l | tr -d ' ')"
 }

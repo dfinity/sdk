@@ -9,7 +9,7 @@ use slog::info;
 #[derive(Parser)]
 pub struct RemoveOpts {
     /// The identity to remove.
-    identity: String,
+    removed_identity: String,
 
     /// Required if the identity has wallets configured so that users do not accidentally lose access to wallets.
     #[clap(long)]
@@ -17,7 +17,7 @@ pub struct RemoveOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: RemoveOpts) -> DfxResult {
-    let name = opts.identity.as_str();
+    let name = opts.removed_identity.as_str();
 
     let log = env.get_logger();
 
