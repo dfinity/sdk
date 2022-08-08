@@ -199,17 +199,46 @@ pub trait CanisterBuilder {
                     let mut data = BTreeMap::new();
 
                     let canister_name = &info.get_name().to_string();
-                    
-                    // Insert only if node outputs are specified
-                    let node_requirements = "import fetch from \"isomorphic-fetch\"".to_string();
-                    
-                    let actor_export = format!("export const {} = createActor(canisterId);", canister_name).to_string();
 
-                    
+                    let node_compatibility =
+                        match &info.get_declarations_config().node_compatibility {
+                            Some(s) => s.clone(),
+                            None => false,
+                        };
+
+                    // Insert only if node outputs are specified
+                    let mut node_requirements = String::new();
+
+                    let mut actor_export =
+                        format!("export const {} = createActor(canisterId);", canister_name)
+                            .to_string();
+
+                    if node_compatibility {
+                        node_requirements = "import fetch from \"isomorphic-fetch\"".to_string();
+// Formatting for whitespace
+                        actor_export = format!(
+                            r#"export const {} = createActor(canisterId, {{
+  httpOptions: {{
+    fetch,
+    host: isProduction ? "https://ic0.app" : "http://127.0.0.1:8000/"
+  }}
+}});"#,
+                            canister_name
+                        )
+                        .to_string();
+                    }
+
+                    // Expose info about build config to client
+                    let dfx_network = config.network_name.as_str().to_string();
+                    let is_production = (dfx_network == "ic").to_string();
+                    let dfx_network_str = format!("\"{}\"", dfx_network);
+
                     data.insert("canister_name".to_string(), canister_name);
                     data.insert("node_requirements".to_string(), &node_requirements);
                     data.insert("actor_export".to_string(), &actor_export);
-                    
+                    data.insert("dfx_network".to_string(), &dfx_network_str);
+                    data.insert("is_production".to_string(), &is_production);
+
                     let process_string: String = match &info.get_declarations_config().env_override
                     {
                         Some(s) => s.clone(),

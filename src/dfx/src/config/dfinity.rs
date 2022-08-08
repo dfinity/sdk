@@ -216,6 +216,11 @@ pub struct CanisterDeclarationsConfig {
     /// A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID
     /// in the 'src/dfx/assets/language_bindings/canister.js' template.
     pub env_override: Option<String>,
+
+    /// # Node compatibility
+    /// Flag to pre-populate index.js with better defaults for node.js projects
+    /// Default is false
+    pub node_compatibility: Option<bool>,
 }
 
 /// # Bitcoin Adapter Configuration
