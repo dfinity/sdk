@@ -16,7 +16,6 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::io::Read;
-use std::os::unix::process;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -91,7 +90,6 @@ pub trait CanisterBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult {
-        println!("{}", "asdfasdklfjals;dkfj");
         let generate_output_dir = info
             .get_declarations_config()
             .output
@@ -210,28 +208,26 @@ pub trait CanisterBuilder {
                         .context("Failed to read language bindings archive file content.")?;
 
                     // create the handlebars registry
-                    let mut handlebars = Handlebars::new();
+                    let handlebars = Handlebars::new();
 
                     let mut data = BTreeMap::new();
 
-                    let canister_id = &info.get_name().to_string();
-                    let name_string = &info.get_name().to_string();
+                    let canister_name = &info.get_name().to_string();
 
                     let agent_options = "{{agentOptions?: import(\"@dfinity/agent\").HttpAgentOptions; actorOptions?: import(\"@dfinity/agent\").ActorConfig}}".to_string();
 
-                    data.insert("canister_id".to_string(), canister_id);
-                    data.insert("canister_name".to_string(), name_string);
+                    data.insert("canister_name".to_string(), canister_name);
                     data.insert("agent_options".to_string(), &agent_options);
-                    let process_string: String;
-                    match &info.get_declarations_config().env_override {
-                        Some(s) => {
-                            process_string = s.clone();
-                        }
+                    let process_string: String = match &info.get_declarations_config().env_override
+                    {
+                        Some(s) => s.clone(),
                         None => {
-                            process_string =
-                                format!("process.env.{}", &info.get_name().to_string().clone());
+                            format!(
+                                "process.env.{}",
+                                &info.get_name().to_string().clone().to_ascii_uppercase()
+                            )
                         }
-                    }
+                    };
 
                     data.insert("canister_name_process_env".to_string(), &process_string);
 
