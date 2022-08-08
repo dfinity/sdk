@@ -106,6 +106,8 @@ teardown() {
 }
 
 @test "moc missing" {
+    use_test_specific_cache_root   # Because this test modifies a file in the cache
+
     dfx_start
 
     assert_command dfx canister create m_o_c_missing
