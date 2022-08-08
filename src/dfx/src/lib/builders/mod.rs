@@ -201,8 +201,10 @@ pub trait CanisterBuilder {
                     let canister_name = &info.get_name().to_string();
 
                     let node_compatibility =
-                        match &info.get_declarations_config().node_compatibility {
-                            Some(s) => s.clone(),
+                        match &info.get_declarations_config().compatibilities {
+                            Some(s) => {
+                                s.contains(&"nodejs".to_string())
+                            },
                             None => false,
                         };
 
