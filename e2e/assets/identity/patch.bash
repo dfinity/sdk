@@ -1,1 +1,1 @@
-dfx config canisters/e2e_project_backend/main identity.mo
+cat <<<"$(jq '.canisters.e2e_project_backend.main="identity.mo"' dfx.json)" >dfx.json

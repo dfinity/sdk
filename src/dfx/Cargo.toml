@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.11.0"
+version = "0.11.1"
 authors = ["DFINITY Team"]
 edition = "2018"
 build = "assets/build.rs"
@@ -18,11 +18,6 @@ walkdir = "2.3.2"
 
 [dependencies]
 actix = "0.13.0"
-actix-cors = "0.6.1"
-actix-files = "0.6.0"
-actix-http = { version = "3.0.3", default-features = false }
-actix-server = "2.0.0"
-actix-web = { version = "4.0.0", features = [ "default", "openssl", "rustls" ] }
 aes-gcm = "0.9.4"
 anyhow = "1.0.56"
 argon2 = "0.4.0"
@@ -64,6 +59,7 @@ ring = "0.16.11"
 reqwest = { version = "0.11.9", features = [ "blocking", "json", "rustls-tls" ] }
 rustls = "0.20.4"
 rust_decimal = "1.22.0"
+schemars = "0.8"
 semver = "1.0.6"
 serde = "1.0"
 serde_bytes = "0.11.2"

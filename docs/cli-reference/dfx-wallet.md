@@ -140,7 +140,7 @@ You can use the following optional flags with the `dfx wallet add-controller` co
 You can use the `dfx wallet addresses` command to retrieve information on the addresses in your wallet's address book. For example:
 
 ```
-dfx wallet --network ic addresses
+dfx wallet addresses --network ic
 ```
 
 The command displays the controllers and custodians for the cycles wallet with output similar to the following:

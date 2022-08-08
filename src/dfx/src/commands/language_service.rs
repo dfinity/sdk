@@ -1,10 +1,14 @@
 use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME};
 use crate::error_invalid_data;
+use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::package_arguments::{self, PackageArguments};
+use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use std::path::PathBuf;
@@ -40,7 +44,37 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
             .get_defaults()
             .get_build()
             .get_packtool();
-        let package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
+
+        let mut package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
+
+        // Include actor alias flags
+        let canister_names = config
+            .get_config()
+            .get_canister_names_with_dependencies(None)?;
+        let network_descriptor = get_network_descriptor(
+            env.get_config(),
+            None, /* opts.network */
+            LocalBindDetermination::ApplyRunningWebserverPort,
+        )?;
+        let canister_id_store = CanisterIdStore::new(&network_descriptor, env.get_config())?;
+        for canister_name in canister_names {
+            match canister_id_store.get(&canister_name) {
+                Ok(canister_id) => package_arguments.append(&mut vec![
+                    "--actor-alias".to_owned(),
+                    canister_name,
+                    Principal::to_text(&canister_id),
+                ]),
+                Err(err) => eprintln!("{}", err),
+            };
+        }
+
+        // Add IDL directory flag
+        let build_config = BuildConfig::from_config(&config)?;
+        package_arguments.append(&mut vec![
+            "--actor-idl".to_owned(),
+            (*build_config.lsp_root.to_string_lossy()).to_owned(),
+        ]);
+
         run_ide(env, main_path, package_arguments)
     } else {
         Err(anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))

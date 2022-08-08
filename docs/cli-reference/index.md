@@ -7,7 +7,7 @@ You can use the `dfx` parent command with different flags and subcommands to per
 The basic syntax for running `dfx` commands is:
 
 ``` bash
-dfx [option] [subcommand] [flag]
+dfx [subcommand] [flag]
 ```
 
 Depending on the subcommand, the options and flags you specify might apply to the parent command or to a specific subcommand. For example, the flags for enabling or suppressing verbose logging are specified for the `dfx` parent command, then applied to any subcommands.
@@ -24,8 +24,6 @@ When you have the SDK installed, you can use the following commands to specify t
 
 -   [dfx canister](./dfx-canister.md)
 
--   [dfx config](./dfx-config.md)
-
 -   [dfx deploy](./dfx-deploy.md)
 
 -   [dfx help](./dfx-help.md)
@@ -39,6 +37,8 @@ When you have the SDK installed, you can use the following commands to specify t
 -   [dfx ping](./dfx-ping.md)
 
 -   [dfx replica](./dfx-replica.md)
+
+-   [dfx schema](./dfx-schema.md)
 
 -   [dfx start](./dfx-start.md)
 

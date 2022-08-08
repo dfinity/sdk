@@ -6,7 +6,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
-use crate::lib::webserver::run_webserver;
 use crate::util::get_reusable_socket_addr;
 
 use anyhow::{anyhow, Context, Error};
@@ -48,7 +47,6 @@ pub struct BootstrapOpts {
 
 /// Runs the bootstrap server.
 pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
-    let config = env.get_config_or_anyhow()?;
     let network_descriptor = get_network_descriptor(
         env.get_config(),
         opts.network.clone(),
@@ -57,10 +55,7 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let config_bootstrap = apply_arguments(&local_server_descriptor.bootstrap, opts)?;
 
-    let build_output_root = config.get_temp_path().join(network_descriptor.name.clone());
-    let build_output_root = build_output_root.join("canisters");
     let icx_proxy_pid_file_path = local_server_descriptor.icx_proxy_pid_path();
-    let proxy_port_path = local_server_descriptor.proxy_port_path();
 
     let replica_urls = get_replica_urls(env, &network_descriptor)?;
 
@@ -92,37 +87,11 @@ pub fn exec(env: &dyn Environment, opts: BootstrapOpts) -> DfxResult {
         .block_on(async move {
             let shutdown_controller = start_shutdown_controller(env)?;
 
-            let webserver_bind = get_reusable_socket_addr(socket_addr.ip(), 0)?;
-            std::fs::write(&proxy_port_path, "").with_context(|| {
-                format!(
-                    "Failed to write/clear proxy port file {}.",
-                    proxy_port_path.to_string_lossy()
-                )
-            })?;
-            std::fs::write(&proxy_port_path, webserver_bind.port().to_string()).with_context(
-                || {
-                    format!(
-                        "Failed to write port to proxy port file {}.",
-                        proxy_port_path.to_string_lossy()
-                    )
-                },
-            )?;
-
             let icx_proxy_config = IcxProxyConfig {
                 bind: socket_addr,
-                proxy_port: webserver_bind.port(),
                 replica_urls,
                 fetch_root_key: !network_descriptor.is_ic,
             };
-
-            run_webserver(
-                env.get_logger().clone(),
-                build_output_root,
-                network_descriptor,
-                config.get_project_root().to_path_buf(),
-                env.get_temp_dir().to_path_buf(),
-                webserver_bind,
-            )?;
 
             let port_ready_subscribe = None;
             let proxy = start_icx_proxy_actor(

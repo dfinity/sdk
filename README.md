@@ -1,45 +1,46 @@
-= DFX
+# DFX
 
-== Getting Started
+## Getting Started
 
 `dfx` is the command-line interface for managing your Internet Computer project and the best place to start.
 
-=== Installing
+### Installing
 
 You can install `dfx` a few different ways.
 
-==== via `curl` (recommended)
+#### via `curl` (recommended)
 
-[source,bash]
-sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
+``` bash
+sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+```
 
 This command will install a binary compatible with your operating system, and add it to `/usr/local/bin`.
 
-==== via GitHub Releases
+#### via GitHub Releases
 
-Find a release for your architecture https://github.com/dfinity/sdk/releases[here].
+Find a release for your architecture [here](https://github.com/dfinity/sdk/releases).
 
-=== Getting Help
+### Getting Help
 
 Once `dfx` is installed, get acquainted with its capabilities by entering.
 
-[source,bash]
+``` bash
 dfx help
+```
 
-== Contributing to the DFINITY SDK
+## Contributing to the DFINITY SDK
 
-See our contributing guidelines link:.github/CONTRIBUTING.adoc[here].
+See our contributing guidelines [here](.github/CONTRIBUTING.md).
 
-=== Building DFX
+### Building DFX
 
 Building `dfx` is very simple:
 
-[source, bash]
-----
+``` bash
 cargo build
-----
+```
 
-== Release Process
+## Release Process
 
 DFX is released in two steps:
 
@@ -48,26 +49,26 @@ DFX is released in two steps:
 2. Publishing a new `manifest.json` and `install.sh` to instruct the installer
    to actually download and install the new DFX release.
 
-=== Publising DFX
+### Publishing DFX
 
 1. The release manager makes sure the `dfx` `stable` branch points to the revision
    that should be released and that the revision is tagged with a version (like
    `0.5.6`).
 
 2. The
-   https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release#tabs-configuration[`sdk-release`]
+   [`sdk-release`](https://hydra.dfinity.systems/jobset/dfinity-ci-build/sdk-release#tabs-configuration)
    jobset on Hydra tracks the `stable` branch and starts evaluating shortly
    after `stable` advances.
 
 3. As you can see it only has the single job `publish.dfx` which is
-   defined https://github.com/dfinity-lab/sdk/blob/stable/ci/release.nix[here]
+   defined [here](https://github.com/dfinity-lab/sdk/blob/stable/ci/release.nix)
    in terms of the
-   https://github.com/dfinity-lab/sdk/blob/stable/publish.nix[`dfx`] job. Note
+   [`dfx`](https://github.com/dfinity-lab/sdk/blob/stable/publish.nix) job. Note
    that the `publish.dfx` job only exists when the revision has a
    proper version tag. This prevents publishing of untagged revisions.
 
 4. Our CD system running at `deployer.dfinity.systems` is configured with the
-   https://github.com/dfinity-lab/infra/blob/1fe63e06135be206d064a74461f739c4fafec3c7/services/nix/publish-sdk-release.nix#L39:L47[`publish-sdk-dfx-release`]
+   [`publish-sdk-dfx-release`](https://github.com/dfinity-lab/infra/blob/1fe63e06135be206d064a74461f739c4fafec3c7/services/nix/publish-sdk-release.nix#L39:L47)
    job. It will monitor the aforementioned `publish.dfx` job for
    new builds, whenever there's a new build it will download the output (the CD
    script) and execute it.
@@ -75,7 +76,7 @@ DFX is released in two steps:
 5. As you can see the script also sends a message to the `#build-notifications`
    Slack channel so you can see when and if the SDK has been published.
 
-=== Publishing `manifest.json` and `install.sh`
+### Publishing `manifest.json` and `install.sh`
 
 After the DFX has been released it's available for download but the install
 script at https://sdk.dfinity.org/install.sh won't immediately install it. To
@@ -87,39 +88,37 @@ make sure the installer actually downloads and installs the new DFX release the
    version and make sure this is merged in `master`.
 
 2. Similarly to releasing the DFX there's a
-   https://github.com/dfinity-lab/sdk/blob/stable/publish.nix[`install-sh`] job
+   [`install-sh`](https://github.com/dfinity-lab/sdk/blob/stable/publish.nix) job
    that builds a CD script for publishing the `manifest.json` and `install.sh`
    to our CDN.
 
 3. This
-   https://hydra.dfinity.systems/job/dfinity-ci-build/sdk/publish.install-sh.x86_64-linux[job]
+   [job](https://hydra.dfinity.systems/job/dfinity-ci-build/sdk/publish.install-sh.x86_64-linux)
    is built on the `sdk` jobset which tracks the `master` branch.
 
 4. `deployer.dfinity.systems` is configured with the
-   https://github.com/dfinity-lab/infra/blob/1fe63e06135be206d064a74461f739c4fafec3c7/services/nix/publish-sdk-release.nix#L48:L56[`publish-sdk-install-sh`]
+   [`publish-sdk-install-sh`](https://github.com/dfinity-lab/infra/blob/1fe63e06135be206d064a74461f739c4fafec3c7/services/nix/publish-sdk-release.nix#L48:L56)
    job which will monitor the aforementioned `publish.install-sh.x86_64-linux`
    job for new builds, whenever there's a new build it will download the output
    (the CD script) and execute it.
 
 
-== Troubleshooting
+## Troubleshooting
 This section provides solutions to problems you might encounter when using `dfx`
 
-=== Project Reset
+### Project Reset
 
 This command will remove the build directory and restart your replica:
 
-[source, bash]
-----
+``` bash
 dfx stop && dfx start --clean --background
-----
+```
 
-=== Using Internet Identity Locally
+### Using Internet Identity Locally
 You can deploy the Internet Identity canister into your replica alongside your project by cloning https://github.com/dfinity/internet-identity. From the `internet-identity` directory, run the following command:
 
-[source, bash]
-----
+``` bash
 II_ENV=development dfx deploy --no-wallet --argument '(null)'
-----
+```
 
 There are more notes at https://github.com/dfinity/internet-identity#running-locally that may be helpful.

@@ -20,20 +20,20 @@ teardown() {
     dfx identity new --disable-encryption bob
 
     use_wallet_wasm 0.7.0
-    assert_command dfx --identity alice identity get-wallet
+    assert_command dfx identity get-wallet --identity alice
     assert_match "Using wasm at path: .*/wallet/0.7.0/wallet.wasm"
 
     use_wallet_wasm 0.7.2
-    assert_command dfx --identity bob identity get-wallet
+    assert_command dfx identity get-wallet --identity bob
     assert_match "Using wasm at path: .*/wallet/0.7.2/wallet.wasm"
 
-    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
-    BOB_WALLET=$(dfx --identity bob identity get-wallet)
+    ALICE_WALLET=$(dfx identity get-wallet --identity alice)
+    BOB_WALLET=$(dfx identity get-wallet --identity bob)
 
-    assert_command dfx --identity alice canister info "$ALICE_WALLET"
+    assert_command dfx canister info "$ALICE_WALLET" --identity alice
     assert_match "Module hash: 0xa609400f2576d1d6df72ce868b359fd08e1d68e58454ef17db2361d2f1c242a1"
 
-    assert_command dfx --identity bob canister info "$BOB_WALLET"
+    assert_command dfx canister info "$BOB_WALLET" --identity bob
     assert_match "Module hash: 0x1404b28b1c66491689b59e184a9de3c2be0dbdd75d952f29113b516742b7f898"
 }
 
@@ -62,18 +62,18 @@ teardown() {
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello_backend
-    ID=$(dfx canister --network actuallylocal id hello_backend)
-    dfx canister --network actuallylocal create hello_frontend
-    ID_TWO=$(dfx canister --network actuallylocal id hello_frontend)
+    dfx canister create hello_backend --network actuallylocal
+    ID=$(dfx canister id hello_backend --network actuallylocal)
+    dfx canister create hello_frontend --network actuallylocal
+    ID_TWO=$(dfx canister id hello_frontend --network actuallylocal)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
+    dfx canister update-settings hello_backend --set-controller "$(dfx identity get-principal)" --network actuallylocal
+    dfx canister update-settings hello_frontend --set-controller "$(dfx identity get-principal)" --network actuallylocal
 
-    assert_command_fail dfx identity --network actuallylocal set-wallet "${ID}"
+    assert_command_fail dfx identity set-wallet "${ID}" --network actuallylocal
     assert_not_match "Setting wallet for identity"
-    assert_command dfx identity --network actuallylocal set-wallet --force "${ID}"
+    assert_command dfx identity set-wallet --force "${ID}" --network actuallylocal
     assert_match "Setting wallet for identity 'default' on network 'actuallylocal' to id '$ID'"
     assert_command jq -r .identities.default.actuallylocal <"$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
     assert_eq "$ID"
@@ -85,25 +85,25 @@ teardown() {
     setup_actuallylocal_network
 
     # get Canister IDs to install the wasm onto
-    dfx canister --network actuallylocal create hello_frontend
-    ID=$(dfx canister --network actuallylocal id hello_frontend)
-    dfx deploy --network actuallylocal hello_backend
-    ID_TWO=$(dfx canister --network actuallylocal id hello_backend)
+    dfx canister create hello_frontend --network actuallylocal
+    ID=$(dfx canister id hello_frontend --network actuallylocal)
+    dfx deploy hello_backend --network actuallylocal
+    ID_TWO=$(dfx canister id hello_backend --network actuallylocal)
 
     # set controller to user
-    dfx canister --network actuallylocal update-settings hello_backend --controller "$(dfx identity get-principal)"
-    dfx canister --network actuallylocal update-settings hello_frontend --controller "$(dfx identity get-principal)"
+    dfx canister update-settings hello_backend --set-controller "$(dfx identity get-principal)" --network actuallylocal
+    dfx canister update-settings hello_frontend --set-controller "$(dfx identity get-principal)" --network actuallylocal
 
     # We're testing on a local network so the create command actually creates a wallet
     # Delete this file to force associate wallet created by deploy-wallet to identity
     rm "$DFX_CONFIG_ROOT"/.config/dfx/identity/default/wallets.json
 
-    assert_command dfx identity --network actuallylocal deploy-wallet "${ID}"
-    GET_WALLET_RES=$(dfx identity --network actuallylocal get-wallet)
+    assert_command dfx identity deploy-wallet "${ID}" --network actuallylocal
+    GET_WALLET_RES=$(dfx identity get-wallet --network actuallylocal)
     assert_eq "$ID" "$GET_WALLET_RES"
 
     # Command should fail on an already-deployed canister
-    assert_command_fail dfx identity --network actuallylocal deploy-wallet "${ID_TWO}"
+    assert_command_fail dfx identity deploy-wallet "${ID_TWO}" --network actuallylocal
     assert_match "The wallet canister \"${ID_TWO}\"\ already exists for user \"default\" on \"actuallylocal\" network."
 }
 
@@ -121,11 +121,11 @@ teardown() {
     install_asset identity
     dfx_start
     WALLET=$(dfx identity get-wallet)
-    assert_command dfx canister --wallet "$WALLET" create --all
+    assert_command dfx canister create --all --wallet "$WALLET"
     assert_command dfx build
-    assert_command dfx canister --wallet "$WALLET" install --all
+    assert_command dfx canister install --all --wallet "$WALLET"
 
-    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project_backend fromCall)
+    CALL_RES=$(dfx canister call e2e_project_backend fromCall --wallet "$WALLET")
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
     assert_eq "$CALLER" "$WALLET"
 
@@ -140,7 +140,7 @@ teardown() {
     dfx_start
     WALLET=$(dfx identity get-wallet)
     assert_command dfx deploy --wallet "$WALLET"
-    CALL_RES=$(dfx canister --wallet "$WALLET" call e2e_project_backend fromCall)
+    CALL_RES=$(dfx canister call e2e_project_backend fromCall --wallet "$WALLET")
     CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
     assert_eq "$CALLER" "$WALLET"
 
@@ -157,9 +157,9 @@ teardown() {
     WALLET=$(dfx identity get-wallet)
     assert_command dfx wallet balance
     assert_command dfx deploy --wallet "$WALLET"
-    assert_command dfx canister --wallet "$WALLET" call hello_backend greet '("")' --with-cycles 1
+    assert_command dfx canister call hello_backend greet '("")' --with-cycles 1 --wallet "$WALLET"
     dfx identity new alice --disable-encryption
-    ALICE_WALLET=$(dfx --identity alice identity get-wallet)
+    ALICE_WALLET=$(dfx identity get-wallet --identity alice)
     dfx wallet send "$ALICE_WALLET" 1
 }
 
@@ -167,6 +167,17 @@ teardown() {
     dfx_new hello
     dfx_start
     dfx identity new alice --disable-encryption
-    dfx --identity alice deploy --no-wallet hello_backend
-    assert_command dfx canister --wallet "$(dfx identity get-wallet)" deposit-cycles 1 hello_backend
+    dfx deploy --no-wallet hello_backend --identity alice
+    assert_command dfx canister deposit-cycles 1 hello_backend --wallet "$(dfx identity get-wallet)"
+}
+
+@test "detects if there is no wallet to upgrade" {
+    dfx_new hello
+    assert_command_fail dfx wallet upgrade
+    assert_match "There is no wallet defined for identity 'default' on network 'local'. Nothing to do."
+}
+
+@test "cannot interact with a wallet for a local network outside of a project directory" {
+    assert_command_fail dfx wallet upgrade
+    assert_match "It's only possible to interact with a wallet for a local network from a project directory."
 }
