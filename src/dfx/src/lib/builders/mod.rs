@@ -175,19 +175,6 @@ pub trait CanisterBuilder {
             // index.js
             let mut language_bindings = crate::util::assets::language_bindings()
                 .context("Failed to get language bindings archive.")?;
-            //  names);let names: Vec<_> = language_bindings
-            //     .entries()
-            //     .unwrap()
-            //     .into_iter()
-            //     .map(|f| {
-            //         let unwrap = f.unwrap();
-            //         let str = unwrap.path().unwrap();
-            //         let x = str.display();
-            //         let x: String = x.to_string();
-            //         x
-            //     })
-            //     .collect();
-            // eprintln!("{:?}",
             for f in language_bindings
                 .entries()
                 .context("Failed to read language bindings archive entries.")?
@@ -201,7 +188,6 @@ pub trait CanisterBuilder {
                 let extension = pathname.extension();
                 let is_template = matches! (extension, Some (ext ) if ext == OsStr::new("hbs"));
 
-                println!("extension: {:?}", extension);
                 if is_template {
                     let mut file_contents = String::new();
                     file.read_to_string(&mut file_contents)
@@ -213,11 +199,17 @@ pub trait CanisterBuilder {
                     let mut data = BTreeMap::new();
 
                     let canister_name = &info.get_name().to_string();
+                    
+                    // Insert only if node outputs are specified
+                    let node_requirements = "import fetch from \"isomorphic-fetch\"".to_string();
+                    
+                    let actor_export = format!("export const {} = createActor(canisterId);", canister_name).to_string();
 
-                    let agent_options = "{{agentOptions?: import(\"@dfinity/agent\").HttpAgentOptions; actorOptions?: import(\"@dfinity/agent\").ActorConfig}}".to_string();
-
+                    
                     data.insert("canister_name".to_string(), canister_name);
-                    data.insert("agent_options".to_string(), &agent_options);
+                    data.insert("node_requirements".to_string(), &node_requirements);
+                    data.insert("actor_export".to_string(), &actor_export);
+                    
                     let process_string: String = match &info.get_declarations_config().env_override
                     {
                         Some(s) => s.clone(),
