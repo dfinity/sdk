@@ -13,7 +13,7 @@ install_asset() {
 standard_setup() {
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
-    export DFX_E2E_TEMP_DIR="$x"
+    export E2E_TEMP_DIR="$x"
 
     mkdir "$x/working-dir"
     mkdir "$x/cache-root"
@@ -29,7 +29,7 @@ standard_setup() {
 }
 
 standard_teardown() {
-    rm -rf "$DFX_E2E_TEMP_DIR" || rm -rf "$DFX_E2E_TEMP_DIR"
+    rm -rf "$E2E_TEMP_DIR" || rm -rf "$E2E_TEMP_DIR"
 }
 
 dfx_new_frontend() {
