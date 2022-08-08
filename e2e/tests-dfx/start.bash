@@ -118,24 +118,24 @@ teardown() {
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx starts replica with subnet_type application" {
-    install_asset subnet_type/application
+@test "dfx starts replica with subnet_type application - project defaults" {
+    install_asset subnet_type/project_defaults/application
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
 
 }
 
-@test "dfx starts replica with subnet_type verifiedapplication" {
-    install_asset subnet_type/verified_application
+@test "dfx starts replica with subnet_type verifiedapplication - project defaults" {
+    install_asset subnet_type/project_defaults/verified_application
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
 
 }
 
-@test "dfx starts replica with subnet_type system" {
-    install_asset subnet_type/system
+@test "dfx starts replica with subnet_type system - project defaults" {
+    install_asset subnet_type/project_defaults/system
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
