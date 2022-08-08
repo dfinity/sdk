@@ -11,10 +11,12 @@ use crate::util::{self, check_candid_file};
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
+use handlebars::Handlebars;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::io::Read;
+use std::os::unix::process;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -89,6 +91,7 @@ pub trait CanisterBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult {
+        println!("{}", "asdfasdklfjals;dkfj");
         let generate_output_dir = info
             .get_declarations_config()
             .output
@@ -171,35 +174,81 @@ pub trait CanisterBuilder {
                 )
             })?;
             eprintln!("  {}", &output_did_js_path.display());
-
             // index.js
             let mut language_bindings = crate::util::assets::language_bindings()
                 .context("Failed to get language bindings archive.")?;
+            //  names);let names: Vec<_> = language_bindings
+            //     .entries()
+            //     .unwrap()
+            //     .into_iter()
+            //     .map(|f| {
+            //         let unwrap = f.unwrap();
+            //         let str = unwrap.path().unwrap();
+            //         let x = str.display();
+            //         let x: String = x.to_string();
+            //         x
+            //     })
+            //     .collect();
+            // eprintln!("{:?}",
             for f in language_bindings
                 .entries()
                 .context("Failed to read language bindings archive entries.")?
             {
                 let mut file = f.context("Failed to read language bindings archive entry.")?;
-                let mut file_contents = String::new();
-                file.read_to_string(&mut file_contents)
-                    .context("Failed to read language bindings archive file content.")?;
 
-                let mut new_file_contents = file_contents
-                    .replace("{canister_id}", &info.get_canister_id()?.to_text())
-                    .replace("{canister_name}", info.get_name());
-                new_file_contents = match &info.get_declarations_config().env_override {
-                    Some(s) => new_file_contents.replace(
-                        "process.env.{canister_name_uppercase}_CANISTER_ID",
-                        &format!("\"{}\"", s),
-                    ),
-                    None => new_file_contents
-                        .replace("{canister_name_uppercase}", &info.get_name().to_uppercase()),
-                };
-                let index_js_path = generate_output_dir.join("index").with_extension("js");
-                std::fs::write(&index_js_path, new_file_contents).with_context(|| {
-                    format!("Failed to write to {}.", index_js_path.to_string_lossy())
-                })?;
-                eprintln!("  {}", &index_js_path.display());
+                let pathname: PathBuf = file
+                    .path()
+                    .context("Failed to read language bindings entry path name.")?
+                    .to_path_buf();
+                let extension = pathname.extension();
+                let is_template = matches! (extension, Some (ext ) if ext == OsStr::new("hbs"));
+
+                println!("extension: {:?}", extension);
+                if is_template {
+                    let mut file_contents = String::new();
+                    file.read_to_string(&mut file_contents)
+                        .context("Failed to read language bindings archive file content.")?;
+
+                    // create the handlebars registry
+                    let mut handlebars = Handlebars::new();
+
+                    let mut data = BTreeMap::new();
+
+                    let canister_id = &info.get_name().to_string();
+                    let name_string = &info.get_name().to_string();
+
+                    let agent_options = "{{agentOptions?: import(\"@dfinity/agent\").HttpAgentOptions; actorOptions?: import(\"@dfinity/agent\").ActorConfig}}".to_string();
+
+                    data.insert("canister_id".to_string(), canister_id);
+                    data.insert("canister_name".to_string(), name_string);
+                    data.insert("agent_options".to_string(), &agent_options);
+                    let process_string: String;
+                    match &info.get_declarations_config().env_override {
+                        Some(s) => {
+                            process_string = s.clone();
+                        }
+                        None => {
+                            process_string =
+                                format!("process.env.{}", &info.get_name().to_string().clone());
+                        }
+                    }
+
+                    data.insert("canister_name_process_env".to_string(), &process_string);
+
+                    let new_file_contents =
+                        handlebars.render_template(&file_contents, &data).unwrap();
+                    let new_path = generate_output_dir.join(pathname.with_extension(""));
+
+                    eprintln!(
+                        "Contents of {}:  '{}'",
+                        &new_path.display(),
+                        &new_file_contents.as_bytes().len()
+                    );
+                    std::fs::write(&new_path, new_file_contents).with_context(|| {
+                        format!("Failed to write to {}.", new_path.to_string_lossy())
+                    })?;
+                    eprintln!("  {}", &new_path.display());
+                }
             }
         }
 
