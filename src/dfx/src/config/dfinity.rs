@@ -217,11 +217,10 @@ pub struct CanisterDeclarationsConfig {
     /// in the 'src/dfx/assets/language_bindings/canister.js' template.
     pub env_override: Option<String>,
 
-    /// # Compatibility flags
+    /// # Node compatibility flag
     /// Flag to pre-populate generated declarations with better defaults for various types of projects
-    /// Supported options are 'nodejs'
-    /// Default is []
-    pub compatibilities: Option<Vec<String>>,
+    /// Default is false
+    pub node_compatibility: Option<bool>,
 }
 
 /// # Bitcoin Adapter Configuration

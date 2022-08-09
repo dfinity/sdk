@@ -100,7 +100,7 @@ impl CanisterInfo {
                 .bindings
                 .or_else(|| Some(vec!["js".to_string(), "ts".to_string(), "did".to_string()])),
             env_override: declarations_config_pre.env_override,
-            compatibilities: declarations_config_pre.compatibilities,
+            node_compatibility: declarations_config_pre.node_compatibility,
         };
 
         let output_root = build_root.join(name);

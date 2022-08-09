@@ -200,8 +200,8 @@ pub trait CanisterBuilder {
 
                     let canister_name = &info.get_name().to_string();
 
-                    let node_compatibility = match &info.get_declarations_config().compatibilities {
-                        Some(s) => s.contains(&"nodejs".to_string()),
+                    let node_compatibility = match &info.get_declarations_config().node_compatibility {
+                        Some(s) => s.to_owned(),
                         None => false,
                     };
 
@@ -254,12 +254,6 @@ pub trait CanisterBuilder {
                     let new_file_contents =
                         handlebars.render_template(&file_contents, &data).unwrap();
                     let new_path = generate_output_dir.join(pathname.with_extension(""));
-
-                    eprintln!(
-                        "Contents of {}:  '{}'",
-                        &new_path.display(),
-                        &new_file_contents.as_bytes().len()
-                    );
                     std::fs::write(&new_path, new_file_contents).with_context(|| {
                         format!("Failed to write to {}.", new_path.to_string_lossy())
                     })?;

@@ -6,7 +6,7 @@
 
 ### feat!: option for nodejs compatibility in dfx generate
 
-Users can now specify `compatibilities` in `declarations.capabilities`. The first supported flag is for `node.js` enhancements, which include importing `isomorphic-fetch` and configuring the default actor with `isomorphic-fetch` and `host`.
+Users can now specify `node_compatibility: true` in `declarations`. The flag introduces `node.js` enhancements, which include importing `isomorphic-fetch` and configuring the default actor with `isomorphic-fetch` and `host`.
 
 Additionally, exposes `dfxNetwork` and `isProduction` variables for all JS declarations, offering more context for applications and debugging. IsProduction is true when network is set to `ic`.
 

@@ -14,7 +14,9 @@ export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
  * @return {import("@dfinity/agent").ActorSubclass<import("./{canister_name}.did.js")._SERVICE>}
  */
 export const createActor = (canisterId, options) => {
-  console.warn(`Deprecation warning: you are currently importing code from .dfx. Going forward, refactor to use the dfx generate command for JavaScript bindings`);
+  console.warn(`Deprecation warning: you are currently importing code from .dfx. Going forward, refactor to use the dfx generate command for JavaScript bindings.
+  
+See https://internetcomputer.org/docs/current/developer-docs/updates/release-notes/ for migration instructions`);
   const agent = new HttpAgent(options ? { ...options.agentOptions } : {});
   
   // Fetch root key for certificate validation during development
