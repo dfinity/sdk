@@ -5,7 +5,7 @@ use ic_utils::Canister;
 
 use num_traits::ToPrimitive;
 use serde::Deserialize;
-use std::time::SystemTime;
+use time::{format_description, OffsetDateTime};
 
 pub async fn list(canister: &Canister<'_>) -> Result {
     #[derive(CandidType, Deserialize)]
@@ -33,18 +33,17 @@ pub async fn list(canister: &Canister<'_>) -> Result {
         .call()
         .await?;
 
-    use chrono::offset::Local;
-    use chrono::DateTime;
-
     for entry in entries {
         for encoding in entry.encodings {
             let modified = encoding.modified;
-            let modified = SystemTime::UNIX_EPOCH
-                + std::time::Duration::from_nanos(modified.0.to_u64().unwrap());
+            let modified =
+                OffsetDateTime::from_unix_timestamp_nanos(modified.0.to_i128().unwrap())?;
+            let timestamp_format =
+                format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second] UTC")?;
 
             eprintln!(
                 "{:>20} {:>15} {:50} ({}, {})",
-                DateTime::<Local>::from(modified).format("%F %X"),
+                modified.format(&timestamp_format)?,
                 encoding.length.0,
                 entry.key,
                 entry.content_type,

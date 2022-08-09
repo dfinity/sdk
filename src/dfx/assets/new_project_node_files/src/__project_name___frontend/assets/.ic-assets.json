@@ -1,0 +1,19 @@
+[
+  {
+    "match": "**/*.svg",
+    "redirect": {
+      "from": {
+        "host": "127.0.0.1:8000",
+        "path": "/logo2.svg\\?canisterId=.*"
+      },
+      "to": {
+        "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
+        "path": "/img/IC_logo_horizontal.svg"
+      },
+      "response_code": 301,
+      "user_agent": [
+        "curl"
+      ]
+    }
+  }
+]

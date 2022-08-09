@@ -80,7 +80,7 @@ jobs:
       - name: Build
         run: |
           cargo clean --target ${{ matrix.target }} --release
-          cargo build --target ${{ matrix.target }} --locked --release
+          cargo build --target ${{ matrix.target }} --locked --release --workspace --exclude "certified-assets"
 
       - name: Check dynamically-linked libraries (macos)
         run: |

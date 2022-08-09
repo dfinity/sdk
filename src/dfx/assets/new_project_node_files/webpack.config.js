@@ -2,6 +2,7 @@ const path = require("path");
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 
 function initCanisterEnv() {
   let localCanisters, prodCanisters;
@@ -75,10 +76,10 @@ module.exports = {
   // modules and CSS as described in the "Adding a stylesheet"
   // tutorial, uncomment the following lines:
   // module: {
-  //  rules: [
+  //   rules: [
   //    { test: /\.(ts|tsx|jsx)$/, loader: "ts-loader" },
   //    { test: /\.css$/, use: ['style-loader','css-loader'] }
-  //  ]
+  //   ]
   // },
   plugins: [
     new HtmlWebpackPlugin({
@@ -92,6 +93,11 @@ module.exports = {
     new webpack.ProvidePlugin({
       Buffer: [require.resolve("buffer/"), "Buffer"],
       process: require.resolve("process/browser"),
+    }),
+    new CopyPlugin({
+      patterns: [
+        path.resolve(__dirname, "src", frontendDirectory,"src", ".ic-assets.json"),
+      ],
     }),
   ],
   // proxy /api to port 8000 during development
