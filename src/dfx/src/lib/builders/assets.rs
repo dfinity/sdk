@@ -216,6 +216,9 @@ fn build_frontend(
         slog::info!(logger, "Building frontend...");
         let mut cmd = std::process::Command::new("npm");
 
+        // Provide DFX_NETWORK at build time
+        cmd.env("DFX_NETWORK", network_name);
+        
         cmd.arg("run").arg("build");
 
         if NetworkDescriptor::is_ic(network_name, &vec![]) {
