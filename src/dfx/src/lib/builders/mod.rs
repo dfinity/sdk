@@ -259,7 +259,6 @@ pub trait CanisterBuilder {
                     std::fs::write(&new_path, new_file_contents).with_context(|| {
                         format!("Failed to write to {}.", new_path.to_string_lossy())
                     })?;
-                    eprintln!("  {}", &new_path.display());
                 }
             }
         }
