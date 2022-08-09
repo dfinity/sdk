@@ -101,11 +101,9 @@
         },
         "node_compatibility": {
           "title": "Node compatibility flag",
-          "description": "Flag to pre-populate generated declarations with better defaults for various types of projects. Default is false.",
-          "type": [
-            "boolean",
-            "null"
-          ]
+          "description": "Flag to pre-populate generated declarations with better defaults for various types of projects Default is false",
+          "default": false,
+          "type": "boolean"
         },
         "output": {
           "title": "Declaration Output Directory",
@@ -241,7 +239,7 @@
           "default": {
             "bindings": null,
             "env_override": null,
-            "node_compatibility": null,
+            "node_compatibility": false,
             "output": null
           },
           "allOf": [
