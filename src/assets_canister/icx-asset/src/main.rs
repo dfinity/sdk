@@ -94,7 +94,8 @@ fn create_identity(maybe_pem: Option<PathBuf>) -> Box<dyn Identity + Sync + Send
     }
 }
 
-fn main() -> support::Result {
+#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
+async fn main() -> support::Result {
     let opts: Opts = Opts::parse();
 
     let ttl: std::time::Duration = opts
@@ -110,52 +111,33 @@ fn main() -> support::Result {
         .build()?;
 
     let normalized_replica = opts.replica.strip_suffix('/').unwrap_or(&opts.replica);
+    if normalized_replica != DEFAULT_IC_GATEWAY {
+        agent.fetch_root_key().await?;
+    }
 
-    let local_offset = time::UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
-
-    let result = tokio::runtime::Builder::new_multi_thread()
-        .worker_threads(10)
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            if normalized_replica != DEFAULT_IC_GATEWAY {
-                agent.fetch_root_key().await?;
-            }
-
-            dispatch(&opts.subcommand, agent, ttl, local_offset).await
-        });
-
-    result
-}
-
-async fn dispatch(
-    subcommand: &SubCommand,
-    agent: Agent,
-    ttl: std::time::Duration,
-    local_offset: UtcOffset,
-) -> support::Result {
-    match subcommand {
+    match &opts.subcommand {
         SubCommand::List(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            list(&canister, local_offset).await
+            list(&canister).await?;
         }
         SubCommand::Sync(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            sync(&canister, ttl, o).await
+            sync(&canister, ttl, o).await?;
         }
         SubCommand::Upload(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            upload(&canister, o).await
+            upload(&canister, o).await?;
         }
     }
+
+    Ok(())
 }

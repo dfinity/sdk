@@ -5,9 +5,9 @@ use ic_utils::Canister;
 
 use num_traits::ToPrimitive;
 use serde::Deserialize;
-use time::{format_description, Duration, OffsetDateTime, UtcOffset};
+use time::{format_description, OffsetDateTime};
 
-pub async fn list(canister: &Canister<'_>, local_offset: UtcOffset) -> Result {
+pub async fn list(canister: &Canister<'_>) -> Result {
     #[derive(CandidType, Deserialize)]
     struct Encoding {
         modified: Int,
@@ -38,15 +38,12 @@ pub async fn list(canister: &Canister<'_>, local_offset: UtcOffset) -> Result {
             let modified = encoding.modified;
             let modified =
                 OffsetDateTime::from_unix_timestamp_nanos(modified.0.to_i128().unwrap())?;
-
-            let offset = Duration::new(local_offset.whole_seconds().into(), 0);
-            let timestamp = modified.checked_add(offset).unwrap_or(modified);
             let timestamp_format =
-                format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second]")?;
+                format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second] UTC")?;
 
             eprintln!(
                 "{:>20} {:>15} {:50} ({}, {})",
-                timestamp.format(&timestamp_format)?,
+                modified.format(&timestamp_format)?,
                 encoding.length.0,
                 entry.key,
                 entry.content_type,
