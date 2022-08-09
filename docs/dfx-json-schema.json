@@ -99,6 +99,14 @@
             "null"
           ]
         },
+        "node_compatibility": {
+          "title": "Node compatibility flag",
+          "description": "Flag to pre-populate generated declarations with better defaults for various types of projects Default is false",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "output": {
           "title": "Declaration Output Directory",
           "description": "Directory to place declarations for that canister. Default is 'src/declarations/<canister_name>'.",
@@ -233,6 +241,7 @@
           "default": {
             "bindings": null,
             "env_override": null,
+            "node_compatibility": null,
             "output": null
           },
           "allOf": [
