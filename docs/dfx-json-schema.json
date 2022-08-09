@@ -101,7 +101,7 @@
         },
         "node_compatibility": {
           "title": "Node compatibility flag",
-          "description": "Flag to pre-populate generated declarations with better defaults for various types of projects Default is false",
+          "description": "Flag to pre-populate generated declarations with better defaults for various types of projects. Default is false.",
           "type": [
             "boolean",
             "null"
