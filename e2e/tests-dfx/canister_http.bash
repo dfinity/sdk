@@ -54,11 +54,15 @@ set_local_network_canister_http_enabled() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait 1\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
     # Even so, after that passes, sometimes this happens:
     #     IC0515: Certified state is not available yet. Please try again...
+    sleep 10
+    timeout 30s sh -c \
+      "until dfx canister call hello_backend greet '(\"wait 2\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
@@ -106,7 +110,14 @@ set_local_network_canister_http_enabled() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait 1\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      || (echo "canister call did not succeed") # but continue, for better error reporting
+
+    # Even so, after that passes, sometimes this happens:
+    #     IC0515: Certified state is not available yet. Please try again...
+    sleep 10
+    timeout 30s sh -c \
+      "until dfx canister call hello_backend greet '(\"wait 2\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello_backend greet '("Omega")'
@@ -129,7 +140,7 @@ set_local_network_canister_http_enabled() {
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
 
-@test "can enable http through default configuration (dfx start)" {
+@test "can enable http through default configuration - dfx start" {
     dfx_new hello
     set_default_canister_http_enabled
 
@@ -138,7 +149,7 @@ set_local_network_canister_http_enabled() {
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
 
-@test "can enable http through local network configuration (dfx start)" {
+@test "can enable http through local network configuration - dfx start" {
     dfx_new hello
     set_local_network_canister_http_enabled
 
@@ -147,7 +158,7 @@ set_local_network_canister_http_enabled() {
     assert_file_not_empty .dfx/ic-canister-http-adapter-pid
 }
 
-@test "can enable http through default configuration (dfx replica)" {
+@test "can enable http through default configuration - dfx replica" {
     dfx_new hello
     set_default_canister_http_enabled
 
