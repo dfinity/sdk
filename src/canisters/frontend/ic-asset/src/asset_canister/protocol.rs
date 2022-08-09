@@ -1,4 +1,4 @@
-use crate::asset_config::HeadersConfig;
+use crate::asset_config::{HeadersConfig, RedirectConfig};
 use candid::{CandidType, Nat};
 use serde::Deserialize;
 
@@ -72,6 +72,8 @@ pub struct CreateAssetArguments {
     pub max_age: Option<u64>,
     /// The HTTP headers
     pub headers: Option<HeadersConfig>,
+    /// The HTTP redirect configuration
+    pub redirect: Option<RedirectConfig>,
 }
 
 /// Set the data for a particular content encoding for the given asset.

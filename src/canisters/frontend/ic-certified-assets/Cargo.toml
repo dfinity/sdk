@@ -22,3 +22,4 @@ serde = "1"
 serde_bytes = "0.11"
 serde_cbor = "0.11"
 sha2 = "0.9.1"
+regex = { version = "*", default-features = false }

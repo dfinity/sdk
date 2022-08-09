@@ -28,10 +28,17 @@ type SetAssetPropertiesArguments = record {
 };
 
 // TODO: comment
+type RedirectUrl = record {
+  host: opt text;
+  path: opt text;
+};
+
+// TODO: comment
 type AssetRedirect = record {
-  from: text;
-  to: text;
-  bot_user_agents: vec text;
+  from: opt RedirectUrl;
+  to: RedirectUrl;
+  user_agents: opt vec text;
+  response_code: nat;
 };
 
 // Remove content for an asset, by content encoding

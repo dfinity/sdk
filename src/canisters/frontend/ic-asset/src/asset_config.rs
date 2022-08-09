@@ -1,4 +1,5 @@
 use anyhow::{bail, Context};
+use candid::CandidType;
 use derivative::Derivative;
 use globset::{Glob, GlobMatcher};
 use serde::{Deserialize, Serialize};
@@ -20,6 +21,26 @@ pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
 }
 
+// TODO: implement custom deserializer which requires *minimum one* `.is_some()==true`
+#[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
+pub struct RedirectUrl {
+    pub(crate) host: Option<String>,
+    pub(crate) path: Option<String>,
+}
+
+#[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
+pub struct RedirectConfig {
+    from: Option<RedirectUrl>,
+    to: RedirectUrl,
+    user_agent: Option<Vec<String>>,
+    #[serde(default = "default_response_code")]
+    response_code: u16,
+}
+
+fn default_response_code() -> u16 {
+    308
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct AssetConfigRule {
@@ -28,6 +49,8 @@ struct AssetConfigRule {
     cache: Option<CacheConfig>,
     headers: Maybe<HeadersConfig>,
     ignore: Option<bool>,
+    // TODO: consider this to be Vec<Option<RedirectConfig>>
+    redirect: Option<RedirectConfig>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -63,6 +86,7 @@ pub(crate) struct AssetConfig {
     pub(crate) cache: Option<CacheConfig>,
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
+    pub(crate) redirect: Option<RedirectConfig>,
 }
 
 #[derive(Debug, Default)]
@@ -111,6 +135,7 @@ struct InterimAssetConfigRule {
     #[serde(default, deserialize_with = "deser_headers")]
     headers: Maybe<HeadersConfig>,
     ignore: Option<bool>,
+    redirect: Option<RedirectConfig>,
 }
 
 impl<T> Default for Maybe<T> {
@@ -143,6 +168,7 @@ impl AssetConfigRule {
             cache,
             headers,
             ignore,
+            redirect,
         }: InterimAssetConfigRule,
         config_file_parent_dir: &Path,
     ) -> anyhow::Result<Self> {
@@ -165,6 +191,7 @@ impl AssetConfigRule {
             cache,
             headers,
             ignore,
+            redirect,
         })
     }
 }
@@ -225,6 +252,9 @@ impl AssetConfig {
     fn merge(mut self, other: &AssetConfigRule) -> Self {
         if let Some(c) = &other.cache {
             self.cache = Some(c.to_owned());
+        };
+        if let Some(c) = &other.redirect {
+            self.redirect = Some(c.to_owned());
         };
         match (self.headers.as_mut(), &other.headers) {
             (Some(sh), Maybe::Value(oh)) => sh.extend(oh.to_owned()),
@@ -325,6 +355,57 @@ mod with_tempdir {
             assert_eq!(
                 assets_config.get_asset_config(assets_dir.join(f).as_path())?,
                 AssetConfig::default()
+            );
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn redirects() -> anyhow::Result<()> {
+        let cfg = HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                  "match": "*",
+                  "redirect": {
+                    "from": {"host": "raw.ic0.app"},
+                    "to": {"host": "ic0.app" },
+                    "response_code": 301,
+                    "user_agent": ["CrawlerBot"]
+            }}]"#
+                .to_string(),
+        )]);
+        let assets_temp_dir = create_temporary_assets_directory(Some(cfg), 7).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize()?;
+
+        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        for f in [
+            "index.html",
+            "js/index.js",
+            "js/index.map.js",
+            "css/main.css",
+            "css/stylish.css",
+        ] {
+            assert_eq!(
+                assets_config.get_asset_config(assets_dir.join(f).as_path())?,
+                AssetConfig {
+                    cache: None,
+                    headers: None,
+                    ignore: None,
+                    redirect: Some(RedirectConfig {
+                        from: Some(RedirectUrl {
+                            host: Some("raw.ic0.app".to_string()),
+                            path: None
+                        }),
+                        to: RedirectUrl {
+                            host: Some("ic0.app".to_string()),
+                            path: None
+                        },
+                        user_agent: Some(vec!["CrawlerBot".to_string()]),
+                        response_code: 301
+                    })
+                }
             );
         }
 

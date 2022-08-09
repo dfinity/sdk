@@ -2,7 +2,7 @@
 //! endpoints.
 use std::collections::HashMap;
 
-use crate::rc_bytes::RcBytes;
+use crate::{rc_bytes::RcBytes, state_machine::AssetRedirect};
 use candid::{CandidType, Deserialize, Func, Nat};
 use serde_bytes::ByteBuf;
 
@@ -18,7 +18,7 @@ pub struct CreateAssetArguments {
     pub content_type: String,
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
-    pub redirects: Option<AssetRedirectArguments>,
+    pub redirects: Option<AssetRedirect>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -26,6 +26,7 @@ pub struct AssetRedirectArguments {
     pub from: String,
     pub to: String,
     pub things: Vec<String>,
+    pub redirect: Option<AssetRedirect>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]

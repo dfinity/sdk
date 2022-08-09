@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
+use crate::state_machine::{AssetRedirect, StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments, CreateChunkArg,
     HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
@@ -26,6 +26,7 @@ struct AssetBuilder {
     max_age: Option<u64>,
     encodings: Vec<(String, Vec<ByteBuf>)>,
     headers: Option<HashMap<String, String>>,
+    redirect: Option<AssetRedirect>,
 }
 
 impl AssetBuilder {
@@ -36,7 +37,7 @@ impl AssetBuilder {
             max_age: None,
             encodings: vec![],
             headers: None,
-            redirects: None,
+            redirect: None,
         }
     }
 
