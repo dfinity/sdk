@@ -24,7 +24,7 @@ jobs:
       - name: Check cargo build
         run: cargo build --workspace --exclude "certified-assets"
       - name: Show download worked
-        run: cargo run -- --version
+        run: cargo run -p dfx -- --version
       - name: Update docs/dfx-json-schema.json
         run: |
           cargo run -p dfx -- schema --outfile docs/dfx-json-schema.json
