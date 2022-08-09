@@ -111,7 +111,7 @@ fn main() -> support::Result {
 
     let normalized_replica = opts.replica.strip_suffix('/').unwrap_or(&opts.replica);
 
-    let local_offset = time::OffsetDateTime::now_local().map_or(UtcOffset::UTC, |v| v.offset());
+    let local_offset = time::UtcOffset::current_local_offset().unwrap_or(UtcOffset::UTC);
 
     let result = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(10)
