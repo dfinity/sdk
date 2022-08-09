@@ -29,4 +29,4 @@ jobs:
           rustup default ${{ matrix.rust }}
 
       - name: Check cargo build
-        run: cargo build
+        run: cargo build --exclude certified-assets
