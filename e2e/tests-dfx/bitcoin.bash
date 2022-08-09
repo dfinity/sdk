@@ -64,7 +64,13 @@ set_local_network_bitcoin_enabled() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait 1\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      || (echo "canister call did not succeed") # but continue, for better error reporting
+    # even after the above, still sometimes fails with
+    #     IC0515: Certified state is not available yet. Please try again...
+    sleep 10
+    timeout 30s sh -c \
+      "until dfx canister call hello_backend greet '(\"wait 2\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello_backend greet '("Omega")'
@@ -79,7 +85,7 @@ set_local_network_bitcoin_enabled() {
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx restarts replica when ic-btc-adapter restarts (replica and bootstrap)" {
+@test "dfx restarts replica when ic-btc-adapter restarts - replica and bootstrap" {
     dfx_new hello
     set_default_bitcoin_enabled
     dfx_replica
@@ -113,7 +119,13 @@ set_local_network_bitcoin_enabled() {
     #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
     # but the condition clears.
     timeout 30s sh -c \
-      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      "until dfx canister call hello_backend greet '(\"wait 1\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      || (echo "canister call did not succeed") # but continue, for better error reporting
+    # even after the above, still sometimes fails with
+    #     IC0515: Certified state is not available yet. Please try again...
+    sleep 10
+    timeout 30s sh -c \
+      "until dfx canister call hello_backend greet '(\"wait 2\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello_backend greet '("Omega")'
@@ -153,7 +165,7 @@ set_local_network_bitcoin_enabled() {
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
 
-@test "can enable bitcoin through default configuration (dfx start)" {
+@test "can enable bitcoin through default configuration - dfx start" {
     dfx_new hello
     set_default_bitcoin_enabled
 
@@ -162,7 +174,7 @@ set_local_network_bitcoin_enabled() {
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
 
-@test "can enable bitcoin through local network configuration (dfx start)" {
+@test "can enable bitcoin through local network configuration - dfx start" {
     dfx_new hello
     set_local_network_bitcoin_enabled
 
@@ -171,7 +183,7 @@ set_local_network_bitcoin_enabled() {
     assert_file_not_empty .dfx/ic-btc-adapter-pid
 }
 
-@test "can enable bitcoin through default configuration (dfx replica)" {
+@test "can enable bitcoin through default configuration - dfx replica" {
     dfx_new hello
     set_default_bitcoin_enabled
 
