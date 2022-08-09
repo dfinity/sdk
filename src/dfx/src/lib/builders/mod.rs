@@ -244,8 +244,9 @@ pub trait CanisterBuilder {
                         Some(s) => s.clone(),
                         None => {
                             format!(
-                                "process.env.{}",
-                                &info.get_name().to_string().clone().to_ascii_uppercase()
+                                "process.env.{}{}",
+                                &info.get_name().to_string().clone().to_ascii_uppercase(),
+                                "_CANISTER_ID".to_string()
                             )
                         }
                     };
