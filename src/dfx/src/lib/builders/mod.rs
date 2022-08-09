@@ -200,10 +200,11 @@ pub trait CanisterBuilder {
 
                     let canister_name = &info.get_name().to_string();
 
-                    let node_compatibility = match &info.get_declarations_config().node_compatibility {
-                        Some(s) => s.to_owned(),
-                        None => false,
-                    };
+                    let node_compatibility =
+                        match &info.get_declarations_config().node_compatibility {
+                            Some(s) => s.to_owned(),
+                            None => false,
+                        };
 
                     // Insert only if node outputs are specified
                     let mut node_requirements = String::new();
