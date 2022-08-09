@@ -218,7 +218,7 @@ fn build_frontend(
 
         // Provide DFX_NETWORK at build time
         cmd.env("DFX_NETWORK", network_name);
-        
+
         cmd.arg("run").arg("build");
 
         if NetworkDescriptor::is_ic(network_name, &vec![]) {

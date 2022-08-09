@@ -205,13 +205,15 @@ pub trait CanisterBuilder {
                     // Insert only if node outputs are specified
                     let mut node_requirements = String::new();
 
-                    let mut actor_export =
-                        format!(r#"/**
+                    let mut actor_export = format!(
+                        r#"/**
 * A ready-to-use agent for the {0} canister
 * @type {{import("@dfinity/agent").ActorSubclass<import("./{0}.did.js")._SERVICE>}}
 */
-export const {0} = createActor(canisterId);"#, canister_name)
-                            .to_string();
+export const {0} = createActor(canisterId);"#,
+                        canister_name
+                    )
+                    .to_string();
 
                     if node_compatibility {
                         // leave these empty for nodejs
