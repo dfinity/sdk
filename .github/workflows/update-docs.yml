@@ -27,7 +27,7 @@ jobs:
         run: cargo run -- --version
       - name: Update docs/dfx-json-schema.json
         run: |
-          cargo run -- schema --outfile docs/dfx-json-schema.json
+          cargo run -p dfx -- schema --outfile docs/dfx-json-schema.json
           cat docs/dfx-json-schema.json
           git config user.name "GitHub Actions Bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
