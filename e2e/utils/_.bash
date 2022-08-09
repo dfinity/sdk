@@ -15,15 +15,17 @@ standard_setup() {
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export E2E_TEMP_DIR="$x"
 
+    cache_root="${E2E_CACHE_ROOT:-$x/cache-root}"
+
     mkdir "$x/working-dir"
-    mkdir "$x/cache-root"
+    mkdir -p "$cache_root"
     mkdir "$x/config-root"
     mkdir "$x/home-dir"
 
     cd "$x/working-dir" || exit
 
     export HOME="$x/home-dir"
-    export DFX_CACHE_ROOT="$x/cache-root"
+    export DFX_CACHE_ROOT="$cache_root"
     export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
 }
@@ -296,4 +298,12 @@ get_canister_http_adapter_pid() {
 
 get_icx_proxy_pid() {
   cat ".dfx/icx-proxy-pid"
+}
+
+use_test_specific_cache_root() {
+    # Use this when a test depends on the initial state of the cache being empty,
+    # or if the test corrupts the cache in some way.
+    # The effect is to ignore the E2E_CACHE_ROOT environment variable, if set.
+    export DFX_CACHE_ROOT="$E2E_TEMP_DIR/cache-root"
+    mkdir -p "$DFX_CACHE_ROOT"
 }
