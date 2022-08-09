@@ -220,7 +220,8 @@ pub struct CanisterDeclarationsConfig {
     /// # Node compatibility flag
     /// Flag to pre-populate generated declarations with better defaults for various types of projects
     /// Default is false
-    pub node_compatibility: Option<bool>,
+    #[serde(default)]
+    pub node_compatibility: bool,
 }
 
 /// # Bitcoin Adapter Configuration
