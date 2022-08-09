@@ -6,6 +6,8 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::util::{assets, check_candid_file};
+
 use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
@@ -16,6 +18,7 @@ use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
+use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -344,6 +347,9 @@ impl CanisterPool {
                 .map(|_| {})
                 .map_err(DfxError::from)?;
         }
+
+        build_canister_js(&canister.canister_id(), &canister.info)?;
+
         canister.postbuild(self, build_config)
     }
 
@@ -498,5 +504,91 @@ impl CanisterPool {
             warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
         }
         Ok(())
+    }
+}
+
+#[context("Failed to decode path to str.")]
+fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
+    path.to_str().ok_or_else(|| {
+        DfxError::new(BuildError::JsBindGenError(format!(
+            "Unable to convert output canister js path to a string: {:#?}",
+            path
+        )))
+    })
+}
+
+/// Create a canister JavaScript DID and Actor Factory.
+#[context("Failed to build canister js for canister '{}'.", canister_info.get_name())]
+fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
+    let output_did_js_path = canister_info.get_build_idl_path().with_extension("did.js");
+    let output_did_ts_path = canister_info
+        .get_build_idl_path()
+        .with_extension("did.d.ts");
+
+    let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())?;
+    let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
+    std::fs::write(&output_did_js_path, content).with_context(|| {
+        format!(
+            "Failed to write to {}.",
+            output_did_js_path.to_string_lossy()
+        )
+    })?;
+    let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
+    std::fs::write(&output_did_ts_path, content).with_context(|| {
+        format!(
+            "Failed to write to {}.",
+            output_did_ts_path.to_string_lossy()
+        )
+    })?;
+
+    let mut language_bindings =
+        assets::language_bindings().context("Failed to get language bindings archive.")?;
+    let index_js_path = canister_info.get_index_js_path();
+    for f in language_bindings
+        .entries()
+        .context("Failed to read language bindings archive entries.")?
+    {
+        let mut file = f.context("Failed to read language bindings archive entry.")?;
+        let mut file_contents = String::new();
+        file.read_to_string(&mut file_contents)
+            .context("Failed to read file content.")?;
+
+        let new_file_contents = file_contents
+            .replace("{canister_id}", &canister_id.to_text())
+            .replace("{canister_name}", canister_info.get_name())
+            .replace(
+                "{canister_name_uppercase}",
+                &canister_info.get_name().to_uppercase(),
+            );
+
+        match decode_path_to_str(&file.path()?)? {
+            "canister.js" => {
+                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)
+                    .with_context(|| {
+                        format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                    })?;
+            }
+            "canisterId.js" => {
+                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)
+                    .with_context(|| {
+                        format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                    })?;
+            }
+            // skip
+            "index.js.hbs" => {}
+            _ => unreachable!(),
+        }
+    }
+
+    Ok(())
+}
+
+fn ensure_trailing_newline(s: String) -> String {
+    if s.ends_with('\n') {
+        s
+    } else {
+        let mut s = s;
+        s.push('\n');
+        s
     }
 }

@@ -4,6 +4,37 @@
 
 ## DFX
 
+### feat!: option for nodejs compatibility in dfx generate
+
+Users can now specify `compatibilities` in `declarations.capabilities`. The first supported flag is for `node.js` enhancements, which include importing `isomorphic-fetch` and configuring the default actor with `isomorphic-fetch` and `host`.
+
+Additionally, exposes `dfxNetwork` and `isProduction` variables for all JS declarations, offering more context for applications and debugging. IsProduction is true when network is set to `ic`.
+
+```json
+// dfx.json
+"declarations": {
+  "output": "src/declarations",
+  "capabilities": [
+    "nodejs"
+  ]
+}
+```
+
+#### JS codegen location deprecation
+
+DFX new template now uses `dfx generate` instead of `rsync`. Adds deprecation warning to `index.js` in `.dfx/<network-name>/<canister-name>` encouringing developers to migrate to the `dfx generate` command instead. If you have a `package.json` file that uses `rsync` from `.dfx`, consider switching to something like this:
+
+```json
+"scripts": {
+  "build": "webpack",
+  "prebuild": "npm run generate",
+  "start": "webpack serve --mode development --env development",
+  "prestart": "npm run generate",
+  // It's faster to only generate canisters you depend on, omitting the frontend canister
+  "generate": "dfx generate hello_backend"
+},
+```
+
 ### feat!: changed update-settings syntax
 
 When using `dfx canister update-settings`, it is easy to mistake `--controller` for `--add-controller`. For this reason `--controller` has been renamed to `--set-controller`.

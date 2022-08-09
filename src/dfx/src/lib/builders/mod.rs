@@ -200,13 +200,10 @@ pub trait CanisterBuilder {
 
                     let canister_name = &info.get_name().to_string();
 
-                    let node_compatibility =
-                        match &info.get_declarations_config().compatibilities {
-                            Some(s) => {
-                                s.contains(&"nodejs".to_string())
-                            },
-                            None => false,
-                        };
+                    let node_compatibility = match &info.get_declarations_config().compatibilities {
+                        Some(s) => s.contains(&"nodejs".to_string()),
+                        None => false,
+                    };
 
                     // Insert only if node outputs are specified
                     let mut node_requirements = String::new();
@@ -217,7 +214,7 @@ pub trait CanisterBuilder {
 
                     if node_compatibility {
                         node_requirements = "import fetch from \"isomorphic-fetch\"".to_string();
-// Formatting for whitespace
+                        // Formatting for whitespace
                         actor_export = format!(
                             r#"export const {} = createActor(canisterId, {{
   httpOptions: {{
