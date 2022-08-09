@@ -257,7 +257,7 @@ pub trait CanisterBuilder {
                         handlebars.render_template(&file_contents, &data).unwrap();
                     let new_path = generate_output_dir.join(pathname.with_extension(""));
                     std::fs::write(&new_path, new_file_contents).with_context(|| {
-                        format!("Failed to write to {}.", new_path.to_string_lossy())
+                        format!("Failed to write to {}.", new_path.display())
                     })?;
                 }
             }
