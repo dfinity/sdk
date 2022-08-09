@@ -104,7 +104,7 @@ dfx identity get-wallet
 To display the canister identifier for the wallet canister associated with your identity on a specific testnet, you might run a command similar to the following:
 
 ``` bash
-dfx identity --network=https://192.168.74.4 get-wallet
+dfx identity get-wallet --network=https://192.168.74.4
 ```
 
 ## dfx identity import
@@ -344,7 +344,7 @@ If you use more than one principal for your identity, you might have access to m
 For example, you might store the wallet canister identifier in an environment variable, then invoke the `dfx identity set-wallet` command to use that wallet canister for additional operations by running the following:
 
     export WALLET_CANISTER_ID=$(dfx identity get-wallet)
-    dfx identity --network=https://192.168.74.4 set-wallet --canister-name ${WALLET_CANISTER_ID}
+    dfx identity set-wallet --canister-name ${WALLET_CANISTER_ID} --network=https://192.168.74.4
 
 ## dfx identity use
 

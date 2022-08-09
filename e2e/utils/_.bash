@@ -13,23 +13,25 @@ install_asset() {
 standard_setup() {
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
-    export DFX_E2E_TEMP_DIR="$x"
+    export E2E_TEMP_DIR="$x"
+
+    cache_root="${E2E_CACHE_ROOT:-$x/cache-root}"
 
     mkdir "$x/working-dir"
-    mkdir "$x/cache-root"
+    mkdir -p "$cache_root"
     mkdir "$x/config-root"
     mkdir "$x/home-dir"
 
     cd "$x/working-dir" || exit
 
     export HOME="$x/home-dir"
-    export DFX_CACHE_ROOT="$x/cache-root"
+    export DFX_CACHE_ROOT="$cache_root"
     export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
 }
 
 standard_teardown() {
-    rm -rf "$DFX_E2E_TEMP_DIR" || rm -rf "$DFX_E2E_TEMP_DIR"
+    rm -rf "$E2E_TEMP_DIR" || rm -rf "$E2E_TEMP_DIR"
 }
 
 dfx_new_frontend() {
@@ -240,7 +242,7 @@ dfx_stop() {
 
 dfx_set_wallet() {
   export WALLET_CANISTER_ID=$(dfx identity get-wallet)
-  assert_command dfx identity  --network actuallylocal set-wallet ${WALLET_CANISTER_ID} --force
+  assert_command dfx identity set-wallet ${WALLET_CANISTER_ID} --force --network actuallylocal
   assert_match 'Wallet set successfully.'
 }
 
@@ -259,7 +261,7 @@ setup_local_network() {
     fi
 
     # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:${replica_port}\" dfx.json)" >dfx.json
+    cat <<<"$(jq ".networks.local.bind=\"127.0.0.1:${replica_port}\"" dfx.json)" >dfx.json
 }
 
 use_wallet_wasm() {
@@ -296,4 +298,12 @@ get_canister_http_adapter_pid() {
 
 get_icx_proxy_pid() {
   cat ".dfx/icx-proxy-pid"
+}
+
+use_test_specific_cache_root() {
+    # Use this when a test depends on the initial state of the cache being empty,
+    # or if the test corrupts the cache in some way.
+    # The effect is to ignore the E2E_CACHE_ROOT environment variable, if set.
+    export DFX_CACHE_ROOT="$E2E_TEMP_DIR/cache-root"
+    mkdir -p "$DFX_CACHE_ROOT"
 }

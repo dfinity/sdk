@@ -37,6 +37,20 @@ teardown() {
     standard_teardown
 }
 
+@test "ledger account-id" {
+    dfx identity use alice
+    assert_command dfx ledger account-id
+    assert_match 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+
+    assert_command dfx ledger account-id --of-principal fg7gi-vyaaa-aaaal-qadca-cai
+    assert_match a014842f64a22e59887162a79c7ca7eb02553250704780ec4d954f12d0ea0b18
+
+    # --of-canister accepts both canister alias and canister principal
+    assert_command dfx canister create dummy_canister
+    assert_command dfx ledger account-id --of-canister "$(dfx canister id dummy_canister)"
+    assert_eq "$(dfx ledger account-id --of-canister dummy_canister)"
+}
+
 @test "ledger balance & transfer" {
     dfx identity use alice
     assert_command dfx ledger account-id
@@ -70,7 +84,7 @@ teardown() {
 
 @test "ledger subaccounts" {
     subacct=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
-    assert_command dfx --identity bob ledger account-id --subaccount "$subacct"
+    assert_command dfx ledger account-id --identity bob --subaccount "$subacct"
     assert_match 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
 
     dfx identity use alice
@@ -93,7 +107,7 @@ teardown() {
     assert_match "10000.00000000 ICP"
     assert_command dfx ledger balance --subaccount "$subacct"
     assert_match "9999.99990000 ICP"
-    assert_command dfx --identity alice ledger balance
+    assert_command dfx ledger balance --identity alice
     assert_match "9999.99990000 ICP"
 }
 tc_to_num() {

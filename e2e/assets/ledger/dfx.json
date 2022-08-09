@@ -1,4 +1,7 @@
 {
+    "canisters": {
+        "dummy_canister": {}
+    },
     "defaults": {
         "replica": {
             "subnet_type": "system"

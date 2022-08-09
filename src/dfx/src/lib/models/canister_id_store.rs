@@ -134,13 +134,9 @@ impl CanisterIdStore {
             let network = if self.network_descriptor.name == "local" {
                 "".to_string()
             } else {
-                format!("--network {} ", self.network_descriptor.name)
+                format!(" --network {}", self.network_descriptor.name)
             };
-            anyhow!(
-                "Cannot find canister id. Please issue 'dfx canister {}create {}'.",
-                network,
-                canister_name,
-            )
+            anyhow!("Cannot find canister id. Please issue 'dfx canister create {canister_name}{network}'.")
         })
     }
 
