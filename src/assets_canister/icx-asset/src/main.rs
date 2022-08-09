@@ -7,6 +7,7 @@ use candid::Principal;
 use clap::{crate_authors, crate_version, Parser};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{agent, Agent, Identity};
+use time::UtcOffset;
 
 use crate::commands::upload::upload;
 use std::path::PathBuf;
@@ -93,8 +94,7 @@ fn create_identity(maybe_pem: Option<PathBuf>) -> Box<dyn Identity + Sync + Send
     }
 }
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
-async fn main() -> support::Result {
+fn main() -> support::Result {
     let opts: Opts = Opts::parse();
 
     let ttl: std::time::Duration = opts
@@ -110,33 +110,52 @@ async fn main() -> support::Result {
         .build()?;
 
     let normalized_replica = opts.replica.strip_suffix('/').unwrap_or(&opts.replica);
-    if normalized_replica != DEFAULT_IC_GATEWAY {
-        agent.fetch_root_key().await?;
-    }
 
-    match &opts.subcommand {
+    let local_offset = time::OffsetDateTime::now_local().map_or(UtcOffset::UTC, |v| v.offset());
+
+    let result = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(10)
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            if normalized_replica != DEFAULT_IC_GATEWAY {
+                agent.fetch_root_key().await?;
+            }
+
+            dispatch(&opts.subcommand, agent, ttl, local_offset).await
+        });
+
+    result
+}
+
+async fn dispatch(
+    subcommand: &SubCommand,
+    agent: Agent,
+    ttl: std::time::Duration,
+    local_offset: UtcOffset,
+) -> support::Result {
+    match subcommand {
         SubCommand::List(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            list(&canister).await?;
+            list(&canister, local_offset).await
         }
         SubCommand::Sync(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            sync(&canister, ttl, o).await?;
+            sync(&canister, ttl, o).await
         }
         SubCommand::Upload(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            upload(&canister, o).await?;
+            upload(&canister, o).await
         }
     }
-
-    Ok(())
 }
