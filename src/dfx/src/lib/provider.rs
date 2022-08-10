@@ -1,5 +1,5 @@
 use crate::config::dfinity::{
-    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, SharedConfig,
+    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
     DEFAULT_LOCAL_BIND,
 };
 use crate::lib::environment::{AgentEnvironment, Environment};
@@ -134,7 +134,7 @@ fn config_network_to_network_descriptor(
 #[context("Failed to get network descriptor.")]
 pub fn create_network_descriptor(
     project_config: Option<Arc<Config>>,
-    shared_config: Arc<SharedConfig>,
+    shared_config: Arc<NetworksConfig>,
     network: Option<String>,
     logger: Option<Logger>,
     local_bind_determination: LocalBindDetermination,
@@ -186,7 +186,7 @@ fn create_url_based_network_descriptor(network_name: &str) -> Option<DfxResult<N
         // OS-friendly directory name for it.
         let name = util::network_to_pathcompat(network_name);
         let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
-        let data_directory = SharedConfig::get_network_data_directory(network_name)?;
+        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
         let network_type = NetworkTypeDescriptor::new(
             NetworkType::Ephemeral,
             &data_directory.join(WALLET_CONFIG_FILENAME),
@@ -203,13 +203,13 @@ fn create_url_based_network_descriptor(network_name: &str) -> Option<DfxResult<N
 
 fn create_shared_network_descriptor(
     network_name: &str,
-    shared_config: Arc<SharedConfig>,
+    shared_config: Arc<NetworksConfig>,
     local_bind_determination: &LocalBindDetermination,
     logger: &Logger,
 ) -> Option<DfxResult<NetworkDescriptor>> {
     let shared_config_file_exists = shared_config.get_path().is_file();
     let shared_config_display_path = shared_config.get_path().display();
-    let network = shared_config.get_shared_config().get_network(network_name);
+    let network = shared_config.get_interface().get_network(network_name);
     let network = match (network_name, network) {
         ("local", None) => {
             if shared_config_file_exists {
@@ -257,7 +257,7 @@ fn create_shared_network_descriptor(
     };
 
     network.as_ref().map(|config_network| {
-        let data_directory = SharedConfig::get_network_data_directory(network_name)?;
+        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
 
         let ephemeral_wallet_config_path = data_directory.join(WALLET_CONFIG_FILENAME);
 
@@ -382,7 +382,7 @@ pub fn create_agent_environment<'a>(
 ) -> DfxResult<AgentEnvironment<'a>> {
     let network_descriptor = create_network_descriptor(
         env.get_config(),
-        env.get_shared_config(),
+        env.get_networks_config(),
         network,
         None,
         LocalBindDetermination::ApplyRunningWebserverPort,
@@ -535,7 +535,7 @@ mod tests {
         let config = Config::from_dir(&project_dir).unwrap().unwrap();
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             local_bind_determination,
@@ -566,7 +566,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -597,7 +597,7 @@ mod tests {
 
         let result = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -616,7 +616,7 @@ mod tests {
         .unwrap();
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -641,7 +641,7 @@ mod tests {
         .unwrap();
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -679,7 +679,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -721,7 +721,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -763,7 +763,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -804,7 +804,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -844,7 +844,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -890,7 +890,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -928,7 +928,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,
@@ -965,7 +965,7 @@ mod tests {
 
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
-            Arc::new(SharedConfig::from_shared_dir().unwrap()),
+            Arc::new(NetworksConfig::new().unwrap()),
             None,
             None,
             LocalBindDetermination::AsConfigured,

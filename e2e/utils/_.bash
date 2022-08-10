@@ -11,10 +11,10 @@ install_asset() {
 }
 
 install_shared_asset() {
-    mkdir -p "$(dirname "$E2E_SHARED_DFX_JSON")"
+    mkdir -p "$(dirname "$E2E_NETWORKS_JSON")"
 
     ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
-    cp -R $ASSET_ROOT/* "$(dirname "$E2E_SHARED_DFX_JSON")"
+    cp -R $ASSET_ROOT/* "$(dirname "$E2E_NETWORKS_JSON")"
 }
 
 standard_setup() {
@@ -43,7 +43,7 @@ standard_setup() {
     elif [ "$(uname)" == "Linux" ]; then
         export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/.local/share/dfx/network/local"
     fi
-    export E2E_SHARED_DFX_JSON="$DFX_CONFIG_ROOT/.config/dfx/dfx.json"
+    export E2E_NETWORKS_JSON="$DFX_CONFIG_ROOT/.config/dfx/networks.json"
 }
 
 standard_teardown() {
@@ -118,12 +118,12 @@ determine_network_directory() {
         dfx_json="$(pwd)/dfx.json"
         export E2E_NETWORK_DATA_DIRECTORY="$data_dir"
         export E2E_NETWORK_WALLETS_JSON="$wallets_json"
-        export E2E_NETWORK_DFX_JSON="$dfx_json"
+        export E2E_ROUTE_NETWORKS_JSON="$dfx_json"
     else
         echo "no dfx.json"
         export E2E_NETWORK_DATA_DIRECTORY="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY"
         export E2E_NETWORK_WALLETS_JSON="$E2E_NETWORK_DATA_DIRECTORY/wallets.json"
-        export E2E_NETWORK_DFX_JSON="$E2E_SHARED_DFX_JSON"
+        export E2E_ROUTE_NETWORKS_JSON="$E2E_NETWORKS_JSON"
     fi
 }
 
@@ -286,9 +286,9 @@ dfx_set_wallet() {
 
 setup_actuallylocal_network() {
     webserver_port=$(get_webserver_port)
-    [ ! -f "$E2E_NETWORK_DFX_JSON" ] && echo "{}" >"$E2E_NETWORK_DFX_JSON"
+    [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
+    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' "$E2E_ROUTE_NETWORKS_JSON")" >"$E2E_ROUTE_NETWORKS_JSON"
 }
 
 setup_local_network() {
@@ -299,10 +299,10 @@ setup_local_network() {
         local replica_port=$(get_replica_port)
     fi
 
-    [ ! -f "$E2E_NETWORK_DFX_JSON" ] && echo "{}" >"$E2E_NETWORK_DFX_JSON"
+    [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
 
     # shellcheck disable=SC2094
-    cat <<<"$(jq ".networks.local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
+    cat <<<"$(jq ".networks.local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_ROUTE_NETWORKS_JSON")" >"$E2E_ROUTE_NETWORKS_JSON"
 }
 
 use_wallet_wasm() {
@@ -350,8 +350,8 @@ get_icx_proxy_pid() {
 }
 
 create_shared_dfx_json() {
-  mkdir -p "$(dirname "$E2E_SHARED_DFX_JSON")"
-  [ ! -f "$E2E_SHARED_DFX_JSON" ] && echo "{}" >"$E2E_SHARED_DFX_JSON"
+  mkdir -p "$(dirname "$E2E_NETWORKS_JSON")"
+  [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 }
 
 define_project_network() {

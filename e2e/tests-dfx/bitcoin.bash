@@ -27,7 +27,7 @@ set_project_default_bitcoin_enabled() {
 set_shared_local_network_bitcoin_enabled() {
     create_shared_dfx_json
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bitcoin.enabled=true' "$E2E_SHARED_DFX_JSON")" >"$E2E_SHARED_DFX_JSON"
+    cat <<<"$(jq '.networks.local.bitcoin.enabled=true' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
 }
 
 set_local_network_bitcoin_enabled() {

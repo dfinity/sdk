@@ -139,7 +139,7 @@ teardown() {
 
     setup_actuallylocal_network
     # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
+    cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json)" >dfx.json
     dfx_set_wallet
 
     dfx canister create --all --network actuallylocal

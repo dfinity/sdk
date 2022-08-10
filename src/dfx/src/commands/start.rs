@@ -173,7 +173,7 @@ pub fn exec(
     };
     let network_descriptor = create_network_descriptor(
         project_config,
-        env.get_shared_config(),
+        env.get_networks_config(),
         None,
         network_descriptor_logger,
         LocalBindDetermination::AsConfigured,

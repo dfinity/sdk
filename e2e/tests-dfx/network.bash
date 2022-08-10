@@ -34,7 +34,7 @@ teardown() {
 
     setup_actuallylocal_network
     # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
+    cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
     dfx_set_wallet
 
     dfx canister create --all --network actuallylocal
@@ -62,9 +62,9 @@ teardown() {
     create_shared_dfx_json
 
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$webserver_port"'"' "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
+    cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$webserver_port"'"' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.type="persistent"' "$E2E_NETWORK_DFX_JSON")" >"$E2E_NETWORK_DFX_JSON"
+    cat <<<"$(jq '.networks.local.type="persistent"' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
 
     assert_command dfx canister create --all --network local
 

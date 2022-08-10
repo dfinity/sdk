@@ -52,7 +52,7 @@ pub fn exec(
 ) -> DfxResult {
     let network_descriptor = create_network_descriptor(
         env.get_config(),
-        env.get_shared_config(),
+        env.get_networks_config(),
         network,
         Some(env.get_logger().clone()),
         LocalBindDetermination::AsConfigured,

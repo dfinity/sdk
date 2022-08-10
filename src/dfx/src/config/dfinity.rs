@@ -437,16 +437,16 @@ pub struct ConfigInterface {
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct SharedConfigDefaults {
-    pub bitcoin: Option<ConfigDefaultsBitcoin>,
-    pub bootstrap: Option<ConfigDefaultsBootstrap>,
-    pub canister_http: Option<ConfigDefaultsCanisterHttp>,
-    pub replica: Option<ConfigDefaultsReplica>,
-}
+// #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+// pub struct SharedConfigDefaults {
+//     pub bitcoin: Option<ConfigDefaultsBitcoin>,
+//     pub bootstrap: Option<ConfigDefaultsBootstrap>,
+//     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
+//     pub replica: Option<ConfigDefaultsReplica>,
+// }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SharedConfigInterface {
+pub struct NetworksConfigInterface {
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
 }
 
@@ -490,7 +490,7 @@ impl ConfigDefaults {
     }
 }
 
-impl SharedConfigInterface {
+impl NetworksConfigInterface {
     pub fn get_network(&self, name: &str) -> Option<&ConfigNetwork> {
         self.networks
             .as_ref()
@@ -815,19 +815,19 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
 }
 
 #[derive(Clone)]
-pub struct SharedConfig {
+pub struct NetworksConfig {
     path: PathBuf,
     json: Value,
-    // public interface to the shared config:
-    shared_config: SharedConfigInterface,
+    // public interface to the networsk config:
+    networks_config: NetworksConfigInterface,
 }
 
-impl SharedConfig {
+impl NetworksConfig {
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
-    pub fn get_shared_config(&self) -> &SharedConfigInterface {
-        &self.shared_config
+    pub fn get_interface(&self) -> &NetworksConfigInterface {
+        &self.networks_config
     }
     #[context("Failed to determine shared network data directory.")]
     pub fn get_network_data_directory(network: &str) -> DfxResult<PathBuf> {
@@ -837,34 +837,34 @@ impl SharedConfig {
         Ok(project_dirs.data_local_dir().join("network").join(network))
     }
 
-    #[context("Failed to read shared configuration.")]
-    pub fn from_shared_dir() -> DfxResult<SharedConfig> {
+    #[context("Failed to read shared networks configuration.")]
+    pub fn new() -> DfxResult<NetworksConfig> {
         let dir = get_config_dfx_dir_path()?;
 
-        let path = dir.join("dfx.json");
+        let path = dir.join("networks.json");
         if path.exists() {
-            SharedConfig::from_file(&path)
+            NetworksConfig::from_file(&path)
         } else {
-            Ok(SharedConfig {
+            Ok(NetworksConfig {
                 path,
                 json: Default::default(),
-                shared_config: SharedConfigInterface { networks: None },
+                networks_config: NetworksConfigInterface { networks: None },
             })
         }
     }
 
     #[context("Failed to read shared configuration from {}.", path.to_string_lossy())]
-    fn from_file(path: &Path) -> DfxResult<SharedConfig> {
+    fn from_file(path: &Path) -> DfxResult<NetworksConfig> {
         let content = std::fs::read(&path)
             .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
 
-        let shared_config = serde_json::from_slice(&content)?;
+        let networks_config = serde_json::from_slice(&content)?;
         let json = serde_json::from_slice(&content)?;
         let path = PathBuf::from(path);
-        Ok(SharedConfig {
+        Ok(NetworksConfig {
             path,
             json,
-            shared_config,
+            networks_config,
         })
     }
 }

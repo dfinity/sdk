@@ -32,7 +32,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     // If not passed, we default to the "local" network.
     let agent_url = create_network_descriptor(
         env.get_config(),
-        env.get_shared_config(),
+        env.get_networks_config(),
         opts.network,
         None,
         LocalBindDetermination::ApplyRunningWebserverPort,
