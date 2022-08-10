@@ -34,11 +34,6 @@ pub struct BootstrapOpts {
     #[clap(long)]
     network: Option<String>,
 
-    /// Specifies the directory containing static assets served by the bootstrap server.
-    /// Defaults to $HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap.
-    #[clap(long)]
-    root: Option<String>,
-
     /// Specifies the maximum number of seconds that the bootstrap server
     /// will wait for upstream requests to complete. Defaults to 30.
     #[clap(long)]
