@@ -155,7 +155,7 @@ teardown() {
 }
 
 @test "dfx starts replica with subnet_type application - local network" {
-    install_asset subnet_type/network_settings/application
+    install_asset subnet_type/project_network_settings/application
     define_project_network
 
     assert_command dfx start --background
@@ -163,7 +163,7 @@ teardown() {
 }
 
 @test "dfx starts replica with subnet_type verifiedapplication - local network" {
-    install_asset subnet_type/network_settings/verified_application
+    install_asset subnet_type/project_network_settings/verified_application
     define_project_network
 
     assert_command dfx start --background
@@ -171,7 +171,7 @@ teardown() {
 }
 
 @test "dfx starts replica with subnet_type system - local network" {
-    install_asset subnet_type/network_settings/system
+    install_asset subnet_type/project_network_settings/system
     define_project_network
 
     assert_command dfx start --background
@@ -180,21 +180,21 @@ teardown() {
 
 
 @test "dfx starts replica with subnet_type application - shared network" {
-    install_shared_asset subnet_type/network_settings/application
+    install_shared_asset subnet_type/shared_network_settings/application
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
 }
 
 @test "dfx starts replica with subnet_type verifiedapplication - shared network" {
-    install_shared_asset subnet_type/network_settings//verified_application
+    install_shared_asset subnet_type/shared_network_settings/verified_application
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
 }
 
 @test "dfx starts replica with subnet_type system - shared network" {
-    install_shared_asset subnet_type/network_settings//system
+    install_shared_asset subnet_type/shared_network_settings/system
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
