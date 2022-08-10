@@ -4,6 +4,8 @@
 
 ## DFX
 
+### fix!: removed unused --root parameter from dfx bootstrap
+
 ### feat: canister installation now waits for the replica
 
 When installing a new WASM module to a canister, DFX will now wait for the updated state (i.e. the new module hash) to be visible in the replica's certified state tree before proceeding with post-installation tasks or producing a success status.

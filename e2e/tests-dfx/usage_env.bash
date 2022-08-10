@@ -11,6 +11,8 @@ teardown() {
 }
 
 @test "dfx config root env var stores identity & cache" {
+    use_test_specific_cache_root   # Because this test depends on a clean cache state
+
     #identity
     dfx identity new --disable-encryption alice
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
