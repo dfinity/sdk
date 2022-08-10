@@ -23,10 +23,11 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Insta
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
+use libflate::gzip::Encoder as GzEncoder;
 use openssl::sha::sha256;
 use slog::info;
 use std::collections::HashSet;
-use std::io::stdin;
+use std::io::{stdin, Write};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -112,8 +113,14 @@ pub async fn install_canister(
     }
 
     let wasm_path = canister_info.get_build_wasm_path();
-    let wasm_module = std::fs::read(&wasm_path)
+    let mut wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
+
+    if wasm_module[..4] == *b"\0asm" {
+        let mut encoder = GzEncoder::new(Vec::with_capacity(wasm_module.len()))?;
+        encoder.write_all(&wasm_module)?;
+        wasm_module = encoder.finish().into_result()?;
+    }
     let new_hash = sha256(&wasm_module);
 
     if mode == InstallMode::Upgrade
