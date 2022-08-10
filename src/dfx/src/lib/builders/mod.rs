@@ -203,19 +203,19 @@ pub trait CanisterBuilder {
                     let node_compatibility = info.get_declarations_config().node_compatibility;
 
                     // Insert only if node outputs are specified
-                    let mut actor_export = format!(
-                        r#"/**
+                    let actor_export = if node_compatibility {
+                        // leave empty for nodejs
+                        "".to_string();
+                    } else {
+                        format!(
+                            r#"/**
 * A ready-to-use agent for the {0} canister
 * @type {{import("@dfinity/agent").ActorSubclass<import("./{0}.did.js")._SERVICE>}}
 */
 export const {0} = createActor(canisterId);"#,
-                        canister_name
-                    )
-                    .to_string();
-
-                    if node_compatibility {
-                        // leave empty for nodejs
-                        actor_export = "".to_string();
+                            canister_name
+                        )
+                        .to_string();
                     }
 
                     data.insert("canister_name".to_string(), canister_name);
