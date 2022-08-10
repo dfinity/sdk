@@ -215,7 +215,7 @@ pub trait CanisterBuilder {
 export const {0} = createActor(canisterId);"#,
                             canister_name
                         )
-                        .to_string();
+                        .to_string()
                     };
 
                     data.insert("canister_name".to_string(), canister_name);
