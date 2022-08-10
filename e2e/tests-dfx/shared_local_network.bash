@@ -21,21 +21,23 @@ teardown() {
 @test "project data is cleared after dfx start --clean from outside the project" {
 
     mkdir somewhere
-    cd somewhere
-    dfx_start
-    cd ..
+    (
+        cd somewhere
+        dfx_start
+    )
 
     (
         dfx_new hello
         dfx deploy
-        assert_command dfx canister id hello_backend
+        dfx canister id hello_backend
     )
 
     mkdir somewhere_else
-    cd somewhere_else
-    dfx_stop
-    dfx_start --clean
-    cd ..
+    (
+        cd somewhere_else
+        dfx_stop
+        dfx_start --clean
+    )
 
     (
         cd hello
