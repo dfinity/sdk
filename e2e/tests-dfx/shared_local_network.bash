@@ -14,8 +14,8 @@ teardown() {
 
 @test "dfx start creates no files in the current directory" {
     dfx_start
-    assert_command ls -AlR
-    assert_eq "total 0"
+    assert_command ls -AR
+    assert_eq ""
 }
 
 @test "project data is cleared after dfx start --clean from outside the project" {
