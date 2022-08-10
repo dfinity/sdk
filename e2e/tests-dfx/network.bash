@@ -59,7 +59,7 @@ teardown() {
 
     webserver_port=$(get_webserver_port)
 
-    create_shared_dfx_json
+    create_networks_json
 
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$webserver_port"'"' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"

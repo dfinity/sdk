@@ -13,7 +13,7 @@ teardown() {
 }
 
 @test "dfx start with a nonstandard subnet type" {
-    create_shared_dfx_json
+    create_networks_json
     echo "{}" | jq '.networks.local.replica.subnet_type="verifiedapplication"' >"$E2E_NETWORKS_JSON"
 
     assert_command dfx start --host 127.0.0.1:0 --background
@@ -60,7 +60,7 @@ teardown() {
 }
 
 @test "dfx start outside of a project with a shared configuration file" {
-    create_shared_dfx_json
+    create_networks_json
 
     assert_command dfx start --background
 
@@ -70,7 +70,7 @@ teardown() {
 
 
 @test "dfx start outside of a project with a shared configuration file that defines the local network" {
-    create_shared_dfx_json
+    create_networks_json
     echo "{}" | jq '.networks.local.bind="127.0.0.1:0"' >"$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background
@@ -96,7 +96,7 @@ teardown() {
 
 @test "dfx start describes default shared network" {
     # almost default: use a dynamic port
-    create_shared_dfx_json
+    create_networks_json
     echo "{}" | jq '.networks.local.bind="127.0.0.1:0"' >"$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background

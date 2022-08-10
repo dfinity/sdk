@@ -26,7 +26,7 @@ set_project_local_network_canister_http_enabled() {
 }
 
 set_shared_local_network_canister_http_enabled() {
-    create_shared_dfx_json
+    create_networks_json
 
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.local.canister_http.enabled=true' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"

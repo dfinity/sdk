@@ -339,7 +339,7 @@ get_icx_proxy_pid() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/icx-proxy-pid"
 }
 
-create_shared_dfx_json() {
+create_networks_json() {
   mkdir -p "$(dirname "$E2E_NETWORKS_JSON")"
   [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 }
