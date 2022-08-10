@@ -18,8 +18,6 @@ install_shared_asset() {
 }
 
 standard_setup() {
-    [ ! -f ${BATS_PARENT_TMPNAME}.skip ] || skip "skip remaining tests"
-
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export E2E_TEMP_DIR="$x"
@@ -48,8 +46,6 @@ standard_setup() {
 
 standard_teardown() {
     rm -rf "$E2E_TEMP_DIR" || rm -rf "$E2E_TEMP_DIR"
-
-    [ -n "$BATS_TEST_COMPLETED" ] || touch ${BATS_PARENT_TMPNAME}.skip
 }
 
 dfx_new_frontend() {
