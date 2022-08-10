@@ -131,14 +131,8 @@ determine_network_directory() {
 dfx_start() {
     dfx_patchelf
 
-    if [ "$GITHUB_WORKSPACE" ]; then
-        # no need for random ports on github workflow; even using a random port we sometimes
-        # get 'address in use', so the hope is to avoid that by using a fixed port.
-        FRONTEND_HOST="127.0.0.1:8000"
-    else
-        # Start on random port for parallel test execution (needed on nix/hydra)
-        FRONTEND_HOST="127.0.0.1:0"
-    fi
+    # Start on random port for parallel test execution
+    FRONTEND_HOST="127.0.0.1:0"
 
     determine_network_directory
     if [ "$USE_IC_REF" ]

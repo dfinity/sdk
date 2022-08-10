@@ -20,8 +20,6 @@ teardown() {
     dfx_start
     dfx deploy
 
-#    echo "d is $E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY"
-#    ls -AlR "$HOME"
     assert_directory_not_exists "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY"
     assert_file_exists .dfx/network/local/pid
 }
