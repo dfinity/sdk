@@ -205,7 +205,7 @@ pub trait CanisterBuilder {
                     // Insert only if node outputs are specified
                     let actor_export = if node_compatibility {
                         // leave empty for nodejs
-                        "".to_string();
+                        "".to_string()
                     } else {
                         format!(
                             r#"/**
