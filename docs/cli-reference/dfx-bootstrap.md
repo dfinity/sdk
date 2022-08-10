@@ -28,7 +28,6 @@ You can specify the following options for the `dfx bootstrap` command.
 | `ip` <ip_address\>    | Specifies the IP address that the bootstrap server listens on. If you don't specify an IP address, the `address` setting you have configured in the `dfx.json` configuration file is used. By default, the server address is 127.0.0.1. |
 | \--network <network\> | Specifies the network to connect to if you want to override the default local network endpoint (`http://127.0.0.1:8080/api`).|
 | \--port <port\>       | Specifies the port number that the bootstrap server listens on. By default, port number 8081 is used.                                                                                                                                   |
-| \--root <root\>       | Specifies the directory containing static assets served by the bootstrap server. By default, the path to static assets is: `$HOME/.cache/dfinity/versions/$DFX_VERSION/js-user-library/dist/bootstrap`.                                 |
 | \--timeout <timeout\> | Specifies the maximum amount of time, in seconds, the bootstrap server will wait for upstream requests to complete. By default, the bootstrap server waits for a maximum of 30 seconds.                                                 |
 
 ## Examples {#_examples}

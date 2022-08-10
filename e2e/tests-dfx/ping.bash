@@ -38,9 +38,9 @@ teardown() {
     dfx_start
     webserver_port=$(get_webserver_port)
 
-    mkdir "$DFX_E2E_TEMP_DIR/not-a-project"
+    mkdir "$E2E_TEMP_DIR/not-a-project"
     (
-        cd "$DFX_E2E_TEMP_DIR/not-a-project"
+        cd "$E2E_TEMP_DIR/not-a-project"
 
         assert_command dfx ping http://127.0.0.1:"$webserver_port"
         assert_match "\"ic_api_version\""
