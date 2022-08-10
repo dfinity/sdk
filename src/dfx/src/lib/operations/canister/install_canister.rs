@@ -44,6 +44,7 @@ pub async fn install_canister(
     call_sender: &CallSender,
     installed_module_hash: Option<Vec<u8>>,
     upgrade_unchanged: bool,
+    gz: bool,
     pool: Option<&CanisterPool>,
 ) -> DfxResult {
     let log = env.get_logger();
@@ -116,7 +117,7 @@ pub async fn install_canister(
     let mut wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
 
-    if wasm_module[..4] == *b"\0asm" {
+    if gz && wasm_module[..4] == *b"\0asm" {
         let mut encoder = GzEncoder::new(Vec::with_capacity(wasm_module.len()))?;
         encoder.write_all(&wasm_module)?;
         wasm_module = encoder.finish().into_result()?;

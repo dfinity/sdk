@@ -52,6 +52,10 @@ pub struct CanisterInstallOpts {
     /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
     #[clap(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
+
+    /// Skips GZIP-compressing the module.
+    #[clap(long)]
+    uncompressed: bool,
 }
 
 pub async fn exec(
@@ -127,6 +131,7 @@ pub async fn exec(
                 call_sender,
                 installed_module_hash,
                 opts.upgrade_unchanged,
+                !opts.uncompressed,
                 None,
             )
             .await
@@ -168,6 +173,7 @@ pub async fn exec(
                     call_sender,
                     installed_module_hash,
                     opts.upgrade_unchanged,
+                    !opts.uncompressed,
                     None,
                 )
                 .await?;

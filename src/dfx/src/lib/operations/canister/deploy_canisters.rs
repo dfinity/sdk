@@ -30,6 +30,7 @@ pub async fn deploy_canisters(
     argument_type: Option<&str>,
     force_reinstall: bool,
     upgrade_unchanged: bool,
+    gz: bool,
     timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
@@ -101,6 +102,7 @@ pub async fn deploy_canisters(
         argument_type,
         force_reinstall,
         upgrade_unchanged,
+        gz,
         timeout,
         call_sender,
         pool,
@@ -215,6 +217,7 @@ async fn install_canisters(
     argument_type: Option<&str>,
     force_reinstall: bool,
     upgrade_unchanged: bool,
+    gz: bool,
     timeout: Duration,
     call_sender: &CallSender,
     pool: CanisterPool,
@@ -270,6 +273,7 @@ async fn install_canisters(
             call_sender,
             installed_module_hash,
             upgrade_unchanged,
+            gz,
             Some(&pool),
         )
         .await?;

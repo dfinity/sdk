@@ -74,6 +74,10 @@ pub struct DeployOpts {
     /// Bypasses the Wallet canister.
     #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
+
+    /// Skips GZIP-compressing the module.
+    #[clap(long)]
+    uncompressed: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -129,6 +133,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument_type,
         force_reinstall,
         opts.upgrade_unchanged,
+        !opts.uncompressed,
         timeout,
         with_cycles,
         &call_sender,
