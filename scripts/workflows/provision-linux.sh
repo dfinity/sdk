@@ -31,7 +31,7 @@ if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
         sudo install -m 0755 -o root -g root -t /usr/local/bin *
     )
 fi
-if [ "$E2E_TEST" = "tests-dfx/build.bash" ]; then
+if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
     cargo uninstall cargo-audit
 fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
