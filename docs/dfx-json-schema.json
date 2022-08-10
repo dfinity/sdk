@@ -429,27 +429,21 @@
       "properties": {
         "ip": {
           "description": "Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.",
-          "type": [
-            "string",
-            "null"
-          ],
+          "default": "127.0.0.1",
+          "type": "string",
           "format": "ip"
         },
         "port": {
           "description": "Specifies the port number that the bootstrap server listens on. Defaults to 8081.",
-          "type": [
-            "integer",
-            "null"
-          ],
+          "default": 8081,
+          "type": "integer",
           "format": "uint16",
           "minimum": 0.0
         },
         "timeout": {
           "description": "Specifies the maximum number of seconds that the bootstrap server will wait for upstream requests to complete. Defaults to 30.",
-          "type": [
-            "integer",
-            "null"
-          ],
+          "default": 30,
+          "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         }
@@ -516,12 +510,10 @@
     "ConfigLocalProvider": {
       "title": "Local Replica Configuration",
       "type": "object",
-      "required": [
-        "bind"
-      ],
       "properties": {
         "bind": {
           "description": "Bind address for the webserver.",
+          "default": "127.0.0.1:8000",
           "type": "string"
         },
         "bitcoin": {
