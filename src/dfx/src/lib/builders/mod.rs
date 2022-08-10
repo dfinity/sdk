@@ -216,7 +216,7 @@ export const {0} = createActor(canisterId);"#,
                             canister_name
                         )
                         .to_string();
-                    }
+                    };
 
                     data.insert("canister_name".to_string(), canister_name);
                     data.insert("actor_export".to_string(), &actor_export);
