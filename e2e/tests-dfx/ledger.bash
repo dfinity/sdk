@@ -13,7 +13,7 @@ setup() {
     dfx_start
 
     # local NNS_URL
-    NNS_URL="http://localhost:$(cat .dfx/replica-configuration/replica-1.port)"
+    NNS_URL="http://localhost:$(get_replica_port)"
     local ic_nns_init
     case "$(uname)" in
     Darwin) ic_nns_init="./ic-nns-init_macos" ;;
