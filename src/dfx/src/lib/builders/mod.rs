@@ -232,7 +232,7 @@ export const {0} = createActor(canisterId);"#,
                             format!(
                                 "process.env.{}{}",
                                 &canister_name.to_ascii_uppercase(),
-                                "_CANISTER_ID".to_string()
+                                "_CANISTER_ID"
                             )
                         }
                     };
