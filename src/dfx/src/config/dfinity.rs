@@ -443,14 +443,6 @@ pub struct ConfigInterface {
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
 }
 
-// #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-// pub struct SharedConfigDefaults {
-//     pub bitcoin: Option<ConfigDefaultsBitcoin>,
-//     pub bootstrap: Option<ConfigDefaultsBootstrap>,
-//     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
-//     pub replica: Option<ConfigDefaultsReplica>,
-// }
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NetworksConfigInterface {
     pub networks: BTreeMap<String, ConfigNetwork>,

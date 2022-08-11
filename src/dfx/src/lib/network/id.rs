@@ -7,13 +7,13 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 #[derive(Deserialize, Serialize, Debug)]
-struct Id {
+struct NetworkMetadata {
     created: OffsetDateTime,
 }
 
 #[context("Failed write network id to {}.", local_server_descriptor.network_id_path().display())]
 pub fn write_network_id(local_server_descriptor: &LocalServerDescriptor) -> DfxResult {
-    let contents = Id {
+    let contents = NetworkMetadata {
         created: OffsetDateTime::now_utc(),
     };
     let contents =
