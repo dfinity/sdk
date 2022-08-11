@@ -21,10 +21,10 @@ You can use the following optional flags with the `dfx schema` command.
 
 You can use the following option with the `dfx schema` command.
 
-| Option                | Description                                                                                                       |
-|-----------------------|-------------------------------------------------------------------------------------------------------------------|
-| `--for <dfx           |networks>` | Display schema for either dfx.json or networks.json. (default: dfx) |
-| `--outfile <outfile>` | Specifies a file to output the schema to instead of printing it to stdout. |
+| Option                 | Description                                                                                                       |
+|------------------------|-------------------------------------------------------------------------------------------------------------------|
+| `--for <dfx/networks>` | Display schema for either dfx.json or networks.json. (default: dfx) |
+| `--outfile <outfile>`  | Specifies a file to output the schema to instead of printing it to stdout. |
 
 ## Examples
 
