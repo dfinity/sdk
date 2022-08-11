@@ -75,6 +75,10 @@ If run from outside any dfx project, or if dfx.json does not define the `local` 
 }
 ```
 
+dfx stores data for a project-specific local network in one of the following locations, depending on your operating system:
+- `$HOME/.local/share/dfx/network/local` (Linux)
+- `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (Macos)
+
 ### Project-Specific Local Networks
 
 If dfx.json defines the `local` network, then `dfx start` will use this definition and store all data files relative to the project.
@@ -83,3 +87,5 @@ Such project-specific networks are deprecated, slated to be removed after Februa
 of the `local` network from your project's dfx.json file and instead use the default local network that is shared by all projects.
 
 Note that for projects that define the `local` network in dfx.json, you can only run the `dfx start` and `dfx stop` commands from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
+
+dfx stores data for a project-specific local network in `\<project dir\>/.dfx/network/local`.
