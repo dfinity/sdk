@@ -12,10 +12,18 @@ teardown() {
     standard_teardown
 }
 
-@test "dfx start creates no files in the current directory" {
+@test "dfx start creates no files in the current directory when run from an empty directory" {
     dfx_start
-    assert_command ls -AR
-    assert_eq ""
+    assert_command find .
+    assert_eq "."
+}
+
+@test "dfx start creates only an empty .dfx directory when run from a project" {
+    dfx_new hello
+    START_DIR_CONTENTS="$(find .)"
+    dfx_start
+    END_DIR_CONTENTS="$(find . | grep -v '^\./\.dfx$')"
+    assert_eq "$START_DIR_CONTENTS" "$END_DIR_CONTENTS"
 }
 
 @test "project data is cleared after dfx start --clean from outside the project" {
