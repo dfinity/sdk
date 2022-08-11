@@ -46,7 +46,6 @@ For the local shared network, on MacOS:
 cat '$HOME/Library/Application Support/org.dfinity.dfx/network/local/pid'
 ```
 
-
 This command displays a process identifier similar to the following:
 
 ``` bash
