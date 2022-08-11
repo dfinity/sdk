@@ -52,7 +52,7 @@ If you want to register unique canister identifiers for the same project on the 
 dfx canister create --all --network ic
 ```
 
-The SDK comes with an alias of `ic`, which is configured to point to the Internet Computer. You can also pass a URL as a network option, or you can configure additional aliases in `dfx.json` under the `networks` configuration.
+The SDK comes with an alias of `ic`, which is configured to point to the Internet Computer. You can also pass a URL as a network option, or you can configure additional aliases in `dfx.json` under the `networks` configuration, or in `$HOME/.config/dfx/networks.json`.
 
 To illustrate, you can call a canister and function running on a testnet using a command similar to the following:
 

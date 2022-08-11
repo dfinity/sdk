@@ -4,6 +4,27 @@
 
 ## DFX
 
+### feat!: "system-wide dfx start"
+
+By default, dfx now manages the replica process in a way that is independent of any given dfx project.  We've called this feature "system-wide dfx", even though it's actually specific to your user
+(storing data files under $HOME), because we think it communicates the idea adequately.
+
+The intended benefits:
+- facilitates deploying separate dapps alongside one another, similar to working on mainnet.
+- allows one to run `dfx start`
+- run `dfx stop` from any directory, rather than having to remember where you last ran `dfx start`
+
+We're calling this the "shared local network."  `dfx start` and `dfx stop` will manage this network when run outside of any project directory, or when a a project's dfx.json does not define the `local` network.  The dfx.json template for new projects no longer defines any networks.
+
+We recommend that you remove the `local` network definition from dfx.json and instead use the shared local network.
+
+See [Local Server Configuration](docs/cli-reference/dfx-start.md#local-server-configuration) for details.
+
+dfx now stores data and control files in one of three places, rather than directly under `.dfx/`:
+- `.dfx/network/local` (for projects in which dfx.json defines the local network)
+- `$HOME/.local/share/dfx/network/local` (for the shared local network on Linux)
+- `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (for the shared local network on OSX)
+
 ### feat!: option for nodejs compatibility in dfx generate
 
 Users can now specify `node_compatibility: true` in `declarations`. The flag introduces `node.js` enhancements, which include importing `isomorphic-fetch` and configuring the default actor with `isomorphic-fetch` and `host`.
