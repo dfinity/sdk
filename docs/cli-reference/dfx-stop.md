@@ -36,12 +36,12 @@ For a project-specific local network:
 cat .dfx/network/local/pid
 ```
 
-For the local shared network, on Linux:
+For the shared local network, on Linux:
 ``` bash
 cat $HOME/.local/share/dfx/network/local/pid
 ```
 
-For the local shared network, on MacOS:
+For the shared local network, on MacOS:
 ``` bash
 cat '$HOME/Library/Application Support/org.dfinity.dfx/network/local/pid'
 ```
