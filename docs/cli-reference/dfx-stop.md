@@ -29,13 +29,23 @@ dfx stop
 
 If the local canister execution environment is running in a current shell rather than in the background, open a new terminal shell, change to a project directory, then run the `dfx stop` command.
 
-(todo: pid files are now in one of three places)
+The current process identifier (`pid`) for the canister execution environment process started by `dfx` is recorded in a file named `pid`. You can view the process identifier before running the `dfx stop` command by running one of the following commands:
 
-The current process identifier (`pid`) for the canister execution environment process started by `dfx` is recorded in the `.dfx/pid` file. You can view the process identifier before running the `dfx stop` command by running the following command:
-
+For a project-specific local network:
 ``` bash
-more .dfx/pid
+cat .dfx/network/local/pid
 ```
+
+For the local shared network, on Linux:
+``` bash
+cat $HOME/.local/share/dfx/network/local/pid
+```
+
+For the local shared network, on MacOS:
+``` bash
+cat '$HOME/Library/Application Support/org.dfinity.dfx/network/local/pid'
+```
+
 
 This command displays a process identifier similar to the following:
 

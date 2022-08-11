@@ -23,7 +23,7 @@ See [Local Server Configuration](docs/cli-reference/dfx-start.md#local-server-co
 dfx now stores data and control files in one of three places, rather than directly under `.dfx/`:
 - `.dfx/network/local` (for projects in which dfx.json defines the local network)
 - `$HOME/.local/share/dfx/network/local` (for the shared local network on Linux)
-- `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (for the shared local network on OSX)
+- `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (for the shared local network on MacOS)
 
 ### feat!: option for nodejs compatibility in dfx generate
 
