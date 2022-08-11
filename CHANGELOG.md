@@ -10,11 +10,11 @@ By default, dfx now manages the replica process in a way that is independent of 
 (storing data files under $HOME), because we think it communicates the idea adequately.
 
 The intended benefits:
-- facilitates deploying separate dapps alongside one another, similar to working on mainnet.
-- allows one to run `dfx start`
+- deploying dapps from separate projects alongside one another, similar to working with separate dapps on mainnet
+- run `dfx start` from any directory
 - run `dfx stop` from any directory, rather than having to remember where you last ran `dfx start`
 
-We're calling this the "shared local network."  `dfx start` and `dfx stop` will manage this network when run outside of any project directory, or when a a project's dfx.json does not define the `local` network.  The dfx.json template for new projects no longer defines any networks.
+We're calling this the "shared local network."  `dfx start` and `dfx stop` will manage this network when run outside any project directory, or when a project's dfx.json does not define the `local` network.  The dfx.json template for new projects no longer defines any networks.
 
 We recommend that you remove the `local` network definition from dfx.json and instead use the shared local network.
 

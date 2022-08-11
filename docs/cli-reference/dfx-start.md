@@ -62,9 +62,9 @@ more .dfx/pid
 
 ### The Shared Local Network
 
-By default, `dfx start` manages a single replica that is independent from any given local project.  This is similar to the management of canisters on mainnet, where dfx deploys canisters for any of your local project.
+By default, `dfx start` manages a single replica that is independent of any given local project.  Running `dfx deploy` and other commands will manage canisters on this single local network, in the same way that `dfx deploy --network ic` deploys separate projects to mainnet.
 
-If run from outside any dfx project, or if dfx.json does not define the `local` network, then `dfx start` looks for the `local` network definition in `$HOME/.config/dfx/networks.json`.  If this file does not exist or does not contain a definition for the `local` network, then dfx will use the following default definition:
+If run from outside any dfx project, or if dfx.json does not define the `local` network, then `dfx start` looks for the `local` network definition in `$HOME/.config/dfx/networks.json`.  If this file does not exist or does not contain a definition for the `local` network, then dfx uses the following default definition:
 
 ```
 {
@@ -75,17 +75,14 @@ If run from outside any dfx project, or if dfx.json does not define the `local` 
 }
 ```
 
-dfx stores data for a project-specific local network in one of the following locations, depending on your operating system:
+dfx stores data for the shared local network in one of the following locations, depending on your operating system:
 - `$HOME/.local/share/dfx/network/local` (Linux)
 - `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (Macos)
 
 ### Project-Specific Local Networks
 
-If dfx.json defines the `local` network, then `dfx start` will use this definition and store all data files relative to the project.
+If dfx.json defines the `local` network, then `dfx start` will use this definition and store network data files under `\<project dir\>/.dfx/network/local`. 
 
-Such project-specific networks are deprecated, slated to be removed after February 2023.  We encourage you to remove any definitions
-of the `local` network from your project's dfx.json file and instead use the default local network that is shared by all projects.
+Such project-specific networks are deprecated, slated to be removed after February 2023.  We encourage you to remove any definitions of the `local` network from your project's dfx.json file and instead use the default shared local network.
 
 Note that for projects that define the `local` network in dfx.json, you can only run the `dfx start` and `dfx stop` commands from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
-
-dfx stores data for a project-specific local network in `\<project dir\>/.dfx/network/local`.
