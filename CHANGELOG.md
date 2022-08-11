@@ -4,6 +4,33 @@
 
 ## DFX
 
+### feat!: option for nodejs compatibility in dfx generate
+
+Users can now specify `node_compatibility: true` in `declarations`. The flag introduces `node.js` enhancements, which include importing `isomorphic-fetch` and configuring the default actor with `isomorphic-fetch` and `host`.
+
+```json
+// dfx.json
+"declarations": {
+  "output": "src/declarations",
+  "node_compatibility": true
+}
+```
+
+#### JS codegen location deprecation
+
+DFX new template now uses `dfx generate` instead of `rsync`. Adds deprecation warning to `index.js` in `.dfx/<network-name>/<canister-name>` encouringing developers to migrate to the `dfx generate` command instead. If you have a `package.json` file that uses `rsync` from `.dfx`, consider switching to something like this:
+
+```json
+"scripts": {
+  "build": "webpack",
+  "prebuild": "npm run generate",
+  "start": "webpack serve --mode development --env development",
+  "prestart": "npm run generate",
+  // It's faster to only generate canisters you depend on, omitting the frontend canister
+  "generate": "dfx generate hello_backend"
+},
+```
+
 ### fix!: removed unused --root parameter from dfx bootstrap
 
 ### feat: canister installation now waits for the replica
