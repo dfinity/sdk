@@ -2,11 +2,7 @@
 
 Use the `dfx start` command to start a local canister execution environment and web server processes. This command enables you to deploy canisters to the local canister execution environment to test your dapps during development.
 
-By default, all local dfx projects will use this local canister execution environment.  
-
-If your project's dfx.json contains a definition for the local network, then this local canister execution 
-
-Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
+By default, all local dfx projects will use this single local canister execution environment, and you can run `dfx start` and `dfx stop` from any directory.  See [Local Server Configuration](#local-server-configuration) and [Project-Specific Local Networks](#project-specific-local-networks) below for exceptions.
 
 ## Basic usage
 
@@ -62,11 +58,13 @@ You can view the current process identifier (`pid`) for the local canister execu
 more .dfx/pid
 ```
 
-## Configuration
+## Local Server Configuration
 
-If dfx.json defines the `local` network, `dfx start` will use this definition and store all data files relative to the project.
+### The Shared Local Network
 
-Otherwise, `dfx start` looks for the `local` network in `$HOME/.config/dfx/networks.json`.  If this file does not exist or does not contain a definition for the `local` network, then dfx will use the following default definition:
+By default, `dfx start` manages a single replica that is independent from any given local project.  This is similar to the management of canisters on mainnet, where dfx deploys canisters for any of your local project.
+
+If run from outside any dfx project, or if dfx.json does not define the `local` network, then `dfx start` looks for the `local` network definition in `$HOME/.config/dfx/networks.json`.  If this file does not exist or does not contain a definition for the `local` network, then dfx will use the following default definition:
 
 ```
 {
@@ -76,3 +74,12 @@ Otherwise, `dfx start` looks for the `local` network in `$HOME/.config/dfx/netwo
   }
 }
 ```
+
+### Project-Specific Local Networks
+
+If dfx.json defines the `local` network, then `dfx start` will use this definition and store all data files relative to the project.
+
+Such project-specific networks are deprecated, slated to be removed after February 2023.  We encourage you to remove any definitions
+of the `local` network from your project's dfx.json file and instead use the default local network that is shared by all projects.
+
+Note that for projects that define the `local` network in dfx.json, you can only run the `dfx start` and `dfx stop` commands from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
