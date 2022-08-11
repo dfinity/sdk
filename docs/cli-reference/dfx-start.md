@@ -1,6 +1,10 @@
 # dfx start
 
-Use the `dfx start` command to start a local canister execution environment and web server processes for the current project. This command enables you to deploy canisters to the local canister execution environment to test your dapps during development.
+Use the `dfx start` command to start a local canister execution environment and web server processes. This command enables you to deploy canisters to the local canister execution environment to test your dapps during development.
+
+By default, all local dfx projects will use this local canister execution environment.  
+
+If your project's dfx.json contains a definition for the local network, then this local canister execution 
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
@@ -56,4 +60,19 @@ You can view the current process identifier (`pid`) for the local canister execu
 
 ``` bash
 more .dfx/pid
+```
+
+## Configuration
+
+If dfx.json defines the `local` network, `dfx start` will use this definition and store all data files relative to the project.
+
+Otherwise, `dfx start` looks for the `local` network in `$HOME/.config/dfx/networks.json`.  If this file does not exist or does not contain a definition for the `local` network, then dfx will use the following default definition:
+
+```
+{
+  "local": {
+    "bind": "127.0.0.1:8000",
+    "type": "ephemeral"
+  }
+}
 ```

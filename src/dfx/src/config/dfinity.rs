@@ -443,9 +443,11 @@ pub struct ConfigInterface {
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+pub type TopLevelConfigNetworks = BTreeMap<String, ConfigNetwork>;
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct NetworksConfigInterface {
-    pub networks: BTreeMap<String, ConfigNetwork>,
+    pub networks: TopLevelConfigNetworks,
 }
 
 impl ConfigCanistersCanister {}
