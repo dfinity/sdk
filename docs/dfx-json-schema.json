@@ -115,6 +115,50 @@
         }
       }
     },
+    "CanisterMetadataSection": {
+      "title": "Canister Metadata Configuration",
+      "description": "Configures a custom metadata section for the canister wasm. dfx uses the first definition of a given name matching the current network, ignoring any of the same name that follow.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "title": "Name",
+          "description": "The name of the wasm section",
+          "type": "string"
+        },
+        "networks": {
+          "title": "Networks",
+          "description": "Networks this section applies to. If this field is absent, then it applies to all networks. An empty array means this element will not apply to any network.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "path": {
+          "title": "Path",
+          "description": "Path to file containing section contents. For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use the canister's candid definition. If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's actual candid service definition.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "title": "Visibility",
+          "default": "public",
+          "allOf": [
+            {
+              "$ref": "#/definitions/MetadataVisibility"
+            }
+          ]
+        }
+      }
+    },
     "ConfigCanistersCanister": {
       "title": "Canister Configuration",
       "description": "Configurations for a single canister.",
@@ -289,6 +333,15 @@
             "string",
             "null"
           ]
+        },
+        "metadata": {
+          "title": "Metadata",
+          "description": "Defines metadata sections to set in the canister .wasm",
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CanisterMetadataSection"
+          }
         },
         "post_install": {
           "title": "Post-Install Commands",
@@ -688,6 +741,13 @@
           "minimum": 0.0
         }
       }
+    },
+    "MetadataVisibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private"
+      ]
     },
     "NetworkType": {
       "title": "Network Type",

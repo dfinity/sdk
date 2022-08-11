@@ -236,27 +236,3 @@ teardown() {
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/e2e_project_backend.wasm
 }
-
-@test "does not add candid:service metadata for a custom canister if there are no build steps" {
-  install_asset prebuilt_custom_canister
-  install_asset wasm/identity
-
-  dfx_start
-  dfx deploy
-
-  # this canister has a build step, so dfx sets the candid metadata
-  dfx canister metadata custom_with_build_step candid:service >from_canister.txt
-  diff custom_with_build_step.did from_canister.txt
-
-  # this canister doesn't have a build step, so dfx leaves the candid metadata as-is
-  dfx canister metadata prebuilt_custom_no_build candid:service >from_canister.txt
-  diff main.did from_canister.txt
-
-  # this canister has a build step, but it is an empty string, so dfx leaves the candid:service metadata as-is
-  dfx canister metadata prebuilt_custom_blank_build candid:service >from_canister.txt
-  diff main.did from_canister.txt
-
-  # this canister has a build step, but it is an empty array, so dfx leaves the candid:service metadata as-is
-  dfx canister metadata prebuilt_custom_empty_build candid:service >from_canister.txt
-  diff main.did from_canister.txt
-}

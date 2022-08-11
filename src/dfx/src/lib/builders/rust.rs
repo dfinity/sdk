@@ -105,7 +105,6 @@ impl CanisterBuilder for RustBuilder {
             canister_id,
             wasm: WasmBuildOutput::File(rust_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(rust_info.get_output_idl_path().to_path_buf()),
-            add_candid_service_metadata: true,
         })
     }
 

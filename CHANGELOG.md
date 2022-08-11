@@ -69,6 +69,27 @@ If you want to disable this behavior, you can config it in dfx.json:
         }
     }
 
+### feat: configurable custom wasm sections
+
+It's now possible to define custom wasm metadata sections and their visibility in dfx.json.
+
+At present, dfx can only add wasm metadata sections to canisters that are in wasm format.  It cannot add metadata sections to compressed canisters.  Since the frontend canister is now compressed, this means that at present it is not possible to add custom metadata sections to the frontend canister.
+
+dfx no longer adds `candid:service` metadata to custom canisters by default.  If you want dfx to add your canister's candid definition to your custom canister, you can do so like this:
+
+```
+    "my_canister_name": {
+      "type": "custom",
+      "candid": "main.did",
+      "wasm": "main.wasm",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    },
+```
+
 ### fix: Valid canister-based env vars
 
 Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_${CANISTER_NAME}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.

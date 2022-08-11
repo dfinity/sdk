@@ -1,4 +1,4 @@
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, MetadataVisibility};
 use crate::lib::builders::{
     custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
     WasmBuildOutput,
@@ -6,21 +6,23 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::metadata::names::CANDID_SERVICE;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
 
-use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
+use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 
@@ -97,6 +99,81 @@ impl Canister {
     pub fn generate(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
         self.builder.generate(pool, &self.info, build_config)
     }
+
+    #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
+    pub(crate) fn apply_metadata(&self, logger: &Logger) -> DfxResult {
+        let metadata = self.info.metadata();
+        if metadata.sections.is_empty() {
+            return Ok(());
+        }
+
+        let wasm_path = self.info.get_build_wasm_path();
+        let idl_path = self.info.get_build_idl_path();
+
+        if !is_wasm_format(&wasm_path)? {
+            warn!(
+                logger,
+                "Canister '{}': cannot apply metadata because the canister is not wasm format",
+                self.info.get_name()
+            );
+            return Ok(());
+        }
+
+        let mut m = std::fs::read(&wasm_path).with_context(|| format!("Failed to read wasm at {}", wasm_path.display()))?;
+
+        for (name, section) in &metadata.sections {
+            if section.name == CANDID_SERVICE && self.info.is_motoko() {
+                if let Some(specified_path) = &section.path {
+                    check_valid_subtype(&idl_path, specified_path)?
+                } else {
+                    // Motoko compiler handles this
+                    continue;
+                }
+            }
+
+            let metadata_path = match section.path.as_ref() {
+                Some(path) => path,
+                None if section.name == CANDID_SERVICE => &idl_path,
+                _ => bail!(
+                    "Metadata section must specify a path.  section: {:?}",
+                    &section
+                ),
+            };
+
+            let data = std::fs::read(&metadata_path)
+                .with_context(|| format!("Failed to read {}", metadata_path.to_string_lossy()))?;
+
+            let visibility = match section.visibility {
+                MetadataVisibility::Public => Kind::Public,
+                MetadataVisibility::Private => Kind::Private,
+            };
+
+            // if the metadata already exists in the wasm with a different visibility,
+            // then we have to remove it
+            m = remove_metadata(&m, name)?;
+
+            m = add_metadata(&m, visibility, name, data)?;
+        }
+
+        std::fs::write(&wasm_path, &m)
+            .with_context(|| format!("Could not write WASM to {:?}", wasm_path))
+    }
+}
+
+#[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
+fn check_valid_subtype(compiled_idl_path: &PathBuf, specified_idl_path: &PathBuf) -> DfxResult {
+    let (mut env, opt_specified) =
+        check_candid_file(&specified_idl_path).context("Checking specified candid file.")?;
+    let specified_type =
+        opt_specified.expect("Specified did file should contain some service interface");
+    let (env2, opt_compiled) =
+        check_candid_file(&compiled_idl_path).context("Checking compiled candid file.")?;
+    let compiled_type =
+        opt_compiled.expect("Compiled did file should contain some service interface");
+    let mut gamma = HashSet::new();
+    let specified_type = env.merge_type(env2, specified_type);
+    candid::types::subtype::subtype(&mut gamma, &env, &compiled_type, &specified_type)?;
+    Ok(())
 }
 
 /// A canister pool is a list of canisters.
@@ -335,9 +412,8 @@ impl CanisterPool {
                 )
             })?;
         }
-        if build_output.add_candid_service_metadata {
-            add_candid_service_metadata(&wasm_file_path, &idl_file_path)?;
-        }
+
+        canister.apply_metadata(self.get_logger())?;
 
         let canister_id = canister.canister_id();
 

@@ -6,6 +6,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
+use crate::config::dfinity::MetadataVisibility::Public;
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use candid::Principal;
@@ -15,7 +16,7 @@ use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::default::Default;
 use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
@@ -52,6 +53,59 @@ pub struct ConfigCanistersCanisterRemote {
     /// For all networks listed here, this canister is considered 'remote'.
     #[schemars(with = "BTreeMap<String, String>")]
     pub id: BTreeMap<String, Principal>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum MetadataVisibility {
+    /// Anyone can query the metadata
+    Public,
+
+    /// Only the controllers of the canister can query the metadata.
+    Private,
+}
+
+impl Default for MetadataVisibility {
+    fn default() -> Self {
+        Public
+    }
+}
+
+/// # Canister Metadata Configuration
+/// Configures a custom metadata section for the canister wasm.
+/// dfx uses the first definition of a given name matching the current network, ignoring any of the same name that follow.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct CanisterMetadataSection {
+    /// # Name
+    /// The name of the wasm section
+    pub name: String,
+
+    /// # Visibility
+    #[serde(default)]
+    pub visibility: MetadataVisibility,
+
+    /// # Networks
+    /// Networks this section applies to.
+    /// If this field is absent, then it applies to all networks.
+    /// An empty array means this element will not apply to any network.
+    pub networks: Option<BTreeSet<String>>,
+
+    /// # Path
+    /// Path to file containing section contents.
+    /// For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use
+    /// the canister's candid definition.
+    /// If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's
+    /// actual candid service definition.
+    pub path: Option<PathBuf>,
+}
+
+impl CanisterMetadataSection {
+    pub fn applies_to_network(&self, network: &str) -> bool {
+        self.networks
+            .as_ref()
+            .map(|networks| networks.contains(network))
+            .unwrap_or(true)
+    }
 }
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
@@ -114,6 +168,11 @@ pub struct ConfigCanistersCanister {
     /// Default is true.
     #[serde(default = "default_as_true")]
     pub shrink: bool,
+
+    /// # Metadata
+    /// Defines metadata sections to set in the canister .wasm
+    #[serde(default)]
+    pub metadata: Vec<CanisterMetadataSection>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
