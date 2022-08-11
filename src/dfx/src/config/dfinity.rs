@@ -846,7 +846,9 @@ impl NetworksConfig {
             Ok(NetworksConfig {
                 path,
                 json: Default::default(),
-                networks_config: NetworksConfigInterface { networks: BTreeMap::new() },
+                networks_config: NetworksConfigInterface {
+                    networks: BTreeMap::new(),
+                },
             })
         }
     }
@@ -857,9 +859,7 @@ impl NetworksConfig {
             .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
 
         let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)?;
-        let networks_config = NetworksConfigInterface {
-            networks
-        };
+        let networks_config = NetworksConfigInterface { networks };
         let json = serde_json::from_slice(&content)?;
         let path = PathBuf::from(path);
         Ok(NetworksConfig {
