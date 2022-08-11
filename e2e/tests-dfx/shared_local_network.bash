@@ -19,6 +19,7 @@ teardown() {
 }
 
 @test "project data is cleared after dfx start --clean from outside the project" {
+    [ "$USE_IC_REF" ] && skip "start_dfx does not support parameters with emulator"
 
     mkdir somewhere
     (
@@ -86,6 +87,8 @@ teardown() {
 
 
 @test "wallet config file is reset after start --clean" {
+    [ "$USE_IC_REF" ] && skip "start_dfx does not support parameters with emulator"
+
     dfx_start
 
     (
@@ -116,25 +119,6 @@ teardown() {
 
     assert_eq "$WALLET_ID_A" "$WALLET_ID_B"
 }
-
-#    ensure_cohesive_network_directory
-#        get_wallet_config_file
-#            wallet_canister_id
-#                canister delete
-#                wallet upgrade
-#                migrate
-#                get_or_create_wallet
-#                    identity get_wallet
-#                    get_or_create_wallet_canister
-#                        canister create
-#                        deploy
-#                        wallet_query
-#                        get_wallet
-#                            wallet balance
-#                            deploy
-#                            wallet_query
-#                            wallet_update
-#                            wallet send
 
 @test "dfx identity rename renames wallet for shared local network" {
      dfx_start
