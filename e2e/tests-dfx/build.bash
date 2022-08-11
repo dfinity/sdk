@@ -170,7 +170,7 @@ teardown() {
 @test "build succeeds when requested network is configured" {
   dfx_start
 
-  setup_actuallylocal_network
+  setup_actuallylocal_shared_network
 
   assert_command dfx canister create --all --network actuallylocal
   assert_command dfx build --network actuallylocal
@@ -178,7 +178,7 @@ teardown() {
 
 @test "build with wallet succeeds when requested network is configured" {
   dfx_start
-  setup_actuallylocal_network
+  setup_actuallylocal_shared_network
   assert_command dfx_set_wallet
 
   assert_command dfx canister create --all --network actuallylocal
@@ -195,7 +195,7 @@ teardown() {
 
 @test "build with wallet output for non-local network is in expected directory" {
   dfx_start
-  setup_actuallylocal_network
+  setup_actuallylocal_shared_network
   assert_command dfx_set_wallet
 
   dfx canister create --all --network actuallylocal

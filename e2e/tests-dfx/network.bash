@@ -18,7 +18,7 @@ teardown() {
 
 @test "create with wallet stores canister ids for default-persistent networks in canister_ids.json" {
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
     dfx_set_wallet
     dfx_set_wallet
 
@@ -32,9 +32,9 @@ teardown() {
 @test "create with wallet stores canister ids for configured-ephemeral networks in canister_ids.json" {
     dfx_start
 
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
     # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+    cat <<<"$(jq .actuallylocal.type=\"ephemeral\" "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
     dfx_set_wallet
 
     dfx canister create --all --network actuallylocal
@@ -62,9 +62,9 @@ teardown() {
     create_networks_json
 
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$webserver_port"'"' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+    cat <<<"$(jq '.local.bind="127.0.0.1:'"$webserver_port"'"' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.type="persistent"' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+    cat <<<"$(jq '.local.type="persistent"' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
 
     assert_command dfx canister create --all --network local
 
@@ -82,7 +82,7 @@ teardown() {
 @test "failure message does include network if for non-local network" {
     dfx_start
 
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     assert_command_fail dfx build --network actuallylocal
     assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend --network actuallylocal"

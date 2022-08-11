@@ -447,7 +447,7 @@ pub struct ConfigInterface {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NetworksConfigInterface {
-    pub networks: Option<BTreeMap<String, ConfigNetwork>>,
+    pub networks: BTreeMap<String, ConfigNetwork>,
 }
 
 impl ConfigCanistersCanister {}
@@ -492,9 +492,7 @@ impl ConfigDefaults {
 
 impl NetworksConfigInterface {
     pub fn get_network(&self, name: &str) -> Option<&ConfigNetwork> {
-        self.networks
-            .as_ref()
-            .and_then(|networks| networks.get(name))
+        self.networks.get(name)
     }
 }
 
@@ -848,7 +846,7 @@ impl NetworksConfig {
             Ok(NetworksConfig {
                 path,
                 json: Default::default(),
-                networks_config: NetworksConfigInterface { networks: None },
+                networks_config: NetworksConfigInterface { networks: BTreeMap::new() },
             })
         }
     }
@@ -858,7 +856,10 @@ impl NetworksConfig {
         let content = std::fs::read(&path)
             .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
 
-        let networks_config = serde_json::from_slice(&content)?;
+        let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)?;
+        let networks_config = NetworksConfigInterface {
+            networks
+        };
         let json = serde_json::from_slice(&content)?;
         let path = PathBuf::from(path);
         Ok(NetworksConfig {

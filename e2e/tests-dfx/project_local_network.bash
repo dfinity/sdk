@@ -135,7 +135,7 @@ teardown() {
     define_project_network
     dfx_start
 
-    setup_actuallylocal_network
+    setup_actuallylocal_project_network
     # shellcheck disable=SC2094
     cat <<<"$(jq .networks.actuallylocal.type=\"ephemeral\" dfx.json)" >dfx.json
     dfx_set_wallet

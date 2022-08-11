@@ -274,14 +274,21 @@ dfx_set_wallet() {
   assert_match 'Wallet set successfully.'
 }
 
-setup_actuallylocal_network() {
+setup_actuallylocal_project_network() {
     webserver_port=$(get_webserver_port)
-    [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
+    # [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' "$E2E_ROUTE_NETWORKS_JSON")" >"$E2E_ROUTE_NETWORKS_JSON"
+    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 }
 
-setup_local_network() {
+setup_actuallylocal_shared_network() {
+    webserver_port=$(get_webserver_port)
+    [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+}
+
+setup_local_shared_network() {
     if [ "$USE_IC_REF" ]
     then
         local replica_port=$(get_ic_ref_port)
@@ -289,10 +296,10 @@ setup_local_network() {
         local replica_port=$(get_replica_port)
     fi
 
-    [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
+    [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
     # shellcheck disable=SC2094
-    cat <<<"$(jq ".networks.local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_ROUTE_NETWORKS_JSON")" >"$E2E_ROUTE_NETWORKS_JSON"
+    cat <<<"$(jq ".local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
 }
 
 use_wallet_wasm() {

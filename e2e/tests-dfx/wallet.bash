@@ -59,7 +59,7 @@ teardown() {
 @test "'dfx identity set-wallet --force' bypasses wallet canister verification" {
     dfx_new hello
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     # get Canister IDs to install the wasm onto
     dfx canister create hello_backend --network actuallylocal
@@ -82,7 +82,7 @@ teardown() {
 @test "deploy wallet" {
     dfx_new hello
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     # get Canister IDs to install the wasm onto
     dfx canister create hello_frontend --network actuallylocal

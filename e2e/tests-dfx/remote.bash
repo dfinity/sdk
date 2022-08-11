@@ -17,7 +17,7 @@ teardown() {
 @test "canister call and sign" {
     install_asset remote/call/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     dfx identity new --disable-encryption alice
 
@@ -31,8 +31,8 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/call/mock
-    setup_actuallylocal_network
-    setup_local_network
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
     # shellcheck disable=SC2094
     cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
 
@@ -98,7 +98,7 @@ teardown() {
 @test "canister create <canister> fails for a remote canister" {
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     dfx identity new --disable-encryption alice
 
@@ -109,8 +109,8 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/basic
-    setup_actuallylocal_network
-    setup_local_network
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
     # shellcheck disable=SC2094
     cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
 
@@ -121,7 +121,7 @@ teardown() {
 @test "canister install <canister> fails for a remote canister" {
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     dfx identity new --disable-encryption alice
 
@@ -132,8 +132,8 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/basic
-    setup_actuallylocal_network
-    setup_local_network
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
     # shellcheck disable=SC2094
     cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
 
@@ -144,7 +144,7 @@ teardown() {
 @test "canister create --all and canister install --all skip remote canisters" {
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     #
     # Set up the "remote" canister, with a different controller in order to
@@ -163,8 +163,8 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/basic
-    setup_actuallylocal_network
-    setup_local_network
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
     # shellcheck disable=SC2094
     cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
 
@@ -213,7 +213,7 @@ teardown() {
 
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     #
     # Set up the "remote" canister, with a different controller in order to
@@ -228,8 +228,8 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/extra
-    setup_actuallylocal_network
-    setup_local_network
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
     # shellcheck disable=SC2094
     cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
 
@@ -250,7 +250,7 @@ teardown() {
 @test "build + install + call -- remote" {
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     #
     # Set up the "remote" canister, with a different controller in order to
@@ -269,8 +269,8 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/basic
-    setup_actuallylocal_network
-    setup_local_network
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
     # shellcheck disable=SC2094
     cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
 
