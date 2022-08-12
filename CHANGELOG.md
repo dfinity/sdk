@@ -104,6 +104,17 @@ a file with extension .old.did that contains the previous interface.  In some
 circumstances these files could be written in the project directory.  dfx now
 always writes them under the .dfx/ directory.
 
+### fix: dfx canister install now accepts arbitrary canister ids
+
+This fixes the following error:
+``` bash
+> dfx canister install --wasm ~/counter.wasm eop7r-riaaa-aaaak-qasxq-cai
+Error: Failed while determining if canister 'eop7r-riaaa-aaaak-qasxq-cai' is remote on network 'ic'.
+Caused by: Failed while determining if canister 'eop7r-riaaa-aaaak-qasxq-cai' is remote on network 'ic'.
+  Failed to figure out if canister 'eop7r-riaaa-aaaak-qasxq-cai' has a remote id on network 'ic'.
+    Invalid argument: Canister eop7r-riaaa-aaaak-qasxq-cai not found in dfx.json
+```
+
 ### feat: enable canister sandboxing
 
 Canister sandboxing is enabled to be consistent with the mainnet.
@@ -112,6 +123,12 @@ Canister sandboxing is enabled to be consistent with the mainnet.
 
 It is now possible to do e.g. `dfx ledger account-id --of-canister fg7gi-vyaaa-aaaal-qadca-cai` as well as `dfx ledger account-id --of-canister my_canister_name` when checking the ledger account id of a canister.
 Previously, dfx only accepted canister aliases and produced an error message that was hard to understand.
+
+### ic-ref
+
+Updated ic-ref to 0.0.1-1fba03ee
+- introduce awaitKnown
+- trivial implementation of idle_cycles_burned_per_day
 
 # 0.11.1
 
