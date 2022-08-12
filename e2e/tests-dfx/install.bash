@@ -81,8 +81,8 @@ teardown() {
     dfx canister create --all
     wallet="${archive:?}/wallet/0.10.0/wallet.wasm"
     CANISTER_ID=$(dfx canister id e2e_project_backend)
-    assert_command dfx canister install $CANISTER_ID --wasm "$wallet"
-    assert_command dfx canister info $CANISTER_ID
+    assert_command dfx canister install "$CANISTER_ID" --wasm "$wallet"
+    assert_command dfx canister info "$CANISTER_ID"
     assert_match "Module hash: 0x$(sha2sum "$wallet" | head -c 64)"
 }
 
