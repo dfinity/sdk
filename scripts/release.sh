@@ -27,7 +27,7 @@ term_reset() {
 
 get_parameters() {
     [ "$#" -eq 1 ] || die "Usage: $0 <n.n.n>"
-    [[ "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-(beta|alpha)\.[0-9]+)?$ ]] || \
+    [[ "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-([A-Za-z]+)\.[0-9]+)?$ ]] || \
         die "'$1' is not a valid semantic version"
 
     export FINAL_RELEASE_BRANCH="release-${BASH_REMATCH[1]}"
@@ -54,21 +54,21 @@ pre_release_check() {
 }
 
 #
-# build the release candidate and export these environment variables:
-#    dfx_rc                    dfx release candidate executable
+# build the release candidate and prepend the target directory to the PATH.
+# package.json now specifies to call "dfx generate", which is why dfx needs to be on the path.
 #
 build_release_candidate() {
     announce "Building dfx release candidate."
     cargo clean --release
     cargo build --release --locked
-    x="$(pwd)/target/release/dfx"
-    export dfx_rc="$x"
+    x="$(pwd)/target/release"
+    "$x/dfx" --version
 
-    echo "Checking for dfx release candidate at $dfx_rc"
-    test -x "$dfx_rc"
+    export PATH="$x:$PATH"
+    [ "$(which dfx)" == "$x/dfx" ] || die "expected dfx on path ($(which dfx) to match built dfx ($x/dfx)"
 
     echo "Deleting existing dfx cache to make sure not to use a stale binary."
-    $dfx_rc cache delete
+    dfx cache delete
 }
 
 wait_for_response() {
@@ -92,25 +92,25 @@ validate_default_project() {
         cd "$PROJECTDIR"
 
         echo "Creating new project."
-        $dfx_rc new hello_world
+        dfx new hello_world
         cd hello_world
 
         echo "Starting the local 'replica' as a background process."
-        $dfx_rc start --background --clean
+        dfx start --background --clean
 
         echo "Installing webpack and webpack-cli"
         npm install webpack webpack-cli
         npm install terser-webpack-plugin
 
         echo "Deploying canisters."
-        $dfx_rc deploy
+        dfx deploy
 
         echo "Calling the canister."
-        $dfx_rc canister call hello_world_backend greet everyone
+        dfx canister call hello_world_backend greet everyone
 
-        hello_world_frontend_canister_id=$($dfx_rc canister id hello_world_frontend)
-        application_canister_id=$($dfx_rc canister id hello_world_backend)
-        candid_ui_id=$($dfx_rc canister id __Candid_UI)
+        hello_world_frontend_canister_id=$(dfx canister id hello_world_frontend)
+        application_canister_id=$(dfx canister id hello_world_backend)
+        candid_ui_id=$(dfx canister id __Candid_UI)
         export hello_world_frontend_url="http://localhost:8000/?canisterId=$hello_world_frontend_canister_id"
         export candid_ui_url="http://localhost:8000/?canisterId=$candid_ui_id&id=$application_canister_id"
 
@@ -147,7 +147,7 @@ validate_default_project() {
         wait_for_response 'no errors on console'
         echo
 
-        $dfx_rc stop
+        dfx stop
     )
 }
 
