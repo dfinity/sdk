@@ -14,8 +14,9 @@ use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::thread::JoinHandle;
+use std::thread::{self, JoinHandle};
 use std::time::Duration;
+use tokio::runtime::Builder;
 use url::Url;
 
 pub mod signals {
@@ -206,7 +207,7 @@ fn icx_proxy_start_thread(
         }
         let address = format!("{}", &address);
         cmd.args(&["--address", &address]);
-        for url in replica_urls {
+        for url in &replica_urls {
             let s = format!("{}", url);
             cmd.args(&["--replica", &s]);
         }
@@ -218,6 +219,22 @@ fn icx_proxy_start_thread(
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting icx-proxy...");
             let mut child = cmd.spawn().expect("Could not start icx-proxy.");
+
+            if let Some(replica0) = replica_urls.get(0).cloned() {
+                let log_clone = logger.clone();
+                thread::spawn(move || {
+                    Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .unwrap()
+                        .block_on(async move {
+                            crate::lib::provider::ping_and_wait(&format!("{replica0}"))
+                                .await
+                                .unwrap();
+                            info!(log_clone, "Dashboard: {replica0}_/dashboard");
+                        })
+                });
+            }
 
             std::fs::write(&icx_proxy_pid_path, "")
                 .expect("Could not write to icx-proxy-pid file.");

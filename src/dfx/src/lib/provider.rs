@@ -9,9 +9,13 @@ use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::{self, expiry_duration};
 use std::path::Path;
+use std::time::Duration;
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
+use garcon::{Delay, Waiter};
+use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
+use ic_agent::Agent;
 use lazy_static::lazy_static;
 use std::sync::{Arc, RwLock};
 use url::Url;
@@ -226,6 +230,36 @@ pub fn parse_provider_url(url: &str) -> DfxResult<String> {
     Url::parse(url)
         .map(|_| String::from(url))
         .with_context(|| format!("Cannot parse provider URL {}.", url))
+}
+
+pub async fn ping_and_wait(url: &str) -> DfxResult {
+    let agent = Agent::builder()
+        .with_transport(
+            ReqwestHttpReplicaV2Transport::create(url)
+                .with_context(|| format!("Failed to create replica transport from url {url}.",))?,
+        )
+        .build()
+        .with_context(|| format!("Failed to build agent with url {url}."))?;
+    let mut waiter = Delay::builder()
+        .timeout(Duration::from_secs(60))
+        .throttle(Duration::from_secs(1))
+        .build();
+    waiter.start();
+    loop {
+        let status = agent.status().await;
+        if let Ok(status) = &status {
+            let healthy = match &status.replica_health_status {
+                Some(status) if status == "healthy" => true,
+                None => true, // emulator doesn't report replica_health_status
+                _ => false,
+            };
+            if healthy {
+                break;
+            }
+        }
+        waiter.wait().map_err(|_| status.unwrap_err())?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
