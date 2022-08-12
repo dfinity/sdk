@@ -6,6 +6,7 @@ setup() {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     standard_setup
     install_asset ledger
+    install_shared_asset ledger_shared
 
     dfx identity import --disable-encryption alice alice.pem
     dfx identity import --disable-encryption bob bob.pem
@@ -13,7 +14,7 @@ setup() {
     dfx_start
 
     # local NNS_URL
-    NNS_URL="http://localhost:$(cat .dfx/replica-configuration/replica-1.port)"
+    NNS_URL="http://localhost:$(get_replica_port)"
     local ic_nns_init
     case "$(uname)" in
     Darwin) ic_nns_init="./ic-nns-init_macos" ;;

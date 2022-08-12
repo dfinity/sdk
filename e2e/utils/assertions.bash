@@ -199,3 +199,11 @@ assert_file_eventually_exists() {
       || (echo "file \"$filename\" was never created" && ls && exit 1)
 }
 
+assert_directory_not_exists() {
+    directory="$1"
+    if [[ -d $directory ]]; then
+        ( echo "Contents of $directory:" ; ls -AlR "$directory" ) \
+        | batslib_decorate "Expected directory '$directory' to not exist." \
+        | fail
+    fi
+}

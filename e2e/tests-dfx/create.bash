@@ -73,13 +73,13 @@ teardown() {
 @test "create succeeds when requested network is configured" {
     dfx_start
 
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
     assert_command dfx canister create --all --network actuallylocal
 }
 
 @test "create with wallet succeeds when requested network is configured" {
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     assert_command dfx_set_wallet
     assert_command dfx canister create --all --network actuallylocal

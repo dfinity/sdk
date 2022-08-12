@@ -757,6 +757,7 @@ dependencies = [
  "crossbeam",
  "ctrlc",
  "dialoguer",
+ "directories-next",
  "env_logger",
  "flate2",
  "fn-error-context",
@@ -893,6 +894,16 @@ dependencies = [
  "block-buffer 0.10.2",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "directories-next"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "339ee130d97a610ea5a5872d2bbb130fdf68884ff09d3028b81bec8a1ac23bbc"
+dependencies = [
+ "cfg-if 1.0.0",
+ "dirs-sys-next",
 ]
 
 [[package]]

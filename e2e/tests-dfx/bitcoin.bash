@@ -19,9 +19,15 @@ teardown() {
     standard_teardown
 }
 
-set_default_bitcoin_enabled() {
+set_project_default_bitcoin_enabled() {
     # shellcheck disable=SC2094
     cat <<<"$(jq '.defaults.bitcoin.enabled=true' dfx.json)" >dfx.json
+}
+
+set_shared_local_network_bitcoin_enabled() {
+    create_networks_json
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.local.bitcoin.enabled=true' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
 }
 
 set_local_network_bitcoin_enabled() {
@@ -37,8 +43,7 @@ set_local_network_bitcoin_enabled() {
 
 @test "dfx restarts replica when ic-btc-adapter restarts" {
     dfx_new hello
-    set_default_bitcoin_enabled
-    dfx_start
+    dfx_start --enable-bitcoin
 
     install_asset greet
     assert_command dfx deploy
@@ -79,7 +84,7 @@ set_local_network_bitcoin_enabled() {
     ID=$(dfx canister id hello_frontend)
 
     timeout 15s sh -c \
-      "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
+      "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
@@ -87,8 +92,7 @@ set_local_network_bitcoin_enabled() {
 
 @test "dfx restarts replica when ic-btc-adapter restarts - replica and bootstrap" {
     dfx_new hello
-    set_default_bitcoin_enabled
-    dfx_replica
+    dfx_replica --enable-bitcoin
     dfx_bootstrap
 
     install_asset greet
@@ -103,12 +107,14 @@ set_local_network_bitcoin_enabled() {
     echo "replica port is $(get_replica_port)"
     echo "ic-btc-adapter pid is $BTC_ADAPTER_PID"
 
+    echo "killing btc adapter"
+
     kill -KILL "$BTC_ADAPTER_PID"
     assert_process_exits "$BTC_ADAPTER_PID" 15s
     assert_process_exits "$REPLICA_PID" 15s
 
     timeout 15s sh -x -c \
-      "until curl --fail --verbose -o /dev/null http://localhost:\$(cat .dfx/replica-configuration/replica-1.port)/api/v2/status; do echo \"waiting for replica to restart on port \$(cat .dfx/replica-configuration/replica-1.port)\"; sleep 1; done" \
+      "until curl --fail --verbose -o /dev/null http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port\")/api/v2/status; do echo \"waiting for replica to restart on port \$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port\")\"; sleep 1; done" \
       || (echo "replica did not restart" && echo "last replica port was $(get_replica_port)" && ps aux && exit 1)
 
     # bootstrap doesn't detect the new replica port, so we have to restart it
@@ -132,12 +138,11 @@ set_local_network_bitcoin_enabled() {
     assert_eq '("Hello, Omega!")'
 }
 
-
 @test "dfx start --bitcoin-node <node> implies --enable-bitcoin" {
     dfx_new hello
     dfx_start "--bitcoin-node" "127.0.0.1:18444"
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
 @test "dfx replica --bitcoin-node <node> implies --enable-bitcoin" {
@@ -145,7 +150,7 @@ set_local_network_bitcoin_enabled() {
     dfx_replica "--bitcoin-node" "127.0.0.1:18444"
     dfx_bootstrap
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
 
@@ -154,7 +159,7 @@ set_local_network_bitcoin_enabled() {
 
     dfx_start --enable-bitcoin
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
 @test "dfx replica --enable-bitcoin with no other configuration succeeds" {
@@ -162,16 +167,26 @@ set_local_network_bitcoin_enabled() {
 
     dfx_replica --enable-bitcoin
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
 @test "can enable bitcoin through default configuration - dfx start" {
     dfx_new hello
-    set_default_bitcoin_enabled
+    define_project_network
+    set_project_default_bitcoin_enabled
 
     dfx_start
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty .dfx/network/local/ic-btc-adapter-pid
+}
+
+@test "can enable bitcoin through shared local network - dfx start" {
+    dfx_new hello
+    set_shared_local_network_bitcoin_enabled
+
+    dfx_start
+
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
 @test "can enable bitcoin through local network configuration - dfx start" {
@@ -180,16 +195,26 @@ set_local_network_bitcoin_enabled() {
 
     dfx_start
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty .dfx/network/local/ic-btc-adapter-pid
 }
 
 @test "can enable bitcoin through default configuration - dfx replica" {
     dfx_new hello
-    set_default_bitcoin_enabled
+    define_project_network
+    set_project_default_bitcoin_enabled
 
     dfx_replica
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
+    assert_file_not_empty .dfx/network/local/ic-btc-adapter-pid
+}
+
+@test "can enable bitcoin through shared local network - dfx replica" {
+    dfx_new hello
+    set_shared_local_network_bitcoin_enabled
+
+    dfx_replica
+
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
 @test "dfx start with both bitcoin and canister http enabled" {
@@ -197,8 +222,8 @@ set_local_network_bitcoin_enabled() {
 
     dfx_start --enable-bitcoin --enable-canister-http
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
-    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
 
     install_asset greet
     assert_command dfx deploy
@@ -212,8 +237,8 @@ set_local_network_bitcoin_enabled() {
     dfx_replica --enable-bitcoin --enable-canister-http
     dfx_bootstrap
 
-    assert_file_not_empty .dfx/ic-btc-adapter-pid
-    assert_file_not_empty .dfx/ic-canister-http-adapter-pid
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
 
     install_asset greet
     assert_command dfx deploy

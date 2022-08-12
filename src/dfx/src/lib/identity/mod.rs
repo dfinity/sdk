@@ -2,12 +2,12 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::config::dfinity::NetworkType;
+use crate::config::dfinity::NetworksConfig;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::EncryptionConfiguration;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 
@@ -43,7 +43,7 @@ pub const IDENTITY_PEM: &str = "identity.pem";
 pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
 pub const IDENTITY_JSON: &str = "identity.json";
 pub const TEMP_IDENTITY_PREFIX: &str = "___temp___";
-const WALLET_CONFIG_FILENAME: &str = "wallets.json";
+pub const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -277,35 +277,25 @@ impl Identity {
     }
 
     #[context("Failed to get path to wallet config file for identity '{}' on network '{}'.", name, network.name)]
-    pub fn get_wallet_config_file(
-        env: &dyn Environment,
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> DfxResult<PathBuf> {
-        Ok(match network.r#type {
-            NetworkType::Persistent => {
+    pub fn get_wallet_config_file(network: &NetworkDescriptor, name: &str) -> DfxResult<PathBuf> {
+        Ok(match &network.r#type {
+            NetworkTypeDescriptor::Persistent => {
                 // Using the global
                 get_config_dfx_dir_path()?
                     .join("identity")
                     .join(name)
                     .join(WALLET_CONFIG_FILENAME)
             }
-            NetworkType::Ephemeral => {
-                env.get_project_temp_dir()
-                    .ok_or_else(||anyhow!("It's only possible to interact with a wallet for a local network from a project directory."))?
-                    .join("local")
-                    .join(WALLET_CONFIG_FILENAME)
-            }
+            NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path.clone(),
         })
     }
 
     #[context("Failed to get wallet config for identity '{}' on network '{}'.", name, network.name)]
     fn wallet_config(
-        env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
     ) -> DfxResult<(PathBuf, WalletGlobalConfig)> {
-        let wallet_path = Identity::get_wallet_config_file(env, network, name)?;
+        let wallet_path = Identity::get_wallet_config_file(network, name)?;
 
         // Read the config file.
         Ok((
@@ -374,13 +364,8 @@ impl Identity {
     }
 
     #[context("Failed to set wallet id to {} for identity '{}' on network '{}'.", id, name, network.name)]
-    pub fn set_wallet_id(
-        env: &dyn Environment,
-        network: &NetworkDescriptor,
-        name: &str,
-        id: Principal,
-    ) -> DfxResult {
-        let (wallet_path, mut config) = Identity::wallet_config(env, network, name)?;
+    pub fn set_wallet_id(network: &NetworkDescriptor, name: &str, id: Principal) -> DfxResult {
+        let (wallet_path, mut config) = Identity::wallet_config(network, name)?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
         let network_map = identities
@@ -396,12 +381,8 @@ impl Identity {
     }
 
     #[allow(dead_code)]
-    pub fn remove_wallet_id(
-        env: &dyn Environment,
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> DfxResult {
-        let (wallet_path, mut config) = Identity::wallet_config(env, network, name)?;
+    pub fn remove_wallet_id(network: &NetworkDescriptor, name: &str) -> DfxResult {
+        let (wallet_path, mut config) = Identity::wallet_config(network, name)?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
         let network_map = identities
@@ -470,6 +451,15 @@ impl Identity {
                 original_identity,
                 renamed_identity,
                 persistent_wallet_path,
+            )?;
+        }
+        let shared_local_network_wallet_path =
+            NetworksConfig::get_network_data_directory("local")?.join(WALLET_CONFIG_FILENAME);
+        if shared_local_network_wallet_path.exists() {
+            Identity::rename_wallet_global_config_key(
+                original_identity,
+                renamed_identity,
+                shared_local_network_wallet_path,
             )?;
         }
         if let Some(temp_dir) = env.get_project_temp_dir() {
@@ -542,7 +532,7 @@ impl Identity {
             .await
             .context("Failed to store wallet wasm.")?;
 
-        Identity::set_wallet_id(env, network, name, canister_id)?;
+        Identity::set_wallet_id(network, name, canister_id)?;
 
         info!(
             env.get_logger(),
@@ -565,7 +555,7 @@ impl Identity {
         name: &str,
         create: bool,
     ) -> DfxResult<Principal> {
-        match Identity::wallet_canister_id(env, network, name)? {
+        match Identity::wallet_canister_id(network, name)? {
             None => {
                 // If the network is not the IC, we ignore the error and create a new wallet for the identity.
                 if !network.is_ic || create {
@@ -584,11 +574,10 @@ impl Identity {
 
     #[context("Failed to get wallet canister id for identity '{}' on network '{}'.", name, network.name)]
     pub fn wallet_canister_id(
-        env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
     ) -> DfxResult<Option<Principal>> {
-        let wallet_path = Identity::get_wallet_config_file(env, network, name)?;
+        let wallet_path = Identity::get_wallet_config_file(network, name)?;
         if !wallet_path.exists() {
             return Ok(None);
         }

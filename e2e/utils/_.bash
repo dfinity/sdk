@@ -10,6 +10,13 @@ install_asset() {
     [ ! -f ./Cargo.toml ] || cargo update
 }
 
+install_shared_asset() {
+    mkdir -p "$(dirname "$E2E_NETWORKS_JSON")"
+
+    ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
+    cp -R $ASSET_ROOT/* "$(dirname "$E2E_NETWORKS_JSON")"
+}
+
 standard_setup() {
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
@@ -28,6 +35,13 @@ standard_setup() {
     export DFX_CACHE_ROOT="$cache_root"
     export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
+
+    if [ "$(uname)" == "Darwin" ]; then
+        export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/Library/Application Support/org.dfinity.dfx/network/local"
+    elif [ "$(uname)" == "Linux" ]; then
+        export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/.local/share/dfx/network/local"
+    fi
+    export E2E_NETWORKS_JSON="$DFX_CONFIG_ROOT/.config/dfx/networks.json"
 }
 
 standard_teardown() {
@@ -91,19 +105,32 @@ dfx_patchelf() {
     done
 }
 
+determine_network_directory() {
+    # not perfect: dfx.json can actually exist in a parent
+    if [ -f dfx.json ] && [ "$(jq .networks.local dfx.json)" != "null" ]; then
+        echo "found dfx.json with local network in $(pwd)"
+        data_dir="$(pwd)/.dfx/network/local"
+        wallets_json="$(pwd)/.dfx/local/wallets.json"
+        dfx_json="$(pwd)/dfx.json"
+        export E2E_NETWORK_DATA_DIRECTORY="$data_dir"
+        export E2E_NETWORK_WALLETS_JSON="$wallets_json"
+        export E2E_ROUTE_NETWORKS_JSON="$dfx_json"
+    else
+        echo "no dfx.json"
+        export E2E_NETWORK_DATA_DIRECTORY="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY"
+        export E2E_NETWORK_WALLETS_JSON="$E2E_NETWORK_DATA_DIRECTORY/wallets.json"
+        export E2E_ROUTE_NETWORKS_JSON="$E2E_NETWORKS_JSON"
+    fi
+}
+
 # Start the replica in the background.
 dfx_start() {
     dfx_patchelf
 
-    if [ "$GITHUB_WORKSPACE" ]; then
-        # no need for random ports on github workflow; even using a random port we sometimes
-        # get 'address in use', so the hope is to avoid that by using a fixed port.
-        FRONTEND_HOST="127.0.0.1:8000"
-    else
-        # Start on random port for parallel test execution (needed on nix/hydra)
-        FRONTEND_HOST="127.0.0.1:0"
-    fi
+    # Start on random port for parallel test execution
+    FRONTEND_HOST="127.0.0.1:0"
 
+    determine_network_directory
     if [ "$USE_IC_REF" ]
     then
         if [[ "$@" == "" ]]; then
@@ -113,8 +140,8 @@ dfx_start() {
             fail
         fi
 
-        test -f .dfx/ic-ref.port
-        local port=$(cat .dfx/ic-ref.port)
+        test -f "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port"
+        local port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port")
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
@@ -125,13 +152,13 @@ dfx_start() {
             dfx start --background "$@" 3>&-
         fi
 
-        local dfx_config_root=.dfx/replica-configuration
+        local dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-        test -f ${dfx_config_root}/replica-1.port
-        local port=$(cat ${dfx_config_root}/replica-1.port)
+        test -f "${dfx_config_root}/replica-1.port"
+        local port=$(cat "${dfx_config_root}/replica-1.port")
     fi
 
-    local webserver_port=$(cat .dfx/webserver-port)
+    local webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
     printf "Replica Configured Port: %s\n" "${port}"
     printf "Webserver Configured Port: %s\n" "${webserver_port}"
@@ -150,6 +177,7 @@ wait_until_replica_healthy() {
 # Start the replica in the background.
 dfx_replica() {
     dfx_patchelf
+    determine_network_directory
     if [ "$USE_IC_REF" ]
     then
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
@@ -159,11 +187,11 @@ dfx_replica() {
         export DFX_REPLICA_PID=$!
 
         timeout 60 sh -c \
-            "until test -s .dfx/ic-ref.port; do echo waiting for ic-ref port; sleep 1; done" \
-            || (echo "replica did not write to .dfx/ic-ref.port file" && exit 1)
+            "until test -s \"$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port\"; do echo waiting for ic-ref port; sleep 1; done" \
+            || (echo "replica did not write to \"$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port\" file" && exit 1)
 
-        test -f .dfx/ic-ref.port
-        local replica_port=$(cat .dfx/ic-ref.port)
+        test -f "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port"
+        local replica_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port")
 
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
@@ -173,12 +201,12 @@ dfx_replica() {
         export DFX_REPLICA_PID=$!
 
         timeout 60 sh -c \
-            "until test -s .dfx/replica-configuration/replica-1.port; do echo waiting for replica port; sleep 1; done" \
+            "until test -s \"$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port\"; do echo waiting for replica port; sleep 1; done" \
             || (echo "replica did not write to port file" && exit 1)
 
-        local dfx_config_root=.dfx/replica-configuration
-        test -f ${dfx_config_root}/replica-1.port
-        local replica_port=$(cat ${dfx_config_root}/replica-1.port)
+        local dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
+        test -f "${dfx_config_root}/replica-1.port"
+        local replica_port=$(cat "${dfx_config_root}/replica-1.port")
 
     fi
 
@@ -203,12 +231,12 @@ dfx_bootstrap() {
     export DFX_BOOTSTRAP_PID=$!
 
     timeout 5 sh -c \
-        'until nc -z localhost $(cat .dfx/webserver-port); do echo waiting for webserver; sleep 1; done' \
-        || (echo "could not connect to webserver on port $(cat .dfx/webserver-port)" && exit 1)
+        "until nc -z localhost \$(cat \"$E2E_NETWORK_DATA_DIRECTORY/webserver-port\"); do echo waiting for webserver; sleep 1; done" \
+        || (echo "could not connect to webserver on port $(get_webserver_port)" && exit 1)
 
     wait_until_replica_healthy
 
-    local webserver_port=$(cat .dfx/webserver-port)
+    webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
     printf "Webserver Configured Port: %s\n", "${webserver_port}"
 }
 
@@ -246,13 +274,21 @@ dfx_set_wallet() {
   assert_match 'Wallet set successfully.'
 }
 
-setup_actuallylocal_network() {
+setup_actuallylocal_project_network() {
     webserver_port=$(get_webserver_port)
+    # [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
     # shellcheck disable=SC2094
     cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
 }
 
-setup_local_network() {
+setup_actuallylocal_shared_network() {
+    webserver_port=$(get_webserver_port)
+    [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
+    # shellcheck disable=SC2094
+    cat <<<"$(jq '.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+}
+
+setup_local_shared_network() {
     if [ "$USE_IC_REF" ]
     then
         local replica_port=$(get_ic_ref_port)
@@ -260,8 +296,10 @@ setup_local_network() {
         local replica_port=$(get_replica_port)
     fi
 
+    [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
+
     # shellcheck disable=SC2094
-    cat <<<"$(jq ".networks.local.bind=\"127.0.0.1:${replica_port}\"" dfx.json)" >dfx.json
+    cat <<<"$(jq ".local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
 }
 
 use_wallet_wasm() {
@@ -269,35 +307,53 @@ use_wallet_wasm() {
     export DFX_WALLET_WASM="${archive}/wallet/$1/wallet.wasm"
 }
 
+wallet_sha() {
+    shasum -a 256 "${archive}/wallet/$1/wallet.wasm" | awk '{ print $1 }'
+}
+
+use_default_wallet_wasm() {
+    unset DFX_WALLET_WASM
+}
+
 get_webserver_port() {
-  cat ".dfx/webserver-port"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port"
 }
 overwrite_webserver_port() {
-  echo "$1" >".dfx/webserver-port"
+  echo "$1" >"$E2E_NETWORK_DATA_DIRECTORY/webserver-port"
 }
 
 get_replica_pid() {
-  cat ".dfx/replica-configuration/replica-pid"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-pid"
 }
 
 get_ic_ref_port() {
-  cat ".dfx/ic-ref.port"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port"
 
 }
 get_replica_port() {
-  cat ".dfx/replica-configuration/replica-1.port"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port"
 }
 
 get_btc_adapter_pid() {
-  cat ".dfx/ic-btc-adapter-pid"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
 get_canister_http_adapter_pid() {
-  cat ".dfx/ic-canister-http-adapter-pid"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
 }
 
 get_icx_proxy_pid() {
-  cat ".dfx/icx-proxy-pid"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/icx-proxy-pid"
+}
+
+create_networks_json() {
+  mkdir -p "$(dirname "$E2E_NETWORKS_JSON")"
+  [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
+}
+
+define_project_network() {
+    # shellcheck disable=SC2094
+    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:8000\" dfx.json)" >dfx.json
 }
 
 use_test_specific_cache_root() {

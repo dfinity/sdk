@@ -31,6 +31,7 @@ crc32fast = "1.3.2"
 crossbeam = "0.8.1"
 ctrlc = { version = "3.2.1", features = [ "termination" ] }
 dialoguer = "0.10.0"
+directories-next = "2.0.0"
 flate2 = "1.0.11"
 fn-error-context = "0.2.0"
 futures = "0.3.21"

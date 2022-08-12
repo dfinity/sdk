@@ -27,7 +27,7 @@ teardown() {
 
     # the urls are a little nicer if the bind address is localhost:8000 rather than 127.0.0.1:8000
     # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bind="localhost:'"$PORT"'"' dfx.json)" >dfx.json
+    echo "{}" | jq '.local.bind="localhost:'"$PORT"'"' >"$E2E_NETWORKS_JSON"
 
     assert_command dfx deploy
     assert_match "e2e_project_backend: http://$CANDID_UI_ID.localhost:$PORT/\?id=$APP_ID"
