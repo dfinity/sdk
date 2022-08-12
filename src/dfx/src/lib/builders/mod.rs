@@ -196,7 +196,7 @@ pub trait CanisterBuilder {
                     // create the handlebars registry
                     let handlebars = Handlebars::new();
 
-                    let mut data = BTreeMap::new();
+                    let mut data: BTreeMap<String, &String> = BTreeMap::new();
 
                     let canister_name = &info.get_name().to_string();
 
@@ -208,9 +208,11 @@ pub trait CanisterBuilder {
                         "".to_string()
                     } else {
                         format!(
-                            r#"/**
-* A ready-to-use agent for the {0} canister
-* @type {{import("@dfinity/agent").ActorSubclass<import("./{0}.did.js")._SERVICE>}}
+                            r#"
+
+/**
+ * A ready-to-use agent for the {0} canister
+ * @type {{import("@dfinity/agent").ActorSubclass<import("./{0}.did.js")._SERVICE>}}
 */
 export const {0} = createActor(canisterId);"#,
                             canister_name
