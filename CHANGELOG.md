@@ -73,6 +73,17 @@ a file with extension .old.did that contains the previous interface.  In some
 circumstances these files could be written in the project directory.  dfx now
 always writes them under the .dfx/ directory.
 
+### fix: dfx canister install now accepts arbitrary canister ids
+
+This fixes the following error:
+``` bash
+> dfx canister install --wasm ~/counter.wasm eop7r-riaaa-aaaak-qasxq-cai
+Error: Failed while determining if canister 'eop7r-riaaa-aaaak-qasxq-cai' is remote on network 'ic'.
+Caused by: Failed while determining if canister 'eop7r-riaaa-aaaak-qasxq-cai' is remote on network 'ic'.
+  Failed to figure out if canister 'eop7r-riaaa-aaaak-qasxq-cai' has a remote id on network 'ic'.
+    Invalid argument: Canister eop7r-riaaa-aaaak-qasxq-cai not found in dfx.json
+```
+
 ### feat: enable canister sandboxing
 
 Canister sandboxing is enabled to be consistent with the mainnet.
