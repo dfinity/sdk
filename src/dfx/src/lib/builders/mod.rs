@@ -207,7 +207,8 @@ pub trait CanisterBuilder {
                         // leave empty for nodejs
                         "".to_string()
                     } else {
-                        format!(r#"
+                        format!(
+                            r#"
 
 /**
  * A ready-to-use agent for the {0} canister
