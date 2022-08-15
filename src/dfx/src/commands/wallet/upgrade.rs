@@ -21,7 +21,16 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
 
-    let canister_id = Identity::wallet_canister_id(env, network, &identity_name)?;
+    let canister_id =
+        if let Some(principal) = Identity::wallet_canister_id(network, &identity_name)? {
+            principal
+        } else {
+            bail!(
+                "There is no wallet defined for identity '{}' on network '{}'.  Nothing to do.",
+                identity_name,
+                &network.name
+            );
+        };
 
     let agent = env
         .get_agent()

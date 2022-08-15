@@ -1,18 +1,20 @@
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
+use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
+use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::network::id::write_network_id;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
+use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::ReplicaConfig;
-use crate::lib::webserver::run_webserver;
 use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
 
-use crate::actors::icx_proxy::IcxProxyConfig;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
@@ -20,6 +22,7 @@ use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
 use std::fs;
+use std::fs::create_dir_all;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -161,26 +164,60 @@ pub fn exec(
         enable_canister_http,
     }: StartOpts,
 ) -> DfxResult {
-    let config = env.get_config_or_anyhow()?;
-    let network_descriptor =
-        get_network_descriptor(env.get_config(), None, LocalBindDetermination::AsConfigured)?;
+    let project_config = env.get_config();
+
+    let network_descriptor_logger = if background {
+        None // so we don't print it out twice
+    } else {
+        Some(env.get_logger().clone())
+    };
+    let network_descriptor = create_network_descriptor(
+        project_config,
+        env.get_networks_config(),
+        None,
+        network_descriptor_logger,
+        LocalBindDetermination::AsConfigured,
+    )?;
+
+    let network_descriptor = apply_command_line_parameters(
+        network_descriptor,
+        host,
+        None,
+        enable_bitcoin,
+        bitcoin_node,
+        enable_canister_http,
+    )?;
+
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
-    let temp_dir = env.get_temp_dir();
-    let build_output_root = temp_dir.join(&network_descriptor.name).join("canisters");
     let pid_file_path = local_server_descriptor.dfx_pid_path();
-    let state_root = local_server_descriptor.state_dir();
 
     check_previous_process_running(&pid_file_path)?;
-
-    let btc_adapter_socket_holder_path = local_server_descriptor.btc_adapter_socket_holder_path();
-    let canister_http_adapter_socket_holder_path =
-        local_server_descriptor.canister_http_adapter_socket_holder_path();
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if clean {
-        clean_state(temp_dir, &state_root)?;
+        clean_state(local_server_descriptor, env.get_project_temp_dir())?;
     }
+
+    let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;
+
+    let network_temp_dir = local_server_descriptor.data_directory.clone();
+    create_dir_all(&network_temp_dir).with_context(|| {
+        format!(
+            "Failed to create network temp directory {}.",
+            network_temp_dir.to_string_lossy()
+        )
+    })?;
+
+    if !local_server_descriptor.network_id_path().exists() {
+        write_network_id(local_server_descriptor)?;
+    }
+
+    let state_root = local_server_descriptor.state_dir();
+
+    let btc_adapter_socket_holder_path = local_server_descriptor.btc_adapter_socket_holder_path();
+    let canister_http_adapter_socket_holder_path =
+        local_server_descriptor.canister_http_adapter_socket_holder_path();
 
     let pid_file_path = empty_writable_path(pid_file_path)?;
     let btc_adapter_pid_file_path =
@@ -208,13 +245,11 @@ pub fn exec(
     let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
     let emulator_port_path = empty_writable_path(local_server_descriptor.ic_ref_port_path())?;
 
-    let (frontend_url, address_and_port) =
-        frontend_address(host, local_server_descriptor, background)?;
-
     if background {
         send_background()?;
         return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
+    local_server_descriptor.describe(true, false);
 
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
@@ -230,8 +265,6 @@ pub fn exec(
         local_server_descriptor,
         &btc_adapter_config_path,
         &btc_adapter_socket_holder_path,
-        enable_bitcoin,
-        bitcoin_node,
     )?;
     let btc_adapter_socket_path = btc_adapter_config
         .as_ref()
@@ -241,7 +274,6 @@ pub fn exec(
         local_server_descriptor,
         &canister_http_adapter_config_path,
         &canister_http_adapter_socket_holder_path,
-        enable_canister_http,
     )?;
     let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
@@ -318,22 +350,11 @@ pub fn exec(
             replica.recipient()
         };
 
-        let webserver_bind = get_reusable_socket_addr(address_and_port.ip(), 0)?;
         let icx_proxy_config = IcxProxyConfig {
             bind: address_and_port,
-            proxy_port: webserver_bind.port(),
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
         };
-
-        run_webserver(
-            env.get_logger().clone(),
-            build_output_root,
-            network_descriptor,
-            config,
-            env.get_temp_dir().to_path_buf(),
-            webserver_bind,
-        )?;
 
         let proxy = start_icx_proxy_actor(
             env,
@@ -356,19 +377,68 @@ pub fn exec(
     Ok(())
 }
 
-#[context("Failed to clean existing replica state.")]
-fn clean_state(temp_dir: &Path, state_root: &Path) -> DfxResult {
-    // Clean the contents of the provided directory including the
-    // directory itself. N.B. This does NOT follow symbolic links -- and I
-    // hope we do not need to.
-    if state_root.is_dir() {
-        fs::remove_dir_all(state_root)
-            .with_context(|| format!("Cannot remove directory at '{}'.", state_root.display()))?;
+pub fn apply_command_line_parameters(
+    network_descriptor: NetworkDescriptor,
+    host: Option<String>,
+    replica_port: Option<String>,
+    enable_bitcoin: bool,
+    bitcoin_nodes: Vec<SocketAddr>,
+    enable_canister_http: bool,
+) -> DfxResult<NetworkDescriptor> {
+    let _ = network_descriptor.local_server_descriptor()?;
+    let mut local_server_descriptor = network_descriptor.local_server_descriptor.unwrap();
+
+    if let Some(host) = host {
+        let host: SocketAddr = host
+            .parse()
+            .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
+        local_server_descriptor = local_server_descriptor.with_bind_address(host);
     }
-    let local_dir = temp_dir.join("local");
-    if local_dir.is_dir() {
-        fs::remove_dir_all(&local_dir)
-            .with_context(|| format!("Cannot remove directory at '{}'.", local_dir.display()))?;
+    if let Some(replica_port) = replica_port {
+        let replica_port: u16 = replica_port
+            .parse()
+            .map_err(|err| error_invalid_argument!("Invalid port number: {}", err))?;
+        local_server_descriptor = local_server_descriptor.with_replica_port(replica_port);
+    }
+    if enable_bitcoin || !bitcoin_nodes.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_bitcoin_enabled();
+    }
+
+    if !bitcoin_nodes.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
+    }
+
+    if enable_canister_http {
+        local_server_descriptor = local_server_descriptor.with_canister_http_enabled();
+    }
+
+    Ok(NetworkDescriptor {
+        local_server_descriptor: Some(local_server_descriptor),
+        ..network_descriptor
+    })
+}
+
+#[context("Failed to clean existing replica state.")]
+fn clean_state(
+    local_server_descriptor: &LocalServerDescriptor,
+    temp_dir: Option<PathBuf>,
+) -> DfxResult {
+    if local_server_descriptor.data_directory.is_dir() {
+        fs::remove_dir_all(&local_server_descriptor.data_directory).with_context(|| {
+            format!(
+                "Cannot remove directory at '{}'",
+                local_server_descriptor.data_directory.display()
+            )
+        })?;
+    }
+
+    if let Some(temp_dir) = temp_dir {
+        let local_dir = temp_dir.join("local");
+        if local_dir.is_dir() {
+            fs::remove_dir_all(&local_dir).with_context(|| {
+                format!("Cannot remove directory at '{}'.", local_dir.display())
+            })?;
+        }
     }
     Ok(())
 }
@@ -388,16 +458,10 @@ fn send_background() -> DfxResult<()> {
 
 #[context("Failed to get frontend address.")]
 fn frontend_address(
-    host: Option<String>,
     local_server_descriptor: &LocalServerDescriptor,
     background: bool,
 ) -> DfxResult<(String, SocketAddr)> {
-    let address_and_port = host
-        .and_then(|host| Option::from(host.parse()))
-        .transpose()
-        .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
-
-    let mut address_and_port = address_and_port.unwrap_or(local_server_descriptor.bind_address);
+    let mut address_and_port = local_server_descriptor.bind_address;
 
     if !background {
         // Since the user may have provided port "0", we need to grab a dynamically
@@ -443,20 +507,17 @@ pub fn configure_btc_adapter_if_enabled(
     local_server_descriptor: &LocalServerDescriptor,
     config_path: &Path,
     uds_holder_path: &Path,
-    enable_bitcoin: bool,
-    nodes: Vec<SocketAddr>,
 ) -> DfxResult<Option<bitcoin::adapter::Config>> {
-    let enable = enable_bitcoin || !nodes.is_empty() || local_server_descriptor.bitcoin.enabled;
-    let log_level = local_server_descriptor.bitcoin.log_level;
-
-    if !enable {
+    if !local_server_descriptor.bitcoin.enabled {
         return Ok(None);
     };
 
-    let nodes = match (nodes, &local_server_descriptor.bitcoin.nodes) {
-        (cli_nodes, _) if !cli_nodes.is_empty() => cli_nodes,
-        (_, Some(default_nodes)) if !default_nodes.is_empty() => default_nodes.clone(),
-        (_, _) => bitcoin::adapter::config::default_nodes(),
+    let log_level = local_server_descriptor.bitcoin.log_level;
+
+    let nodes = if let Some(ref nodes) = local_server_descriptor.bitcoin.nodes {
+        nodes.clone()
+    } else {
+        bitcoin::adapter::config::default_nodes()
     };
 
     let config = write_btc_adapter_config(uds_holder_path, config_path, nodes, log_level)?;
@@ -528,11 +589,8 @@ pub fn configure_canister_http_adapter_if_enabled(
     local_server_descriptor: &LocalServerDescriptor,
     config_path: &Path,
     uds_holder_path: &Path,
-    enable_canister_http: bool,
 ) -> DfxResult<Option<canister_http::adapter::Config>> {
-    let enable = enable_canister_http || local_server_descriptor.canister_http.enabled;
-
-    if !enable {
+    if !local_server_descriptor.canister_http.enabled {
         return Ok(None);
     };
 

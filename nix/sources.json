@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "36df8a4efc6f2da4ccc7ced0d431136f473b2001",
-        "sha256": "0jih98q50wckd5fls9sqr5mzv68awnxfq1wkyixjjdqjpc5apr7m",
+        "rev": "9739cb7f1ea9173c5ed46f4e52c988a33031dfa2",
+        "sha256": "02dafylgckvdagd19gff5yi8x50vpa158mvmjarh8mmwm46v8ryw",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/36df8a4efc6f2da4ccc7ced0d431136f473b2001.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/9739cb7f1ea9173c5ed46f4e52c988a33031dfa2.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister-sandbox-x86_64-darwin": {
@@ -65,20 +65,20 @@
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "00n1s9bg7bilwzfqxvrlwcwh1bzswnwam912xy8zsppl3cbgqxrg",
+        "sha256": "0y51r00wpn4hg2z92ckl122l1g4vbdnmw5nfb41dkmkhlpr2ryq7",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-173cbe84-x86_64-darwin.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-1fba03ee-x86_64-darwin.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-darwin.tar.gz",
-        "version": "0.0.1-173cbe84"
+        "version": "0.0.1-1fba03ee"
     },
     "ic-ref-x86_64-linux": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "04m9hzs9d6d6iqg4xjvhrsyyyh99armjivwhn8501c1npw2gmr2i",
+        "sha256": "0did5sjclvjiqj8nk1636m35n4b1fxdpklqhg3m4p47wnd2nzxnn",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-173cbe84-x86_64-linux.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-1fba03ee-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
-        "version": "0.0.1-173cbe84"
+        "version": "0.0.1-1fba03ee"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,

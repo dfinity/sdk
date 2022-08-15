@@ -1,5 +1,5 @@
 use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, NetworksConfig};
 use crate::config::{cache, dfx_version};
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
@@ -15,21 +15,21 @@ use slog::{Logger, Record};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fs::create_dir_all;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Option<Arc<Config>>;
+    fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     fn is_in_project(&self) -> bool;
-    /// Return a temporary directory for configuration if none exists
-    /// for the current project or if not in a project. Following
-    /// invocations by other processes in the same project should
-    /// return the same configuration directory.
-    fn get_temp_dir(&self) -> &Path;
+    /// Return a temporary directory for the current project.
+    /// If there is no project (no dfx.json), there is no project temp dir.
+    fn get_project_temp_dir(&self) -> Option<PathBuf>;
+
     fn get_version(&self) -> &Version;
 
     /// This is value of the name passed to dfx `--identity <name>`
@@ -60,7 +60,7 @@ pub trait Environment {
 
 pub struct EnvironmentImpl {
     config: Option<Arc<Config>>,
-    temp_dir: PathBuf,
+    shared_networks_config: Arc<NetworksConfig>,
 
     cache: Arc<dyn Cache>,
 
@@ -74,15 +74,14 @@ pub struct EnvironmentImpl {
 
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
+        let shared_networks_config = NetworksConfig::new()?;
         let config = Config::from_current_dir()?;
-        let temp_dir = match &config {
-            None => tempfile::tempdir()
-                .expect("Could not create a temporary directory.")
-                .into_path(),
-            Some(c) => c.get_path().parent().unwrap().join(".dfx"),
-        };
-        create_dir_all(&temp_dir)
-            .with_context(|| format!("Failed to create temp directory {}.", temp_dir.display()))?;
+        if let Some(ref config) = config {
+            let temp_dir = config.get_temp_path();
+            create_dir_all(&temp_dir).with_context(|| {
+                format!("Failed to create temp directory {}.", temp_dir.display())
+            })?;
+        }
 
         // Figure out which version of DFX we should be running. This will use the following
         // fallback sequence:
@@ -114,7 +113,7 @@ impl EnvironmentImpl {
         Ok(EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),
             config: config.map(Arc::new),
-            temp_dir,
+            shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
             logger: None,
             progress: true,
@@ -147,6 +146,10 @@ impl Environment for EnvironmentImpl {
         self.config.as_ref().map(Arc::clone)
     }
 
+    fn get_networks_config(&self) -> Arc<NetworksConfig> {
+        self.shared_networks_config.clone()
+    }
+
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
         self.get_config().ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
@@ -157,8 +160,8 @@ impl Environment for EnvironmentImpl {
         self.config.is_some()
     }
 
-    fn get_temp_dir(&self) -> &Path {
-        &self.temp_dir
+    fn get_project_temp_dir(&self) -> Option<PathBuf> {
+        self.config.as_ref().map(|c| c.get_temp_path())
     }
 
     fn get_version(&self) -> &Version {
@@ -245,6 +248,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_config()
     }
 
+    fn get_networks_config(&self) -> Arc<NetworksConfig> {
+        self.backend.get_networks_config()
+    }
+
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
         self.get_config().ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
@@ -255,8 +262,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.is_in_project()
     }
 
-    fn get_temp_dir(&self) -> &Path {
-        self.backend.get_temp_dir()
+    fn get_project_temp_dir(&self) -> Option<PathBuf> {
+        self.backend.get_project_temp_dir()
     }
 
     fn get_version(&self) -> &Version {

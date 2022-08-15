@@ -111,7 +111,7 @@ teardown() {
     dfx_start
     dfx deploy
     assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100
-    assert_command dfx canister --wallet "$(dfx identity get-wallet)" call hello_backend greet '' --with-cycles 100
+    assert_command dfx canister call hello_backend greet '' --with-cycles 100 --wallet "$(dfx identity get-wallet)"
 }
 
 @test "call by canister id outside of a project" {
@@ -121,12 +121,12 @@ teardown() {
     dfx build
     dfx canister install hello_backend
     ID="$(dfx canister id hello_backend)"
-    NETWORK="http://localhost:$(cat .dfx/webserver-port)"
+    NETWORK="http://localhost:$(get_webserver_port)"
     (
-        cd "$DFX_E2E_TEMP_DIR"
+        cd "$E2E_TEMP_DIR"
         mkdir "not-a-project-dir"
         cd "not-a-project-dir"
-        assert_command dfx canister --network "$NETWORK" call "$ID" greet '("you")'
+        assert_command dfx canister call "$ID" greet '("you")' --network "$NETWORK"
         assert_match '("Hello, you!")'
     )
 }

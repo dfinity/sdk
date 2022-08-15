@@ -1,0 +1,9 @@
+{
+    "networks": {
+        "local": {
+            "replica": {
+                "subnet_type": "system"
+            }
+        }
+    }
+}

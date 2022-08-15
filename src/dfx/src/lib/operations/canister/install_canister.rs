@@ -16,13 +16,14 @@ use crate::util::{expiry_duration, read_module_metadata};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
-use ic_agent::Agent;
+use garcon::{Delay, Waiter};
+use ic_agent::{Agent, AgentError};
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
-use openssl::sha::Sha256;
+use openssl::sha::sha256;
 use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
@@ -58,7 +59,7 @@ pub async fn install_canister(
             let candid_path = canister_info
                 .get_output_idl_path()
                 .expect("Generated did file not found");
-            let deployed_path = candid_path.with_extension("old.did");
+            let deployed_path = canister_info.get_build_idl_path().with_extension("old.did");
             std::fs::write(&deployed_path, candid).with_context(|| {
                 format!(
                     "Failed to write candid to {}.",
@@ -113,14 +114,15 @@ pub async fn install_canister(
     let wasm_path = canister_info.get_build_wasm_path();
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
+    let new_hash = sha256(&wasm_module);
 
     if mode == InstallMode::Upgrade
-        && wasm_module_already_installed(&wasm_module, installed_module_hash.as_deref())
+        && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash)
         && !upgrade_unchanged
     {
         println!(
             "Module hash {} is already installed.",
-            hex::encode(installed_module_hash.unwrap())
+            hex::encode(installed_module_hash.as_ref().unwrap())
         );
     } else {
         install_canister_wasm(
@@ -136,7 +138,62 @@ pub async fn install_canister(
         )
         .await?;
     }
-
+    let mut waiter = Delay::builder()
+        .with(Delay::count_timeout(30))
+        .exponential_backoff_capped(Duration::from_millis(500), 1.4, Duration::from_secs(5))
+        .build();
+    waiter.start();
+    let mut times = 0;
+    loop {
+        match agent
+            .read_state_canister_info(canister_id, "module_hash", false)
+            .await
+        {
+            Ok(reported_hash) => {
+                if reported_hash == new_hash {
+                    break;
+                } else if installed_module_hash
+                    .as_deref()
+                    .map_or(true, |old_hash| old_hash == reported_hash)
+                {
+                    times += 1;
+                    if times > 3 {
+                        info!(
+                            env.get_logger(),
+                            "Waiting for module change to be reflected in system state tree..."
+                        )
+                    }
+                    waiter.async_wait().await
+                        .map_err(|_| anyhow!("Timed out waiting for the module to update to the new hash in the state tree. \
+                            Something may have gone wrong with the upload. \
+                            No post-installation tasks have been run, including asset uploads."))?;
+                } else {
+                    bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
+                        It has likely been modified while this command is running. \
+                        The state of the canister is unknown. \
+                        For this reason, no post-installation tasks have been run, including asset uploads.",
+                        old = installed_module_hash.map_or_else(|| "none".to_string(), hex::encode),
+                        new = hex::encode(new_hash),
+                        reported = hex::encode(reported_hash),
+                    )
+                }
+            }
+            Err(AgentError::LookupPathAbsent(_) | AgentError::LookupPathUnknown(_)) => {
+                times += 1;
+                if times > 3 {
+                    info!(
+                        env.get_logger(),
+                        "Waiting for module change to be reflected in system state tree..."
+                    )
+                }
+                waiter.async_wait().await
+                    .map_err(|_| anyhow!("Timed out waiting for the module to update to the new hash in the state tree. \
+                        Something may have gone wrong with the upload. \
+                        No post-installation tasks have been run, including asset uploads."))?;
+            }
+            Err(e) => bail!(e),
+        }
+    }
     if canister_info.is_assets() {
         if let CallSender::Wallet(wallet_id) = call_sender {
             let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
@@ -338,20 +395,6 @@ pub async fn install_wallet(
         .await
         .context("Failed to store wallet wasm in container.")?;
     Ok(())
-}
-
-fn wasm_module_already_installed(
-    wasm_to_install: &[u8],
-    installed_module_hash: Option<&[u8]>,
-) -> bool {
-    if let Some(installed_module_hash) = installed_module_hash {
-        let mut sha256 = Sha256::new();
-        sha256.update(wasm_to_install);
-        let installing_module_hash = sha256.finish();
-        installed_module_hash == installing_module_hash
-    } else {
-        false
-    }
 }
 
 fn ask_for_consent(message: &str) -> DfxResult {

@@ -20,33 +20,33 @@ teardown() {
 
     assert_command dfx identity get-wallet
 
-    echo "invalid json" >.dfx/local/wallets.json
+    echo "invalid json" >"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
 
     assert_command_fail dfx identity get-wallet
-    assert_match "Unable to parse contents of .*/.dfx/local/wallets.json as json"
+    assert_match "Unable to parse contents of .*/network/local/wallets.json as json"
     assert_match "expected value at line 1 column 1"
 
     assert_command_fail dfx wallet upgrade
-    assert_match "Unable to parse contents of .*/.dfx/local/wallets.json as json"
+    assert_match "Unable to parse contents of .*/network/local/wallets.json as json"
     assert_match "expected value at line 1 column 1"
 
-    echo '{ "identities": {} }' >.dfx/local/wallets.json
+    echo '{ "identities": {} }' >"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
 
     # maybe you were sudo when you made it
-    chmod u=w,go= .dfx/local/wallets.json
+    chmod u=w,go= "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
     assert_command_fail dfx identity get-wallet
-    assert_match "Unable to open .*/.dfx/local/wallets.json"
+    assert_match "Unable to open .*/network/local/wallets.json"
     assert_match "Permission denied"
 
     assert_command_fail dfx wallet upgrade
-    assert_match "Unable to open .*/.dfx/local/wallets.json"
+    assert_match "Unable to open .*/network/local/wallets.json"
     assert_match "Permission denied"
 
     # can't write it?
-    chmod u=r,go= .dfx/local/wallets.json
+    chmod u=r,go= "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
     assert_command dfx identity new --disable-encryption alice
-    assert_command_fail dfx --identity alice identity get-wallet
-    assert_match "Unable to write .*/.dfx/local/wallets.json"
+    assert_command_fail dfx identity get-wallet --identity alice
+    assert_match "Unable to write .*/local/wallets.json"
     assert_match "Permission denied"
 }
 
@@ -57,7 +57,7 @@ teardown() {
     address="127.0.0.1:$port"
 
     # fool dfx start into thinking dfx isn't running
-    mv .dfx/pid .dfx/hidden_pid
+    mv "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/pid" "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/hidden_pid"
 
     assert_command_fail dfx start  --host "$address"
 
@@ -71,7 +71,7 @@ teardown() {
     assert_match "Address already in use"
 
     # Allow dfx stop to stop dfx in teardown.  Otherwise, bats will never exit
-    mv .dfx/hidden_pid .dfx/pid
+    mv "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/hidden_pid" "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/pid"
 }
 
 @test "corrupt dfx.json" {
@@ -106,6 +106,8 @@ teardown() {
 }
 
 @test "moc missing" {
+    use_test_specific_cache_root   # Because this test modifies a file in the cache
+
     dfx_start
 
     assert_command dfx canister create m_o_c_missing
