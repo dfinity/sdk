@@ -86,9 +86,9 @@ assert_not_match() {
         text="$2"
     fi
     if [[ "$text" =~ $regex ]]; then
-        (batslib_print_kv_single_or_multi 10 "regex" "$regex" "actual" "$text" \
-         | batslib_decorate "output matches but is expected not to" \
-         | fail)
+        batslib_print_kv_single_or_multi 10 "regex" "$regex" "actual" "$text" \
+            | batslib_decorate "output matches but is expected not to" \
+            | fail
     fi
 }
 
