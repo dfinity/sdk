@@ -53,7 +53,7 @@ pub struct CanisterInstallOpts {
     #[clap(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 
-    /// Skips GZIP-compressing the module.
+    /// Skips GZIP-compressing the module. You do not need to specify this flag for pre-compressed modules.
     #[clap(long)]
     uncompressed: bool,
 }

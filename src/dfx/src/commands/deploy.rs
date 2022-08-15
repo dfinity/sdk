@@ -75,7 +75,7 @@ pub struct DeployOpts {
     #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
 
-    /// Skips GZIP-compressing the module.
+    /// Skips GZIP-compressing the module. You do not need to specify this flag for pre-compressed modules.
     #[clap(long)]
     uncompressed: bool,
 }
