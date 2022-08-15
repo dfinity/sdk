@@ -163,8 +163,7 @@ build_release_branch() {
 
     echo "Updating version in src/dfx/Cargo.toml"
     # update first version in src/dfx/Cargo.toml to be NEW_DFX_VERSION
-    # shellcheck disable=SC2094
-    cat <<<"$(awk 'NR==1,/^version = ".*"/{sub(/^version = ".*"/, "version = \"'"$NEW_DFX_VERSION"'\"")} 1' <src/dfx/Cargo.toml)" >src/dfx/Cargo.toml
+    awk 'NR==1,/^version = ".*"/{sub(/^version = ".*"/, "version = \"'"$NEW_DFX_VERSION"'\"")} 1' <src/dfx/Cargo.toml | sponge src/dfx/Cargo.toml
 
     echo "Building dfx with cargo."
     # not --locked, because Cargo.lock needs to be updated with the new version
@@ -173,8 +172,7 @@ build_release_branch() {
 
     echo "Appending version to public/manifest.json"
     # Append the new version to `public/manifest.json` by appending it to the `versions` list.
-    # shellcheck disable=SC2094
-    cat <<<"$(jq --indent 4 '.versions += ["'"$NEW_DFX_VERSION"'"]' public/manifest.json)" >public/manifest.json
+    jq --indent 4 '.versions += ["'"$NEW_DFX_VERSION"'"]' public/manifest.json | sponge public/manifest.json
 
     echo "Creating release branch: $BRANCH"
     $DRY_RUN_ECHO git add -u

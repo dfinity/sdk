@@ -277,15 +277,13 @@ dfx_set_wallet() {
 setup_actuallylocal_project_network() {
     webserver_port=$(get_webserver_port)
     # [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json)" >dfx.json
+    jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json | sponge dfx.json
 }
 
 setup_actuallylocal_shared_network() {
     webserver_port=$(get_webserver_port)
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+    jq '.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 }
 
 setup_local_shared_network() {
@@ -298,8 +296,7 @@ setup_local_shared_network() {
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
-    # shellcheck disable=SC2094
-    cat <<<"$(jq ".local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+    jq ".local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 }
 
 use_wallet_wasm() {
@@ -352,8 +349,7 @@ create_networks_json() {
 }
 
 define_project_network() {
-    # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.bind=\"127.0.0.1:8000\" dfx.json)" >dfx.json
+    jq .networks.local.bind=\"127.0.0.1:8000\" dfx.json | sponge dfx.json
 }
 
 use_test_specific_cache_root() {
