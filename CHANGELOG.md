@@ -6,7 +6,7 @@
 
 ### fix: improved responsiveness of `greet` method call in default Motoko project template
 
-`greet` method was marked as  `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
+`greet` method was marked as an `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
 
 ### feat!: "system-wide dfx start"
 
