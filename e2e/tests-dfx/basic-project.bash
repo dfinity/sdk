@@ -100,8 +100,7 @@ teardown() {
     # Call using the wallet's call forwarding
     assert_command dfx canister call hello_backend read --async --wallet="$(dfx identity get-wallet)"
     assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
-    assert_eq \
-    '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01}\b9\0a" } })'
+    assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01}\b9\0a" } })'
 
 }
 
