@@ -20,7 +20,7 @@ teardown() {
 
 @test "using an invalid command fails" {
     run dfx blurp
-    if [[ $status == 0 ]]; then
+    if [[ $status -eq 0 ]]; then
         echo "$@" >&2
         exit 1
     fi
