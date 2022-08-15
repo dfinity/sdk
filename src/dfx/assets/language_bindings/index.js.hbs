@@ -11,9 +11,8 @@ export const canisterId = {{canister_name_process_env}};
  * 
  * @param {string | import("@dfinity/principal").Principal} canisterId Canister ID of Agent
  * @param {{agentOptions?: import(\"@dfinity/agent\").HttpAgentOptions; actorOptions?: import(\"@dfinity/agent\").ActorConfig}} [options]
- * @return {import("@dfinity/agent").ActorSubclass<import("./{{canister_name}}.did.js")._SERVICE>}
+ * @return {import("@dfinity/agent").ActorSubclass<import("{{{{/raw}}}}./{{canister_name}}.did.js")._SERVICE>}
  */
-{{{{/raw}}}}
 export const createActor = (canisterId, options) => {
   const agent = new HttpAgent(options ? { ...options.agentOptions } : {});
   
@@ -31,10 +30,4 @@ export const createActor = (canisterId, options) => {
     canisterId,
     ...(options ? options.actorOptions : {}),
   });
-};
-  
-/**
- * A ready-to-use agent for the {{canister_name}} canister
- * @type {import("@dfinity/agent").ActorSubclass<import("./{{canister_name}}.did.js")._SERVICE>}
- */
-{{{actor_export}}}
+};{{{actor_export}}}

@@ -96,7 +96,7 @@ validate_default_project() {
         cd hello_world
 
         echo "Starting the local 'replica' as a background process."
-        $dfx_rc start --background
+        $dfx_rc start --background --clean
 
         echo "Installing webpack and webpack-cli"
         npm install webpack webpack-cli
