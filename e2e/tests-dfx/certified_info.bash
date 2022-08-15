@@ -31,5 +31,7 @@ teardown() {
 
     dfx canister install hello_backend  
     assert_command dfx canister info "$(dfx canister id hello_backend)"
-    assert_match "Controllers: ($WALLET_ID $SELF_ID|$SELF_ID $WALLET_ID) Module hash: $(HASH)"
+    assert_match \
+"Controllers: ($WALLET_ID $SELF_ID|$SELF_ID $WALLET_ID)
+Module hash: $(HASH)"
 }
