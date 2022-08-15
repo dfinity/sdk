@@ -7,7 +7,7 @@ export
 # Enter temporary directory.
 pushd /tmp
 
-brew install coreutils
+brew install coreutils moreutils
 
 # Install Bats.
 if [ "$(uname -r)" = "19.6.0" ]; then

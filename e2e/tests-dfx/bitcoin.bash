@@ -20,19 +20,16 @@ teardown() {
 }
 
 set_project_default_bitcoin_enabled() {
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.defaults.bitcoin.enabled=true' dfx.json)" >dfx.json
+    jq '.defaults.bitcoin.enabled=true' dfx.json | sponge dfx.json
 }
 
 set_shared_local_network_bitcoin_enabled() {
     create_networks_json
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.local.bitcoin.enabled=true' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+    jq '.local.bitcoin.enabled=true' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 }
 
 set_local_network_bitcoin_enabled() {
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bitcoin.enabled=true' dfx.json)" >dfx.json
+    jq '.networks.local.bitcoin.enabled=true' dfx.json | sponge dfx.json
 }
 
 @test "noop" {
