@@ -409,8 +409,7 @@ teardown() {
     CANISTER_ID=$(dfx canister id hello_backend)
 
     rm .dfx/local/canister_ids.json
-    # shellcheck disable=SC2094
-    cat <<<"$(jq .canisters={} dfx.json)" >dfx.json
+    jq '.canisters={}' dfx.json | sponge dfx.json
 
     assert_command dfx canister status "$CANISTER_ID"
     assert_match 'Memory allocation: 0'

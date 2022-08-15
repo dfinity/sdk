@@ -16,20 +16,17 @@ teardown() {
 }
 
 set_project_default_canister_http_enabled() {
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.defaults.canister_http.enabled=true' dfx.json)" >dfx.json
+    jq '.defaults.canister_http.enabled=true' dfx.json | sponge dfx.json
 }
 
 set_project_local_network_canister_http_enabled() {
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.canister_http.enabled=true' dfx.json)" >dfx.json
+    jq '.networks.local.canister_http.enabled=true' dfx.json | sponge dfx.json
 }
 
 set_shared_local_network_canister_http_enabled() {
     create_networks_json
 
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.local.canister_http.enabled=true' "$E2E_NETWORKS_JSON")" >"$E2E_NETWORKS_JSON"
+    jq '.local.canister_http.enabled=true' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 }
 
 @test "dfx restarts replica when ic-canister-http-adapter restarts" {

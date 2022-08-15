@@ -93,8 +93,7 @@ teardown() {
 
     assert_command dfx canister create packtool_missing
 
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.defaults.build.packtool="not-a-valid-packtool and some parameters"' dfx.json)" >dfx.json
+    jq '.defaults.build.packtool="not-a-valid-packtool and some parameters"' dfx.json | sponge dfx.json
 
 
     assert_command_fail dfx build packtool_missing

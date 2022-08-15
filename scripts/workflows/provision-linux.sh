@@ -7,8 +7,8 @@ export
 # Enter temporary directory.
 pushd /tmp
 
-# Install Bats.
-sudo apt-get install --yes bats
+# Install Bats + moreutils.
+sudo apt-get install --yes bats moreutils
 
 # Install Bats support.
 version=0.3.0
