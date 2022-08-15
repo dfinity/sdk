@@ -129,10 +129,11 @@ assert_neq() {
         actual="$2"
     fi
 
-    [[ "$actual" != "$expected" ]] || \
+    if [[ "$actual" = "$expected" ]]; then
         batslib_print_kv_single_or_multi 10 "expected" "$expected" "actual" "$actual" \
             | batslib_decorate "output does not match" \
             | fail
+    fi
 }
 
 
