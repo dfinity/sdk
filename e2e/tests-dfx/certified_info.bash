@@ -22,7 +22,7 @@ teardown() {
     SELF_ID=$(dfx identity get-principal)
     assert_match \
 "Controllers: ($WALLET_ID $SELF_ID|$SELF_ID $WALLET_ID)
-    Module hash: None"
+Module hash: None"
 
     dfx build hello_backend
     RESULT="$(openssl dgst -sha256 .dfx/local/canisters/hello_backend/hello_backend.wasm)"
