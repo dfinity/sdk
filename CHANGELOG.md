@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: improved responsiveness of `greet` method call in default Motoko project template
+
+`greet` method was marked as  `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
+
 ### feat!: "system-wide dfx start"
 
 By default, dfx now manages the replica process in a way that is independent of any given dfx project.  We've called this feature "system-wide dfx", even though it's actually specific to your user
