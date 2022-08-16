@@ -174,5 +174,5 @@ teardown() {
 @test "detects if there is no wallet to upgrade" {
     dfx_new hello
     assert_command_fail dfx wallet upgrade
-    assert_match "There is no wallet defined for identity 'default' on network 'local'. Nothing to do."
+    assert_match "There is no wallet defined for identity 'default' on network 'local'.  Nothing to do."
 }
