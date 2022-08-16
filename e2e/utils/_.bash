@@ -1,11 +1,13 @@
-load ${BATSLIB}/load.bash
+set -e
+load "${BATSLIB}/load.bash"
 load ../utils/assertions
 
 # Takes a name of the asset folder, and copy those files to the current project.
 install_asset() {
     ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
-    cp -R $ASSET_ROOT/* .
+    cp -R "$ASSET_ROOT"/* .
 
+    # shellcheck source=/dev/null
     [ -f ./patch.bash ] && source ./patch.bash
     [ ! -f ./Cargo.toml ] || cargo update
 }
@@ -14,7 +16,7 @@ install_shared_asset() {
     mkdir -p "$(dirname "$E2E_NETWORKS_JSON")"
 
     ASSET_ROOT=${BATS_TEST_DIRNAME}/../assets/$1/
-    cp -R $ASSET_ROOT/* "$(dirname "$E2E_NETWORKS_JSON")"
+    cp -R "$ASSET_ROOT"/* "$(dirname "$E2E_NETWORKS_JSON")"
 }
 
 standard_setup() {
@@ -50,36 +52,36 @@ standard_teardown() {
 
 dfx_new_frontend() {
     local project_name=${1:-e2e_project}
-    dfx new ${project_name} --frontend
-    test -d ${project_name}
-    test -f ${project_name}/dfx.json
-    cd ${project_name}
+    dfx new "${project_name}" --frontend
+    test -d "${project_name}"
+    test -f "${project_name}"/dfx.json
+    cd "${project_name}"
 
-    echo PWD: $(pwd) >&2
+    echo PWD: "$(pwd)" >&2
 }
 
 dfx_new() {
     local project_name=${1:-e2e_project}
-    dfx new ${project_name} --no-frontend
-    test -d ${project_name}
-    test -f ${project_name}/dfx.json
-    cd ${project_name}
+    dfx new "${project_name}" --no-frontend
+    test -d "${project_name}"
+    test -f "${project_name}/dfx.json"
+    cd "${project_name}"
 
-    echo PWD: $(pwd) >&2
+    echo PWD: "$(pwd)" >&2
 }
 
 dfx_new_rust() {
     local project_name=${1:-e2e_project}
     rustup default stable
     rustup target add wasm32-unknown-unknown
-    dfx new ${project_name} --type=rust --no-frontend
-    test -d ${project_name}
-    test -f ${project_name}/dfx.json
-    test -f ${project_name}/Cargo.toml
-    test -f ${project_name}/Cargo.lock
-    cd ${project_name}
+    dfx new "${project_name}" --type=rust --no-frontend
+    test -d "${project_name}"
+    test -f "${project_name}/dfx.json"
+    test -f "${project_name}/Cargo.toml"
+    test -f "${project_name}/Cargo.lock"
+    cd "${project_name}"
 
-    echo PWD: $(pwd) >&2
+    echo PWD: "$(pwd)" >&2
 }
 
 dfx_patchelf() {
@@ -88,18 +90,21 @@ dfx_patchelf() {
 
     # Only run this function on Linux
     (uname -a | grep Linux) || return 0
-    echo dfx = $(which dfx)
-    local CACHE_DIR="$(dfx cache show)"
+
+    local CACHE_DIR LD_LINUX_SO BINARY IS_STATIC USE_LIB64
+
+    echo dfx = "$(which dfx)"
+    CACHE_DIR="$(dfx cache show)"
 
     dfx cache install
 
     # Both ldd and iconv are providedin glibc.bin package
-    local LD_LINUX_SO=$(ldd $(which iconv)|grep ld-linux-x86|cut -d' ' -f3)
+    LD_LINUX_SO=$(ldd "$(which iconv)"|grep ld-linux-x86|cut -d' ' -f3)
     for binary in ic-starter icx-proxy replica; do
-        local BINARY="${CACHE_DIR}/${binary}"
+        BINARY="${CACHE_DIR}/${binary}"
         test -f "$BINARY" || continue
-        local IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
-        local USE_LIB64=$(ldd "${BINARY}" | grep '/lib64/ld-linux-x86-64.so.2')
+        IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
+        USE_LIB64=$(ldd "${BINARY}" | grep '/lib64/ld-linux-x86-64.so.2')
         chmod +rw "${BINARY}"
         test -n "$IS_STATIC" || test -z "$USE_LIB64" || patchelf --set-interpreter "${LD_LINUX_SO}" "${BINARY}"
     done
@@ -125,6 +130,7 @@ determine_network_directory() {
 
 # Start the replica in the background.
 dfx_start() {
+    local port dfx_config_root webserver_port
     dfx_patchelf
 
     # Start on random port for parallel test execution
@@ -133,7 +139,7 @@ dfx_start() {
     determine_network_directory
     if [ "$USE_IC_REF" ]
     then
-        if [[ "$@" == "" ]]; then
+        if [[ $# -eq 0 ]]; then
             dfx start --emulator --background --host "$FRONTEND_HOST" 3>&-
         else
             batslib_decorate "no arguments to dfx start --emulator supported yet"
@@ -141,24 +147,24 @@ dfx_start() {
         fi
 
         test -f "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port"
-        local port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port")
+        port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port")
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
-        if [[ "$@" == "" ]]; then
+        if [[ $# -eq 0 ]]; then
             dfx start --background --host "$FRONTEND_HOST" 3>&- # Start on random port for parallel test execution
         else
             dfx start --background "$@" 3>&-
         fi
 
-        local dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
+        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f "${dfx_config_root}/replica-1.port"
-        local port=$(cat "${dfx_config_root}/replica-1.port")
+        port=$(cat "${dfx_config_root}/replica-1.port")
     fi
 
-    local webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
+    webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
     printf "Replica Configured Port: %s\n" "${port}"
     printf "Webserver Configured Port: %s\n" "${webserver_port}"
@@ -176,6 +182,7 @@ wait_until_replica_healthy() {
 
 # Start the replica in the background.
 dfx_replica() {
+    local replica_port dfx_config_root
     dfx_patchelf
     determine_network_directory
     if [ "$USE_IC_REF" ]
@@ -191,7 +198,7 @@ dfx_replica() {
             || (echo "replica did not write to \"$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port\" file" && exit 1)
 
         test -f "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port"
-        local replica_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port")
+        replica_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port")
 
     else
         # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
@@ -204,9 +211,9 @@ dfx_replica() {
             "until test -s \"$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port\"; do echo waiting for replica port; sleep 1; done" \
             || (echo "replica did not write to port file" && exit 1)
 
-        local dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
+        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
         test -f "${dfx_config_root}/replica-1.port"
-        local replica_port=$(cat "${dfx_config_root}/replica-1.port")
+        replica_port=$(cat "${dfx_config_root}/replica-1.port")
 
     fi
 
@@ -258,7 +265,7 @@ dfx_stop() {
     echo "pwd: $(pwd)"
     # A suspicion: "address already is use" errors are due to an extra icx-proxy process.
     echo "icx-proxy processes:"
-    ps aux | grep icx-proxy || echo "no ps/grep/icx-proxy output"
+    pgrep -l icx-proxy || echo "no ps/grep/icx-proxy output"
 
     dfx stop
     local dfx_root=.dfx/
@@ -269,8 +276,9 @@ dfx_stop() {
 }
 
 dfx_set_wallet() {
-  export WALLET_CANISTER_ID=$(dfx identity get-wallet)
-  assert_command dfx identity set-wallet ${WALLET_CANISTER_ID} --force --network actuallylocal
+  export WALLET_CANISTER_ID
+  WALLET_CANISTER_ID=$(dfx identity get-wallet)
+  assert_command dfx identity set-wallet "${WALLET_CANISTER_ID}" --force --network actuallylocal
   assert_match 'Wallet set successfully.'
 }
 
@@ -287,11 +295,12 @@ setup_actuallylocal_shared_network() {
 }
 
 setup_local_shared_network() {
+    local replica_port
     if [ "$USE_IC_REF" ]
     then
-        local replica_port=$(get_ic_ref_port)
+        replica_port=$(get_ic_ref_port)
     else
-        local replica_port=$(get_replica_port)
+        replica_port=$(get_replica_port)
     fi
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
