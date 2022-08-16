@@ -128,6 +128,7 @@ download_motoko_base() {
 add_binary_cache() {
     download_binary "ic-btc-adapter"
     download_binary "ic-canister-http-adapter"
+    download_binary "ic-nns-init"
     download_binary "replica"
     download_binary "canister_sandbox"
     download_binary "sandbox_launcher"
