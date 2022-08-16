@@ -4,6 +4,8 @@
 
 ## DFX
 
+### feat: added ic-nns-init executable to the binary cache
+
 ### fix: improved responsiveness of `greet` method call in default Motoko project template
 
 `greet` method was marked as an `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
