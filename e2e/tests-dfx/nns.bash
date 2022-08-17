@@ -27,3 +27,13 @@ teardown() {
     # --version fails too
     assert_command_fail "$(dfx cache show)/ic-nns-init" --version
 }
+
+@test "dfx nns install command exists" {
+    dfx_start
+
+    # it just calls ic-nns-init, which panics
+    assert_command_fail dfx nns install
+    assert_match "thread 'main' panicked at 'Illegal arguments:"
+    assert_match "ic-nns-init \[OPTIONS\]"
+    assert_match "ic-nns-init call failed"
+}

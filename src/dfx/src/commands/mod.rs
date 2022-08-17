@@ -15,6 +15,7 @@ mod identity;
 mod language_service;
 mod ledger;
 mod new;
+mod nns;
 mod ping;
 mod remote;
 mod replica;
@@ -40,6 +41,8 @@ pub enum Command {
     LanguageServices(BaseOpts<language_service::LanguageServiceOpts>),
     Ledger(ledger::LedgerCommand),
     New(BaseOpts<new::NewOpts>),
+    #[clap(hide(true))]
+    Nns(nns::NnsCommand),
     Ping(BaseOpts<ping::PingOpts>),
     Remote(remote::RemoteCommand),
     Replica(BaseOpts<replica::ReplicaOpts>),
@@ -70,6 +73,7 @@ pub fn dispatch(cmd: Command) -> DfxResult {
         Command::Canister(v) => canister::dispatch(v),
         Command::Identity(v) => identity::dispatch(v),
         Command::Ledger(v) => ledger::dispatch(v),
+        Command::Nns(v) => nns::dispatch(v),
         Command::Remote(v) => remote::dispatch(v),
         Command::Toolchain(v) => toolchain::dispatch(v),
         Command::Wallet(v) => wallet::dispatch(v),
