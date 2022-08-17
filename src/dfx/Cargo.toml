@@ -2,7 +2,7 @@
 name = "dfx"
 version = "0.11.1"
 authors = ["DFINITY Team"]
-edition = "2018"
+edition = "2021"
 build = "assets/build.rs"
 
 [[bin]]

@@ -34,7 +34,8 @@ pub async fn balance(
     Ok(result)
 }
 
-pub async fn icp_xdr_rate(agent: &Agent) -> DfxResult<u64> {
+/// Returns XDR-permyriad (i.e. ten-thousandths-of-an-XDR) per ICP.
+pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
     let canister = Canister::builder()
         .with_agent(agent)
         .with_canister_id(MAINNET_CYCLE_MINTER_CANISTER_ID)

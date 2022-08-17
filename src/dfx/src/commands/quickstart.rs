@@ -15,7 +15,7 @@ use crate::{
         error::DfxResult,
         identity::{Identity, IdentityManager},
         nns_types::account_identifier::AccountIdentifier,
-        operations::ledger::{balance, icp_xdr_rate},
+        operations::ledger::{balance, xdr_permyriad_per_icp},
         provider::create_agent_environment,
         waiter::waiter_with_timeout,
     },
@@ -34,7 +34,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
     runtime.block_on(async {
         let balance = balance(agent, &acct, None).await?;
         println!("Your ICP balance: {balance}");
-        let xdr_conversion_rate = icp_xdr_rate(agent).await?;
+        let xdr_conversion_rate = xdr_permyriad_per_icp(agent).await?;
         let xdr_per_icp = Decimal::from_i128_with_scale(xdr_conversion_rate as i128, 4);
         let icp_per_tc = xdr_per_icp.inv();
         println!("Conversion rate: 1 ICP <> {xdr_per_icp} XDR");
