@@ -6,6 +6,7 @@ setup() {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     standard_setup
     install_asset ledger
+    install_shared_asset ledger_shared
 
     dfx identity import --disable-encryption alice alice.pem
     dfx identity import --disable-encryption bob bob.pem
@@ -13,7 +14,7 @@ setup() {
     dfx_start
 
     # local NNS_URL
-    NNS_URL="http://localhost:$(cat .dfx/replica-configuration/replica-1.port)"
+    NNS_URL="http://localhost:$(get_replica_port)"
     local ic_nns_init
     case "$(uname)" in
     Darwin) ic_nns_init="./ic-nns-init_macos" ;;
@@ -35,6 +36,20 @@ teardown() {
     dfx_stop
 
     standard_teardown
+}
+
+@test "ledger account-id" {
+    dfx identity use alice
+    assert_command dfx ledger account-id
+    assert_match 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+
+    assert_command dfx ledger account-id --of-principal fg7gi-vyaaa-aaaal-qadca-cai
+    assert_match a014842f64a22e59887162a79c7ca7eb02553250704780ec4d954f12d0ea0b18
+
+    # --of-canister accepts both canister alias and canister principal
+    assert_command dfx canister create dummy_canister
+    assert_command dfx ledger account-id --of-canister "$(dfx canister id dummy_canister)"
+    assert_eq "$(dfx ledger account-id --of-canister dummy_canister)"
 }
 
 @test "ledger balance & transfer" {

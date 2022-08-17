@@ -73,13 +73,13 @@ teardown() {
 @test "create succeeds when requested network is configured" {
     dfx_start
 
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
     assert_command dfx canister create --all --network actuallylocal
 }
 
 @test "create with wallet succeeds when requested network is configured" {
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     assert_command dfx_set_wallet
     assert_command dfx canister create --all --network actuallylocal
@@ -88,16 +88,14 @@ teardown() {
 @test "create fails if selected network exists but has no providers" {
     dfx_start
 
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=[]' dfx.json)" >dfx.json
+    jq '.networks.actuallylocal.providers=[]' dfx.json | sponge dfx.json
     assert_command_fail dfx canister create --all --network actuallylocal
     assert_match "Cannot find providers for network"
 }
 
 @test "create fails with network parameter when network does not exist" {
     dfx_start
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.actuallylocal.providers=["http://not-real.nowhere.test."]' dfx.json)" >dfx.json
+    jq '.networks.actuallylocal.providers=["http://not-real.nowhere.test."]' dfx.json | sponge dfx.json
     assert_command_fail dfx canister create --all --network actuallylocal
     assert_match "dns error: failed to lookup address information"
 }

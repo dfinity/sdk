@@ -20,7 +20,7 @@ teardown() {
 
 @test "using an invalid command fails" {
     run dfx blurp
-    if [[ $status == 0 ]]; then
+    if [[ $status -eq 0 ]]; then
         echo "$@" >&2
         exit 1
     fi
@@ -29,7 +29,7 @@ teardown() {
 @test "returns the right error if not in a project" {
 
     assert_command_fail dfx build
-    assert_match "dfx.json not found, using default"
+    assert_match "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
 
     dfx new t --no-frontend
     cd t

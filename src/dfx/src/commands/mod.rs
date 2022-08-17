@@ -7,7 +7,6 @@ mod bootstrap;
 mod build;
 mod cache;
 mod canister;
-mod config;
 mod deploy;
 mod diagnose;
 mod fix;
@@ -32,7 +31,6 @@ pub enum Command {
     Build(BaseOpts<build::CanisterBuildOpts>),
     Cache(cache::CacheCommand),
     Canister(canister::CanisterCommand),
-    Config(BaseOpts<config::ConfigOpts>),
     Deploy(BaseOpts<deploy::DeployOpts>),
     Diagnose(BaseOpts<diagnose::DiagnoseOpts>),
     Fix(BaseOpts<fix::FixOpts>),
@@ -78,7 +76,6 @@ pub fn dispatch(cmd: Command) -> DfxResult {
 
         Command::Bootstrap(v) => bootstrap::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Build(v) => build::exec(&init_env(v.env_opts)?, v.command_opts),
-        Command::Config(v) => config::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Deploy(v) => deploy::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Diagnose(v) => diagnose::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Fix(v) => fix::exec(&init_env(v.env_opts)?, v.command_opts),
