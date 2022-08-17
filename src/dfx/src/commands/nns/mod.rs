@@ -8,7 +8,7 @@ use crate::DfxResult;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
-/// Ledger commands.
+/// NNS commands.
 #[derive(Parser)]
 #[clap(name("nns"))]
 pub struct NnsCommand {
