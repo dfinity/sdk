@@ -69,7 +69,7 @@ If run from outside any dfx project, or if dfx.json does not define the `local` 
 ```
 {
   "local": {
-    "bind": "127.0.0.1:8000",
+    "bind": "127.0.0.1:4943",
     "type": "ephemeral"
   }
 }

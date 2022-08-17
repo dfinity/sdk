@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: changed the default port of the shared local network from 8000 to 4943.
+
+This is so dfx doesn't connect to a project-specific network instead of the local shared network.
+
 ### feat: added ic-nns-init executable to the binary cache
 
 ### fix: improved responsiveness of `greet` method call in default Motoko project template

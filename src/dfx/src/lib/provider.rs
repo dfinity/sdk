@@ -644,7 +644,7 @@ mod tests {
                 .local_server_descriptor()
                 .unwrap()
                 .bind_address,
-            to_socket_addr("127.0.0.1:8000").unwrap()
+            to_socket_addr("127.0.0.1:4943").unwrap()
         );
     }
 
@@ -669,7 +669,7 @@ mod tests {
                 .local_server_descriptor()
                 .unwrap()
                 .bind_address,
-            to_socket_addr("127.0.0.1:8000").unwrap()
+            to_socket_addr("127.0.0.1:4943").unwrap()
         );
     }
 
