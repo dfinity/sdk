@@ -128,6 +128,8 @@ Canister sandboxing is enabled to be consistent with the mainnet.
 It is now possible to do e.g. `dfx ledger account-id --of-canister fg7gi-vyaaa-aaaal-qadca-cai` as well as `dfx ledger account-id --of-canister my_canister_name` when checking the ledger account id of a canister.
 Previously, dfx only accepted canister aliases and produced an error message that was hard to understand.
 
+### fix: print links to cdk-rs docs in dfx new
+
 ### ic-ref
 
 Updated ic-ref to 0.0.1-1fba03ee
