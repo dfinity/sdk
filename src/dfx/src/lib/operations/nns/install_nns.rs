@@ -12,7 +12,8 @@ pub async fn install_nns(
 ) -> DfxResult {
     // Notes:
     //   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different binary for local development
-    //   - this won't work with an HSM, because the agent holds a session open
+    //   - This won't work with an HSM, because the agent holds a session open
+    //   - The icx_proxy_url is what the agent connects to, and forwards to the replica.
 
     let mut cmd = std::process::Command::new(ic_nns_init_path);
     cmd.arg("--help");
