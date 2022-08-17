@@ -225,7 +225,7 @@ export const {0} = createActor(canisterId);"#,
 
                     let process_string: String = match &info.get_declarations_config().env_override
                     {
-                        Some(s) => s.clone(),
+                        Some(s) => format!(r#""{}""#, s.clone()),
                         None => {
                             format!(
                                 "process.env.{}{}",
