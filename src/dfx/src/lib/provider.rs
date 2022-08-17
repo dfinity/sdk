@@ -47,6 +47,7 @@ pub enum LocalBindDetermination {
     ApplyRunningWebserverPort,
 }
 
+#[allow(clippy::too_many_arguments)]
 #[context("Failed to get network descriptor for network '{}.", network_name)]
 fn config_network_to_network_descriptor(
     network_name: &str,
