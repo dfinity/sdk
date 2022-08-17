@@ -6,6 +6,7 @@ use std::path::Path;
 
 pub async fn install_nns(
     _agent: &Agent,
+    _icx_proxy_url: &str,
     ic_nns_init_path: &Path,
     _replicated_state_dir: &Path,
 ) -> DfxResult {

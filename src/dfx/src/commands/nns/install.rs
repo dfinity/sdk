@@ -16,11 +16,18 @@ pub async fn exec(env: &dyn Environment, _opts: InstallOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
-    let ic_nns_init_path = env.get_cache().get_binary_command_path("ic-nns-init")?;
-    let replicated_state_dir = env
-        .get_network_descriptor()
-        .local_server_descriptor()?
-        .replicated_state_dir();
+    let network_descriptor = env.get_network_descriptor();
+    let local_server_descriptor = network_descriptor.local_server_descriptor()?;
+    let replicated_state_dir = local_server_descriptor.replicated_state_dir();
+    let icx_proxy_url = network_descriptor.first_provider()?;
 
-    install_nns(agent, &ic_nns_init_path, &replicated_state_dir).await
+    let ic_nns_init_path = env.get_cache().get_binary_command_path("ic-nns-init")?;
+
+    install_nns(
+        agent,
+        icx_proxy_url,
+        &ic_nns_init_path,
+        &replicated_state_dir,
+    )
+    .await
 }
