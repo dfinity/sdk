@@ -1,32 +1,30 @@
 # dfx info
 
-The `dfx info` command prints the schema for `dfx.json`.
-
 ## Basic usage
 
 ``` bash
 dfx info [type] [flag]
 ```
 
+## Information Types
+
+These are the types of information that the `dfx info` command can display.
+
+| Option               | Description                          |
+|----------------------|--------------------------------------|
+| webserver-port       | The local webserver (icx-proxy) port |
+
 ## Flags
 
-You can use the following optional flags with the `dfx schema` command.
+You can use the following optional flags with the `dfx info` command.
 
 | Flag              | Description |
 |-------------------|-------------|
 | `-h`, `--help`    | Displays usage information. |
 
-## Information Types
-
-You can use the following option with the `dfx schema` command.
-
-| Option               | Description                                                                                                       |
-|----------------------|-------------------------------------------------------------------------------------------------------------------|
-| webserver-port       | Display schema for either dfx.json or networks.json. (default: dfx) |
-
 ## Examples
 
-You can print the schema for `dfx.json` by running the following command:
+You can display the webserver port by running the following command:
 
 ``` bash
 $ dfx info webserver-port

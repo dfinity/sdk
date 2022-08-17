@@ -382,7 +382,6 @@ pub struct ConfigLocalProvider {
     /// Bind address for the webserver.
     /// For the shared local network, the default is 127.0.0.1:4943
     /// For project-specific local networks, the default is 127.0.0.1:8000
-    // #[serde(default = "default_local_bind")]
     pub bind: Option<String>,
 
     /// Persistence type of this network.
@@ -395,9 +394,6 @@ pub struct ConfigLocalProvider {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
-// fn default_local_bind() -> String {
-//     String::from(DEFAULT_LOCAL_BIND)
-// }
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ConfigNetwork {

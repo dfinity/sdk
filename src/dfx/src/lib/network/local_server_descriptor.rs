@@ -222,12 +222,13 @@ impl LocalServerDescriptor {
 impl LocalServerDescriptor {
     pub fn describe(&self, include_replica: bool, include_replica_port: bool) {
         println!("Local server configuration:");
-        let default_local_bind = match self.scope {
+        let default_bind: SocketAddr = match self.scope {
             LocalNetworkScopeDescriptor::Project => DEFAULT_PROJECT_LOCAL_BIND,
             LocalNetworkScopeDescriptor::Shared { .. } => DEFAULT_SHARED_LOCAL_BIND,
-        };
+        }
+        .parse()
+        .unwrap();
 
-        let default_bind: SocketAddr = default_local_bind.parse().unwrap();
         let diffs = if self.bind_address != default_bind {
             format!(" (default: {:?})", default_bind)
         } else {

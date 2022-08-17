@@ -1,4 +1,6 @@
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
+mod webserver_port;
+
+use crate::commands::info::webserver_port::get_webserver_port;
 use crate::{DfxResult, Environment};
 use clap::Parser;
 
@@ -18,20 +20,6 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     let value = match opts.info_type {
         InfoType::WebserverPort => get_webserver_port(env)?,
     };
-    print!("{}", value);
+    println!("{}", value);
     Ok(())
-}
-
-fn get_webserver_port(env: &dyn Environment) -> DfxResult<String> {
-    let port = create_network_descriptor(
-        env.get_config(),
-        env.get_networks_config(),
-        None, /* opts.network */
-        None,
-        LocalBindDetermination::ApplyRunningWebserverPort,
-    )?
-    .local_server_descriptor()?
-    .bind_address
-    .port();
-    Ok(format!("{}", port))
 }
