@@ -62,6 +62,24 @@
         "url": "https://download.dfinity.systems/blessed/ic/6e86169e98904047833ba6133e5413d2758d90eb/sdk-release/x86_64-linux/ic-canister-http-adapter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/ic-canister-http-adapter.gz"
     },
+    "ic-nns-init-x86_64-darwin": {
+        "builtin": false,
+        "description": "The ic-nns-init binary.",
+        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
+        "sha256": "19vicxphjdzlnb0112wx3xwpxddnjikidzmkg0bkhmp9iax2d9c4",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/nix-release/x86_64-darwin/ic-nns-init.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/ic-nns-init.gz"
+    },
+    "ic-nns-init-x86_64-linux": {
+        "builtin": false,
+        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
+        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
+        "sha256": "0v51f8mbgc5fgcbfkfrpp181d5qzw8nf9z4kplkzr4j9b5r129ci",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/release/ic-nns-init.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/release/ic-nns-init.gz"
+    },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
