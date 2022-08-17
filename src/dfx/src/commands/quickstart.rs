@@ -2,19 +2,25 @@ use anyhow::Error;
 use candid::Principal;
 use dialoguer::{Confirm, Input};
 use ic_agent::Identity as _;
-use ic_utils::interfaces::{WalletCanister, ManagementCanister, management_canister::builders::InstallMode};
+use ic_utils::interfaces::{
+    management_canister::builders::InstallMode, ManagementCanister, WalletCanister,
+};
 use num_traits::Inv;
 use rust_decimal::Decimal;
 use tokio::runtime::Runtime;
 
-use crate::{lib::{
-    environment::Environment,
-    error::DfxResult,
-    identity::{IdentityManager, Identity},
-    nns_types::account_identifier::AccountIdentifier,
-    operations::ledger::{balance, icp_xdr_rate},
-    provider::create_agent_environment, waiter::waiter_with_timeout,
-}, util::{assets::wallet_wasm, expiry_duration}};
+use crate::{
+    lib::{
+        environment::Environment,
+        error::DfxResult,
+        identity::{Identity, IdentityManager},
+        nns_types::account_identifier::AccountIdentifier,
+        operations::ledger::{balance, icp_xdr_rate},
+        provider::create_agent_environment,
+        waiter::waiter_with_timeout,
+    },
+    util::{assets::wallet_wasm, expiry_duration},
+};
 
 pub fn exec(env: &dyn Environment) -> DfxResult {
     let env = create_agent_environment(env, Some("ic".to_string()))?;
@@ -60,7 +66,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
             let needed_tc = Decimal::new(10, 0) - possible_tc;
             if needed_tc.is_sign_positive() {
                 let needed_icp = needed_tc * icp_per_tc;
-                let precision = needed_icp.scale() as usize + 4; 
+                let precision = needed_icp.scale() as usize + 4;
                 println!("You need {needed_icp:.precision$} more ICP to deploy a 10 TC wallet canister on mainnet.");
                 println!("Deposit {needed_icp:.precision$} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet.");
                 println!("Alternatively:");
