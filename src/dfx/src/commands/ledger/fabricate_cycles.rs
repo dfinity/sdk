@@ -1,4 +1,3 @@
-use crate::config::dfinity::DEFAULT_IC_GATEWAY;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -11,12 +10,10 @@ use crate::util::clap::validators::{
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
 use crate::util::expiry_duration;
 
+use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
-use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
-use ic_agent::Agent;
-use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 

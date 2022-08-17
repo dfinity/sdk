@@ -32,8 +32,8 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
         let xdr_per_icp = Decimal::from_i128_with_scale(xdr_conversion_rate as i128, 4);
         let icp_per_tc = xdr_per_icp.inv();
         println!("Conversion rate: 1 ICP <> {xdr_per_icp} XDR");
-        let wallet = Identity::wallet_canister_id(&env, env.get_network_descriptor().unwrap(), ident.name());
-        if let Ok(wallet) = wallet {
+        let wallet = Identity::wallet_canister_id(env.get_network_descriptor(), ident.name())?;
+        if let Some(wallet) = wallet {
             println!("Mainnet wallet canister: {wallet}");
             if let Ok(wallet_canister) = WalletCanister::create(agent, wallet).await {
                 if let Ok(balance) = wallet_canister.wallet_balance().await {
@@ -50,7 +50,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
                 mgmt.install_code(&id, &wasm).with_mode(InstallMode::Install).call_and_wait(waiter_with_timeout(expiry_duration())).await?;
                 WalletCanister::create(agent, id).await?
             };
-            Identity::set_wallet_id(&env, env.get_network_descriptor().unwrap(), ident.name(), id)?;
+            Identity::set_wallet_id( env.get_network_descriptor(), ident.name(), id)?;
             println!("Successfully imported wallet {id}.");
             if let Ok(balance) = wallet.wallet_balance().await {
                 println!("Mainnet wallet balance: {:.2} TC", Decimal::from(balance.amount) / Decimal::from(1_000_000_000_000_u64));

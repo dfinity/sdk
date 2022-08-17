@@ -129,7 +129,7 @@ impl ICPTs {
         (self.get_icpts(), self.get_remainder_e8s())
     }
 
-    pub fn to_decimal(&self) -> Decimal {
+    pub fn to_decimal(self) -> Decimal {
         Decimal::from_i128_with_scale(self.e8s as i128, 8)
     }
 }

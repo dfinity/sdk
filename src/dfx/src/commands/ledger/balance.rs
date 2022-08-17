@@ -1,13 +1,10 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::ledger_types::{AccountBalanceArgs, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
-use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::ledger;
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use candid::Principal;
-use candid::{Decode, Encode};
 use clap::Parser;
 use std::str::FromStr;
 

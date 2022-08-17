@@ -22,6 +22,7 @@ use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
 
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 
 use super::NetworkOpts;
