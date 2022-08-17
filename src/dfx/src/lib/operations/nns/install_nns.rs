@@ -1,9 +1,11 @@
 use crate::DfxResult;
 
 use anyhow::{bail, Context};
+use fn_error_context::context;
 use ic_agent::Agent;
 use std::path::Path;
 
+#[context("Failed to install nns components.")]
 pub async fn install_nns(
     _agent: &Agent,
     _icx_proxy_url: &str,
