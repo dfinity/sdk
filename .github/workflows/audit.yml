@@ -49,11 +49,7 @@ jobs:
       - name: Audit
         run: |
           cd sdk
-          # RUSTSEC-2020-0159 - direct dependency on chrono 0.4.19 "Potential segfault in `localtime_r` invocations"
-          # RUSTSEC-2020-0071 - indirect dependency on time 0.1.43 "Potential segfault in the time crate"
-          cargo audit --no-fetch --db "${GITHUB_WORKSPACE}"/advisory-db \
-              --ignore RUSTSEC-2020-0159 \
-              --ignore RUSTSEC-2020-0071
+          cargo audit --no-fetch --db "${GITHUB_WORKSPACE}"/advisory-db
         env:
           RUST_BACKTRACE: 1
 

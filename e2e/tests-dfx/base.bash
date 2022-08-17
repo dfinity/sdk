@@ -20,18 +20,18 @@ teardown() {
     dfx_start
     dfx canister create --all
     dfx build
-    dfx canister install e2e_project
+    dfx canister install e2e_project_backend
 
-    assert_command dfx canister call --query e2e_project is_digit '("5")'
+    assert_command dfx canister call --query e2e_project_backend is_digit '("5")'
     assert_eq '(true)'
 
-    assert_command dfx canister call --query e2e_project is_digit '("w")'
+    assert_command dfx canister call --query e2e_project_backend is_digit '("w")'
     assert_eq '(false)'
 }
 
 @test "does not provide base library if there is a packtool" {
     install_asset base
-    dfx config defaults/build/packtool "echo"
+    jq '.defaults.build.packtool="echo"' dfx.json | sponge dfx.json
 
     dfx_start
     dfx canister create --all

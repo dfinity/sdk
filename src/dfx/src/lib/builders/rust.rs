@@ -8,10 +8,12 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 
 use anyhow::{anyhow, bail, Context};
-use ic_types::principal::Principal as CanisterId;
-use serde::Deserialize;
-use slog::{info, o, warn};
+use candid::Principal as CanisterId;
+use fn_error_context::context;
+
+use slog::{info, o};
 use std::path::PathBuf;
+use std::process::Command;
 use std::process::Stdio;
 
 pub struct RustBuilder {
@@ -19,6 +21,7 @@ pub struct RustBuilder {
 }
 
 impl RustBuilder {
+    #[context("Failed to create RustBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(RustBuilder {
             logger: env.get_logger().new(o! {
@@ -29,17 +32,13 @@ impl RustBuilder {
 }
 
 impl CanisterBuilder for RustBuilder {
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        let deps = match info.get_extra_value("dependencies") {
-            None => vec![],
-            Some(v) => Vec::<String>::deserialize(v)
-                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
-        };
-        let dependencies = deps
+        let dependencies = info.get_dependencies()
             .iter()
             .map(|name| {
                 pool.get_first_canister_with_name(name)
@@ -49,14 +48,11 @@ impl CanisterBuilder for RustBuilder {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>()?;
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context(|| format!("Failed to collect dependencies (canister ids) for canister {}.", info.get_name()))?;
         Ok(dependencies)
     }
 
-    fn supports(&self, info: &CanisterInfo) -> bool {
-        info.get_type() == "rust"
-    }
-
+    #[context("Failed to build Rust canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
         pool: &CanisterPool,
@@ -68,7 +64,7 @@ impl CanisterBuilder for RustBuilder {
 
         let canister_id = canister_info.get_canister_id().unwrap();
 
-        let mut cargo = std::process::Command::new("cargo");
+        let mut cargo = Command::new("cargo");
         cargo
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
@@ -77,7 +73,8 @@ impl CanisterBuilder for RustBuilder {
             .arg("wasm32-unknown-unknown")
             .arg("--release")
             .arg("-p")
-            .arg(package);
+            .arg(package)
+            .arg("--locked");
 
         let dependencies = self
             .get_dependencies(pool, canister_info)
@@ -90,51 +87,31 @@ impl CanisterBuilder for RustBuilder {
 
         info!(
             self.logger,
-            "Executing: cargo build --target wasm32-unknown-unknown --release -p {}", package
+            "Executing: cargo build --target wasm32-unknown-unknown --release -p {} --locked",
+            package
         );
-        let output = cargo.output().context("Failed to run cargo build")?;
+        let output = cargo.output().context("Failed to run 'cargo build'.")?;
 
-        if std::process::Command::new("ic-cdk-optimizer")
-            .arg("--version")
-            .output()
-            .is_ok()
-        {
-            let mut optimizer = std::process::Command::new("ic-cdk-optimizer");
-            let wasm_path = format!("target/wasm32-unknown-unknown/release/{}.wasm", package);
-            optimizer
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .arg("-o")
-                .arg(&wasm_path)
-                .arg(&wasm_path);
-            // The optimized wasm overwrites the original wasm.
-            // Because the `get_output_wasm_path` must give the same path,
-            // no matter optimized or not.
-            info!(
-                self.logger,
-                "Executing: ic-cdk-optimizer -o {0} {0}", &wasm_path
-            );
-            if !matches!(optimizer.status(), Ok(status) if status.success()) {
-                warn!(self.logger, "Failed to run ic-cdk-optimizer.");
-            }
-        } else {
-            warn!(
-                self.logger,
-                "ic-cdk-optimizer not installed, the output WASM module is not optimized in size.
-Run `cargo install ic-cdk-optimizer` to install it.
-                "
-            );
-        }
+        info!(self.logger, "Optimizing WASM module.");
+        let wasm_path = rust_info.get_output_wasm_path();
+        let wasm = std::fs::read(wasm_path).expect("Could not read the WASM module.");
+        let wasm_optimized =
+            ic_wasm::optimize::optimize(&wasm).map_err(|e| anyhow!(e.to_string()))?;
+        // The optimized wasm overwrites the original wasm.
+        // Because the `get_output_wasm_path` must give the same path,
+        // no matter optimized or not.
+        std::fs::write(wasm_path, wasm_optimized).expect("Could not write optimized WASM module.");
 
-        if output.status.success() {
-            Ok(BuildOutput {
-                canister_id,
-                wasm: WasmBuildOutput::File(rust_info.get_output_wasm_path().to_path_buf()),
-                idl: IdlBuildOutput::File(rust_info.get_output_idl_path().to_path_buf()),
-            })
-        } else {
+        if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);
         }
+
+        Ok(BuildOutput {
+            canister_id,
+            wasm: WasmBuildOutput::File(rust_info.get_output_wasm_path().to_path_buf()),
+            idl: IdlBuildOutput::File(rust_info.get_output_idl_path().to_path_buf()),
+            add_candid_service_metadata: true,
+        })
     }
 
     fn generate_idl(
@@ -148,7 +125,10 @@ Run `cargo install ic-cdk-optimizer` to install it.
         if output_idl_path.exists() {
             Ok(output_idl_path.to_path_buf())
         } else {
-            bail!("Candid file: {:?} doesn't exist.", output_idl_path);
+            bail!(
+                "Candid file: {} doesn't exist.",
+                output_idl_path.to_string_lossy()
+            );
         }
     }
 }

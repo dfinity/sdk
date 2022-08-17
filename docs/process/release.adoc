@@ -204,15 +204,15 @@ $dfx_rc canister call hello_world greet everyone
 +
 [source, bash]
 ----
-export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_world)"
-export hello_world_assets_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_assets)"
+export hello_world_backend_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_world_backend)"
+export hello_world_frontend_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_frontend)"
 ----
 . Open a web browser and clear your cache or switch to Private Browsing/Incognito mode.
 . Open the following URL in your web browser:
 +
 [source,bash]
 ----
-echo "$hello_world_assets_url"
+echo "$hello_world_frontend_url"
 ----
 +
 . Verify that you are prompted to type a greeting in a prompt window.
@@ -226,7 +226,7 @@ Warnings can be ignored.
 +
 [source, bash]
 ----
-echo "$hello_world_candid_url"
+echo "$hello_world_backend_candid_url"
 ----
 +
 .. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
@@ -320,6 +320,12 @@ NOTE: Depending on the number of jobs queued up, this step can take 45 to 60 min
 [source, bash]
 ----
 git switch release-$NEW_DFX_VERSION
+----
+. Set the upstream tracking information for the release branch:
++
+[source, bash]
+----
+git branch --set-upstream-to=origin/$NEW_DFX_VERSION $NEW_DFX_VERSION
 ----
 . Update the release branch:
 +

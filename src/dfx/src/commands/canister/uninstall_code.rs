@@ -6,12 +6,13 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
-/// Uninstalls a canister, removing its code and state, on the Internet Computer network.
+/// Uninstalls a canister, removing its code and state.
+/// Does not delete the canister.
 #[derive(Parser)]
 pub struct UninstallCodeOpts {
     /// Specifies the name or id of the canister to uinstall.

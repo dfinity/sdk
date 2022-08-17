@@ -1,13 +1,13 @@
-use crate::config::dfinity::NetworkType;
-use crate::lib::environment::{AgentEnvironment, Environment};
+use crate::lib::environment::{create_agent, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::identity::Identity;
 use crate::lib::provider::{
-    command_line_provider_to_url, get_network_context, get_network_descriptor,
+    command_line_provider_to_url, create_network_descriptor, get_network_context,
+    LocalBindDetermination,
 };
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use garcon::{Delay, Waiter};
 use slog::warn;
@@ -28,33 +28,30 @@ pub struct PingOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
-    env.get_config()
-        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
-
     // For ping, "provider" could either be a URL or a network name.
     // If not passed, we default to the "local" network.
-    let network_descriptor =
-        get_network_descriptor(env, opts.network).or_else::<DfxError, _>(|err| {
-            let logger = env.get_logger();
-            warn!(logger, "{}", err);
-            let network_name = get_network_context()?;
-            let url = command_line_provider_to_url(&network_name)?;
-            let is_ic = NetworkDescriptor::is_ic(&network_name, &vec![url.to_string()]);
-            let network_descriptor = NetworkDescriptor {
-                name: "-ping-".to_string(),
-                providers: vec![url],
-                r#type: NetworkType::Ephemeral,
-                is_ic,
-            };
-            Ok(network_descriptor)
-        })?;
+    let agent_url = create_network_descriptor(
+        env.get_config(),
+        env.get_networks_config(),
+        opts.network,
+        None,
+        LocalBindDetermination::ApplyRunningWebserverPort,
+    )
+    .and_then(|network_descriptor| {
+        let url = network_descriptor.first_provider()?.to_string();
+        Ok(url)
+    })
+    .or_else::<DfxError, _>(|err| {
+        let logger = env.get_logger();
+        warn!(logger, "{:#}", err);
+        let network_name = get_network_context()?;
+        let url = command_line_provider_to_url(&network_name)?;
+        Ok(url)
+    })?;
 
     let timeout = expiry_duration();
-    let env = AgentEnvironment::new(env, network_descriptor, timeout)?;
-
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
+    let identity = Box::new(Identity::anonymous());
+    let agent = create_agent(env.get_logger().clone(), &agent_url, identity, timeout)?;
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
     if opts.wait_healthy {
@@ -84,7 +81,9 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                 .map_err(|_| anyhow!("Timed out waiting for replica to become healthy"))?;
         }
     } else {
-        let status = runtime.block_on(agent.status())?;
+        let status = runtime
+            .block_on(agent.status())
+            .context("Failed while waiting for agent status.")?;
         println!("{}", status);
     }
 

@@ -5,10 +5,10 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::CandidType;
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 
 /// Send cycles to another cycles wallet.
 #[derive(Parser)]
@@ -28,18 +28,23 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
         canister: Principal,
         amount: u128,
     }
-    let canister = Principal::from_text(opts.destination.clone())?;
+    let canister = Principal::from_text(&opts.destination).with_context(|| {
+        format!(
+            "Failed to parse {:?} as destination principal.",
+            &opts.destination
+        )
+    })?;
     // amount has been validated by cycle_amount_validator
     let amount = opts.amount.parse::<u128>().unwrap();
     let res = get_wallet(env)
         .await?
         .wallet_send(canister, amount, waiter_with_timeout(expiry_duration()))
         .await;
-    Ok(res.map_err(|err| {
+    res.map_err(|err| {
         anyhow!(
             "Sending cycles to {} failed with: {}",
             opts.destination,
             err
         )
-    })?)
+    })
 }

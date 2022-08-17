@@ -9,23 +9,23 @@ use crate::lib::sign::signed_message::SignedMessageV1;
 
 use crate::util::{blob_from_arguments, get_candid_type};
 
+use candid::Principal;
 use ic_agent::AgentError;
 use ic_agent::RequestId;
-use ic_types::principal::Principal;
 
-use anyhow::{anyhow, bail};
-use chrono::Utc;
+use anyhow::{anyhow, bail, Context};
 use clap::Parser;
-use humanize_rs::duration;
 use slog::info;
+use time::OffsetDateTime;
 
+use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::str::FromStr;
 use std::time::SystemTime;
 
-/// Sign a canister call and generate message file in json
+/// Sign a canister call and generate message file.
 #[derive(Parser)]
 pub struct CanisterSignOpts {
     /// Specifies the name of the canister to call.
@@ -53,7 +53,7 @@ pub struct CanisterSignOpts {
     #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
     r#type: Option<String>,
 
-    /// Specifies how long will the message be valid in seconds, default to be 300s (5 minutes)
+    /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
     #[clap(long, default_value("5m"))]
     expire_after: String,
 
@@ -69,7 +69,7 @@ pub async fn exec(
 ) -> DfxResult {
     let log = env.get_logger();
     if *call_sender != CallSender::SelectedId {
-        bail!("`sign` currently doesn't support proxy through wallet canister, please use `dfx canister --no-wallet sign ...`.");
+        bail!("`sign` currently doesn't support proxying through the wallet canister, please use `dfx canister sign --no-wallet ...`.");
     }
 
     let callee_canister = opts.canister_name.as_str();
@@ -120,7 +120,6 @@ pub async fn exec(
 
     let network = env
         .get_network_descriptor()
-        .expect("Cannot get network descriptor from environment.")
         .providers
         .first()
         .expect("Cannot get network provider (url).")
@@ -130,16 +129,15 @@ pub async fn exec(
         .get_selected_identity_principal()
         .expect("Selected identity not instantiated.");
 
-    let timeout = duration::parse(&opts.expire_after)
+    let timeout = humantime::parse_duration(&opts.expire_after)
         .map_err(|_| anyhow!("Cannot parse expire_after as a duration (e.g. `1h`, `1h 30m`)"))?;
     //let timeout = Duration::from_secs(opts.expire_after);
     let expiration_system_time = SystemTime::now()
         .checked_add(timeout)
         .ok_or_else(|| anyhow!("Time wrapped around."))?;
-    let chorono_timeout = chrono::Duration::seconds(timeout.as_secs() as i64);
-    let creation = Utc::now();
+    let creation = OffsetDateTime::now_utc();
     let expiration = creation
-        .checked_add_signed(chorono_timeout)
+        .checked_add(timeout.try_into()?)
         .ok_or_else(|| anyhow!("Expiration datetime overflow."))?;
 
     let message_template = SignedMessageV1::new(
@@ -210,7 +208,8 @@ pub async fn exec(
         let message: SignedMessageV1 =
             serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
         // message from file guaranteed to have request_id becase it is a update message just generated
-        let request_id = RequestId::from_str(&message.request_id.unwrap())?;
+        let request_id = RequestId::from_str(&message.request_id.unwrap())
+            .context("Failed to parse request id.")?;
         let res = sign_agent
             .request_status_raw(&request_id, canister_id, false)
             .await;

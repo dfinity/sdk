@@ -14,14 +14,13 @@ use crate::util::clap::validators::{
 };
 use crate::util::expiry_duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
+use candid::Principal as CanisterId;
 use clap::Parser;
 use ic_agent::Identity as _;
-use ic_types::principal::Principal as CanisterId;
 use slog::info;
 
-/// Creates an empty canister on the Internet Computer and
-/// associates the Internet Computer assigned Canister ID to the canister name.
+/// Creates an empty canister and associates the assigned Canister ID to the canister name.
 #[derive(Parser)]
 pub struct CanisterCreateOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
@@ -46,7 +45,7 @@ pub struct CanisterCreateOpts {
     compute_allocation: Option<String>,
 
     /// Specifies how much memory the canister is allowed to use in total.
-    /// This should be a value in the range [0..12 GiB]
+    /// This should be a value in the range [0..12 GiB].
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
@@ -75,14 +74,13 @@ pub async fn exec(
     let with_cycles = opts.with_cycles.as_deref();
 
     let config_interface = config.get_config();
-    let network = env.get_network_descriptor().unwrap();
+    let network = env.get_network_descriptor();
 
     let proxy_sender;
     if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
         let wallet = Identity::get_or_create_wallet_canister(
             env,
-            env.get_network_descriptor()
-                .expect("Couldn't get the network descriptor"),
+            env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
             false,
         )
@@ -117,30 +115,34 @@ pub async fn exec(
                 )
                 .collect::<DfxResult<Vec<_>>>()
         })
-        .transpose()?;
+        .transpose()
+        .context("Failed to determine controllers.")?;
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
-        if config
+        let canister_is_remote = config
             .get_config()
-            .is_remote_canister(canister_name, &network.name)?
-        {
+            .is_remote_canister(canister_name, &network.name)?;
+        if canister_is_remote {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
         }
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation.clone(),
-            config_interface,
+            Some(config_interface),
             Some(canister_name),
-        )?;
+        )
+        .with_context(|| format!("Failed to read compute allocation of {}.", canister_name))?;
         let memory_allocation = get_memory_allocation(
             opts.memory_allocation.clone(),
-            config_interface,
+            Some(config_interface),
             Some(canister_name),
-        )?;
+        )
+        .with_context(|| format!("Failed to read memory allocation of {}.", canister_name))?;
         let freezing_threshold = get_freezing_threshold(
             opts.freezing_threshold.clone(),
-            config_interface,
+            Some(config_interface),
             Some(canister_name),
-        )?;
+        )
+        .with_context(|| format!("Failed to read freezing threshold of {}.", canister_name))?;
         create_canister(
             env,
             canister_name,
@@ -160,10 +162,10 @@ pub async fn exec(
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
-                if config
+                let canister_is_remote = config
                     .get_config()
-                    .is_remote_canister(canister_name, &network.name)?
-                {
+                    .is_remote_canister(canister_name, &network.name)?;
+                if canister_is_remote {
                     info!(
                         env.get_logger(),
                         "Skipping canister '{}' because it is remote for network '{}'",
@@ -175,19 +177,28 @@ pub async fn exec(
                 }
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
-                )?;
+                )
+                .with_context(|| {
+                    format!("Failed to read compute allocation of {}.", canister_name)
+                })?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
-                )?;
+                )
+                .with_context(|| {
+                    format!("Failed to read memory allocation of {}.", canister_name)
+                })?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold.clone(),
-                    config_interface,
+                    Some(config_interface),
                     Some(canister_name),
-                )?;
+                )
+                .with_context(|| {
+                    format!("Failed to read freezing threshold of {}.", canister_name)
+                })?;
                 create_canister(
                     env,
                     canister_name,

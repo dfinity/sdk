@@ -1,1 +1,1 @@
-dfx config canisters/hello/main v1.mo
+jq '.canisters.hello_backend.main="v1.mo"' dfx.json | sponge dfx.json

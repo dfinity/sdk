@@ -2,6 +2,7 @@ use crate::config::cache::Cache;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 
 use anyhow::{anyhow, bail};
+use fn_error_context::context;
 use std::process::Command;
 
 /// Package arguments for moc or mo-ide as returned by
@@ -9,6 +10,7 @@ use std::process::Command;
 /// or, if there is no package tool, the base library.
 pub type PackageArguments = Vec<String>;
 
+#[context("Failed to load package arguments.")]
 pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageArguments> {
     if packtool.is_none() {
         let stdlib_path = cache

@@ -1,19 +1,20 @@
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
+use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 
 use anyhow::{anyhow, Context};
+use candid::Principal as CanisterId;
 use console::style;
-use ic_types::principal::Principal as CanisterId;
-use serde::Deserialize;
+use fn_error_context::context;
 use slog::info;
 use slog::Logger;
-use std::path::PathBuf;
-use std::process::Stdio;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 /// Set of extras that can be specified in the dfx.json.
 struct CustomBuilderExtra {
@@ -29,13 +30,9 @@ struct CustomBuilderExtra {
 }
 
 impl CustomBuilderExtra {
+    #[context("Failed to create CustomBuilderExtra for canister '{}'.", info.get_name())]
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
-        let deps = match info.get_extra_value("dependencies") {
-            None => vec![],
-            Some(v) => Vec::<String>::deserialize(v)
-                .map_err(|_| anyhow!("Field 'dependencies' is of the wrong type."))?,
-        };
-        let dependencies = deps
+        let dependencies = info.get_dependencies()
             .iter()
             .map(|name| {
                 pool.get_first_canister_with_name(name)
@@ -45,23 +42,11 @@ impl CustomBuilderExtra {
                         DfxResult::Ok,
                     )
             })
-            .collect::<DfxResult<Vec<CanisterId>>>()?;
-
-        let wasm = info
-            .get_output_wasm_path()
-            .expect("Missing wasm key in JSON.");
-        let candid = info
-            .get_output_idl_path()
-            .expect("Missing candid key in JSON.");
-        let build = if let Some(json) = info.get_extra_value("build") {
-            if let Ok(s) = String::deserialize(json.clone()) {
-                vec![s]
-            } else {
-                Vec::<String>::deserialize(json)?
-            }
-        } else {
-            vec![]
-        };
+            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
+        let info = info.as_info::<CustomCanisterInfo>()?;
+        let wasm = info.get_output_wasm_path().to_owned();
+        let candid = info.get_output_idl_path().to_owned();
+        let build = info.get_build_tasks().to_owned();
 
         Ok(CustomBuilderExtra {
             dependencies,
@@ -83,6 +68,7 @@ pub struct CustomBuilder {
 }
 
 impl CustomBuilder {
+    #[context("Failed to create CustomBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(CustomBuilder {
             logger: env.get_logger().clone(),
@@ -91,10 +77,7 @@ impl CustomBuilder {
 }
 
 impl CanisterBuilder for CustomBuilder {
-    fn supports(&self, info: &CanisterInfo) -> bool {
-        info.get_type() == "custom"
-    }
-
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
@@ -103,6 +86,7 @@ impl CanisterBuilder for CustomBuilder {
         Ok(CustomBuilderExtra::try_from(info, pool)?.dependencies)
     }
 
+    #[context("Failed to build custom canister {}.", info.get_name())]
     fn build(
         &self,
         pool: &CanisterPool,
@@ -119,6 +103,7 @@ impl CanisterBuilder for CustomBuilder {
         let canister_id = info.get_canister_id().unwrap();
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
 
+        let mut add_candid_service_metadata = false;
         for command in build {
             info!(
                 self.logger,
@@ -129,10 +114,12 @@ impl CanisterBuilder for CustomBuilder {
 
             // First separate everything as if it was read from a shell.
             let args = shell_words::split(&command)
-                .context(format!("Cannot parse command '{}'.", command))?;
+                .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &vars)?;
+                add_candid_service_metadata = true;
+                run_command(args, &vars, info.get_workspace_root())
+                    .with_context(|| format!("Failed to run {}.", command))?;
             }
         }
 
@@ -140,6 +127,7 @@ impl CanisterBuilder for CustomBuilder {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
             idl: IdlBuildOutput::File(candid),
+            add_candid_service_metadata,
         })
     }
 
@@ -155,7 +143,12 @@ impl CanisterBuilder for CustomBuilder {
             .as_ref()
             .context("output here must not be None")?;
 
-        std::fs::create_dir_all(generate_output_dir)?;
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
+            format!(
+                "Failed to create {}.",
+                generate_output_dir.to_string_lossy()
+            )
+        })?;
 
         let output_idl_path = generate_output_dir
             .join(info.get_name())
@@ -164,18 +157,29 @@ impl CanisterBuilder for CustomBuilder {
         // get the path to candid file
         let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)?;
 
-        std::fs::copy(&candid, &output_idl_path)?;
+        std::fs::copy(&candid, &output_idl_path).with_context(|| {
+            format!(
+                "Failed to copy canidid from {} to {}.",
+                candid.to_string_lossy(),
+                output_idl_path.to_string_lossy()
+            )
+        })?;
 
         Ok(output_idl_path)
     }
 }
 
-fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
+fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
-
-    let mut cmd = std::process::Command::new(command_name);
+    let canonicalized = cwd
+        .join(command_name)
+        .canonicalize()
+        .or_else(|_| which::which(command_name))
+        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
+    let mut cmd = Command::new(&canonicalized);
 
     cmd.args(arguments)
+        .current_dir(cwd)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
 
@@ -185,7 +189,7 @@ fn run_command(args: Vec<String>, vars: &[super::Env<'_>]) -> DfxResult<()> {
 
     let output = cmd
         .output()
-        .with_context(|| format!("Error executing custom build step {:#?}", cmd))?;
+        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
         Ok(())
     } else {

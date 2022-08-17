@@ -1,3 +1,1 @@
-#!/dev/null
-
-dfx config defaults/build/args -- "--compacting-gcX"
+jq '.defaults.build.args="--compacting-gcX"' dfx.json | sponge dfx.json

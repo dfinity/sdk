@@ -7,14 +7,14 @@ use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use clap::Parser;
 use garcon::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
-use ic_types::Principal;
 use std::str::FromStr;
 
-/// Requests the status of a specified call from a canister.
+/// Requests the status of a call from a canister.
 #[derive(Parser)]
 pub struct RequestStatusOpts {
     /// Specifies the request identifier.
@@ -26,7 +26,7 @@ pub struct RequestStatusOpts {
     /// If the request was made to the Management canister, specify the id of the
     /// canister it is updating/querying.
     /// If the call was proxied by the wallet,
-    /// i.e. a `dfx canister --wallet=<ID> call --async` flag,
+    /// i.e. a `dfx canister call --async --wallet=<ID>` flag,
     /// specify the wallet canister id.
     canister: String,
 
@@ -58,7 +58,8 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         loop {
             match agent
                 .request_status_raw(&request_id, canister_id, false)
-                .await?
+                .await
+                .context("Failed to fetch request status.")?
             {
                 RequestStatusResponse::Replied { reply } => return Ok(reply),
                 RequestStatusResponse::Rejected {
@@ -100,6 +101,6 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     .map_err(DfxError::from)?;
 
     let output_type = opts.output.as_deref();
-    print_idl_blob(&blob, output_type, &None).context("Invalid data: Invalid IDL blob.")?;
+    print_idl_blob(&blob, output_type, &None)?;
     Ok(())
 }

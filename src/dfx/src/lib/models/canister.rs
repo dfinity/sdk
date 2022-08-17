@@ -8,16 +8,19 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::util::{assets, check_candid_file};
 
-use anyhow::anyhow;
-use ic_types::principal::Principal as CanisterId;
+use crate::lib::wasm::metadata::add_candid_service_metadata;
+use anyhow::{anyhow, bail, Context};
+use candid::Principal as CanisterId;
+use fn_error_context::context;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
-use slog::Logger;
+use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io::Read;
 use std::path::Path;
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 
 /// Represents a canister from a DFX project. It can be a virtual Canister.
@@ -75,11 +78,12 @@ impl Canister {
     }
 
     // this function is only ever used when build_config.build_mode_check is true
+    #[context("Failed to generate random canister id.")]
     pub fn generate_random_canister_id() -> DfxResult<CanisterId> {
         let mut rng = thread_rng();
         let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
         rng.fill_bytes(v.as_mut_slice());
-        Ok(CanisterId::try_from(v)?)
+        CanisterId::try_from(v).context("Failed to convert bytes to canister id.")
     }
 
     /// Get the build output of a build process. If the output isn't known at this time,
@@ -88,6 +92,7 @@ impl Canister {
         unsafe { (&*self.output.as_ptr()).as_ref() }
     }
 
+    #[context("Failed while trying to generate type declarations for '{}'.", self.info.get_name())]
     pub fn generate(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
         self.builder.generate(pool, &self.info, build_config)
     }
@@ -108,6 +113,7 @@ struct PoolConstructHelper<'a> {
 }
 
 impl CanisterPool {
+    #[context("Failed to insert '{}' into canister pool.", canister_name)]
     fn insert(canister_name: &str, pool_helper: &mut PoolConstructHelper<'_>) -> DfxResult<()> {
         let canister_id = match pool_helper.canister_id_store.find(canister_name) {
             Some(canister_id) => Some(canister_id),
@@ -115,20 +121,17 @@ impl CanisterPool {
             _ => None,
         };
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
-
-        if let Some(builder) = pool_helper.builder_pool.get(&info) {
-            pool_helper
-                .canisters_map
-                .insert(0, Arc::new(Canister::new(info, builder)));
-            Ok(())
-        } else {
-            Err(anyhow!(
-                "Cannot find builder for canister '{}'.",
-                info.get_name().to_string()
-            ))
-        }
+        let builder = pool_helper.builder_pool.get(&info);
+        pool_helper
+            .canisters_map
+            .insert(0, Arc::new(Canister::new(info, builder)));
+        Ok(())
     }
 
+    #[context(
+        "Failed to load canister pool for given canisters: {:?}",
+        canister_names
+    )]
     pub fn load(
         env: &dyn Environment,
         generate_cid: bool,
@@ -190,6 +193,7 @@ impl CanisterPool {
         &self.logger
     }
 
+    #[context("Failed to build dependencies graph for canister pool.")]
     fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
@@ -232,7 +236,16 @@ impl CanisterPool {
         }
     }
 
+    #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
+        if self.canisters.iter().any(|can| can.info.is_rust()) {
+            self.run_cargo_audit()?;
+        } else {
+            trace!(
+                self.logger,
+                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
+            )
+        }
         Ok(())
     }
 
@@ -258,38 +271,82 @@ impl CanisterPool {
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
         let idl_file_path = canister.info.get_build_idl_path();
         if build_idl_path.ne(&idl_file_path) {
-            std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
+            std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
+                format!(
+                    "Failed to create idl file {}.",
+                    idl_file_path.parent().unwrap().to_string_lossy()
+                )
+            })?;
             std::fs::copy(&build_idl_path, &idl_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)?;
 
-            let mut perms = std::fs::metadata(&idl_file_path)?.permissions();
+            let mut perms = std::fs::metadata(&idl_file_path)
+                .with_context(|| {
+                    format!(
+                        "Failed to read file metadata for idl file {}.",
+                        idl_file_path.to_string_lossy()
+                    )
+                })?
+                .permissions();
             perms.set_readonly(false);
-            std::fs::set_permissions(&idl_file_path, perms)?;
+            std::fs::set_permissions(&idl_file_path, perms).with_context(|| {
+                format!(
+                    "Failed to set file permissions for idl file {}.",
+                    idl_file_path.to_string_lossy()
+                )
+            })?;
         }
 
         let WasmBuildOutput::File(build_wasm_path) = &build_output.wasm;
         let wasm_file_path = canister.info.get_build_wasm_path();
         if build_wasm_path.ne(&wasm_file_path) {
-            std::fs::create_dir_all(wasm_file_path.parent().unwrap())?;
+            std::fs::create_dir_all(wasm_file_path.parent().unwrap()).with_context(|| {
+                format!(
+                    "Failed to create {}.",
+                    wasm_file_path.parent().unwrap().to_string_lossy()
+                )
+            })?;
             std::fs::copy(&build_wasm_path, &wasm_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)?;
 
-            let mut perms = std::fs::metadata(&wasm_file_path)?.permissions();
+            let mut perms = std::fs::metadata(&wasm_file_path)
+                .with_context(|| {
+                    format!(
+                        "Failed to read file metadata for {}.",
+                        wasm_file_path.to_string_lossy()
+                    )
+                })?
+                .permissions();
             perms.set_readonly(false);
-            std::fs::set_permissions(&wasm_file_path, perms)?;
+            std::fs::set_permissions(&wasm_file_path, perms).with_context(|| {
+                format!(
+                    "Failed to set file permissions for {}.",
+                    wasm_file_path.to_string_lossy()
+                )
+            })?;
+        }
+        if build_output.add_candid_service_metadata {
+            add_candid_service_metadata(&wasm_file_path, &idl_file_path)?;
         }
 
-        // And then create an canisters/IDL folder with canister DID files per canister ID.
-        let idl_root = &build_config.idl_root;
         let canister_id = canister.canister_id();
-        let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
 
-        std::fs::create_dir_all(idl_file_path.parent().unwrap())?;
-        std::fs::copy(&build_idl_path, &idl_file_path)
-            .map(|_| {})
-            .map_err(DfxError::from)?;
+        // Copy DID files to IDL and LSP directories
+        for root in [&build_config.idl_root, &build_config.lsp_root] {
+            let idl_file_path = root.join(canister_id.to_text()).with_extension("did");
+
+            std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
+                format!(
+                    "Failed to create {}.",
+                    idl_file_path.parent().unwrap().to_string_lossy()
+                )
+            })?;
+            std::fs::copy(&build_idl_path, &idl_file_path)
+                .map(|_| {})
+                .map_err(DfxError::from)?;
+        }
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 
@@ -316,6 +373,7 @@ impl CanisterPool {
     }
 
     /// Build all canisters, returning a vector of results of each builds.
+    #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
         build_config: &BuildConfig,
@@ -384,6 +442,7 @@ impl CanisterPool {
 
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
+    #[context("Failed while trying to build all canisters.")]
     pub fn build_or_fail(&self, build_config: &BuildConfig) -> DfxResult<()> {
         let outputs = self.build(build_config)?;
 
@@ -393,8 +452,62 @@ impl CanisterPool {
 
         Ok(())
     }
+
+    /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.
+    fn run_cargo_audit(&self) -> DfxResult {
+        let location = Command::new("cargo")
+            .args(["locate-project", "--message-format=plain", "--workspace"])
+            .output()
+            .context("Failed to run 'cargo locate-project'.")?;
+        if !location.status.success() {
+            bail!(
+                "'cargo locate-project' failed: {}",
+                String::from_utf8_lossy(&location.stderr)
+            );
+        }
+        let location = Path::new(std::str::from_utf8(&location.stdout)?);
+        if !location
+            .parent()
+            .expect("Cargo.toml with no parent")
+            .join("Cargo.lock")
+            .exists()
+        {
+            warn!(
+                self.logger,
+                "Skipped audit step as there is no Cargo.lock file."
+            );
+            return Ok(());
+        }
+        if Command::new("cargo")
+            .arg("audit")
+            .arg("--version")
+            .output()
+            .map(|out| out.status.success())
+            .unwrap_or(false)
+        {
+            info!(
+                self.logger,
+                "Checking for vulnerabilities in rust canisters."
+            );
+            let out = Command::new("cargo")
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .arg("audit")
+                .output()
+                .context("Failed to run 'cargo audit'.")?;
+            if out.status.success() {
+                info!(self.logger, "Audit found no vulnerabilities.")
+            } else {
+                error!(self.logger, "Audit found vulnerabilities in rust canisters. Please address these problems as soon as possible!");
+            }
+        } else {
+            warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
+        }
+        Ok(())
+    }
 }
 
+#[context("Failed to decode path to str.")]
 fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
     path.to_str().ok_or_else(|| {
         DfxError::new(BuildError::JsBindGenError(format!(
@@ -405,6 +518,7 @@ fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
 }
 
 /// Create a canister JavaScript DID and Actor Factory.
+#[context("Failed to build canister js for canister '{}'.", canister_info.get_name())]
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
     let output_did_js_path = canister_info.get_build_idl_path().with_extension("did.js");
     let output_did_ts_path = canister_info
@@ -413,16 +527,31 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
 
     let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())?;
     let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
-    std::fs::write(output_did_js_path, content)?;
+    std::fs::write(&output_did_js_path, content).with_context(|| {
+        format!(
+            "Failed to write to {}.",
+            output_did_js_path.to_string_lossy()
+        )
+    })?;
     let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
-    std::fs::write(output_did_ts_path, content)?;
+    std::fs::write(&output_did_ts_path, content).with_context(|| {
+        format!(
+            "Failed to write to {}.",
+            output_did_ts_path.to_string_lossy()
+        )
+    })?;
 
-    let mut language_bindings = assets::language_bindings()?;
+    let mut language_bindings =
+        assets::language_bindings().context("Failed to get language bindings archive.")?;
     let index_js_path = canister_info.get_index_js_path();
-    for f in language_bindings.entries()? {
-        let mut file = f?;
+    for f in language_bindings
+        .entries()
+        .context("Failed to read language bindings archive entries.")?
+    {
+        let mut file = f.context("Failed to read language bindings archive entry.")?;
         let mut file_contents = String::new();
-        file.read_to_string(&mut file_contents)?;
+        file.read_to_string(&mut file_contents)
+            .context("Failed to read file content.")?;
 
         let new_file_contents = file_contents
             .replace("{canister_id}", &canister_id.to_text())
@@ -434,11 +563,19 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
 
         match decode_path_to_str(&file.path()?)? {
             "canister.js" => {
-                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)?;
+                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)
+                    .with_context(|| {
+                        format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                    })?;
             }
             "canisterId.js" => {
-                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)?;
+                std::fs::write(decode_path_to_str(&index_js_path)?, new_file_contents)
+                    .with_context(|| {
+                        format!("Failed to write to {}.", index_js_path.to_string_lossy())
+                    })?;
             }
+            // skip
+            "index.js.hbs" => {}
             _ => unreachable!(),
         }
     }

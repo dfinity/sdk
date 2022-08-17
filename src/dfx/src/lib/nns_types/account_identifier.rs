@@ -4,8 +4,9 @@
 // dfinity-lab/dfinity@25999dd54d29c24edb31483801bddfd8c1d780c8
 // https://github.com/dfinity-lab/dfinity/blob/master/rs/rosetta-api/canister/src/account_identifier.rs
 
+use anyhow::Context;
 use candid::CandidType;
-use ic_types::principal::Principal;
+use candid::Principal;
 use openssl::sha::Sha224;
 use serde::{de, de::Error, Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
@@ -188,5 +189,16 @@ impl TryFrom<&[u8]> for Subaccount {
 
     fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
         slice.try_into().map(Subaccount)
+    }
+}
+
+impl FromStr for Subaccount {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hex = hex::decode(s)
+            .with_context(|| format!("Subaccount {s:?} is not a valid hex string."))?;
+        Self::try_from(&hex[..])
+            .with_context(|| format!("Subaccount {s:?} is not 64 characters long"))
     }
 }

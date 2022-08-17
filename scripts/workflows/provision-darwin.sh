@@ -7,7 +7,7 @@ export
 # Enter temporary directory.
 pushd /tmp
 
-brew install coreutils
+brew install coreutils moreutils
 
 # Install Bats.
 if [ "$(uname -r)" = "19.6.0" ]; then
@@ -22,12 +22,15 @@ mkdir /usr/local/lib/bats-support
 tar --directory /usr/local/lib/bats-support --extract --file bats-support.tar.gz --strip-components 1
 rm bats-support.tar.gz
 
-# Packages needed for some tests
-if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
-     brew install mitmproxy
-fi
+# Modifications needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
      brew install bitcoin
+fi
+if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
+    cargo uninstall cargo-audit
+fi
+if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
+     brew install mitmproxy
 fi
 
 # Set environment variables.

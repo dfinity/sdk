@@ -6,12 +6,12 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
-/// Starts a canister on the Internet Computer network.
+/// Starts a stopped canister.
 #[derive(Parser)]
 pub struct CanisterStartOpts {
     /// Specifies the name or id of the canister to start. You must specify either a canister name/id or the --all flag.

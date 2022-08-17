@@ -1,35 +1,53 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 
+use anyhow::Context;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
+use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
+use fn_error_context::context;
 use net2::TcpListenerExt;
 use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
+use schemars::JsonSchema;
+use serde::Serialize;
+use std::convert::TryFrom;
+use std::fmt::Display;
 use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
 use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
 pub mod currency_conversion;
+pub mod stderr_wrapper;
 
 // The user can pass in port "0" to dfx start or dfx bootstrap i.e. "127.0.0.1:0" or "[::1]:0",
 // thus, we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
 // TcpBuilder is used with reuse_address and reuse_port set to "true" because
 // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
+#[context("Failed to find reusable socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
     let tcp_builder = if ip.is_ipv4() {
-        TcpBuilder::new_v4()?
+        TcpBuilder::new_v4().context("Failed to create IPv4 builder.")?
     } else {
-        TcpBuilder::new_v6()?
+        TcpBuilder::new_v6().context("Failed to create IPv6 builder.")?
     };
     let listener = tcp_builder
-        .reuse_address(true)?
-        .reuse_port(true)?
-        .bind(SocketAddr::new(ip, port))?
-        .to_tcp_listener()?;
-    listener.set_linger(Some(Duration::from_secs(10)))?;
-    Ok(listener.local_addr()?)
+        .reuse_address(true)
+        .context("Failed to set option reuse_address of tcp builder.")?
+        .reuse_port(true)
+        .context("Failed to set option reuse_port of tcp builder.")?
+        .bind(SocketAddr::new(ip, port))
+        .with_context(|| format!("Failed to set socket of tcp builder to {}:{}.", ip, port))?
+        .to_tcp_listener()
+        .context("Failed to create TcpListener.")?;
+    listener
+        .set_linger(Some(Duration::from_secs(10)))
+        .context("Failed to set linger duration of tcp listener.")?;
+    listener
+        .local_addr()
+        .context("Failed to fectch local address.")
 }
 
 pub fn expiry_duration() -> Duration {
@@ -42,6 +60,7 @@ pub fn network_to_pathcompat(network_name: &str) -> String {
 }
 
 /// Deserialize and print return values from canister method.
+#[context("Failed to deserialize idl blob: Invalid data.")]
 pub fn print_idl_blob(
     blob: &[u8],
     output_type: Option<&str>,
@@ -75,7 +94,7 @@ pub fn print_idl_blob(
 
 pub async fn read_module_metadata(
     agent: &ic_agent::Agent,
-    canister_id: ic_types::Principal,
+    canister_id: candid::Principal,
     metadata: &str,
 ) -> Option<String> {
     Some(
@@ -118,9 +137,16 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
 }
 
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    Ok(pretty_check_file(idl_path)?)
+    //context macro does not work for the returned error type
+    pretty_check_file(idl_path).with_context(|| {
+        format!(
+            "Candid file check failed for {}.",
+            idl_path.to_string_lossy()
+        )
+    })
 }
 
+#[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
     arguments: Option<&str>,
     random: Option<&str>,
@@ -183,8 +209,10 @@ pub fn blob_from_arguments(
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
                         let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                        let config = candid::parser::configs::Configs::from_dhall(random)?;
-                        let args = IDLArgs::any(&seed, &config, env, &func.args)?;
+                        let config = candid::parser::configs::Configs::from_dhall(random)
+                            .context("Failed to create candid parser config.")?;
+                        let args = IDLArgs::any(&seed, &config, env, &func.args)
+                            .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(env, &func.args)
                     } else {
@@ -196,5 +224,55 @@ pub fn blob_from_arguments(
             Ok(typed_args)
         }
         v => Err(error_unknown!("Invalid type: {}", v)),
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
+#[serde(untagged)]
+pub enum SerdeVec<T> {
+    One(T),
+    Many(Vec<T>),
+}
+
+impl<T> SerdeVec<T> {
+    pub fn into_vec(self) -> Vec<T> {
+        match self {
+            Self::One(t) => vec![t],
+            Self::Many(ts) => ts,
+        }
+    }
+}
+
+impl<T> Default for SerdeVec<T> {
+    fn default() -> Self {
+        Self::Many(vec![])
+    }
+}
+
+#[derive(Serialize, serde::Deserialize)]
+#[serde(untagged)]
+enum PossiblyStrInner<T> {
+    NotStr(T),
+    Str(String),
+}
+
+#[derive(Serialize, Deserialize, Default, Copy, Clone, Debug, JsonSchema)]
+#[serde(try_from = "PossiblyStrInner<T>")]
+pub struct PossiblyStr<T>(pub T)
+where
+    T: FromStr,
+    T::Err: Display;
+
+impl<T> TryFrom<PossiblyStrInner<T>> for PossiblyStr<T>
+where
+    T: FromStr,
+    T::Err: Display,
+{
+    type Error = T::Err;
+    fn try_from(inner: PossiblyStrInner<T>) -> Result<Self, Self::Error> {
+        match inner {
+            PossiblyStrInner::NotStr(t) => Ok(Self(t)),
+            PossiblyStrInner::Str(str) => T::from_str(&str).map(Self),
+        }
     }
 }

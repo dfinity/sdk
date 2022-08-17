@@ -41,18 +41,18 @@ teardown() {
     dfx_start
     dfx canister create --all
     dfx build
-    dfx canister install e2e_project
+    dfx canister install e2e_project_backend
 
-    assert_command dfx canister call e2e_project rate '("rust")'
+    assert_command dfx canister call e2e_project_backend rate '("rust")'
     assert_eq '("rust: So hot right now.")'
 
-    assert_command dfx canister call e2e_project rate '("php")'
+    assert_command dfx canister call e2e_project_backend rate '("php")'
     assert_eq '("php: No comment.")'
 }
 
 @test "failure to invoke the package tool reports the command line and reason" {
     install_asset packtool
-    dfx config defaults/build/packtool "./no-such-command that command cannot be invoked"
+    jq '.defaults.build.packtool="./no-such-command that command cannot be invoked"' dfx.json | sponge dfx.json
 
     dfx_start
     dfx canister create --all
@@ -64,7 +64,7 @@ teardown() {
 
 @test "failure in execution reports the command line and exit code" {
     install_asset packtool
-    dfx config defaults/build/packtool "sh ./command-that-fails.bash"
+    jq '.defaults.build.packtool="sh ./command-that-fails.bash"' dfx.json | sponge dfx.json
 
     dfx_start
     dfx canister create --all

@@ -1,1 +1,1 @@
-dfx config canisters/hello/main counter_idl.mo
+jq '.canisters.hello_backend.main="counter_idl.mo"' dfx.json | sponge dfx.json

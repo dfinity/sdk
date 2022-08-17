@@ -1,22 +1,22 @@
 use crate::lib::error::DfxResult;
 
+use candid::Principal;
+use fn_error_context::context;
 use ic_agent::RequestId;
-use ic_types::principal::Principal;
 
-use anyhow::{anyhow, bail};
-use chrono::{DateTime, TimeZone, Utc};
+use anyhow::{anyhow, bail, Context};
 use serde::{Deserialize, Serialize};
 use serde_cbor::Value;
 use std::convert::TryFrom;
-use std::time::Duration;
+use time::{Duration, OffsetDateTime};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct SignedMessageV1 {
     version: usize,
     #[serde(with = "date_time_utc")]
-    pub creation: DateTime<Utc>,
+    pub creation: OffsetDateTime,
     #[serde(with = "date_time_utc")]
-    pub expiration: DateTime<Utc>,
+    pub expiration: OffsetDateTime,
     pub network: String, // url of the network
     pub call_type: String,
     pub sender: String,
@@ -30,8 +30,8 @@ pub(crate) struct SignedMessageV1 {
 
 impl SignedMessageV1 {
     pub fn new(
-        creation: DateTime<Utc>,
-        expiration: DateTime<Utc>,
+        creation: OffsetDateTime,
+        expiration: OffsetDateTime,
         network: String,
         sender: Principal,
         canister_id: Principal,
@@ -74,6 +74,7 @@ impl SignedMessageV1 {
         self
     }
 
+    #[context("Failed to validate signed message.")]
     pub fn validate(&self) -> DfxResult {
         if self.version != 1 {
             bail!("Invalid message: version must be 1");
@@ -83,7 +84,7 @@ impl SignedMessageV1 {
             bail!("Invalid message: call_type must be `query` or `update`");
         }
 
-        let content = hex::decode(&self.content)?;
+        let content = hex::decode(&self.content).context("Failed to decode content.")?;
 
         let cbor: Value = serde_cbor::from_slice(&content)
             .map_err(|_| anyhow!("Invalid cbor data in the content of the message."))?;
@@ -97,17 +98,16 @@ impl SignedMessageV1 {
                     .get(&Value::Text("ingress_expiry".to_string()))
                     .ok_or_else(|| anyhow!("Invalid cbor content"))?;
                 if let Value::Integer(s) = ingress_expiry {
-                    let seconds_since_epoch_cbor = Duration::from_nanos(*s as u64).as_secs();
-                    let expiration_from_cbor = Utc.timestamp(seconds_since_epoch_cbor as i64, 0);
-                    let diff = self.expiration.signed_duration_since(expiration_from_cbor);
-                    if diff > chrono::Duration::seconds(5) || diff < chrono::Duration::seconds(-5) {
+                    let expiration_from_cbor = OffsetDateTime::from_unix_timestamp_nanos(*s)?;
+                    let diff = self.expiration - expiration_from_cbor;
+                    if diff > Duration::seconds(5) || diff < Duration::seconds(-5) {
                         bail!(
                             "Invalid message: expiration not match\njson: {}\ncbor: {}",
                             self.expiration,
                             expiration_from_cbor
                         )
                     }
-                    if Utc::now() > expiration_from_cbor {
+                    if OffsetDateTime::now_utc() > expiration_from_cbor {
                         bail!("The message has been expired at: {}", expiration_from_cbor);
                     }
                 }
@@ -181,26 +181,19 @@ impl SignedMessageV1 {
 }
 
 mod date_time_utc {
-    // https://serde.rs/custom-date-format.html
-    use chrono::{DateTime, TimeZone, Utc};
-    use serde::{self, Deserialize, Deserializer, Serializer};
+    time::serde::format_description!(date_time, PrimitiveDateTime, "[year repr:full padding:zero]-[month repr:numerical padding:zero]-[day padding:zero] [hour repr:24 padding:zero]:[minute padding:zero]:[second padding:zero] UTC");
 
-    const FORMAT: &str = "%Y-%m-%d %H:%M:%S UTC";
+    use serde::{Deserializer, Serializer};
+    use time::{OffsetDateTime, PrimitiveDateTime, UtcOffset};
 
-    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = format!("{}", date.format(FORMAT));
-        serializer.serialize_str(&s)
+    pub fn serialize<S: Serializer>(datetime: &OffsetDateTime, s: S) -> Result<S::Ok, S::Error> {
+        let utc = datetime.to_offset(UtcOffset::UTC);
+        let date = utc.date();
+        let time = utc.time();
+        date_time::serialize(&PrimitiveDateTime::new(date, time), s)
     }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Utc.datetime_from_str(&s, FORMAT)
-            .map_err(serde::de::Error::custom)
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<OffsetDateTime, D::Error> {
+        let primitive = date_time::deserialize(d)?;
+        Ok(primitive.assume_utc())
     }
 }

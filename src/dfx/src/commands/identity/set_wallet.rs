@@ -3,11 +3,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::{create_agent_environment, get_network_descriptor};
+use crate::lib::provider::create_agent_environment;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use ic_utils::interfaces::wallet::BalanceResult;
 use slog::{error, info};
 use tokio::runtime::Runtime;
@@ -24,8 +24,7 @@ pub struct SetWalletOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>) -> DfxResult {
-    let agent_env = create_agent_environment(env, network.clone())?;
-    let config = env.get_config_or_anyhow()?;
+    let agent_env = create_agent_environment(env, network)?;
     let env = &agent_env;
     let log = env.get_logger();
 
@@ -36,12 +35,13 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         .expect("No selected identity.")
         .to_string();
 
-    let network = get_network_descriptor(&agent_env, network)?;
+    let network = agent_env.get_network_descriptor();
 
     let canister_name = opts.canister_name.as_str();
     let canister_id = match Principal::from_text(canister_name) {
         Ok(id) => id,
         Err(_) => {
+            let config = env.get_config_or_anyhow()?;
             let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
             let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
             canister_info.get_canister_id()?
@@ -63,7 +63,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
 
         runtime
             .block_on(async {
-                let _ = agent.status().await?;
+                let _ = agent.status().await.context("Failed to read network status.")?;
 
                 info!(
                     log,
@@ -100,7 +100,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         network.name,
         canister_id
     );
-    Identity::set_wallet_id(env, &network, &identity_name, canister_id)?;
+    Identity::set_wallet_id(network, &identity_name, canister_id)?;
     info!(log, "Wallet set successfully.");
 
     Ok(())

@@ -5,16 +5,17 @@
 
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::ICPTs;
-use crate::lib::nns_types::{account_identifier, icpts};
 use candid::CandidType;
-use ic_types::principal::Principal;
+use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Id of the ledger canister on the IC.
+#[allow(deprecated)]
 pub const MAINNET_LEDGER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x01]);
 
+#[allow(deprecated)]
 pub const MAINNET_CYCLE_MINTER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01]);
 
@@ -97,6 +98,8 @@ pub struct IcpXdrConversionRateCertifiedResponse {
 /// Position of a block in the chain. The first block has position 0.
 pub type BlockHeight = u64;
 
+pub type BlockIndex = u64;
+
 #[derive(
     Serialize,
     Deserialize,
@@ -124,13 +127,35 @@ pub struct TimeStamp {
 }
 
 #[derive(CandidType)]
-pub struct NotifyCanisterArgs {
-    pub block_height: BlockHeight,
-    pub max_fee: icpts::ICPTs,
-    pub from_subaccount: Option<account_identifier::Subaccount>,
-    pub to_canister: Principal,
-    pub to_subaccount: Option<account_identifier::Subaccount>,
+pub struct NotifyCreateCanisterArg {
+    pub block_index: BlockIndex,
+    pub controller: Principal,
 }
+
+#[derive(CandidType)]
+pub struct NotifyTopUpArg {
+    pub block_index: BlockIndex,
+    pub canister_id: Principal,
+}
+
+#[derive(CandidType, Deserialize, Debug)]
+pub enum NotifyError {
+    Refunded {
+        reason: String,
+        block_index: Option<BlockIndex>,
+    },
+    Processing,
+    TransactionTooOld(BlockIndex),
+    InvalidTransaction(String),
+    Other {
+        error_code: u64,
+        error_message: String,
+    },
+}
+
+pub type NotifyCreateCanisterResult = Result<Principal, NotifyError>;
+
+pub type NotifyTopUpResult = Result<u128, NotifyError>;
 
 #[cfg(test)]
 mod tests {

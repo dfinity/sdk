@@ -102,7 +102,10 @@ impl Emulator {
 
         let (sender, receiver) = unbounded();
 
-        let handle = emulator_start_thread(logger, self.config.clone(), addr, receiver)?;
+        let handle = anyhow::Context::context(
+            emulator_start_thread(logger, self.config.clone(), addr, receiver),
+            "Failed to start emulator thread.",
+        )?;
 
         self.thread_join = Some(handle);
         self.stop_sender = Some(sender);

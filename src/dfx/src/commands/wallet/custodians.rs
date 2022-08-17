@@ -2,8 +2,8 @@ use crate::commands::wallet::wallet_query;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 
 /// List the wallet's custodians.
 #[derive(Parser)]

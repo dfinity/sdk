@@ -27,7 +27,7 @@ term_reset() {
 
 get_parameters() {
     [ "$#" -eq 1 ] || die "Usage: $0 <n.n.n>"
-    [[ "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-(beta|alpha)\.[0-9]+)?$ ]] || \
+    [[ "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(-([A-Za-z]+)\.[0-9]+)?$ ]] || \
         die "'$1' is not a valid semantic version"
 
     export FINAL_RELEASE_BRANCH="release-${BASH_REMATCH[1]}"
@@ -54,21 +54,21 @@ pre_release_check() {
 }
 
 #
-# build the release candidate and export these environment variables:
-#    dfx_rc                    dfx release candidate executable
+# build the release candidate and prepend the target directory to the PATH.
+# package.json now specifies to call "dfx generate", which is why dfx needs to be on the path.
 #
 build_release_candidate() {
     announce "Building dfx release candidate."
     cargo clean --release
     cargo build --release --locked
-    x="$(pwd)/target/release/dfx"
-    export dfx_rc="$x"
+    x="$(pwd)/target/release"
+    "$x/dfx" --version
 
-    echo "Checking for dfx release candidate at $dfx_rc"
-    test -x "$dfx_rc"
+    export PATH="$x:$PATH"
+    [ "$(which dfx)" == "$x/dfx" ] || die "expected dfx on path ($(which dfx) to match built dfx ($x/dfx)"
 
     echo "Deleting existing dfx cache to make sure not to use a stale binary."
-    $dfx_rc cache delete
+    dfx cache delete
 }
 
 wait_for_response() {
@@ -92,32 +92,32 @@ validate_default_project() {
         cd "$PROJECTDIR"
 
         echo "Creating new project."
-        $dfx_rc new hello_world
+        dfx new hello_world
         cd hello_world
 
         echo "Starting the local 'replica' as a background process."
-        $dfx_rc start --background
+        dfx start --background --clean
 
         echo "Installing webpack and webpack-cli"
         npm install webpack webpack-cli
         npm install terser-webpack-plugin
 
         echo "Deploying canisters."
-        $dfx_rc deploy
+        dfx deploy
 
         echo "Calling the canister."
-        $dfx_rc canister call hello_world greet everyone
+        dfx canister call hello_world_backend greet everyone
 
-        hello_world_assets_canister_id=$($dfx_rc canister id hello_world_assets)
-        application_canister_id=$($dfx_rc canister id hello_world)
-        candid_ui_id=$($dfx_rc canister id __Candid_UI)
-        export hello_world_assets_url="http://localhost:8000/?canisterId=$hello_world_assets_canister_id"
+        hello_world_frontend_canister_id=$(dfx canister id hello_world_frontend)
+        application_canister_id=$(dfx canister id hello_world_backend)
+        candid_ui_id=$(dfx canister id __Candid_UI)
+        export hello_world_frontend_url="http://localhost:8000/?canisterId=$hello_world_frontend_canister_id"
         export candid_ui_url="http://localhost:8000/?canisterId=$candid_ui_id&id=$application_canister_id"
 
         echo
         echo "=================================================="
         echo "dfx project directory: $(pwd)"
-        echo "assets URL: $hello_world_assets_url"
+        echo "frontend URL: $hello_world_frontend_url"
         echo "candid URL: $candid_ui_url"
         echo "=================================================="
         echo
@@ -125,9 +125,9 @@ validate_default_project() {
         echo "  - Open this URL in your web browser with empty cache or 'Private Browsing' mode"
         echo "  - Type a name and verify the response."
         echo
-        echo "  $hello_world_assets_url"
+        echo "  $hello_world_frontend_url"
         echo
-        wait_for_response 'assets UI passes'
+        wait_for_response 'frontend UI passes'
         echo
         echo "[2/4] Verify there are no errors in the console by opening the Developer Tools."
         echo
@@ -147,7 +147,7 @@ validate_default_project() {
         wait_for_response 'no errors on console'
         echo
 
-        $dfx_rc stop
+        dfx stop
     )
 }
 
@@ -163,8 +163,7 @@ build_release_branch() {
 
     echo "Updating version in src/dfx/Cargo.toml"
     # update first version in src/dfx/Cargo.toml to be NEW_DFX_VERSION
-    # shellcheck disable=SC2094
-    cat <<<"$(awk 'NR==1,/^version = ".*"/{sub(/^version = ".*"/, "version = \"'"$NEW_DFX_VERSION"'\"")} 1' <src/dfx/Cargo.toml)" >src/dfx/Cargo.toml
+    awk 'NR==1,/^version = ".*"/{sub(/^version = ".*"/, "version = \"'"$NEW_DFX_VERSION"'\"")} 1' <src/dfx/Cargo.toml | sponge src/dfx/Cargo.toml
 
     echo "Building dfx with cargo."
     # not --locked, because Cargo.lock needs to be updated with the new version
@@ -173,8 +172,7 @@ build_release_branch() {
 
     echo "Appending version to public/manifest.json"
     # Append the new version to `public/manifest.json` by appending it to the `versions` list.
-    # shellcheck disable=SC2094
-    cat <<<"$(jq --indent 4 '.versions += ["'"$NEW_DFX_VERSION"'"]' public/manifest.json)" >public/manifest.json
+    jq --indent 4 '.versions += ["'"$NEW_DFX_VERSION"'"]' public/manifest.json | sponge public/manifest.json
 
     echo "Creating release branch: $BRANCH"
     $DRY_RUN_ECHO git add -u
@@ -192,6 +190,8 @@ tag_release_commit() {
 
     echo "Switching to the release branch."
     $DRY_RUN_ECHO git switch "$FINAL_RELEASE_BRANCH"
+
+    $DRY_RUN_ECHO git branch --set-upstream-to=origin/"$FINAL_RELEASE_BRANCH" "$FINAL_RELEASE_BRANCH"
 
     echo "Pulling the remote branch"
     $DRY_RUN_ECHO git pull

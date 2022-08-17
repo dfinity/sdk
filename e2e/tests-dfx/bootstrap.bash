@@ -9,27 +9,10 @@ setup() {
 }
 
 teardown() {
-    dfx_stop_replica_and_bootstrap
+    stop_dfx_replica
+    stop_dfx_bootstrap
 
     standard_teardown
-}
-
-@test "bootstrap fetches candid file" {
-
-    dfx_start_replica_and_bootstrap
-
-    dfx canister create --all
-    dfx build
-    dfx canister install hello
-
-    ID=$(dfx canister id hello)
-    PORT=$(cat .dfx/webserver-port)
-    assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID" -o ./web.txt --max-time 60
-    assert_command diff .dfx/local/canisters/hello/hello.did ./web.txt
-    assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt --max-time 60
-    # Relax diff as it's produced by two different compilers.
-    assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello/hello.did.js ./web.txt
-
 }
 
 @test "forbid starting webserver with a forwarded port" {
@@ -40,14 +23,15 @@ teardown() {
 }
 
 @test "bootstrap supports http requests" {
-    dfx_start_replica_and_bootstrap
+    dfx_replica
+    dfx_bootstrap
 
     dfx canister create --all
     dfx build
-    dfx canister install hello_assets
+    dfx canister install hello_frontend
 
-    ID=$(dfx canister id hello_assets)
-    PORT=$(cat .dfx/webserver-port)
+    ID=$(dfx canister id hello_frontend)
+    PORT=$(get_webserver_port)
     assert_command curl http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID" --max-time 60
     # shellcheck disable=SC2154
     assert_eq "This is a sample asset!" "$stdout"

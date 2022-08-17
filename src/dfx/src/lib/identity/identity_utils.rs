@@ -2,8 +2,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use anyhow::{bail, Context};
+use candid::Principal;
+use fn_error_context::context;
 use ic_agent::identity::BasicIdentity;
-use ic_types::principal::Principal;
 use openssl::ec::EcKey;
 use openssl::nid::Nid;
 
@@ -15,15 +16,20 @@ pub enum CallSender {
 
 // Determine whether the selected Identity
 // or the provided wallet canister ID should be the Sender of the call.
+#[context("Failed to determine call sender.")]
 pub async fn call_sender(_env: &dyn Environment, wallet: &Option<String>) -> DfxResult<CallSender> {
     let sender = if let Some(id) = wallet {
-        CallSender::Wallet(Principal::from_text(&id)?)
+        CallSender::Wallet(
+            Principal::from_text(&id)
+                .with_context(|| format!("Failed to read principal from {:?}.", id))?,
+        )
     } else {
         CallSender::SelectedId
     };
     Ok(sender)
 }
 
+#[context("Failed to validate pem file.")]
 pub fn validate_pem_file(pem_content: &[u8]) -> DfxResult {
     if pem_content.starts_with(b"-----BEGIN EC PARAMETERS-----")
         || pem_content.starts_with(b"-----BEGIN EC PRIVATE KEY-----")

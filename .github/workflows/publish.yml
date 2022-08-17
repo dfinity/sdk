@@ -8,9 +8,8 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
-      - 'test-[0-9]+.[0-9]+.[0-9]+'
-      - 'test-[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-[A-Za-z]+.[0-9]+'
+  pull_request:
 
 jobs:
   build_dfx:
@@ -18,8 +17,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.58.1' ]
-        target: [ x86_64-apple-darwin, x86_64-unknown-linux-musl ]
+        rust: [ '1.60.0' ]
+        # We build a dynamic-linked linux binary because otherwise HSM support fails with:
+        #   Error: IO: Dynamic loading not supported
+        target: [ x86_64-apple-darwin, x86_64-unknown-linux-gnu ]
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -27,16 +28,22 @@ jobs:
             name: x86_64-darwin
             tar: gtar
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            binary_path: target/x86_64-unknown-linux-musl/release
+            target: x86_64-unknown-linux-gnu
+            binary_path: target/x86_64-unknown-linux-gnu/release
             name: x86_64-linux
             tar: tar
     steps:
       - uses: actions/checkout@v2
+
       - name: Setup environment variables
         run: |
           echo "OPENSSL_STATIC=yes" >> $GITHUB_ENV
           echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
+
+      # GITHUB_REF_NAME will be something link 2353/merge for branch builds, which isn't great as a dfx version
+      - name: Set dfx version (tag builds only)
+        if: github.ref_type == 'tag'
+        run: |
           echo "DFX_VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
           echo "TARBALL_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
           echo "SHA256_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
@@ -58,37 +65,46 @@ jobs:
           override: true
         if: contains(matrix.os, 'macos')
 
-      - name: Linux hack (musl only)
+      - name: Build static-linked openssl
         run: |
-          echo "[toolchain]" >./rust-toolchain.toml
-          echo 'channel = "1.58.1"' >>./rust-toolchain.toml
-          echo 'components = ["rustfmt", "clippy"]' >>./rust-toolchain.toml
-        if: contains(matrix.target, 'linux-musl')
+          # https://github.com/rust-lang/cargo/issues/713#issuecomment-59597433
+          git clone git://git.openssl.org/openssl.git
+          cd openssl
+          ./config -fPIC --prefix=/usr/local --openssldir=/usr/local/ssl
+          make
+          sudo make install
+          echo "OPENSSL_LIB_DIR=/usr/local/lib64" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
+        if: contains(matrix.target, 'linux-gnu')
 
-      - name: Generate DFX_ASSETS (musl only)
-        run: |
-          ./scripts/prepare-dfx-assets.sh .dfx-assets
-          echo "DFX_ASSETS=$(pwd)/.dfx-assets" >> $GITHUB_ENV
-        if: contains(matrix.target, 'linux-musl')
-
-      - name: Linux build (musl)
-        uses: dfinity/rust-musl-action@master
-        with:
-          args: |
-            echo "[toolchain]" >./rust-toolchain.toml
-            echo 'channel = "1.58.1"' >>./rust-toolchain.toml
-            echo 'components = ["rustfmt", "clippy"]' >>./rust-toolchain.toml
-            rustup target add ${{ matrix.target }}
-
-            cargo clean --target ${{ matrix.target }} --release
-            cargo build --target ${{ matrix.target }} --locked --release
-        if: contains(matrix.target, 'linux-musl')
-
-      - name: Build (non-musl)
+      - name: Build
         run: |
           cargo clean --target ${{ matrix.target }} --release
           cargo build --target ${{ matrix.target }} --locked --release
-        if: contains(matrix.target, 'linux-musl') == false
+
+      - name: Check dynamically-linked libraries (macos)
+        run: |
+          ACTUAL="$(otool -L ${{ matrix.binary_path }}/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
+          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libc++.1.dylib /usr/lib/libiconv.2.dylib /usr/lib/libresolv.9.dylib"
+          echo "Dynamically-linked libraries:"
+          echo "  Actual:   $ACTUAL"
+          echo "  Expected: $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+              exit 1
+          fi
+        if: contains(matrix.os, 'macos')
+
+      - name: Check dynamically-linked libraries (ubuntu)
+        run: |
+          ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
+          EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libdl.so.2 libgcc_s.so.1 libm.so.6 libpthread.so.0 libstdc++.so.6 linux-vdso.so.1"
+          echo "Dynamically-linked libraries:"
+          echo "  Actual:   $ACTUAL"
+          echo "  Expected: $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+              exit 1
+          fi
+        if: contains(matrix.os, 'ubuntu')
 
       - name: Strip binaries
         run: |
@@ -98,12 +114,14 @@ jobs:
         if: contains(matrix.os, 'ubuntu')
 
       - name: Create tarball of binaries and sha256 of tarball
+        if: github.ref_type == 'tag'
         run: |
           ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_FILENAME }} dfx
           shasum -a 256 ${{ env.TARBALL_FILENAME }} > $SHA256_FILENAME
           shasum -c $SHA256_FILENAME
 
       - name: Upload Artifacts
+        if: github.ref_type == 'tag'
         uses: actions/upload-artifact@v2
         with:
           name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
@@ -111,13 +129,24 @@ jobs:
             ${{ env.TARBALL_FILENAME }}
             ${{ env.SHA256_FILENAME }}
 
+  aggregate:
+    name: publishable:required
+    if: ${{ always() }}
+    needs: [build_dfx]
+    runs-on: ubuntu-latest
+    steps:
+      - name: check build result
+        if: ${{ needs.build_dfx.result != 'success' }}
+        run: exit 1
+
   publish:
     runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
     needs: build_dfx
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.58.1' ]
+        rust: [ '1.60.0' ]
         name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
       - name: Setup environment variables

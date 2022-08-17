@@ -7,6 +7,9 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::replica_config::ReplicaConfig;
 
 use crate::actors::btc_adapter::signals::{BtcAdapterReady, BtcAdapterReadySubscribe};
+use crate::actors::canister_http_adapter::signals::{
+    CanisterHttpAdapterReady, CanisterHttpAdapterReadySubscribe,
+};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
@@ -37,10 +40,11 @@ pub struct Config {
     pub ic_starter_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub replica_path: PathBuf,
+    pub replica_pid_path: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
-    pub replica_configuration_dir: PathBuf,
     pub btc_adapter_ready_subscribe: Option<Recipient<BtcAdapterReadySubscribe>>,
+    pub canister_http_adapter_ready_subscribe: Option<Recipient<CanisterHttpAdapterReadySubscribe>>,
 }
 
 /// A replica actor. Starts the replica, can subscribe to a Ready signal and a
@@ -66,6 +70,10 @@ pub struct Replica {
 
     /// Ready Signal subscribers.
     ready_subscribers: Vec<Recipient<PortReadySignal>>,
+
+    // We must wait until certain other actors are ready, if they are enabled
+    awaiting_btc_adapter_ready: bool,
+    awaiting_canister_http_adapter_ready: bool,
 }
 
 impl Replica {
@@ -78,6 +86,8 @@ impl Replica {
             stop_sender: None,
             thread_join: None,
             ready_subscribers: Vec::new(),
+            awaiting_btc_adapter_ready: false,
+            awaiting_canister_http_adapter_ready: false,
             logger,
         }
     }
@@ -102,12 +112,23 @@ impl Replica {
         }
     }
 
+    fn restart_replica_if_all_ready(&mut self, addr: Addr<Self>) {
+        let done_waiting =
+            !self.awaiting_canister_http_adapter_ready && !self.awaiting_btc_adapter_ready;
+        if done_waiting {
+            self.stop_replica();
+            self.start_replica(addr)
+                .expect("unable to start the replica");
+        }
+    }
+
     fn start_replica(&mut self, addr: Addr<Self>) -> DfxResult {
         let logger = self.logger.clone();
+        debug!(logger, "starting replica");
 
         // Create a replica config.
         let config = &self.config.replica_config;
-        let replica_pid_path = self.config.replica_configuration_dir.join("replica-pid");
+        let replica_pid_path = self.config.replica_pid_path.to_path_buf();
 
         let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
@@ -116,16 +137,19 @@ impl Replica {
 
         let (sender, receiver) = unbounded();
 
-        let handle = replica_start_thread(
-            logger,
-            config.clone(),
-            port,
-            write_port_to,
-            ic_starter_path,
-            replica_path,
-            replica_pid_path,
-            addr,
-            receiver,
+        let handle = anyhow::Context::context(
+            replica_start_thread(
+                logger,
+                config.clone(),
+                port,
+                write_port_to,
+                ic_starter_path,
+                replica_path,
+                replica_pid_path,
+                addr,
+                receiver,
+            ),
+            "Failed to start replica thread.",
         )?;
 
         self.thread_join = Some(handle);
@@ -134,6 +158,10 @@ impl Replica {
     }
 
     fn stop_replica(&mut self) {
+        if self.stop_sender.is_some() || self.thread_join.is_some() {
+            debug!(self.logger, "stopping replica");
+        }
+
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -157,10 +185,14 @@ impl Actor for Replica {
         if let Some(btc_adapter_ready_subscribe) = &self.config.btc_adapter_ready_subscribe {
             let _ = btc_adapter_ready_subscribe
                 .do_send(BtcAdapterReadySubscribe(ctx.address().recipient()));
-        } else {
-            self.start_replica(ctx.address())
-                .expect("Could not start the replica");
+            self.awaiting_btc_adapter_ready = true;
         }
+        if let Some(subscribe) = &self.config.canister_http_adapter_ready_subscribe {
+            let _ = subscribe.do_send(CanisterHttpAdapterReadySubscribe(ctx.address().recipient()));
+            self.awaiting_canister_http_adapter_ready = true;
+        }
+
+        self.restart_replica_if_all_ready(ctx.address());
 
         self.config
             .shutdown_controller
@@ -202,11 +234,21 @@ impl Handler<BtcAdapterReady> for Replica {
     type Result = ();
 
     fn handle(&mut self, _msg: BtcAdapterReady, ctx: &mut Self::Context) {
-        debug!(self.logger, "btc-adapter ready, so re/starting replica");
+        debug!(self.logger, "btc adapter ready");
+        self.awaiting_btc_adapter_ready = false;
 
-        self.stop_replica();
-        self.start_replica(ctx.address())
-            .expect("unable to start the replica");
+        self.restart_replica_if_all_ready(ctx.address());
+    }
+}
+
+impl Handler<CanisterHttpAdapterReady> for Replica {
+    type Result = ();
+
+    fn handle(&mut self, _msg: CanisterHttpAdapterReady, ctx: &mut Self::Context) {
+        debug!(self.logger, "canister http adapter ready");
+        self.awaiting_canister_http_adapter_ready = false;
+
+        self.restart_replica_if_all_ready(ctx.address());
     }
 }
 
@@ -262,12 +304,37 @@ fn replica_start_thread(
             "rocksdb",
             "--subnet-type",
             &config.subnet_type.as_ic_starter_string(),
+            "--ecdsa-keyid",
+            "Secp256k1:dfx_test_key",
         ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);
         }
-        if config.btc_adapter.socket_path.is_some() {
-            cmd.args(&["--subnet-features", "bitcoin_testnet_feature"]);
+        // Enable canister sandboxing to be consistent with the mainnet.
+        // The flag will be removed on the `ic-starter` side once this
+        // change is rolled out without any issues.
+        cmd.args(&["--subnet-features", "canister_sandboxing"]);
+        if config.btc_adapter.enabled {
+            cmd.args(&["--subnet-features", "bitcoin_regtest"]);
+            if let Some(socket_path) = config.btc_adapter.socket_path {
+                cmd.args(&[
+                    "--bitcoin-testnet-uds-path",
+                    socket_path.to_str().unwrap_or_default(),
+                ]);
+            }
+
+            // Show debug logs from the bitcoin canister.
+            // This helps developers see, for example, the current tip height.
+            cmd.args(&["--debug-overrides", "ic_btc_canister::heartbeat"]);
+        }
+        if config.canister_http_adapter.enabled {
+            cmd.args(&["--subnet-features", "http_requests"]);
+            if let Some(socket_path) = config.canister_http_adapter.socket_path {
+                cmd.args(&[
+                    "--canister-http-uds-path",
+                    socket_path.to_str().unwrap_or_default(),
+                ]);
+            }
         }
 
         if let Some(write_port_to) = &write_port_to {

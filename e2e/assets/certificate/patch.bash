@@ -1,1 +1,1 @@
-dfx config canisters/certificate/main certificate.mo
+jq '.canisters.certificate_backend.main="certificate.mo"' dfx.json | sponge dfx.json

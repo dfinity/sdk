@@ -3,20 +3,15 @@
 load ../utils/_
 
 setup() {
-    # We want to work from a temporary directory, different for every test.
-    x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
-    export DFX_CACHE_ROOT="$x"
-    export DFX_CONFIG_ROOT="$x"
-    cd "$x" || exit
-    export RUST_BACKTRACE=1
+    standard_setup
 
     dfx_new hello
 }
 
 teardown() {
     dfx_stop
-    rm -rf "$DFX_CACHE_ROOT"
-    rm -rf "$DFX_CONFIG_ROOT"
+
+    standard_teardown
 }
 
 @test "install --mode=reinstall --all fails" {
@@ -45,10 +40,10 @@ teardown() {
     # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
     # so all the assert_match calls will fail.  http://mywiki.wooledge.org/BashFAQ/024
     echo yes | (
-        assert_command dfx canister install --mode=reinstall hello
+        assert_command dfx canister install --mode=reinstall hello_backend
 
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-        assert_match "Reinstalling code for canister hello"
+        assert_match "Reinstalling code for canister hello_backend"
     )
 }
 
@@ -57,7 +52,7 @@ teardown() {
     dfx deploy
 
     echo no | (
-        assert_command_fail dfx canister install --mode=reinstall hello
+        assert_command_fail dfx canister install --mode=reinstall hello_backend
 
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
 
@@ -82,10 +77,10 @@ teardown() {
     # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
     # so all the assert_match calls will fail.  http://mywiki.wooledge.org/BashFAQ/024
     echo yes | (
-        assert_command dfx deploy --mode=reinstall hello
+        assert_command dfx deploy --mode=reinstall hello_backend
 
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-        assert_match "Reinstalling code for canister hello"
+        assert_match "Reinstalling code for canister hello_backend"
     )
 }
 
@@ -94,7 +89,7 @@ teardown() {
     dfx deploy
 
     echo no | (
-        assert_command_fail dfx deploy --mode=reinstall hello
+        assert_command_fail dfx deploy --mode=reinstall hello_backend
 
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
 
@@ -108,32 +103,32 @@ teardown() {
     install_asset counter
     dfx deploy
 
-    assert_command dfx canister call hello read
+    assert_command dfx canister call hello_backend read
     assert_eq "(0 : nat)"
 
-    assert_command dfx canister call hello inc
+    assert_command dfx canister call hello_backend inc
     assert_eq "()"
 
-    assert_command dfx canister call hello read
+    assert_command dfx canister call hello_backend read
     assert_eq "(1 : nat)"
 
-    dfx canister call hello inc
-    assert_command dfx canister call hello read
+    dfx canister call hello_backend inc
+    assert_command dfx canister call hello_backend read
     assert_eq "(2 : nat)"
 
 
     # if the pipe is alone with assert_command, $stdout, $stderr etc will not be available,
     # so all the assert_match calls will fail.  http://mywiki.wooledge.org/BashFAQ/024
     echo "yes" | (
-        assert_command dfx deploy --mode=reinstall hello_assets
+        assert_command dfx deploy --mode=reinstall hello_frontend
 
-        assert_match "You are about to reinstall the hello_assets canister."
-        assert_not_match "You are about to reinstall the hello canister."
+        assert_match "You are about to reinstall the hello_frontend canister."
+        assert_not_match "You are about to reinstall the hello_backend canister."
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-        assert_match "Reinstalling code for canister hello_assets,"
+        assert_match "Reinstalling code for canister hello_frontend,"
     )
 
-    # the hello canister should not have been upgraded (which would reset the non-stable var)
-    assert_command dfx canister call hello read
+    # the hello_backend canister should not have been upgraded (which would reset the non-stable var)
+    assert_command dfx canister call hello_backend read
     assert_eq "(2 : nat)"
 }

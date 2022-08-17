@@ -7,9 +7,9 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
-use anyhow::bail;
+use anyhow::{bail, Context};
+use candid::Principal;
 use clap::Parser;
-use ic_types::Principal;
 use slog::info;
 use std::time::Duration;
 
@@ -65,7 +65,7 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     if call_sender == &CallSender::SelectedId {
-        bail!("The deposit cycles call needs to proxied via the wallet canister. Invoke this command without the `--no-wallet` flag.");
+        bail!("The deposit cycles call needs to be proxied via the wallet canister. Please run this command using 'dfx canister deposit-cycles --wallet <your wallet id> <other arguments>'.");
     }
 
     // amount has been validated by cycle_amount_validator
@@ -81,7 +81,9 @@ pub async fn exec(
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                deposit_cycles(env, canister, timeout, call_sender, cycles).await?;
+                deposit_cycles(env, canister, timeout, call_sender, cycles)
+                    .await
+                    .with_context(|| format!("Failed to deposit cycles into {}.", canister))?;
             }
         }
         Ok(())

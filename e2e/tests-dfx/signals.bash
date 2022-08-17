@@ -32,7 +32,7 @@ dfx_replica_kills_replica() {
     DFX_PID=$!
 
     # wait for replica to start
-    assert_file_eventually_exists .dfx/replica-configuration/replica-1.port 15s
+    assert_file_eventually_exists "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port" 15s
 
     kill -"$signal" "$DFX_PID"
 
