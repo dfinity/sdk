@@ -27,10 +27,10 @@ You can use the following optional flags with the `dfx start` command.
 
 You can use the following option with the `dfx start` command.
 
-| Option        | Description                                                                                                       |
-|---------------|-------------------------------------------------------------------------------------------------------------------|
-| `--host host` | Specifies the host interface IP address and port number to bind the frontend to. The default is `127.0.0.1:8000`. |
-| `--bitcoin-node host:port` | Specifies the address of a bitcoind node. Implies `--enable-bitcoin`. |
+| Option        | Description                                                                                                                                                                                                         |
+|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--host host` | Specifies the host interface IP address and port number to bind the frontend to. The default for the local shared network is `127.0.0.1:4943`, while the default for a project-specific network is '127.0.0.1:8000'. |
+| `--bitcoin-node host:port` | Specifies the address of a bitcoind node. Implies `--enable-bitcoin`.                                                                                                                                               |
 
 ## Examples
 
