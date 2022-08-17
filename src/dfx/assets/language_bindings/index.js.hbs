@@ -26,7 +26,7 @@ export const canisterId = {{{canister_name_process_env}}};
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
 
-  if (options.agent && options.agentConfig) {
+  if (options.agent && options.agentOptions) {
     console.warn(
       "Detected both agent and agentOptions passed to createActor. Ignoring agentOptions and proceeding with the provided agent."
     );
