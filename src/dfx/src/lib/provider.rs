@@ -1,18 +1,21 @@
 use crate::config::dfinity::{
-    Config, ConfigLocalProvider, ConfigNetwork, NetworkType, EMPTY_CONFIG_DEFAULTS_BITCOIN,
-    EMPTY_CONFIG_DEFAULTS_BOOTSTRAP, EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP,
-    EMPTY_CONFIG_DEFAULTS_REPLICA,
+    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
+    DEFAULT_LOCAL_BIND,
 };
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::identity::WALLET_CONFIG_FILENAME;
+use crate::lib::network::local_server_descriptor::{
+    LocalNetworkScopeDescriptor, LocalServerDescriptor,
+};
+use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
-use std::path::Path;
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use lazy_static::lazy_static;
+use slog::{info, warn, Logger};
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use url::Url;
 
@@ -44,23 +47,18 @@ pub enum LocalBindDetermination {
     ApplyRunningWebserverPort,
 }
 
-// always returns at least one url
-#[context("Failed to get network descriptor for network '{}.", network.unwrap_or_else(||"local".to_string()))]
-pub fn get_network_descriptor(
-    config: Option<Arc<Config>>,
-    network: Option<String>,
-    local_bind_determination: LocalBindDetermination,
+#[context("Failed to get network descriptor for network '{}.", network_name)]
+fn config_network_to_network_descriptor(
+    network_name: &str,
+    config_network: &ConfigNetwork,
+    project_defaults: Option<&ConfigDefaults>,
+    data_directory: PathBuf,
+    local_scope: LocalNetworkScopeDescriptor,
+    ephemeral_wallet_config_path: &Path,
+    local_bind_determination: &LocalBindDetermination,
 ) -> DfxResult<NetworkDescriptor> {
-    set_network_context(network.clone());
-    let config = config.unwrap_or_else(|| {
-        eprintln!("dfx.json not found, using default.");
-        Arc::new(Config::from_str("{}").unwrap())
-    });
-    let data_directory = config.get_temp_path();
-    let config = config.as_ref().get_config();
-    let network_name = get_network_context()?;
-    match config.get_network(&network_name) {
-        Some(ConfigNetwork::ConfigNetworkProvider(network_provider)) => {
+    match config_network {
+        ConfigNetwork::ConfigNetworkProvider(network_provider) => {
             let providers = if !network_provider.providers.is_empty() {
                 network_provider
                     .providers
@@ -73,39 +71,42 @@ pub fn get_network_descriptor(
                     network_name
                 ))
             }?;
-            let is_ic = NetworkDescriptor::is_ic(&network_name.to_string(), &providers);
+            let is_ic = NetworkDescriptor::is_ic(network_name, &providers);
             Ok(NetworkDescriptor {
                 name: network_name.to_string(),
                 providers,
-                r#type: network_provider.r#type,
+                r#type: NetworkTypeDescriptor::new(
+                    network_provider.r#type,
+                    ephemeral_wallet_config_path,
+                ),
                 is_ic,
                 local_server_descriptor: None,
             })
         }
-        Some(ConfigNetwork::ConfigLocalProvider(local_provider)) => {
-            let project_defaults = config.get_defaults();
+        ConfigNetwork::ConfigLocalProvider(local_provider) => {
             let bitcoin = local_provider
                 .bitcoin
                 .clone()
-                .or_else(|| project_defaults.bitcoin.clone())
-                .unwrap_or(EMPTY_CONFIG_DEFAULTS_BITCOIN);
+                .or_else(|| project_defaults.and_then(|x| x.bitcoin.clone()))
+                .unwrap_or_default();
             let bootstrap = local_provider
                 .bootstrap
                 .clone()
-                .or_else(|| project_defaults.bootstrap.clone())
-                .unwrap_or(EMPTY_CONFIG_DEFAULTS_BOOTSTRAP);
+                .or_else(|| project_defaults.and_then(|x| x.bootstrap.clone()))
+                .unwrap_or_default();
             let canister_http = local_provider
                 .canister_http
                 .clone()
-                .or_else(|| project_defaults.canister_http.clone())
-                .unwrap_or(EMPTY_CONFIG_DEFAULTS_CANISTER_HTTP);
+                .or_else(|| project_defaults.and_then(|x| x.canister_http.clone()))
+                .unwrap_or_default();
             let replica = local_provider
                 .replica
                 .clone()
-                .or_else(|| project_defaults.replica.clone())
-                .unwrap_or(EMPTY_CONFIG_DEFAULTS_REPLICA);
+                .or_else(|| project_defaults.and_then(|x| x.replica.clone()))
+                .unwrap_or_default();
 
-            let network_type = local_provider.r#type;
+            let network_type =
+                NetworkTypeDescriptor::new(local_provider.r#type, ephemeral_wallet_config_path);
             let bind_address =
                 get_local_bind_address(local_provider, local_bind_determination, &data_directory)?;
             let provider_url = format!("http://{}", bind_address);
@@ -117,6 +118,7 @@ pub fn get_network_descriptor(
                 bootstrap,
                 canister_http,
                 replica,
+                local_scope,
             )?;
             Ok(NetworkDescriptor {
                 name: network_name.to_string(),
@@ -126,35 +128,211 @@ pub fn get_network_descriptor(
                 local_server_descriptor: Some(local_server_descriptor),
             })
         }
-        None => {
-            // Allow a URL to be specified as a network (if it's parseable as a URL).
-            if let Ok(url) = parse_provider_url(&network_name) {
-                // Replace any non-ascii-alphanumeric characters with `_`, to create an
-                // OS-friendly directory name for it.
-                let name = util::network_to_pathcompat(&network_name);
-                let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
+    }
+}
 
-                Ok(NetworkDescriptor {
-                    name,
-                    providers: vec![url],
-                    r#type: NetworkType::Ephemeral,
-                    is_ic,
-                    local_server_descriptor: None,
-                })
+#[context("Failed to get network descriptor.")]
+pub fn create_network_descriptor(
+    project_config: Option<Arc<Config>>,
+    shared_config: Arc<NetworksConfig>,
+    network: Option<String>,
+    logger: Option<Logger>,
+    local_bind_determination: LocalBindDetermination,
+) -> DfxResult<NetworkDescriptor> {
+    let logger = (logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
+
+    set_network_context(network);
+    let network_name = get_network_context()?;
+
+    create_mainnet_network_descriptor(&network_name, &logger)
+        .or_else(|| {
+            create_project_network_descriptor(
+                &network_name,
+                project_config.clone(),
+                &local_bind_determination,
+                &logger,
+            )
+        })
+        .or_else(|| {
+            create_shared_network_descriptor(
+                &network_name,
+                shared_config,
+                &local_bind_determination,
+                &logger,
+            )
+        })
+        .or_else(|| create_url_based_network_descriptor(&network_name))
+        .unwrap_or_else(|| Err(anyhow!("ComputeNetworkNotFound({})", network_name)))
+}
+
+fn create_mainnet_network_descriptor(
+    network_name: &str,
+    logger: &Logger,
+) -> Option<DfxResult<NetworkDescriptor>> {
+    if network_name == "ic" {
+        info!(
+            logger,
+            "Using built-in definition for network 'ic' (mainnet)"
+        );
+        Some(Ok(NetworkDescriptor::ic()))
+    } else {
+        None
+    }
+}
+
+fn create_url_based_network_descriptor(network_name: &str) -> Option<DfxResult<NetworkDescriptor>> {
+    parse_provider_url(network_name).ok().map(|url| {
+        // Replace any non-ascii-alphanumeric characters with `_`, to create an
+        // OS-friendly directory name for it.
+        let name = util::network_to_pathcompat(network_name);
+        let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
+        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
+        let network_type = NetworkTypeDescriptor::new(
+            NetworkType::Ephemeral,
+            &data_directory.join(WALLET_CONFIG_FILENAME),
+        );
+        Ok(NetworkDescriptor {
+            name,
+            providers: vec![url],
+            r#type: network_type,
+            is_ic,
+            local_server_descriptor: None,
+        })
+    })
+}
+
+fn create_shared_network_descriptor(
+    network_name: &str,
+    shared_config: Arc<NetworksConfig>,
+    local_bind_determination: &LocalBindDetermination,
+    logger: &Logger,
+) -> Option<DfxResult<NetworkDescriptor>> {
+    let shared_config_file_exists = shared_config.get_path().is_file();
+    let shared_config_display_path = shared_config.get_path().display();
+    let network = shared_config.get_interface().get_network(network_name);
+    let network = match (network_name, network) {
+        ("local", None) => {
+            if shared_config_file_exists {
+                info!(logger, "Using the default definition for the 'local' shared network because {} does not define it.", shared_config_display_path);
             } else {
-                Err(anyhow!("ComputeNetworkNotFound({})", network_name))
+                info!(logger, "Using the default definition for the 'local' shared network because {} does not exist.", shared_config_display_path);
             }
+
+            Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
+                bind: String::from(DEFAULT_LOCAL_BIND),
+                r#type: NetworkType::Ephemeral,
+                bitcoin: None,
+                bootstrap: None,
+                canister_http: None,
+                replica: None,
+            }))
         }
+        (network_name, None) => {
+            if shared_config_file_exists {
+                info!(
+                    logger,
+                    "There is no shared network '{}' defined in {}",
+                    &shared_config_display_path,
+                    network_name
+                );
+            } else {
+                info!(
+                    logger,
+                    "There is no shared network '{}' because {} does not exist.",
+                    network_name,
+                    &shared_config_display_path
+                );
+            }
+            None
+        }
+        (network_name, Some(network)) => {
+            info!(
+                logger,
+                "Found shared network '{}' in {}",
+                network_name,
+                shared_config.get_path().display()
+            );
+            Some(network.clone())
+        }
+    };
+
+    network.as_ref().map(|config_network| {
+        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
+
+        let ephemeral_wallet_config_path = data_directory.join(WALLET_CONFIG_FILENAME);
+
+        let local_scope = LocalNetworkScopeDescriptor::shared(&data_directory);
+        config_network_to_network_descriptor(
+            network_name,
+            config_network,
+            None,
+            data_directory,
+            local_scope,
+            &ephemeral_wallet_config_path,
+            local_bind_determination,
+        )
+    })
+}
+
+fn create_project_network_descriptor(
+    network_name: &str,
+    project_config: Option<Arc<Config>>,
+    local_bind_determination: &LocalBindDetermination,
+    logger: &Logger,
+) -> Option<DfxResult<NetworkDescriptor>> {
+    if let Some(config) = project_config {
+        if let Some(config_network) = config.get_config().get_network(network_name) {
+            info!(
+                logger,
+                "Found project-specific network '{}' in {}",
+                network_name,
+                config.get_path().display(),
+            );
+            warn!(
+                logger,
+                "Project-specific networks are deprecated and will be removed after February 2023."
+            );
+
+            let data_directory = config.get_temp_path().join("network").join(network_name);
+            let ephemeral_wallet_config_path = config
+                .get_temp_path()
+                .join("local")
+                .join(WALLET_CONFIG_FILENAME);
+            Some(config_network_to_network_descriptor(
+                network_name,
+                config_network,
+                Some(config.get_config().get_defaults()),
+                data_directory,
+                LocalNetworkScopeDescriptor::Project,
+                &ephemeral_wallet_config_path,
+                local_bind_determination,
+            ))
+        } else {
+            info!(
+                logger,
+                "There is no project-specific network '{}' defined in {}.",
+                network_name,
+                config.get_path().display()
+            );
+            None
+        }
+    } else {
+        info!(
+            logger,
+            "There is no project-specific network '{}' because there is no project (no dfx.json).",
+            network_name
+        );
+        None
     }
 }
 
 fn get_local_bind_address(
-    local_provider: ConfigLocalProvider,
-    local_bind_determination: LocalBindDetermination,
+    local_provider: &ConfigLocalProvider,
+    local_bind_determination: &LocalBindDetermination,
     data_directory: &Path,
 ) -> DfxResult<String> {
     match local_bind_determination {
-        LocalBindDetermination::AsConfigured => Ok(local_provider.bind),
+        LocalBindDetermination::AsConfigured => Ok(local_provider.bind.clone()),
         LocalBindDetermination::ApplyRunningWebserverPort => {
             get_running_webserver_bind_address(data_directory, local_provider)
         }
@@ -163,7 +341,7 @@ fn get_local_bind_address(
 
 fn get_running_webserver_bind_address(
     data_directory: &Path,
-    local_provider: ConfigLocalProvider,
+    local_provider: &ConfigLocalProvider,
 ) -> DfxResult<String> {
     let path = data_directory.join("webserver-port");
     if path.exists() {
@@ -175,7 +353,7 @@ fn get_running_webserver_bind_address(
         })?;
         let s = s.trim();
         if s.is_empty() {
-            Ok(local_provider.bind)
+            Ok(local_provider.bind.clone())
         } else {
             let port = s.parse::<u16>().with_context(|| {
                 format!(
@@ -187,13 +365,13 @@ fn get_running_webserver_bind_address(
             // will unfortunately transform "localhost:port" to "[::1]:{port}",
             // which the agent fails to connect with.
             let host = match local_provider.bind.rfind(':') {
-                None => local_provider.bind,
+                None => local_provider.bind.clone(),
                 Some(index) => local_provider.bind[0..index].to_string(),
             };
             Ok(format!("{}:{}", host, port))
         }
     } else {
-        Ok(local_provider.bind)
+        Ok(local_provider.bind.clone())
     }
 }
 
@@ -202,9 +380,11 @@ pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
     network: Option<String>,
 ) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = get_network_descriptor(
+    let network_descriptor = create_network_descriptor(
         env.get_config(),
+        env.get_networks_config(),
         network,
+        None,
         LocalBindDetermination::ApplyRunningWebserverPort,
     )?;
     let timeout = expiry_duration();
@@ -252,6 +432,16 @@ mod tests {
     }
 
     #[test]
+    fn ignore_running_webserver_port_if_not_requested() {
+        // port file present and populated, but not asked for: ignored
+        test_with_webserver_port_file_contents(
+            LocalBindDetermination::AsConfigured,
+            Some("1234"),
+            "localhost:8000",
+        );
+    }
+
+    #[test]
     fn use_port_if_have_file() {
         // port file present and populated: reflected in socket address
         test_with_webserver_port_file_contents(
@@ -278,6 +468,16 @@ mod tests {
             LocalBindDetermination::ApplyRunningWebserverPort,
             Some("  \n3456 \n"),
             "localhost:3456",
+        );
+    }
+
+    #[test]
+    fn use_running_webserver_address() {
+        // no file - use default
+        test_with_webserver_port_file_contents(
+            LocalBindDetermination::ApplyRunningWebserverPort,
+            None,
+            "localhost:8000",
         );
     }
 
@@ -323,13 +523,24 @@ mod tests {
 
         if let Some(webserver_port_contents) = webserver_port_contents {
             let dot_dfx_dir = project_dir.join(".dfx");
-            fs::create_dir_all(&dot_dfx_dir).unwrap();
-            std::fs::write(dot_dfx_dir.join("webserver-port"), webserver_port_contents).unwrap();
+            let network_data_dir = dot_dfx_dir.join("network").join("local");
+            fs::create_dir_all(&network_data_dir).unwrap();
+            std::fs::write(
+                network_data_dir.join("webserver-port"),
+                webserver_port_contents,
+            )
+            .unwrap();
         }
 
         let config = Config::from_dir(&project_dir).unwrap().unwrap();
-        let network_descriptor =
-            get_network_descriptor(Some(Arc::new(config)), None, local_bind_determination).unwrap();
+        let network_descriptor = create_network_descriptor(
+            Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
+            None,
+            local_bind_determination,
+        )
+        .unwrap();
 
         assert_eq!(
             network_descriptor
@@ -353,8 +564,10 @@ mod tests {
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -382,8 +595,10 @@ mod tests {
         )
         .unwrap();
 
-        let result = get_network_descriptor(
+        let result = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         );
@@ -399,8 +614,10 @@ mod tests {
         }"#,
         )
         .unwrap();
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -422,8 +639,10 @@ mod tests {
         }"#,
         )
         .unwrap();
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -448,13 +667,20 @@ mod tests {
                   "nodes": ["127.0.0.1:18444"],
                   "log_level": "info"
                 }
+              },
+              "networks": {
+                "local": {
+                    "bind": "localhost:8000"
+                }
               }
         }"#,
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -483,13 +709,20 @@ mod tests {
                   "enabled": true,
                   "nodes": ["127.0.0.1:18444"]
                 }
+              },
+              "networks": {
+                "local": {
+                    "bind": "localhost:8000"
+                }
               }
         }"#,
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -518,13 +751,20 @@ mod tests {
                   "enabled": true,
                   "log_level": "debug"
                 }
+              },
+              "networks": {
+                "local": {
+                    "bind": "localhost:8000"
+                }
               }
         }"#,
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -562,8 +802,10 @@ mod tests {
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -600,8 +842,10 @@ mod tests {
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -644,8 +888,10 @@ mod tests {
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -680,8 +926,10 @@ mod tests {
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -715,8 +963,10 @@ mod tests {
         )
         .unwrap();
 
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
+            Arc::new(NetworksConfig::new().unwrap()),
+            None,
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -729,9 +979,9 @@ mod tests {
         assert_eq!(
             bootstrap_config,
             &ConfigDefaultsBootstrap {
-                ip: Some(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))),
-                port: Some(12002),
-                timeout: Some(60000)
+                ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                port: 12002,
+                timeout: 60000
             }
         );
     }

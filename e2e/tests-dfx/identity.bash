@@ -93,7 +93,7 @@ teardown() {
     # shellcheck disable=SC2154
     assert_not_match 'Creating' "$stderr"
     # shellcheck disable=SC2154
-    assert_not_match 'default' "$stderr"
+    assert_not_match '(default.*identity|identity.*default)' "$stderr"
     # shellcheck disable=SC2154
     assert_match "ic_api_version" "$stdout"
 }

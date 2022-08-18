@@ -36,10 +36,23 @@ teardown() {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity new --disable-encryption bob
     assert_command dfx identity list
-    assert_match 'alice anonymous bob dan default frank'
+    assert_match \
+'alice
+anonymous
+bob
+dan
+default
+frank'
     assert_command dfx identity new --disable-encryption charlie
     assert_command dfx identity list
-    assert_match 'alice anonymous bob charlie dan default frank'
+    assert_match \
+'alice
+anonymous
+bob
+charlie
+dan
+default
+frank'
 }
 
 @test "identity list: shows the anonymous identity" {
@@ -118,7 +131,10 @@ teardown() {
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
     assert_command dfx identity list
-    assert_match 'alice anonymous default'
+    assert_match \
+'alice
+anonymous
+default'
 
     assert_command dfx identity remove alice
     assert_match 'Removed identity "alice".' "$stderr"
@@ -154,7 +170,10 @@ teardown() {
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
     assert_command dfx identity list
-    assert_match 'alice anonymous default'
+    assert_match \
+'alice
+anonymous
+default'
 }
 
 @test "identity remove: cannot remove the default identity" {
@@ -187,7 +206,10 @@ teardown() {
 @test "identity rename: can rename an identity" {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity list
-    assert_match 'alice anonymous default'
+    assert_match \
+'alice
+anonymous
+default'
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN PRIVATE KEY"
     x=$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem")
@@ -197,7 +219,10 @@ teardown() {
     assert_match 'Renamed identity "alice" to "bob".' "$stderr"
 
     assert_command dfx identity list
-    assert_match 'anonymous bob default'
+    assert_match \
+'anonymous
+bob
+default'
     assert_command cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_eq "$key" "$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem")"
     assert_match "BEGIN PRIVATE KEY"
@@ -221,11 +246,17 @@ teardown() {
     assert_command dfx identity new --disable-encryption alice
     assert_command dfx identity use alice
     assert_command dfx identity list
-    assert_match 'alice anonymous default'
+    assert_match \
+'alice
+anonymous
+default'
     assert_command dfx identity rename alice charlie
 
     assert_command dfx identity list
-    assert_match 'anonymous charlie default'
+    assert_match \
+'anonymous
+charlie
+default'
 
     assert_command dfx identity whoami
     assert_eq 'charlie'

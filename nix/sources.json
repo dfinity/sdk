@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "3b3160baecaa3a5cef90a3beb87058b272cd9699",
-        "sha256": "0yqs1lps3zz8ny15hd1i9xy7sfa0z064wvaykzx3xfly23aax7ll",
+        "rev": "b75822a011a46827d4bc32330f645c9f11a1ce2d",
+        "sha256": "0kf3gp4zxbkpn1xr8z4wfr60jnbs33wsjd0w13c3kprj150rd10s",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/3b3160baecaa3a5cef90a3beb87058b272cd9699.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/b75822a011a46827d4bc32330f645c9f11a1ce2d.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister-sandbox-x86_64-darwin": {
@@ -62,23 +62,41 @@
         "url": "https://download.dfinity.systems/blessed/ic/6e86169e98904047833ba6133e5413d2758d90eb/sdk-release/x86_64-linux/ic-canister-http-adapter.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/ic-canister-http-adapter.gz"
     },
+    "ic-nns-init-x86_64-darwin": {
+        "builtin": false,
+        "description": "The ic-nns-init binary.",
+        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
+        "sha256": "19vicxphjdzlnb0112wx3xwpxddnjikidzmkg0bkhmp9iax2d9c4",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/nix-release/x86_64-darwin/ic-nns-init.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/ic-nns-init.gz"
+    },
+    "ic-nns-init-x86_64-linux": {
+        "builtin": false,
+        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
+        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
+        "sha256": "0v51f8mbgc5fgcbfkfrpp181d5qzw8nf9z4kplkzr4j9b5r129ci",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/release/ic-nns-init.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/release/ic-nns-init.gz"
+    },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "00n1s9bg7bilwzfqxvrlwcwh1bzswnwam912xy8zsppl3cbgqxrg",
+        "sha256": "0y51r00wpn4hg2z92ckl122l1g4vbdnmw5nfb41dkmkhlpr2ryq7",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-173cbe84-x86_64-darwin.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-1fba03ee-x86_64-darwin.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-darwin.tar.gz",
-        "version": "0.0.1-173cbe84"
+        "version": "0.0.1-1fba03ee"
     },
     "ic-ref-x86_64-linux": {
         "builtin": false,
         "rev": "ab8e3f5a04f0f061b8157c2889f8f5de05f952bb",
-        "sha256": "04m9hzs9d6d6iqg4xjvhrsyyyh99armjivwhn8501c1npw2gmr2i",
+        "sha256": "0did5sjclvjiqj8nk1636m35n4b1fxdpklqhg3m4p47wnd2nzxnn",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-173cbe84-x86_64-linux.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-1fba03ee-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
-        "version": "0.0.1-173cbe84"
+        "version": "0.0.1-1fba03ee"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
