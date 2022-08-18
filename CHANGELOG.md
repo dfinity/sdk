@@ -41,6 +41,16 @@ The `dfx schema` command can now display the schema for either dfx.json or for n
 dfx schema --for networks
 ```
 
+### feat: createActor options accept pre-initialized agent
+
+If you have a pre-initialized agent in your JS code, you can now pass it to createActor's options. Conflicts with the agentOptions config - if you pass both the agent option will be used and you will receive a warning.
+
+```js
+const plugActor = createActor(canisterId, {
+  agent: plugAgent
+})
+```
+
 ### feat!: option for nodejs compatibility in dfx generate
 
 Users can now specify `node_compatibility: true` in `declarations`. The flag introduces `node.js` enhancements, which include importing `isomorphic-fetch` and configuring the default actor with `isomorphic-fetch` and `host`.
