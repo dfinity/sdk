@@ -95,7 +95,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
                         .context("Failed to transfer to the cycles minting canister")?;
                     send_spinner.finish_with_message(format!("Sent {icpts} to the cycles minting canister at height {height}"));
                     let notify_spinner = ProgressBar::new_spinner();
-                    notify_spinner.set_message(format!("Notifying the the cycles minting canister..."));
+                    notify_spinner.set_message("Notifying the the cycles minting canister...");
                     notify_spinner.enable_steady_tick(100);
                     let res = notify_create(agent, principal, height).await
                         .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
