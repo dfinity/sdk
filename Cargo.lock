@@ -755,7 +755,7 @@ dependencies = [
  "humantime",
  "humantime-serde",
  "ic-agent",
- "ic-asset 0.20.0 (git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7)",
+ "ic-asset",
  "ic-identity-hsm",
  "ic-utils",
  "ic-wasm",
@@ -1530,32 +1530,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-asset"
-version = "0.20.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7#2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
-dependencies = [
- "anyhow",
- "candid",
- "derivative",
- "flate2",
- "futures",
- "futures-intrusive",
- "garcon",
- "globset",
- "hex",
- "ic-agent",
- "ic-utils",
- "mime",
- "mime_guess",
- "pathdiff",
- "serde",
- "serde_bytes",
- "serde_json",
- "sha2 0.10.2",
- "walkdir",
-]
-
-[[package]]
 name = "ic-cdk"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1683,7 +1657,7 @@ dependencies = [
  "garcon",
  "humantime",
  "ic-agent",
- "ic-asset 0.20.0 (git+https://github.com/dfinity/agent-rs.git?rev=2da883fc92eab3422c9b89bcec3966d06ddf0ae7)",
+ "ic-asset",
  "ic-utils",
  "libflate",
  "num-traits",
