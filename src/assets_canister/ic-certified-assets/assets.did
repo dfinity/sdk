@@ -23,14 +23,6 @@ type SetAssetContentArguments = record {
 };
 
 // TODO: comment
-type SetAssetPropertiesArguments = record {
-  key: Key;
-  max_age: text;
-  headers: opt vec HeaderField;
-  redirect: opt AssetRedirect;
-};
-
-// TODO: comment
 type RedirectUrl = record {
   host: opt text;
   path: opt text;
@@ -61,7 +53,6 @@ type ClearArguments = record {};
 type BatchOperationKind = variant {
   CreateAsset: CreateAssetArguments;
   SetAssetContent: SetAssetContentArguments;
-  SetAssetProperties: SetAssetPropertiesArguments;
   UnsetAssetContent: UnsetAssetContentArguments;
   DeleteAsset: DeleteAssetArguments;
 
@@ -148,9 +139,6 @@ service: {
       // TODO: API
     }
   }) query;
-
-  set_asset_properties: (SetAssetPropertiesArguments) -> ();
-  get_asset_properties : (key: text) -> ( AssetProperties ) query;
 
   create_batch : (record {}) -> (record { batch_id: BatchId });
 

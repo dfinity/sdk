@@ -7,7 +7,6 @@ members = [
     "src/assets_canister/certified-assets",
 ]
 default-members = ["src/dfx"]
-exclude = ["src/assets_canister/certified-assets"]
 
 [patch.crates-io.ic-agent]
 version = "0.20.0"

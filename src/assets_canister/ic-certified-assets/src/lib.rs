@@ -159,26 +159,6 @@ fn list() -> Vec<AssetDetails> {
 
 #[query]
 #[candid_method(query)]
-fn get_asset_properties(key: Key) -> AssetProperties {
-    STATE.with(|s| match s.borrow().get_asset_properties(&key) {
-        Ok(properties) => properties,
-        Err(msg) => trap(&msg),
-    })
-}
-
-#[update(guard = "is_authorized")]
-#[candid_method(update)]
-fn set_asset_properties(arg: SetAssetPropertiesArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().set_asset_properties(arg, time()) {
-            trap(&msg);
-        }
-        set_certified_data(&s.borrow().root_hash());
-    })
-}
-
-#[query]
-#[candid_method(query)]
 fn http_request(req: HttpRequest) -> HttpResponse {
     let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
 

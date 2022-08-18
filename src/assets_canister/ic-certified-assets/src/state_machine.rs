@@ -213,18 +213,6 @@ impl State {
         Ok(())
     }
 
-    pub fn get_asset_properties(&self, _key: &Key) -> Result<AssetProperties, String> {
-        Ok(AssetProperties::default())
-    }
-
-    pub fn set_asset_properties(
-        &mut self,
-        _arg: SetAssetPropertiesArguments,
-        _now: u64,
-    ) -> Result<(), String> {
-        Ok(())
-    }
-
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
         let asset = self
             .assets
@@ -341,7 +329,6 @@ impl State {
         let batch_id = arg.batch_id;
         for op in arg.operations {
             match op {
-                BatchOperation::SetAssetProperties(arg) => self.set_asset_properties(arg, now)?,
                 BatchOperation::CreateAsset(arg) => self.create_asset(arg)?,
                 BatchOperation::SetAssetContent(arg) => self.set_asset_content(arg, now)?,
                 BatchOperation::UnsetAssetContent(arg) => self.unset_asset_content(arg)?,
