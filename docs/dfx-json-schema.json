@@ -519,7 +519,7 @@
       "type": "object",
       "properties": {
         "bind": {
-          "description": "Bind address for the webserver. For the shared local network, the default is 127.0.0.1:4943 For project-specific local networks, the default is 127.0.0.1:8000",
+          "description": "Bind address for the webserver. For the shared local network, the default is 127.0.0.1:4943. For project-specific local networks, the default is 127.0.0.1:8000.",
           "type": [
             "string",
             "null"
@@ -652,7 +652,7 @@
     },
     "NetworkType": {
       "title": "Network Type",
-      "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'perstistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
+      "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
       "type": "string",
       "enum": [
         "ephemeral",
