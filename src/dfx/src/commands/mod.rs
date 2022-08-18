@@ -20,6 +20,7 @@ mod ping;
 mod remote;
 mod replica;
 mod schema;
+mod sns;
 mod start;
 mod stop;
 mod toolchain;
@@ -47,6 +48,8 @@ pub enum Command {
     Remote(remote::RemoteCommand),
     Replica(BaseOpts<replica::ReplicaOpts>),
     Schema(BaseOpts<schema::SchemaOpts>),
+    #[clap(hide(true))]
+    Sns(sns::SnsCommand),
     Start(BaseOpts<start::StartOpts>),
     Stop(BaseOpts<stop::StopOpts>),
     Toolchain(toolchain::ToolchainCommand),
@@ -75,6 +78,7 @@ pub fn dispatch(cmd: Command) -> DfxResult {
         Command::Ledger(v) => ledger::dispatch(v),
         Command::Nns(v) => nns::dispatch(v),
         Command::Remote(v) => remote::dispatch(v),
+        Command::Sns(v) => sns::dispatch(v),
         Command::Toolchain(v) => toolchain::dispatch(v),
         Command::Wallet(v) => wallet::dispatch(v),
 
