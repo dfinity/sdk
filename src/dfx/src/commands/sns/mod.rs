@@ -1,4 +1,4 @@
-use crate::commands::sns::config::NnsConfigCommand;
+use crate::commands::sns::config::SnsConfigCommand;
 use crate::DfxResult;
 
 use clap::Parser;
@@ -16,7 +16,7 @@ pub struct SnsCommand {
 #[derive(Parser)]
 enum SubCommand {
     #[clap(hide(true))]
-    Config(NnsConfigCommand),
+    Config(SnsConfigCommand),
 }
 
 pub fn dispatch(cmd: SnsCommand) -> DfxResult {

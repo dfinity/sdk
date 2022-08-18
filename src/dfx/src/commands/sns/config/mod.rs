@@ -12,7 +12,7 @@ pub struct ConfigOpts {}
 /// SNS config commands.
 #[derive(Parser)]
 #[clap(name("config"))]
-pub struct NnsConfigCommand {
+pub struct SnsConfigCommand {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
@@ -23,7 +23,7 @@ enum SubCommand {
     Validate(BaseOpts<validate::ValidateOpts>),
 }
 
-pub fn dispatch(cmd: NnsConfigCommand) -> DfxResult {
+pub fn dispatch(cmd: SnsConfigCommand) -> DfxResult {
     match cmd.subcmd {
         SubCommand::Create(v) => create::exec(&init_env(v.env_opts)?, v.command_opts),
         SubCommand::Validate(v) => validate::exec(&init_env(v.env_opts)?, v.command_opts),
