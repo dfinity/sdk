@@ -5,6 +5,7 @@ use ic_agent::Identity as _;
 use ic_utils::interfaces::{
     management_canister::builders::InstallMode, ManagementCanister, WalletCanister,
 };
+use indicatif::ProgressBar;
 use num_traits::Inv;
 use rust_decimal::Decimal;
 use tokio::runtime::Runtime;
@@ -35,23 +36,23 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
     let agent = env.get_agent().expect("Unable to create agent");
     let ident = IdentityManager::new(&env)?.instantiate_selected_identity()?;
     let principal = ident.sender().map_err(Error::msg)?;
-    println!("Your DFX user principal: {principal}");
+    eprintln!("Your DFX user principal: {principal}");
     let acct = AccountIdentifier::new(principal, None);
-    println!("Your ledger account address: {acct}");
+    eprintln!("Your ledger account address: {acct}");
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         let balance = balance(agent, &acct, None).await?;
-        println!("Your ICP balance: {balance}");
+        eprintln!("Your ICP balance: {balance}");
         let xdr_conversion_rate = xdr_permyriad_per_icp(agent).await?;
         let xdr_per_icp = Decimal::from_i128_with_scale(xdr_conversion_rate as i128, 4);
         let icp_per_tc = xdr_per_icp.inv();
-        println!("Conversion rate: 1 ICP <> {xdr_per_icp} XDR");
+        eprintln!("Conversion rate: 1 ICP <> {xdr_per_icp} XDR");
         let wallet = Identity::wallet_canister_id(env.get_network_descriptor(), ident.name())?;
         if let Some(wallet) = wallet {
-            println!("Mainnet wallet canister: {wallet}");
+            eprintln!("Mainnet wallet canister: {wallet}");
             if let Ok(wallet_canister) = WalletCanister::create(agent, wallet).await {
                 if let Ok(balance) = wallet_canister.wallet_balance().await {
-                    println!("Mainnet wallet balance: {:.2} TC", Decimal::from(balance.amount) / Decimal::from(1_000_000_000_000_u64));
+                    eprintln!("Mainnet wallet balance: {:.2} TC", Decimal::from(balance.amount) / Decimal::from(1_000_000_000_000_u64));
                 }
             }
         } else if Confirm::new().with_prompt("Import an existing wallet?").interact()? {
@@ -65,9 +66,9 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
                 WalletCanister::create(agent, id).await?
             };
             Identity::set_wallet_id( env.get_network_descriptor(), ident.name(), id)?;
-            println!("Successfully imported wallet {id}.");
+            eprintln!("Successfully imported wallet {id}.");
             if let Ok(balance) = wallet.wallet_balance().await {
-                println!("Mainnet wallet balance: {:.2} TC", Decimal::from(balance.amount) / Decimal::from(1_000_000_000_000_u64));
+                eprintln!("Mainnet wallet balance: {:.2} TC", Decimal::from(balance.amount) / Decimal::from(1_000_000_000_000_u64));
             }
         } else {
             let possible_tc = xdr_per_icp * balance.to_decimal();
@@ -75,23 +76,29 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
             if needed_tc.is_sign_positive() {
                 let needed_icp = needed_tc * icp_per_tc;
                 let rounded = needed_icp.round_dp(8);
-                println!("\nYou need {rounded:.8} more ICP to deploy a 10 TC wallet canister on mainnet.");
-                println!("Deposit at least {rounded:.8} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet.");
-                println!("\nAlternatively:");
-                println!("- If you have ICP in an NNS account, you can create a new canister through the NNS interface");
-                println!("- If you have a Discord account, you can request free cycles at https://faucet.dfinity.org");
-                println!("Either of these options will ask for your DFX user principal, listed above.");
-                println!("And either of these options will hand you back a wallet canister principal; when you run the command again, select the 'import an existing wallet' option.");
+                eprintln!("\nYou need {rounded:.8} more ICP to deploy a 10 TC wallet canister on mainnet.");
+                eprintln!("Deposit at least {rounded:.8} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet.");
+                eprintln!("\nAlternatively:");
+                eprintln!("- If you have ICP in an NNS account, you can create a new canister through the NNS interface");
+                eprintln!("- If you have a Discord account, you can request free cycles at https://faucet.dfinity.org");
+                eprintln!("Either of these options will ask for your DFX user principal, listed above.");
+                eprintln!("And either of these options will hand you back a wallet canister principal; when you run the command again, select the 'import an existing wallet' option.");
             } else {
                 let to_spend = Decimal::new(10, 0) * icp_per_tc;
                 let rounded = to_spend.round_dp(8);
                 if Confirm::new().with_prompt(format!("Spend {rounded:.8} ICP to create a new wallet with 10 TC?")).interact()? {
+                    let send_spinner = ProgressBar::new_spinner();
+                    send_spinner.set_message(format!("Sending {rounded:.8} ICP to the cycles minting canister..."));
+                    send_spinner.enable_steady_tick(100);
                     let icpts = ICPTs::from_decimal(rounded)?;
                     let height = transfer_cmc(agent, Memo(MEMO_CREATE_CANISTER /* 👽 */), icpts, TRANSACTION_FEE, None, principal).await
                         .context("Failed to transfer to the cycles minting canister")?;
-                    println!("Sent {icpts} to the cycles minting canister at height {height}");
+                    send_spinner.finish_with_message(format!("Sent {icpts} to the cycles minting canister at height {height}"));
+                    let notify_spinner = ProgressBar::new_spinner();
+                    notify_spinner.set_message(format!("Notifying the the cycles minting canister..."));
+                    notify_spinner.enable_steady_tick(100);
                     let res = notify_create(agent, principal, height).await
-                        .context("Failed to notify the CMC of the transfer. Write down that height, and once the error is fixed, use `dfx ledger notify create-canister`.")?;
+                        .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
                     let wallet = match res {
                         Ok(principal) => principal,
                         Err(NotifyError::Refunded { reason, block_index }) => {
@@ -104,12 +111,16 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
                         }
                         Err(err) => bail!("{err:?}"),
                     };
-                    println!("Created wallet canister with principal ID {wallet}");
+                    notify_spinner.finish_with_message(format!("Created wallet canister with principal ID {wallet}"));
+                    let install_spinner = ProgressBar::new_spinner();
+                    install_spinner.set_message("Installing the wallet code to the canister...");
+                    install_spinner.enable_steady_tick(100);
                     install_wallet(&env, agent, wallet, InstallMode::Install).await.context("Failed to install the wallet code to the canister")?;
                     Identity::set_wallet_id(env.get_network_descriptor(), ident.name(), wallet).context("Failed to record the wallet's principal as your associated wallet")?;
-                    println!("Success! Run this command again at any time to print all this information again.");
+                    install_spinner.finish_with_message("Installed the wallet code to the canister");
+                    eprintln!("Success! Run this command again at any time to print all this information again.");
                 } else {
-                    println!("Run this command again at any time to continue from here."); // unify somehow
+                    eprintln!("Run this command again at any time to continue from here."); // unify somehow
                     return Ok(());
                 }
             }
