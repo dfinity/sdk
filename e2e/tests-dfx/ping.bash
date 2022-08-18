@@ -57,9 +57,8 @@ teardown() {
 @test "dfx ping succeeds by network name if network bind address is host:port format" {
     dfx_start
     webserver_port=$(get_webserver_port)
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$webserver_port"'"' dfx.json)" >dfx.json
-    assert_command dfx ping local
+    jq '.networks.nnn.bind="127.0.0.1:'"$webserver_port"'"' dfx.json | sponge dfx.json
+    assert_command dfx ping nnn
 
     assert_match "\"ic_api_version\""
 }
@@ -70,18 +69,16 @@ teardown() {
     dfx_start --host 127.0.0.1:12345
 
     # Make dfx use the port from configuration:
-    rm .dfx/webserver-port
+    rm "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port"
 
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.arbitrary.providers=["http://127.0.0.1:12345"]' dfx.json)" >dfx.json
+    jq '.networks.arbitrary.providers=["http://127.0.0.1:12345"]' dfx.json | sponge dfx.json
 
     assert_command dfx ping arbitrary
     assert_match "\"ic_api_version\""
 
     assert_command_fail dfx ping
     # this port won't match the ephemeral port that the replica picked
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.arbitrary.providers=["127.0.0.1:22113"]' dfx.json)" >dfx.json
+    jq '.networks.arbitrary.providers=["127.0.0.1:22113"]' dfx.json | sponge dfx.json
     assert_command_fail dfx ping arbitrary
 }
 

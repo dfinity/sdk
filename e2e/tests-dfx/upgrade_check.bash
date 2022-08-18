@@ -19,8 +19,7 @@ teardown() {
   dfx_start
   dfx deploy
   dfx canister call hello_backend inc '()'
-    # shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.hello_backend.main="v2.mo"' dfx.json)" >dfx.json
+  jq '.canisters.hello_backend.main="v2.mo"' dfx.json | sponge dfx.json
   dfx deploy
   assert_command dfx canister call hello_backend read '()'
   assert_match "(1 : nat)"
@@ -31,8 +30,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello_backend inc '()'
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.hello_backend.main="v2_bad.mo"' dfx.json)" >dfx.json
+    jq '.canisters.hello_backend.main="v2_bad.mo"' dfx.json | sponge dfx.json
     echo yes | (
       assert_command dfx deploy
       assert_match "Stable interface compatibility check failed"
@@ -46,8 +44,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello_backend inc '()'
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.hello_backend.main="v2_bad.mo"' dfx.json)" >dfx.json
+    jq '.canisters.hello_backend.main="v2_bad.mo"' dfx.json | sponge dfx.json
     dfx build
     echo yes | dfx canister install hello_backend --mode=reinstall
     assert_command dfx canister call hello_backend read '()'
@@ -59,8 +56,7 @@ teardown() {
     dfx_start
     dfx deploy
     dfx canister call hello_backend inc '()'
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.canisters.hello_backend.main="v3_bad.mo"' dfx.json)" >dfx.json
+    jq '.canisters.hello_backend.main="v3_bad.mo"' dfx.json | sponge dfx.json
     echo yes | (
       assert_command dfx deploy
       assert_match "Candid interface compatibility check failed"
