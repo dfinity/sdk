@@ -44,6 +44,9 @@ pub async fn install_nns(
             "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087".to_string(),
         ),
     };
+
+    println!("{:?}", get_local_subnet_id());
+
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts)
         .await
         .unwrap();
@@ -179,4 +182,18 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> DfxRe
         bail!("ic-nns-init call failed");
     }
     Ok(())
+}
+
+/// Gets the local subnet ID
+/// TODO: This is a hack.  Need a proper protobuf parser.  dalves mentioned that he might do this, else I'll dive in.
+pub fn get_local_subnet_id() -> anyhow::Result<String> {
+    // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
+    let file = fs::File::open(".dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb").unwrap();
+    let parsed = std::process::Command::new("protoc")
+       .arg("--decode_raw")
+       .stdin(file)
+       .output()
+       .expect("Failed to start protobuf file parser");
+    let parsed_str = std::str::from_utf8(&parsed.stdout).unwrap();
+    parsed_str.split("\n").into_iter().find_map(|line| line.split("subnet_record_").into_iter().nth(1)).and_then(|line|line.split("\"").next()).map(|subnet| subnet.to_string()).ok_or(anyhow!("Protobuf has no subnet"))
 }
