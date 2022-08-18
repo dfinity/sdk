@@ -1,6 +1,6 @@
+use crate::commands::sns::config::NnsConfigCommand;
 use crate::DfxResult;
 
-use crate::commands::sns::config::NnsConfigCommand;
 use clap::Parser;
 
 mod config;

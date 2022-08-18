@@ -1,5 +1,6 @@
 use crate::{DfxResult, Environment};
 
+use crate::commands::sns;
 use clap::Parser;
 
 /// Create an sns config
@@ -7,5 +8,5 @@ use clap::Parser;
 pub struct CreateOpts {}
 
 pub fn exec(_env: &dyn Environment, _opts: CreateOpts) -> DfxResult {
-    todo!()
+    sns::create_config()
 }

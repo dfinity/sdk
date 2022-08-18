@@ -1,5 +1,6 @@
 use crate::{DfxResult, Environment};
 
+use crate::lib::operations::sns;
 use clap::Parser;
 
 /// Validates an sns configuration
@@ -7,5 +8,5 @@ use clap::Parser;
 pub struct ValidateOpts {}
 
 pub fn exec(_env: &dyn Environment, _opts: ValidateOpts) -> DfxResult {
-    todo!()
+    sns::validate_config()
 }
