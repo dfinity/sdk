@@ -1,10 +1,10 @@
 [workspace]
 members = [
     "src/dfx",
-    "src/assets_canister/ic-asset",
-    "src/assets_canister/icx-asset",
-    "src/assets_canister/ic-certified-assets",
-    "src/assets_canister/certified-assets",
+    "src/canisters/frontend/ic-asset",
+    "src/canisters/frontend/icx-asset",
+    "src/canisters/frontend/ic-certified-assets",
+    "src/canisters/frontend/certified-assets",
 ]
 default-members = ["src/dfx"]
 
@@ -15,7 +15,7 @@ rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 
 [patch.crates-io.ic-asset]
 version = "0.20.0"
-path = "src/assets_canister/ic-asset"
+path = "src/canisters/frontend/ic-asset"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.20.0"
