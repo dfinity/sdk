@@ -22,7 +22,7 @@ jobs:
           rustup default ${{ matrix.rust }}
 
       - name: Check cargo build
-        run: cargo build 
+        run: cargo build
       - name: Show download worked
         run: cargo run -- --version
       - name: Update docs/dfx-json-schema.json
