@@ -79,7 +79,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
                 println!("Deposit at least {rounded:.8} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet.");
                 println!("\nAlternatively:");
                 println!("- If you have ICP in an NNS account, you can create a new canister through the NNS interface");
-                println!("- If you have a Twitter account, you can link it to the cycles faucet to get free cycles at https://faucet.dfinity.org");
+                println!("- If you have a Discord account, you can request free cycles at https://faucet.dfinity.org");
                 println!("Either of these options will ask for your DFX user principal, listed above.");
                 println!("And either of these options will hand you back a wallet canister principal; when you run the command again, select the 'import an existing wallet' option.");
             } else {
