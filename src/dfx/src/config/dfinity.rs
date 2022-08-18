@@ -380,8 +380,8 @@ pub struct ConfigNetworkProvider {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigLocalProvider {
     /// Bind address for the webserver.
-    /// For the shared local network, the default is 127.0.0.1:4943
-    /// For project-specific local networks, the default is 127.0.0.1:8000
+    /// For the shared local network, the default is 127.0.0.1:4943.
+    /// For project-specific local networks, the default is 127.0.0.1:8000.
     pub bind: Option<String>,
 
     /// Persistence type of this network.
