@@ -1,6 +1,6 @@
-use crate::commands::NetworkOpts;
 use crate::DfxResult;
 
+use crate::commands::sns::config::NnsConfigCommand;
 use clap::Parser;
 
 mod config;
@@ -16,7 +16,7 @@ pub struct SnsCommand {
 #[derive(Parser)]
 enum SubCommand {
     #[clap(hide(true))]
-    Config(NetworkOpts<config::ConfigOpts>),
+    Config(NnsConfigCommand),
 }
 
 pub fn dispatch(cmd: SnsCommand) -> DfxResult {

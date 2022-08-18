@@ -6,6 +6,6 @@ use clap::Parser;
 #[derive(Parser)]
 pub struct CreateOpts {}
 
-pub async fn exec(env: &dyn Environment, _opts: CreateOpts) -> DfxResult {
+pub fn exec(_env: &dyn Environment, _opts: CreateOpts) -> DfxResult {
     todo!()
 }
