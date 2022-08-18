@@ -41,7 +41,7 @@ pub enum Command {
     LanguageServices(BaseOpts<language_service::LanguageServiceOpts>),
     Ledger(ledger::LedgerCommand),
     New(BaseOpts<new::NewOpts>),
-    #[clap(hide(true))]
+    //#[clap(hide(true))]
     Nns(nns::NnsCommand),
     Ping(BaseOpts<ping::PingOpts>),
     Remote(remote::RemoteCommand),
