@@ -312,7 +312,7 @@ pub struct ConfigDefaultsReplica {
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
-/// Type 'perstistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
+/// Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
