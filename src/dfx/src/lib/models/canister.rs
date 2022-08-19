@@ -574,6 +574,8 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
                         format!("Failed to write to {}.", index_js_path.to_string_lossy())
                     })?;
             }
+            // skip
+            "index.js.hbs" => {}
             _ => unreachable!(),
         }
     }

@@ -1,5 +1,5 @@
 use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, NetworksConfig};
 use crate::config::{cache, dfx_version};
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
@@ -22,6 +22,7 @@ use std::time::Duration;
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Option<Arc<Config>>;
+    fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     fn is_in_project(&self) -> bool;
@@ -59,6 +60,7 @@ pub trait Environment {
 
 pub struct EnvironmentImpl {
     config: Option<Arc<Config>>,
+    shared_networks_config: Arc<NetworksConfig>,
 
     cache: Arc<dyn Cache>,
 
@@ -72,6 +74,7 @@ pub struct EnvironmentImpl {
 
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
+        let shared_networks_config = NetworksConfig::new()?;
         let config = Config::from_current_dir()?;
         if let Some(ref config) = config {
             let temp_dir = config.get_temp_path();
@@ -110,6 +113,7 @@ impl EnvironmentImpl {
         Ok(EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),
             config: config.map(Arc::new),
+            shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
             logger: None,
             progress: true,
@@ -140,6 +144,10 @@ impl Environment for EnvironmentImpl {
 
     fn get_config(&self) -> Option<Arc<Config>> {
         self.config.as_ref().map(Arc::clone)
+    }
+
+    fn get_networks_config(&self) -> Arc<NetworksConfig> {
+        self.shared_networks_config.clone()
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
@@ -238,6 +246,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_config(&self) -> Option<Arc<Config>> {
         self.backend.get_config()
+    }
+
+    fn get_networks_config(&self) -> Arc<NetworksConfig> {
+        self.backend.get_networks_config()
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {

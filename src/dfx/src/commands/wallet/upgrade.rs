@@ -22,7 +22,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
     let network = env.get_network_descriptor();
 
     let canister_id =
-        if let Some(principal) = Identity::wallet_canister_id(env, network, &identity_name)? {
+        if let Some(principal) = Identity::wallet_canister_id(network, &identity_name)? {
             principal
         } else {
             bail!(

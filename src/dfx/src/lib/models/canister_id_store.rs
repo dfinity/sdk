@@ -1,7 +1,8 @@
-use crate::config::dfinity::{Config, NetworkType};
+use crate::config::dfinity::Config;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::network::directory::ensure_cohesive_network_directory;
+use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
@@ -44,14 +45,19 @@ impl CanisterIdStore {
     ) -> DfxResult<Self> {
         let path = match network_descriptor {
             NetworkDescriptor {
-                r#type: NetworkType::Persistent,
+                r#type: NetworkTypeDescriptor::Persistent,
                 ..
             } => config
                 .as_ref()
                 .map(|c| c.get_project_root().join("canister_ids.json")),
-            NetworkDescriptor { name, .. } => config
-                .as_ref()
-                .map(|c| c.get_temp_path().join(name).join("canister_ids.json")),
+            NetworkDescriptor { name, .. } => match &config {
+                None => None,
+                Some(config) => {
+                    let dir = config.get_temp_path().join(name);
+                    ensure_cohesive_network_directory(network_descriptor, &dir)?;
+                    Some(dir.join("canister_ids.json"))
+                }
+            },
         };
         let remote_ids = get_remote_ids(config)?;
         let ids = match &path {
