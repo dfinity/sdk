@@ -206,7 +206,7 @@ fn icx_proxy_start_thread(
         }
         let address = format!("{}", &address);
         cmd.args(&["--address", &address]);
-        for url in replica_urls {
+        for url in &replica_urls {
             let s = format!("{}", url);
             cmd.args(&["--replica", &s]);
         }
