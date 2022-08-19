@@ -548,6 +548,7 @@ impl Identity {
     /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
+    /// This can be prohibited by setting the DISABLE_AUTO_WALLET env var.
     #[context("Failed to get wallet for identity '{}' on network '{}'.", name, network.name)]
     pub async fn get_or_create_wallet(
         env: &dyn Environment,
@@ -558,7 +559,7 @@ impl Identity {
         match Identity::wallet_canister_id(network, name)? {
             None => {
                 // If the network is not the IC, we ignore the error and create a new wallet for the identity.
-                if !network.is_ic || create {
+                if (!network.is_ic && std::env::var("DISABLE_AUTO_WALLET").is_err()) || create {
                     Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
@@ -612,6 +613,7 @@ impl Identity {
     /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
+    /// This can be prohibited by setting the DISABLE_AUTO_WALLET env var.
     #[allow(clippy::needless_lifetimes)]
     #[context("Failed to get wallet canister caller for identity '{}' on network '{}'.", name, network.name)]
     pub async fn get_or_create_wallet_canister<'env>(
