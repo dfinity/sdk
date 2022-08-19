@@ -1,5 +1,6 @@
 use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
 use crate::DfxResult;
+use crate::lib::environment::{Environment, EnvironmentImpl};
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -12,7 +13,7 @@ use std::process;
 
 #[context("Failed to install nns components.")]
 pub async fn install_nns(
-    _agent: &Agent,
+    agent: &Agent,
     _provider_url: &str,
     ic_nns_init_path: &Path,
     _replicated_state_dir: &Path,
@@ -56,6 +57,7 @@ pub async fn install_nns(
 
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
+    install_ii(agent);
 
     Ok(())
 }
@@ -271,4 +273,25 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
                 Err(anyhow!("Call to propose to set xdr rate failed"))
             }
         })
+}
+
+/// Adds Internet Identity to the local dfx.json and installs it.
+pub fn install_ii(agent: &Agent) {
+    // We probably don't need a custom environment.
+    let env = EnvironmentImpl::new();
+    /*
+    install_canister_wasm(
+        env,
+        agent,
+        canister_id,
+        canister_info.as_ref().map(|info| info.get_name()).ok(),
+        &install_args,
+        mode,
+        timeout,
+        call_sender,
+        fs::read(&wasm_path)
+            .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
+    )
+    .await
+    */
 }
