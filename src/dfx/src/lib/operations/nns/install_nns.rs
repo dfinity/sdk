@@ -8,11 +8,12 @@ use libflate::gzip::Decoder;
 use std::fs;
 use std::io::{self, Read, Write};
 use std::path::Path;
+use std::process;
 
 #[context("Failed to install nns components.")]
 pub async fn install_nns(
     _agent: &Agent,
-    provider_url: &str,
+    _provider_url: &str,
     ic_nns_init_path: &Path,
     _replicated_state_dir: &Path,
 ) -> DfxResult {
@@ -37,15 +38,16 @@ pub async fn install_nns(
     assert_local_replica_type_is_system();
 
     download_nns_wasms().await.unwrap();
+    let subnet_id = get_local_subnet_id().unwrap();
+
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: NNS_WASM_DIR.to_string(),
         nns_url: get_replica_url().unwrap(),
         test_accounts: Some(
             "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087".to_string(),
         ),
+        sns_subnets: Some(subnet_id),
     };
-
-    println!("{:?}", get_local_subnet_id());
 
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts)
         .await
@@ -104,7 +106,7 @@ pub async fn download_wasm(
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{src_name}.wasm.gz");
     let url = reqwest::Url::parse(&url_str)?;
-    let mut response = reqwest::get(url.clone()).await?.bytes().await?;
+    let response = reqwest::get(url.clone()).await?.bytes().await?;
     let mut decoder = Decoder::new(&response[..])?;
     let mut buffer = Vec::new();
     decoder.read_to_end(&mut buffer).unwrap();
@@ -153,6 +155,7 @@ pub struct IcNnsInitOpts {
     nns_url: String,
     wasm_dir: String,
     test_accounts: Option<String>, // TODO, does the CLI actually support several?
+    sns_subnets: Option<String>,   // TODO: Can there be several?
 }
 
 #[context("Failed to install nns components.")]
@@ -171,6 +174,10 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> DfxRe
         cmd.arg("--initialize-ledger-with-test-accounts");
         cmd.arg(account);
     });
+    opts.sns_subnets.iter().for_each(|subnet| {
+        cmd.arg("--sns-subnet");
+        cmd.arg(subnet);
+    });
     println!("{:?}", &cmd);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
@@ -188,12 +195,43 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> DfxRe
 /// TODO: This is a hack.  Need a proper protobuf parser.  dalves mentioned that he might do this, else I'll dive in.
 pub fn get_local_subnet_id() -> anyhow::Result<String> {
     // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
-    let file = fs::File::open(".dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb").unwrap();
+    let file = fs::File::open(
+        ".dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb",
+    )
+    .unwrap();
     let parsed = std::process::Command::new("protoc")
-       .arg("--decode_raw")
-       .stdin(file)
-       .output()
-       .expect("Failed to start protobuf file parser");
+        .arg("--decode_raw")
+        .stdin(file)
+        .output()
+        .expect("Failed to start protobuf file parser");
     let parsed_str = std::str::from_utf8(&parsed.stdout).unwrap();
-    parsed_str.split("\n").into_iter().find_map(|line| line.split("subnet_record_").into_iter().nth(1)).and_then(|line|line.split("\"").next()).map(|subnet| subnet.to_string()).ok_or(anyhow!("Protobuf has no subnet"))
+    parsed_str
+        .split("\n")
+        .into_iter()
+        .find_map(|line| line.split("subnet_record_").into_iter().nth(1))
+        .and_then(|line| line.split("\"").next())
+        .map(|subnet| subnet.to_string())
+        .ok_or(anyhow!("Protobuf has no subnet"))
+}
+
+pub fn set_xdr_rate(rate: u64, nns_url: &str) -> anyhow::Result<()> {
+    std::process::Command::new("ic-admin")
+        .arg("--nns-url")
+        .arg(nns_url)
+        .arg("propose-xdr-icp-conversion-rate")
+        .arg("--test-neuron-proposer")
+        .arg("--summary")
+        .arg(format!("Set the cycle exchange rate to {rate}."))
+        .arg("--xdr-permyriad-per-icp")
+        .arg(format!("{}", rate))
+        .stdin(process::Stdio::null())
+        .output()
+        .map_err(anyhow::Error::from)
+        .and_then(|output| {
+            if output.status.success() {
+                Ok(())
+            } else {
+                Err(anyhow!("Call to propose to set xdr rate failed"))
+            }
+        })
 }
