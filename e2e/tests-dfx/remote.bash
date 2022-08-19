@@ -31,9 +31,9 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/call/mock
+    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
     setup_actuallylocal_shared_network
     setup_local_shared_network
-    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
 
     # set up: remote method is update, local is query
     # call remote method as update to make a change
@@ -223,9 +223,9 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/extra
+    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
     setup_actuallylocal_shared_network
     setup_local_shared_network
-    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
 
     # We expect the local network deploy to succeed, because it is built using the candid file from
     # the local canister.

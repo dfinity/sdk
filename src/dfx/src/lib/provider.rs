@@ -1,6 +1,6 @@
 use crate::config::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
-    DEFAULT_LOCAL_BIND,
+    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
@@ -47,6 +47,7 @@ pub enum LocalBindDetermination {
     ApplyRunningWebserverPort,
 }
 
+#[allow(clippy::too_many_arguments)]
 #[context("Failed to get network descriptor for network '{}.", network_name)]
 fn config_network_to_network_descriptor(
     network_name: &str,
@@ -56,6 +57,7 @@ fn config_network_to_network_descriptor(
     local_scope: LocalNetworkScopeDescriptor,
     ephemeral_wallet_config_path: &Path,
     local_bind_determination: &LocalBindDetermination,
+    default_local_bind: &str,
 ) -> DfxResult<NetworkDescriptor> {
     match config_network {
         ConfigNetwork::ConfigNetworkProvider(network_provider) => {
@@ -107,8 +109,12 @@ fn config_network_to_network_descriptor(
 
             let network_type =
                 NetworkTypeDescriptor::new(local_provider.r#type, ephemeral_wallet_config_path);
-            let bind_address =
-                get_local_bind_address(local_provider, local_bind_determination, &data_directory)?;
+            let bind_address = get_local_bind_address(
+                local_provider,
+                local_bind_determination,
+                &data_directory,
+                default_local_bind,
+            )?;
             let provider_url = format!("http://{}", bind_address);
             let providers = vec![parse_provider_url(&provider_url)?];
             let local_server_descriptor = LocalServerDescriptor::new(
@@ -219,7 +225,7 @@ fn create_shared_network_descriptor(
             }
 
             Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
-                bind: String::from(DEFAULT_LOCAL_BIND),
+                bind: Some(String::from(DEFAULT_SHARED_LOCAL_BIND)),
                 r#type: NetworkType::Ephemeral,
                 bitcoin: None,
                 bootstrap: None,
@@ -270,6 +276,7 @@ fn create_shared_network_descriptor(
             local_scope,
             &ephemeral_wallet_config_path,
             local_bind_determination,
+            DEFAULT_SHARED_LOCAL_BIND,
         )
     })
 }
@@ -306,6 +313,7 @@ fn create_project_network_descriptor(
                 LocalNetworkScopeDescriptor::Project,
                 &ephemeral_wallet_config_path,
                 local_bind_determination,
+                DEFAULT_PROJECT_LOCAL_BIND,
             ))
         } else {
             info!(
@@ -330,11 +338,15 @@ fn get_local_bind_address(
     local_provider: &ConfigLocalProvider,
     local_bind_determination: &LocalBindDetermination,
     data_directory: &Path,
+    default_local_bind: &str,
 ) -> DfxResult<String> {
     match local_bind_determination {
-        LocalBindDetermination::AsConfigured => Ok(local_provider.bind.clone()),
+        LocalBindDetermination::AsConfigured => Ok(local_provider
+            .bind
+            .clone()
+            .unwrap_or_else(|| default_local_bind.to_string())),
         LocalBindDetermination::ApplyRunningWebserverPort => {
-            get_running_webserver_bind_address(data_directory, local_provider)
+            get_running_webserver_bind_address(data_directory, local_provider, default_local_bind)
         }
     }
 }
@@ -342,7 +354,12 @@ fn get_local_bind_address(
 fn get_running_webserver_bind_address(
     data_directory: &Path,
     local_provider: &ConfigLocalProvider,
+    default_local_bind: &str,
 ) -> DfxResult<String> {
+    let local_bind = local_provider
+        .bind
+        .clone()
+        .unwrap_or_else(|| default_local_bind.to_string());
     let path = data_directory.join("webserver-port");
     if path.exists() {
         let s = std::fs::read_to_string(&path).with_context(|| {
@@ -353,7 +370,7 @@ fn get_running_webserver_bind_address(
         })?;
         let s = s.trim();
         if s.is_empty() {
-            Ok(local_provider.bind.clone())
+            Ok(local_bind)
         } else {
             let port = s.parse::<u16>().with_context(|| {
                 format!(
@@ -364,14 +381,14 @@ fn get_running_webserver_bind_address(
             // converting to a socket address, and then setting the port,
             // will unfortunately transform "localhost:port" to "[::1]:{port}",
             // which the agent fails to connect with.
-            let host = match local_provider.bind.rfind(':') {
-                None => local_provider.bind.clone(),
-                Some(index) => local_provider.bind[0..index].to_string(),
+            let host = match local_bind.rfind(':') {
+                None => local_bind.clone(),
+                Some(index) => local_bind[0..index].to_string(),
             };
             Ok(format!("{}:{}", host, port))
         }
     } else {
-        Ok(local_provider.bind.clone())
+        Ok(local_bind)
     }
 }
 
@@ -628,7 +645,7 @@ mod tests {
                 .local_server_descriptor()
                 .unwrap()
                 .bind_address,
-            to_socket_addr("127.0.0.1:8000").unwrap()
+            to_socket_addr("127.0.0.1:4943").unwrap()
         );
     }
 
@@ -653,7 +670,7 @@ mod tests {
                 .local_server_descriptor()
                 .unwrap()
                 .bind_address,
-            to_socket_addr("127.0.0.1:8000").unwrap()
+            to_socket_addr("127.0.0.1:4943").unwrap()
         );
     }
 

@@ -30,6 +30,8 @@ When you have the SDK installed, you can use the following commands to specify t
 
 -   [dfx identity](./dfx-identity.md)
 
+-   [dfx info](./dfx-info.md)
+
 -   [dfx ledger](./dfx-ledger.md)
 
 -   [dfx new](./dfx-new.md)

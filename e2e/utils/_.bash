@@ -322,7 +322,7 @@ use_default_wallet_wasm() {
 }
 
 get_webserver_port() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port"
+  dfx info webserver-port
 }
 overwrite_webserver_port() {
   echo "$1" >"$E2E_NETWORK_DATA_DIRECTORY/webserver-port"
