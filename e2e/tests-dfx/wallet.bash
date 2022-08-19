@@ -204,7 +204,9 @@ teardown() {
 
     # only succeeds if wallet is correctly set
     assert_command dfx wallet balance
-    assert_match "99." # checking only balance before the dot, rest may fluctuate
+    # checking only balance before the dot, rest may fluctuate
+    # balance may be 99.??? TC if cycles accounting is done, or 100.000 TC if not
+    assert_match "99\.|100\."
 
     unset DISABLE_AUTO_WALLET
 
@@ -212,5 +214,7 @@ teardown() {
     assert_eq "Redeemed coupon code another-valid-coupon for 10.000 TC (trillion cycles)."
 
     assert_command dfx wallet balance
-    assert_match "109." # checking only balance before the dot, rest may fluctuate
+    # checking only balance before the dot, rest may fluctuate
+    # balance may be 109.??? TC if cycles accounting is done, or 110.000 TC if not
+    assert_match "109\.|110\."
 }
