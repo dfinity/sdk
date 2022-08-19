@@ -156,6 +156,14 @@ Previously, dfx only accepted canister aliases and produced an error message tha
 
 ### fix: print links to cdk-rs docs in dfx new
 
+### fix: Small grammar change to identity password decryption prompt
+
+The prompt for entering your passphrase in order to decrypt an identity password read:
+    "Please enter a passphrase for your identity"
+However, at that point, it isn't "a" passphrase.  It's either your passphrase, or incorrect.
+Changed the text in this case to read:
+    "Please enter the passphrase for your identity"
+
 ### ic-ref
 
 Updated ic-ref to 0.0.1-1fba03ee
