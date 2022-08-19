@@ -17,6 +17,7 @@ use std::process;
 
 #[context("Failed to install nns components.")]
 pub async fn install_nns(
+    env: &dyn Environment,
     agent: &Agent,
     _provider_url: &str,
     ic_nns_init_path: &Path,
@@ -63,7 +64,7 @@ println!("=================== ic-nns-init finished");
     println!("===================== set sdr rate finished");
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
     println!("================== set cmc subnets");
-    install_ii(agent).await;
+    install_ii(env , agent).await;
     println!("========================== Installed II");
 
     Ok(())
@@ -285,9 +286,10 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
 }
 
 /// Adds Internet Identity to the local dfx.json and installs it.
-pub async fn install_ii(agent: &Agent) {
+pub async fn install_ii(env: &dyn Environment, agent: &Agent) {
     // We probably don't need a custom environment.
-    let env = EnvironmentImpl::new().unwrap();
+    //let env = EnvironmentImpl::new().unwrap();
+    env.get_logger();
     let canister_name = "internet_identity";
     let timeout = expiry_duration();
     let with_cycles = None;
@@ -301,7 +303,7 @@ pub async fn install_ii(agent: &Agent) {
 
                         
     create_canister(
-        &env,
+        env,
         canister_name,
         timeout,
         with_cycles,
