@@ -1,11 +1,11 @@
 use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
-use crate::DfxResult;
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::operations::canister::{create_canister, install_canister_wasm};
-use crate::util::{expiry_duration, blob_from_arguments};
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister::{create_canister, install_canister_wasm};
+use crate::util::{blob_from_arguments, expiry_duration};
+use crate::DfxResult;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -61,12 +61,12 @@ pub async fn install_nns(
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts)
         .await
         .unwrap();
-println!("=================== ic-nns-init finished");
+    println!("=================== ic-nns-init finished");
     set_xdr_rate(1234567, &nns_url)?;
     println!("===================== set sdr rate finished");
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
     println!("================== set cmc subnets");
-    install_ii(env , agent).await;
+    install_ii(env, agent).await;
     println!("========================== Installed II");
 
     Ok(())
@@ -302,24 +302,27 @@ pub async fn install_ii(env: &dyn Environment, agent: &Agent) {
     let timeout = expiry_duration();
     let with_cycles = None;
     let call_sender = CallSender::SelectedId;
-    let canister_settings = CanisterSettings{
+    let canister_settings = CanisterSettings {
         controllers: None,
         compute_allocation: None,
         memory_allocation: None,
         freezing_threshold: None,
     };
 
-                        
     create_canister(
         env,
         canister_name,
         timeout,
         with_cycles,
-        &call_sender, canister_settings).await.unwrap();
+        &call_sender,
+        canister_settings,
+    )
+    .await
+    .unwrap();
 
     let mut canister_id_store = CanisterIdStore::for_env(env).unwrap();
     let canister_id = canister_id_store.get(canister_name).unwrap();
-    
+
     println!("Canister ID: {:?}", canister_id.to_string());
     let install_args = blob_from_arguments(None, None, None, &None).unwrap();
     let install_mode = InstallMode::Install;
@@ -336,9 +339,10 @@ pub async fn install_ii(env: &dyn Environment, agent: &Agent) {
         timeout,
         &call_sender,
         fs::read(&wasm_path)
-            .with_context(|| format!("Unable to read {}", wasm_path)).unwrap(),
+            .with_context(|| format!("Unable to read {}", wasm_path))
+            .unwrap(),
     )
     .await;
-    
+
     println!("Installed internet identity");
 }
