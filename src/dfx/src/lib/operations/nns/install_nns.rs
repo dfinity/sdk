@@ -3,12 +3,14 @@ use crate::DfxResult;
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::operations::canister::create_canister;
-use crate::util::expiry_duration;
+use crate::lib::operations::canister::{create_canister, install_canister_wasm};
+use crate::util::{expiry_duration, blob_from_arguments};
+use crate::lib::models::canister_id_store::CanisterIdStore;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
 use ic_agent::Agent;
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use libflate::gzip::Decoder;
 use std::fs;
 use std::io::{self, Read, Write};
@@ -285,6 +287,12 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
         })
 }
 
+const II_WASM: &'static str = "internet_identity.wasm";
+
+pub async fn download_ii() {
+    // TODO
+}
+
 /// Adds Internet Identity to the local dfx.json and installs it.
 pub async fn install_ii(env: &dyn Environment, agent: &Agent) {
     // We probably don't need a custom environment.
@@ -309,21 +317,28 @@ pub async fn install_ii(env: &dyn Environment, agent: &Agent) {
         with_cycles,
         &call_sender, canister_settings).await.unwrap();
 
-    /*
+    let mut canister_id_store = CanisterIdStore::for_env(env).unwrap();
+    let canister_id = canister_id_store.get(canister_name).unwrap();
     
+    println!("Canister ID: {:?}", canister_id.to_string());
+    let install_args = blob_from_arguments(None, None, None, &None).unwrap();
+    let install_mode = InstallMode::Install;
+
+    let wasm_path = "/home/max/dfn/nns-dapp/branches/testnet-environments/internet_identity.wasm";
+
     install_canister_wasm(
         env,
         agent,
         canister_id,
-        canister_info.as_ref().map(|info| info.get_name()).ok(),
+        Some(canister_name),
         &install_args,
-        mode,
+        install_mode,
         timeout,
-        call_sender,
+        &call_sender,
         fs::read(&wasm_path)
-            .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
+            .with_context(|| format!("Unable to read {}", wasm_path)).unwrap(),
     )
-    .await
-    */
+    .await;
+    
     println!("Installed internet identity");
 }
