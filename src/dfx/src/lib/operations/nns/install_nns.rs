@@ -1,6 +1,10 @@
 use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
 use crate::DfxResult;
 use crate::lib::environment::{Environment, EnvironmentImpl};
+use crate::lib::ic_attributes::CanisterSettings;
+use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::operations::canister::create_canister;
+use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -54,10 +58,13 @@ pub async fn install_nns(
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts)
         .await
         .unwrap();
-
+println!("=================== ic-nns-init finished");
     set_xdr_rate(1234567, &nns_url)?;
+    println!("===================== set sdr rate finished");
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
-    install_ii(agent);
+    println!("================== set cmc subnets");
+    install_ii(agent).await;
+    println!("========================== Installed II");
 
     Ok(())
 }
@@ -166,6 +173,7 @@ pub struct IcNnsInitOpts {
 
 #[context("Failed to install nns components.")]
 pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> DfxResult {
+    println!("Before ic-nns-init");
     // Notes:
     //   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different binary for local development
     //   - This won't work with an HSM, because the agent holds a session open
@@ -194,6 +202,7 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> DfxRe
     if !output.status.success() {
         bail!("ic-nns-init call failed");
     }
+    println!("After ic-nns-init");
     Ok(())
 }
 
@@ -276,10 +285,30 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
 }
 
 /// Adds Internet Identity to the local dfx.json and installs it.
-pub fn install_ii(agent: &Agent) {
+pub async fn install_ii(agent: &Agent) {
     // We probably don't need a custom environment.
-    let env = EnvironmentImpl::new();
+    let env = EnvironmentImpl::new().unwrap();
+    let canister_name = "internet_identity";
+    let timeout = expiry_duration();
+    let with_cycles = None;
+    let call_sender = CallSender::SelectedId;
+    let canister_settings = CanisterSettings{
+        controllers: None,
+        compute_allocation: None,
+        memory_allocation: None,
+        freezing_threshold: None,
+    };
+
+                        
+    create_canister(
+        &env,
+        canister_name,
+        timeout,
+        with_cycles,
+        &call_sender, canister_settings).await.unwrap();
+
     /*
+    
     install_canister_wasm(
         env,
         agent,
@@ -294,4 +323,5 @@ pub fn install_ii(agent: &Agent) {
     )
     .await
     */
+    println!("Installed internet identity");
 }
