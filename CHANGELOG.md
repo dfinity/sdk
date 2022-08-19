@@ -41,6 +41,16 @@ The `dfx schema` command can now display the schema for either dfx.json or for n
 dfx schema --for networks
 ```
 
+### feat: createActor options accept pre-initialized agent
+
+If you have a pre-initialized agent in your JS code, you can now pass it to createActor's options. Conflicts with the agentOptions config - if you pass both the agent option will be used and you will receive a warning.
+
+```js
+const plugActor = createActor(canisterId, {
+  agent: plugAgent
+})
+```
+
 ### feat!: option for nodejs compatibility in dfx generate
 
 Users can now specify `node_compatibility: true` in `declarations`. The flag introduces `node.js` enhancements, which include importing `isomorphic-fetch` and configuring the default actor with `isomorphic-fetch` and `host`.
@@ -149,6 +159,16 @@ Canister sandboxing is enabled to be consistent with the mainnet.
 
 It is now possible to do e.g. `dfx ledger account-id --of-canister fg7gi-vyaaa-aaaal-qadca-cai` as well as `dfx ledger account-id --of-canister my_canister_name` when checking the ledger account id of a canister.
 Previously, dfx only accepted canister aliases and produced an error message that was hard to understand.
+
+### fix: print links to cdk-rs docs in dfx new
+
+### fix: Small grammar change to identity password decryption prompt
+
+The prompt for entering your passphrase in order to decrypt an identity password read:
+    "Please enter a passphrase for your identity"
+However, at that point, it isn't "a" passphrase.  It's either your passphrase, or incorrect.
+Changed the text in this case to read:
+    "Please enter the passphrase for your identity"
 
 ### ic-ref
 
