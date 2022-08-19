@@ -45,7 +45,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
             let response = agent
                 .update(&faucet_principal, "redeem_to_wallet")
                 .with_arg(
-                    encode_args((opts.coupon_code.clone(), wallet_principal.clone()))
+                    encode_args((opts.coupon_code.clone(), wallet_principal))
                         .context("Failed to serialize redeem_to_wallet arguments.")?,
                 )
                 .call_and_wait(waiter_with_exponential_backoff())
