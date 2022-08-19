@@ -19,7 +19,7 @@ pub async fn install_nns(
 ) -> DfxResult {
     /*
     // Notes:
-    //   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different binary for local development
+    //   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different &binary for local development
     //   - This won't work with an HSM, because the agent holds a session open
     //   - The provider_url is what the agent connects to, and forwards to the replica.
 
@@ -39,19 +39,23 @@ pub async fn install_nns(
 
     download_nns_wasms().await.unwrap();
     let subnet_id = get_local_subnet_id().unwrap();
+    let nns_url = get_replica_url().unwrap();
 
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: NNS_WASM_DIR.to_string(),
-        nns_url: get_replica_url().unwrap(),
+        nns_url: nns_url.clone(),
         test_accounts: Some(
             "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087".to_string(),
         ),
-        sns_subnets: Some(subnet_id),
+        sns_subnets: Some(subnet_id.clone()),
     };
 
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts)
         .await
         .unwrap();
+
+    set_xdr_rate(1234567, &nns_url)?;
+    set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
     Ok(())
 }
@@ -214,6 +218,12 @@ pub fn get_local_subnet_id() -> anyhow::Result<String> {
         .ok_or(anyhow!("Protobuf has no subnet"))
 }
 
+/// Sets the exchange rate between ICP and cycles.
+/// 
+/// # Implementation
+/// This is done by proposal.  Just after startung a test server, ic-admin
+/// proposals with a test user pass immediately, as the small test neuron is
+/// the only neuron and has absolute majority.
 pub fn set_xdr_rate(rate: u64, nns_url: &str) -> anyhow::Result<()> {
     std::process::Command::new("ic-admin")
         .arg("--nns-url")
@@ -224,6 +234,31 @@ pub fn set_xdr_rate(rate: u64, nns_url: &str) -> anyhow::Result<()> {
         .arg(format!("Set the cycle exchange rate to {rate}."))
         .arg("--xdr-permyriad-per-icp")
         .arg(format!("{}", rate))
+        .stdin(process::Stdio::null())
+        .output()
+        .map_err(anyhow::Error::from)
+        .and_then(|output| {
+            if output.status.success() {
+                Ok(())
+            } else {
+                Err(anyhow!("Call to propose to set xdr rate failed"))
+            }
+        })
+}
+
+/// Set the subnets the CMC is authorized to create canisters in.
+pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result<()> {
+    std::process::Command::new("ic-admin")
+        .arg("--nns-url")
+        .arg(nns_url)
+        .arg("propose-to-set-authorized-subnetworks")
+        .arg("--test-neuron-proposer")
+        .arg("--proposal-title")
+        .arg("Set Cycles Minting Canister Authorized Subnets")
+        .arg("--summary")
+        .arg(format!("Authorize the Cycles Minting Canister to create canisters in the subnet '{subnet}'."))
+        .arg("--subnets")
+        .arg(subnet)
         .stdin(process::Stdio::null())
         .output()
         .map_err(anyhow::Error::from)
