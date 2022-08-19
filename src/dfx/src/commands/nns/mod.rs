@@ -1,5 +1,3 @@
-mod install;
-
 use crate::commands::NetworkOpts;
 use crate::init_env;
 use crate::lib::provider::create_agent_environment;
@@ -7,6 +5,8 @@ use crate::DfxResult;
 
 use clap::Parser;
 use tokio::runtime::Runtime;
+
+mod install;
 
 /// NNS commands.
 #[derive(Parser)]

@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: print the dashboard URL on startup
+
+When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.
+
 ### feat!: changed the default port of the shared local network from 8000 to 4943.
 
 This is so dfx doesn't connect to a project-specific network instead of the local shared network.
