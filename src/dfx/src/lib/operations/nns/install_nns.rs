@@ -119,7 +119,7 @@ pub async fn download_wasm(
     let downloaded_filename = {
         let filename = tmp_dir.path().join(target_name);
         let mut file = fs::File::create(&filename)?;
-        file.write_all(&buffer);
+        file.write_all(&buffer)?;
         filename
     };
     fs::rename(downloaded_filename, final_path)?;
@@ -219,7 +219,7 @@ pub fn get_local_subnet_id() -> anyhow::Result<String> {
 }
 
 /// Sets the exchange rate between ICP and cycles.
-/// 
+///
 /// # Implementation
 /// This is done by proposal.  Just after startung a test server, ic-admin
 /// proposals with a test user pass immediately, as the small test neuron is
@@ -256,7 +256,9 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
         .arg("--proposal-title")
         .arg("Set Cycles Minting Canister Authorized Subnets")
         .arg("--summary")
-        .arg(format!("Authorize the Cycles Minting Canister to create canisters in the subnet '{subnet}'."))
+        .arg(format!(
+            "Authorize the Cycles Minting Canister to create canisters in the subnet '{subnet}'."
+        ))
         .arg("--subnets")
         .arg(subnet)
         .stdin(process::Stdio::null())

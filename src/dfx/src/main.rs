@@ -193,7 +193,7 @@ fn main() {
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
-            //maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+            maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
             match commands::dispatch(command) {
                 Err(e) => {
                     error_diagnosis = diagnose(&env, &e);
