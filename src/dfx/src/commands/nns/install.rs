@@ -1,7 +1,7 @@
 use crate::{DfxResult, Environment};
 use anyhow::anyhow;
 
-use crate::lib::operations::nns::install_nns::install_nns;
+use crate::lib::nns::install_nns::install_nns;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use clap::Parser;
 

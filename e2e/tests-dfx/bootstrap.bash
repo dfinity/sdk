@@ -18,7 +18,7 @@ teardown() {
 @test "forbid starting webserver with a forwarded port" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
-    assert_command_fail dfx bootstrap --port 8000
+    assert_command_fail dfx bootstrap --port 4943
     assert_match "Cannot forward API calls to the same bootstrap server"
 }
 
