@@ -46,10 +46,11 @@ teardown() {
     assert_match "Using the default definition for the 'local' shared network because $DFX_CONFIG_ROOT/.config/dfx/networks.json does not exist."
 
     assert_match "Local server configuration:"
-    assert_match "bind address: 127.0.0.1:0 \(default: 127.0.0.1:8000\)"
+    assert_match "bind address: 127.0.0.1:0 \(default: 127.0.0.1:4943\)"
     assert_match "bitcoin: disabled"
     assert_match "canister http: disabled"
     assert_match "subnet type: Application"
+    assert_match "scope: shared"
 }
 
 @test "dfx start outside of a project with default configuration" {
@@ -102,7 +103,7 @@ teardown() {
     assert_command dfx start --background
 
     assert_match "Local server configuration:"
-    assert_match "bind address: 127.0.0.1:0 \(default: 127.0.0.1:8000\)"
+    assert_match "bind address: 127.0.0.1:0 \(default: 127.0.0.1:4943\)"
     assert_match "bitcoin: disabled"
     assert_match "canister http: disabled"
     assert_match "subnet type: Application"

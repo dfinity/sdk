@@ -111,8 +111,9 @@ validate_default_project() {
         hello_world_frontend_canister_id=$(dfx canister id hello_world_frontend)
         application_canister_id=$(dfx canister id hello_world_backend)
         candid_ui_id=$(dfx canister id __Candid_UI)
-        export hello_world_frontend_url="http://localhost:8000/?canisterId=$hello_world_frontend_canister_id"
-        export candid_ui_url="http://localhost:8000/?canisterId=$candid_ui_id&id=$application_canister_id"
+        webserver_port="$(dfx info webserver-port)"
+        export hello_world_frontend_url="http://localhost:$webserver_port/?canisterId=$hello_world_frontend_canister_id"
+        export candid_ui_url="http://localhost:$webserver_port/?canisterId=$candid_ui_id&id=$application_canister_id"
 
         echo
         echo "=================================================="
