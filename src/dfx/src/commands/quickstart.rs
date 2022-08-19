@@ -1,7 +1,6 @@
-use anyhow::{bail, Context, Error};
+use anyhow::{bail, Context};
 use candid::Principal;
 use dialoguer::{Confirm, Input};
-use ic_agent::Identity as _;
 use ic_utils::interfaces::{
     management_canister::builders::InstallMode, ManagementCanister, WalletCanister,
 };
@@ -15,7 +14,7 @@ use crate::{
     lib::{
         environment::Environment,
         error::DfxResult,
-        identity::{Identity, IdentityManager},
+        identity::Identity,
         ledger_types::{Memo, NotifyError},
         nns_types::{
             account_identifier::AccountIdentifier,
@@ -34,8 +33,8 @@ use crate::{
 pub fn exec(env: &dyn Environment) -> DfxResult {
     let env = create_agent_environment(env, Some("ic".to_string()))?;
     let agent = env.get_agent().expect("Unable to create agent");
-    let ident = IdentityManager::new(&env)?.instantiate_selected_identity()?;
-    let principal = ident.sender().map_err(Error::msg)?;
+    let ident = env.get_selected_identity().unwrap();
+    let principal = env.get_selected_identity_principal().unwrap();
     eprintln!("Your DFX user principal: {principal}");
     let acct = AccountIdentifier::new(principal, None);
     eprintln!("Your ledger account address: {acct}");
@@ -47,7 +46,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
         let xdr_per_icp = Decimal::from_i128_with_scale(xdr_conversion_rate as i128, 4);
         let icp_per_tc = xdr_per_icp.inv();
         eprintln!("Conversion rate: 1 ICP <> {xdr_per_icp} XDR");
-        let wallet = Identity::wallet_canister_id(env.get_network_descriptor(), ident.name())?;
+        let wallet = Identity::wallet_canister_id(env.get_network_descriptor(), ident)?;
         if let Some(wallet) = wallet {
             eprintln!("Mainnet wallet canister: {wallet}");
             if let Ok(wallet_canister) = WalletCanister::create(agent, wallet).await {
@@ -65,7 +64,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
                 mgmt.install_code(&id, &wasm).with_mode(InstallMode::Install).call_and_wait(waiter_with_timeout(expiry_duration())).await?;
                 WalletCanister::create(agent, id).await?
             };
-            Identity::set_wallet_id( env.get_network_descriptor(), ident.name(), id)?;
+            Identity::set_wallet_id( env.get_network_descriptor(), ident, id)?;
             eprintln!("Successfully imported wallet {id}.");
             if let Ok(balance) = wallet.wallet_balance().await {
                 eprintln!("Mainnet wallet balance: {:.2} TC", Decimal::from(balance.amount) / Decimal::from(1_000_000_000_000_u64));
@@ -116,7 +115,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
                     install_spinner.set_message("Installing the wallet code to the canister...");
                     install_spinner.enable_steady_tick(100);
                     install_wallet(&env, agent, wallet, InstallMode::Install).await.context("Failed to install the wallet code to the canister")?;
-                    Identity::set_wallet_id(env.get_network_descriptor(), ident.name(), wallet).context("Failed to record the wallet's principal as your associated wallet")?;
+                    Identity::set_wallet_id(env.get_network_descriptor(), ident, wallet).context("Failed to record the wallet's principal as your associated wallet")?;
                     install_spinner.finish_with_message("Installed the wallet code to the canister");
                     eprintln!("Success! Run this command again at any time to print all this information again.");
                 } else {
