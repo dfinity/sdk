@@ -21,10 +21,12 @@ use std::fs;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
+use garcon::{Delay, Waiter};
+use std::time::Duration;
 
 /// The local directory where NNS wasm files are cached.  This is typically created on demand.
 const NNS_WASM_DIR: &'static str = "wasm/nns";
-/// The name typically used in dfx.json to refer to the Internet Identity canister, which provides a login service.
+/// The name typically used in dfx.json to refer to the Internet& Identity canister, which provides a login service.
 const II_NAME: &'static str = "internet_identity";
 /// The name of the Internet Identity wasm file in the local wasm cache.
 const II_WASM: &'static str = "internet_identity_dev.wasm";
@@ -63,6 +65,7 @@ pub async fn install_nns(
     verify_local_replica_type_is_system()?;
     let subnet_id = get_local_subnet_id()?;
     let nns_url = get_replica_url()?;
+    get_with_retries(&Url::parse(&nns_url)?).await?;
 
     // Install the core backend wasm canisters
     download_nns_wasms().await?;
@@ -88,6 +91,25 @@ pub async fn install_nns(
     install_canister(env, agent, II_NAME, &format!("{NNS_WASM_DIR}/{II_WASM}")).await?;
     install_canister(env, agent, ND_NAME, &format!("{NNS_WASM_DIR}/{ND_WASM}")).await?;
     Ok(())
+}
+
+/// Gets a URL, trying repeatedly until it is available.
+pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
+
+    const RETRY_PAUSE: Duration = Duration::from_millis(200);
+    const MAX_RETRY_PAUSE: Duration = Duration::from_secs(5);
+
+    let mut waiter = Delay::builder()
+        .exponential_backoff_capped(RETRY_PAUSE, 1.4, MAX_RETRY_PAUSE)
+        .build();
+
+    loop {
+        match reqwest::get(url.clone()).await {
+            Ok(response) =>
+            {return Ok(response);}
+            Err(err) => {waiter.wait().map_err(|_| err)?}
+        }
+    }
 }
 
 /// Gets the local replica type from dfx.json
