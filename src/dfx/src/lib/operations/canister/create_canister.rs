@@ -42,7 +42,8 @@ pub async fn create_canister(
 
     if let Some(remote_canister_id) = config
         .get_config()
-        .get_remote_canister_id(canister_name, &network_name).unwrap_or_default()
+        .get_remote_canister_id(canister_name, &network_name)
+        .unwrap_or_default()
     {
         bail!(
             "{} canister is remote on network {} and has canister id: {}",

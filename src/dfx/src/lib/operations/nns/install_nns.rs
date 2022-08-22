@@ -186,7 +186,6 @@ pub async fn download(target: &Path, source: &Url) -> anyhow::Result<()> {
     Ok(())
 }
 
-
 /// Downloads and unzips a file
 #[context("Failed to download and unzip {:?} from {:?}.", target, source)]
 pub async fn download_gz(target: &Path, source: &Url) -> anyhow::Result<()> {
@@ -234,7 +233,10 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
     for (src_name, target_name) in [
         ("registry-canister", "registry-canister"),
         ("governance-canister_test", "governance-canister_test"),
-        ("ledger-canister_notify-method", "ledger-canister_notify-method"),
+        (
+            "ledger-canister_notify-method",
+            "ledger-canister_notify-method",
+        ),
         ("ic-icrc1-ledger", "ic-icrc1-ledger"),
         ("root-canister", "root-canister"),
         ("cycles-minting-canister", "cycles-minting-canister"),
@@ -247,7 +249,9 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
         download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR).await?;
     }
     for (wasm, url) in [(II_WASM, II_URL), (ND_WASM, ND_URL)] {
-        download(&Path::new(&NNS_WASM_DIR).join(wasm), &Url::parse(url)?).await.map_err(|e| anyhow!("Failed to download {wasm:?}: {e:?}"))?;
+        download(&Path::new(&NNS_WASM_DIR).join(wasm), &Url::parse(url)?)
+            .await
+            .map_err(|e| anyhow!("Failed to download {wasm:?}: {e:?}"))?;
     }
     Ok(())
 }
