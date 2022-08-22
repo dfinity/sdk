@@ -60,7 +60,7 @@ pub async fn install_nns(
     _replicated_state_dir: &Path,
 ) -> anyhow::Result<()> {
     // Check out the environment.
-    assert_local_replica_type_is_system();
+    verify_local_replica_type_is_system()?;
     let subnet_id = get_local_subnet_id().unwrap();
     let nns_url = get_replica_url().unwrap();
 
@@ -92,7 +92,17 @@ pub async fn install_nns(
     Ok(())
 }
 
-/// Gets the local replica type.
+/// Gets the local replica type from dfx.json
+/// 
+/// # Errors
+/// Returns an error if the replica type could not be determined.  Possible reasons include:
+/// - There is no `dfx.json`
+/// - `dfx.json` could not be read.
+/// - `dfx.json` is not valid JSON.
+/// - The replica type is not defined for the `local` network.
+///
+/// # Panics
+/// This code is not expected to panic.
 fn local_replica_type() -> Result<ReplicaSubnetType, &'static str> {
     let dfx_config = Config::from_current_dir()
         .map_err(|_| "Could not get config from dfx.json.")?
@@ -114,13 +124,20 @@ fn local_replica_type() -> Result<ReplicaSubnetType, &'static str> {
         .subnet_type
         .ok_or("Replica type is not defined for 'local' network.")
 }
-/// Asserts that the local replica type is 'system'.
+
+/// Checks that the local replica type is 'system'.
+/// 
 /// Note: At present dfx runs a single local replica and the replica type is taken from dfx.json.  It is unfortunate that the subnet type is forced
 /// on the other canisters, however in practice this is unlikely to be a huge problem in the short term.
-pub fn assert_local_replica_type_is_system() {
+/// 
+/// # Errors
+/// - Returns an error if the local replica type in `dfx.json` is not "system".
+/// # Panics
+/// This code is not expected to panic.
+pub fn verify_local_replica_type_is_system() -> anyhow::Result<()> {
     match local_replica_type() {
-        Ok(ReplicaSubnetType::System) => (),
-        other => panic!("In dfx.json networks.local.replica.subnet_type needs to be \"system\" to run NNS canisters.  Current value: {:?}", other),
+        Ok(ReplicaSubnetType::System) => Ok(()),
+        other => Err(anyhow!("In dfx.json networks.local.replica.subnet_type needs to be \"system\" to run NNS canisters.  Current value: {other:?}")),
     }
 }
 
@@ -161,6 +178,8 @@ pub async fn download_ic_repo_wasm(
     let url = Url::parse(&url_str)?;
     download(&final_path, &url).await
 }
+
+/// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
 pub async fn download_nns_wasms() -> anyhow::Result<()> {
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
     for (src_name, target_name) in [
@@ -177,13 +196,23 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
         ("nns-ui-canister", "nns-ui-canister"),
     ] {
         download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR)
-            .await
-            .unwrap();
+            .await?;
     }
     Ok(())
 }
 
-/// get the replica URL.  Note: This is not the same as the provider URL.
+/// Gets the local replica URL.  Note: This is not the same as the provider URL.
+/// 
+/// The replica URL hosts the canister dashboard and is used for installing NNS wasms.
+/// 
+/// Note: The port typically changes every time `dfx start --clean` is run.
+/// 
+/// # Errors
+/// - Returns an error if the replica URL could not be found.  Typically this indicates that the local replica
+///   is not running or is running in a different location.
+/// 
+/// # Panics
+/// This code is not expected to panic.
 fn get_replica_url() -> Result<String, io::Error> {
     let port = fs::read_to_string(".dfx/replica-configuration/replica-1.port")
         .map(|string| string.trim().to_string())?;
