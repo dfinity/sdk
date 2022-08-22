@@ -33,6 +33,9 @@ const ND_WASM: &'static str = "nns-dapp_local.wasm";
 ///   - The provider_url is what the agent connects to, and forwards to the replica.
 /// # Prerequisites
 ///   - There must be no canisters already present in the dfx server.
+///   - The dfx server must be running as subnet type system; this is set in the local network setting in dfx.json and
+///     will normally be different from the production network type, which will most
+///     likely be "application".
 #[context("Failed to install nns components.")]
 pub async fn install_nns(
     env: &dyn Environment,
