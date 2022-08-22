@@ -1,5 +1,6 @@
 //! Implements the `dfx nns install` command, which installs the core NNS canisters, including II and NNS-dapp.
-//! Note: `dfx nns` will be a dfx plugin, so this code SHOULD NOT depend on NNS code except where extremely inconvenient or absolutely necessary:
+//! 
+//! Note: `dfx nns` will be a `dfx` plugin, so this code SHOULD NOT depend on NNS code except where extremely inconvenient or absolutely necessary:
 //! * Example: Minimise crate dependencies outside the nns modules.
 //! * Example: Use `anyhow::Result` not `DfxResult`
 use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
@@ -21,11 +22,17 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
 
+/// The local directory where NNS wasm files are cached.  This is typically created on demand.
 const NNS_WASM_DIR: &'static str = "wasm/nns";
+/// The name typically used in dfx.json to refer to the Internet Identity canister, which provides a login service.
 const II_NAME: &'static str = "internet_identity";
-const II_WASM: &'static str = "internet_identity.wasm";
+/// The name of the Internet Identity wasm file in the local wasm cache.
+const II_WASM: &'static str = "internet_identity_dev.wasm";
+/// The URL from which the Internet Identity wasm file is downloaded, if not already present in the local cache.
 const II_URL: &'static str = "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm";
+/// The name of the NNS frontend dapp, used primarily for voting but also as a wallet.
 const ND_NAME: &'static str = "nns-dapp";
+/// The name of the NNS frontend dapp in the local cache.
 const ND_WASM: &'static str = "nns-dapp_local.wasm";
 
 /// Installs NNS canisters on a local dfx server.
@@ -304,6 +311,14 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
         })
 }
 
+/// Installs a canister without adding it to dfx.json.
+/// 
+/// Note: This does not pass any initialisation argument.
+/// Note: This function may be needed by other plugins as well.
+/// # Errors
+/// - Returns an error if the canister could not be created.
+/// # Panics
+/// None
 pub async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
