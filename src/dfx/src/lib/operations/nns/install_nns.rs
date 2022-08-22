@@ -376,14 +376,13 @@ pub async fn install_canister(
         &call_sender,
         canister_settings,
     )
-    .await
-    .unwrap();
+    .await?;
 
-    let canister_id_store = CanisterIdStore::for_env(env).unwrap();
-    let canister_id = canister_id_store.get(canister_name).unwrap();
+    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id = canister_id_store.get(canister_name)?;
 
     println!("Canister ID: {:?}", canister_id.to_string());
-    let install_args = blob_from_arguments(None, None, None, &None).unwrap();
+    let install_args = blob_from_arguments(None, None, None, &None)?;
     let install_mode = InstallMode::Install;
 
     install_canister_wasm(
@@ -396,8 +395,7 @@ pub async fn install_canister(
         timeout,
         &call_sender,
         fs::read(&wasm_path)
-            .with_context(|| format!("Unable to read {}", wasm_path))
-            .unwrap(),
+            .with_context(|| format!("Unable to read {}", wasm_path))?,
     )
     .await?;
 
