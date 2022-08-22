@@ -245,7 +245,7 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
 /// # Panics
 /// This code is not expected to panic.
 fn get_replica_url() -> Result<String, io::Error> {
-    let port = fs::read_to_string(".dfx/replica-configuration/replica-1.port")
+    let port = fs::read_to_string(".dfx/network/local/replica-configuration/replica-1.port")
         .map(|string| string.trim().to_string())?;
     Ok(format!("http://localhost:{port}"))
 }
