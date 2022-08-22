@@ -1,5 +1,5 @@
 //! Implements the `dfx nns install` command, which installs the core NNS canisters, including II and NNS-dapp.
-//! 
+//!
 //! Note: `dfx nns` will be a `dfx` plugin, so this code SHOULD NOT depend on NNS code except where extremely inconvenient or absolutely necessary:
 //! * Example: Minimise crate dependencies outside the nns modules.
 //! * Example: Use `anyhow::Result` not `DfxResult`
@@ -93,7 +93,7 @@ pub async fn install_nns(
 }
 
 /// Gets the local replica type from dfx.json
-/// 
+///
 /// # Errors
 /// Returns an error if the replica type could not be determined.  Possible reasons include:
 /// - There is no `dfx.json`
@@ -126,10 +126,10 @@ fn local_replica_type() -> Result<ReplicaSubnetType, &'static str> {
 }
 
 /// Checks that the local replica type is 'system'.
-/// 
+///
 /// Note: At present dfx runs a single local replica and the replica type is taken from dfx.json.  It is unfortunate that the subnet type is forced
 /// on the other canisters, however in practice this is unlikely to be a huge problem in the short term.
-/// 
+///
 /// # Errors
 /// - Returns an error if the local replica type in `dfx.json` is not "system".
 /// # Panics
@@ -195,22 +195,21 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
         ("identity-canister", "identity-canister"),
         ("nns-ui-canister", "nns-ui-canister"),
     ] {
-        download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR)
-            .await?;
+        download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR).await?;
     }
     Ok(())
 }
 
 /// Gets the local replica URL.  Note: This is not the same as the provider URL.
-/// 
+///
 /// The replica URL hosts the canister dashboard and is used for installing NNS wasms.
-/// 
+///
 /// Note: The port typically changes every time `dfx start --clean` is run.
-/// 
+///
 /// # Errors
 /// - Returns an error if the replica URL could not be found.  Typically this indicates that the local replica
 ///   is not running or is running in a different location.
-/// 
+///
 /// # Panics
 /// This code is not expected to panic.
 fn get_replica_url() -> Result<String, io::Error> {
@@ -227,13 +226,15 @@ pub struct IcNnsInitOpts {
     sns_subnets: Option<String>,   // TODO: Can there be several?
 }
 
+/// Calls the `ic-nns-init` executable.
+///
+/// Notes:
+///   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different binary for local development
+///   - This won't work with an HSM, because the agent holds a session open
+///   - The provider_url is what the agent connects to, and forwards to the replica.
 #[context("Failed to install nns components.")]
 pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyhow::Result<()> {
     println!("Before ic-nns-init");
-    // Notes:
-    //   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different binary for local development
-    //   - This won't work with an HSM, because the agent holds a session open
-    //   - The provider_url is what the agent connects to, and forwards to the replica.
 
     let mut cmd = std::process::Command::new(ic_nns_init_path);
     cmd.arg("--url");
@@ -256,14 +257,14 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
         .with_context(|| format!("Error executing {:#?}", cmd))?;
 
     if !output.status.success() {
-        bail!("ic-nns-init call failed");
+        return Err(anyhow!("ic-nns-init call failed"));
     }
-    println!("After ic-nns-init");
     Ok(())
 }
 
-/// Gets the local subnet ID
-/// TODO: This is a hack.  Need a proper protobuf parser.  dalves mentioned that he might do this, else I'll dive in.
+/// Gets the local subnet ID.
+/// 
+// TODO: This is a hack.  Need a proper protobuf parser.  dalves mentioned that he might do this, else I'll dive in.
 pub fn get_local_subnet_id() -> anyhow::Result<String> {
     // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
     let file = fs::File::open(
@@ -313,7 +314,7 @@ pub fn set_xdr_rate(rate: u64, nns_url: &str) -> anyhow::Result<()> {
         })
 }
 
-/// Set the subnets the CMC is authorized to create canisters in.
+/// Sets the subnets the CMC is authorized to create canisters in.
 pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result<()> {
     std::process::Command::new("ic-admin")
         .arg("--nns-url")
@@ -341,13 +342,15 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
 }
 
 /// Installs a canister without adding it to dfx.json.
-/// 
-/// Note: This does not pass any initialisation argument.
-/// Note: This function may be needed by other plugins as well.
+///
 /// # Errors
 /// - Returns an error if the canister could not be created.
 /// # Panics
 /// None
+//
+// Notes:
+// - This does not pass any initialisation argument.  If needed, one can be added to the code.
+// - This function may be needed by other plugins as well.
 pub async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
