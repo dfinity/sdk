@@ -300,7 +300,7 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
 pub fn get_local_subnet_id() -> anyhow::Result<String> {
     // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
     let file = fs::File::open(
-        ".dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb",
+        ".dfx/network/local/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb",
     )?;
     let parsed = std::process::Command::new("protoc")
         .arg("--decode_raw")
