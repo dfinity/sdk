@@ -3,7 +3,7 @@
 //! * Example: Minimise crate dependencies outside the nns modules.
 //! * Example: Use `anyhow::Result` not `DfxResult`
 use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
-use crate::lib::environment::{Environment};
+use crate::lib::environment::Environment;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -26,6 +26,13 @@ const II_WASM: &'static str = "internet_identity.wasm";
 const ND_NAME: &'static str = "nns-dapp";
 const ND_WASM: &'static str = "nns-dapp_local.wasm";
 
+/// Installs NNS canisters on a local dfx server.
+/// # Notes:
+///   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different &binary for local development
+///   - This won't work with an HSM, because the agent holds a session open
+///   - The provider_url is what the agent connects to, and forwards to the replica.
+/// # Prerequisites
+///   - There must be no canisters already present in the dfx server.
 #[context("Failed to install nns components.")]
 pub async fn install_nns(
     env: &dyn Environment,
@@ -34,24 +41,6 @@ pub async fn install_nns(
     ic_nns_init_path: &Path,
     _replicated_state_dir: &Path,
 ) -> anyhow::Result<()> {
-    /*
-    // Notes:
-    //   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different &binary for local development
-    //   - This won't work with an HSM, because the agent holds a session open
-    //   - The provider_url is what the agent connects to, and forwards to the replica.
-
-    let mut cmd = std::process::Command::new(ic_nns_init_path);
-    cmd.arg("--help");
-    cmd.stdout(std::process::Stdio::inherit());
-    cmd.stderr(std::process::Stdio::inherit());
-    let output = cmd
-        .output()
-        .with_context(|| format!("Error executing {:#?}", cmd))?;
-
-    if !output.status.success() {
-        bail!("ic-nns-init call failed");
-    }
-    */
     assert_local_replica_type_is_system();
 
     download_nns_wasms().await.unwrap();
@@ -291,12 +280,16 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
         })
 }
 
-
 pub async fn download_ii() {
     // TODO
 }
 
-pub async fn install_canister(env: &dyn Environment, agent: &Agent, canister_name: &str, wasm_path: &str) -> anyhow::Result<()> {
+pub async fn install_canister(
+    env: &dyn Environment,
+    agent: &Agent,
+    canister_name: &str,
+    wasm_path: &str,
+) -> anyhow::Result<()> {
     env.get_logger();
     let timeout = expiry_duration();
     let with_cycles = None;
