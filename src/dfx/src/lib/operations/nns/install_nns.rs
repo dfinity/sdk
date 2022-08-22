@@ -13,6 +13,7 @@ use crate::util::{blob_from_arguments, expiry_duration};
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
+use garcon::{Delay, Waiter};
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use libflate::gzip::Decoder;
@@ -21,7 +22,6 @@ use std::fs;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
-use garcon::{Delay, Waiter};
 use std::time::Duration;
 
 /// The local directory where NNS wasm files are cached.  This is typically created on demand.
@@ -36,6 +36,9 @@ const II_URL: &'static str = "https://github.com/dfinity/internet-identity/relea
 const ND_NAME: &'static str = "nns-dapp";
 /// The name of the NNS frontend dapp in the local cache.
 const ND_WASM: &'static str = "nns-dapp_local.wasm";
+/// The URL from which the NNS dapp wasm file is downloaded, if not already present in the local cache
+const ND_URL: &'static str =
+    "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm";
 
 /// Installs NNS canisters on a local dfx server.
 /// # Notes:
@@ -61,10 +64,14 @@ pub async fn install_nns(
     ic_nns_init_path: &Path,
     _replicated_state_dir: &Path,
 ) -> anyhow::Result<()> {
+    println!("Checking out the environment...");
     // Check out the environment.
     verify_local_replica_type_is_system()?;
     let subnet_id = get_local_subnet_id()?;
     let nns_url = get_replica_url()?;
+
+    // Wait for the server to be ready...
+    println!("Waiting for the server to be ready...");
     get_with_retries(&Url::parse(&nns_url)?).await?;
 
     // Install the core backend wasm canisters
@@ -95,7 +102,6 @@ pub async fn install_nns(
 
 /// Gets a URL, trying repeatedly until it is available.
 pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
-
     const RETRY_PAUSE: Duration = Duration::from_millis(200);
     const MAX_RETRY_PAUSE: Duration = Duration::from_secs(5);
 
@@ -104,10 +110,12 @@ pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
         .build();
 
     loop {
+        println!("Trying the NNS URL...");
         match reqwest::get(url.clone()).await {
-            Ok(response) =>
-            {return Ok(response);}
-            Err(err) => {waiter.wait().map_err(|_| err)?}
+            Ok(response) => {
+                return Ok(response);
+            }
+            Err(err) => waiter.wait().map_err(|_| err)?,
         }
     }
 }
@@ -201,6 +209,7 @@ pub async fn download_ic_repo_wasm(
 
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
 pub async fn download_nns_wasms() -> anyhow::Result<()> {
+    // TODO: Include the canister ID in the path.  .dfx/local/wasms/nns/${COMMIT}/....
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
     for (src_name, target_name) in [
         ("registry-canister", "registry-canister"),
@@ -216,6 +225,9 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
         ("nns-ui-canister", "nns-ui-canister"),
     ] {
         download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR).await?;
+    }
+    for (wasm, url) in [(II_WASM, II_URL), (ND_WASM, ND_URL)] {
+        download(&Path::new(&NNS_WASM_DIR).join(wasm), &Url::parse(url)?).await?;
     }
     Ok(())
 }
