@@ -70,8 +70,8 @@ pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
     );
     // we can trust the hash tree
     let lookup = tree.lookup_path([&"ICP_XDR_CONVERSION_RATE".into()]);
-    let certified_data = if let LookupResult::Found(hash) = lookup {
-        hash
+    let certified_data = if let LookupResult::Found(content) = lookup {
+        content
     } else {
         bail!("The CMC's certificate did not contain the XDR <> ICP exchange rate");
     };
