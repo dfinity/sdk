@@ -131,26 +131,27 @@ pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
 ///
 /// # Panics
 /// This code is not expected to panic.
-fn local_replica_type() -> Result<ReplicaSubnetType, &'static str> {
+#[context("Failed to determine the local replica type.")]
+fn local_replica_type() -> anyhow::Result<ReplicaSubnetType> {
     let dfx_config = Config::from_current_dir()
-        .map_err(|_| "Could not get config from dfx.json.")?
-        .ok_or("No config in dfx.json")?;
+        .map_err(|_| anyhow!("Could not get config from dfx.json."))?
+        .ok_or(anyhow!("No config in dfx.json"))?;
     let network = dfx_config
         .get_config()
         .get_network("local")
-        .ok_or("'local' network is not defined in dfx.json.")?;
+        .ok_or(anyhow!("'local' network is not defined in dfx.json."))?;
     let local_network = if let ConfigNetwork::ConfigLocalProvider(local_network) = network {
         local_network
     } else {
-        return Err("In dfx.json, 'local' is not a local provider.");
+        return Err(anyhow!("In dfx.json, 'local' is not a local provider."));
     };
     let local_replica_config = local_network
         .replica
         .as_ref()
-        .expect("In dfx.json, 'local' network has no replica setting.");
+        .ok_or_else(|| anyhow!("In dfx.json, 'local' network has no replica setting."))?;
     local_replica_config
         .subnet_type
-        .ok_or("Replica type is not defined for 'local' network.")
+        .ok_or(anyhow!("Replica type is not defined for 'local' network."))
 }
 
 /// Checks that the local replica type is 'system'.
@@ -162,6 +163,7 @@ fn local_replica_type() -> Result<ReplicaSubnetType, &'static str> {
 /// - Returns an error if the local replica type in `dfx.json` is not "system".
 /// # Panics
 /// This code is not expected to panic.
+#[context("Verifying that the local replica type is 'system'.")]
 pub fn verify_local_replica_type_is_system() -> anyhow::Result<()> {
     match local_replica_type() {
         Ok(ReplicaSubnetType::System) => Ok(()),
@@ -170,6 +172,7 @@ pub fn verify_local_replica_type_is_system() -> anyhow::Result<()> {
 }
 
 /// Downloads a file
+#[context("Failed to download {:?} from {:?}.", target, source)]
 pub async fn download(target: &Path, source: &Url) -> anyhow::Result<()> {
     let buffer = reqwest::get(source.clone()).await?.bytes().await?;
     let tmp_dir = tempfile::Builder::new().tempdir()?;
@@ -185,6 +188,7 @@ pub async fn download(target: &Path, source: &Url) -> anyhow::Result<()> {
 
 
 /// Downloads and unzips a file
+#[context("Failed to download and unzip {:?} from {:?}.", target, source)]
 pub async fn download_gz(target: &Path, source: &Url) -> anyhow::Result<()> {
     let response = reqwest::get(source.clone()).await?.bytes().await?;
     let mut decoder = Decoder::new(&response[..])?;
@@ -203,6 +207,7 @@ pub async fn download_gz(target: &Path, source: &Url) -> anyhow::Result<()> {
 }
 
 /// Downloads wasm file from the main IC repo CI.
+#[context("Failed to download {} from the IC CI.", target_name)]
 pub async fn download_ic_repo_wasm(
     target_name: &str,
     src_name: &str,
