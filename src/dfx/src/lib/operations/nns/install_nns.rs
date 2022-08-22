@@ -110,8 +110,26 @@ pub fn assert_local_replica_type_is_system() {
     }
 }
 
-/// Downloads wasm file
-pub async fn download_wasm(
+/// Downloads a file.
+pub async fn download(target: &Path, source: &reqwest::Url) -> anyhow::Result<()> {
+    let response = reqwest::get(source.clone()).await?.bytes().await?;
+    let mut decoder = Decoder::new(&response[..])?;
+    let mut buffer = Vec::new();
+    decoder.read_to_end(&mut buffer).unwrap();
+
+    let tmp_dir = tempfile::Builder::new().prefix(target).tempdir()?;
+    let downloaded_filename = {
+        let filename = tmp_dir.path().join(target);
+        let mut file = fs::File::create(&filename)?;
+        file.write_all(&buffer)?;
+        filename
+    };
+    fs::rename(downloaded_filename, target)?;
+    Ok(())
+}
+
+/// Downloads wasm file from the main IC repo CI.
+pub async fn download_ic_repo_wasm(
     target_name: &str,
     src_name: &str,
     ic_commit: &str,
@@ -127,20 +145,7 @@ pub async fn download_wasm(
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{src_name}.wasm.gz");
     let url = reqwest::Url::parse(&url_str)?;
-    let response = reqwest::get(url.clone()).await?.bytes().await?;
-    let mut decoder = Decoder::new(&response[..])?;
-    let mut buffer = Vec::new();
-    decoder.read_to_end(&mut buffer).unwrap();
-
-    let tmp_dir = tempfile::Builder::new().prefix(target_name).tempdir()?;
-    let downloaded_filename = {
-        let filename = tmp_dir.path().join(target_name);
-        let mut file = fs::File::create(&filename)?;
-        file.write_all(&buffer)?;
-        filename
-    };
-    fs::rename(downloaded_filename, final_path)?;
-    Ok(())
+    download(&final_path, &url).await
 }
 pub async fn download_nns_wasms() -> anyhow::Result<()> {
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
@@ -157,7 +162,7 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
         ("identity-canister", "identity-canister"),
         ("nns-ui-canister", "nns-ui-canister"),
     ] {
-        download_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR)
+        download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR)
             .await
             .unwrap();
     }
