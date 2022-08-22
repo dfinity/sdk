@@ -3,7 +3,7 @@
 //! * Example: Minimise crate dependencies outside the nns modules.
 //! * Example: Use `anyhow::Result` not `DfxResult`
 use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
-use crate::lib::environment::{Environment, EnvironmentImpl};
+use crate::lib::environment::{Environment};
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -319,7 +319,7 @@ pub async fn install_canister(env: &dyn Environment, agent: &Agent, canister_nam
     .await
     .unwrap();
 
-    let mut canister_id_store = CanisterIdStore::for_env(env).unwrap();
+    let canister_id_store = CanisterIdStore::for_env(env).unwrap();
     let canister_id = canister_id_store.get(canister_name).unwrap();
 
     println!("Canister ID: {:?}", canister_id.to_string());
