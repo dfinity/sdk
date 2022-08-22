@@ -19,10 +19,12 @@ use std::fs;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
+use reqwest::Url;
 
 const NNS_WASM_DIR: &'static str = "wasm/nns";
 const II_NAME: &'static str = "internet_identity";
 const II_WASM: &'static str = "internet_identity.wasm";
+const II_URL: &'static str = "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm";
 const ND_NAME: &'static str = "nns-dapp";
 const ND_WASM: &'static str = "nns-dapp_local.wasm";
 
@@ -73,6 +75,7 @@ pub async fn install_nns(
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
     // Install the GUI canisters:
+    download(&Path::new(&NNS_WASM_DIR).join(&II_WASM), &Url::parse(&II_URL)?).await?;
     install_canister(env, agent, II_NAME, &format!("{NNS_WASM_DIR}/{II_WASM}")).await?;
     install_canister(env, agent, ND_NAME, &format!("{NNS_WASM_DIR}/{ND_WASM}")).await?;
     Ok(())
@@ -111,7 +114,7 @@ pub fn assert_local_replica_type_is_system() {
 }
 
 /// Downloads a file.
-pub async fn download(target: &Path, source: &reqwest::Url) -> anyhow::Result<()> {
+pub async fn download(target: &Path, source: &Url) -> anyhow::Result<()> {
     let response = reqwest::get(source.clone()).await?.bytes().await?;
     let mut decoder = Decoder::new(&response[..])?;
     let mut buffer = Vec::new();
@@ -144,7 +147,7 @@ pub async fn download_ic_repo_wasm(
 
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{src_name}.wasm.gz");
-    let url = reqwest::Url::parse(&url_str)?;
+    let url = Url::parse(&url_str)?;
     download(&final_path, &url).await
 }
 pub async fn download_nns_wasms() -> anyhow::Result<()> {
