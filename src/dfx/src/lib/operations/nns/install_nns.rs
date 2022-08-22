@@ -169,16 +169,31 @@ pub fn verify_local_replica_type_is_system() -> anyhow::Result<()> {
     }
 }
 
-/// Downloads a file.
+/// Downloads a file
 pub async fn download(target: &Path, source: &Url) -> anyhow::Result<()> {
+    let buffer = reqwest::get(source.clone()).await?.bytes().await?;
+    let tmp_dir = tempfile::Builder::new().tempdir()?;
+    let downloaded_filename = {
+        let filename = tmp_dir.path().join("wasm");
+        let mut file = fs::File::create(&filename)?;
+        file.write_all(&buffer)?;
+        filename
+    };
+    fs::rename(downloaded_filename, target)?;
+    Ok(())
+}
+
+
+/// Downloads and unzips a file
+pub async fn download_gz(target: &Path, source: &Url) -> anyhow::Result<()> {
     let response = reqwest::get(source.clone()).await?.bytes().await?;
     let mut decoder = Decoder::new(&response[..])?;
     let mut buffer = Vec::new();
     decoder.read_to_end(&mut buffer)?;
 
-    let tmp_dir = tempfile::Builder::new().prefix(target).tempdir()?;
+    let tmp_dir = tempfile::Builder::new().tempdir()?;
     let downloaded_filename = {
-        let filename = tmp_dir.path().join(target);
+        let filename = tmp_dir.path().join("wasm");
         let mut file = fs::File::create(&filename)?;
         file.write_all(&buffer)?;
         filename
@@ -204,7 +219,7 @@ pub async fn download_ic_repo_wasm(
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{src_name}.wasm.gz");
     let url = Url::parse(&url_str)?;
-    download(&final_path, &url).await
+    download_gz(&final_path, &url).await
 }
 
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
@@ -213,8 +228,8 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
     for (src_name, target_name) in [
         ("registry-canister", "registry-canister"),
-        ("governance-canister", "governance-canister_test"),
-        ("ledger-canister", "ledger-canister_notify-method"),
+        ("governance-canister_test", "governance-canister_test"),
+        ("ledger-canister_notify-method", "ledger-canister_notify-method"),
         ("ic-icrc1-ledger", "ic-icrc1-ledger"),
         ("root-canister", "root-canister"),
         ("cycles-minting-canister", "cycles-minting-canister"),
@@ -227,7 +242,7 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
         download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR).await?;
     }
     for (wasm, url) in [(II_WASM, II_URL), (ND_WASM, ND_URL)] {
-        download(&Path::new(&NNS_WASM_DIR).join(wasm), &Url::parse(url)?).await?;
+        download(&Path::new(&NNS_WASM_DIR).join(wasm), &Url::parse(url)?).await.map_err(|e| anyhow!("Failed to download {wasm:?}: {e:?}"))?;
     }
     Ok(())
 }
