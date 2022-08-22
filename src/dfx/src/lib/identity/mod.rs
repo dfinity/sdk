@@ -553,12 +553,11 @@ impl Identity {
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
-        create: bool,
     ) -> DfxResult<Principal> {
         match Identity::wallet_canister_id(network, name)? {
             None => {
                 // If the network is not the IC, we ignore the error and create a new wallet for the identity.
-                if !network.is_ic || create {
+                if !network.is_ic {
                     Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
@@ -618,9 +617,8 @@ impl Identity {
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
-        create: bool,
     ) -> DfxResult<WalletCanister<'env>> {
-        let wallet_canister_id = Identity::get_or_create_wallet(env, network, name, create).await?;
+        let wallet_canister_id = Identity::get_or_create_wallet(env, network, name).await?;
         Identity::build_wallet_canister(wallet_canister_id, env).await
     }
 }

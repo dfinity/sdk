@@ -2,9 +2,9 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_data};
 
 use anyhow::Context;
+use flate2::read::GzDecoder;
 use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
-use libflate::gzip::Decoder;
 use semver::Version;
 use serde::{Deserialize, Deserializer};
 use std::collections::BTreeMap;
@@ -141,8 +141,7 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
     b.set_message(format!("Downloading {}", url));
     b.enable_steady_tick(80);
     let mut response = reqwest::blocking::get(url).map_err(DfxError::new)?;
-    let mut decoder = Decoder::new(&mut response)
-        .map_err(|e| error_invalid_data!("unable to gunzip file: {}", e))?;
+    let mut decoder = GzDecoder::new(&mut response);
     let mut archive = Archive::new(&mut decoder);
     let current_exe_path = env::current_exe().map_err(DfxError::new)?;
     let current_exe_dir = current_exe_path.parent().unwrap(); // This should not fail

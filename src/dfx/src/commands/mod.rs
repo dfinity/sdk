@@ -12,6 +12,7 @@ mod diagnose;
 mod fix;
 mod generate;
 mod identity;
+mod info;
 mod language_service;
 mod ledger;
 mod new;
@@ -21,6 +22,7 @@ mod quickstart;
 mod remote;
 mod replica;
 mod schema;
+mod sns;
 mod start;
 mod stop;
 mod toolchain;
@@ -38,6 +40,7 @@ pub enum Command {
     Fix(BaseOpts<fix::FixOpts>),
     Generate(BaseOpts<generate::GenerateOpts>),
     Identity(identity::IdentityCommand),
+    Info(BaseOpts<info::InfoOpts>),
     #[clap(name("_language-service"))]
     LanguageServices(BaseOpts<language_service::LanguageServiceOpts>),
     Ledger(ledger::LedgerCommand),
@@ -49,6 +52,8 @@ pub enum Command {
     Remote(remote::RemoteCommand),
     Replica(BaseOpts<replica::ReplicaOpts>),
     Schema(BaseOpts<schema::SchemaOpts>),
+    #[clap(hide(true))]
+    Sns(sns::SnsCommand),
     Start(BaseOpts<start::StartOpts>),
     Stop(BaseOpts<stop::StopOpts>),
     Toolchain(toolchain::ToolchainCommand),
@@ -80,6 +85,7 @@ pub fn dispatch(cmd: Command) -> DfxResult {
         Command::Ledger(v) => ledger::dispatch(v),
         Command::Nns(v) => nns::dispatch(v),
         Command::Remote(v) => remote::dispatch(v),
+        Command::Sns(v) => sns::dispatch(v),
         Command::Toolchain(v) => toolchain::dispatch(v),
         Command::Wallet(v) => wallet::dispatch(v),
 
@@ -89,6 +95,7 @@ pub fn dispatch(cmd: Command) -> DfxResult {
         Command::Diagnose(v) => diagnose::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Fix(v) => fix::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Generate(v) => generate::exec(&init_env(v.env_opts)?, v.command_opts),
+        Command::Info(v) => info::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::LanguageServices(v) => {
             language_service::exec(&init_env(v.env_opts)?, v.command_opts)
         }
