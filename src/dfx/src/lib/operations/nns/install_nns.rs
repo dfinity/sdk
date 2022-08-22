@@ -41,7 +41,7 @@ const ND_WASM: &'static str = "nns-dapp_local.wasm";
 /// - Any of the steps failed to complete.
 /// 
 /// # Panics
-/// Ideally this should never panic and always return an error; while this code is in development reality may differ.
+/// Ideally this should never panic and always return an error on error; while this code is in development reality may differ.
 #[context("Failed to install nns components.")]
 pub async fn install_nns(
     env: &dyn Environment,
