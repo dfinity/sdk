@@ -50,12 +50,13 @@ pub async fn install_nns(
     ic_nns_init_path: &Path,
     _replicated_state_dir: &Path,
 ) -> anyhow::Result<()> {
+    // Check out the environment.
     assert_local_replica_type_is_system();
-
-    download_nns_wasms().await.unwrap();
     let subnet_id = get_local_subnet_id().unwrap();
     let nns_url = get_replica_url().unwrap();
 
+    // Install the core backend wasm canisters
+    download_nns_wasms().await.unwrap();
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: NNS_WASM_DIR.to_string(),
         nns_url: nns_url.clone(),
@@ -64,12 +65,14 @@ pub async fn install_nns(
         ),
         sns_subnets: Some(subnet_id.clone()),
     };
-
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts)
         .await
         .unwrap();
+    // ... and configure the backend NNS canisters:
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
+
+    // Install the GUI canisters:
     install_canister(env, agent, II_NAME, &format!("{NNS_WASM_DIR}/{II_WASM}")).await?;
     install_canister(env, agent, ND_NAME, &format!("{NNS_WASM_DIR}/{ND_WASM}")).await?;
     Ok(())
