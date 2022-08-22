@@ -2,7 +2,6 @@ use anyhow::{bail, ensure, Context};
 use candid::{Encode, Principal};
 use ic_agent::{hash_tree::LookupResult, ic_types::HashTree, lookup_value, Agent};
 use ic_utils::{call::SyncCall, Canister};
-use openssl::sha::{sha256, Sha256};
 
 use crate::lib::{
     error::DfxResult,
@@ -71,20 +70,14 @@ pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
     );
     // we can trust the hash tree
     let lookup = tree.lookup_path([&"ICP_XDR_CONVERSION_RATE".into()]);
-    let certified_hash = if let LookupResult::Found(hash) = lookup {
+    let certified_data = if let LookupResult::Found(hash) = lookup {
         hash
     } else {
         bail!("The CMC's certificate did not contain the XDR <> ICP exchange rate");
     };
     let encoded_data = Encode!(&certified_rate.data)?;
-    let mut hasher = Sha256::new();
-    let domain_sep = b"ic-hashtree-leaf";
-    hasher.update(&[domain_sep.len() as u8]);
-    hasher.update(domain_sep);
-    hasher.update(&encoded_data);
-    let expected_hash = hasher.finish();
     ensure!(
-        certified_hash == expected_hash,
+        certified_data == encoded_data,
         "The CMC's certificate for the XDR <> ICP exchange rate did not match the provided rate"
     );
     // we can trust the exchange rate
