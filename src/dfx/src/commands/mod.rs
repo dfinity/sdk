@@ -18,6 +18,7 @@ mod ledger;
 mod new;
 mod nns;
 mod ping;
+mod quickstart;
 mod remote;
 mod replica;
 mod schema;
@@ -47,6 +48,7 @@ pub enum Command {
     #[clap(hide(true))]
     Nns(nns::NnsCommand),
     Ping(BaseOpts<ping::PingOpts>),
+    Quickstart(BaseOpts<Empty>),
     Remote(remote::RemoteCommand),
     Replica(BaseOpts<replica::ReplicaOpts>),
     Schema(BaseOpts<schema::SchemaOpts>),
@@ -58,6 +60,9 @@ pub enum Command {
     Upgrade(BaseOpts<upgrade::UpgradeOpts>),
     Wallet(wallet::WalletCommand),
 }
+
+#[derive(Args)]
+pub struct Empty;
 
 #[derive(Args)]
 pub struct NetworkOpts<T: Args> {
@@ -96,6 +101,7 @@ pub fn dispatch(cmd: Command) -> DfxResult {
         }
         Command::New(v) => new::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Ping(v) => ping::exec(&init_env(v.env_opts)?, v.command_opts),
+        Command::Quickstart(v) => quickstart::exec(&init_env(v.env_opts)?),
         Command::Replica(v) => replica::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Schema(v) => schema::exec(&init_env(v.env_opts)?, v.command_opts),
         Command::Start(v) => start::exec(&init_env(v.env_opts)?, v.command_opts),
