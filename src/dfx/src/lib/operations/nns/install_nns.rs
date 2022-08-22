@@ -15,11 +15,11 @@ use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use libflate::gzip::Decoder;
+use reqwest::Url;
 use std::fs;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
-use reqwest::Url;
 
 const NNS_WASM_DIR: &'static str = "wasm/nns";
 const II_NAME: &'static str = "internet_identity";
@@ -41,7 +41,7 @@ const ND_WASM: &'static str = "nns-dapp_local.wasm";
 /// # Errors
 /// This will return an error if:
 /// - Any of the steps failed to complete.
-/// 
+///
 /// # Panics
 /// Ideally this should never panic and always return an error on error; while this code is in development reality may differ.
 #[context("Failed to install nns components.")]
@@ -75,7 +75,11 @@ pub async fn install_nns(
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
     // Install the GUI canisters:
-    download(&Path::new(&NNS_WASM_DIR).join(&II_WASM), &Url::parse(&II_URL)?).await?;
+    download(
+        &Path::new(&NNS_WASM_DIR).join(&II_WASM),
+        &Url::parse(&II_URL)?,
+    )
+    .await?;
     install_canister(env, agent, II_NAME, &format!("{NNS_WASM_DIR}/{II_WASM}")).await?;
     install_canister(env, agent, ND_NAME, &format!("{NNS_WASM_DIR}/{ND_WASM}")).await?;
     Ok(())
@@ -298,10 +302,6 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
                 Err(anyhow!("Call to propose to set xdr rate failed"))
             }
         })
-}
-
-pub async fn download_ii() {
-    // TODO
 }
 
 pub async fn install_canister(
