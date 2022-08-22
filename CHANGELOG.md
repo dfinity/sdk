@@ -45,7 +45,7 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
 
-### feat: added ic-nns-init executable to the binary cache
+### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
 
 ### fix: improved responsiveness of `greet` method call in default Motoko project template
 

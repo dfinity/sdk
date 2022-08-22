@@ -30,6 +30,24 @@
         "url": "https://download.dfinity.systems/blessed/ic/6e86169e98904047833ba6133e5413d2758d90eb/sdk-release/x86_64-linux/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/canister_sandbox.gz"
     },
+    "ic-admin-x86_64-darwin": {
+        "builtin": false,
+        "description": "The ic-admin binary.",
+        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
+        "sha256": "0bwx94ynp8wj56ihqsc888czq708xk0hlx5klj4zl04567r2bdnc",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/nix-release/x86_64-darwin/ic-admin.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/ic-admin.gz"
+    },
+    "ic-admin-x86_64-linux": {
+        "builtin": false,
+        "description": "The ic-admin binary.",
+        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
+        "sha256": "1nmhy57s3yyagdhzii4x0kj44s333f2avbypv5a3cpwndziv6slb",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/release/ic-admin.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/release/ic-admin.gz"
+    },
     "ic-btc-adapter-x86_64-darwin": {
         "builtin": false,
         "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
@@ -73,7 +91,7 @@
     },
     "ic-nns-init-x86_64-linux": {
         "builtin": false,
-        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
+        "description": "The ic-nns-init binary.",
         "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
         "sha256": "0v51f8mbgc5fgcbfkfrpp181d5qzw8nf9z4kplkzr4j9b5r129ci",
         "type": "file",
@@ -193,5 +211,23 @@
         "type": "file",
         "url": "https://download.dfinity.systems/blessed/ic/6e86169e98904047833ba6133e5413d2758d90eb/sdk-release/x86_64-linux/sandbox_launcher.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/sandbox_launcher.gz"
+    },
+    "sns-x86_64-darwin": {
+        "builtin": false,
+        "description": "The sns binary.",
+        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
+        "sha256": "0lag1idp3r4r61q25p7kwi1g0i4yhx2j6km8qrkz51rihrld5vyk",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/nix-release/x86_64-darwin/sns.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/sns.gz"
+    },
+    "sns-x86_64-linux": {
+        "builtin": false,
+        "description": "The sns binary.",
+        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
+        "sha256": "164f69g3ndirwgz2rd0xl8gbp1j7pdis0g2wa14j8lpaxh945c17",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/release/sns.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/release/sns.gz"
     }
 }
