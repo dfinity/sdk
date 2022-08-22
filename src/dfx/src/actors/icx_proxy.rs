@@ -178,7 +178,6 @@ impl Handler<Shutdown> for IcxProxy {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn icx_proxy_start_thread(
     logger: Logger,
     address: SocketAddr,
