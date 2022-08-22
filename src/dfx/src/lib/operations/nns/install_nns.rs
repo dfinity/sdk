@@ -9,7 +9,6 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister_wasm};
 use crate::util::{blob_from_arguments, expiry_duration};
-use crate::DfxResult;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -21,6 +20,12 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
 
+const NNS_WASM_DIR: &'static str = "wasm/nns";
+const II_NAME: &'static str = "internet_identity";
+const II_WASM: &'static str = "internet_identity.wasm";
+const ND_NAME: &'static str = "nns-dapp";
+const ND_WASM: &'static str = "nns-dapp_local.wasm";
+
 #[context("Failed to install nns components.")]
 pub async fn install_nns(
     env: &dyn Environment,
@@ -28,7 +33,7 @@ pub async fn install_nns(
     _provider_url: &str,
     ic_nns_init_path: &Path,
     _replicated_state_dir: &Path,
-) -> DfxResult {
+) -> anyhow::Result<()> {
     /*
     // Notes:
     //   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different &binary for local development
@@ -65,15 +70,10 @@ pub async fn install_nns(
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts)
         .await
         .unwrap();
-    println!("=================== ic-nns-init finished");
     set_xdr_rate(1234567, &nns_url)?;
-    println!("===================== set sdr rate finished");
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
-    println!("================== set cmc subnets");
-    install_canister(env, agent, "internet_identity", "wasm/nns/internet_identity.wasm").await;
-    println!("========================== Installed II");
-    install_canister(env, agent, "nns-dapp", "wasm/nns/nns-dapp_local.wasm").await;
-    println!("========================== Installed NNS-dapp");
+    install_canister(env, agent, II_NAME, &format!("{NNS_WASM_DIR}/{II_WASM}")).await?;
+    install_canister(env, agent, ND_NAME, &format!("{NNS_WASM_DIR}/{ND_WASM}")).await?;
     Ok(())
 }
 
@@ -109,7 +109,6 @@ pub fn assert_local_replica_type_is_system() {
     }
 }
 
-const NNS_WASM_DIR: &'static str = "wasm/nns";
 /// Downloads wasm file
 pub async fn download_wasm(
     target_name: &str,
@@ -180,7 +179,7 @@ pub struct IcNnsInitOpts {
 }
 
 #[context("Failed to install nns components.")]
-pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> DfxResult {
+pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyhow::Result<()> {
     println!("Before ic-nns-init");
     // Notes:
     //   - Set DFX_IC_NNS_INIT_PATH=<path to binary> to use a different binary for local development
@@ -292,15 +291,12 @@ pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result
         })
 }
 
-const II_WASM: &'static str = "internet_identity.wasm";
 
 pub async fn download_ii() {
     // TODO
 }
 
 pub async fn install_canister(env: &dyn Environment, agent: &Agent, canister_name: &str, wasm_path: &str) -> anyhow::Result<()> {
-    // We probably don't need a custom environment.
-    //let env = EnvironmentImpl::new().unwrap();
     env.get_logger();
     let timeout = expiry_duration();
     let with_cycles = None;
