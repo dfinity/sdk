@@ -1,3 +1,7 @@
+//! Implements the `dfx nns install` command, which installs the core NNS canisters, including II and NNS-dapp.
+//! Note: `dfx nns` will be a dfx plugin, so this code SHOULD NOT depend on NNS code except where extremely inconvenient or absolutely necessary:
+//! * Example: Minimise crate dependencies outside the nns modules.
+//! * Example: Use `anyhow::Result` not `DfxResult`
 use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::ic_attributes::CanisterSettings;
