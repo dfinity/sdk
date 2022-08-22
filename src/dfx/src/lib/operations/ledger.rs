@@ -2,13 +2,17 @@ use candid::Principal;
 use ic_agent::Agent;
 use ic_utils::{call::SyncCall, Canister};
 
-use crate::lib::{
-    error::DfxResult,
-    ledger_types::{
-        AccountBalanceArgs, IcpXdrConversionRateCertifiedResponse,
-        MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+use crate::{
+    lib::{
+        error::DfxResult,
+        ledger_types::{
+            AccountBalanceArgs, IcpXdrConversionRateCertifiedResponse,
+            MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+        },
+        nns_types::{account_identifier::AccountIdentifier, icpts::ICPTs},
+        waiter::waiter_with_timeout,
     },
-    nns_types::{account_identifier::AccountIdentifier, icpts::ICPTs},
+    util::expiry_duration,
 };
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
@@ -41,10 +45,10 @@ pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
         .with_canister_id(MAINNET_CYCLE_MINTER_CANISTER_ID)
         .build()?;
     let (certified_rate,): (IcpXdrConversionRateCertifiedResponse,) = canister
-        .query_("get_icp_xdr_conversion_rate")
+        .update_("get_icp_xdr_conversion_rate")
         .build()
-        .call()
+        .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await?;
-    //todo check certificate
+    //todo check certificate so this can be a query call
     Ok(certified_rate.data.xdr_permyriad_per_icp)
 }
