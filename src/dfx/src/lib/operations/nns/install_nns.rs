@@ -294,7 +294,7 @@ pub async fn download_ii() {
     // TODO
 }
 
-pub async fn install_canister(env: &dyn Environment, agent: &Agent, canister_name: &str, wasm_path: &str) {
+pub async fn install_canister(env: &dyn Environment, agent: &Agent, canister_name: &str, wasm_path: &str) -> anyhow::Result<()> {
     // We probably don't need a custom environment.
     //let env = EnvironmentImpl::new().unwrap();
     env.get_logger();
@@ -339,117 +339,8 @@ pub async fn install_canister(env: &dyn Environment, agent: &Agent, canister_nam
             .with_context(|| format!("Unable to read {}", wasm_path))
             .unwrap(),
     )
-    .await;
+    .await?;
 
     println!("Installed internet identity");
-}
-
-
-/// Adds Internet Identity to the local dfx.json and installs it.
-pub async fn install_ii(env: &dyn Environment, agent: &Agent) {
-    // We probably don't need a custom environment.
-    //let env = EnvironmentImpl::new().unwrap();
-    env.get_logger();
-    let canister_name = "internet_identity";
-    let timeout = expiry_duration();
-    let with_cycles = None;
-    let call_sender = CallSender::SelectedId;
-    let canister_settings = CanisterSettings {
-        controllers: None,
-        compute_allocation: None,
-        memory_allocation: None,
-        freezing_threshold: None,
-    };
-
-    create_canister(
-        env,
-        canister_name,
-        timeout,
-        with_cycles,
-        &call_sender,
-        canister_settings,
-    )
-    .await
-    .unwrap();
-
-    let mut canister_id_store = CanisterIdStore::for_env(env).unwrap();
-    let canister_id = canister_id_store.get(canister_name).unwrap();
-
-    println!("Canister ID: {:?}", canister_id.to_string());
-    let install_args = blob_from_arguments(None, None, None, &None).unwrap();
-    let install_mode = InstallMode::Install;
-
-    let wasm_path = "wasm/nns/internet_identity.wasm";
-
-    install_canister_wasm(
-        env,
-        agent,
-        canister_id,
-        Some(canister_name),
-        &install_args,
-        install_mode,
-        timeout,
-        &call_sender,
-        fs::read(&wasm_path)
-            .with_context(|| format!("Unable to read {}", wasm_path))
-            .unwrap(),
-    )
-    .await;
-
-    println!("Installed internet identity");
-}
-
-
-/// Adds Internet Identity to the local dfx.json and installs it.
-pub async fn install_nns_dapp(env: &dyn Environment, agent: &Agent) {
-    // We probably don't need a custom environment.
-    //let env = EnvironmentImpl::new().unwrap();
-    env.get_logger();
-    let canister_name = "nns-dapp";
-    let timeout = expiry_duration();
-    let with_cycles = None;
-    let call_sender = CallSender::SelectedId;
-    let canister_settings = CanisterSettings {
-        controllers: None,
-        compute_allocation: None,
-        memory_allocation: None,
-        freezing_threshold: None,
-    };
-
-    create_canister(
-        env,
-        canister_name,
-        timeout,
-        with_cycles,
-        &call_sender,
-        canister_settings,
-    )
-    .await
-    .unwrap();
-
-    let mut canister_id_store = CanisterIdStore::for_env(env).unwrap();
-    let canister_id = canister_id_store.get(canister_name).unwrap();
-
-    println!("Canister ID: {:?}", canister_id.to_string());
-    let install_args = blob_from_arguments(None, None, None, &None).unwrap();
-    let install_mode = InstallMode::Install;
-
-    let wasm_path = "wasm/nns/nns-dapp_local.wasm";
-
-    install_canister_wasm(
-        env,
-        agent,
-        canister_id,
-        Some(canister_name),
-        &install_args,
-        install_mode,
-        timeout,
-        &call_sender,
-        fs::read(&wasm_path)
-            .with_context(|| format!("Unable to read {}", wasm_path))
-            .unwrap(),
-    )
-    .await;
-
-    println!("Installed nns-dapp");
+    Ok(())
 }
