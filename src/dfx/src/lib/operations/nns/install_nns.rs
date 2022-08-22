@@ -11,7 +11,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister_wasm};
 use crate::util::{blob_from_arguments, expiry_duration};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -61,11 +61,11 @@ pub async fn install_nns(
 ) -> anyhow::Result<()> {
     // Check out the environment.
     verify_local_replica_type_is_system()?;
-    let subnet_id = get_local_subnet_id().unwrap();
-    let nns_url = get_replica_url().unwrap();
+    let subnet_id = get_local_subnet_id()?;
+    let nns_url = get_replica_url()?;
 
     // Install the core backend wasm canisters
-    download_nns_wasms().await.unwrap();
+    download_nns_wasms().await?;
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: NNS_WASM_DIR.to_string(),
         nns_url: nns_url.clone(),
@@ -74,9 +74,7 @@ pub async fn install_nns(
         ),
         sns_subnets: Some(subnet_id.clone()),
     };
-    ic_nns_init(ic_nns_init_path, &ic_nns_init_opts)
-        .await
-        .unwrap();
+    ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
     // ... and configure the backend NNS canisters:
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
@@ -146,7 +144,7 @@ pub async fn download(target: &Path, source: &Url) -> anyhow::Result<()> {
     let response = reqwest::get(source.clone()).await?.bytes().await?;
     let mut decoder = Decoder::new(&response[..])?;
     let mut buffer = Vec::new();
-    decoder.read_to_end(&mut buffer).unwrap();
+    decoder.read_to_end(&mut buffer)?;
 
     let tmp_dir = tempfile::Builder::new().prefix(target).tempdir()?;
     let downloaded_filename = {
@@ -263,20 +261,19 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
 }
 
 /// Gets the local subnet ID.
-/// 
+///
 // TODO: This is a hack.  Need a proper protobuf parser.  dalves mentioned that he might do this, else I'll dive in.
 pub fn get_local_subnet_id() -> anyhow::Result<String> {
     // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
     let file = fs::File::open(
         ".dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb",
-    )
-    .unwrap();
+    )?;
     let parsed = std::process::Command::new("protoc")
         .arg("--decode_raw")
         .stdin(file)
         .output()
         .expect("Failed to start protobuf file parser");
-    let parsed_str = std::str::from_utf8(&parsed.stdout).unwrap();
+    let parsed_str = std::str::from_utf8(&parsed.stdout)?;
     parsed_str
         .split("\n")
         .into_iter()
@@ -394,8 +391,7 @@ pub async fn install_canister(
         install_mode,
         timeout,
         &call_sender,
-        fs::read(&wasm_path)
-            .with_context(|| format!("Unable to read {}", wasm_path))?,
+        fs::read(&wasm_path).with_context(|| format!("Unable to read {}", wasm_path))?,
     )
     .await?;
 
