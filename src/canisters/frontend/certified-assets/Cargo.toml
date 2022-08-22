@@ -4,16 +4,12 @@ version = "0.2.4"
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2018"
 
-[profile.release]
-lto = true
-opt-level = 'z'
-panic = 'abort'
 
 [lib]
 path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-ic-certified-assets = { path = "../ic-certified-assets", vesrion = "0.2.4" }
+ic-certified-assets = { path = "../ic-certified-assets" }
 ic-cdk = "0.5"
 ic-cdk-macros = "0.5"
