@@ -180,7 +180,6 @@ teardown() {
 @test "redeem-faucet-coupon can set a new wallet and top up an existing one" {
     dfx_new hello
     dfx_start
-    setup_actuallylocal_shared_network
     install_asset faucet
     dfx deploy
     dfx ledger fabricate-cycles --canister faucet --t 1000
