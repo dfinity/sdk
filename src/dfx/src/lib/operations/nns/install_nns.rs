@@ -36,6 +36,12 @@ const ND_WASM: &'static str = "nns-dapp_local.wasm";
 ///   - The dfx server must be running as subnet type system; this is set in the local network setting in dfx.json and
 ///     will normally be different from the production network type, which will most
 ///     likely be "application".
+/// # Errors
+/// This will return an error if:
+/// - Any of the steps failed to complete.
+/// 
+/// # Panics
+/// Ideally this should never panic and always return an error; in development code that may still be false.
 #[context("Failed to install nns components.")]
 pub async fn install_nns(
     env: &dyn Environment,
