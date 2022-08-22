@@ -233,6 +233,7 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
     for (src_name, target_name) in [
         ("registry-canister", "registry-canister"),
         ("governance-canister_test", "governance-canister_test"),
+        ("governance-canister", "governance-canister"),
         (
             "ledger-canister_notify-method",
             "ledger-canister_notify-method",
@@ -453,6 +454,6 @@ pub async fn install_canister(
     )
     .await?;
 
-    println!("Installed internet identity");
+    println!("Installed {canister_name}");
     Ok(())
 }
