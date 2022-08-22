@@ -19,7 +19,7 @@ pub struct RedeemFaucetCouponOpts {
     /// The coupon code to redeem at the faucet.
     coupon_code: String,
 
-    /// Alternative faucet address. If not set, this uses the DFINTITY faucet.
+    /// Alternative faucet address. If not set, this uses the DFINITY faucet.
     #[clap(long)]
     faucet: Option<String>,
 }
