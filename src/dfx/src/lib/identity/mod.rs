@@ -548,7 +548,7 @@ impl Identity {
     /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
-    /// This can be inhibited by setting the DISABLE_AUTO_WALLET env var.
+    /// This can be inhibited by setting the DFX_DISABLE_AUTO_WALLET env var.
     #[context("Failed to get wallet for identity '{}' on network '{}'.", name, network.name)]
     pub async fn get_or_create_wallet(
         env: &dyn Environment,

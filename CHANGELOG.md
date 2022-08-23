@@ -96,7 +96,7 @@ The function `redeem_to_wallet` takes a coupon code and a wallet (or any other c
 ### feat: disable automatic wallet creation on non-ic networks
 
 By default, if dfx is not running on the `ic` (or networks with a different name but the same configuration), it will automatically create a cycles wallet in case it hasn't been created yet.
-It is now possible to inhibit automatic wallet creation by setting the `DISABLE_AUTO_WALLET` environment variable.
+It is now possible to inhibit automatic wallet creation by setting the `DFX_DISABLE_AUTO_WALLET` environment variable.
 
 ### fix!: removed unused --root parameter from dfx bootstrap
 

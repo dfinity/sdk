@@ -193,7 +193,7 @@ teardown() {
     rm "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json" # forget about the currently configured wallet
 
     # assert: no wallet configured
-    export DISABLE_AUTO_WALLET=1
+    export DFX_DISABLE_AUTO_WALLET=1
     assert_command_fail dfx wallet balance
     assert_match "command requires a configured wallet"
 
@@ -207,7 +207,7 @@ teardown() {
     # balance may be 99.??? TC if cycles accounting is done, or 100.000 TC if not
     assert_match "99\.|100\."
 
-    unset DISABLE_AUTO_WALLET
+    unset DFX_DISABLE_AUTO_WALLET
 
     assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
     assert_eq "Redeemed coupon code another-valid-coupon for 10.000 TC (trillion cycles)."
