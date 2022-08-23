@@ -12,21 +12,6 @@ teardown() {
     standard_teardown
 }
 
-@test "candid interface available through dfx start" {
-    dfx_new hello
-    dfx_start
-
-    assert_command dfx deploy
-
-    ID=$(dfx canister id hello_backend)
-    PORT=$(get_webserver_port)
-    assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID" -o ./web.txt --max-time 60
-    assert_command diff .dfx/local/canisters/hello_backend/hello_backend.did ./web.txt
-    assert_command curl http://localhost:"$PORT"/_/candid?canisterId="$ID"\&format=js -o ./web.txt --max-time 60
-    # Relax diff as it's produced by two different compilers.
-    assert_command diff --ignore-all-space --ignore-blank-lines .dfx/local/canisters/hello_backend/hello_backend.did.js ./web.txt
-}
-
 @test "dfx restarts the replica" {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
@@ -56,6 +41,12 @@ teardown() {
     timeout 30s sh -c \
       "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
+    # even after the above, still sometimes fails with
+    #     IC0515: Certified state is not available yet. Please try again...
+    sleep 10
+    timeout 30s sh -c \
+      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
@@ -82,7 +73,7 @@ teardown() {
     ID=$(dfx canister id hello_frontend)
 
     timeout 15s sh -c \
-      "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
+      "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY\"/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
@@ -120,6 +111,12 @@ teardown() {
     timeout 30s sh -c \
       "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
       || (echo "canister call did not succeed") # but continue, for better error reporting
+    # even after the above, still sometimes fails with
+    #     IC0515: Certified state is not available yet. Please try again...
+    sleep 10
+    timeout 30s sh -c \
+      "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
+      || (echo "canister call did not succeed") # but continue, for better error reporting
 
     assert_command dfx canister call hello_backend greet '("Omega")'
     assert_eq '("Hello, Omega!")'
@@ -127,37 +124,83 @@ teardown() {
     ID=$(dfx canister id hello_frontend)
 
     timeout 15s sh -c \
-      "until curl --fail http://localhost:\$(cat .dfx/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
+      "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx starts replica with subnet_type application" {
-    install_asset subnet_type/application
+@test "dfx starts replica with subnet_type application - project defaults" {
+    install_asset subnet_type/project_defaults/application
+    define_project_network
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
-
 }
 
-@test "dfx starts replica with subnet_type verifiedapplication" {
-    install_asset subnet_type/verified_application
+@test "dfx starts replica with subnet_type verifiedapplication - project defaults" {
+    install_asset subnet_type/project_defaults/verified_application
+    define_project_network
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
-
 }
 
-@test "dfx starts replica with subnet_type system" {
-    install_asset subnet_type/system
+@test "dfx starts replica with subnet_type system - project defaults" {
+    install_asset subnet_type/project_defaults/system
+    define_project_network
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
-
 }
 
-@test "dfx start detects if dfx is already running" {
+@test "dfx starts replica with subnet_type application - local network" {
+    install_asset subnet_type/project_network_settings/application
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "subnet_type: Application"
+}
+
+@test "dfx starts replica with subnet_type verifiedapplication - local network" {
+    install_asset subnet_type/project_network_settings/verified_application
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "subnet_type: VerifiedApplication"
+}
+
+@test "dfx starts replica with subnet_type system - local network" {
+    install_asset subnet_type/project_network_settings/system
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "subnet_type: System"
+}
+
+
+@test "dfx starts replica with subnet_type application - shared network" {
+    install_shared_asset subnet_type/shared_network_settings/application
+
+    assert_command dfx start --background
+    assert_match "subnet_type: Application"
+}
+
+@test "dfx starts replica with subnet_type verifiedapplication - shared network" {
+    install_shared_asset subnet_type/shared_network_settings/verified_application
+
+    assert_command dfx start --background
+    assert_match "subnet_type: VerifiedApplication"
+}
+
+@test "dfx starts replica with subnet_type system - shared network" {
+    install_shared_asset subnet_type/shared_network_settings/system
+
+    assert_command dfx start --background
+    assert_match "subnet_type: System"
+}
+
+@test "dfx start detects if dfx is already running - shared network" {
     dfx_new hello
     dfx_start
 

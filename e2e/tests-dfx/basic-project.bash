@@ -41,11 +41,16 @@ teardown() {
     assert_eq '("Hello, Blueberry!")'
 
     # Call using the wallet's call forwarding
-    assert_command dfx canister --wallet="$(dfx identity get-wallet)" call --async hello_backend greet Blueberry
+    assert_command dfx canister call --async hello_backend greet Blueberry --wallet="$(dfx identity get-wallet)"
     # At this point $output is the request ID.
     # shellcheck disable=SC2154
     assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
-    assert_eq '( variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01q\11Hello, Blueberry!" } }, )'
+    assert_eq \
+'(
+  variant {
+    17_724 = record { 153_986_224 = blob "DIDL\00\01q\11Hello, Blueberry!" }
+  },
+)'
 }
 
 @test "build + install + call + request-status -- counter_mo" {
@@ -93,7 +98,7 @@ teardown() {
     assert_eq "(1_337 : nat)"
 
     # Call using the wallet's call forwarding
-    assert_command dfx canister --wallet="$(dfx identity get-wallet)" call hello_backend read --async
+    assert_command dfx canister call hello_backend read --async --wallet="$(dfx identity get-wallet)"
     assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
     assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01}\b9\0a" } })'
 
@@ -118,5 +123,12 @@ teardown() {
     dfx canister install --all
 
     assert_command dfx canister call hello_backend multiply '(vec{vec{1;2};vec{3;4};vec{5;6}},vec{vec{1;2;3};vec{4;5;6}})'
-    assert_eq "( vec { vec { 9 : int; 12 : int; 15 : int }; vec { 19 : int; 26 : int; 33 : int }; vec { 29 : int; 40 : int; 51 : int }; }, )"
+    assert_eq \
+"(
+  vec {
+    vec { 9 : int; 12 : int; 15 : int };
+    vec { 19 : int; 26 : int; 33 : int };
+    vec { 29 : int; 40 : int; 51 : int };
+  },
+)"
 }

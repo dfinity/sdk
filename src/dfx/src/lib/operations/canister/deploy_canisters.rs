@@ -21,7 +21,6 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
     env: &dyn Environment,
@@ -204,7 +203,6 @@ fn build_canisters(
     Ok(canister_pool)
 }
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed while trying to install all canisters.")]
 async fn install_canisters(
     env: &dyn Environment,

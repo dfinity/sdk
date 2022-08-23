@@ -34,4 +34,4 @@ dfx start --background
 dfx deploy
 ```
 
-Once the job completes, your application will be available at `http://localhost:8000?canisterId={asset_canister_id}`.
+Once the job completes, your application will be available at `http://localhost:4943?canisterId={asset_canister_id}`.

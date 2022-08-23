@@ -20,8 +20,9 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
-use std::thread::JoinHandle;
+use std::thread::{self, JoinHandle};
 use std::time::Duration;
+use tokio::runtime::Builder;
 
 pub mod signals {
     use actix::prelude::*;
@@ -268,7 +269,6 @@ impl Handler<Shutdown> for Replica {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn replica_start_thread(
     logger: Logger,
     config: ReplicaConfig,
@@ -310,6 +310,10 @@ fn replica_start_thread(
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);
         }
+        // Enable canister sandboxing to be consistent with the mainnet.
+        // The flag will be removed on the `ic-starter` side once this
+        // change is rolled out without any issues.
+        cmd.args(&["--subnet-features", "canister_sandboxing"]);
         if config.btc_adapter.enabled {
             cmd.args(&["--subnet-features", "bitcoin_regtest"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
@@ -371,6 +375,19 @@ fn replica_start_thread(
                 Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
             });
             addr.do_send(signals::ReplicaRestarted { port });
+            let log_clone = logger.clone();
+            thread::spawn(move || {
+                Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap()
+                    .block_on(async move {
+                        crate::lib::provider::ping_and_wait(&format!("http://localhost:{port}"))
+                            .await
+                            .unwrap();
+                        info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
+                    })
+            });
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.

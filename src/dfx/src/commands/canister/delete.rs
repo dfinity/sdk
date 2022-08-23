@@ -73,7 +73,6 @@ pub struct CanisterDeleteOpts {
     withdraw_cycles_to_dank_principal: Option<String>,
 }
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed to delete canister '{}'.", canister)]
 async fn delete_canister(
     env: &dyn Environment,
@@ -114,10 +113,7 @@ async fn delete_canister(
                         .expect("No selected identity.")
                         .to_string();
                     // If there is no wallet, then do not attempt to withdraw the cycles.
-                    match Identity::wallet_canister_id(env, network, &identity_name) {
-                        Ok(canister_id) => Some(canister_id),
-                        Err(_) => None,
-                    }
+                    Identity::wallet_canister_id(network, &identity_name)?
                 }
             },
         }

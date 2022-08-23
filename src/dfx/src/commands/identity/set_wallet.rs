@@ -100,7 +100,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         network.name,
         canister_id
     );
-    Identity::set_wallet_id(env, network, &identity_name, canister_id)?;
+    Identity::set_wallet_id(network, &identity_name, canister_id)?;
     info!(log, "Wallet set successfully.");
 
     Ok(())

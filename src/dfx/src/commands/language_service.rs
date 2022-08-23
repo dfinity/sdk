@@ -5,7 +5,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::package_arguments::{self, PackageArguments};
-use crate::lib::provider::{get_network_descriptor, LocalBindDetermination};
+use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -51,13 +51,14 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         let canister_names = config
             .get_config()
             .get_canister_names_with_dependencies(None)?;
-        let network_descriptor = get_network_descriptor(
+        let network_descriptor = create_network_descriptor(
             env.get_config(),
+            env.get_networks_config(),
             None, /* opts.network */
+            None,
             LocalBindDetermination::ApplyRunningWebserverPort,
         )?;
-        let canister_id_store =
-            CanisterIdStore::new(&network_descriptor, env.get_config(), env.get_temp_dir())?;
+        let canister_id_store = CanisterIdStore::new(&network_descriptor, env.get_config())?;
         for canister_name in canister_names {
             match canister_id_store.get(&canister_name) {
                 Ok(canister_id) => package_arguments.append(&mut vec![

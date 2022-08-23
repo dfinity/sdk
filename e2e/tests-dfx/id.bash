@@ -41,8 +41,7 @@ teardown() {
 @test "id subcommand works from a subdirectory of the project - persistent id" {
     install_asset id
 
-    # shellcheck disable=SC2094
-    cat <<<"$(jq .networks.local.type=\"persistent\" dfx.json)" >dfx.json
+    jq '.networks.local.type="persistent"' dfx.json | sponge dfx.json
     dfx_start
     dfx canister create --all
     ID=$(dfx canister id e2e_project_backend)

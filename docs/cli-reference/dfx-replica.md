@@ -2,7 +2,7 @@
 
 Use the `dfx replica` command to start a local canister execution environment (without a web server). This command enables you to deploy canisters locally and to test your dapps during development.
 
-Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
+By default, all local dfx projects will use a single shared local canister execution environment, and you can run `dfx replica` from any directory.  See [Local Server Configuration](#local-server-configuration) and [Project-Specific Local Networks](dfx-start.md#project-specific-local-networks) for exceptions.
 
 ## Basic usage
 

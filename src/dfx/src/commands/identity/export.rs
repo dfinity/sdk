@@ -8,11 +8,11 @@ use clap::Parser;
 #[derive(Parser)]
 pub struct ExportOpts {
     /// The identity to export.
-    identity: String,
+    exported_identity: String,
 }
 
 pub fn exec(env: &dyn Environment, opts: ExportOpts) -> DfxResult {
-    let name = opts.identity.as_str();
+    let name = opts.exported_identity.as_str();
 
     let pem = IdentityManager::new(env)?.export(name)?;
     print!("{}", pem);
