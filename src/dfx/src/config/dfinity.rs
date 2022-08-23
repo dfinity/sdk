@@ -53,7 +53,8 @@ pub struct ConfigCanistersCanisterRemote {
     pub id: BTreeMap<String, Principal>,
 }
 
-pub const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
+pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
+pub const DEFAULT_PROJECT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 pub const DEFAULT_REPLICA_PORT: u16 = 8080;
@@ -311,7 +312,7 @@ pub struct ConfigDefaultsReplica {
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
-/// Type 'perstistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
+/// Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
@@ -379,8 +380,9 @@ pub struct ConfigNetworkProvider {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigLocalProvider {
     /// Bind address for the webserver.
-    #[serde(default = "default_local_bind")]
-    pub bind: String,
+    /// For the shared local network, the default is 127.0.0.1:4943.
+    /// For project-specific local networks, the default is 127.0.0.1:8000.
+    pub bind: Option<String>,
 
     /// Persistence type of this network.
     #[serde(default = "NetworkType::ephemeral")]
@@ -392,9 +394,6 @@ pub struct ConfigLocalProvider {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
-fn default_local_bind() -> String {
-    String::from(DEFAULT_LOCAL_BIND)
-}
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ConfigNetwork {

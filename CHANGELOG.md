@@ -4,11 +4,19 @@
 
 ## DFX
 
-### feat: added ic-nns-init executable to the binary cache
+### feat: print the dashboard URL on startup
 
-### fix: improved responsiveness of `greet` method call in default Motoko project template
+When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.
 
-`greet` method was marked as an `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
+### feat!: changed the default port of the shared local network from 8000 to 4943.
+
+This is so dfx doesn't connect to a project-specific network instead of the local shared network.
+
+In combination with the "system-wide dfx start" feature, there is a potential difference to be aware of with respect to existing projects.
+
+Since previous versions of dfx populate dfx.json with a `networks.local` definition that specifies port 8000, the behavior for existing projects won't change.
+
+However, if you've edited dfx.json and removed the `networks.local` definition, the behavior within the project will change: dfx will connect to the shared local network on port 4943 rather than to the project-specific network on port 8000.  You would need to edit webpack.config.js to match.  If you have scripts, you can run the new command `dfx info webserver-port` from the project directory to retrieve the port value.
 
 ### feat!: "system-wide dfx start"
 
@@ -22,7 +30,7 @@ The intended benefits:
 
 We're calling this the "shared local network."  `dfx start` and `dfx stop` will manage this network when run outside any project directory, or when a project's dfx.json does not define the `local` network.  The dfx.json template for new projects no longer defines any networks.
 
-We recommend that you remove the `local` network definition from dfx.json and instead use the shared local network.
+We recommend that you remove the `local` network definition from dfx.json and instead use the shared local network.  As mentioned above, doing so will make dfx use port 4943 rather than port 8000.
 
 See [Local Server Configuration](docs/cli-reference/dfx-start.md#local-server-configuration) for details.
 
@@ -32,6 +40,16 @@ dfx now stores data and control files in one of three places, rather than direct
 - `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (for the shared local network on MacOS)
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
+
+### feat: added `dfx info webserver-port` command
+
+This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+### feat: added ic-nns-init executable to the binary cache
+
+### fix: improved responsiveness of `greet` method call in default Motoko project template
+
+`greet` method was marked as an `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
 
 ### feat: dfx schema --for networks
 
