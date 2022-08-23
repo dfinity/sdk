@@ -8,7 +8,7 @@
 - `dfinity/ic-asset`
 - `dfinity/icx-asset`
 - `dfinity/ic-certified-assets`
-- `dfinity/certified-assets` a
+- `dfinity/certified-assets`
   - no longer depends on `ic-cdk-optimizer` and `dfx`, and instead uses `ic-wasm` to build the canister code.
 
 ### feat!: Support installing canisters not in dfx.json
