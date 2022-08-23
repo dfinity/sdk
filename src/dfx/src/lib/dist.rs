@@ -3,9 +3,9 @@ use crate::lib::manifest::Manifest;
 use crate::{error_invalid_argument, error_invalid_data};
 
 use anyhow::Context;
+use flate2::read::GzDecoder;
 use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
-use libflate::gzip::Decoder;
 use semver::Version;
 use std::fs;
 use std::io::Write;
@@ -104,12 +104,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
     b.enable_steady_tick(80);
     let tar_gz = fs::File::open(&download_file)
         .with_context(|| format!("Failed to open {}.", download_file.to_string_lossy()))?;
-    let tar = Decoder::new(tar_gz).with_context(|| {
-        format!(
-            "Failed to decode archive at {}.",
-            download_file.to_string_lossy()
-        )
-    })?;
+    let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
     archive.unpack(&cache_dir).with_context(|| {
         format!(

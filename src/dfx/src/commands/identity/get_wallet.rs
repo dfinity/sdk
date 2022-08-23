@@ -26,7 +26,7 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
     runtime.block_on(async {
         println!(
             "{}",
-            Identity::get_or_create_wallet(&agent_env, network, &identity_name, false).await?
+            Identity::get_or_create_wallet(&agent_env, network, &identity_name).await?
         );
         DfxResult::Ok(())
     })?;
