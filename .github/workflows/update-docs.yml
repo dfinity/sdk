@@ -22,9 +22,9 @@ jobs:
           rustup default ${{ matrix.rust }}
 
       - name: Check cargo build
-        run: cargo build --workspace --exclude "certified-assets"
+        run: cargo build
       - name: Show download worked
-        run: cargo run -p dfx -- --version
+        run: cargo run -- --version
       - name: Update docs/dfx-json-schema.json
         run: |
           cargo run -- schema --outfile docs/dfx-json-schema.json
