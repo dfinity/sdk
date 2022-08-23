@@ -7,10 +7,5 @@
             "wasm": "main.wasm.gz",
             "build": "sh -c 'gzip -c main.wasm >main.wasm.gz'"
         }
-    },
-    "networks": {
-        "local": {
-            "bind": "127.0.0.1:8000"
-        }
     }
 }
