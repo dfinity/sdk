@@ -8,6 +8,10 @@
 
 Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
 
+### feat!: Support installing canisters not in dfx.json
+
+`install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
+
 ### feat: print the dashboard URL on startup
 
 When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.
