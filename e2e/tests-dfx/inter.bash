@@ -17,7 +17,6 @@ teardown() {
     dfx_new_rust inter
     install_asset inter
     dfx_start
-    export PATH="$assets/installed/bin/:$PATH"
     dfx deploy
 
     # calling motoko canister from rust canister
