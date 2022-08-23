@@ -4,8 +4,30 @@
 
 ## DFX
 
+### feat: added support for configurable, per-asset, regex-enabled HTTP redirects in `frontend` canister 
 
-### feat: added ic-nns-init executable to the binary cache
+Example of `.ic-assets.json` making use of this feature:
+```json
+[
+  {
+    "match": "**/*.svg",
+    "redirect": {
+      "from": {
+        "host": "127.0.0.1:8000",
+        "path": "/logo2.svg\\?canisterId=.*"
+      },
+      "to": {
+        "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
+        "path": "/img/IC_logo_horizontal.svg"
+      },
+      "response_code": 301,
+      "user_agent": [
+        "curl"
+      ]
+    }
+  }
+]
+```
 
 ### feat!: Support installing canisters not in dfx.json
 
