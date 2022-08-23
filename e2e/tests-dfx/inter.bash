@@ -2,8 +2,6 @@
 
 load ../utils/_
 
-[ -e "${assets:?}/installed/bin/ic-cdk-optimizer" ] || cargo install ic-cdk-optimizer --root "$assets/installed" &> /dev/null
-
 setup() {
     standard_setup
 }
