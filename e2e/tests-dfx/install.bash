@@ -142,3 +142,13 @@ teardown() {
     assert_command dfx canister install postinstall_script
     assert_match "hello $id"
 }
+
+@test "can install wasm.gz canisters" {
+    install_asset gzip
+    dfx_start
+    assert_command dfx canister create --all 
+    assert_command dfx build
+    assert_command dfx canister install --all
+    assert_command dfx canister call gzipped fromQuery '()'
+    assert_match "$(dfx identity get-principal)"
+}
