@@ -558,7 +558,7 @@ impl Identity {
         match Identity::wallet_canister_id(network, name)? {
             None => {
                 // If the network is not the IC, we ignore the error and create a new wallet for the identity.
-                if (!network.is_ic && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err()) {
+                if !network.is_ic && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err() {
                     Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
