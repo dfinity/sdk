@@ -4,6 +4,10 @@
 
 ## DFX
 
+### chore: Update ic-nns-init
+
+The latest ic-nns-init supports a flag for setting the `nns-sns-wasm` subnets.
+
 ### feat: print the dashboard URL on startup
 
 When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.
