@@ -473,39 +473,12 @@ impl State {
         callback: Func,
     ) -> HttpResponse {
         let mut encodings = vec![];
-        let mut etags = Vec::new();
+        // waiting for https://dfinity.atlassian.net/browse/BOUN-446
+        let etags = Vec::new();
         for (name, value) in req.headers.iter() {
             if name.eq_ignore_ascii_case("Accept-Encoding") {
                 for v in value.split(',') {
                     encodings.push(v.trim().to_string());
-                }
-            }
-            if name.eq_ignore_ascii_case("Host") {
-                if let Some(replacement_url) = redirect_to_url(value, &req.url) {
-                    return HttpResponse {
-                        status_code: 308,
-                        headers: vec![("Location".to_string(), replacement_url)],
-                        body: RcBytes::from(ByteBuf::default()),
-                        streaming_strategy: None,
-                    };
-                }
-            }
-            if name.eq_ignore_ascii_case("If-None-Match") {
-                match decode_etag_seq(value) {
-                    Ok(decoded_etags) => {
-                        etags = decoded_etags;
-                    }
-                    Err(err) => {
-                        return HttpResponse {
-                            status_code: 400,
-                            headers: vec![],
-                            body: RcBytes::from(ByteBuf::from(format!(
-                                "Invalid {} header value: {}",
-                                name, err
-                            ))),
-                            streaming_strategy: None,
-                        };
-                    }
                 }
             }
         }
@@ -589,37 +562,6 @@ impl From<StableState> for State {
         }
         state
     }
-}
-
-fn decode_etag_seq(value: &str) -> Result<Vec<Hash>, String> {
-    // Hex-encoded 32-byte hash + 2 quotes
-    const EXPECTED_ETAG_LEN: usize = 66;
-    let mut etags = Vec::with_capacity(1);
-    for etag in value.split(',') {
-        let etag = etag.trim();
-        if etag.len() != EXPECTED_ETAG_LEN {
-            return Err(format!(
-                "invalid length of component {}: expected {}, got {}",
-                etag,
-                EXPECTED_ETAG_LEN,
-                etag.len()
-            ));
-        }
-        if !etag.starts_with('"') {
-            return Err(format!("missing first quote of component {}", etag));
-        }
-        if !etag.ends_with('"') {
-            return Err(format!("missing final quote of component {}", etag));
-        }
-        let mut hash = Hash::default();
-        match hex::decode_to_slice(&etag[1..EXPECTED_ETAG_LEN - 1], &mut hash) {
-            Ok(()) => {
-                etags.push(hash);
-            }
-            Err(e) => return Err(format!("invalid hex of component {}: {}", etag, e)),
-        }
-    }
-    Ok(etags)
 }
 
 #[test]
@@ -824,16 +766,4 @@ fn build_404(certificate_header: HeaderField) -> HttpResponse {
         body: RcBytes::from(ByteBuf::from("not found")),
         streaming_strategy: None,
     }
-}
-
-fn redirect_to_url(host: &str, url: &str) -> Option<String> {
-    if let Some(host) = host.split(':').next() {
-        let host = host.trim();
-        if host == "raw.ic0.app" {
-            return Some(format!("https://ic0.app{}", url));
-        } else if let Some(base) = host.strip_suffix(".raw.ic0.app") {
-            return Some(format!("https://{}.ic0.app{}", base, url));
-        }
-    }
-    None
 }
