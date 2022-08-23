@@ -30,7 +30,6 @@ use std::io::stdin;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
 pub async fn install_canister(
     env: &dyn Environment,
@@ -298,7 +297,6 @@ fn run_post_install_task(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed to install wasm in canister '{}'.", canister_id)]
 pub async fn install_canister_wasm(
     env: &dyn Environment,

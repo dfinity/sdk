@@ -126,6 +126,7 @@ download_motoko_base() {
 }
 
 add_binary_cache() {
+    download_binary "ic-admin"
     download_binary "ic-btc-adapter"
     download_binary "ic-canister-http-adapter"
     download_binary "ic-nns-init"
@@ -133,6 +134,7 @@ add_binary_cache() {
     download_binary "canister_sandbox"
     download_binary "sandbox_launcher"
     download_binary "ic-starter"
+    download_binary "sns"
     download_ic_ref
     download_icx_proxy
     download_motoko_binaries
