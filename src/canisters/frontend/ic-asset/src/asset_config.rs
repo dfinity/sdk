@@ -126,7 +126,7 @@ where
     match serde_json::value::Value::deserialize(deserializer)? {
         Value::Object(v) => Ok(Maybe::Value(
             v.into_iter()
-                .map(|(k, v)| (k, v.to_string()))
+                .map(|(k, v)| (k, v.to_string().trim_matches('"').to_string()))
                 .collect::<HashMap<String, String>>(),
         )),
         Value::Null => Ok(Maybe::Null),
@@ -427,22 +427,10 @@ mod with_tempdir {
         let expected_asset_config = AssetConfig {
             cache: Some(CacheConfig { max_age: Some(88) }),
             headers: Some(HashMap::from([
-                (
-                    "x-content-type-options".to_string(),
-                    String("nosniff".to_string()).to_string(),
-                ),
-                (
-                    "x-frame-options".to_string(),
-                    String("SAMEORIGIN".to_string()).to_string(),
-                ),
-                (
-                    "Some-Other-Policy".to_string(),
-                    String("add".to_string()).to_string(),
-                ),
-                (
-                    "Content-Security-Policy".to_string(),
-                    String("delete".to_string()).to_string(),
-                ),
+                ("x-content-type-options".to_string(), "nosniff".to_string()),
+                ("x-frame-options".to_string(), "SAMEORIGIN".to_string()),
+                ("Some-Other-Policy".to_string(), "add".to_string()),
+                ("Content-Security-Policy".to_string(), "delete".to_string()),
                 (
                     "x-xss-protection".to_string(),
                     Number(serde_json::Number::from(1)).to_string(),

@@ -442,19 +442,15 @@ mod test_gathering_asset_descriptors_with_tempdir {
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/.hfile")
-                .with_headers(HashMap::from([("B", "\"y\""), ("A", "\"z\"")])),
+                .with_headers(HashMap::from([("B", "y"), ("A", "z")])),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/file"),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/.hidden-dir-nested/file")
-                .with_headers(HashMap::from([("A", "\"z\""), ("C", "\"x\"")])),
+                .with_headers(HashMap::from([("A", "z"), ("C", "x")])),
             AssetDescriptor::default_from_path(
                 &assets_dir,
                 ".hidden-dir/.hidden-dir-nested/.hfile",
             )
-            .with_headers(HashMap::from([
-                ("D", "\"w\""),
-                ("A", "\"z\""),
-                ("C", "\"x\""),
-            ])),
+            .with_headers(HashMap::from([("D", "w"), ("A", "z"), ("C", "x")])),
         ];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
@@ -499,7 +495,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             &assets_dir,
             ".hidden-dir/.hidden-dir-nested/.hfile",
         )
-        .with_headers(HashMap::from([("D", "\"w\"")]))];
+        .with_headers(HashMap::from([("D", "w")]))];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
         asset_descriptors.sort_by_key(|v| v.source.clone());
@@ -670,30 +666,30 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, ".hfile")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "\"*\"")]))
+                .with_headers(HashMap::from([("X-Content-Type-Options", "*")]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/.hfile")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "\"*\"")]))
+                .with_headers(HashMap::from([("X-Content-Type-Options", "*")]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/file")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "\"nosniff\"")]))
+                .with_headers(HashMap::from([("X-Content-Type-Options", "nosniff")]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir-flat/file")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "\"nosniff\"")]))
+                .with_headers(HashMap::from([("X-Content-Type-Options", "nosniff")]))
                 .with_headers(HashMap::from([(
                     "Cross-Origin-Resource-Policy",
-                    "\"same-origin\"",
+                    "same-origin",
                 )]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, "anotherdir/file")
                 .with_cache(CacheConfig { max_age: Some(42) }),
             AssetDescriptor::default_from_path(&assets_dir, "dir/file")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "\"nosniff\"")]))
-                .with_headers(HashMap::from([("Access-Control-Allow-Origin", "\"null\"")]))
+                .with_headers(HashMap::from([("X-Content-Type-Options", "nosniff")]))
+                .with_headers(HashMap::from([("Access-Control-Allow-Origin", "null")]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, "file")
                 .with_cache(CacheConfig { max_age: Some(11) })
-                .with_headers(HashMap::from([("X-Content-Type-Options", "\"nosniff\"")])),
+                .with_headers(HashMap::from([("X-Content-Type-Options", "nosniff")])),
         ];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
