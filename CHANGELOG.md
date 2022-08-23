@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: Update nns binaries unless `NO_CLOBBER` is set
+
+Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
+
 ### feat: print the dashboard URL on startup
 
 When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.
