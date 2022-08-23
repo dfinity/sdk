@@ -4,6 +4,13 @@
 
 ## DFX
 
+### chore: Move all `asset canister`-related code into the SDK repo
+- `dfinity/ic-asset`
+- `dfinity/icx-asset`
+- `dfinity/ic-certified-assets`
+- `dfinity/certified-assets` a
+  - no longer depends on `ic-cdk-optimizer` and `dfx`, and instead uses `ic-wasm` to build the canister code.
+
 ### feat!: Support installing canisters not in dfx.json
 
 `install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
