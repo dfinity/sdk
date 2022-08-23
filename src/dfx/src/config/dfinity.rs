@@ -568,10 +568,7 @@ impl ConfigInterface {
         network
     )]
     pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
-        Ok(self
-            .get_remote_canister_id(canister, network)
-            .unwrap_or_default()
-            .is_some())
+        Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
     #[context("Failed to get compute allocation for '{}'.", canister_name)]
