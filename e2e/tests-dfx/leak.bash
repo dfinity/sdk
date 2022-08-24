@@ -18,6 +18,7 @@ teardown() {
 
 @test "repeated install wasm" {
     install_asset custom_canister
+    install_asset wasm/identity
     dfx_start
     dfx deploy
     for _ in {1..50}

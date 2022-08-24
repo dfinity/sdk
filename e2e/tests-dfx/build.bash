@@ -108,6 +108,7 @@ teardown() {
 
 @test "can build a custom canister type" {
   install_asset custom_canister
+  install_asset wasm/identity
   dfx_start
   dfx canister create --all
   assert_command dfx build custom
@@ -127,6 +128,8 @@ teardown() {
 
 @test "upgrade check writes .old.did under .dfx" {
   install_asset custom_canister
+  install_asset wasm/identity
+
   dfx_start
   dfx deploy
 
@@ -142,6 +145,8 @@ teardown() {
 
 @test "custom canister build script picks local executable first" {
   install_asset custom_canister
+  install_asset wasm/identity
+
   dfx_start
   dfx canister create custom2
   jq '.canisters.custom2.build="ln"' dfx.json | sponge dfx.json
@@ -203,6 +208,7 @@ teardown() {
 
 @test "does not add candid:service metadata for a custom canister if there are no build steps" {
   install_asset prebuilt_custom_canister
+  install_asset wasm/identity
 
   dfx_start
   dfx deploy
