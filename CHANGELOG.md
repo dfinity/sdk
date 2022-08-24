@@ -4,6 +4,21 @@
 
 ## DFX
 
+### feat: use JSON5 file format for .ic-assets.json5 config
+
+Example `.ic-assets.json5` file:
+```json5
+// comment
+[
+  {
+    "match": "*", // comment
+    /*
+    look at these beatiful keys below not wrapped in quotes
+*/  cache: { max_age: 999 } 
+  }
+]
+```
+
 ### fix: Update nns binaries unless `NO_CLOBBER` is set
 
 Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
