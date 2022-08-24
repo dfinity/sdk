@@ -4,6 +4,23 @@
 
 ## DFX
 
+### feat: use JSON5 file format for frontend canister asset configuration
+
+Both `.ic-assets.json` and `.ic-assets.json5` are valid filenames config filename, though both will get parsed
+as if they were [JSON5](https://json5.org/) format. Example content of the `.ic-assets.json5` file:
+```json5
+// comment
+[
+  {
+    "match": "*", // comment
+    /*
+    keys below not wrapped in quotes
+*/  cache: { max_age: 999 }, // trailing comma 
+  },
+]
+```
+- learn more about JSON5: https://json5.org/
+
 ### chore: Move all `asset canister`-related code into the SDK repo
 - `dfinity/ic-asset`
 - `dfinity/icx-asset`
@@ -190,14 +207,14 @@ Changed the text in this case to read:
 Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
 This incorporates the following executed proposals:
 
-* https://dashboard.internetcomputer.org/proposal/76228[76228]
-* https://dashboard.internetcomputer.org/proposal/75700[75700]
-* https://dashboard.internetcomputer.org/proposal/75109[75109]
-* https://dashboard.internetcomputer.org/proposal/74395[74395]
-* https://dashboard.internetcomputer.org/proposal/73959[73959]
-* https://dashboard.internetcomputer.org/proposal/73714[73714]
-* https://dashboard.internetcomputer.org/proposal/73368[73368]
-* https://dashboard.internetcomputer.org/proposal/72764[72764]
+* [76228](https://dashboard.internetcomputer.org/proposal/76228)
+* [75700](https://dashboard.internetcomputer.org/proposal/75700)
+* [75109](https://dashboard.internetcomputer.org/proposal/75109)
+* [74395](https://dashboard.internetcomputer.org/proposal/74395)
+* [73959](https://dashboard.internetcomputer.org/proposal/73959)
+* [73714](https://dashboard.internetcomputer.org/proposal/73714)
+* [73368](https://dashboard.internetcomputer.org/proposal/73368)
+* [72764](https://dashboard.internetcomputer.org/proposal/72764)
 
 ### ic-ref
 
