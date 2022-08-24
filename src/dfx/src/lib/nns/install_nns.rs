@@ -39,7 +39,7 @@ const ND_WASM: &'static str = "nns-dapp_local.wasm";
 /// The URL from which the NNS dapp wasm file is downloaded, if not already present in the local cache
 const ND_URL: &'static str =
     "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm";
-/// Test account with well known public & private keys
+/// Test account with well known public & private keys, used in multiple projects.
 const TEST_ACCOUNT: &'static str =
     "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
 
@@ -67,7 +67,6 @@ pub async fn install_nns(
     ic_nns_init_path: &Path,
     replicated_state_dir: &Path,
 ) -> anyhow::Result<()> {
-    println!("Replicated state dir: {:?}", replicated_state_dir);
     println!("Checking out the environment...");
     // Check out the environment.
     verify_local_replica_type_is_system()?;
