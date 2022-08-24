@@ -54,4 +54,18 @@ teardown() {
     assert_match "subnet_type: System"
 
     assert_command dfx nns install
+
+    # Checking that the install worked:
+    # ... Canisters should exist:
+    assert_command dfx canister id internet_identity
+    assert_command dfx canister id nns-dapp
+    # ... Just to be sure that the existence check does not always pass:
+    assert_command_fail dfx canister id i-always-return-true
+    # ... Pages should be accessible for the front end canisters:
+    BOUNDARY_ORIGIN="localhost:8080"
+    canister_url() {
+      echo "http://$(dfx canister id "$1").${BOUNDARY_ORIGIN}"
+    }
+    assert_command curl --fail -sSL "$(canister_url internet_identity)"
+    assert_command curl --fail -sSL "$(canister_url nns-dapp)"
 }
