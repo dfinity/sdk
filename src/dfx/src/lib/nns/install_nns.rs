@@ -6,7 +6,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
-use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
+use crate::config::dfinity::ReplicaSubnetType;
 use crate::lib::environment::Environment;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
@@ -70,7 +70,7 @@ pub async fn install_nns(
 ) -> anyhow::Result<()> {
     println!("Checking out the environment...");
     // Check out the environment.
-    verify_local_replica_type_is_system()?;
+    verify_local_replica_type_is_system(env)?;
     let subnet_id = get_local_subnet_id(replicated_state_dir)?;
     let nns_url = get_replica_url(env)?;
 
@@ -141,26 +141,12 @@ pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
 /// # Panics
 /// This code is not expected to panic.
 #[context("Failed to determine the local replica type.")]
-fn local_replica_type() -> anyhow::Result<ReplicaSubnetType> {
-    let dfx_config = Config::from_current_dir()
-        .map_err(|_| anyhow!("Could not get config from dfx.json."))?
-        .ok_or_else(||anyhow!("No config in dfx.json"))?;
-    let network = dfx_config
-        .get_config()
-        .get_network("local")
-        .ok_or_else(||anyhow!("'local' network is not defined in dfx.json."))?;
-    let local_network = if let ConfigNetwork::ConfigLocalProvider(local_network) = network {
-        local_network
-    } else {
-        return Err(anyhow!("In dfx.json, 'local' is not a local provider."));
-    };
-    let local_replica_config = local_network
-        .replica
-        .as_ref()
-        .ok_or_else(|| anyhow!("In dfx.json, 'local' network has no replica setting."))?;
-    local_replica_config
-        .subnet_type
-        .ok_or_else(||anyhow!("Replica type is not defined for 'local' network."))
+fn local_replica_type(env: &dyn Environment) -> anyhow::Result<ReplicaSubnetType> {
+    Ok(env.get_network_descriptor()
+    .local_server_descriptor()?
+    .replica
+    .subnet_type
+    .unwrap_or_default())
 }
 
 /// Checks that the local replica type is 'system'.
@@ -173,8 +159,8 @@ fn local_replica_type() -> anyhow::Result<ReplicaSubnetType> {
 /// # Panics
 /// This code is not expected to panic.
 #[context("Verifying that the local replica type is 'system'.")]
-pub fn verify_local_replica_type_is_system() -> anyhow::Result<()> {
-    match local_replica_type() {
+pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Result<()> {
+    match local_replica_type(env) {
         Ok(ReplicaSubnetType::System) => Ok(()),
         other => Err(anyhow!("In dfx.json networks.local.replica.subnet_type needs to be \"system\" to run NNS canisters.  Current value: {other:?}")),
     }
