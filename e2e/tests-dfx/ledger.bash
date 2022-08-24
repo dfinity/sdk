@@ -2,8 +2,9 @@
 
 load ../utils/_
 
+# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
+
 setup() {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     standard_setup
     install_asset ledger
     install_shared_asset ledger_shared
