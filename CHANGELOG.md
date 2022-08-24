@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: Update nns binaries unless `NO_CLOBBER` is set
+
+Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
+
 ### feat!: Support installing canisters not in dfx.json
 
 `install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
