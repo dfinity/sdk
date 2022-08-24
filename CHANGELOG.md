@@ -4,6 +4,14 @@
 
 ## DFX
 
+### fix: Update nns binaries unless `NO_CLOBBER` is set
+
+Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
+
+### feat!: Support installing canisters not in dfx.json
+
+`install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
+
 ### feat: print the dashboard URL on startup
 
 When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.
@@ -45,7 +53,7 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
 
-### feat: added ic-nns-init executable to the binary cache
+### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
 
 ### fix: improved responsiveness of `greet` method call in default Motoko project template
 
@@ -187,6 +195,22 @@ The prompt for entering your passphrase in order to decrypt an identity password
 However, at that point, it isn't "a" passphrase.  It's either your passphrase, or incorrect.
 Changed the text in this case to read:
     "Please enter the passphrase for your identity"
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/76228[76228]
+* https://dashboard.internetcomputer.org/proposal/75700[75700]
+* https://dashboard.internetcomputer.org/proposal/75109[75109]
+* https://dashboard.internetcomputer.org/proposal/74395[74395]
+* https://dashboard.internetcomputer.org/proposal/73959[73959]
+* https://dashboard.internetcomputer.org/proposal/73714[73714]
+* https://dashboard.internetcomputer.org/proposal/73368[73368]
+* https://dashboard.internetcomputer.org/proposal/72764[72764]
 
 ### ic-ref
 

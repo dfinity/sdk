@@ -8,8 +8,8 @@ install_asset() {
     cp -R "$ASSET_ROOT"/* .
 
     # shellcheck source=/dev/null
-    [ -f ./patch.bash ] && source ./patch.bash
-    [ ! -f ./Cargo.toml ] || cargo update
+    if [ -f ./patch.bash ]; then source ./patch.bash; fi
+    if [ -f ./Cargo.toml ]; then cargo update; fi
 }
 
 install_shared_asset() {

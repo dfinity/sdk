@@ -28,6 +28,20 @@ teardown() {
     assert_command_fail "$(dfx cache show)/ic-nns-init" --version
 }
 
+@test "ic-admin binary exists and is executable" {
+    dfx cache install
+
+    assert_command "$(dfx cache show)/ic-admin" --help
+    assert_match "Common command-line options for \`ic-admin\`"
+}
+
+@test "sns binary exists and is executable" {
+    dfx cache install
+
+    assert_command_fail "$(dfx cache show)/sns" --help
+    assert_match "Initialize, deploy and interact with an SNS."
+}
+
 @test "dfx nns install command exists" {
     dfx_start
 
