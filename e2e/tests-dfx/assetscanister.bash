@@ -334,7 +334,7 @@ CHERRIES" "$stdout"
     assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "asset configuration via .ic-assets.json" {
+@test "asset configuration via .ic-assets.json5" {
     install_asset assetscanister
 
     dfx_start
@@ -375,7 +375,7 @@ CHERRIES" "$stdout"
         "match": "ignored.txt",
         "ignore": true
       }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
     echo '[
       {
         "match": "*",
@@ -393,7 +393,7 @@ CHERRIES" "$stdout"
         "match": "file.txt",
         "headers": null
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json5
 
     dfx deploy
 
@@ -435,7 +435,7 @@ CHERRIES" "$stdout"
     #   /.well-known/thing.json 1/1 (0 bytes)
 }
 
-@test "asset configuration via .ic-assets.json - nested dot directories" {
+@test "asset configuration via .ic-assets.json5 - nested dot directories" {
     install_asset assetscanister
 
     dfx_start
@@ -461,7 +461,7 @@ CHERRIES" "$stdout"
         "match": "**/*",
         "cache": { "max_age": 2000 }
       }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
     echo '[
       {
         "match": "*",
@@ -473,19 +473,19 @@ CHERRIES" "$stdout"
         "match": ".hidden",
         "ignore": true
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json5
     echo '[
       {
         "match": "*",
         "ignore": false
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.hidden/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.well-known/.hidden/.ic-assets.json5
     echo '[
       {
         "match": "*",
         "ignore": false
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.another-hidden/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.well-known/.another-hidden/.ic-assets.json5
 
     dfx deploy
 
