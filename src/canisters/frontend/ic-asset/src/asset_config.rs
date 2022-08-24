@@ -1,6 +1,7 @@
 use anyhow::{bail, Context};
 use derivative::Derivative;
 use globset::{Glob, GlobMatcher};
+use json5;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
@@ -10,7 +11,7 @@ use std::{
     sync::Arc,
 };
 
-pub(crate) const ASSETS_CONFIG_FILENAME: &str = ".ic-assets.json";
+pub(crate) const ASSETS_CONFIG_FILENAME: &str = ".ic-assets.json5";
 
 pub(crate) type HeadersConfig = HashMap<String, String>;
 type ConfigMap = HashMap<PathBuf, Arc<AssetConfigTreeNode>>;
@@ -178,10 +179,10 @@ impl AssetConfigTreeNode {
         let config_path = dir.join(ASSETS_CONFIG_FILENAME);
         let mut rules = vec![];
         if config_path.exists() {
-            let content = fs::read(&config_path).with_context(|| {
+            let content = fs::read_to_string(&config_path).with_context(|| {
                 format!("unable to read config file: {}", config_path.display())
             })?;
-            let interim_rules: Vec<InterimAssetConfigRule> = serde_json::from_slice(&content)
+            let interim_rules: Vec<InterimAssetConfigRule> = json5::from_str(&content)
                 .with_context(|| {
                     format!(
                         "malformed JSON asset config file: {}",
@@ -527,6 +528,33 @@ mod with_tempdir {
             },
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn json5_config_file_with_comments() -> anyhow::Result<()> {
+        let cfg = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+// comment
+  {
+    "match": "*",
+    /*
+    look at this beatiful key below, not wrapped in quotes
+*/  cache: { max_age: 999 } }
+]"#
+            .to_string(),
+        )]));
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        assert_eq!(
+            assets_config.get_asset_config(assets_dir.join("index.html").as_path())?,
+            AssetConfig {
+                cache: Some(CacheConfig { max_age: Some(999) }),
+                ..Default::default()
+            },
+        );
         Ok(())
     }
 

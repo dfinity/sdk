@@ -201,15 +201,15 @@ mod test_gathering_asset_descriptors_with_tempdir {
     /// ├── .hfile
     /// ├── file
     /// ├─- .hidden-dir
-    /// │  ├── .ic-assets.json
+    /// │  ├── .ic-assets.json5
     /// │  ├── .hfile
     /// │  ├── file
     /// │  └── .hidden-dir-nested
-    /// │     ├── .ic-assets.json
+    /// │     ├── .ic-assets.json5
     /// │     ├── .hfile
     /// │     └── file
     /// └── .hidden-dir-flat
-    ///    ├── .ic-assets.json
+    ///    ├── .ic-assets.json5
     ///    ├── .hfile
     ///    └── file
     fn create_temporary_assets_directory(
@@ -218,11 +218,14 @@ mod test_gathering_asset_descriptors_with_tempdir {
         let assets_tempdir = Builder::new().prefix("assets").rand_bytes(5).tempdir()?;
 
         let mut default_files = HashMap::from([
-            (Path::new(".ic-assets.json").to_path_buf(), "[]".to_string()),
+            (
+                Path::new(".ic-assets.json5").to_path_buf(),
+                "[]".to_string(),
+            ),
             (Path::new(".hfile").to_path_buf(), "".to_string()),
             (Path::new("file").to_path_buf(), "".to_string()),
             (
-                Path::new(".hidden-dir/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir/.ic-assets.json5").to_path_buf(),
                 "[]".to_string(),
             ),
             (
@@ -231,7 +234,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
             (Path::new(".hidden-dir/file").to_path_buf(), "".to_string()),
             (
-                Path::new(".hidden-dir/.hidden-dir-nested/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir/.hidden-dir-nested/.ic-assets.json5").to_path_buf(),
                 "[]".to_string(),
             ),
             (
@@ -243,7 +246,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 "".to_string(),
             ),
             (
-                Path::new(".hidden-dir-flat/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir-flat/.ic-assets.json5").to_path_buf(),
                 "[]".to_string(),
             ),
             (
@@ -270,7 +273,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     /// test gathering all files (including dotfiles in nested dotdirs)
     fn gather_all_files() {
         let files = HashMap::from([(
-            Path::new(".ic-assets.json").to_path_buf(),
+            Path::new(".ic-assets.json5").to_path_buf(),
             r#"[
                 {"match": ".*", "ignore": false}
             ]"#
@@ -304,7 +307,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     /// test gathering all non-dot files, from non-dot dirs
     fn gather_all_nondot_files_from_nondot_dirs() {
         let files = HashMap::from([(
-            Path::new(".ic-assets.json").to_path_buf(),
+            Path::new(".ic-assets.json5").to_path_buf(),
             r#"[
                     {"match": ".*", "ignore": true}
                 ]"#
@@ -319,7 +322,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
         // same but without the `ignore` flag (defaults to `true`)
         let files = HashMap::from([(
-            Path::new(".ic-assets.json").to_path_buf(),
+            Path::new(".ic-assets.json5").to_path_buf(),
             r#"[
                     {"match": ".*"}
                 ]"#
@@ -334,7 +337,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
         // different glob pattern
         let files = HashMap::from([(
-            Path::new(".ic-assets.json").to_path_buf(),
+            Path::new(".ic-assets.json5").to_path_buf(),
             r#"[
                     {"match": "*"}
                 ]"#
@@ -349,7 +352,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
         // different glob pattern
         let files = HashMap::from([(
-            Path::new(".ic-assets.json").to_path_buf(),
+            Path::new(".ic-assets.json5").to_path_buf(),
             r#"[
                     {"match": "**/*"}
                 ]"#
@@ -372,7 +375,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     /// https://github.com/BurntSushi/ripgrep/issues/2229
     fn failed_to_include_hidden_dir() {
         let files = HashMap::from([(
-            Path::new(".hidden-dir/.ic-assets.json").to_path_buf(),
+            Path::new(".hidden-dir/.ic-assets.json5").to_path_buf(),
             r#"[
                     {"match": ".", "ignore": false},
                     {"match": "?", "ignore": false},
@@ -413,11 +416,11 @@ mod test_gathering_asset_descriptors_with_tempdir {
     fn configuring_dotfiles_step_by_step() {
         let files = HashMap::from([
             (
-                Path::new(".ic-assets.json").to_path_buf(),
+                Path::new(".ic-assets.json5").to_path_buf(),
                 r#"[{"match": ".hidden-dir", "ignore": false}]"#.to_string(),
             ),
             (
-                Path::new(".hidden-dir/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": ".hidden-dir-nested", "ignore": false},
                     {"match": ".*", "ignore": false, "headers": {"A": "z"}},
@@ -426,7 +429,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 .to_string(),
             ),
             (
-                Path::new(".hidden-dir/.hidden-dir-nested/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir/.hidden-dir-nested/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "*", "ignore": false, "headers": {"C": "x"}},
                     {"match": ".hfile", "headers": {"D": "w"}}
@@ -462,7 +465,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     fn include_only_a_specific_dotfile() {
         let files = HashMap::from([
             (
-                Path::new(".ic-assets.json").to_path_buf(),
+                Path::new(".ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": ".hidden-dir", "ignore": false},
                     {"match": "file", "ignore": true}
@@ -470,7 +473,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 .to_string(),
             ),
             (
-                Path::new(".hidden-dir/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "file", "ignore": true},
                     {"match": ".hidden-dir-nested", "ignore": false}
@@ -478,7 +481,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 .to_string(),
             ),
             (
-                Path::new(".hidden-dir/.hidden-dir-nested/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir/.hidden-dir-nested/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "file", "ignore": true},
                     {"match": ".hfile", "ignore": false, "headers": {"D": "w"}}
@@ -506,14 +509,14 @@ mod test_gathering_asset_descriptors_with_tempdir {
     fn include_all_files_except_one() {
         let files = HashMap::from([
             (
-                Path::new(".ic-assets.json").to_path_buf(),
+                Path::new(".ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": ".*", "ignore": false}
                 ]"#
                 .to_string(),
             ),
             (
-                Path::new(".hidden-dir/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "file", "ignore": true}
                 ]"#
@@ -547,7 +550,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     fn possible_to_reinclude_previously_ignored_file() {
         let files = HashMap::from([
             (
-                Path::new(".ic-assets.json").to_path_buf(),
+                Path::new(".ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": ".hidden-dir-flat", "ignore": false},
                     {"match": ".hidden-dir-flat/file", "ignore": true }
@@ -556,7 +559,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 .to_string(),
             ),
             (
-                Path::new(".hidden-dir-flat/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir-flat/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "*", "ignore": false},
                     {"match": "file", "ignore": false}
@@ -588,7 +591,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             (Path::new("dir/file").to_path_buf(), "".to_string()),
             (Path::new("anotherdir/file").to_path_buf(), "".to_string()),
             (
-                Path::new("anotherdir/.ic-assets.json").to_path_buf(),
+                Path::new("anotherdir/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "file", "ignore": false}
                 ]"#
@@ -596,7 +599,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
             // end of additional, non-dot dirs and files
             (
-                Path::new(".ic-assets.json").to_path_buf(),
+                Path::new(".ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "anotherdir", "ignore": true}
                 ]"#
@@ -624,7 +627,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             // additional, non-dot dirs and files
             (Path::new("dir/file").to_path_buf(), "".to_string()),
             (
-                Path::new("dir/.ic-assets.json").to_path_buf(),
+                Path::new("dir/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "file", "headers": { "Access-Control-Allow-Origin": "null" }}
                 ]"#
@@ -632,7 +635,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
             (Path::new("anotherdir/file").to_path_buf(), "".to_string()),
             (
-                Path::new("anotherdir/.ic-assets.json").to_path_buf(),
+                Path::new("anotherdir/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "file", "cache": { "max_age": 42 }, "headers": null }
                 ]"#
@@ -640,7 +643,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
             // end of additional, non-dot dirs and files
             (
-                Path::new(".ic-assets.json").to_path_buf(),
+                Path::new(".ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "*", "cache": { "max_age": 11 }, "headers": { "X-Content-Type-Options": "nosniff" } },
                     {"match": "**/.hfile", "ignore": false, "headers": { "X-Content-Type-Options": "*" }},
@@ -651,7 +654,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 .to_string(),
             ),
             (
-                Path::new(".hidden-dir-flat/.ic-assets.json").to_path_buf(),
+                Path::new(".hidden-dir-flat/.ic-assets.json5").to_path_buf(),
                 r#"[
                     {"match": "*", "ignore": false, "headers": {"Cross-Origin-Resource-Policy": "same-origin"}},
                     {"match": ".hfile", "ignore": true}
