@@ -113,9 +113,9 @@ jobs:
             body: [
               `## Suggested [CHANGELOG.adoc](https://github.com/${owner}/${repo}/edit/chore-update-replica-${{ env.REPLICA_VERSION }}/CHANGELOG.adoc) changes`,
               '```',
-              '== Dependencies',
+              '## Dependencies',
               '',
-              '=== Replica',
+              '### Replica',
               '',
               'Updated replica to elected commit ${{ env.REPLICA_VERSION }}.',
               'This incorporates the following executed proposals:',
