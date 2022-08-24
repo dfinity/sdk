@@ -1,7 +1,7 @@
 use crate::{DfxResult, Environment};
 use anyhow::anyhow;
 
-use crate::lib::nns::install_nns::install_nns;
+use crate::lib::nns::install_nns::{get_replica_url, get_with_retries, install_nns};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use clap::Parser;
 
@@ -13,6 +13,11 @@ pub async fn exec(env: &dyn Environment, _opts: InstallOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    // Wait for the server to be ready...
+    println!("Waiting for the server to be ready...");
+    let nns_url = get_replica_url(env)?;
+    get_with_retries(&nns_url).await?;
 
     fetch_root_key_if_needed(env).await?;
 

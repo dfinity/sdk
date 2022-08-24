@@ -19,11 +19,10 @@ use ic_utils::interfaces::management_canister::builders::InstallMode;
 use libflate::gzip::Decoder;
 use reqwest::Url;
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Duration;
-
 
 /// The name typically used in dfx.json to refer to the Internet& Identity canister, which provides a login service.
 const II_NAME: &'static str = "internet_identity";
@@ -70,17 +69,13 @@ pub async fn install_nns(
     // Check out the environment.
     verify_local_replica_type_is_system()?;
     let subnet_id = get_local_subnet_id(replicated_state_dir)?;
-    let nns_url = get_replica_url()?;
-
-    // Wait for the server to be ready...
-    println!("Waiting for the server to be ready...");
-    get_with_retries(&Url::parse(&nns_url)?).await?;
+    let nns_url = get_replica_url(env)?;
 
     // Install the core backend wasm canisters
     download_nns_wasms(env).await?;
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: nns_wasm_dir(env),
-        nns_url: nns_url.clone(),
+        nns_url: nns_url.to_string(),
         test_accounts: Some(TEST_ACCOUNT.to_string()),
         sns_subnets: Some(subnet_id.clone()),
     };
@@ -90,12 +85,7 @@ pub async fn install_nns(
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
     // Install the GUI canisters:
-    download(
-        &Url::parse(&II_URL)?,
-        &nns_wasm_dir(env).join(&II_WASM),
-      
-    )
-    .await?;
+    download(&Url::parse(&II_URL)?, &nns_wasm_dir(env).join(&II_WASM)).await?;
     install_canister(env, agent, II_NAME, &nns_wasm_dir(env).join(II_WASM)).await?;
     install_canister(env, agent, ND_NAME, &nns_wasm_dir(env).join(ND_WASM)).await?;
     Ok(())
@@ -270,10 +260,18 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
 ///
 /// # Panics
 /// This code is not expected to panic.
-fn get_replica_url() -> Result<String, io::Error> {
-    let port = fs::read_to_string(".dfx/network/local/replica-configuration/replica-1.port")
-        .map(|string| string.trim().to_string())?;
-    Ok(format!("http://localhost:{port}"))
+pub fn get_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
+    let port_path = env
+        .get_network_descriptor()
+        .local_server_descriptor
+        .as_ref()
+        .ok_or_else(|| {
+            anyhow!("Could not determine port of the local server.  Is the dfx server running?")
+        })?
+        .replica_port_path();
+    let port = fs::read_to_string(port_path).map(|string| string.trim().to_string())?;
+    let url = Url::parse(&format!("http://localhost:{port}"))?;
+    Ok(url)
 }
 
 /// Arguments for the ic-nns-init command line function.
@@ -326,8 +324,10 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
 pub fn get_local_subnet_id(replicated_state_dir: &Path) -> anyhow::Result<String> {
     // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
     let file = {
-        let initial_state_file = replicated_state_dir.join("ic_registry_local_store/0000000000/00/00/01.pb");
-        fs::File::open(&initial_state_file).map_err(|err| anyhow!("Failed to open state file '{initial_state_file:?}': {err:?}"))?
+        let initial_state_file =
+            replicated_state_dir.join("ic_registry_local_store/0000000000/00/00/01.pb");
+        fs::File::open(&initial_state_file)
+            .map_err(|err| anyhow!("Failed to open state file '{initial_state_file:?}': {err:?}"))?
     };
     let parsed = std::process::Command::new("protoc")
         .arg("--decode_raw")
@@ -350,10 +350,10 @@ pub fn get_local_subnet_id(replicated_state_dir: &Path) -> anyhow::Result<String
 /// This is done by proposal.  Just after startung a test server, ic-admin
 /// proposals with a test user pass immediately, as the small test neuron is
 /// the only neuron and has absolute majority.
-pub fn set_xdr_rate(rate: u64, nns_url: &str) -> anyhow::Result<()> {
+pub fn set_xdr_rate(rate: u64, nns_url: &Url) -> anyhow::Result<()> {
     std::process::Command::new("ic-admin")
         .arg("--nns-url")
-        .arg(nns_url)
+        .arg(nns_url.as_str())
         .arg("propose-xdr-icp-conversion-rate")
         .arg("--test-neuron-proposer")
         .arg("--summary")
@@ -373,10 +373,10 @@ pub fn set_xdr_rate(rate: u64, nns_url: &str) -> anyhow::Result<()> {
 }
 
 /// Sets the subnets the CMC is authorized to create canisters in.
-pub fn set_cmc_authorized_subnets(nns_url: &str, subnet: &str) -> anyhow::Result<()> {
+pub fn set_cmc_authorized_subnets(nns_url: &Url, subnet: &str) -> anyhow::Result<()> {
     std::process::Command::new("ic-admin")
         .arg("--nns-url")
-        .arg(nns_url)
+        .arg(nns_url.as_str())
         .arg("propose-to-set-authorized-subnetworks")
         .arg("--test-neuron-proposer")
         .arg("--proposal-title")
@@ -462,5 +462,5 @@ pub async fn install_canister(
 
 /// The local directory where NNS wasm files are cached.  The directory is typically created on demand.
 fn nns_wasm_dir(env: &dyn Environment) -> PathBuf {
-  Path::new(&format!(".dfx/local/wasms/nns/dfx-${}/", env.get_version())).to_path_buf()
+    Path::new(&format!(".dfx/local/wasms/nns/dfx-${}/", env.get_version())).to_path_buf()
 }
