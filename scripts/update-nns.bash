@@ -13,7 +13,7 @@ export NNS_ARTIFACTS
 get_binary() {
   local FILENAME
   FILENAME="$1"
-  if [ -e "$NNS_ARTIFACTS/${FILENAME}_linux" ] && [ -e "$NNS_ARTIFACTS/${FILENAME}_macos" ]; then
+  if [ -e "$NNS_ARTIFACTS/${FILENAME}_linux" ] && [ -e "$NNS_ARTIFACTS/${FILENAME}_macos" ] && [ -n "${NO_CLOBBER:-}" ]; then
     return
   fi
   local TMP_FILE
