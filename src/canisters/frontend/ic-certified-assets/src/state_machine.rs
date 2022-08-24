@@ -8,6 +8,7 @@ use crate::{rc_bytes::RcBytes, types::*, url_decode::url_decode};
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
 use num_traits::ToPrimitive;
+use regex::Regex;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
@@ -30,7 +31,8 @@ type Timestamp = Int;
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct AssetProperties {
     pub max_age: Option<u64>,
-    pub headers: Option<Vec<HeaderField>>,
+    // TODO: vs     pub headers: Option<Vec<HeaderField>>,
+    pub headers: Option<HashMap<String, String>>,
     pub redirect: Option<AssetRedirect>,
 }
 
@@ -43,20 +45,25 @@ pub struct AssetEncoding {
     pub sha256: [u8; 32],
 }
 
+#[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
+pub struct RedirectUrl {
+    pub(crate) host: Option<String>,
+    pub(crate) path: Option<String>,
+}
+
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct AssetRedirect {
-    pub from: String,
-    pub to: String,
-    pub bot_user_agents: Vec<String>,
+    from: Option<RedirectUrl>,
+    to: RedirectUrl,
+    user_agent: Option<Vec<String>>,
+    response_code: u16,
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
-    pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
-    pub redirect: Option<AssetRedirect>,
+    pub properties: AssetProperties,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -144,9 +151,11 @@ impl State {
                 Asset {
                     content_type: arg.content_type,
                     encodings: HashMap::new(),
-                    max_age: arg.max_age,
-                    headers: arg.headers,
-                    redirect: None,
+                    properties: AssetProperties {
+                        max_age: arg.max_age,
+                        headers: arg.headers,
+                        redirect: arg.redirects,
+                    },
                 },
             );
         }
@@ -408,6 +417,7 @@ impl State {
         index: usize,
         callback: Func,
         etags: Vec<Hash>,
+        req: HttpRequest,
     ) -> HttpResponse {
         let index_redirect_certificate = if self.asset_hashes.get(path.as_bytes()).is_none()
             && self.asset_hashes.get(INDEX_FILE.as_bytes()).is_some()
@@ -422,10 +432,15 @@ impl State {
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
+                if let Some(redirect_config) = &asset.properties.redirect {
+                    if let Some(resp) = req.redirect(redirect_config) {
+                        return resp;
+                    }
+                }
                 for enc_name in encodings.iter() {
                     if let Some(enc) = asset.encodings.get(enc_name) {
                         if enc.certified {
-                            return build_ok(
+                            return HttpResponse::build_ok(
                                 asset,
                                 enc_name,
                                 enc,
@@ -445,10 +460,15 @@ impl State {
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
         if let Some(asset) = self.assets.get(path) {
+            if let Some(redirect_config) = &asset.properties.redirect {
+                if let Some(resp) = req.redirect(redirect_config) {
+                    return resp;
+                }
+            }
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
-                        return build_ok(
+                        return HttpResponse::build_ok(
                             asset,
                             enc_name,
                             enc,
@@ -462,7 +482,7 @@ impl State {
                         // Find if identity is certified, if it's not.
                         if let Some(id_enc) = asset.encodings.get("identity") {
                             if id_enc.certified {
-                                return build_ok(
+                                return HttpResponse::build_ok(
                                     asset,
                                     enc_name,
                                     enc,
@@ -479,7 +499,7 @@ impl State {
             }
         }
 
-        build_404(certificate_header)
+        HttpResponse::build_404(certificate_header)
     }
 
     pub fn http_request(
@@ -506,16 +526,12 @@ impl State {
         };
 
         match url_decode(path) {
-            Ok(path) => self.build_http_response(certificate, &path, encodings, 0, callback, etags),
-            Err(err) => HttpResponse {
-                status_code: 400,
-                headers: vec![],
-                body: RcBytes::from(ByteBuf::from(format!(
-                    "failed to decode path '{}': {}",
-                    path, err
-                ))),
-                streaming_strategy: None,
-            },
+            Ok(path) => {
+                self.build_http_response(certificate, &path, encodings, 0, callback, etags, req)
+            }
+            Err(err) => {
+                HttpResponse::build_400(&format!("failed to decode path '{}': {}", path, err))
+            }
         }
     }
 
@@ -727,59 +743,217 @@ fn create_token(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn build_ok(
-    asset: &Asset,
-    enc_name: &str,
-    enc: &AssetEncoding,
-    key: &str,
-    chunk_index: usize,
-    certificate_header: Option<HeaderField>,
-    callback: Func,
-    etags: Vec<Hash>,
-) -> HttpResponse {
-    let mut headers = vec![("Content-Type".to_string(), asset.content_type.to_string())];
-    if enc_name != "identity" {
-        headers.push(("Content-Encoding".to_string(), enc_name.to_string()));
-    }
-    if let Some(head) = certificate_header {
-        headers.push(head);
-    }
-    if let Some(max_age) = asset.max_age {
-        headers.push(("Cache-Control".to_string(), format!("max-age={}", max_age)));
-    }
-    if let Some(arg_headers) = asset.headers.as_ref() {
-        for (k, v) in arg_headers {
-            headers.push((k.to_owned(), v.to_owned()));
+impl HttpResponse {
+    #[allow(clippy::too_many_arguments)]
+    fn build_ok(
+        asset: &Asset,
+        enc_name: &str,
+        enc: &AssetEncoding,
+        key: &str,
+        chunk_index: usize,
+        certificate_header: Option<HeaderField>,
+        callback: Func,
+        etags: Vec<Hash>,
+    ) -> HttpResponse {
+        let mut headers = vec![("Content-Type".to_string(), asset.content_type.to_string())];
+        if enc_name != "identity" {
+            headers.push(("Content-Encoding".to_string(), enc_name.to_string()));
+        }
+        if let Some(head) = certificate_header {
+            headers.push(head);
+        }
+        if let Some(max_age) = asset.properties.max_age {
+            headers.push(("Cache-Control".to_string(), format!("max-age={}", max_age)));
+        }
+        if let Some(arg_headers) = asset.properties.headers.as_ref() {
+            for (k, v) in arg_headers {
+                headers.push((k.to_owned(), v.to_owned()));
+            }
+        }
+
+        let streaming_strategy = create_token(asset, enc_name, enc, key, chunk_index)
+            .map(|token| StreamingStrategy::Callback { callback, token });
+
+        let (status_code, body) = if etags.contains(&enc.sha256) {
+            (304, RcBytes::default())
+        } else {
+            headers.push((
+                "ETag".to_string(),
+                format!("\"{}\"", hex::encode(enc.sha256)),
+            ));
+            (200, enc.content_chunks[chunk_index].clone())
+        };
+
+        HttpResponse {
+            status_code,
+            headers,
+            body,
+            streaming_strategy,
         }
     }
 
-    let streaming_strategy = create_token(asset, enc_name, enc, key, chunk_index)
-        .map(|token| StreamingStrategy::Callback { callback, token });
+    fn build_redirect(response_code: u16, location: String) -> HttpResponse {
+        if ![300, 301, 302, 303, 304, 307, 308].contains(&response_code) {
+            return HttpResponse::build_400(&format!(
+                "incorrect asset redirect configuration: response_code \"{}\" is not valid HTTP respone code",
+                response_code
+            ));
+        }
+        HttpResponse {
+            status_code: response_code,
+            headers: vec![("Location".to_string(), location)],
+            body: RcBytes::from(ByteBuf::default()),
+            streaming_strategy: None,
+        }
+    }
 
-    let (status_code, body) = if etags.contains(&enc.sha256) {
-        (304, RcBytes::default())
-    } else {
-        headers.push((
-            "ETag".to_string(),
-            format!("\"{}\"", hex::encode(enc.sha256)),
-        ));
-        (200, enc.content_chunks[chunk_index].clone())
-    };
+    fn build_400(err_msg: &str) -> Self {
+        HttpResponse {
+            status_code: 400,
+            headers: vec![],
+            body: RcBytes::from(ByteBuf::from(err_msg)),
+            streaming_strategy: None,
+        }
+    }
 
-    HttpResponse {
-        status_code,
-        headers,
-        body,
-        streaming_strategy,
+    fn build_404(certificate_header: HeaderField) -> HttpResponse {
+        HttpResponse {
+            status_code: 404,
+            headers: vec![certificate_header],
+            body: RcBytes::from(ByteBuf::from("not found")),
+            streaming_strategy: None,
+        }
     }
 }
 
-fn build_404(certificate_header: HeaderField) -> HttpResponse {
-    HttpResponse {
-        status_code: 404,
-        headers: vec![certificate_header],
-        body: RcBytes::from(ByteBuf::from("not found")),
-        streaming_strategy: None,
+impl RedirectUrl {
+    fn match_and_replace_segment(
+        match_segment: &Option<String>,
+        replace_with: &Option<String>,
+        in_text: &str,
+    ) -> Option<String> {
+        if let Some(replace) = replace_with {
+            if match_segment.is_none() {
+                return Some(replace.to_owned());
+            }
+            if let Ok(regex) = Regex::new(match_segment.as_ref().unwrap()) {
+                return regex
+                    .find(in_text)
+                    .map(|_| regex.replace(in_text, replace).to_string());
+            }
+        }
+        None
+    }
+
+    fn build_redirect_url(&self, to: &Self, req: &HttpRequest) -> Option<String> {
+        let &Self {
+            host: from_host,
+            path: from_path,
+        } = &self;
+        let mut location = String::new();
+        let mut host_same_as_original = true;
+        let mut path_same_as_original = true;
+
+        if let Some(req_host) = req.get_header_value("Host") {
+            if let Some(redirect_host) =
+                RedirectUrl::match_and_replace_segment(from_host, &to.host, req_host)
+            {
+                host_same_as_original = &redirect_host == req_host;
+                if redirect_host.contains("http") {
+                    location = redirect_host;
+                } else {
+                    location = format!("https://{}", redirect_host);
+                }
+            }
+        }
+
+        if let Some(redirect_path) =
+            RedirectUrl::match_and_replace_segment(from_path, &to.path, &req.url)
+        {
+            path_same_as_original = redirect_path == req.url;
+            location.push_str(&redirect_path);
+        } else {
+            location.push_str(&req.url);
+        }
+
+        if host_same_as_original && path_same_as_original {
+            None
+        } else {
+            Some(location)
+        }
+    }
+}
+
+impl HttpRequest {
+    fn get_header_value(&self, header_key: &str) -> Option<&String> {
+        self.headers
+            .iter()
+            .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then(|| v))
+    }
+
+    fn redirect(&self, redirect_config: &AssetRedirect) -> Option<HttpResponse> {
+        if redirect_config.to.host.is_none() && redirect_config.to.path.is_none() {
+            return Some(HttpResponse::build_400(
+                "incorrect asset redirect configuration: either one of redirection destination `host` or `path` are required",
+            ));
+        }
+
+        // if user-agent coming in HTTP Request is not found in list of user-agents from redirect config
+        // then we're returning None, otherwise proceed.
+        // TODO: performance hit for long lists. Consider using:
+        // - binary search (but how to enforce the list being sorted?)
+        // - hashmap (but that precludes matching based on part of the string)
+        // - BTreeMap (sorted, enables matching but only prefix)
+        // - https://docs.rs/regex/latest/regex/struct.RegexSet.html
+        //   > The key advantage of using a regex set is that it will
+        //   > report the matching regexes using a single pass through
+        //   > the text. If one has hundreds or thousands of regexes
+        //   > to match repeatedly (like a URL router for a complex
+        //   > web application or a user agent matcher), then a regex set
+        //   > can realize huge performance gains.
+        //   it would be nice if there's a way to store
+        //   already compiled regexset
+        if redirect_config
+            .user_agent
+            .as_ref()
+            .map_or(false, |cfg_user_agents| {
+                ic_cdk::print(format!("cfg_user_agents: {:?}", cfg_user_agents));
+                if cfg_user_agents.is_empty() {
+                    return false;
+                }
+                if let Some(req_user_agent) = self.get_header_value("user-agent") {
+                    ic_cdk::print(format!("req_user_agent: {}", req_user_agent));
+                    let retuls = !cfg_user_agents
+                        .iter()
+                        .any(|cfg_user_agent| req_user_agent.contains(cfg_user_agent));
+                    ic_cdk::print(format!("result_user_agent: {}", retuls));
+                    return retuls;
+                }
+                false
+            })
+        {
+            return None;
+        }
+
+        let location: Option<String> = if let Some(from) = &redirect_config.from {
+            // replace parts of address
+            from.build_redirect_url(&redirect_config.to, self)
+        } else {
+            // absolute redirect
+            let mut location = String::new();
+            if let Some(host) = redirect_config.to.host.as_ref() {
+                if host.contains("http") {
+                    location = host.to_string();
+                } else {
+                    location = format!("https://{}", host);
+                }
+            }
+            if let Some(path) = redirect_config.to.path.as_ref() {
+                location.push_str(path);
+            }
+            Some(location)
+        };
+
+        location.map(|loc| HttpResponse::build_redirect(redirect_config.response_code, loc))
     }
 }

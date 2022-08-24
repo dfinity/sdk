@@ -7,13 +7,9 @@ die() {
 
 cargo --version >/dev/null || die "Must have cargo installed."
 
+BUILD_DIR="../../../target/wasm32-unknown-unknown/release"
 export RUSTFLAGS="--remap-path-prefix=\"${PWD}\"=./ --remap-path-prefix=\"${HOME}\"=_/"
-cargo build --release --target wasm32-unknown-unknown
-
-if cargo install ic-cdk-optimizer --root target; then
-  target/bin/ic-cdk-optimizer \
-    target/wasm32-unknown-unknown/release/certified_assets.wasm \
-    -o target/wasm32-unknown-unknown/release/certified_assets-opt.wasm
-else
-  die "Could not install ic-cdk-optimizer (see above)."
-fi
+cargo build --release --target wasm32-unknown-unknown -p certified-assets
+ic-wasm --output $BUILD_DIR/certified_assets.wasm $BUILD_DIR/certified_assets.wasm metadata --file ../ic-certified-assets/assets.did --visibility public candid:service
+ic-wasm --output $BUILD_DIR/certified_assets.wasm $BUILD_DIR/certified_assets.wasm shrink
+gzip --best --keep --force $BUILD_DIR/certified_assets.wasm
