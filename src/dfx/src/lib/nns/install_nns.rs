@@ -327,8 +327,8 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
 pub fn get_local_subnet_id(replicated_state_dir: &Path) -> anyhow::Result<String> {
     // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
     let file = {
-        let initial_state_file = replicated_state_dir.join("0000000000/00/00/01.pb");
-        fs::File::open(&initial_state_file)?
+        let initial_state_file = replicated_state_dir.join("ic_registry_local_store/0000000000/00/00/01.pb");
+        fs::File::open(&initial_state_file).map_err(|err| anyhow!("Failed to open state file '{initial_state_file:?}': {err:?}"))?
     };
     let parsed = std::process::Command::new("protoc")
         .arg("--decode_raw")
