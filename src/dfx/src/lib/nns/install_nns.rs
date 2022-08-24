@@ -12,6 +12,7 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister_wasm};
+use crate::util::network::get_running_replica_port;
 use crate::util::{blob_from_arguments, expiry_duration};
 
 use anyhow::{anyhow, Context};
@@ -41,8 +42,7 @@ const ND_WASM: &str = "nns-dapp_local.wasm";
 const ND_URL: &str =
     "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm";
 /// Test account with well known public & private keys, used in multiple projects.
-const TEST_ACCOUNT: &str =
-    "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
+const TEST_ACCOUNT: &str = "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
 
 /// Installs NNS canisters on a local dfx server.
 /// # Notes:
@@ -142,11 +142,12 @@ pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
 /// This code is not expected to panic.
 #[context("Failed to determine the local replica type.")]
 fn local_replica_type(env: &dyn Environment) -> anyhow::Result<ReplicaSubnetType> {
-    Ok(env.get_network_descriptor()
-    .local_server_descriptor()?
-    .replica
-    .subnet_type
-    .unwrap_or_default())
+    Ok(env
+        .get_network_descriptor()
+        .local_server_descriptor()?
+        .replica
+        .subnet_type
+        .unwrap_or_default())
 }
 
 /// Checks that the local replica type is 'system'.
@@ -262,15 +263,14 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
 /// # Panics
 /// This code is not expected to panic.
 pub fn get_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
-    let port_path = env
-        .get_network_descriptor()
-        .local_server_descriptor
-        .as_ref()
-        .ok_or_else(|| {
-            anyhow!("Could not determine port of the local server.  Is the dfx server running?")
-        })?
-        .replica_port_path();
-    let port = fs::read_to_string(port_path).map(|string| string.trim().to_string())?;
+    let port = get_running_replica_port(
+        env,
+        env.get_network_descriptor()
+            .local_server_descriptor
+            .as_ref()
+            .ok_or_else(|| anyhow!("Could not get the local server descriptor"))?,
+    )?
+    .ok_or_else(|| anyhow!("Could not determine the port of the local server"))?;
     let url = Url::parse(&format!("http://localhost:{port}"))?;
     Ok(url)
 }
@@ -284,7 +284,7 @@ pub struct IcNnsInitOpts {
     /// The ID of a test account that ic-nns-init will create and to initialise with tokens.
     test_accounts: Option<String>, // TODO, does the CLI actually support several?
     /// A subnet for SNS canisters.
-    sns_subnets: Option<String>,   // TODO: Can there be several?
+    sns_subnets: Option<String>, // TODO: Can there be several?
 }
 
 /// Calls the `ic-nns-init` executable.

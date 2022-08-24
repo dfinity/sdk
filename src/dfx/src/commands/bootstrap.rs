@@ -197,7 +197,7 @@ fn get_replica_urls(
     get_providers(network_descriptor)
 }
 
-fn get_running_replica_port(
+pub fn get_running_replica_port(
     env: &dyn Environment,
     local_server_descriptor: &LocalServerDescriptor,
 ) -> DfxResult<Option<u16>> {
