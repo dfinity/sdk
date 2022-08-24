@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -e
 die() {
   echo "$1" >&2
   exit 1
