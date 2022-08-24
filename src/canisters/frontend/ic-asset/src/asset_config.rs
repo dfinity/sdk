@@ -1,7 +1,6 @@
 use anyhow::{bail, Context};
 use derivative::Derivative;
 use globset::{Glob, GlobMatcher};
-use json5;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
