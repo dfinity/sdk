@@ -20,12 +20,11 @@ use libflate::gzip::Decoder;
 use reqwest::Url;
 use std::fs;
 use std::io::{self, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Duration;
 
-/// The local directory where NNS wasm files are cached.  This is typically created on demand.
-const NNS_WASM_DIR: &'static str = "wasm/nns";
+
 /// The name typically used in dfx.json to refer to the Internet& Identity canister, which provides a login service.
 const II_NAME: &'static str = "internet_identity";
 /// The name of the Internet Identity wasm file in the local wasm cache.
@@ -78,9 +77,9 @@ pub async fn install_nns(
     get_with_retries(&Url::parse(&nns_url)?).await?;
 
     // Install the core backend wasm canisters
-    download_nns_wasms().await?;
+    download_nns_wasms(env).await?;
     let ic_nns_init_opts = IcNnsInitOpts {
-        wasm_dir: NNS_WASM_DIR.to_string(),
+        wasm_dir: nns_wasm_dir(env),
         nns_url: nns_url.clone(),
         test_accounts: Some(TEST_ACCOUNT.to_string()),
         sns_subnets: Some(subnet_id.clone()),
@@ -93,12 +92,12 @@ pub async fn install_nns(
     // Install the GUI canisters:
     download(
         &Url::parse(&II_URL)?,
-        &Path::new(&NNS_WASM_DIR).join(&II_WASM),
+        &nns_wasm_dir(env).join(&II_WASM),
       
     )
     .await?;
-    install_canister(env, agent, II_NAME, &format!("{NNS_WASM_DIR}/{II_WASM}")).await?;
-    install_canister(env, agent, ND_NAME, &format!("{NNS_WASM_DIR}/{ND_WASM}")).await?;
+    install_canister(env, agent, II_NAME, &nns_wasm_dir(env).join(II_WASM)).await?;
+    install_canister(env, agent, ND_NAME, &nns_wasm_dir(env).join(ND_WASM)).await?;
     Ok(())
 }
 
@@ -213,10 +212,10 @@ pub async fn download_ic_repo_wasm(
     target_name: &str,
     src_name: &str,
     ic_commit: &str,
-    wasm_dir: &str,
+    wasm_dir: &Path,
 ) -> anyhow::Result<()> {
     fs::create_dir_all(wasm_dir)?;
-    let final_path = Path::new(wasm_dir).join(format!("{target_name}.wasm"));
+    let final_path = wasm_dir.join(format!("{target_name}.wasm"));
     println!("{final_path:?}");
     if final_path.exists() {
         return Ok(());
@@ -229,7 +228,7 @@ pub async fn download_ic_repo_wasm(
 }
 
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
-pub async fn download_nns_wasms() -> anyhow::Result<()> {
+pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     // TODO: Include the canister ID in the path.  .dfx/local/wasms/nns/${COMMIT}/....
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
     for (src_name, target_name) in [
@@ -249,10 +248,10 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
         ("identity-canister", "identity-canister"),
         ("nns-ui-canister", "nns-ui-canister"),
     ] {
-        download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR).await?;
+        download_ic_repo_wasm(src_name, target_name, ic_commit, &nns_wasm_dir(env)).await?;
     }
     for (wasm, url) in [(II_WASM, II_URL), (ND_WASM, ND_URL)] {
-        download(&Url::parse(url)?, &Path::new(&NNS_WASM_DIR).join(wasm))
+        download(&Url::parse(url)?, &nns_wasm_dir(env).join(wasm))
             .await
             .map_err(|e| anyhow!("Failed to download {wasm:?}: {e:?}"))?;
     }
@@ -280,7 +279,7 @@ fn get_replica_url() -> Result<String, io::Error> {
 /// Arguments for the ic-nns-init command line function.
 pub struct IcNnsInitOpts {
     nns_url: String,
-    wasm_dir: String,
+    wasm_dir: PathBuf,
     test_accounts: Option<String>, // TODO, does the CLI actually support several?
     sns_subnets: Option<String>,   // TODO: Can there be several?
 }
@@ -414,7 +413,7 @@ pub async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
     canister_name: &str,
-    wasm_path: &str,
+    wasm_path: &Path,
 ) -> anyhow::Result<()> {
     env.get_logger();
     let timeout = expiry_duration();
@@ -453,10 +452,15 @@ pub async fn install_canister(
         install_mode,
         timeout,
         &call_sender,
-        fs::read(&wasm_path).with_context(|| format!("Unable to read {}", wasm_path))?,
+        fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
     )
     .await?;
 
     println!("Installed {canister_name}");
     Ok(())
+}
+
+/// The local directory where NNS wasm files are cached.  The directory is typically created on demand.
+fn nns_wasm_dir(env: &dyn Environment) -> PathBuf {
+  Path::new(&format!(".dfx/local/wasms/nns/dfx-${}/", env.get_version())).to_path_buf()
 }
