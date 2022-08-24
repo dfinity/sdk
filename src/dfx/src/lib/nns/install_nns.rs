@@ -39,6 +39,9 @@ const ND_WASM: &'static str = "nns-dapp_local.wasm";
 /// The URL from which the NNS dapp wasm file is downloaded, if not already present in the local cache
 const ND_URL: &'static str =
     "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm";
+/// Test account with well known public & private keys
+const TEST_ACCOUNT: &'static str =
+    "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
 
 /// Installs NNS canisters on a local dfx server.
 /// # Notes:
@@ -80,9 +83,7 @@ pub async fn install_nns(
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: NNS_WASM_DIR.to_string(),
         nns_url: nns_url.clone(),
-        test_accounts: Some(
-            "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087".to_string(),
-        ),
+        test_accounts: Some(TEST_ACCOUNT.to_string()),
         sns_subnets: Some(subnet_id.clone()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
