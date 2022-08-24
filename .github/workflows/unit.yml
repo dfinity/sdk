@@ -1,4 +1,4 @@
-name: Check cargo build
+name: Check cargo (unit) test
 on:
   pull_request:
   push:
@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  builds:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -28,5 +28,15 @@ jobs:
           rustup component add clippy
           rustup default ${{ matrix.rust }}
 
-      - name: Check cargo build
-        run: cargo build
+      - name: Check cargo test
+        run: cargo test
+
+  aggregate:
+    name: unit:required
+    if: ${{ always() }}
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: check unit test result
+        if: ${{ needs.test.result != 'success' }}
+        run: exit 1
