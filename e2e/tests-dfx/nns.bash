@@ -57,8 +57,18 @@ teardown() {
 
     # Checking that the install worked:
     # ... Canisters should exist:
-    assert_command dfx canister id internet_identity
-    assert_command dfx canister id nns-dapp
+    # ... ... Backend canisters:
+    assert_command dfx canister id nns-registry
+    assert_command dfx canister id nns-governance
+    assert_command dfx canister id nns-ledger
+    assert_command dfx canister id nns-root
+    assert_command dfx canister id nns-cycles-minting
+    assert_command dfx canister id nns-lifeline
+    assert_command dfx canister id nns-genesis-token
+    assert_command dfx canister id nns-sns-wasm
+    # ... ... Frontend canisters:
+    assert_command dfx canister id nns-identity
+    assert_command dfx canister id nns-ui
     # ... Just to be sure that the existence check does not always pass:
     assert_command_fail dfx canister id i-always-return-true
     # ... Pages should be accessible for the front end canisters:
@@ -66,6 +76,6 @@ teardown() {
     canister_url() {
       echo "http://$(dfx canister id "$1").${BOUNDARY_ORIGIN}"
     }
-    assert_command curl --fail -sSL "$(canister_url internet_identity)"
-    assert_command curl --fail -sSL "$(canister_url nns-dapp)"
+    assert_command curl --fail -sSL "$(canister_url nns-identity)"
+    assert_command curl --fail -sSL "$(canister_url nns-ui)"
 }

@@ -25,13 +25,13 @@ use std::process;
 use std::time::Duration;
 
 /// The name typically used in dfx.json to refer to the Internet& Identity canister, which provides a login service.
-const II_NAME: &'static str = "internet_identity";
+const II_NAME: &'static str = "nns-identity";
 /// The name of the Internet Identity wasm file in the local wasm cache.
 const II_WASM: &'static str = "internet_identity_dev.wasm";
 /// The URL from which the Internet Identity wasm file is downloaded, if not already present in the local cache.
 const II_URL: &'static str = "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm";
 /// The name of the NNS frontend dapp, used primarily for voting but also as a wallet.
-const ND_NAME: &'static str = "nns-dapp";
+const ND_NAME: &'static str = "nns-ui";
 /// The name of the NNS frontend dapp in the local cache.
 const ND_WASM: &'static str = "nns-dapp_local.wasm";
 /// The URL from which the NNS dapp wasm file is downloaded, if not already present in the local cache
@@ -80,6 +80,19 @@ pub async fn install_nns(
         sns_subnets: Some(subnet_id.clone()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
+    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    canister_id_store.add("nns-registry", "rwlgt-iiaaa-aaaaa-aaaaa-cai")?;
+    canister_id_store.add("nns-governance", "rrkah-fqaaa-aaaaa-aaaaq-cai")?;
+    canister_id_store.add("nns-ledger", "ryjl3-tyaaa-aaaaa-aaaba-cai")?;
+    canister_id_store.add("nns-root", "r7inp-6aaaa-aaaaa-aaabq-cai")?;
+    canister_id_store.add("nns-cycles-minting", "rkp4c-7iaaa-aaaaa-aaaca-cai")?;
+    canister_id_store.add("nns-lifeline", "rno2w-sqaaa-aaaaa-aaacq-cai")?;
+    canister_id_store.add("nns-genesis-token", "renrk-eyaaa-aaaaa-aaada-cai")?;
+    // These two canisters are created but we create other canisters later for the same role.
+    // canister_id_store.add("nns-identity", "rdmx6-jaaaa-aaaaa-aaadq-cai")?;
+    // canister_id_store.add("nns-ui", "qoctq-giaaa-aaaaa-aaaea-cai");
+    canister_id_store.add("nns-sns-wasm", "qvhpv-4qaaa-aaaaa-aaagq-cai")?;
+
     // ... and configure the backend NNS canisters:
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
