@@ -76,11 +76,14 @@ pub async fn exec(
 
     if let Some(canister) = opts.canister.as_deref() {
         let config = env.get_config();
-        let is_remote = config.as_ref().map_or(Ok(false), |config| {
-            config
-                .get_config()
-                .is_remote_canister(canister, &network.name)
-        })?;
+        let is_remote = config
+            .as_ref()
+            .map_or(Ok(false), |config| {
+                config
+                    .get_config()
+                    .is_remote_canister(canister, &network.name)
+            })
+            .unwrap_or(false);
         if is_remote {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be installed from here.", canister, &network.name)
         }

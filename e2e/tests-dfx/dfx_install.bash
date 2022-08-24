@@ -15,6 +15,7 @@ teardown() {
 @test "dfx cache show does not install the dfx version into the cache" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
+    use_test_specific_cache_root
     test -z "$(ls -A "$DFX_CACHE_ROOT")"
 
     assert_command dfx cache show
@@ -30,6 +31,7 @@ teardown() {
 @test "non-forced install populates an empty cache" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
+    use_test_specific_cache_root
     test ! -e "$(dfx cache show)"/dfx
 
     dfx_new
@@ -39,6 +41,7 @@ teardown() {
 
 @test "forced install populates an empty cache" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+    use_test_specific_cache_root
 
     test ! -e "$(dfx cache show)"/dfx
 

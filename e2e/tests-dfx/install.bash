@@ -76,6 +76,16 @@ teardown() {
     assert_match "Module hash: 0x$(sha2sum "$wallet" | head -c 64)"
 }
 
+@test "install succeeds with canisterid" {
+    dfx_start
+    dfx canister create --all
+    wallet="${archive:?}/wallet/0.10.0/wallet.wasm"
+    CANISTER_ID=$(dfx canister id e2e_project_backend)
+    assert_command dfx canister install "$CANISTER_ID" --wasm "$wallet"
+    assert_command dfx canister info "$CANISTER_ID"
+    assert_match "Module hash: 0x$(sha2sum "$wallet" | head -c 64)"
+}
+
 @test "install --all fails with arbitrary wasm" {
     dfx_start
     dfx canister create --all
@@ -131,4 +141,14 @@ teardown() {
     
     assert_command dfx canister install postinstall_script
     assert_match "hello $id"
+}
+
+@test "can install wasm.gz canisters" {
+    install_asset gzip
+    dfx_start
+    assert_command dfx canister create --all 
+    assert_command dfx build
+    assert_command dfx canister install --all
+    assert_command dfx canister call gzipped fromQuery '()'
+    assert_match "$(dfx identity get-principal)"
 }

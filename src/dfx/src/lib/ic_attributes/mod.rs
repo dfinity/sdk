@@ -10,6 +10,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 };
 use std::convert::TryFrom;
 
+#[derive(Default)]
 pub struct CanisterSettings {
     pub controllers: Option<Vec<Principal>>,
     pub compute_allocation: Option<ComputeAllocation>,

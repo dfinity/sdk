@@ -13,7 +13,7 @@ use candid::Principal;
 use clap::Parser;
 use std::str::FromStr;
 
-const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;
+pub const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;
 
 /// Create a canister from ICP
 #[derive(Parser)]

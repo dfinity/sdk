@@ -33,7 +33,7 @@ const NOTIFY_CREATE_METHOD: &str = "notify_create_canister";
 
 mod account_id;
 mod balance;
-mod create_canister;
+pub mod create_canister;
 mod fabricate_cycles;
 mod notify;
 mod top_up;
@@ -183,7 +183,7 @@ pub async fn transfer(
     Ok(block_height)
 }
 
-async fn transfer_cmc(
+pub async fn transfer_cmc(
     agent: &Agent,
     memo: Memo,
     amount: ICPTs,
@@ -206,7 +206,7 @@ async fn transfer_cmc(
     .await
 }
 
-async fn notify_create(
+pub async fn notify_create(
     agent: &Agent,
     controller: Principal,
     block_height: BlockHeight,
@@ -228,7 +228,7 @@ async fn notify_create(
     Ok(result)
 }
 
-async fn notify_top_up(
+pub async fn notify_top_up(
     agent: &Agent,
     canister: Principal,
     block_height: BlockHeight,

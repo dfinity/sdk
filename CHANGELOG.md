@@ -4,6 +4,108 @@
 
 ## DFX
 
+### fix: Update nns binaries unless `NO_CLOBBER` is set
+
+Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
+
+### feat!: Support installing canisters not in dfx.json
+
+`install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
+
+### feat: print the dashboard URL on startup
+
+When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.
+
+### feat!: changed the default port of the shared local network from 8000 to 4943.
+
+This is so dfx doesn't connect to a project-specific network instead of the local shared network.
+
+In combination with the "system-wide dfx start" feature, there is a potential difference to be aware of with respect to existing projects.
+
+Since previous versions of dfx populate dfx.json with a `networks.local` definition that specifies port 8000, the behavior for existing projects won't change.
+
+However, if you've edited dfx.json and removed the `networks.local` definition, the behavior within the project will change: dfx will connect to the shared local network on port 4943 rather than to the project-specific network on port 8000.  You would need to edit webpack.config.js to match.  If you have scripts, you can run the new command `dfx info webserver-port` from the project directory to retrieve the port value.
+
+### feat!: "system-wide dfx start"
+
+By default, dfx now manages the replica process in a way that is independent of any given dfx project.  We've called this feature "system-wide dfx", even though it's actually specific to your user
+(storing data files under $HOME), because we think it communicates the idea adequately.
+
+The intended benefits:
+- deploying dapps from separate projects alongside one another, similar to working with separate dapps on mainnet
+- run `dfx start` from any directory
+- run `dfx stop` from any directory, rather than having to remember where you last ran `dfx start`
+
+We're calling this the "shared local network."  `dfx start` and `dfx stop` will manage this network when run outside any project directory, or when a project's dfx.json does not define the `local` network.  The dfx.json template for new projects no longer defines any networks.
+
+We recommend that you remove the `local` network definition from dfx.json and instead use the shared local network.  As mentioned above, doing so will make dfx use port 4943 rather than port 8000.
+
+See [Local Server Configuration](docs/cli-reference/dfx-start.md#local-server-configuration) for details.
+
+dfx now stores data and control files in one of three places, rather than directly under `.dfx/`:
+- `.dfx/network/local` (for projects in which dfx.json defines the local network)
+- `$HOME/.local/share/dfx/network/local` (for the shared local network on Linux)
+- `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (for the shared local network on MacOS)
+
+There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
+
+### feat: added `dfx info webserver-port` command
+
+This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
+
+### fix: improved responsiveness of `greet` method call in default Motoko project template
+
+`greet` method was marked as an `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
+
+### feat: dfx schema --for networks
+
+The `dfx schema` command can now display the schema for either dfx.json or for networks.json.  By default, it still displays the schema for dfx.json.
+
+```bash
+dfx schema --for networks
+```
+
+### feat: createActor options accept pre-initialized agent
+
+If you have a pre-initialized agent in your JS code, you can now pass it to createActor's options. Conflicts with the agentOptions config - if you pass both the agent option will be used and you will receive a warning.
+
+```js
+const plugActor = createActor(canisterId, {
+  agent: plugAgent
+})
+```
+
+### feat!: option for nodejs compatibility in dfx generate
+
+Users can now specify `node_compatibility: true` in `declarations`. The flag introduces `node.js` enhancements, which include importing `isomorphic-fetch` and configuring the default actor with `isomorphic-fetch` and `host`.
+
+```json
+// dfx.json
+"declarations": {
+  "output": "src/declarations",
+  "node_compatibility": true
+}
+```
+
+#### JS codegen location deprecation
+
+DFX new template now uses `dfx generate` instead of `rsync`. Adds deprecation warning to `index.js` in `.dfx/<network-name>/<canister-name>` encouringing developers to migrate to the `dfx generate` command instead. If you have a `package.json` file that uses `rsync` from `.dfx`, consider switching to something like this:
+
+```json
+"scripts": {
+  "build": "webpack",
+  "prebuild": "npm run generate",
+  "start": "webpack serve --mode development --env development",
+  "prestart": "npm run generate",
+  // It's faster to only generate canisters you depend on, omitting the frontend canister
+  "generate": "dfx generate hello_backend"
+},
+```
+
+### fix!: removed unused --root parameter from dfx bootstrap
+
 ### feat: canister installation now waits for the replica
 
 When installing a new WASM module to a canister, DFX will now wait for the updated state (i.e. the new module hash) to be visible in the replica's certified state tree before proceeding with post-installation tasks or producing a success status.
@@ -44,6 +146,17 @@ a file with extension .old.did that contains the previous interface.  In some
 circumstances these files could be written in the project directory.  dfx now
 always writes them under the .dfx/ directory.
 
+### fix: dfx canister install now accepts arbitrary canister ids
+
+This fixes the following error:
+``` bash
+> dfx canister install --wasm ~/counter.wasm eop7r-riaaa-aaaak-qasxq-cai
+Error: Failed while determining if canister 'eop7r-riaaa-aaaak-qasxq-cai' is remote on network 'ic'.
+Caused by: Failed while determining if canister 'eop7r-riaaa-aaaak-qasxq-cai' is remote on network 'ic'.
+  Failed to figure out if canister 'eop7r-riaaa-aaaak-qasxq-cai' has a remote id on network 'ic'.
+    Invalid argument: Canister eop7r-riaaa-aaaak-qasxq-cai not found in dfx.json
+```
+
 ### feat: enable canister sandboxing
 
 Canister sandboxing is enabled to be consistent with the mainnet.
@@ -52,6 +165,40 @@ Canister sandboxing is enabled to be consistent with the mainnet.
 
 It is now possible to do e.g. `dfx ledger account-id --of-canister fg7gi-vyaaa-aaaal-qadca-cai` as well as `dfx ledger account-id --of-canister my_canister_name` when checking the ledger account id of a canister.
 Previously, dfx only accepted canister aliases and produced an error message that was hard to understand.
+
+### fix: print links to cdk-rs docs in dfx new
+
+### fix: Small grammar change to identity password decryption prompt
+
+The prompt for entering your passphrase in order to decrypt an identity password read:
+    "Please enter a passphrase for your identity"
+However, at that point, it isn't "a" passphrase.  It's either your passphrase, or incorrect.
+Changed the text in this case to read:
+    "Please enter the passphrase for your identity"
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/76228[76228]
+* https://dashboard.internetcomputer.org/proposal/75700[75700]
+* https://dashboard.internetcomputer.org/proposal/75109[75109]
+* https://dashboard.internetcomputer.org/proposal/74395[74395]
+* https://dashboard.internetcomputer.org/proposal/73959[73959]
+* https://dashboard.internetcomputer.org/proposal/73714[73714]
+* https://dashboard.internetcomputer.org/proposal/73368[73368]
+* https://dashboard.internetcomputer.org/proposal/72764[72764]
+
+### ic-ref
+
+Updated ic-ref to 0.0.1-1fba03ee
+- introduce awaitKnown
+- trivial implementation of idle_cycles_burned_per_day
+
+### Updated Motoko to 0.6.30
 
 # 0.11.1
 

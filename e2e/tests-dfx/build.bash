@@ -14,28 +14,6 @@ teardown() {
     standard_teardown
 }
 
-@test "build without cargo-audit installed cannot check for vulnerabilities" {
-  assert_command rustup default stable
-  assert_command rustup target add wasm32-unknown-unknown
-  install_asset vulnerable_rust_deps
-  dfx_start
-  dfx canister create --all
-  assert_command dfx build
-  assert_match "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed."
-}
-
-@test "build with vulnerabilities in rust dependencies emits a warning" {
-  assert_command rustup default stable
-  assert_command rustup target add wasm32-unknown-unknown
-  assert_command cargo install cargo-audit
-  assert_command cargo audit --version
-  install_asset vulnerable_rust_deps
-  dfx_start
-  dfx canister create --all
-  assert_command dfx build
-  assert_match "Audit found vulnerabilities"
-}
-
 @test "build uses default build args" {
     install_asset default_args
     dfx_start
@@ -119,15 +97,13 @@ teardown() {
 @test "build fails if canister type is not supported" {
   dfx_start
   dfx canister create --all
-  # shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.e2e_project_backend.type="unknown_canister_type"' dfx.json)" >dfx.json
+  jq '.canisters.e2e_project_backend.type="unknown_canister_type"' dfx.json | sponge dfx.json
   assert_command_fail dfx build
   # shellcheck disable=SC2016
   assert_match 'unknown variant `unknown_canister_type`'
 
   # If canister type is invalid, `dfx stop` fails
-  # shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.e2e_project_backend.type="motoko"' dfx.json)" >dfx.json
+  jq '.canisters.e2e_project_backend.type="motoko"' dfx.json | sponge dfx.json
 }
 
 @test "can build a custom canister type" {
@@ -168,8 +144,7 @@ teardown() {
   install_asset custom_canister
   dfx_start
   dfx canister create custom2
-  #shellcheck disable=SC2094
-  cat <<<"$(jq '.canisters.custom2.build="ln"' dfx.json)" >dfx.json
+  jq '.canisters.custom2.build="ln"' dfx.json | sponge dfx.json
   mv ./build.sh ./ln
 
   assert_command dfx build custom2
@@ -192,7 +167,7 @@ teardown() {
 @test "build succeeds when requested network is configured" {
   dfx_start
 
-  setup_actuallylocal_network
+  setup_actuallylocal_shared_network
 
   assert_command dfx canister create --all --network actuallylocal
   assert_command dfx build --network actuallylocal
@@ -200,7 +175,7 @@ teardown() {
 
 @test "build with wallet succeeds when requested network is configured" {
   dfx_start
-  setup_actuallylocal_network
+  setup_actuallylocal_shared_network
   assert_command dfx_set_wallet
 
   assert_command dfx canister create --all --network actuallylocal
@@ -217,7 +192,7 @@ teardown() {
 
 @test "build with wallet output for non-local network is in expected directory" {
   dfx_start
-  setup_actuallylocal_network
+  setup_actuallylocal_shared_network
   assert_command dfx_set_wallet
 
   dfx canister create --all --network actuallylocal

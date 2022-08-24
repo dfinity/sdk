@@ -17,7 +17,7 @@ teardown() {
 @test "canister call and sign" {
     install_asset remote/call/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     dfx identity new --disable-encryption alice
 
@@ -31,10 +31,9 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/call/mock
-    setup_actuallylocal_network
-    setup_local_network
-    # shellcheck disable=SC2094
-    cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
+    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
 
     # set up: remote method is update, local is query
     # call remote method as update to make a change
@@ -66,8 +65,7 @@ teardown() {
     assert_eq '(record { a = "A update by name"; b = "B update by name" })'
 
     # This also should work when no canister type can be determined / if no info but the bare minimum of remote id and remote candid is given:
-    # shellcheck disable=SC2094
-    cat <<<"$(jq 'del(.canisters.remote.main)' dfx.json)" >dfx.json
+    jq 'del(.canisters.remote.main)' dfx.json | sponge dfx.json
     assert_command dfx canister call --query  remote make_struct '("A query by name", "B query by name")' --network actuallylocal
     assert_eq '(record { a = "A query by name"; b = "B query by name" })'
 
@@ -98,7 +96,7 @@ teardown() {
 @test "canister create <canister> fails for a remote canister" {
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     dfx identity new --disable-encryption alice
 
@@ -109,19 +107,18 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/basic
-    setup_actuallylocal_network
-    setup_local_network
-    # shellcheck disable=SC2094
-    cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
+    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
 
     assert_command_fail dfx canister create remote --network actuallylocal
-    assert_match "remote" canister is remote on network actuallylocal and has canister id: "$REMOTE_CANISTER_ID"
+    assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be created from here."
 }
 
 @test "canister install <canister> fails for a remote canister" {
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     dfx identity new --disable-encryption alice
 
@@ -132,10 +129,9 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/basic
-    setup_actuallylocal_network
-    setup_local_network
-    # shellcheck disable=SC2094
-    cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
+    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
 
     assert_command_fail dfx canister install remote --network actuallylocal
     assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
@@ -144,7 +140,7 @@ teardown() {
 @test "canister create --all and canister install --all skip remote canisters" {
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     #
     # Set up the "remote" canister, with a different controller in order to
@@ -163,10 +159,9 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/basic
-    setup_actuallylocal_network
-    setup_local_network
-    # shellcheck disable=SC2094
-    cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
+    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
 
     # Here we want to make sure that create+build+install works with the common flow
     assert_command dfx canister create --all
@@ -213,7 +208,7 @@ teardown() {
 
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     #
     # Set up the "remote" canister, with a different controller in order to
@@ -228,10 +223,9 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/extra
-    setup_actuallylocal_network
-    setup_local_network
-    # shellcheck disable=SC2094
-    cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
+    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
 
     # We expect the local network deploy to succeed, because it is built using the candid file from
     # the local canister.
@@ -250,7 +244,7 @@ teardown() {
 @test "build + install + call -- remote" {
     install_asset remote/actual
     dfx_start
-    setup_actuallylocal_network
+    setup_actuallylocal_shared_network
 
     #
     # Set up the "remote" canister, with a different controller in order to
@@ -269,10 +263,9 @@ teardown() {
     rm canister_ids.json
 
     install_asset remote/basic
-    setup_actuallylocal_network
-    setup_local_network
-    # shellcheck disable=SC2094
-    cat <<<"$(jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json)" >dfx.json
+    setup_actuallylocal_shared_network
+    setup_local_shared_network
+    jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
 
     assert_command dfx deploy
     assert_command dfx canister call basic read_remote
