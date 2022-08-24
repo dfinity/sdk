@@ -64,10 +64,11 @@ pub async fn install_nns(
     ic_nns_init_path: &Path,
     replicated_state_dir: &Path,
 ) -> anyhow::Result<()> {
+    println!("Replicated state dir: {:?}", replicated_state_dir);
     println!("Checking out the environment...");
     // Check out the environment.
     verify_local_replica_type_is_system()?;
-    let subnet_id = get_local_subnet_id()?;
+    let subnet_id = get_local_subnet_id(replicated_state_dir)?;
     let nns_url = get_replica_url()?;
 
     // Wait for the server to be ready...
@@ -322,11 +323,12 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
 /// Gets the local subnet ID.
 ///
 // TODO: This is a hack.  Need a proper protobuf parser.  dalves mentioned that he might do this, else I'll dive in.
-pub fn get_local_subnet_id() -> anyhow::Result<String> {
+pub fn get_local_subnet_id(replicated_state_dir: &Path) -> anyhow::Result<String> {
     // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
-    let file = fs::File::open(
-        ".dfx/network/local/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb",
-    )?;
+    let file = {
+        let initial_state_file = replicated_state_dir.join("0000000000/00/00/01.pb");
+        fs::File::open(&initial_state_file)?
+    };
     let parsed = std::process::Command::new("protoc")
         .arg("--decode_raw")
         .stdin(file)
