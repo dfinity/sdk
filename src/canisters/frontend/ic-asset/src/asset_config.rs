@@ -10,7 +10,8 @@ use std::{
     sync::Arc,
 };
 
-pub(crate) const ASSETS_CONFIG_FILENAME: &str = ".ic-assets.json5";
+pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
+pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
 pub(crate) type HeadersConfig = HashMap<String, String>;
 type ConfigMap = HashMap<PathBuf, Arc<AssetConfigTreeNode>>;
@@ -175,9 +176,26 @@ impl AssetConfigTreeNode {
         dir: &Path,
         configs: &mut HashMap<PathBuf, Arc<AssetConfigTreeNode>>,
     ) -> anyhow::Result<()> {
-        let config_path = dir.join(ASSETS_CONFIG_FILENAME);
+        let config_path: Option<PathBuf>;
+        match (
+            dir.join(ASSETS_CONFIG_FILENAME_JSON).exists(),
+            dir.join(ASSETS_CONFIG_FILENAME_JSON5).exists(),
+        ) {
+            (true, true) => {
+                return Err(anyhow::anyhow!(
+                    "both {} and {} files exist in the same directory (dir = {:?})",
+                    ASSETS_CONFIG_FILENAME_JSON,
+                    ASSETS_CONFIG_FILENAME_JSON5,
+                    dir
+                ))
+            }
+            (true, false) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON)),
+
+            (false, true) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON5)),
+            (false, false) => config_path = None,
+        }
         let mut rules = vec![];
-        if config_path.exists() {
+        if let Some(config_path) = config_path {
             let content = fs::read_to_string(&config_path).with_context(|| {
                 format!("unable to read config file: {}", config_path.display())
             })?;
@@ -288,7 +306,10 @@ mod with_tempdir {
             h.extend(cf);
         }
         h.into_iter().for_each(|(dir, content)| {
-            let path = assets_dir.path().join(dir).join(ASSETS_CONFIG_FILENAME);
+            let path = assets_dir
+                .path()
+                .join(dir)
+                .join(ASSETS_CONFIG_FILENAME_JSON);
             let mut file = File::create(path).unwrap();
             write!(file, "{}", content).unwrap();
         });
@@ -573,7 +594,10 @@ mod with_tempdir {
             assets_config.err().unwrap().to_string(),
             format!(
                 "malformed JSON asset config file: {}",
-                assets_dir.join(ASSETS_CONFIG_FILENAME).to_str().unwrap()
+                assets_dir
+                    .join(ASSETS_CONFIG_FILENAME_JSON)
+                    .to_str()
+                    .unwrap()
             )
         );
         Ok(())
@@ -589,7 +613,10 @@ mod with_tempdir {
             assets_config.err().unwrap().to_string(),
             format!(
                 "malformed JSON asset config file: {}",
-                assets_dir.join(ASSETS_CONFIG_FILENAME).to_str().unwrap()
+                assets_dir
+                    .join(ASSETS_CONFIG_FILENAME_JSON)
+                    .to_str()
+                    .unwrap()
             )
         );
         Ok(())
@@ -611,7 +638,10 @@ mod with_tempdir {
             assets_config.err().unwrap().to_string(),
             format!(
                 "malformed JSON asset config file: {}",
-                assets_dir.join(ASSETS_CONFIG_FILENAME).to_str().unwrap()
+                assets_dir
+                    .join(ASSETS_CONFIG_FILENAME_JSON)
+                    .to_str()
+                    .unwrap()
             )
         );
         Ok(())
@@ -643,7 +673,7 @@ mod with_tempdir {
         let assets_temp_dir = create_temporary_assets_directory(cfg, 1).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
         std::fs::set_permissions(
-            assets_dir.join(ASSETS_CONFIG_FILENAME).as_path(),
+            assets_dir.join(ASSETS_CONFIG_FILENAME_JSON).as_path(),
             std::fs::Permissions::from_mode(0o000),
         )
         .unwrap();
@@ -654,7 +684,7 @@ mod with_tempdir {
             format!(
                 "unable to read config file: {}",
                 assets_dir
-                    .join(ASSETS_CONFIG_FILENAME)
+                    .join(ASSETS_CONFIG_FILENAME_JSON)
                     .as_path()
                     .to_str()
                     .unwrap()
