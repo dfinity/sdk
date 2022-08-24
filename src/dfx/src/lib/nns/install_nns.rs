@@ -92,8 +92,9 @@ pub async fn install_nns(
 
     // Install the GUI canisters:
     download(
-        &Path::new(&NNS_WASM_DIR).join(&II_WASM),
         &Url::parse(&II_URL)?,
+        &Path::new(&NNS_WASM_DIR).join(&II_WASM),
+      
     )
     .await?;
     install_canister(env, agent, II_NAME, &format!("{NNS_WASM_DIR}/{II_WASM}")).await?;
@@ -173,8 +174,8 @@ pub fn verify_local_replica_type_is_system() -> anyhow::Result<()> {
 }
 
 /// Downloads a file
-#[context("Failed to download {:?} from {:?}.", target, source)]
-pub async fn download(target: &Path, source: &Url) -> anyhow::Result<()> {
+#[context("Failed to download {:?} to {:?}.", source, target)]
+pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
     let buffer = reqwest::get(source.clone()).await?.bytes().await?;
     let tmp_dir = tempfile::Builder::new().tempdir()?;
     let downloaded_filename = {
@@ -189,7 +190,7 @@ pub async fn download(target: &Path, source: &Url) -> anyhow::Result<()> {
 
 /// Downloads and unzips a file
 #[context("Failed to download and unzip {:?} from {:?}.", target, source)]
-pub async fn download_gz(target: &Path, source: &Url) -> anyhow::Result<()> {
+pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
     let response = reqwest::get(source.clone()).await?.bytes().await?;
     let mut decoder = Decoder::new(&response[..])?;
     let mut buffer = Vec::new();
@@ -224,7 +225,7 @@ pub async fn download_ic_repo_wasm(
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{src_name}.wasm.gz");
     let url = Url::parse(&url_str)?;
-    download_gz(&final_path, &url).await
+    download_gz(&url, &final_path).await
 }
 
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
@@ -251,7 +252,7 @@ pub async fn download_nns_wasms() -> anyhow::Result<()> {
         download_ic_repo_wasm(src_name, target_name, ic_commit, NNS_WASM_DIR).await?;
     }
     for (wasm, url) in [(II_WASM, II_URL), (ND_WASM, ND_URL)] {
-        download(&Path::new(&NNS_WASM_DIR).join(wasm), &Url::parse(url)?)
+        download(&Url::parse(url)?, &Path::new(&NNS_WASM_DIR).join(wasm))
             .await
             .map_err(|e| anyhow!("Failed to download {wasm:?}: {e:?}"))?;
     }
