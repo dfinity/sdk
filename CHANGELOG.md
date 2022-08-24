@@ -4,6 +4,11 @@
 
 ## DFX
 
+### feat!: default secure configuration for assets when creating a new frontend project 
+
+- Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](./src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
+- Redirect all traffic from `.raw.ic0.app` domain to `.ic0.app`.
+
 ### fix: Update nns binaries unless `NO_CLOBBER` is set
 
 Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
