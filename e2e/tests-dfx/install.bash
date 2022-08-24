@@ -145,6 +145,7 @@ teardown() {
 
 @test "can install wasm.gz canisters" {
     install_asset gzip
+    install_asset wasm/identity
     dfx_start
     assert_command dfx canister create --all 
     assert_command dfx build
