@@ -40,6 +40,18 @@
 
             // Security: Enables browser features to mitigate some of the XSS attacks. Note that it has to be in mode=block. See here.
             "X-XSS-Protection": "1; mode=block"
+        },
+        "redirect": {
+            "from": {
+                "host": ".raw.ic0.app",
+            },
+            "to": {
+                "host": ".raw.ic0.app",
+            },
+            "response_code": 308,
+            "user_agent": [
+                "^google-bot"
+            ]
         }
     },
 ]
