@@ -218,6 +218,8 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
+### Updated Motoko to 0.6.30
+
 # 0.11.1
 
 ## DFX
