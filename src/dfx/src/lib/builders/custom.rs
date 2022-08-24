@@ -13,6 +13,8 @@ use console::style;
 use fn_error_context::context;
 use slog::info;
 use slog::Logger;
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -121,6 +123,13 @@ impl CanisterBuilder for CustomBuilder {
                 run_command(args, &vars, info.get_workspace_root())
                     .with_context(|| format!("Failed to run {}.", command))?;
             }
+        }
+
+        let mut file = File::open(&wasm)?;
+        let mut header = [0; 4];
+        file.read_exact(&mut header)?;
+        if header != *b"\0asm" {
+            add_candid_service_metadata = false;
         }
 
         Ok(BuildOutput {

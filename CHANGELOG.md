@@ -29,6 +29,10 @@ Example of `.ic-assets.json` making use of this feature:
 ]
 ```
 
+### fix: Update nns binaries unless `NO_CLOBBER` is set
+
+Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
+
 ### feat!: Support installing canisters not in dfx.json
 
 `install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
@@ -197,11 +201,29 @@ However, at that point, it isn't "a" passphrase.  It's either your passphrase, o
 Changed the text in this case to read:
     "Please enter the passphrase for your identity"
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
+This incorporates the following executed proposals:
+
+* https://dashboard.internetcomputer.org/proposal/76228[76228]
+* https://dashboard.internetcomputer.org/proposal/75700[75700]
+* https://dashboard.internetcomputer.org/proposal/75109[75109]
+* https://dashboard.internetcomputer.org/proposal/74395[74395]
+* https://dashboard.internetcomputer.org/proposal/73959[73959]
+* https://dashboard.internetcomputer.org/proposal/73714[73714]
+* https://dashboard.internetcomputer.org/proposal/73368[73368]
+* https://dashboard.internetcomputer.org/proposal/72764[72764]
+
 ### ic-ref
 
 Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
+
+### Updated Motoko to 0.6.30
 
 # 0.11.1
 
