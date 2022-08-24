@@ -83,19 +83,19 @@
     "ic-nns-init-x86_64-darwin": {
         "builtin": false,
         "description": "The ic-nns-init binary.",
-        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
-        "sha256": "19vicxphjdzlnb0112wx3xwpxddnjikidzmkg0bkhmp9iax2d9c4",
+        "rev": "22356c4a5ad8ac813e03e59928d642c180c0391f",
+        "sha256": "0l0dyzngi73xwhy6xdmncrrim4j6lipfgw3syiz730zj822bca1a",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/nix-release/x86_64-darwin/ic-nns-init.gz",
+        "url": "https://download.dfinity.systems/ic/22356c4a5ad8ac813e03e59928d642c180c0391f/nix-release/x86_64-darwin/ic-nns-init.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/nix-release/x86_64-darwin/ic-nns-init.gz"
     },
     "ic-nns-init-x86_64-linux": {
         "builtin": false,
         "description": "The ic-nns-init binary.",
-        "rev": "6e86169e98904047833ba6133e5413d2758d90eb",
-        "sha256": "0v51f8mbgc5fgcbfkfrpp181d5qzw8nf9z4kplkzr4j9b5r129ci",
+        "rev": "22356c4a5ad8ac813e03e59928d642c180c0391f",
+        "sha256": "1nkicw46bjxq0ibxirj15qk6qix87d35zla84bd2wqivpdz3597j",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/6e86169e98904047833ba6133e5413d2758d90eb/release/ic-nns-init.gz",
+        "url": "https://download.dfinity.systems/ic/22356c4a5ad8ac813e03e59928d642c180c0391f/release/ic-nns-init.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/release/ic-nns-init.gz"
     },
     "ic-ref-x86_64-darwin": {
