@@ -16,5 +16,5 @@ ic-wasm --output $BUILD_DIR/certified_assets.wasm $BUILD_DIR/certified_assets.wa
 ic-wasm --output $BUILD_DIR/certified_assets.wasm $BUILD_DIR/certified_assets.wasm shrink
 gzip --best --keep --force --no-name $BUILD_DIR/certified_assets.wasm
 
-cp -f $BUILD_DIR/certified_assets.wasm.gz src/distributed/assetstorage.wasm
+cp -f $BUILD_DIR/certified_assets.wasm.gz src/distributed/assetstorage.wasm.gz
 cp -f src/canisters/frontend/ic-certified-assets/assets.did src/distributed/assetstorage.did

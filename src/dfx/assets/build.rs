@@ -13,7 +13,7 @@ const INPUTS: &[&str] = &[
     "scripts/dfx-asset-sources.sh",
     "scripts/prepare-dfx-assets.sh",
     "src/distributed/assetstorage.did",
-    "src/distributed/assetstorage.wasm",
+    "src/distributed/assetstorage.wasm.gz",
     "src/distributed/ui.did",
     "src/distributed/ui.wasm",
     "src/distributed/wallet.did",
