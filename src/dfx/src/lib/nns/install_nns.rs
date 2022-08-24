@@ -3,6 +3,9 @@
 //! Note: `dfx nns` will be a `dfx` plugin, so this code SHOULD NOT depend on NNS code except where extremely inconvenient or absolutely necessary:
 //! * Example: Minimise crate dependencies outside the nns modules.
 //! * Example: Use `anyhow::Result` not `DfxResult`
+#![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
+
 use crate::config::dfinity::{Config, ConfigNetwork, ReplicaSubnetType};
 use crate::lib::environment::Environment;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -25,20 +28,20 @@ use std::process;
 use std::time::Duration;
 
 /// The name typically used in dfx.json to refer to the Internet& Identity canister, which provides a login service.
-const II_NAME: &'static str = "nns-identity";
+const II_NAME: &str = "nns-identity";
 /// The name of the Internet Identity wasm file in the local wasm cache.
-const II_WASM: &'static str = "internet_identity_dev.wasm";
+const II_WASM: &str = "internet_identity_dev.wasm";
 /// The URL from which the Internet Identity wasm file is downloaded, if not already present in the local cache.
-const II_URL: &'static str = "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm";
+const II_URL: &str = "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm";
 /// The name of the NNS frontend dapp, used primarily for voting but also as a wallet.
-const ND_NAME: &'static str = "nns-ui";
+const ND_NAME: &str = "nns-ui";
 /// The name of the NNS frontend dapp in the local cache.
-const ND_WASM: &'static str = "nns-dapp_local.wasm";
+const ND_WASM: &str = "nns-dapp_local.wasm";
 /// The URL from which the NNS dapp wasm file is downloaded, if not already present in the local cache
-const ND_URL: &'static str =
+const ND_URL: &str =
     "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm";
 /// Test account with well known public & private keys, used in multiple projects.
-const TEST_ACCOUNT: &'static str =
+const TEST_ACCOUNT: &str =
     "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
 
 /// Installs NNS canisters on a local dfx server.
@@ -98,7 +101,7 @@ pub async fn install_nns(
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
     // Install the GUI canisters:
-    download(&Url::parse(&II_URL)?, &nns_wasm_dir(env).join(&II_WASM)).await?;
+    download(&Url::parse(II_URL)?, &nns_wasm_dir(env).join(&II_WASM)).await?;
     install_canister(env, agent, II_NAME, &nns_wasm_dir(env).join(II_WASM)).await?;
     install_canister(env, agent, ND_NAME, &nns_wasm_dir(env).join(ND_WASM)).await?;
     Ok(())
@@ -106,7 +109,9 @@ pub async fn install_nns(
 
 /// Gets a URL, trying repeatedly until it is available.
 pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
+    /// The time between the first try and the second.
     const RETRY_PAUSE: Duration = Duration::from_millis(200);
+    /// Intervals will increase exponentially until they reach this.
     const MAX_RETRY_PAUSE: Duration = Duration::from_secs(5);
 
     let mut waiter = Delay::builder()
@@ -139,11 +144,11 @@ pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
 fn local_replica_type() -> anyhow::Result<ReplicaSubnetType> {
     let dfx_config = Config::from_current_dir()
         .map_err(|_| anyhow!("Could not get config from dfx.json."))?
-        .ok_or(anyhow!("No config in dfx.json"))?;
+        .ok_or_else(||anyhow!("No config in dfx.json"))?;
     let network = dfx_config
         .get_config()
         .get_network("local")
-        .ok_or(anyhow!("'local' network is not defined in dfx.json."))?;
+        .ok_or_else(||anyhow!("'local' network is not defined in dfx.json."))?;
     let local_network = if let ConfigNetwork::ConfigLocalProvider(local_network) = network {
         local_network
     } else {
@@ -155,7 +160,7 @@ fn local_replica_type() -> anyhow::Result<ReplicaSubnetType> {
         .ok_or_else(|| anyhow!("In dfx.json, 'local' network has no replica setting."))?;
     local_replica_config
         .subnet_type
-        .ok_or(anyhow!("Replica type is not defined for 'local' network."))
+        .ok_or_else(||anyhow!("Replica type is not defined for 'local' network."))
 }
 
 /// Checks that the local replica type is 'system'.
@@ -234,24 +239,21 @@ pub async fn download_ic_repo_wasm(
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     // TODO: Include the canister ID in the path.  .dfx/local/wasms/nns/${COMMIT}/....
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
-    for (src_name, target_name) in [
-        ("registry-canister", "registry-canister"),
-        ("governance-canister_test", "governance-canister_test"),
-        ("governance-canister", "governance-canister"),
-        (
-            "ledger-canister_notify-method",
-            "ledger-canister_notify-method",
-        ),
-        ("ic-icrc1-ledger", "ic-icrc1-ledger"),
-        ("root-canister", "root-canister"),
-        ("cycles-minting-canister", "cycles-minting-canister"),
-        ("lifeline", "lifeline"),
-        ("sns-wasm-canister", "sns-wasm-canister"),
-        ("genesis-token-canister", "genesis-token-canister"),
-        ("identity-canister", "identity-canister"),
-        ("nns-ui-canister", "nns-ui-canister"),
+    for name in [
+        "registry-canister",
+        "governance-canister_test",
+        "governance-canister",
+        "ledger-canister_notify-method",
+        "ic-icrc1-ledger",
+        "root-canister",
+        "cycles-minting-canister",
+        "lifeline",
+        "sns-wasm-canister",
+        "genesis-token-canister",
+        "identity-canister",
+        "nns-ui-canister",
     ] {
-        download_ic_repo_wasm(src_name, target_name, ic_commit, &nns_wasm_dir(env)).await?;
+        download_ic_repo_wasm(name, name, ic_commit, &nns_wasm_dir(env)).await?;
     }
     for (wasm, url) in [(II_WASM, II_URL), (ND_WASM, ND_URL)] {
         download(&Url::parse(url)?, &nns_wasm_dir(env).join(wasm))
@@ -289,9 +291,13 @@ pub fn get_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
 
 /// Arguments for the ic-nns-init command line function.
 pub struct IcNnsInitOpts {
+    /// An URL to accees one or more NNS subnet replicas.
     nns_url: String,
+    /// A directory that needs to be populated will all required wasms before calling ic-nns-init.
     wasm_dir: PathBuf,
+    /// The ID of a test account that ic-nns-init will create and to initialise with tokens.
     test_accounts: Option<String>, // TODO, does the CLI actually support several?
+    /// A subnet for SNS canisters.
     sns_subnets: Option<String>,   // TODO: Can there be several?
 }
 
@@ -349,12 +355,12 @@ pub fn get_local_subnet_id(replicated_state_dir: &Path) -> anyhow::Result<String
         .expect("Failed to start protobuf file parser");
     let parsed_str = std::str::from_utf8(&parsed.stdout)?;
     parsed_str
-        .split("\n")
+        .split('\n')
         .into_iter()
         .find_map(|line| line.split("subnet_record_").into_iter().nth(1))
-        .and_then(|line| line.split("\"").next())
+        .and_then(|line| line.split('"').next())
         .map(|subnet| subnet.to_string())
-        .ok_or(anyhow!("Protobuf has no subnet"))
+        .ok_or_else(|| anyhow!("Protobuf has no subnet"))
 }
 
 /// Sets the exchange rate between ICP and cycles.
