@@ -29,7 +29,7 @@ rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 
 [profile.release]
 panic = 'abort'
-lto = "fat"
+lto = true
 
 [profile.dev.package.argon2]
 opt-level = 3
