@@ -133,6 +133,26 @@ DFX new template now uses `dfx generate` instead of `rsync`. Adds deprecation wa
 },
 ```
 
+### feat: simple cycles faucet code redemption
+
+Using `dfx wallet --network ic redeem-faucet-coupon <my coupon>` faucet users have a much easier time to redeem their codes.
+If the active identity has no wallet configured, the faucet supplies a wallet to the user that this command will automatically configure.
+If the active identity has a wallet configured already, the faucet will top up the existing wallet.
+
+Alternative faucets can be used, assuming they follow the same interface. To direct dfx to a different faucet, use the `--faucet <alternative faucet id>` flag.
+The expected interface looks like the following candid functions:
+``` candid
+redeem: (text) -> (principal);
+redeem_to_wallet: (text, principal) -> (nat);
+```
+The function `redeem` takes a coupon code and returns the principal to an already-installed wallet that is controlled by the identity that called the function.
+The function `redeem_to_wallet` takes a coupon code and a wallet (or any other canister) principal, deposits the cycles into that canister and returns how many cycles were deposited.
+
+### feat: disable automatic wallet creation on non-ic networks
+
+By default, if dfx is not running on the `ic` (or networks with a different name but the same configuration), it will automatically create a cycles wallet in case it hasn't been created yet.
+It is now possible to inhibit automatic wallet creation by setting the `DFX_DISABLE_AUTO_WALLET` environment variable.
+
 ### fix!: removed unused --root parameter from dfx bootstrap
 
 ### feat: canister installation now waits for the replica
