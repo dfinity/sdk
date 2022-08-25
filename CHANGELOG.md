@@ -4,17 +4,19 @@
 
 ## DFX
 
-### chore: Frontend canister build process no longer depends on `dfx`
+### chore: Frontend canister build process no longer depends on `dfx` or `ic-cdk-optimizer`
 
-Instead, the canister is now build with `cargo` and `ic-wasm`, then archived with `gzip`. 
+Instead, the build process relies on `ic-wasm` to provide candid metadata for the canister, and
+shrinking the canister size by stripping debug symbols and unused fuctions.
+Additionally, after build step, the `.wasm` file is archived with `gzip`. 
 
-### chore: Move all `asset canister`-related code into the SDK repo
+### chore: Move all `frontend canister`-related code into the SDK repo
 
-- `dfinity/ic-asset`
-- `dfinity/icx-asset`
-- `dfinity/ic-certified-assets`
-- `dfinity/certified-assets`
-  - no longer depends on `ic-cdk-optimizer` and `dfx`, and instead uses `ic-wasm` to build the canister code.
+| from (`repository` `path`)                                       | to (path in `dfinity/sdk` repository)        | summary |
+| `dfinity/cdk-rs` `/src/ic-certified-assets` | `src/canisters/frontend/ic-certified-asset` | the core of the frontend canister       |
+| `dfinity/certified-assets`                  | `src/canisters/frontend/ic-asset`           | wrapper around the core, helps build the canister wasm         |
+| `dfinity/agent-rs` `/ic-asset`              | `src/canisters/frontend/ic-asset`           | library facilitating interactions with asset canisetr (e.g. uploading or listing assets)        |
+| `dfinity/agent-rs` `/icx-asset`             | `src/canisters/frontend/icx-asset`          | CLI executable tool - wraps `ic-asset`         |
 
 ### feat: use JSON5 file format for frontend canister asset configuration
 
