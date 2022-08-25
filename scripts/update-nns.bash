@@ -51,6 +51,7 @@ get_wasm genesis-token-canister.wasm
 get_wasm identity-canister.wasm
 get_wasm nns-ui-canister.wasm
 get_wasm sns-wasm-canister.wasm
+get_wasm ic-icrc1-ledger.wasm
 
 # Patch NNS canisters so the conversion rate can be set in the CMC
 

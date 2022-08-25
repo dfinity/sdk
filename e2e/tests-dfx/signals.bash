@@ -2,6 +2,9 @@
 
 load ../utils/_
 
+# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
+
+
 setup() {
     standard_setup
 
@@ -24,8 +27,6 @@ teardown() {
 
 dfx_replica_kills_replica() {
     signal=$1
-
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
 
     dfx_patchelf
     dfx replica --port 0 &
