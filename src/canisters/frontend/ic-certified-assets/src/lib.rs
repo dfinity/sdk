@@ -16,7 +16,6 @@ use crate::{
 use candid::{candid_method, Principal};
 use ic_cdk::api::{caller, data_certificate, set_certified_data, time, trap};
 use ic_cdk_macros::{query, update};
-use state_machine::AssetProperties;
 use std::cell::RefCell;
 
 thread_local! {

@@ -53,10 +53,10 @@ pub struct RedirectUrl {
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct AssetRedirect {
-    from: Option<RedirectUrl>,
-    to: RedirectUrl,
-    user_agent: Option<Vec<String>>,
-    response_code: u16,
+    pub from: Option<RedirectUrl>,
+    pub to: RedirectUrl,
+    pub user_agent: Option<Vec<String>>,
+    pub response_code: u16,
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]

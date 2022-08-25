@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::collections::HashMap;
 
 use crate::state_machine::{AssetRedirect, StableState, State, BATCH_EXPIRY_NANOS};
@@ -60,6 +61,11 @@ impl AssetBuilder {
     fn with_header(mut self, header_key: &str, header_value: &str) -> Self {
         let hm = self.headers.get_or_insert(HashMap::new());
         hm.insert(header_key.to_string(), header_value.to_string());
+        self
+    }
+
+    fn with_redirect(mut self, redirect: AssetRedirect) -> Self {
+        self.redirect = Some(redirect);
         self
     }
 }
@@ -478,4 +484,104 @@ fn supports_custom_http_headers() {
         "Incorrect value for X-Content-Type-Options header in response: {:#?}",
         response,
     );
+}
+
+#[cfg(test)]
+mod test_http_redirects {
+    use super::{create_assets, AssetBuilder};
+    use crate::{
+        state_machine::{AssetRedirect, RedirectUrl, State},
+        tests::{unused_callback, RequestBuilder},
+    };
+
+    impl RedirectUrl {
+        fn new(host: Option<&str>, path: Option<&str>) -> Self {
+            RedirectUrl {
+                host: host.map(|s| s.to_string()),
+                path: path.map(|s| s.to_string()),
+            }
+        }
+    }
+
+    impl AssetRedirect {
+        fn new_absolute(to: RedirectUrl) -> Self {
+            AssetRedirect {
+                from: None,
+                to,
+                user_agent: None,
+                response_code: 301,
+            }
+        }
+        fn new_relative(from: Option<RedirectUrl>, to: RedirectUrl) -> Self {
+            AssetRedirect {
+                from,
+                to,
+                user_agent: None,
+                response_code: 301,
+            }
+        }
+        fn with_user_agent(mut self, user_agent: Vec<String>) -> Self {
+            self.user_agent = Some(user_agent);
+            self
+        }
+        fn with_response_code(mut self, response_code: u16) -> Self {
+            self.response_code = response_code;
+            self
+        }
+    }
+
+    #[test]
+    fn basic_absolute_redirects() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_redirect(AssetRedirect::new_absolute(RedirectUrl::new(
+                    None,
+                    Some("/redirected.html"),
+                )))],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert_eq!(response.status_code, 300);
+    }
+
+    #[test]
+    fn basic_relative_redirects() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/index.html", "text/html")], //.with_redirect("/redirect.html")],
+        );
+    }
+
+    #[test]
+    fn regex_absolute_redirects() {}
+    #[test]
+    fn regex_relative_redirects() {}
+
+    #[test]
+    fn absolute_redirects_with_user_agent_filter() {}
+    #[test]
+    fn relative_redirects_with_user_agent_filter() {}
+
+    #[test]
+    fn absolute_redirects_with_different_response_codes() {}
+    #[test]
+    fn relative_redirects_with_different_response_codes() {}
 }
