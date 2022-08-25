@@ -1,7 +1,9 @@
 use crate::asset_canister::batch::{commit_batch, create_batch};
 use crate::asset_canister::list::list_assets;
 use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind};
-use crate::asset_config::{AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME};
+use crate::asset_config::{
+    AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
+};
 use crate::params::CanisterCallParams;
 
 use crate::operations::{
@@ -87,7 +89,7 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
             })
             .filter_map(|r| r.ok())
             .filter(|entry| {
-                entry.file_type().is_file() && entry.file_name() != ASSETS_CONFIG_FILENAME
+                entry.file_type().is_file() && entry.file_name() != ASSETS_CONFIG_FILENAME_JSON
             })
         {
             let source = e.path().canonicalize().with_context(|| {

@@ -2,6 +2,8 @@
 
 load ../utils/_
 
+# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
+
 setup() {
     standard_setup
 
@@ -15,9 +17,8 @@ teardown() {
 }
 
 @test "repeated install wasm" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     install_asset custom_canister
+    install_asset wasm/identity
     dfx_start
     dfx deploy
     for _ in {1..50}

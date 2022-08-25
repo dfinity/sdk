@@ -596,39 +596,6 @@ impl From<StableState> for State {
     }
 }
 
-#[test]
-fn test_decode_seq() {
-    for (value, expected) in [
-        (
-            r#""0000000000000000000000000000000000000000000000000000000000000000""#,
-            vec![[0u8; 32]],
-        ),
-        (
-            r#""0000000000000000000000000000000000000000000000000000000000000000", "1111111111111111111111111111111111111111111111111111111111111111""#,
-            vec![[0u8; 32], [17u8; 32]],
-        ),
-    ] {
-        let decoded = decode_etag_seq(value)
-            .unwrap_or_else(|e| panic!("failed to parse good ETag value {}: {}", value, e));
-        assert_eq!(decoded, expected);
-    }
-
-    for value in [
-        r#""00000000000000000000000000000000""#,
-        r#"0000000000000000000000000000000000000000000000000000000000000000"#,
-        r#""0000000000000000000000000000000000000000000000000000000000000000" "1111111111111111111111111111111111111111111111111111111111111111""#,
-        r#"0000000000000000000000000000000000000000000000000000000000000000 1111111111111111111111111111111111111111111111111111111111111111"#,
-    ] {
-        let result = decode_etag_seq(value);
-        assert!(
-            result.is_err(),
-            "should have failed to parse invalid ETag value {}, got: {:?}",
-            value,
-            result
-        );
-    }
-}
-
 fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset) {
     // If the most preferred encoding is present and certified,
     // there is nothing to do.
