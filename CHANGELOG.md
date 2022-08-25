@@ -31,7 +31,7 @@ as if they were [JSON5](https://json5.org/) format. Example content of the `.ic-
   },
 ]
 ```
-- learn more about JSON5: https://json5.org/
+- Learn more about JSON5: https://json5.org/
 
 ### fix: Update nns binaries unless `NO_CLOBBER` is set
 
