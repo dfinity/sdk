@@ -26,6 +26,7 @@ mod custodians;
 mod deauthorize;
 mod list_addresses;
 mod name;
+mod redeem_faucet_coupon;
 mod remove_controller;
 mod send;
 mod set_name;
@@ -45,6 +46,7 @@ enum SubCommand {
     AddController(NetworkOpts<add_controller::AddControllerOpts>),
     Authorize(NetworkOpts<authorize::AuthorizeOpts>),
     Balance(NetworkOpts<balance::WalletBalanceOpts>),
+    RedeemFaucetCoupon(NetworkOpts<redeem_faucet_coupon::RedeemFaucetCouponOpts>),
     Controllers(NetworkOpts<controllers::ControllersOpts>),
     Custodians(NetworkOpts<custodians::CustodiansOpts>),
     Deauthorize(NetworkOpts<deauthorize::DeauthorizeOpts>),
@@ -76,6 +78,9 @@ pub fn dispatch(cmd: WalletCommand) -> DfxResult {
         }
         SubCommand::Authorize(v) => with_env!(v, |env, v| authorize::exec(&env, v)),
         SubCommand::Balance(v) => with_env!(v, |env, v| balance::exec(&env, v)),
+        SubCommand::RedeemFaucetCoupon(v) => {
+            with_env!(v, |env, v| redeem_faucet_coupon::exec(&env, v))
+        }
         SubCommand::Controllers(v) => {
             with_env!(v, |env, v| controllers::exec(&env, v))
         }
@@ -107,8 +112,7 @@ where
         .to_string();
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
-    let wallet =
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name).await?;
 
     let out: O = wallet
         .query_(method)
@@ -145,7 +149,6 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
     fetch_root_key_if_needed(env).await?;
-    let wallet =
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name).await?;
     Ok(wallet)
 }

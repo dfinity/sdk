@@ -204,8 +204,8 @@ $dfx_rc canister call hello_world greet everyone
 +
 [source, bash]
 ----
-export hello_world_backend_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_world_backend)"
-export hello_world_frontend_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_frontend)"
+export hello_world_backend_candid_url="http://localhost:4943/candid?canisterId=$($dfx_rc canister id hello_world_backend)"
+export hello_world_frontend_url="http://localhost:4943/?canisterId=$($dfx_rc canister id hello_world_frontend)"
 ----
 . Open a web browser and clear your cache or switch to Private Browsing/Incognito mode.
 . Open the following URL in your web browser:

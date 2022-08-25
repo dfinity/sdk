@@ -20,7 +20,6 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
-use ic_agent::Agent;
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -65,46 +64,9 @@ pub struct StartOpts {
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
-
-    let agent = Agent::builder()
-        .with_transport(
-            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(frontend_url)
-                .with_context(|| {
-                    format!(
-                        "Failed to create replica transport from frontend url {}.",
-                        frontend_url
-                    )
-                })?,
-        )
-        .build()
-        .with_context(|| format!("Failed to build agent with frontend url {}.", frontend_url))?;
-
     // wait for frontend to come up
-    let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(60))
-        .throttle(std::time::Duration::from_secs(1))
-        .build();
-
-    runtime.block_on(async {
-        waiter.start();
-        loop {
-            let status = agent.status().await;
-            if let Ok(status) = &status {
-                let healthy = match &status.replica_health_status {
-                    Some(status) if status == "healthy" => true,
-                    None => true, // emulator doesn't report replica_health_status
-                    _ => false,
-                };
-                if healthy {
-                    break;
-                }
-            }
-            waiter
-                .wait()
-                .map_err(|_| DfxError::new(status.unwrap_err()))?;
-        }
-        Ok(())
-    })
+    runtime.block_on(async { crate::lib::provider::ping_and_wait(frontend_url).await })?;
+    Ok(())
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process

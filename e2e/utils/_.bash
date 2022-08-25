@@ -8,8 +8,8 @@ install_asset() {
     cp -R "$ASSET_ROOT"/* .
 
     # shellcheck source=/dev/null
-    [ -f ./patch.bash ] && source ./patch.bash
-    [ ! -f ./Cargo.toml ] || cargo update
+    if [ -f ./patch.bash ]; then source ./patch.bash; fi
+    if [ -f ./Cargo.toml ]; then cargo update; fi
 }
 
 install_shared_asset() {
@@ -322,7 +322,7 @@ use_default_wallet_wasm() {
 }
 
 get_webserver_port() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port"
+  dfx info webserver-port
 }
 overwrite_webserver_port() {
   echo "$1" >"$E2E_NETWORK_DATA_DIRECTORY/webserver-port"

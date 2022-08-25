@@ -1,7 +1,12 @@
 [workspace]
 members = [
     "src/dfx",
+    "src/canisters/frontend/ic-asset",
+    "src/canisters/frontend/icx-asset",
+    "src/canisters/frontend/ic-certified-assets",
+    "src/canisters/frontend/certified-assets",
 ]
+default-members = ["src/dfx"]
 
 [patch.crates-io.ic-agent]
 version = "0.20.0"
@@ -10,8 +15,7 @@ rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 
 [patch.crates-io.ic-asset]
 version = "0.20.0"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
+path = "src/canisters/frontend/ic-asset"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.20.0"
@@ -23,5 +27,13 @@ version = "0.20.0"
 git = "https://github.com/dfinity/agent-rs.git"
 rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 
+[profile.release]
+panic = 'abort'
+lto = true
+
 [profile.dev.package.argon2]
 opt-level = 3
+
+[profile.release.package.certified-assets]
+opt-level = 'z'
+

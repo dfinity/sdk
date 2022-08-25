@@ -27,7 +27,7 @@ case "$OSTYPE" in
 esac
 
 add_canisters() {
-    tar -czf "$DFX_ASSETS_TEMP_DIR"/assetstorage_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./assetstorage.did ./assetstorage.wasm
+    tar -czf "$DFX_ASSETS_TEMP_DIR"/assetstorage_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./assetstorage.did ./assetstorage.wasm.gz
     tar -czf "$DFX_ASSETS_TEMP_DIR"/wallet_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./wallet.did ./wallet.wasm
     tar -czf "$DFX_ASSETS_TEMP_DIR"/ui_canister.tgz -C "$SDK_ROOT_DIR"/src/distributed ./ui.did ./ui.wasm
 }
@@ -126,12 +126,15 @@ download_motoko_base() {
 }
 
 add_binary_cache() {
+    download_binary "ic-admin"
     download_binary "ic-btc-adapter"
     download_binary "ic-canister-http-adapter"
+    download_binary "ic-nns-init"
     download_binary "replica"
     download_binary "canister_sandbox"
     download_binary "sandbox_launcher"
     download_binary "ic-starter"
+    download_binary "sns"
     download_ic_ref
     download_icx_proxy
     download_motoko_binaries

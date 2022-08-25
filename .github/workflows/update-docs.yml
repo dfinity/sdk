@@ -15,6 +15,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: Install Rust
         run: |
           rustup update ${{ matrix.rust }} --no-self-update

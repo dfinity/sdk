@@ -4,9 +4,61 @@
 
 ## DFX
 
-### fix: improved responsiveness of `greet` method call in default Motoko project template
+### chore: Frontend canister build process no longer depends on `dfx` or `ic-cdk-optimizer`
 
-`greet` method was marked as an `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
+Instead, the build process relies on `ic-wasm` to provide candid metadata for the canister, and
+shrinking the canister size by stripping debug symbols and unused fuctions.
+Additionally, after build step, the `.wasm` file is archived with `gzip`. 
+
+### chore: Move all `frontend canister`-related code into the SDK repo
+
+| from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)        | summary                                                                                     |
+|:--------------------------------------------|:---------------------------------------------|:--------------------------------------------------------------------------------------------|
+| `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset` | the core of the frontend canister                                                           |
+| `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-asset`           | wrapper around the core, helps build the canister wasm                                      |
+| `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`           | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
+| `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`          | CLI executable tool - wraps `ic-asset`                                                      |
+
+
+
+### feat: use JSON5 file format for frontend canister asset configuration
+
+Both `.ic-assets.json` and `.ic-assets.json5` are valid filenames config filename, though both will get parsed
+as if they were [JSON5](https://json5.org/) format. Example content of the `.ic-assets.json5` file:
+```json5
+// comment
+[
+  {
+    "match": "*", // comment
+    /*
+    keys below not wrapped in quotes
+*/  cache: { max_age: 999 }, // trailing comma 
+  },
+]
+```
+- Learn more about JSON5: https://json5.org/
+
+### fix: Update nns binaries unless `NO_CLOBBER` is set
+
+Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
+
+### feat!: Support installing canisters not in dfx.json
+
+`install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
+
+### feat: print the dashboard URL on startup
+
+When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.
+
+### feat!: changed the default port of the shared local network from 8000 to 4943.
+
+This is so dfx doesn't connect to a project-specific network instead of the local shared network.
+
+In combination with the "system-wide dfx start" feature, there is a potential difference to be aware of with respect to existing projects.
+
+Since previous versions of dfx populate dfx.json with a `networks.local` definition that specifies port 8000, the behavior for existing projects won't change.
+
+However, if you've edited dfx.json and removed the `networks.local` definition, the behavior within the project will change: dfx will connect to the shared local network on port 4943 rather than to the project-specific network on port 8000.  You would need to edit webpack.config.js to match.  If you have scripts, you can run the new command `dfx info webserver-port` from the project directory to retrieve the port value.
 
 ### feat!: "system-wide dfx start"
 
@@ -20,7 +72,7 @@ The intended benefits:
 
 We're calling this the "shared local network."  `dfx start` and `dfx stop` will manage this network when run outside any project directory, or when a project's dfx.json does not define the `local` network.  The dfx.json template for new projects no longer defines any networks.
 
-We recommend that you remove the `local` network definition from dfx.json and instead use the shared local network.
+We recommend that you remove the `local` network definition from dfx.json and instead use the shared local network.  As mentioned above, doing so will make dfx use port 4943 rather than port 8000.
 
 See [Local Server Configuration](docs/cli-reference/dfx-start.md#local-server-configuration) for details.
 
@@ -31,12 +83,32 @@ dfx now stores data and control files in one of three places, rather than direct
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
 
+### feat: added `dfx info webserver-port` command
+
+This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
+
+### fix: improved responsiveness of `greet` method call in default Motoko project template
+
+`greet` method was marked as an `update` call, but it performs no state updates. Changing it to `query` call will result in faster execution.
+
 ### feat: dfx schema --for networks
 
 The `dfx schema` command can now display the schema for either dfx.json or for networks.json.  By default, it still displays the schema for dfx.json.
 
 ```bash
 dfx schema --for networks
+```
+
+### feat: createActor options accept pre-initialized agent
+
+If you have a pre-initialized agent in your JS code, you can now pass it to createActor's options. Conflicts with the agentOptions config - if you pass both the agent option will be used and you will receive a warning.
+
+```js
+const plugActor = createActor(canisterId, {
+  agent: plugAgent
+})
 ```
 
 ### feat!: option for nodejs compatibility in dfx generate
@@ -65,6 +137,26 @@ DFX new template now uses `dfx generate` instead of `rsync`. Adds deprecation wa
   "generate": "dfx generate hello_backend"
 },
 ```
+
+### feat: simple cycles faucet code redemption
+
+Using `dfx wallet --network ic redeem-faucet-coupon <my coupon>` faucet users have a much easier time to redeem their codes.
+If the active identity has no wallet configured, the faucet supplies a wallet to the user that this command will automatically configure.
+If the active identity has a wallet configured already, the faucet will top up the existing wallet.
+
+Alternative faucets can be used, assuming they follow the same interface. To direct dfx to a different faucet, use the `--faucet <alternative faucet id>` flag.
+The expected interface looks like the following candid functions:
+``` candid
+redeem: (text) -> (principal);
+redeem_to_wallet: (text, principal) -> (nat);
+```
+The function `redeem` takes a coupon code and returns the principal to an already-installed wallet that is controlled by the identity that called the function.
+The function `redeem_to_wallet` takes a coupon code and a wallet (or any other canister) principal, deposits the cycles into that canister and returns how many cycles were deposited.
+
+### feat: disable automatic wallet creation on non-ic networks
+
+By default, if dfx is not running on the `ic` (or networks with a different name but the same configuration), it will automatically create a cycles wallet in case it hasn't been created yet.
+It is now possible to inhibit automatic wallet creation by setting the `DFX_DISABLE_AUTO_WALLET` environment variable.
 
 ### fix!: removed unused --root parameter from dfx bootstrap
 
@@ -128,11 +220,39 @@ Canister sandboxing is enabled to be consistent with the mainnet.
 It is now possible to do e.g. `dfx ledger account-id --of-canister fg7gi-vyaaa-aaaal-qadca-cai` as well as `dfx ledger account-id --of-canister my_canister_name` when checking the ledger account id of a canister.
 Previously, dfx only accepted canister aliases and produced an error message that was hard to understand.
 
+### fix: print links to cdk-rs docs in dfx new
+
+### fix: Small grammar change to identity password decryption prompt
+
+The prompt for entering your passphrase in order to decrypt an identity password read:
+    "Please enter a passphrase for your identity"
+However, at that point, it isn't "a" passphrase.  It's either your passphrase, or incorrect.
+Changed the text in this case to read:
+    "Please enter the passphrase for your identity"
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
+This incorporates the following executed proposals:
+
+* [76228](https://dashboard.internetcomputer.org/proposal/76228)
+* [75700](https://dashboard.internetcomputer.org/proposal/75700)
+* [75109](https://dashboard.internetcomputer.org/proposal/75109)
+* [74395](https://dashboard.internetcomputer.org/proposal/74395)
+* [73959](https://dashboard.internetcomputer.org/proposal/73959)
+* [73714](https://dashboard.internetcomputer.org/proposal/73714)
+* [73368](https://dashboard.internetcomputer.org/proposal/73368)
+* [72764](https://dashboard.internetcomputer.org/proposal/72764)
+
 ### ic-ref
 
 Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
+
+### Updated Motoko to 0.6.30
 
 # 0.11.1
 

@@ -66,7 +66,7 @@ enum SubCommand {
 }
 
 macro_rules! with_env {
-    ($opts:expr, |$env:pat, $v:pat, $call_sender:pat| $e:expr) => {{
+    ($opts:expr, |$env:pat, $v:pat, $call_sender:pat_param| $e:expr) => {{
         let CanisterOpts {
             network_opts: NetworkOpts { base_opts, network },
             wallet,
