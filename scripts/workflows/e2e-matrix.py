@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import json
-import glob
 import os
 
 
@@ -27,6 +26,30 @@ matrix = {
         {
             'backend': 'ic-ref',
             'test': 'dfx/canister_http'
+        },
+        {
+            'backend': 'ic-ref',
+            'test': 'dfx/dfx_install'
+        },
+        {
+            'backend': 'ic-ref',
+            'test': 'dfx/leak'
+        },
+        {
+            'backend': 'ic-ref',
+            'test': 'dfx/ledger'
+        },
+        {
+            'backend': 'ic-ref',
+            'test': 'dfx/new'
+        },
+        {
+            'backend': 'ic-ref',
+            'test': 'dfx/print'
+        },
+        {
+            'backend': 'ic-ref',
+            'test': 'dfx/signals'
         }
     ]
 }

@@ -2,6 +2,8 @@
 
 load ../utils/_
 
+# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
+
 setup() {
     standard_setup
 }
@@ -11,8 +13,6 @@ teardown() {
 }
 
 @test "dfx new - good names" {
-    [ "$USE_IC_REF" ] && skip "no need to run new tests on ic-ref"
-
     dfx new --no-frontend a_good_name_
     dfx new --no-frontend A
     dfx new --no-frontend b
@@ -23,8 +23,6 @@ teardown() {
 }
 
 @test "dfx new - bad names" {
-    [ "$USE_IC_REF" ] && skip "no need to run new tests on ic-ref"
-
     assert_command_fail dfx new _a_good_name_
     assert_command_fail dfx new __also_good
     assert_command_fail dfx new _1
