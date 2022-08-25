@@ -4,6 +4,18 @@
 
 ## DFX
 
+### chore: Frontend canister build process no longer depends on `dfx`
+
+Instead, the canister is now build with `cargo` and `ic-wasm`, then archived with `gzip`. 
+
+### chore: Move all `asset canister`-related code into the SDK repo
+
+- `dfinity/ic-asset`
+- `dfinity/icx-asset`
+- `dfinity/ic-certified-assets`
+- `dfinity/certified-assets`
+  - no longer depends on `ic-cdk-optimizer` and `dfx`, and instead uses `ic-wasm` to build the canister code.
+
 ### feat: use JSON5 file format for frontend canister asset configuration
 
 Both `.ic-assets.json` and `.ic-assets.json5` are valid filenames config filename, though both will get parsed
@@ -20,13 +32,6 @@ as if they were [JSON5](https://json5.org/) format. Example content of the `.ic-
 ]
 ```
 - learn more about JSON5: https://json5.org/
-
-### chore: Move all `asset canister`-related code into the SDK repo
-- `dfinity/ic-asset`
-- `dfinity/icx-asset`
-- `dfinity/ic-certified-assets`
-- `dfinity/certified-assets`
-  - no longer depends on `ic-cdk-optimizer` and `dfx`, and instead uses `ic-wasm` to build the canister code.
 
 ### fix: Update nns binaries unless `NO_CLOBBER` is set
 
