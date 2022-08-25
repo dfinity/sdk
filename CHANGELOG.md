@@ -4,6 +4,25 @@
 
 ## DFX
 
+### feat: use JSON5 file format for .ic-assets.json5 config
+
+Example `.ic-assets.json5` file:
+```json5
+// comment
+[
+  {
+    "match": "*", // comment
+    /*
+    look at these beatiful keys below not wrapped in quotes
+*/  cache: { max_age: 999 } 
+  }
+]
+```
+
+### fix: Update nns binaries unless `NO_CLOBBER` is set
+
+Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
+
 ### feat!: Support installing canisters not in dfx.json
 
 `install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
@@ -100,6 +119,26 @@ DFX new template now uses `dfx generate` instead of `rsync`. Adds deprecation wa
 },
 ```
 
+### feat: simple cycles faucet code redemption
+
+Using `dfx wallet --network ic redeem-faucet-coupon <my coupon>` faucet users have a much easier time to redeem their codes.
+If the active identity has no wallet configured, the faucet supplies a wallet to the user that this command will automatically configure.
+If the active identity has a wallet configured already, the faucet will top up the existing wallet.
+
+Alternative faucets can be used, assuming they follow the same interface. To direct dfx to a different faucet, use the `--faucet <alternative faucet id>` flag.
+The expected interface looks like the following candid functions:
+``` candid
+redeem: (text) -> (principal);
+redeem_to_wallet: (text, principal) -> (nat);
+```
+The function `redeem` takes a coupon code and returns the principal to an already-installed wallet that is controlled by the identity that called the function.
+The function `redeem_to_wallet` takes a coupon code and a wallet (or any other canister) principal, deposits the cycles into that canister and returns how many cycles were deposited.
+
+### feat: disable automatic wallet creation on non-ic networks
+
+By default, if dfx is not running on the `ic` (or networks with a different name but the same configuration), it will automatically create a cycles wallet in case it hasn't been created yet.
+It is now possible to inhibit automatic wallet creation by setting the `DFX_DISABLE_AUTO_WALLET` environment variable.
+
 ### fix!: removed unused --root parameter from dfx bootstrap
 
 ### feat: canister installation now waits for the replica
@@ -172,11 +211,29 @@ However, at that point, it isn't "a" passphrase.  It's either your passphrase, o
 Changed the text in this case to read:
     "Please enter the passphrase for your identity"
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
+This incorporates the following executed proposals:
+
+* [76228](https://dashboard.internetcomputer.org/proposal/76228)
+* [75700](https://dashboard.internetcomputer.org/proposal/75700)
+* [75109](https://dashboard.internetcomputer.org/proposal/75109)
+* [74395](https://dashboard.internetcomputer.org/proposal/74395)
+* [73959](https://dashboard.internetcomputer.org/proposal/73959)
+* [73714](https://dashboard.internetcomputer.org/proposal/73714)
+* [73368](https://dashboard.internetcomputer.org/proposal/73368)
+* [72764](https://dashboard.internetcomputer.org/proposal/72764)
+
 ### ic-ref
 
 Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
+
+### Updated Motoko to 0.6.30
 
 # 0.11.1
 
