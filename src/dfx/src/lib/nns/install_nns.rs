@@ -29,7 +29,7 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Duration;
 
-use self::canisters::StandardCanister;
+use self::canisters::{StandardCanister, IcNnsInitCanister, NNS_CORE};
 
 pub mod canisters {
     /// Configuration for an NNS canister installation as performed by `ic-nns-init`.
@@ -277,19 +277,18 @@ pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
 /// Downloads wasm file from the main IC repo CI.
 #[context("Failed to download {} from the IC CI.", target_name)]
 pub async fn download_ic_repo_wasm(
-    target_name: &str,
-    src_name: &str,
+    wasm_name: &str,
     ic_commit: &str,
     wasm_dir: &Path,
 ) -> anyhow::Result<()> {
     fs::create_dir_all(wasm_dir)?;
-    let final_path = wasm_dir.join(format!("{target_name}.wasm"));
+    let final_path = wasm_dir.join(wasm_name);
     if final_path.exists() {
         return Ok(());
     }
 
     let url_str =
-        format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{src_name}.wasm.gz");
+        format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)?;
     println!(
         "Downloading {}\n  from {}",
@@ -303,6 +302,10 @@ pub async fn download_ic_repo_wasm(
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     // TODO: Include the canister ID in the path.  .dfx/local/wasms/nns/${COMMIT}/....
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
+    for IcNnsInitCanister{canister_name, ..} in NNS_CORE {
+        download_ic_repo_wasm(wasm_name, ic_commit, &nns_wasm_dir(env)).await?;
+    }
+/*
     for name in [
         "cycles-minting-canister",
         "genesis-token-canister",
@@ -320,9 +323,8 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
         "sns-root-canister",
         "sns-swap-canister",
         "sns-wasm-canister",
-    ] {
-        download_ic_repo_wasm(name, name, ic_commit, &nns_wasm_dir(env)).await?;
-    }
+    ]
+    */
     /*
     for StandardCanister{wasm_name, wasm_url, ..} in canisters::NNS_FRONTEND {
         download(&Url::parse(&wasm_url)?, &nns_wasm_dir(env).join(wasm_name))
