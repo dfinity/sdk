@@ -7,15 +7,18 @@ use crate::lib::identity::{
 };
 
 use anyhow::{anyhow, bail, Context};
+use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
 use fn_error_context::context;
-use pem::{encode, Pem};
-use ring::{rand, rand::SecureRandom, signature};
+use k256::SecretKey;
+use pkcs8::{EncodePrivateKey, LineEnding};
+use ring::{rand, rand::SecureRandom};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
+use tiny_hderive::bip32::ExtendedPrivKey;
 
 use super::WALLET_CONFIG_FILENAME;
 
@@ -468,8 +471,9 @@ To create a more secure identity, create and use an identity that is protected b
                 "  - generating new key at {}",
                 identity_pem_path.display()
             );
-            let key = generate_key()?;
+            let (key, mnemonic) = generate_key()?;
             pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())?;
+            eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
         }
     } else {
         slog::info!(
@@ -560,21 +564,24 @@ fn remove_identity_file(file: &Path) -> DfxResult {
     Ok(())
 }
 
-/// Generates a new Ed25519 key.
-#[context("Failed to generate a fresh ed25519 key.")]
-pub(super) fn generate_key() -> DfxResult<Vec<u8>> {
-    let rng = rand::SystemRandom::new();
-    let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
-        .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
+/// Generates a new secp256k1 key.
+#[context("Failed to generate a fresh secp256k1 key.")]
+pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
+    const DEFAULT_DERIVATION_PATH: &str = "m/44'/60'/0'/0/0";
+    let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256)?, Language::English);
+    let seed = Seed::new(&mnemonic, ""); // good enough for quill
+    let pk = ExtendedPrivKey::derive(seed.as_bytes(), DEFAULT_DERIVATION_PATH).map_err(|e| {
+        if let tiny_hderive::Error::Secp256k1(err) = e {
+            anyhow!(err)
+        } else {
+            anyhow!("{e:?}")
+        }
+    })?;
+    let secret = SecretKey::from_be_bytes(&pk.secret())?;
+    let pem = secret.to_pkcs8_pem(LineEnding::CRLF)?;
+    // let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
+    //     .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
 
-    let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
-    Ok(Vec::from(encoded_pem))
-}
-
-fn encode_pem_private_key(key: &[u8]) -> String {
-    let pem = Pem {
-        tag: "PRIVATE KEY".to_owned(),
-        contents: key.to_vec(),
-    };
-    encode(&pem)
+    // let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
+    Ok((pem.as_bytes().to_vec(), mnemonic))
 }

@@ -132,13 +132,14 @@ impl Identity {
         match parameters {
             IdentityCreationParameters::Pem { disable_encryption } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
-                let pem_content = identity_manager::generate_key()?;
+                let (pem_content, mnemonic) = identity_manager::generate_key()?;
                 let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 pem_encryption::write_pem_file(
                     &pem_file,
                     Some(&identity_config),
                     pem_content.as_slice(),
                 )?;
+                eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
             }
             IdentityCreationParameters::PemFile {
                 src_pem_file,
