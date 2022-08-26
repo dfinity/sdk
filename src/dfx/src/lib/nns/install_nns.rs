@@ -520,9 +520,7 @@ pub fn set_cmc_authorized_subnets(nns_url: &Url, subnet: &str) -> anyhow::Result
 }
 
 /// Uploads wasms to the nns-sns-wasm canister.
-pub fn upload_nns_sns_wasms_canister_wasms(
-    env: &dyn Environment,
-) -> anyhow::Result<()> {
+pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     for SnsCanisterInstallation {
         upload_name,
         wasm_name,
