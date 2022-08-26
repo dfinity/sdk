@@ -12,7 +12,6 @@ use clap::Parser;
 use fn_error_context::context;
 use std::fs::create_dir_all;
 use std::net::{IpAddr, SocketAddr};
-use url::Url;
 
 /// Starts the bootstrap server.
 #[derive(Parser, Clone)]
@@ -70,7 +69,7 @@ pub fn exec(
 
     let icx_proxy_pid_file_path = local_server_descriptor.icx_proxy_pid_path();
 
-    let replica_urls: Vec<Url> = get_replica_urls(env, &network_descriptor)?;
+    let replica_urls = get_replica_urls(env, &network_descriptor)?;
 
     // Since the user may have provided port "0", we need to grab a dynamically
     // allocated port and construct a resuable SocketAddr which the actix
