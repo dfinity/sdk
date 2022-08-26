@@ -5,7 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::util::get_reusable_socket_addr;
-use crate::util::network::get_running_replica_port;
+use crate::util::network::get_replica_urls;
 
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
@@ -175,37 +175,4 @@ fn apply_arguments(
         local_server_descriptor: Some(local_server_descriptor),
         ..network_descriptor
     })
-}
-
-#[context("Failed to determine replica urls.")]
-fn get_replica_urls(
-    env: &dyn Environment,
-    network_descriptor: &NetworkDescriptor,
-) -> DfxResult<Vec<Url>> {
-    if network_descriptor.name == "local" {
-        let local_server_descriptor = network_descriptor.local_server_descriptor()?;
-        if let Some(port) = get_running_replica_port(env, local_server_descriptor)? {
-            let mut socket_addr = local_server_descriptor.bind_address;
-            socket_addr.set_port(port);
-            let url = format!("http://{}", socket_addr);
-            let url = Url::parse(&url)?;
-            return Ok(vec![url]);
-        }
-    }
-    get_providers(network_descriptor)
-}
-
-/// Gets the list of compute provider API endpoints.
-#[context("Failed to get providers for network '{}'.", network_descriptor.name)]
-fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<Url>> {
-    network_descriptor
-        .providers
-        .iter()
-        .map(|url| parse_url(url))
-        .collect()
-}
-
-#[context("Failed to parse url '{}'.", url)]
-fn parse_url(url: &str) -> DfxResult<Url> {
-    Ok(Url::parse(url)?)
 }

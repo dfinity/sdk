@@ -73,7 +73,7 @@ pub async fn install_nns(
     let subnet_id =
         ic_agent::export::Principal::self_authenticating(agent.status().await?.root_key.unwrap())
             .to_text();
-    let nns_url = get_replica_url(env)?;
+    let nns_url = Url::parse(env.get_network_descriptor().providers.get(0).unwrap()).unwrap();
 
     // Install the core backend wasm canisters
     download_nns_wasms(env).await?;
