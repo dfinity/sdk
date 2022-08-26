@@ -809,7 +809,6 @@ dependencies = [
  "openssl",
  "pem",
  "petgraph",
- "pkcs8",
  "proptest",
  "rand",
  "regex",

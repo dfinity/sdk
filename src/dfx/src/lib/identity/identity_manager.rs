@@ -11,8 +11,8 @@ use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
 use fn_error_context::context;
+use k256::pkcs8::LineEnding;
 use k256::SecretKey;
-use pkcs8::{EncodePrivateKey, LineEnding};
 use ring::{rand, rand::SecureRandom};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
@@ -572,8 +572,6 @@ pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
     let seed = Seed::new(&mnemonic, ""); // good enough for quill
     let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
     let secret = SecretKey::from(pk.private_key());
-    let pem = secret
-        .to_pkcs8_der()?
-        .to_pem("EC PRIVATE KEY", LineEnding::CRLF)?;
+    let pem = secret.to_pem(LineEnding::CRLF)?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }
