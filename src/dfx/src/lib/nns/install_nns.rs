@@ -37,40 +37,59 @@ pub mod canisters {
     /// Note: Other deployment methods may well use different settings.
     pub struct IcNnsInitCanister {
         pub canister_name: &'static str,
+        pub wasm_name: &'static str,
         pub canister_id: &'static str,
     }
     pub const NNS_REGISTRY: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-registry",
+        wasm_name: "registry-canister.wasm",
         canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai",
     };
     pub const NNS_GOVERNANCE: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-governance",
+        wasm_name: "governance-canister_test.wasm",
         canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai",
     };
     pub const NNS_LEDGER: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-ledger",
+        wasm_name: "ledger-canister_notify-method.wasm",
         canister_id: "ryjl3-tyaaa-aaaaa-aa&aba-cai",
     };
     pub const NNS_ROOT: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-root",
+        wasm_name: "root-canister.wasm",
         canister_id: "r7inp-6aaaa-aaaaa-aaabq-cai",
     };
     pub const NNS_CYCLES_MINTING: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-cycles-minting",
+        wasm_name: "cycles-minting-canister.wasm",
         canister_id: "rkp4c-7iaaa-aaaaa-aaaca-cai",
     };
     pub const NNS_LIFELINE: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-lifeline",
+        wasm_name: "lifeline.wasm",
         canister_id: "rno2w-sqaaa-aaaaa-aaacq-cai",
     };
     pub const NNS_GENESIS_TOKENS: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-genesis-token",
+        wasm_name: "genesis-token-canister.wasm",
         canister_id: "renrk-eyaaa-aaaaa-aaada-cai",
     };
     pub const NNS_SNS_WASM: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-sns-wasm",
+        wasm_name: "sns-wasm-canister.wasm",
         canister_id: "qvhpv-4qaaa-aaaaa-aaagq-cai",
     };
+    pub const NNS_IDENTITY: IcNnsInitCanister = IcNnsInitCanister {
+         canister_name: "nns-identity",
+         wasm_name: "identity-canister.wasm",
+         canister_id: "",
+    };
+    pub const NNS_UI: IcNnsInitCanister = IcNnsInitCanister {
+        canister_name: "nns-ui",
+        wasm_name: "nns-ui-canister.wasm",
+        canister_id: "",
+   };
 
     pub struct StandardCanister {
         pub canister_name: &'static str,
@@ -88,7 +107,7 @@ pub mod canisters {
         wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm"
     };
 
-    pub const NNS_CORE: &'static [&'static IcNnsInitCanister; 8] = &[
+    pub const NNS_CORE: &'static [&'static IcNnsInitCanister; 10] = &[
         &NNS_REGISTRY,
         &NNS_GOVERNANCE,
         &NNS_LEDGER,
@@ -97,6 +116,8 @@ pub mod canisters {
         &NNS_LIFELINE,
         &NNS_GENESIS_TOKENS,
         &NNS_SNS_WASM,
+        &NNS_IDENTITY,
+        &NNS_UI,
     ];
     pub const NNS_FRONTEND: [&'static StandardCanister;2] = [&INTERNET_IDENTITY, &NNS_DAPP];
 
@@ -161,6 +182,7 @@ pub async fn install_nns(
     for canisters::IcNnsInitCanister {
         canister_name,
         canister_id,
+        ..
     } in canisters::NNS_CORE
     {
         canister_id_store.add(canister_name, canister_id)?;
@@ -256,7 +278,7 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
 }
 
 /// Downloads and unzips a file
-#[context("Failed to download and unzip {:?} from {:?}.", target, source)]
+#[context("Failed to download and unzip {:?} from {:?}.", target, source.as_str())]
 pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
     let response = reqwest::get(source.clone()).await?.bytes().await?;
     let mut decoder = Decoder::new(&response[..])?;
@@ -275,14 +297,14 @@ pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
 }
 
 /// Downloads wasm file from the main IC repo CI.
-#[context("Failed to download {} from the IC CI.", target_name)]
+#[context("Failed to download {} from the IC CI.", wasm_name)]
 pub async fn download_ic_repo_wasm(
     wasm_name: &str,
     ic_commit: &str,
     wasm_dir: &Path,
 ) -> anyhow::Result<()> {
     fs::create_dir_all(wasm_dir)?;
-    let final_path = wasm_dir.join(wasm_name);
+    let final_path = wasm_dir.join(&wasm_name);
     if final_path.exists() {
         return Ok(());
     }
@@ -302,7 +324,7 @@ pub async fn download_ic_repo_wasm(
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     // TODO: Include the canister ID in the path.  .dfx/local/wasms/nns/${COMMIT}/....
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
-    for IcNnsInitCanister{canister_name, ..} in NNS_CORE {
+    for IcNnsInitCanister{wasm_name, ..} in NNS_CORE {
         download_ic_repo_wasm(wasm_name, ic_commit, &nns_wasm_dir(env)).await?;
     }
 /*
