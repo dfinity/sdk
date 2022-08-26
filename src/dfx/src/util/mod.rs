@@ -22,6 +22,7 @@ use std::time::Duration;
 pub mod assets;
 pub mod clap;
 pub mod currency_conversion;
+pub mod network;
 pub mod stderr_wrapper;
 
 const DECIMAL_POINT: char = '.';
