@@ -27,6 +27,10 @@ Example of `.ic-assets.json` making use of this feature:
     }
 ```
 
+### refactor: Move replica URL functions into a module for reuse
+
+The running replica port and url are generally useful information. Previously the code to get the URL was embedded in the network proxy code. This moves it out into a library for reuse.
+
 ### chore: Frontend canister build process no longer depends on `dfx` or `ic-cdk-optimizer`
 
 Instead, the build process relies on `ic-wasm` to provide candid metadata for the canister, and
@@ -41,8 +45,6 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 | `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-asset`           | wrapper around the core, helps build the canister wasm                                      |
 | `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`           | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
 | `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`          | CLI executable tool - wraps `ic-asset`                                                      |
-
-
 
 ### feat: use JSON5 file format for frontend canister asset configuration
 
@@ -214,6 +216,10 @@ This is a breaking change.  The only thing this was still serving was the /_/can
 
 - if there is no wallet to upgrade
 - if trying to upgrade a local wallet from outside of a project directory
+
+### fix: canister creation cost is 0.1T cycles
+
+Canister creation fee was calculated with 1T cycles instead of 0.1T.
 
 ### fix: dfx deploy and dfx canister install write .old.did files under .dfx/
 
