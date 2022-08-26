@@ -13,8 +13,7 @@ An issue was created to automate this using nix; https://github.com/dfinity-lab/
 
 # Building the Asset Canister
 
-The `assetstorage.wasm` and `assetstorage.did` files here are built using `dfx build` in the
-https://github.com/dfinity/certified-assets repo.
+The `assetstorage.wasm.gz` and `assetstorage.did` files here are built using scripts/update-frontend-canister.sh in this repo.
 
 To build, clone that repo, run `dfx build`, then copy the `.dfx/local/canisters/certified_assets/certified_assets.wasm`.
 
