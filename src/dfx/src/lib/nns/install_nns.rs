@@ -27,7 +27,7 @@ use reqwest::Url;
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::process;
+use std::process::{self, Command};
 use std::time::Duration;
 
 use self::canisters::{
@@ -531,7 +531,8 @@ pub fn upload_nns_sns_wasms_canister_wasms(
     {
         // TODO: The sns binary needs to be bundled with dfx
         let wasm_path = nns_wasm_dir(env).join(wasm_name);
-        std::process::Command::new("sns")
+        let mut command = Command::new("sns");
+        command
             .arg("add-sns-wasm-for-tests")
             .arg("--network")
             .arg("local")
@@ -539,18 +540,19 @@ pub fn upload_nns_sns_wasms_canister_wasms(
             .arg(canisters::NNS_SNS_WASM.canister_id)
             .arg("--wasm-file")
             .arg(&wasm_path)
-            .arg(upload_name)
-            .stdin(process::Stdio::null())
-            .output()
+            .arg(upload_name);
+        command
+        .stdin(process::Stdio::null())
+        .output()
             .map_err(anyhow::Error::from)
             .and_then(|output| {
                 if output.status.success() {
                     Ok(())
                 } else {
                     Err(anyhow!(
-                        "Failed to upload {} from {} to the nns-sns-wasm canister: {:?}",
+                        "Failed to upload {} from {} to the nns-sns-wasm canister:\n{:?} {:?}\nStdout:\n{:?}\n\nStderr:\n{:?}",
                         upload_name,
-                        wasm_path.to_string_lossy(), output
+                        wasm_path.to_string_lossy(), command.get_program(), command.get_args(), output.stdout, output.stderr
                     ))
                 }
             })?;
