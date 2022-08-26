@@ -4,6 +4,10 @@
 
 ## DFX
 
+### refactor: Move replica URL functions into a module for reuse
+
+The running replica port and url are generally useful information. Previously the code to get the URL was embedded in the network proxy code. This moves it out into a library for reuse.
+
 ### feat: use JSON5 file format for .ic-assets.json5 config
 
 Example `.ic-assets.json5` file:
