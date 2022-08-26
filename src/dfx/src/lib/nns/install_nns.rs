@@ -66,12 +66,11 @@ pub async fn install_nns(
     agent: &Agent,
     _provider_url: &str,
     ic_nns_init_path: &Path,
-    replicated_state_dir: &Path,
 ) -> anyhow::Result<()> {
     println!("Checking out the environment...");
     // Check out the environment.
     verify_local_replica_type_is_system(env)?;
-    let subnet_id = get_local_subnet_id(replicated_state_dir)?;
+    let subnet_id = ic_agent::export::Principal::self_authenticating(agent.status().await?.root_key.unwrap()).to_text();
     let nns_url = get_replica_url(env)?;
 
     // Install the core backend wasm canisters
@@ -80,7 +79,7 @@ pub async fn install_nns(
         wasm_dir: nns_wasm_dir(env),
         nns_url: nns_url.to_string(),
         test_accounts: Some(TEST_ACCOUNT.to_string()),
-        sns_subnets: Some(subnet_id.clone()),
+        sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
@@ -98,7 +97,7 @@ pub async fn install_nns(
 
     // ... and configure the backend NNS canisters:
     set_xdr_rate(1234567, &nns_url)?;
-    set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
+    set_cmc_authorized_subnets(&nns_url, &subnet_id.to_string())?;
 
     // Install the GUI canisters:
     download(&Url::parse(II_URL)?, &nns_wasm_dir(env).join(&II_WASM)).await?;
@@ -321,32 +320,6 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
         return Err(anyhow!("ic-nns-init call failed"));
     }
     Ok(())
-}
-
-/// Gets the local subnet ID.
-///
-// TODO: This is a hack.  Need a proper protobuf parser.  dalves mentioned that he might do this, else I'll dive in.
-pub fn get_local_subnet_id(replicated_state_dir: &Path) -> anyhow::Result<String> {
-    // protoc --decode_raw <.dfx/state/replicated_state/ic_registry_local_store/0000000000/00/00/01.pb | sed -nE 's/.*"subnet_record_(.*)".*/\1/g;ta;b;:a;p'
-    let file = {
-        let initial_state_file =
-            replicated_state_dir.join("ic_registry_local_store/0000000000/00/00/01.pb");
-        fs::File::open(&initial_state_file)
-            .map_err(|err| anyhow!("Failed to open state file '{initial_state_file:?}': {err:?}"))?
-    };
-    let parsed = std::process::Command::new("protoc")
-        .arg("--decode_raw")
-        .stdin(file)
-        .output()
-        .expect("Failed to start protobuf file parser");
-    let parsed_str = std::str::from_utf8(&parsed.stdout)?;
-    parsed_str
-        .split('\n')
-        .into_iter()
-        .find_map(|line| line.split("subnet_record_").into_iter().nth(1))
-        .and_then(|line| line.split('"').next())
-        .map(|subnet| subnet.to_string())
-        .ok_or_else(|| anyhow!("Protobuf has no subnet"))
 }
 
 /// Sets the exchange rate between ICP and cycles.
