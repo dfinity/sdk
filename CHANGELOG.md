@@ -198,6 +198,10 @@ This is a breaking change.  The only thing this was still serving was the /_/can
 - if there is no wallet to upgrade
 - if trying to upgrade a local wallet from outside of a project directory
 
+### fix: canister creation cost is 0.1T cycles
+
+Canister creation fee was calculated with 1T cycles instead of 0.1T.
+
 ### fix: dfx deploy and dfx canister install write .old.did files under .dfx/
 
 When dfx deploy and dfx canister install upgrade a canister, they ensure that the
