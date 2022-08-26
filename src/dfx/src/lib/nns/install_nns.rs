@@ -17,9 +17,10 @@ use crate::util::{blob_from_arguments, expiry_duration};
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
+use futures_util::future::try_join_all;
 use garcon::{Delay, Waiter};
-use ic_agent::Agent;
 use ic_agent::export::Principal;
+use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use libflate::gzip::Decoder;
 use reqwest::Url;
@@ -29,7 +30,9 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Duration;
 
-use self::canisters::{StandardCanister, IcNnsInitCanister, NNS_CORE, SnsCanisterInstallation, SNS_CANISTERS};
+use self::canisters::{
+    IcNnsInitCanister, SnsCanisterInstallation, StandardCanister, NNS_CORE, SNS_CANISTERS,
+};
 
 pub mod canisters {
     /// Configuration for an NNS canister installation as performed by `ic-nns-init`.
@@ -91,17 +94,17 @@ pub mod canisters {
         canister_id: "qvhpv-4qaaa-aaaaa-aaagq-cai",
     };
     pub const NNS_IDENTITY: IcNnsInitCanister = IcNnsInitCanister {
-         canister_name: "nns-identity",
-         wasm_name: "identity-canister.wasm",
-         test_wasm_name: None,
-         canister_id: "",
+        canister_name: "nns-identity",
+        wasm_name: "identity-canister.wasm",
+        test_wasm_name: None,
+        canister_id: "",
     };
     pub const NNS_UI: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-ui",
         wasm_name: "nns-ui-canister.wasm",
         test_wasm_name: None,
         canister_id: "",
-   };
+    };
 
     pub struct StandardCanister {
         pub canister_name: &'static str,
@@ -116,7 +119,7 @@ pub mod canisters {
     pub const NNS_DAPP: StandardCanister = StandardCanister {
         canister_name: "nns-dapp",
         wasm_name: "nns-dapp_local.wasm",
-        wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm"
+        wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm",
     };
 
     pub const NNS_CORE: &'static [&'static IcNnsInitCanister; 10] = &[
@@ -131,7 +134,7 @@ pub mod canisters {
         &NNS_IDENTITY,
         &NNS_UI,
     ];
-    pub const NNS_FRONTEND: [&'static StandardCanister;2] = [&INTERNET_IDENTITY, &NNS_DAPP];
+    pub const NNS_FRONTEND: [&'static StandardCanister; 2] = [&INTERNET_IDENTITY, &NNS_DAPP];
 
     pub struct SnsCanisterInstallation {
         pub canister_name: &'static str,
@@ -163,15 +166,18 @@ pub mod canisters {
         upload_name: "archive",
         wasm_name: "ic-icrc1-archive.wasm",
     };
-    pub const SNS_CANISTERS: [&'static SnsCanisterInstallation;5] = [
-        &SNS_ROOT, &SNS_GOVERNANCE, &SNS_SWAP, &SNS_LEDGER, &SNS_LEDGER_ARCHIVE,
+    pub const SNS_CANISTERS: [&'static SnsCanisterInstallation; 5] = [
+        &SNS_ROOT,
+        &SNS_GOVERNANCE,
+        &SNS_SWAP,
+        &SNS_LEDGER,
+        &SNS_LEDGER_ARCHIVE,
     ];
 
-
     /// Test account with well known public & private keys, used in NNS_LEDGER, NNS_DAPP and third party projects.
-    pub const TEST_ACCOUNT: &str = "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
+    pub const TEST_ACCOUNT: &str =
+        "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
 }
-
 
 /// Installs NNS canisters on a local dfx server.
 /// # Notes:
@@ -200,9 +206,9 @@ pub async fn install_nns(
     // Check out the environment.
     verify_local_replica_type_is_system(env)?;
     let subnet_id = {
-          let root_key = agent.status().await?.root_key.unwrap();
-          Principal::self_authenticating(root_key).to_text()
-        };
+        let root_key = agent.status().await?.root_key.unwrap();
+        Principal::self_authenticating(root_key).to_text()
+    };
     let nns_url = get_replica_urls(env, env.get_network_descriptor())?.remove(0);
 
     // Install the core backend wasm canisters
@@ -227,9 +233,14 @@ pub async fn install_nns(
     //upload_nns_sns_wasms_canister_wasms(env, canister_id_store);
 
     // Install the GUI canisters:
-    for StandardCanister{wasm_url, wasm_name, canister_name} in canisters::NNS_FRONTEND {
+    for StandardCanister {
+        wasm_url,
+        wasm_name,
+        canister_name,
+    } in canisters::NNS_FRONTEND
+    {
         let local_wasm_path = nns_wasm_dir(env).join(wasm_name);
-        download(&Url::parse(wasm_url)?, &local_wasm_path).await?;        
+        download(&Url::parse(wasm_url)?, &local_wasm_path).await?;
         install_canister(env, agent, canister_name, &local_wasm_path).await?;
     }
     // ... and configure the backend NNS canisters:
@@ -361,43 +372,25 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     // TODO: Include the canister ID in the path.  .dfx/local/wasms/nns/${COMMIT}/....
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
     let wasm_dir = &nns_wasm_dir(env);
-    for IcNnsInitCanister{wasm_name, test_wasm_name, ..} in NNS_CORE {
+    for IcNnsInitCanister {
+        wasm_name,
+        test_wasm_name,
+        ..
+    } in NNS_CORE
+    {
         download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir).await?;
         if let Some(test_wasm_name) = test_wasm_name {
-          download_ic_repo_wasm(test_wasm_name, ic_commit, wasm_dir).await?;
+            download_ic_repo_wasm(test_wasm_name, ic_commit, wasm_dir).await?;
         }
     }
-    for SnsCanisterInstallation{wasm_name, ..} in SNS_CANISTERS {
-        println!("Downloading SNS wasm {wasm_name}");
-        download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir).await?;
-    }
-/*
-    for name in [
-        "cycles-minting-canister",
-        "genesis-token-canister",
-        "governance-canister_test",
-        "governance-canister",
-        "ic-icrc1-archive",
-        "ic-icrc1-ledger",
-        "identity-canister",
-        "ledger-canister_notify-method",
-        "lifeline",
-        "nns-ui-canister",
-        "registry-canister",
-        "root-canister",
-        "sns-governance-canister",
-        "sns-root-canister",
-        "sns-swap-canister",
-        "sns-wasm-canister",
-    ]
-    */
-    /*
-    for StandardCanister{wasm_name, wasm_url, ..} in canisters::NNS_FRONTEND {
-        download(&Url::parse(&wasm_url)?, &nns_wasm_dir(env).join(wasm_name))
-            .await
-            .map_err(|e| anyhow!("Failed to download {wasm_name:?}: {e:?}"))?;
-    }
-    */
+    try_join_all(
+        SNS_CANISTERS
+            .iter()
+            .map(|SnsCanisterInstallation { wasm_name, .. }| {
+                download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir)
+            }),
+    )
+    .await?;
     Ok(())
 }
 
@@ -531,7 +524,12 @@ pub fn upload_nns_sns_wasms_canister_wasms(
     env: &dyn Environment,
     nns_sns_wasm_canister: Principal,
 ) -> anyhow::Result<()> {
-    for SnsCanisterInstallation{upload_name, wasm_name, ..} in SNS_CANISTERS {
+    for SnsCanisterInstallation {
+        upload_name,
+        wasm_name,
+        ..
+    } in SNS_CANISTERS
+    {
         // TODO: The sns binary needs to be bundled with dfx
         let wasm_path = nns_wasm_dir(env).join(wasm_name);
         std::process::Command::new("sns")

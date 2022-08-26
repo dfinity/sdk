@@ -759,6 +759,7 @@ dependencies = [
  "flate2",
  "fn-error-context",
  "futures",
+ "futures-util",
  "garcon",
  "handlebars",
  "hex",
