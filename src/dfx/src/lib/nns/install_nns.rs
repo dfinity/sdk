@@ -29,13 +29,13 @@ use std::process;
 use std::time::Duration;
 
 /// The name typically used in dfx.json to refer to the Internet& Identity canister, which provides a login service.
-const II_NAME: &str = "nns-identity";
+const II_NAME: &str = "internet_identity";
 /// The name of the Internet Identity wasm file in the local wasm cache.
 const II_WASM: &str = "internet_identity_dev.wasm";
 /// The URL from which the Internet Identity wasm file is downloaded, if not already present in the local cache.
 const II_URL: &str = "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm";
 /// The name of the NNS frontend dapp, used primarily for voting but also as a wallet.
-const ND_NAME: &str = "nns-ui";
+const ND_NAME: &str = "nns-dapp";
 /// The name of the NNS frontend dapp in the local cache.
 const ND_WASM: &str = "nns-dapp_local.wasm";
 /// The URL from which the NNS dapp wasm file is downloaded, if not already present in the local cache
@@ -93,8 +93,8 @@ pub async fn install_nns(
     canister_id_store.add("nns-lifeline", "rno2w-sqaaa-aaaaa-aaacq-cai")?;
     canister_id_store.add("nns-genesis-token", "renrk-eyaaa-aaaaa-aaada-cai")?;
     // These two canisters are created but we create other canisters later for the same role.
-    // canister_id_store.add("nns-identity", "rdmx6-jaaaa-aaaaa-aaadq-cai")?;
-    // canister_id_store.add("nns-ui", "qoctq-giaaa-aaaaa-aaaea-cai");
+    // canister_id_store.add("nns-identity", "rdmx6-jaaaa-aaaaa-aaadq-cai")?; // See internet_identity instead
+    // canister_id_store.add("nns-ui", "qoctq-giaaa-aaaaa-aaaea-cai"); // See nns-dapp instead
     canister_id_store.add("nns-sns-wasm", "qvhpv-4qaaa-aaaaa-aaagq-cai")?;
 
     // ... and configure the backend NNS canisters:
