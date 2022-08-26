@@ -1,6 +1,7 @@
 set -e
 load "${BATSLIB}/load.bash"
 load ../utils/assertions
+load ../utils/webserver
 
 # Takes a name of the asset folder, and copy those files to the current project.
 install_asset() {
