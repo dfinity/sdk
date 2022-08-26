@@ -8,6 +8,10 @@ use slog::info;
 use std::path::Path;
 use url::Url;
 
+/// Gets the port of a local replica.
+///
+/// # Prerequisites
+/// - A local replica or emulator needs to be running, e.g. with `dfx start`.
 pub fn get_running_replica_port(
     env: &dyn Environment,
     local_server_descriptor: &LocalServerDescriptor,
@@ -33,6 +37,10 @@ pub fn get_running_replica_port(
     }
 }
 
+/// Reads a port number from a file.
+///
+/// # Prerequisites
+/// The file is expected to contain the port number only, as utf8 text.
 #[context("Failed to read port value from {}", path.to_string_lossy())]
 fn read_port_from(path: &Path) -> DfxResult<Option<u16>> {
     if path.exists() {
@@ -59,6 +67,7 @@ pub fn get_providers(network_descriptor: &NetworkDescriptor) -> DfxResult<Vec<Ur
         .collect()
 }
 
+/// Gets a list of replica URLs
 #[context("Failed to determine replica urls.")]
 pub fn get_replica_urls(
     env: &dyn Environment,
@@ -77,6 +86,7 @@ pub fn get_replica_urls(
     get_providers(network_descriptor)
 }
 
+/// Parses a URL, returning a DfxResult instead of a Url::ParseError.
 #[context("Failed to parse url '{}'.", url)]
 fn parse_url(url: &str) -> DfxResult<Url> {
     Ok(Url::parse(url)?)
