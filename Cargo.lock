@@ -435,7 +435,7 @@ checksum = "2fff2a6927b3bb87f9595d67196a70493f627687a71d87a0d692242c33f58c11"
 
 [[package]]
 name = "certified-assets"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
