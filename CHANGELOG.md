@@ -10,18 +10,39 @@ The running replica port and url are generally useful information. Previously th
 
 ### feat: use JSON5 file format for .ic-assets.json5 config
 
-Example `.ic-assets.json5` file:
+### chore: Frontend canister build process no longer depends on `dfx` or `ic-cdk-optimizer`
+
+Instead, the build process relies on `ic-wasm` to provide candid metadata for the canister, and
+shrinking the canister size by stripping debug symbols and unused fuctions.
+Additionally, after build step, the `.wasm` file is archived with `gzip`. 
+
+### chore: Move all `frontend canister`-related code into the SDK repo
+
+| from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)        | summary                                                                                     |
+|:--------------------------------------------|:---------------------------------------------|:--------------------------------------------------------------------------------------------|
+| `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset` | the core of the frontend canister                                                           |
+| `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-asset`           | wrapper around the core, helps build the canister wasm                                      |
+| `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`           | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
+| `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`          | CLI executable tool - wraps `ic-asset`                                                      |
+
+
+
+### feat: use JSON5 file format for frontend canister asset configuration
+
+Both `.ic-assets.json` and `.ic-assets.json5` are valid filenames config filename, though both will get parsed
+as if they were [JSON5](https://json5.org/) format. Example content of the `.ic-assets.json5` file:
 ```json5
 // comment
 [
   {
     "match": "*", // comment
     /*
-    look at these beatiful keys below not wrapped in quotes
-*/  cache: { max_age: 999 } 
-  }
+    keys below not wrapped in quotes
+*/  cache: { max_age: 999 }, // trailing comma 
+  },
 ]
 ```
+- Learn more about JSON5: https://json5.org/
 
 ### fix: Update nns binaries unless `NO_CLOBBER` is set
 
