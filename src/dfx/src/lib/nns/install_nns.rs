@@ -230,7 +230,7 @@ pub async fn install_nns(
         canister_id_store.add(canister_name, canister_id)?;
     }
 
-    //upload_nns_sns_wasms_canister_wasms(env, canister_id_store);
+    upload_nns_sns_wasms_canister_wasms(env)?;
 
     // Install the GUI canisters:
     for StandardCanister {
@@ -522,7 +522,6 @@ pub fn set_cmc_authorized_subnets(nns_url: &Url, subnet: &str) -> anyhow::Result
 /// Uploads wasms to the nns-sns-wasm canister.
 pub fn upload_nns_sns_wasms_canister_wasms(
     env: &dyn Environment,
-    nns_sns_wasm_canister: Principal,
 ) -> anyhow::Result<()> {
     for SnsCanisterInstallation {
         upload_name,
@@ -549,9 +548,9 @@ pub fn upload_nns_sns_wasms_canister_wasms(
                     Ok(())
                 } else {
                     Err(anyhow!(
-                        "Failed to upload {} from {} to the nns-sns-wasm canister.",
+                        "Failed to upload {} from {} to the nns-sns-wasm canister: {:?}",
                         upload_name,
-                        wasm_path.to_string_lossy()
+                        wasm_path.to_string_lossy(), output
                     ))
                 }
             })?;
