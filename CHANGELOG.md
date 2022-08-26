@@ -4,6 +4,12 @@
 
 ## DFX
 
+### refactor: Move replica URL functions into a module for reuse
+
+The running replica port and url are generally useful information. Previously the code to get the URL was embedded in the network proxy code. This moves it out into a library for reuse.
+
+### feat: use JSON5 file format for .ic-assets.json5 config
+
 ### chore: Frontend canister build process no longer depends on `dfx` or `ic-cdk-optimizer`
 
 Instead, the build process relies on `ic-wasm` to provide candid metadata for the canister, and
