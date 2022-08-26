@@ -572,6 +572,8 @@ pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
     let seed = Seed::new(&mnemonic, ""); // good enough for quill
     let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
     let secret = SecretKey::from(pk.private_key());
-    let pem = secret.to_pkcs8_pem(LineEnding::CRLF)?;
+    let pem = secret
+        .to_pkcs8_der()?
+        .to_pem("EC PRIVATE KEY", LineEnding::CRLF)?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }
