@@ -114,7 +114,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             content_type: asset.content_type,
             max_age: asset.max_age,
             headers: asset.headers,
-            redirects: None,
+            redirects: asset.redirect,
         }));
 
         for (enc, chunks) in asset.encodings {
@@ -492,7 +492,50 @@ mod test_http_redirects {
     use crate::{
         state_machine::{AssetRedirect, RedirectUrl, State},
         tests::{unused_callback, RequestBuilder},
+        types::HttpResponse,
     };
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    macro_rules! assert_redirect_location {
+        ($resp:expr, $expected:expr) => {
+            let location = $resp.headers.iter().find(|(key, _)| key == "Location");
+            assert!(
+                location.is_some(),
+                "Expected redirect to location {:?}, but got headers: {:#?}",
+                $expected,
+                $resp.headers
+            );
+            assert_eq!(location.unwrap().1, $expected);
+        };
+    }
+
+    impl State {
+        fn fake_http_request(&self, host: &str, path: &str) -> HttpResponse {
+            let fake_cert = [0xca, 0xfe];
+            self.http_request(
+                RequestBuilder::get(path).with_header("Host", host).build(),
+                &fake_cert,
+                unused_callback(),
+            )
+        }
+        fn fake_http_request_with_headers(
+            &self,
+            host: &str,
+            path: &str,
+            headers: Vec<(&str, &str)>,
+        ) -> HttpResponse {
+            let fake_cert = [0xca, 0xfe];
+            let mut request = RequestBuilder::get(path).with_header("Host", host);
+            for header in headers {
+                request = request.with_header(header.0, header.1);
+            }
+            self.http_request(request.build(), &fake_cert, unused_callback())
+        }
+        fn create_test_asset(&mut self, asset: AssetBuilder) {
+            create_assets(self, 100_000_000_000, vec![asset]);
+        }
+    }
 
     impl RedirectUrl {
         fn new(host: Option<&str>, path: Option<&str>) -> Self {
@@ -503,85 +546,436 @@ mod test_http_redirects {
         }
     }
 
-    impl AssetRedirect {
-        fn new_absolute(to: RedirectUrl) -> Self {
-            AssetRedirect {
-                from: None,
-                to,
-                user_agent: None,
-                response_code: 301,
-            }
-        }
-        fn new_relative(from: Option<RedirectUrl>, to: RedirectUrl) -> Self {
-            AssetRedirect {
-                from,
-                to,
-                user_agent: None,
-                response_code: 301,
-            }
-        }
-        fn with_user_agent(mut self, user_agent: Vec<String>) -> Self {
-            self.user_agent = Some(user_agent);
-            self
-        }
-        fn with_response_code(mut self, response_code: u16) -> Self {
-            self.response_code = response_code;
-            self
+    #[test]
+    fn correct_redirect_codes() {
+        for response_code in vec![300, 301, 302, 303, 304, 307, 308] {
+            let mut state = State::default();
+            state.create_test_asset(
+                AssetBuilder::new("/redirect.html", "text/html").with_redirect(AssetRedirect {
+                    to: RedirectUrl::new(Some("www.example.com"), Some("/redirected.html")),
+                    response_code,
+                    ..Default::default()
+                }),
+            );
+            let response = state.fake_http_request("www.example.com", "/redirect.html");
+            assert_eq!(response.status_code, response_code);
         }
     }
 
     #[test]
-    fn basic_absolute_redirects() {
+    fn incorrect_redirect_codes() {
+        for response_code in vec![200, 305, 306, 309, 310, 311, 400, 404, 405, 500] {
+            let mut state = State::default();
+            state.create_test_asset(
+                AssetBuilder::new("/redirect.html", "text/html").with_redirect(AssetRedirect {
+                    to: RedirectUrl::new(Some("www.example.com"), Some("/redirected.html")),
+                    response_code,
+                    ..Default::default()
+                }),
+            );
+            let response = state.fake_http_request("www.example.com", "/redirect.html");
+            assert_eq!(response.status_code, 400);
+        }
+    }
+
+    #[test]
+    fn basic_absolute_redirects_to_hostpath() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
-        create_assets(
-            &mut state,
-            time_now,
-            vec![AssetBuilder::new("/contents.html", "text/html")
-                .with_encoding("identity", vec![BODY])
-                .with_redirect(AssetRedirect::new_absolute(RedirectUrl::new(
-                    None,
-                    Some("/redirected.html"),
-                )))],
-        );
-
-        let response = state.http_request(
-            RequestBuilder::get("/contents.html")
-                .with_header("Accept-Encoding", "gzip,identity")
-                .build(),
-            &[],
-            unused_callback(),
-        );
-
-        assert_eq!(response.status_code, 300);
+        // Redirect to absolute URL (host + path)
+        state.create_test_asset(AssetBuilder::new("/A.html", "text/html").with_redirect(
+            AssetRedirect {
+                to: RedirectUrl::new(Some("www.example.com"), Some("/new-contents.html")),
+                response_code: 308,
+                ..Default::default()
+            },
+        ));
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/A.html");
+        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/A.html");
+        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/A.html");
+        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("ic0.app", "/A.html");
+        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("straw.ic0.app", "/A.html");
+        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
+        assert_eq!(resp.status_code, 308);
     }
 
     #[test]
-    fn basic_relative_redirects() {
+    fn basic_absolute_redirects_to_host() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-
-        create_assets(
-            &mut state,
-            time_now,
-            vec![AssetBuilder::new("/index.html", "text/html")], //.with_redirect("/redirect.html")],
-        );
+        // Redirect to absolute URL (only host)
+        state.create_test_asset(AssetBuilder::new("/B.html", "text/html").with_redirect(
+            AssetRedirect {
+                to: RedirectUrl::new(Some("www.example.com"), None),
+                response_code: 308,
+                ..Default::default()
+            },
+        ));
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/B.html");
+        assert_redirect_location!(&resp, "https://www.example.com/B.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/B.html");
+        assert_redirect_location!(&resp, "https://www.example.com/B.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/B.html");
+        assert_redirect_location!(&resp, "https://www.example.com/B.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("ic0.app", "/B.html");
+        assert_redirect_location!(&resp, "https://www.example.com/B.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("straw.ic0.app", "/B.html");
+        assert_redirect_location!(&resp, "https://www.example.com/B.html");
+        assert_eq!(resp.status_code, 308);
     }
 
     #[test]
-    fn regex_absolute_redirects() {}
-    #[test]
-    fn regex_relative_redirects() {}
+    fn basic_absolute_redirects_to_path() {
+        let mut state = State::default();
+        // Redirect to absolute URL (only path)
+        state.create_test_asset(AssetBuilder::new("/C.html", "text/html").with_redirect(
+            AssetRedirect {
+                to: RedirectUrl::new(None, Some("/redirected.html")),
+                response_code: 308,
+                ..Default::default()
+            },
+        ));
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/C.html");
+        assert_redirect_location!(&resp, "/redirected.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/C.html");
+        assert_redirect_location!(&resp, "/redirected.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/C.html");
+        assert_redirect_location!(&resp, "/redirected.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("ic0.app", "/C.html");
+        assert_redirect_location!(&resp, "/redirected.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("straw.ic0.app", "/C.html");
+        assert_redirect_location!(&resp, "/redirected.html");
+        assert_eq!(resp.status_code, 308);
+    }
 
     #[test]
-    fn absolute_redirects_with_user_agent_filter() {}
-    #[test]
-    fn relative_redirects_with_user_agent_filter() {}
+    fn basic_relative_redirects_from_hostpath_to_hostpath() {
+        // Redirect to absolute URL (from: host + path, to: host + path)
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
+                from: Some(RedirectUrl::new(
+                    Some("\\.raw.ic0.app"),
+                    Some("/contents.html"),
+                )),
+                to: RedirectUrl::new(Some(".ic0.app"), Some("/new-contents.html")),
+                response_code: 308,
+                ..Default::default()
+            }),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://my.http.files.ic0.app/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://raw.ic0.app.ic0.app/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+    }
 
     #[test]
-    fn absolute_redirects_with_different_response_codes() {}
+    fn basic_relative_redirects_from_hostpath_to_host() {
+        let mut state = State::default();
+        // Redirect to absolute URL (from: host + path, to: host)
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    from: Some(RedirectUrl::new(
+                        Some("\\.raw.ic0.app"),
+                        Some("/contents.html"),
+                    )),
+                    to: RedirectUrl::new(Some(".ic0.app"), None),
+                    response_code: 308,
+                    ..Default::default()
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://my.http.files.ic0.app/contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://raw.ic0.app.ic0.app/contents.html");
+        assert_eq!(resp.status_code, 308);
+        // does not loop redirect
+        let resp = state.fake_http_request("ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+    }
+
     #[test]
-    fn relative_redirects_with_different_response_codes() {}
+    fn basic_relative_redirects_from_hostpath_to_path() {
+        let mut state = State::default();
+        // Redirect to absolute URL (from: host + path, to: path)
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
+                from: Some(RedirectUrl::new(
+                    Some("\\.raw.ic0.app"),
+                    Some("/contents.html"),
+                )),
+                to: RedirectUrl::new(None, Some("/new-contents.html")),
+                response_code: 308,
+                ..Default::default()
+            }),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+    }
+
+    #[test]
+    // Redirect to absolute URL (from: host, to: host + path)
+    fn basic_relative_redirects_from_host_to_hostpath() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
+                from: Some(RedirectUrl::new(Some("\\.raw.ic0.app"), None)),
+                to: RedirectUrl::new(Some(".ic0.app"), Some("/new-contents.html")),
+                response_code: 308,
+                ..Default::default()
+            }),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://my.http.files.ic0.app/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://raw.ic0.app.ic0.app/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+    }
+
+    #[test]
+    fn basic_relative_redirects_from_host_to_host() {
+        let mut state = State::default();
+        // Redirect to absolute URL (from: host, to: host)
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    from: Some(RedirectUrl::new(Some("\\.raw.ic0.app"), None)),
+                    to: RedirectUrl::new(Some(".ic0.app"), None),
+                    response_code: 308,
+                    ..Default::default()
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://my.http.files.ic0.app/contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://raw.ic0.app.ic0.app/contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+    }
+
+    #[test]
+    fn regex_redirects_from_host_to_hostpath() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
+                from: Some(RedirectUrl::new(Some("([-a-z0-9]*)\\.raw.ic0.app"), None)),
+                to: RedirectUrl::new(Some("$1.ic0.app"), Some("/new-contents.html")),
+                response_code: 308,
+                ..Default::default()
+            }),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/new-contents.html");
+        assert_eq!(resp.status_code, 308);
+    }
+
+    #[test]
+    fn regex_redirects_from_hostpath_to_hostpath() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
+                from: Some(RedirectUrl::new(
+                    Some("([-a-z0-9]*)\\.raw.ic0.app"),
+                    Some("(?P<start>.*)(contents)(?P<end>.*)"),
+                )),
+                to: RedirectUrl::new(Some("$1.ic0.app"), Some("${start}contemplating${end}")),
+                response_code: 308,
+                ..Default::default()
+            }),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/contemplating.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/contemplating.html");
+        assert_eq!(resp.status_code, 308);
+    }
+
+    #[test]
+    fn regex_redirects_from_path_to_hostpath() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
+                from: Some(RedirectUrl::new(None, Some("/(.*)(.html)"))),
+                to: RedirectUrl::new(Some("duckduckgo.com"), Some("/q=${1}.png")),
+                response_code: 308,
+                ..Default::default()
+            }),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://duckduckgo.com/q=contents.png");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://duckduckgo.com/q=contents.png");
+        assert_eq!(resp.status_code, 308);
+    }
+
+    #[test]
+    fn regex_redirects_from_hostpath_to_path() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
+                from: Some(RedirectUrl::new(
+                    Some("([-a-z0-9]*)\\.raw.ic0.app"),
+                    Some("/(.*)(.html)"),
+                )),
+                to: RedirectUrl::new(None, Some("/q=${1}.png")),
+                response_code: 308,
+                ..Default::default()
+            }),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/q=contents.png");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "/q=contents.png");
+        assert_eq!(resp.status_code, 308);
+    }
+
+    #[test]
+    fn regex_redirects_from_hostpath_to_host() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    from: Some(RedirectUrl::new(
+                        Some("([-a-z0-9]*)\\.raw.ic0.app"),
+                        Some("/(.*)(.html)"),
+                    )),
+                    to: RedirectUrl::new(Some("internetcomputer.org"), None),
+                    response_code: 308,
+                    ..Default::default()
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
+        assert_redirect_location!(&resp, "https://internetcomputer.org/contents.html");
+        assert_eq!(resp.status_code, 308);
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+    }
+
+    #[test]
+    fn toggle_redirects_based_on_user_agent_filter() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    from: Some(RedirectUrl::new(Some("([-a-z0-9]{8})\\.ic0.app"), None)),
+                    to: RedirectUrl::new(Some("${1}.raw.ic0.app"), None),
+                    response_code: 308,
+                    user_agent: Some(vec!["crawlerbot".to_string()]),
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request_with_headers(
+            "https://aaaaa-aa.ic0.app",
+            "/contents.html",
+            vec![("user-agent", "crawlerbot")],
+        );
+        assert_eq!(resp.status_code, 308);
+        assert_redirect_location!(&resp, "https://aaaaa-aa.raw.ic0.app/contents.html");
+
+        let resp = state.fake_http_request_with_headers(
+            "https://aaaaa-aa.raw.ic0.app",
+            "/contents.html",
+            vec![("user-agent", "crawlerbot")],
+        );
+        assert_eq!(resp.status_code, 200);
+    }
+
+    #[test]
+    fn no_redirect_due_to_no_match_on_user_agent_filter() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    from: Some(RedirectUrl::new(Some("([-a-z0-9]*)\\.raw.ic0.app"), None)),
+                    to: RedirectUrl::new(Some("${1}.ic0.app"), None),
+                    response_code: 308,
+                    user_agent: Some(vec!["crawlerbot".to_string()]),
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request_with_headers(
+            "https://aaaaa-aa.raw.ic0.app",
+            "/contents.html",
+            vec![("user-agent", "mozilla")],
+        );
+        assert_eq!(resp.status_code, 200);
+        let resp = state.fake_http_request_with_headers(
+            "https://aaaaa-aa.ic0.app",
+            "/contents.html",
+            vec![("user-agent", "mozilla")],
+        );
+        assert_eq!(resp.status_code, 200);
+    }
 }

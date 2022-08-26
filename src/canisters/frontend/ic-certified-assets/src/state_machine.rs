@@ -59,6 +59,61 @@ pub struct AssetRedirect {
     pub response_code: u16,
 }
 
+impl AssetRedirect {
+    // if user-agent coming in HTTP Request is not found in list of user-agents from redirect config
+    // then we're returning None, otherwise proceed.
+    // TODO: performance hit for long lists. Consider using:
+    // - binary search (but how to enforce the list being sorted?)
+    // - hashmap (but that precludes matching based on part of the string)
+    // - BTreeMap (sorted, enables matching but only prefix)
+    // - https://docs.rs/regex/latest/regex/struct.RegexSet.html
+    //   > The key advantage of using a regex set is that it will
+    //   > report the matching regexes using a single pass through
+    //   > the text. If one has hundreds or thousands of regexes
+    //   > to match repeatedly (like a URL router for a complex
+    //   > web application or a user agent matcher), then a regex set
+    //   > can realize huge performance gains.
+    //   it would be nice if there's a way to store
+    //   already compiled regexset
+    fn matches_user_agent(&self, user_agent: &str) -> bool {
+        if self.user_agent.as_ref().map_or(false, |cfg_user_agents| {
+            if cfg_user_agents.is_empty() {
+                return false;
+            }
+            !cfg_user_agents
+                .iter()
+                .any(|cfg_user_agent| user_agent.contains(cfg_user_agent))
+        }) {
+            return false;
+        }
+        true
+    }
+
+    fn redirect(&self, req: &HttpRequest) -> Option<HttpResponse> {
+        if self.to.host.is_none() && self.to.path.is_none() {
+            return Some(HttpResponse::build_400(
+                "incorrect asset redirect configuration: either one of redirection destination `host` or `path` are required",
+            ));
+        }
+
+        if self.user_agent.is_some() {
+            if let Some(req_user_agent) = req.get_header_value("user-agent") {
+                if !self.matches_user_agent(&req_user_agent) {
+                    return None;
+                }
+            }
+        }
+
+        let location: Option<String> = if let Some(from) = &self.from {
+            RedirectUrl::relative_redirect_location(&from, &self.to, &req)
+        } else {
+            RedirectUrl::absolute_redirect_location(&self.to, &req)
+        };
+
+        location.map(|loc| HttpResponse::build_redirect(self.response_code, loc))
+    }
+}
+
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct Asset {
     pub content_type: String,
@@ -432,8 +487,9 @@ impl State {
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
+                // dbg!(&asset);
                 if let Some(redirect_config) = &asset.properties.redirect {
-                    if let Some(resp) = req.redirect(redirect_config) {
+                    if let Some(resp) = redirect_config.redirect(&req) {
                         return resp;
                     }
                 }
@@ -461,10 +517,11 @@ impl State {
 
         if let Some(asset) = self.assets.get(path) {
             if let Some(redirect_config) = &asset.properties.redirect {
-                if let Some(resp) = req.redirect(redirect_config) {
+                if let Some(resp) = redirect_config.redirect(&req) {
                     return resp;
                 }
             }
+            // dbg!(&asset, path);
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
@@ -812,11 +869,11 @@ impl RedirectUrl {
         None
     }
 
-    fn build_redirect_url(&self, to: &Self, req: &HttpRequest) -> Option<String> {
+    fn relative_redirect_location(from: &Self, to: &Self, req: &HttpRequest) -> Option<String> {
         let &Self {
             host: from_host,
             path: from_path,
-        } = &self;
+        } = &from;
         let mut location = String::new();
         let mut host_same_as_original = true;
         let mut path_same_as_original = true;
@@ -826,7 +883,7 @@ impl RedirectUrl {
                 RedirectUrl::match_and_replace_segment(from_host, &to.host, req_host)
             {
                 host_same_as_original = &redirect_host == req_host;
-                if redirect_host.contains("http") {
+                if redirect_host.starts_with("http") {
                     location = redirect_host;
                 } else {
                     location = format!("https://{}", redirect_host);
@@ -844,10 +901,27 @@ impl RedirectUrl {
         }
 
         if host_same_as_original && path_same_as_original {
+            eprintln!("redirect loop detected: {:?} -> {:?}", from, to);
             None
         } else {
             Some(location)
         }
+    }
+    fn absolute_redirect_location(to: &Self, req: &HttpRequest) -> Option<String> {
+        let mut location = String::new();
+        if let Some(host) = to.host.as_ref() {
+            if host.contains("http") {
+                location = host.to_string();
+            } else {
+                location = format!("https://{}", host);
+            }
+        }
+        if let Some(path) = to.path.as_ref() {
+            location.push_str(path);
+        } else {
+            location.push_str(&req.url);
+        }
+        Some(location)
     }
 }
 
@@ -856,71 +930,5 @@ impl HttpRequest {
         self.headers
             .iter()
             .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then(|| v))
-    }
-
-    fn redirect(&self, redirect_config: &AssetRedirect) -> Option<HttpResponse> {
-        if redirect_config.to.host.is_none() && redirect_config.to.path.is_none() {
-            return Some(HttpResponse::build_400(
-                "incorrect asset redirect configuration: either one of redirection destination `host` or `path` are required",
-            ));
-        }
-
-        // if user-agent coming in HTTP Request is not found in list of user-agents from redirect config
-        // then we're returning None, otherwise proceed.
-        // TODO: performance hit for long lists. Consider using:
-        // - binary search (but how to enforce the list being sorted?)
-        // - hashmap (but that precludes matching based on part of the string)
-        // - BTreeMap (sorted, enables matching but only prefix)
-        // - https://docs.rs/regex/latest/regex/struct.RegexSet.html
-        //   > The key advantage of using a regex set is that it will
-        //   > report the matching regexes using a single pass through
-        //   > the text. If one has hundreds or thousands of regexes
-        //   > to match repeatedly (like a URL router for a complex
-        //   > web application or a user agent matcher), then a regex set
-        //   > can realize huge performance gains.
-        //   it would be nice if there's a way to store
-        //   already compiled regexset
-        if redirect_config
-            .user_agent
-            .as_ref()
-            .map_or(false, |cfg_user_agents| {
-                ic_cdk::print(format!("cfg_user_agents: {:?}", cfg_user_agents));
-                if cfg_user_agents.is_empty() {
-                    return false;
-                }
-                if let Some(req_user_agent) = self.get_header_value("user-agent") {
-                    ic_cdk::print(format!("req_user_agent: {}", req_user_agent));
-                    let retuls = !cfg_user_agents
-                        .iter()
-                        .any(|cfg_user_agent| req_user_agent.contains(cfg_user_agent));
-                    ic_cdk::print(format!("result_user_agent: {}", retuls));
-                    return retuls;
-                }
-                false
-            })
-        {
-            return None;
-        }
-
-        let location: Option<String> = if let Some(from) = &redirect_config.from {
-            // replace parts of address
-            from.build_redirect_url(&redirect_config.to, self)
-        } else {
-            // absolute redirect
-            let mut location = String::new();
-            if let Some(host) = redirect_config.to.host.as_ref() {
-                if host.contains("http") {
-                    location = host.to_string();
-                } else {
-                    location = format!("https://{}", host);
-                }
-            }
-            if let Some(path) = redirect_config.to.path.as_ref() {
-                location.push_str(path);
-            }
-            Some(location)
-        };
-
-        location.map(|loc| HttpResponse::build_redirect(redirect_config.response_code, loc))
     }
 }
