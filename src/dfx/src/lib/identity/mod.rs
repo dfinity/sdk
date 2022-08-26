@@ -147,6 +147,7 @@ impl Identity {
             } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
                 let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
+                identity_utils::validate_pem_file(&src_pem_content)?;
                 let dst_pem_file =
                     manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 pem_encryption::write_pem_file(
