@@ -23,10 +23,11 @@ pub struct NewIdentityOpts {
     #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_hsm_key_id))]
     hsm_key_id: Option<String>,
 
-    /// DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk.
-    /// If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
+    /// By default, PEM files are saved in the system's keyring.
+    /// If you do not want to use your system's keyring, use this flag to have the PEM file saved in encrypted format on disk.
+    /// This will require you to enter the password for almost every dfx command.
     #[clap(long)]
-    disable_encryption: bool,
+    skip_keyring: bool,
 
     /// If the identity already exists, remove and re-create it.
     #[clap(long)]
@@ -46,7 +47,7 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
             },
         },
         _ => Pem {
-            disable_encryption: opts.disable_encryption,
+            skip_keyring: opts.skip_keyring,
         },
     };
 

@@ -6,18 +6,60 @@ use super::identity_manager::EncryptionConfiguration;
 use super::identity_utils;
 use super::IdentityConfiguration;
 
-use crate::lib::identity::pem_encryption::PromptMode::{DecryptingToUse, EncryptingToCreate};
+use crate::lib::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use anyhow::{anyhow, Context};
 use argon2::{password_hash::PasswordHasher, Argon2};
 use fn_error_context::context;
+use keyring;
+
+pub const KEYRING_SERVICE_NAME: &str = "dfx";
+pub const KEYRING_IDENTITY_PREFIX: &str = "dfx_identity_";
+
+fn todo() {
+    todo!(); //"Can the public functions be combined into one?"
+}
+
+#[context(
+    "Failed to load PEM file from keyring for identity '{}'.",
+    identity_name
+)]
+pub fn load_pem_from_keyring(identity_name: &str) -> DfxResult<Vec<u8>> {
+    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name);
+    let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
+    let encoded_pem = entry.get_password()?;
+    let pem = hex::decode(&encoded_pem)?;
+    Ok(pem)
+}
+
+#[context(
+    "Failed to write PEM file to keyring for identity '{}'.",
+    identity_name
+)]
+pub fn write_pem_to_keyring(identity_name: &str, pem_content: &[u8]) -> DfxResult<()> {
+    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name);
+    let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
+    let encoded_pem = hex::encode(pem_content);
+    entry.set_password(&encoded_pem)?;
+    Ok(())
+}
+
+/// Determines if the keyring contains data for the specified identity.
+pub fn keyring_contains(identity_name: &str) -> bool {
+    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name);
+    let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
+    entry.get_password().is_ok()
+}
 
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
 ///
 /// Try to only load the pem file once, as the user may be prompted for the password every single time you call this function.
 #[context("Failed to load pem file {}.", path.to_string_lossy())]
-pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> DfxResult<Vec<u8>> {
+pub fn load_pem_from_file(
+    path: &Path,
+    config: Option<&IdentityConfiguration>,
+) -> DfxResult<Vec<u8>> {
     let content = std::fs::read(path)
         .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
     let content = maybe_decrypt_pem(content.as_slice(), config)?;
@@ -29,7 +71,7 @@ pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> Dfx
 ///
 /// Automatically creates required directories.
 #[context("Failed to write pem file.")]
-pub fn write_pem_file(
+pub fn write_pem_to_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
     pem_content: &[u8],

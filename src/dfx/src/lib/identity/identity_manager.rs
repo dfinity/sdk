@@ -2,7 +2,7 @@ use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::{
-    pem_encryption, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
+    pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
 
@@ -35,8 +35,11 @@ fn default_identity() -> String {
 pub struct IdentityConfiguration {
     pub hsm: Option<HardwareIdentityConfiguration>,
 
-    /// If the identity's .pem file is encrypted this contains everything (except the password) to decrypt the file.
+    /// If the identity's PEM file is encrypted on disk this contains everything (except the password) to decrypt the file.
     pub encryption: Option<EncryptionConfiguration>,
+
+    /// If the identity's PEM file is stored in the system's keyring, this field contains the identity's name.
+    pub keyring_identity_name: Option<String>,
 }
 
 /// The information necessary to de- and encrypt (except the password) the identity's .pem file
@@ -80,11 +83,13 @@ pub struct HardwareIdentityConfiguration {
 
 pub enum IdentityCreationParameters {
     Pem {
-        disable_encryption: bool,
+        /// use encrypted PEM file on disk instead of keyring
+        skip_keyring: bool,
     },
     PemFile {
         src_pem_file: PathBuf,
-        disable_encryption: bool,
+        /// use encrypted PEM file on disk instead of keyring
+        skip_keyring: bool,
     },
     Hardware {
         hsm: HardwareIdentityConfiguration,
@@ -225,11 +230,12 @@ impl IdentityManager {
     /// Returns the pem file content of the selected identity
     #[context("Failed to export identity '{}'.", name)]
     pub fn export(&self, name: &str) -> DfxResult<String> {
+        todo!();
         self.require_identity_exists(name)?;
 
         let config = self.get_identity_config_or_default(name)?;
         let pem_path = self.get_identity_pem_path(name, &config);
-        let pem = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+        let pem = pem_safekeeping::load_pem_from_file(&pem_path, Some(&config))?;
         String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
 
@@ -244,6 +250,7 @@ impl IdentityManager {
         drop_wallets: bool,
         display_linked_wallets_to: Option<&Logger>,
     ) -> DfxResult {
+        todo!();
         self.require_identity_exists(name)?;
 
         if self.configuration.default == name {
@@ -277,6 +284,7 @@ impl IdentityManager {
     /// to refer to the new identity name.
     #[context("Failed to rename identity '{}' to '{}'.", from, to)]
     pub fn rename(&mut self, env: &dyn Environment, from: &str, to: &str) -> DfxResult<bool> {
+        todo!();
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
@@ -339,17 +347,18 @@ impl IdentityManager {
         }
 
         let json_path = self.get_identity_json_path(name);
-        let identity_pem_path = self.load_identity_pem_path(name)?;
+        let identity_pem_path = self.get_identity_pem_path(name);
+        let legacy_pem_path = self.get_legacy_identity_pem_path(name);
 
-        if !identity_pem_path.exists() {
-            if !json_path.exists() {
-                Err(DfxError::new(IdentityError::IdentityDoesNotExist(
-                    String::from(name),
-                    identity_pem_path,
-                )))
-            } else {
-                Ok(())
-            }
+        if !pem_safekeeping::keyring_contains(name)
+            && !identity_pem_path.exists()
+            && !legacy_pem_path.exists()
+            && !json_path.exists()
+        {
+            Err(DfxError::new(IdentityError::IdentityDoesNotExist(
+                String::from(name),
+                identity_pem_path,
+            )))
         } else {
             Ok(())
         }
@@ -359,27 +368,15 @@ impl IdentityManager {
         self.identity_root_path.join(&identity)
     }
 
-    /// Reads identity.json (if present) to determine where the PEM file should be at.
-    /// If not present, it returns the default path.
-    #[context("Failed to load identity pem path for '{}'.", identity_name)]
-    pub fn load_identity_pem_path(&self, identity_name: &str) -> DfxResult<PathBuf> {
-        let config = self.get_identity_config_or_default(identity_name)?;
-
-        Ok(self.get_identity_pem_path(identity_name, &config))
+    /// Determines the path of the encrypted PEM file.
+    pub fn get_identity_pem_path(&self, identity_name: &str) -> PathBuf {
+        self.get_identity_dir_path(identity_name)
+            .join(IDENTITY_PEM_ENCRYPTED)
     }
 
-    /// Determines the PEM file path based on the IdentityConfiguration.
-    pub fn get_identity_pem_path(
-        &self,
-        identity_name: &str,
-        config: &IdentityConfiguration,
-    ) -> PathBuf {
-        let pem_file = if config.encryption.is_some() {
-            IDENTITY_PEM_ENCRYPTED
-        } else {
-            IDENTITY_PEM
-        };
-        self.get_identity_dir_path(identity_name).join(pem_file)
+    /// Determines the path of the deprecated clear-text PEM file.
+    pub fn get_legacy_identity_pem_path(&self, identity_name: &str) -> PathBuf {
+        self.get_identity_dir_path(identity_name).join(IDENTITY_PEM)
     }
 
     /// Returns the path where wallets on persistent/non-ephemeral networks are stored.
@@ -388,6 +385,7 @@ impl IdentityManager {
             .join(WALLET_CONFIG_FILENAME)
     }
 
+    /// Returns the path where an identity's `IdentityConfiguration` is stored.
     pub fn get_identity_json_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_JSON)
     }
@@ -425,6 +423,7 @@ fn initialize(
     identity_json_path: &Path,
     identity_root_path: &Path,
 ) -> DfxResult<Configuration> {
+    todo!();
     slog::info!(
         logger,
         r#"Creating the "default" identity.
@@ -469,7 +468,7 @@ To create a more secure identity, create and use an identity that is protected b
                 identity_pem_path.display()
             );
             let key = generate_key()?;
-            pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())?;
+            pem_safekeeping::write_pem_to_file(&identity_pem_path, None, key.as_slice())?;
         }
     } else {
         slog::info!(
@@ -490,6 +489,7 @@ To create a more secure identity, create and use an identity that is protected b
 
 #[context("Failed to get legacy pem path.")]
 fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
+    todo!();
     let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
     let home = std::env::var("HOME")
         .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;

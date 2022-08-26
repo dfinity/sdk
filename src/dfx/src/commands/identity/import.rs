@@ -15,10 +15,11 @@ pub struct ImportOpts {
     /// The PEM file to import.
     pem_file: PathBuf,
 
-    /// DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk.
-    /// If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
+    /// By default, PEM files are saved in the system's keyring.
+    /// If you do not want to use your system's keyring, use this flag to have the PEM file saved in encrypted format on disk.
+    /// This will require you to enter the password for almost every dfx command.
     #[clap(long)]
-    disable_encryption: bool,
+    skip_keyring: bool,
 
     /// If the identity already exists, remove and re-import it.
     #[clap(long)]
@@ -31,7 +32,7 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let name = opts.new_identity.as_str();
     let params = IdentityCreationParameters::PemFile {
         src_pem_file: opts.pem_file,
-        disable_encryption: opts.disable_encryption,
+        skip_keyring: opts.skip_keyring,
     };
     IdentityManager::new(env)?.create_new_identity(name, params, opts.force)?;
     info!(log, r#"Imported identity: "{}"."#, name);
