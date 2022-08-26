@@ -70,7 +70,9 @@ pub async fn install_nns(
     println!("Checking out the environment...");
     // Check out the environment.
     verify_local_replica_type_is_system(env)?;
-    let subnet_id = ic_agent::export::Principal::self_authenticating(agent.status().await?.root_key.unwrap()).to_text();
+    let subnet_id =
+        ic_agent::export::Principal::self_authenticating(agent.status().await?.root_key.unwrap())
+            .to_text();
     let nns_url = get_replica_url(env)?;
 
     // Install the core backend wasm canisters

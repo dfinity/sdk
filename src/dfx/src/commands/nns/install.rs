@@ -25,11 +25,5 @@ pub async fn exec(env: &dyn Environment, _opts: InstallOpts) -> DfxResult {
     let provider_url = network_descriptor.first_provider()?;
     let ic_nns_init_path = env.get_cache().get_binary_command_path("ic-nns-init")?;
 
-    install_nns(
-        env,
-        agent,
-        provider_url,
-        &ic_nns_init_path,
-    )
-    .await
+    install_nns(env, agent, provider_url, &ic_nns_init_path).await
 }
