@@ -29,67 +29,93 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Duration;
 
+use self::canisters::StandardCanister;
+
 pub mod canisters {
     /// Configuration for an NNS canister installation as performed by `ic-nns-init`.
     ///
     /// Note: Other deployment methods may well use different settings.
-    pub struct NnsCanisterInstallation {
+    pub struct IcNnsInitCanister {
         pub canister_name: &'static str,
         pub canister_id: &'static str,
     }
-    pub const NNS_REGISTRY: NnsCanisterInstallation = NnsCanisterInstallation {
+    pub const NNS_REGISTRY: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-registry",
         canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai",
     };
-    pub const NNS_GOVERNANCE: NnsCanisterInstallation = NnsCanisterInstallation {
+    pub const NNS_GOVERNANCE: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-governance",
         canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai",
     };
-    pub const NNS_LEDGER: NnsCanisterInstallation = NnsCanisterInstallation {
+    pub const NNS_LEDGER: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-ledger",
-        canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai",
+        canister_id: "ryjl3-tyaaa-aaaaa-aa&aba-cai",
     };
-    pub const NNS_ROOT: NnsCanisterInstallation = NnsCanisterInstallation {
+    pub const NNS_ROOT: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-root",
         canister_id: "r7inp-6aaaa-aaaaa-aaabq-cai",
     };
-    pub const NNS_CYCLES_MINTING: NnsCanisterInstallation = NnsCanisterInstallation {
+    pub const NNS_CYCLES_MINTING: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-cycles-minting",
         canister_id: "rkp4c-7iaaa-aaaaa-aaaca-cai",
     };
-    pub const NNS_LIFELINE: NnsCanisterInstallation = NnsCanisterInstallation {
+    pub const NNS_LIFELINE: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-lifeline",
         canister_id: "rno2w-sqaaa-aaaaa-aaacq-cai",
     };
-    pub const NNS_GENESIS_TOKENS: NnsCanisterInstallation = NnsCanisterInstallation {
+    pub const NNS_GENESIS_TOKENS: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-genesis-token",
         canister_id: "renrk-eyaaa-aaaaa-aaada-cai",
     };
-    pub const NNS_SNS_WASM: NnsCanisterInstallation = NnsCanisterInstallation {
+    pub const NNS_SNS_WASM: IcNnsInitCanister = IcNnsInitCanister {
         canister_name: "nns-sns-wasm",
         canister_id: "qvhpv-4qaaa-aaaaa-aaagq-cai",
     };
-    pub const NNS_CORE: &'static [&'static NnsCanisterInstallation;8] = &[
-        &NNS_REGISTRY, &NNS_GOVERNANCE, &NNS_LEDGER, &NNS_ROOT, &NNS_CYCLES_MINTING, &NNS_LIFELINE, &NNS_GENESIS_TOKENS, &NNS_SNS_WASM
+
+    pub struct StandardCanister {
+        pub canister_name: &'static str,
+        pub wasm_name: &'static str,
+        pub wasm_url: &'static str,
+    }
+    pub const INTERNET_IDENTITY: StandardCanister = StandardCanister {
+        canister_name: "internet_identity",
+        wasm_name: "internet_identity_dev.wasm",
+        wasm_url: "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm"
+    };
+    pub const NNS_DAPP: StandardCanister = StandardCanister {
+        canister_name: "nns-dapp",
+        wasm_name: "nns-dapp_local.wasm",
+        wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm"
+    };
+
+    pub const NNS_CORE: &'static [&'static IcNnsInitCanister; 8] = &[
+        &NNS_REGISTRY,
+        &NNS_GOVERNANCE,
+        &NNS_LEDGER,
+        &NNS_ROOT,
+        &NNS_CYCLES_MINTING,
+        &NNS_LIFELINE,
+        &NNS_GENESIS_TOKENS,
+        &NNS_SNS_WASM,
     ];
+    pub const NNS_FRONTEND: [&'static StandardCanister;2] = [&INTERNET_IDENTITY, &NNS_DAPP];
+
+    pub struct SnsCanisterInstallation {
+        canister_name: &'static str,
+        upload_name: &'static str,
+        wasm_name: &'static str,
+    }
+    pub const SNS_LEDGER: SnsCanisterInstallation = SnsCanisterInstallation {
+        canister_name: "sns-ledger",
+        upload_name: "ledger",
+        wasm_name: "blah",
+    };
+
+
+    /// Test account with well known public & private keys, used in NNS_LEDGER, NNS_DAPP and third party projects.
+    pub const TEST_ACCOUNT: &str = "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
 }
 
-
-
-const II_NAME: &str = "internet_identity";
-/// The name of the Internet Identity wasm file in the local wasm cache.
-const II_WASM: &str = "internet_identity_dev.wasm";
-/// The URL from which the Internet Identity wasm file is downloaded, if not already present in the local cache.
-const II_URL: &str = "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm";
-/// The name of the NNS frontend dapp, used primarily for voting but also as a wallet.
-const ND_NAME: &str = "nns-dapp";
-/// The name of the NNS frontend dapp in the local cache.
-const ND_WASM: &str = "nns-dapp_local.wasm";
-/// The URL from which the NNS dapp wasm file is downloaded, if not already present in the local cache
-const ND_URL: &str =
-    "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm";
-/// Test account with well known public & private keys, used in multiple projects.
-const TEST_ACCOUNT: &str = "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
 
 /// Installs NNS canisters on a local dfx server.
 /// # Notes:
@@ -127,13 +153,17 @@ pub async fn install_nns(
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: nns_wasm_dir(env),
         nns_url: nns_url.to_string(),
-        test_accounts: Some(TEST_ACCOUNT.to_string()),
+        test_accounts: Some(canisters::TEST_ACCOUNT.to_string()),
         sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
-    for canisters::NnsCanisterInstallation{canister_name, canister_id} in canisters::NNS_CORE {
-        canister_id_store.add(canister_name, canister_id);
+    for canisters::IcNnsInitCanister {
+        canister_name,
+        canister_id,
+    } in canisters::NNS_CORE
+    {
+        canister_id_store.add(canister_name, canister_id)?;
     }
 
     // ... and configure the backend NNS canisters:
@@ -142,9 +172,12 @@ pub async fn install_nns(
     //upload_nns_sns_wasms_canister_wasms(env, canister_id_store);
 
     // Install the GUI canisters:
-    download(&Url::parse(II_URL)?, &nns_wasm_dir(env).join(&II_WASM)).await?;
-    install_canister(env, agent, II_NAME, &nns_wasm_dir(env).join(II_WASM)).await?;
-    install_canister(env, agent, ND_NAME, &nns_wasm_dir(env).join(ND_WASM)).await?;
+    for StandardCanister{wasm_url, wasm_name, canister_name} in canisters::NNS_FRONTEND {
+        let local_wasm_path = nns_wasm_dir(env).join(wasm_name);
+        download(&Url::parse(wasm_url)?, &local_wasm_path).await?;        
+        install_canister(env, agent, canister_name, &local_wasm_path).await?;
+    }
+
     Ok(())
 }
 
@@ -290,11 +323,13 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     ] {
         download_ic_repo_wasm(name, name, ic_commit, &nns_wasm_dir(env)).await?;
     }
-    for (wasm, url) in [(II_WASM, II_URL), (ND_WASM, ND_URL)] {
-        download(&Url::parse(url)?, &nns_wasm_dir(env).join(wasm))
+    /*
+    for StandardCanister{wasm_name, wasm_url, ..} in canisters::NNS_FRONTEND {
+        download(&Url::parse(&wasm_url)?, &nns_wasm_dir(env).join(wasm_name))
             .await
-            .map_err(|e| anyhow!("Failed to download {wasm:?}: {e:?}"))?;
+            .map_err(|e| anyhow!("Failed to download {wasm_name:?}: {e:?}"))?;
     }
+    */
     Ok(())
 }
 
@@ -447,7 +482,9 @@ pub fn upload_nns_sns_wasms_canister_wasms(
                     Ok(())
                 } else {
                     Err(anyhow!(
-                        "Failed to upload {} from {} to the nns-sns-wasm canister.", name, wasm_path.to_string_lossy()
+                        "Failed to upload {} from {} to the nns-sns-wasm canister.",
+                        name,
+                        wasm_path.to_string_lossy()
                     ))
                 }
             })?;
