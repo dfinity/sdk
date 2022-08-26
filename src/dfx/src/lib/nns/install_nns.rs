@@ -16,6 +16,7 @@ use crate::util::network::{get_replica_urls, get_running_replica_port};
 use crate::util::{blob_from_arguments, expiry_duration};
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::Agent;
@@ -28,7 +29,53 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::time::Duration;
 
-/// The name typically used in dfx.json to refer to the Internet& Identity canister, which provides a login service.
+pub mod canisters {
+    /// Configuration for an NNS canister installation as performed by `ic-nns-init`.
+    ///
+    /// Note: Other deployment methods may well use different settings.
+    pub struct NnsCanisterInstallation {
+        pub canister_name: &'static str,
+        pub canister_id: &'static str,
+    }
+    pub const NNS_REGISTRY: NnsCanisterInstallation = NnsCanisterInstallation {
+        canister_name: "nns-registry",
+        canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+    };
+    pub const NNS_GOVERNANCE: NnsCanisterInstallation = NnsCanisterInstallation {
+        canister_name: "nns-governance",
+        canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai",
+    };
+    pub const NNS_LEDGER: NnsCanisterInstallation = NnsCanisterInstallation {
+        canister_name: "nns-ledger",
+        canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai",
+    };
+    pub const NNS_ROOT: NnsCanisterInstallation = NnsCanisterInstallation {
+        canister_name: "nns-root",
+        canister_id: "r7inp-6aaaa-aaaaa-aaabq-cai",
+    };
+    pub const NNS_CYCLES_MINTING: NnsCanisterInstallation = NnsCanisterInstallation {
+        canister_name: "nns-cycles-minting",
+        canister_id: "rkp4c-7iaaa-aaaaa-aaaca-cai",
+    };
+    pub const NNS_LIFELINE: NnsCanisterInstallation = NnsCanisterInstallation {
+        canister_name: "nns-lifeline",
+        canister_id: "rno2w-sqaaa-aaaaa-aaacq-cai",
+    };
+    pub const NNS_GENESIS_TOKENS: NnsCanisterInstallation = NnsCanisterInstallation {
+        canister_name: "nns-genesis-token",
+        canister_id: "renrk-eyaaa-aaaaa-aaada-cai",
+    };
+    pub const NNS_SNS_WASM: NnsCanisterInstallation = NnsCanisterInstallation {
+        canister_name: "nns-sns-wasm",
+        canister_id: "qvhpv-4qaaa-aaaaa-aaagq-cai",
+    };
+    pub const NNS_CORE: &'static [&'static NnsCanisterInstallation;8] = &[
+        &NNS_REGISTRY, &NNS_GOVERNANCE, &NNS_LEDGER, &NNS_ROOT, &NNS_CYCLES_MINTING, &NNS_LIFELINE, &NNS_GENESIS_TOKENS, &NNS_SNS_WASM
+    ];
+}
+
+
+
 const II_NAME: &str = "internet_identity";
 /// The name of the Internet Identity wasm file in the local wasm cache.
 const II_WASM: &str = "internet_identity_dev.wasm";
@@ -85,21 +132,14 @@ pub async fn install_nns(
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
-    canister_id_store.add("nns-registry", "rwlgt-iiaaa-aaaaa-aaaaa-cai")?;
-    canister_id_store.add("nns-governance", "rrkah-fqaaa-aaaaa-aaaaq-cai")?;
-    canister_id_store.add("nns-ledger", "ryjl3-tyaaa-aaaaa-aaaba-cai")?;
-    canister_id_store.add("nns-root", "r7inp-6aaaa-aaaaa-aaabq-cai")?;
-    canister_id_store.add("nns-cycles-minting", "rkp4c-7iaaa-aaaaa-aaaca-cai")?;
-    canister_id_store.add("nns-lifeline", "rno2w-sqaaa-aaaaa-aaacq-cai")?;
-    canister_id_store.add("nns-genesis-token", "renrk-eyaaa-aaaaa-aaada-cai")?;
-    // These two canisters are created but we create other canisters later for the same role.
-    // canister_id_store.add("nns-identity", "rdmx6-jaaaa-aaaaa-aaadq-cai")?; // See internet_identity instead
-    // canister_id_store.add("nns-ui", "qoctq-giaaa-aaaaa-aaaea-cai"); // See nns-dapp instead
-    canister_id_store.add("nns-sns-wasm", "qvhpv-4qaaa-aaaaa-aaagq-cai")?;
+    for canisters::NnsCanisterInstallation{canister_name, canister_id} in canisters::NNS_CORE {
+        canister_id_store.add(canister_name, canister_id);
+    }
 
     // ... and configure the backend NNS canisters:
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id.to_string())?;
+    //upload_nns_sns_wasms_canister_wasms(env, canister_id_store);
 
     // Install the GUI canisters:
     download(&Url::parse(II_URL)?, &nns_wasm_dir(env).join(&II_WASM)).await?;
@@ -231,18 +271,22 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     // TODO: Include the canister ID in the path.  .dfx/local/wasms/nns/${COMMIT}/....
     let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
     for name in [
-        "registry-canister",
+        "cycles-minting-canister",
+        "genesis-token-canister",
         "governance-canister_test",
         "governance-canister",
-        "ledger-canister_notify-method",
+        "ic-icrc1-archive",
         "ic-icrc1-ledger",
-        "root-canister",
-        "cycles-minting-canister",
-        "lifeline",
-        "sns-wasm-canister",
-        "genesis-token-canister",
         "identity-canister",
+        "ledger-canister_notify-method",
+        "lifeline",
         "nns-ui-canister",
+        "registry-canister",
+        "root-canister",
+        "sns-governance-canister",
+        "sns-root-canister",
+        "sns-swap-canister",
+        "sns-wasm-canister",
     ] {
         download_ic_repo_wasm(name, name, ic_commit, &nns_wasm_dir(env)).await?;
     }
@@ -377,6 +421,38 @@ pub fn set_cmc_authorized_subnets(nns_url: &Url, subnet: &str) -> anyhow::Result
                 Err(anyhow!("Call to propose to set xdr rate failed"))
             }
         })
+}
+
+/// Uploads wasms to the nns-sns-wasm canister.
+pub fn upload_nns_sns_wasms_canister_wasms(
+    env: &dyn Environment,
+    nns_sns_wasm_canister: Principal,
+) -> anyhow::Result<()> {
+    for (name, wasm) in [("foo", "bar")] {
+        // TODO: The sns binary needs to be bundled with dfx
+        let wasm_path = nns_wasm_dir(env).join(name);
+        std::process::Command::new("sns")
+            .arg("add-sns-wasm-for-tests")
+            .arg("--network")
+            .arg("local")
+            .arg("--override-sns-wasm-canister-id-for-tests")
+            .arg(canisters::NNS_SNS_WASM.canister_id)
+            .arg("--wasm-file")
+            .arg(&wasm_path)
+            .stdin(process::Stdio::null())
+            .output()
+            .map_err(anyhow::Error::from)
+            .and_then(|output| {
+                if output.status.success() {
+                    Ok(())
+                } else {
+                    Err(anyhow!(
+                        "Failed to upload {} from {} to the nns-sns-wasm canister.", name, wasm_path.to_string_lossy()
+                    ))
+                }
+            })?;
+    }
+    Ok(())
 }
 
 /// Installs a canister without adding it to dfx.json.
