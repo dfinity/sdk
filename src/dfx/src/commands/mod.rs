@@ -18,6 +18,7 @@ mod ledger;
 mod new;
 mod nns;
 mod ping;
+mod project;
 mod quickstart;
 mod remote;
 mod replica;
@@ -48,6 +49,8 @@ pub enum Command {
     #[clap(hide(true))]
     Nns(nns::NnsCommand),
     Ping(BaseOpts<ping::PingOpts>),
+    #[clap(hide(true))]
+    Project(project::ProjectCommand),
     Quickstart(BaseOpts<Empty>),
     Remote(remote::RemoteCommand),
     Replica(BaseOpts<replica::ReplicaOpts>),
@@ -84,6 +87,7 @@ pub fn dispatch(cmd: Command) -> DfxResult {
         Command::Identity(v) => identity::dispatch(v),
         Command::Ledger(v) => ledger::dispatch(v),
         Command::Nns(v) => nns::dispatch(v),
+        Command::Project(v) => project::dispatch(v),
         Command::Remote(v) => remote::dispatch(v),
         Command::Sns(v) => sns::dispatch(v),
         Command::Toolchain(v) => toolchain::dispatch(v),

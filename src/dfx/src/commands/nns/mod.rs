@@ -6,6 +6,7 @@ use crate::DfxResult;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
+mod import;
 mod install;
 
 /// NNS commands.
@@ -18,6 +19,9 @@ pub struct NnsCommand {
 
 #[derive(Parser)]
 enum SubCommand {
+    #[clap(hide(true))]
+    Import(NetworkOpts<import::ImportOpts>),
+
     #[clap(hide(true))]
     Install(NetworkOpts<install::InstallOpts>),
 }
@@ -35,6 +39,7 @@ macro_rules! with_env {
 
 pub fn dispatch(cmd: NnsCommand) -> DfxResult {
     match cmd.subcmd {
+        SubCommand::Import(v) => with_env!(v, |env, v| import::exec(&env, v)),
         SubCommand::Install(v) => with_env!(v, |env, v| install::exec(&env, v)),
     }
 }
