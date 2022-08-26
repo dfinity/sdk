@@ -211,7 +211,6 @@ pub async fn download_ic_repo_wasm(
 ) -> anyhow::Result<()> {
     fs::create_dir_all(wasm_dir)?;
     let final_path = wasm_dir.join(format!("{target_name}.wasm"));
-    println!("{final_path:?}");
     if final_path.exists() {
         return Ok(());
     }
@@ -219,6 +218,11 @@ pub async fn download_ic_repo_wasm(
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{src_name}.wasm.gz");
     let url = Url::parse(&url_str)?;
+    println!(
+        "Downloading {}\n  from {}",
+        final_path.to_string_lossy(),
+        url_str
+    );
     download_gz(&url, &final_path).await
 }
 
@@ -295,8 +299,6 @@ pub struct IcNnsInitOpts {
 ///   - The provider_url is what the agent connects to, and forwards to the replica.
 #[context("Failed to install nns components.")]
 pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyhow::Result<()> {
-    println!("Before ic-nns-init");
-
     let mut cmd = std::process::Command::new(ic_nns_init_path);
     cmd.arg("--url");
     cmd.arg(&opts.nns_url);
@@ -310,7 +312,6 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
         cmd.arg("--sns-subnet");
         cmd.arg(subnet);
     });
-    println!("{:?}", &cmd);
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
     let output = cmd
@@ -418,7 +419,6 @@ pub async fn install_canister(
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_id = canister_id_store.get(canister_name)?;
 
-    println!("Canister ID: {:?}", canister_id.to_string());
     let install_args = blob_from_arguments(None, None, None, &None)?;
     let install_mode = InstallMode::Install;
 
@@ -434,8 +434,8 @@ pub async fn install_canister(
         fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
     )
     .await?;
+    println!("Installed {canister_name} at {canister_name}");
 
-    println!("Installed {canister_name}");
     Ok(())
 }
 
