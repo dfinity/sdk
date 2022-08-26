@@ -120,7 +120,6 @@ pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
         .build();
 
     loop {
-        println!("Trying the NNS URL...");
         match reqwest::get(url.clone()).await {
             Ok(response) => {
                 return Ok(response);
@@ -164,7 +163,7 @@ fn local_replica_type(env: &dyn Environment) -> anyhow::Result<ReplicaSubnetType
 pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Result<()> {
     match local_replica_type(env) {
         Ok(ReplicaSubnetType::System) => Ok(()),
-        other => Err(anyhow!("In dfx.json networks.local.replica.subnet_type needs to be \"system\" to run NNS canisters.  Current value: {other:?}")),
+        other => Err(anyhow!("The replica subnet_type needs to be \"system\" to run NNS canisters.  Current value: {other:?}")),
     }
 }
 
