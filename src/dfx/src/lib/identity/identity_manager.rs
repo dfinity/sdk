@@ -7,6 +7,7 @@ use crate::lib::identity::{
 };
 
 use anyhow::{anyhow, bail, Context};
+use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
 use fn_error_context::context;
@@ -18,7 +19,6 @@ use slog::Logger;
 use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tiny_hderive::bip32::ExtendedPrivKey;
 
 use super::WALLET_CONFIG_FILENAME;
 
@@ -570,18 +570,8 @@ pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
     const DEFAULT_DERIVATION_PATH: &str = "m/44'/60'/0'/0/0";
     let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256)?, Language::English);
     let seed = Seed::new(&mnemonic, ""); // good enough for quill
-    let pk = ExtendedPrivKey::derive(seed.as_bytes(), DEFAULT_DERIVATION_PATH).map_err(|e| {
-        if let tiny_hderive::Error::Secp256k1(err) = e {
-            anyhow!(err)
-        } else {
-            anyhow!("{e:?}")
-        }
-    })?;
-    let secret = SecretKey::from_be_bytes(&pk.secret())?;
+    let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
+    let secret = SecretKey::from(pk.private_key());
     let pem = secret.to_pkcs8_pem(LineEnding::CRLF)?;
-    // let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
-    //     .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
-
-    // let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }

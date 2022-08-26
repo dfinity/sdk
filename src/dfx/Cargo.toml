@@ -23,6 +23,7 @@ anyhow = "1.0.56"
 argon2 = "0.4.0"
 atty = "0.2.13"
 base64 = "0.13.0"
+bip32 = "0.4.0"
 byte-unit = { version = "4.0.14", features = ["serde"] }
 candid = { version = "0.7.15", features = [ "random" ] }
 clap = { version = "3.1.6", features = [ "derive" ] }
@@ -76,7 +77,6 @@ term = "0.7.0"
 thiserror = "1.0.20"
 time = { version = "0.3.9", features = ["serde", "macros", "serde-human-readable"] }
 tiny-bip39 = "1.0.0"
-tiny-hderive = "0.3.0"
 tokio = { version = "1.17.0", features = [ "fs" ] }
 url = "2.1.0"
 walkdir = "2.2.9"
