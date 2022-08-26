@@ -6,6 +6,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use fn_error_context::context;
 use slog::info;
 use std::path::Path;
+use url::Url;
 
 pub fn get_running_replica_port(
     env: &dyn Environment,

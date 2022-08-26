@@ -70,7 +70,7 @@ pub fn exec(
 
     let icx_proxy_pid_file_path = local_server_descriptor.icx_proxy_pid_path();
 
-    let replica_urls = get_replica_urls(env, &network_descriptor)?;
+    let replica_urls: Vec<Url> = get_replica_urls(env, &network_descriptor)?;
 
     // Since the user may have provided port "0", we need to grab a dynamically
     // allocated port and construct a resuable SocketAddr which the actix

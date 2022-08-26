@@ -12,7 +12,7 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister_wasm};
-use crate::util::network::get_running_replica_port;
+use crate::util::network::{get_running_replica_port, get_replica_urls};
 use crate::util::{blob_from_arguments, expiry_duration};
 
 use anyhow::{anyhow, Context};
@@ -73,7 +73,8 @@ pub async fn install_nns(
     let subnet_id =
         ic_agent::export::Principal::self_authenticating(agent.status().await?.root_key.unwrap())
             .to_text();
-    let nns_url = Url::parse(env.get_network_descriptor().providers.get(0).unwrap()).unwrap();
+    let nns_url =
+            get_replica_urls(env, env.get_network_descriptor())?.remove(0);
 
     // Install the core backend wasm canisters
     download_nns_wasms(env).await?;
