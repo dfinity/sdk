@@ -112,6 +112,20 @@ impl AssetRedirect {
 
         location.map(|loc| HttpResponse::build_redirect(self.response_code, loc))
     }
+
+    pub fn is_valid(&self) -> bool {
+        if self.from.is_some() {
+            if self.from.as_ref().unwrap().host.is_none()
+                && self.from.as_ref().unwrap().path.is_none()
+            {
+                return false;
+            }
+        }
+        if self.to.host.is_none() && self.to.path.is_none() {
+            return false;
+        }
+        true
+    }
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]

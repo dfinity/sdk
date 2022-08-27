@@ -978,4 +978,23 @@ mod test_http_redirects {
         );
         assert_eq!(resp.status_code, 200);
     }
+
+    #[test]
+    fn validity_checks() {
+        let a = AssetRedirect {
+            from: Some(RedirectUrl::new(None, None)),
+            to: RedirectUrl::new(None, None),
+            response_code: 11111,
+            user_agent: Some(vec![]),
+        };
+
+        assert_eq!(a.is_valid(), false);
+
+        let a = AssetRedirect {
+            to: RedirectUrl::new(Some(""), None),
+            ..Default::default()
+        };
+
+        assert!(a.is_valid());
+    }
 }
