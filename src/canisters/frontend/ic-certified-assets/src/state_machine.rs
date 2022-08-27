@@ -154,7 +154,6 @@ impl AssetRedirect {
                 return Some(location);
             }
         } else {
-            let mut location = String::new();
             if let Some(host) = self.to.host.as_ref() {
                 if host.contains("http") {
                     location = host.to_string();
