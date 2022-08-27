@@ -506,3 +506,41 @@ CHERRIES" "$stdout"
     assert_match "HTTP/1.1 404 Not Found"
 
 }
+
+@test "asset configuration via .ic-assets.json5 - HTTP redirects" {
+    install_asset assetscanister
+
+    dfx_start
+
+    touch src/e2e_project_frontend/assets/thing.json
+    touch src/e2e_project_frontend/assets/diagram.svg
+
+    echo '[
+        {
+            "match": "**/*.svg",
+            "redirect": {
+            "from": {
+                "host": "127.0.0.1:8000",
+                "path": "/logo2.svg\\?canisterId=.*"
+            },
+            "to": {
+                "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
+                "path": "/img/IC_logo_horizontal.svg"
+            },
+            "response_code": 301,
+            "user_agent": [
+                "curl"
+            ]
+            }
+        }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl --vv "http://localhost:$PORT/diagram.svg?canisterId=$ID"
+    assert_match "301"
+    assert_match "hwvjt-wqaaa-aaaar-qadra-cai.ic0.app"
+}
