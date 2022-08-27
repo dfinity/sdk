@@ -525,7 +525,7 @@ CHERRIES" "$stdout"
                 },
                 "response_code": 301,
             }
-        }
+        },
         {
             "match": "picture.png",
             "redirect": {
