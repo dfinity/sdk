@@ -512,25 +512,28 @@ CHERRIES" "$stdout"
 
     dfx_start
 
-    touch src/e2e_project_frontend/assets/thing.json
-    touch src/e2e_project_frontend/assets/diagram.svg
+    touch src/e2e_project_frontend/assets/logo.svg
+    touch src/e2e_project_frontend/assets/picture.png
 
     echo '[
         {
-            "match": "**/*.svg",
+            "match": "logo.svg",
             "redirect": {
-            "from": {
-                "host": "127.0.0.1:8000",
-                "path": "/logo2.svg\\?canisterId=.*"
-            },
-            "to": {
-                "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
-                "path": "/img/IC_logo_horizontal.svg"
-            },
-            "response_code": 301,
-            "user_agent": [
-                "curl"
-            ]
+                "to": {
+                    "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
+                    "path": "/img/IC_logo_horizontal.svg"
+                },
+                "response_code": 301,
+            }
+        }
+        {
+            "match": "picture.png",
+            "redirect": {
+                "to": {
+                    "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
+                    "path": "/img/IC_logo_horizontal.svg"
+                },
+                "response_code": 301,
             }
         }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
@@ -541,6 +544,10 @@ CHERRIES" "$stdout"
     PORT=$(get_webserver_port)
 
     assert_command curl -vv "http://localhost:$PORT/diagram.svg?canisterId=$ID"
+    assert_match "301"
+    assert_match "hwvjt-wqaaa-aaaar-qadra-cai.ic0.app"
+
+    assert_command curl -vv "http://localhost:$PORT/picture.png?canisterId=$ID"
     assert_match "301"
     assert_match "hwvjt-wqaaa-aaaar-qadra-cai.ic0.app"
 }
