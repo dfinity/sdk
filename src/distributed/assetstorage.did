@@ -7,7 +7,11 @@ type CreateAssetArguments = record {
   key: Key;
   content_type: text;
   max_age: opt nat64;
+  // max headers: worth of 512Kb
+  // possibly check both client side and canisetr side
+  // communicate about the limits!
   headers: opt vec HeaderField;
+  redirect: opt AssetRedirect;
 };
 
 // Add or change content for an asset, by content encoding
@@ -16,6 +20,20 @@ type SetAssetContentArguments = record {
   content_encoding: text;
   chunk_ids: vec ChunkId;
   sha256: opt blob;
+};
+
+// TODO: comment
+type RedirectUrl = record {
+  host: opt text;
+  path: opt text;
+};
+
+// TODO: comment
+type AssetRedirect = record {
+  from: opt RedirectUrl;
+  to: RedirectUrl;
+  user_agents: opt vec text;
+  response_code: nat;
 };
 
 // Remove content for an asset, by content encoding
@@ -35,13 +53,12 @@ type ClearArguments = record {};
 type BatchOperationKind = variant {
   CreateAsset: CreateAssetArguments;
   SetAssetContent: SetAssetContentArguments;
-
   UnsetAssetContent: UnsetAssetContentArguments;
   DeleteAsset: DeleteAssetArguments;
-
   Clear: ClearArguments;
 };
 
+// max key size = 256, max value size = 4092
 type HeaderField = record { text; text; };
 
 type HttpRequest = record {
@@ -75,6 +92,12 @@ type StreamingStrategy = variant {
     callback: func (StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
     token: StreamingCallbackToken;
   };
+};
+
+type AssetProperties = record {
+  max_age: opt nat64;
+  headers: opt vec HeaderField;
+  redirect: opt AssetRedirect
 };
 
 service: {
