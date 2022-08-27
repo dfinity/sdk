@@ -543,7 +543,7 @@ CHERRIES" "$stdout"
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
 
-    assert_command curl -vv "http://localhost:$PORT/diagram.svg?canisterId=$ID"
+    assert_command curl -vv "http://localhost:$PORT/logo.svg?canisterId=$ID"
     assert_match "301"
     assert_match "hwvjt-wqaaa-aaaar-qadra-cai.ic0.app"
 
