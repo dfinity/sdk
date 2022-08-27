@@ -60,26 +60,35 @@ pub struct AssetRedirect {
 }
 
 impl AssetRedirect {
-    // if user-agent coming in HTTP Request is not found in list of user-agents from redirect config
-    // then we're returning None, otherwise proceed.
-    // TODO: performance hit for long lists. Consider using:
-    // - binary search (but how to enforce the list being sorted?)
-    // - hashmap (but that precludes matching based on part of the string)
-    // - BTreeMap (sorted, enables matching but only prefix)
-    // - https://docs.rs/regex/latest/regex/struct.RegexSet.html
-    //   > The key advantage of using a regex set is that it will
-    //   > report the matching regexes using a single pass through
-    //   > the text. If one has hundreds or thousands of regexes
-    //   > to match repeatedly (like a URL router for a complex
-    //   > web application or a user agent matcher), then a regex set
-    //   > can realize huge performance gains.
-    //   it would be nice if there's a way to store
-    //   already compiled regexset
+    pub fn is_valid(&self) -> Result<(), String> {
+        if self.from.is_some() {
+            if self.from.as_ref().unwrap().host.is_none()
+                && self.from.as_ref().unwrap().path.is_none()
+            {
+                return Err("AssetRedirect.from must have a host or path".to_string());
+            }
+        }
+        if self.to.host.is_none() && self.to.path.is_none() {
+            return Err("AssetRedirect.to must have a host or path".to_string());
+        }
+        Ok(())
+    }
+
     fn matches_user_agent(&self, user_agent: &str) -> bool {
+        // if user-agent coming in HTTP Request is not found in list of user-agents from redirect config
+        // then we're returning None, otherwise proceed.
         if self.user_agent.as_ref().map_or(false, |cfg_user_agents| {
             if cfg_user_agents.is_empty() {
                 return false;
             }
+            // TODO: performance hit for long lists. Consider using:
+            // - https://docs.rs/regex/latest/regex/struct.RegexSet.html
+            //   > The key advantage of using a regex set is that it will
+            //   > report the matching regexes using a single pass through
+            //   > the text. If one has hundreds or thousands of regexes
+            //   > to match repeatedly (like a URL router for a complex
+            //   > web application or a user agent matcher), then a regex set
+            //   > can realize huge performance gains.
             !cfg_user_agents
                 .iter()
                 .any(|cfg_user_agent| user_agent.contains(cfg_user_agent))
@@ -90,10 +99,9 @@ impl AssetRedirect {
     }
 
     fn redirect(&self, req: &HttpRequest) -> Option<HttpResponse> {
-        if self.to.host.is_none() && self.to.path.is_none() {
-            return Some(HttpResponse::build_400(
-                "incorrect asset redirect configuration: either one of redirection destination `host` or `path` are required",
-            ));
+        let check = self.is_valid();
+        if check.is_err() {
+            return Some(HttpResponse::build_400(&check.unwrap_err()));
         }
 
         if self.user_agent.is_some() {
@@ -104,27 +112,63 @@ impl AssetRedirect {
             }
         }
 
-        let location: Option<String> = if let Some(from) = &self.from {
-            RedirectUrl::relative_redirect_location(&from, &self.to, &req)
-        } else {
-            RedirectUrl::absolute_redirect_location(&self.to, &req)
-        };
-
-        location.map(|loc| HttpResponse::build_redirect(self.response_code, loc))
+        self.get_location_url(req)
+            .map(|loc| HttpResponse::build_redirect(self.response_code, loc))
     }
 
-    pub fn is_valid(&self) -> bool {
-        if self.from.is_some() {
-            if self.from.as_ref().unwrap().host.is_none()
-                && self.from.as_ref().unwrap().path.is_none()
-            {
-                return false;
+    fn get_location_url(&self, req: &HttpRequest) -> Option<String> {
+        let mut location = String::new();
+
+        if let Some(from) = &self.from {
+            let RedirectUrl {
+                host: from_host,
+                path: from_path,
+            } = from;
+            let (mut host_same_as_original, mut path_same_as_original) = (true, true);
+            if let Some(req_host) = req.get_header_value("Host") {
+                if let Some(redirect_host) =
+                    RedirectUrl::match_and_replace_segment(&from_host, &self.to.host, req_host)
+                {
+                    host_same_as_original = &redirect_host == req_host;
+                    if redirect_host.starts_with("http") {
+                        location = redirect_host;
+                    } else {
+                        location = format!("https://{}", redirect_host);
+                    }
+                }
             }
+
+            if let Some(redirect_path) =
+                RedirectUrl::match_and_replace_segment(&from_path, &self.to.path, &req.url)
+            {
+                path_same_as_original = redirect_path == req.url;
+                location.push_str(&redirect_path);
+            } else {
+                location.push_str(&req.url);
+            }
+
+            if host_same_as_original && path_same_as_original {
+                eprintln!("redirect loop detected: {:?} -> {:?}", from, self.to);
+                return None;
+            } else {
+                return Some(location);
+            }
+        } else {
+            let mut location = String::new();
+            if let Some(host) = self.to.host.as_ref() {
+                if host.contains("http") {
+                    location = host.to_string();
+                } else {
+                    location = format!("https://{}", host);
+                }
+            }
+            if let Some(path) = self.to.path.as_ref() {
+                location.push_str(path);
+            } else {
+                location.push_str(&req.url);
+            }
+            return Some(location);
         }
-        if self.to.host.is_none() && self.to.path.is_none() {
-            return false;
-        }
-        true
     }
 }
 
@@ -781,6 +825,34 @@ fn create_token(
     }
 }
 
+impl RedirectUrl {
+    fn match_and_replace_segment(
+        match_segment: &Option<String>,
+        replace_with: &Option<String>,
+        in_text: &str,
+    ) -> Option<String> {
+        if let Some(replace) = replace_with {
+            if match_segment.is_none() {
+                return Some(replace.to_owned());
+            }
+            if let Ok(regex) = Regex::new(match_segment.as_ref().unwrap()) {
+                return regex
+                    .find(in_text)
+                    .map(|_| regex.replace(in_text, replace).to_string());
+            }
+        }
+        None
+    }
+}
+
+impl HttpRequest {
+    fn get_header_value(&self, header_key: &str) -> Option<&String> {
+        self.headers
+            .iter()
+            .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then(|| v))
+    }
+}
+
 impl HttpResponse {
     #[allow(clippy::too_many_arguments)]
     fn build_ok(
@@ -861,88 +933,5 @@ impl HttpResponse {
             body: RcBytes::from(ByteBuf::from("not found")),
             streaming_strategy: None,
         }
-    }
-}
-
-impl RedirectUrl {
-    fn match_and_replace_segment(
-        match_segment: &Option<String>,
-        replace_with: &Option<String>,
-        in_text: &str,
-    ) -> Option<String> {
-        if let Some(replace) = replace_with {
-            if match_segment.is_none() {
-                return Some(replace.to_owned());
-            }
-            if let Ok(regex) = Regex::new(match_segment.as_ref().unwrap()) {
-                return regex
-                    .find(in_text)
-                    .map(|_| regex.replace(in_text, replace).to_string());
-            }
-        }
-        None
-    }
-
-    fn relative_redirect_location(from: &Self, to: &Self, req: &HttpRequest) -> Option<String> {
-        let &Self {
-            host: from_host,
-            path: from_path,
-        } = &from;
-        let mut location = String::new();
-        let mut host_same_as_original = true;
-        let mut path_same_as_original = true;
-
-        if let Some(req_host) = req.get_header_value("Host") {
-            if let Some(redirect_host) =
-                RedirectUrl::match_and_replace_segment(from_host, &to.host, req_host)
-            {
-                host_same_as_original = &redirect_host == req_host;
-                if redirect_host.starts_with("http") {
-                    location = redirect_host;
-                } else {
-                    location = format!("https://{}", redirect_host);
-                }
-            }
-        }
-
-        if let Some(redirect_path) =
-            RedirectUrl::match_and_replace_segment(from_path, &to.path, &req.url)
-        {
-            path_same_as_original = redirect_path == req.url;
-            location.push_str(&redirect_path);
-        } else {
-            location.push_str(&req.url);
-        }
-
-        if host_same_as_original && path_same_as_original {
-            eprintln!("redirect loop detected: {:?} -> {:?}", from, to);
-            None
-        } else {
-            Some(location)
-        }
-    }
-    fn absolute_redirect_location(to: &Self, req: &HttpRequest) -> Option<String> {
-        let mut location = String::new();
-        if let Some(host) = to.host.as_ref() {
-            if host.contains("http") {
-                location = host.to_string();
-            } else {
-                location = format!("https://{}", host);
-            }
-        }
-        if let Some(path) = to.path.as_ref() {
-            location.push_str(path);
-        } else {
-            location.push_str(&req.url);
-        }
-        Some(location)
-    }
-}
-
-impl HttpRequest {
-    fn get_header_value(&self, header_key: &str) -> Option<&String> {
-        self.headers
-            .iter()
-            .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then(|| v))
     }
 }

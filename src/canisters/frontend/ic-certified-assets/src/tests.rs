@@ -988,13 +988,13 @@ mod test_http_redirects {
             user_agent: Some(vec![]),
         };
 
-        assert_eq!(a.is_valid(), false);
+        assert!(a.is_valid().is_err());
 
         let a = AssetRedirect {
             to: RedirectUrl::new(Some(""), None),
             ..Default::default()
         };
 
-        assert!(a.is_valid());
+        assert!(a.is_valid().is_ok());
     }
 }
