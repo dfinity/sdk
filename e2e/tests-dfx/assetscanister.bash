@@ -517,23 +517,29 @@ CHERRIES" "$stdout"
 
     echo '[
         {
-            "match": "logo.svg",
+            "match": "**/*.svg",
             "redirect": {
                 "to": {
                     "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
                     "path": "/img/IC_logo_horizontal.svg"
                 },
                 "response_code": 301,
+            },
+            "headers": {
+                "x-headerrr": "x-valllue"
             }
         },
         {
-            "match": "picture.png",
+            "match": "**/*.png",
             "redirect": {
                 "to": {
                     "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
                     "path": "/img/IC_logo_horizontal.svg"
                 },
                 "response_code": 301,
+            },
+            "headers": {
+                "x-header": "x-value"
             }
         }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
@@ -544,10 +550,10 @@ CHERRIES" "$stdout"
     PORT=$(get_webserver_port)
 
     assert_command curl -vv "http://localhost:$PORT/logo.svg?canisterId=$ID"
+    assert_command curl -vv "http://localhost:$PORT/picture.png?canisterId=$ID"
     assert_match "301"
     assert_match "hwvjt-wqaaa-aaaar-qadra-cai.ic0.app"
 
-    assert_command curl -vv "http://localhost:$PORT/picture.png?canisterId=$ID"
     assert_match "301"
     assert_match "hwvjt-wqaaa-aaaar-qadra-cai.ic0.app"
 }
