@@ -6,12 +6,7 @@ type Time = int;
 type CreateAssetArguments = record {
   key: Key;
   content_type: text;
-  max_age: opt nat64;
-  // max headers: worth of 512Kb
-  // possibly check both client side and canisetr side
-  // communicate about the limits!
-  headers: opt vec HeaderField;
-  redirect: opt AssetRedirect;
+  properties: AssetProperties;
 };
 
 // Add or change content for an asset, by content encoding
@@ -22,13 +17,12 @@ type SetAssetContentArguments = record {
   sha256: opt blob;
 };
 
-// TODO: comment
 type RedirectUrl = record {
   host: opt text;
   path: opt text;
 };
 
-// TODO: comment
+// Configure traffic HTTP redirection
 type AssetRedirect = record {
   from: opt RedirectUrl;
   to: RedirectUrl;
@@ -58,7 +52,6 @@ type BatchOperationKind = variant {
   Clear: ClearArguments;
 };
 
-// max key size = 256, max value size = 4092
 type HeaderField = record { text; text; };
 
 type HttpRequest = record {

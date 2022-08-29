@@ -31,7 +31,6 @@ type Timestamp = Int;
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct AssetProperties {
     pub max_age: Option<u64>,
-    // TODO: vs     pub headers: Option<Vec<HeaderField>>,
     pub headers: Option<HashMap<String, String>>,
     pub redirect: Option<AssetRedirect>,
 }

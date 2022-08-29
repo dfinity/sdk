@@ -22,11 +22,46 @@ pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
 }
 
-// TODO: impl deserializer requiring *minimum one* of host or path to be `.is_some()==true`
-#[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
+#[derive(CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct RedirectUrl {
     pub(crate) host: Option<String>,
     pub(crate) path: Option<String>,
+}
+
+impl<'de> Deserialize<'de> for RedirectUrl {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        if value.is_object() {
+            let mut host = None;
+            let mut path = None;
+            for (key, value) in value.as_object().unwrap() {
+                match key.as_str() {
+                    "host" => host = Some(value.as_str().unwrap().to_string()),
+                    "path" => path = Some(value.as_str().unwrap().to_string()),
+                    _ => {
+                        return Err(serde::de::Error::custom(format!(
+                            "Unexpected key: {:?}",
+                            key
+                        )))
+                    }
+                }
+            }
+            if host.is_none() && path.is_none() {
+                return Err(serde::de::Error::custom(format!(
+                    "Expected at least one of host or path"
+                )));
+            }
+            Ok(RedirectUrl { host, path })
+        } else {
+            Err(serde::de::Error::custom(format!(
+                "Expected object, found: {:?}",
+                value
+            )))
+        }
+    }
 }
 
 #[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
@@ -735,6 +770,31 @@ mod with_tempdir {
             "".to_string(),
             r#"[
         {"match": "{{{\\\", "cache": {"max_age": 900}},
+    ]"#
+            .to_string(),
+        )]));
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
+        assert_eq!(
+            assets_config.err().unwrap().to_string(),
+            format!(
+                "malformed JSON asset config file: {}",
+                assets_dir
+                    .join(ASSETS_CONFIG_FILENAME_JSON)
+                    .to_str()
+                    .unwrap()
+            )
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_redirect_config() -> anyhow::Result<()> {
+        let cfg = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+        {"match": "**/*", "redirect": {"to": {}}},
     ]"#
             .to_string(),
         )]));

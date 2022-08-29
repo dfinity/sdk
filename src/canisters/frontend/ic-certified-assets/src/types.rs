@@ -11,8 +11,6 @@ pub type BatchId = Nat;
 pub type ChunkId = Nat;
 pub type Key = String;
 
-// TODO: consider wrapping both max_age and headers into single type
-
 // IDL Types
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
