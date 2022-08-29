@@ -30,9 +30,9 @@ jobs:
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt
       - name: Build
-        # note: since there is no 'cargo clean' here, the results of scripts/prepare-dfx-assets.sh
-        # are often cached.
-        run: cargo build --locked --release
+        run: |
+          cargo clean
+          cargo build --locked --release
         env:
           OPENSSL_STATIC: yes
       - name: Strip binaries
