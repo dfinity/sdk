@@ -24,7 +24,7 @@ delay = "0.3.1"
 garcon = "0.2.2"
 humantime = "2.0.1"
 ic-agent = "0.20"
-ic-asset = "0.20"
+ic-asset = { path = "../ic-asset" }
 ic-utils = "0.20"
 libflate = "1.2.0"
 num-traits = "0.2"

@@ -90,6 +90,33 @@ pub(crate) struct AssetConfig {
     pub(crate) redirect: Option<RedirectConfig>,
 }
 
+impl std::fmt::Display for AssetConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+
+        if self.cache.is_some() || self.headers.is_some() || self.redirect.is_some() {
+            s.push_str(", with config:\n");
+        }
+        if let Some(ref redirect) = self.redirect {
+            s.push_str(&format!("    - redirect: {:?}\n", redirect));
+        }
+        if let Some(ref cache) = self.cache {
+            s.push_str(&format!("    - cache: {:?}\n", cache));
+        }
+        if let Some(ref headers) = self.headers {
+            for (key, value) in headers {
+                s.push_str(&format!(
+                    "    - header: {key}: {value}\n",
+                    key = key,
+                    value = value
+                ));
+            }
+        }
+
+        write!(f, "{}", s)
+    }
+}
+
 #[derive(Debug, Default)]
 struct AssetConfigTreeNode {
     pub parent: Option<Arc<AssetConfigTreeNode>>,

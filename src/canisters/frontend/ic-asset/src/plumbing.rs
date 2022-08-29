@@ -277,12 +277,13 @@ async fn upload_content_chunks(
             create_chunk(canister_call_params, batch_id, data_chunk, semaphores).map_ok(
                 move |chunk_id| {
                     println!(
-                        "  {}{} {}/{} ({} bytes)",
+                        "  {}{} {}/{} ({} bytes){}",
                         &asset_descriptor.key,
                         content_encoding_descriptive_suffix(content_encoding),
                         i + 1,
                         count,
                         data_chunk.len(),
+                        &asset_descriptor.config
                     );
                     chunk_id
                 },
