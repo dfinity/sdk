@@ -2,6 +2,7 @@ const path = require("path");
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 
 function initCanisterEnv() {
   let localCanisters, prodCanisters;
@@ -92,6 +93,15 @@ module.exports = {
     new webpack.ProvidePlugin({
       Buffer: [require.resolve("buffer/"), "Buffer"],
       process: require.resolve("process/browser"),
+    }),
+    new CopyPlugin({
+      patterns: [
+        {
+          from: `src/${frontendDirectory}/src/.ic-assets.json*`,
+          to: ".ic-assets.json5",
+          noErrorOnMissing: true
+        },
+      ],
     }),
   ],
   // proxy /api to port 4943 during development.
