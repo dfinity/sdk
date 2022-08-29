@@ -57,8 +57,8 @@ teardown() {
     # Checking that the install worked:
     # ... Canisters should exist:
     # ... ... Backend canisters:
-    assert_command dfx canister id nns-registry
-    assert_command dfx canister id nns-governance
+    dfx canister id nns-registry
+    dfx canister id nns-governance
     assert_command dfx canister id nns-ledger
     assert_command dfx canister id nns-root
     assert_command dfx canister id nns-cycles-minting
