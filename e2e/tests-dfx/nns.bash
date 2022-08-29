@@ -49,7 +49,7 @@ teardown() {
 @test "dfx nns install runs" {
     install_asset subnet_type/shared_network_settings/system
 
-    assert_command dfx start --clean --background
+    assert_command dfx start --clean --background --host 127.0.0.1:0 
     assert_match "subnet_type: System"
 
     assert_command dfx nns install
