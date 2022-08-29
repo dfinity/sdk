@@ -122,7 +122,7 @@ pub mod canisters {
         wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm",
     };
 
-    pub const NNS_CORE: &'static [&'static IcNnsInitCanister; 10] = &[
+    pub const NNS_CORE: &[&IcNnsInitCanister; 10] = &[
         &NNS_REGISTRY,
         &NNS_GOVERNANCE,
         &NNS_LEDGER,
@@ -134,7 +134,7 @@ pub mod canisters {
         &NNS_IDENTITY,
         &NNS_UI,
     ];
-    pub const NNS_FRONTEND: [&'static StandardCanister; 2] = [&INTERNET_IDENTITY, &NNS_DAPP];
+    pub const NNS_FRONTEND: [&StandardCanister; 2] = [&INTERNET_IDENTITY, &NNS_DAPP];
 
     pub struct SnsCanisterInstallation {
         pub canister_name: &'static str,
@@ -166,7 +166,7 @@ pub mod canisters {
         upload_name: "archive",
         wasm_name: "ic-icrc1-archive.wasm",
     };
-    pub const SNS_CANISTERS: [&'static SnsCanisterInstallation; 5] = [
+    pub const SNS_CANISTERS: [&SnsCanisterInstallation; 5] = [
         &SNS_ROOT,
         &SNS_GOVERNANCE,
         &SNS_SWAP,
