@@ -230,7 +230,7 @@ fn handle_legacy_flags() {
     /// ```
     macro_rules! rewrite {
         ($nargs:expr, $old:pat, $new:expr) => {
-            rewrite!($nargs, $old, $new, $true);
+            rewrite!($nargs, $old, $new, true);
         };
         ($nargs:expr, $old:pat, $new:expr, $condition:expr) => {
             let arg_slice_start = 1;
