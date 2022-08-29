@@ -14,6 +14,53 @@ New: dfx canister id --network local mydapp
 ```
 
 To reduce disruption, this PR rewrites some common command line patterns from the old format to the new, and issuses a warning.
+### refactor: Move replica URL functions into a module for reuse
+
+The running replica port and url are generally useful information. Previously the code to get the URL was embedded in the network proxy code. This moves it out into a library for reuse.
+
+### feat: use JSON5 file format for .ic-assets.json5 config
+
+### chore: Frontend canister build process no longer depends on `dfx` or `ic-cdk-optimizer`
+
+Instead, the build process relies on `ic-wasm` to provide candid metadata for the canister, and
+shrinking the canister size by stripping debug symbols and unused fuctions.
+Additionally, after build step, the `.wasm` file is archived with `gzip`. 
+
+### chore: Move all `frontend canister`-related code into the SDK repo
+
+| from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)        | summary                                                                                     |
+|:--------------------------------------------|:---------------------------------------------|:--------------------------------------------------------------------------------------------|
+| `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset` | the core of the frontend canister                                                           |
+| `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-asset`           | wrapper around the core, helps build the canister wasm                                      |
+| `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`           | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
+| `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`          | CLI executable tool - wraps `ic-asset`                                                      |
+
+
+
+### feat: use JSON5 file format for frontend canister asset configuration
+
+Both `.ic-assets.json` and `.ic-assets.json5` are valid filenames config filename, though both will get parsed
+as if they were [JSON5](https://json5.org/) format. Example content of the `.ic-assets.json5` file:
+```json5
+// comment
+[
+  {
+    "match": "*", // comment
+    /*
+    keys below not wrapped in quotes
+*/  cache: { max_age: 999 }, // trailing comma 
+  },
+]
+```
+- Learn more about JSON5: https://json5.org/
+
+### fix: Update nns binaries unless `NO_CLOBBER` is set
+
+Previously existing NNS binaries were not updated regardless of the `NO_CLOBBER` setting.
+
+### feat!: Support installing canisters not in dfx.json
+
+`install_canister_wasm` used to fail if installing a canister not listed in dfx.json.  This use case is now supported.
 
 ### feat: print the dashboard URL on startup
 
@@ -107,6 +154,26 @@ DFX new template now uses `dfx generate` instead of `rsync`. Adds deprecation wa
 },
 ```
 
+### feat: simple cycles faucet code redemption
+
+Using `dfx wallet --network ic redeem-faucet-coupon <my coupon>` faucet users have a much easier time to redeem their codes.
+If the active identity has no wallet configured, the faucet supplies a wallet to the user that this command will automatically configure.
+If the active identity has a wallet configured already, the faucet will top up the existing wallet.
+
+Alternative faucets can be used, assuming they follow the same interface. To direct dfx to a different faucet, use the `--faucet <alternative faucet id>` flag.
+The expected interface looks like the following candid functions:
+``` candid
+redeem: (text) -> (principal);
+redeem_to_wallet: (text, principal) -> (nat);
+```
+The function `redeem` takes a coupon code and returns the principal to an already-installed wallet that is controlled by the identity that called the function.
+The function `redeem_to_wallet` takes a coupon code and a wallet (or any other canister) principal, deposits the cycles into that canister and returns how many cycles were deposited.
+
+### feat: disable automatic wallet creation on non-ic networks
+
+By default, if dfx is not running on the `ic` (or networks with a different name but the same configuration), it will automatically create a cycles wallet in case it hasn't been created yet.
+It is now possible to inhibit automatic wallet creation by setting the `DFX_DISABLE_AUTO_WALLET` environment variable.
+
 ### fix!: removed unused --root parameter from dfx bootstrap
 
 ### feat: canister installation now waits for the replica
@@ -140,6 +207,10 @@ This is a breaking change.  The only thing this was still serving was the /_/can
 
 - if there is no wallet to upgrade
 - if trying to upgrade a local wallet from outside of a project directory
+
+### fix: canister creation cost is 0.1T cycles
+
+Canister creation fee was calculated with 1T cycles instead of 0.1T.
 
 ### fix: dfx deploy and dfx canister install write .old.did files under .dfx/
 
@@ -179,11 +250,29 @@ However, at that point, it isn't "a" passphrase.  It's either your passphrase, o
 Changed the text in this case to read:
     "Please enter the passphrase for your identity"
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
+This incorporates the following executed proposals:
+
+* [76228](https://dashboard.internetcomputer.org/proposal/76228)
+* [75700](https://dashboard.internetcomputer.org/proposal/75700)
+* [75109](https://dashboard.internetcomputer.org/proposal/75109)
+* [74395](https://dashboard.internetcomputer.org/proposal/74395)
+* [73959](https://dashboard.internetcomputer.org/proposal/73959)
+* [73714](https://dashboard.internetcomputer.org/proposal/73714)
+* [73368](https://dashboard.internetcomputer.org/proposal/73368)
+* [72764](https://dashboard.internetcomputer.org/proposal/72764)
+
 ### ic-ref
 
 Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
+
+### Updated Motoko to 0.6.30
 
 # 0.11.1
 

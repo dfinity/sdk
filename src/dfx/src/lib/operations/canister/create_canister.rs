@@ -16,8 +16,8 @@ use slog::info;
 use std::format;
 use std::time::Duration;
 
-// The cycle fee for create request is 1T cycles.
-const CANISTER_CREATE_FEE: u128 = 1_000_000_000_000_u128;
+// The cycle fee for create request is 0.1T cycles.
+const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
 // We do not know the minimum cycle balance a canister should have.
 // For now create the canister with 3T cycle balance.
 const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
@@ -42,7 +42,8 @@ pub async fn create_canister(
 
     if let Some(remote_canister_id) = config
         .get_config()
-        .get_remote_canister_id(canister_name, &network_name)?
+        .get_remote_canister_id(canister_name, &network_name)
+        .unwrap_or_default()
     {
         bail!(
             "{} canister is remote on network {} and has canister id: {}",

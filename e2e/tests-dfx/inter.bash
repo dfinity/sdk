@@ -2,8 +2,6 @@
 
 load ../utils/_
 
-[ -e "${assets:?}/installed/bin/ic-cdk-optimizer" ] || cargo install ic-cdk-optimizer --root "$assets/installed" &> /dev/null
-
 setup() {
     standard_setup
 }
@@ -19,7 +17,6 @@ teardown() {
     dfx_new_rust inter
     install_asset inter
     dfx_start
-    export PATH="$assets/installed/bin/:$PATH"
     dfx deploy
 
     # calling motoko canister from rust canister
