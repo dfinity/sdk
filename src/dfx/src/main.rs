@@ -216,7 +216,6 @@ fn main() {
 fn handle_legacy_flags() {
     let arg_strings: Vec<String> = std::env::args().collect();
     let args: Vec<&str> = arg_strings.iter().map(|s| s.as_str()).collect();
-    eprintln!("Args: {args:?}");
 
     /// Macro for rewriting arguments.
     ///
