@@ -14,11 +14,11 @@ will fail with an error from the replica such as the following:
 The Replica returned an error: code 1, message: "Canister requested a compute allocation of 1% which cannot be satisfied because the Subnet's remaining compute capacity is 0%"
 ```
 
+### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
+
 ### refactor: Move replica URL functions into a module for reuse
 
 The running replica port and url are generally useful information. Previously the code to get the URL was embedded in the network proxy code. This moves it out into a library for reuse.
-
-### feat: use JSON5 file format for .ic-assets.json5 config
 
 ### chore: Frontend canister build process no longer depends on `dfx` or `ic-cdk-optimizer`
 
@@ -34,8 +34,6 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 | `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-asset`           | wrapper around the core, helps build the canister wasm                                      |
 | `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`           | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
 | `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`          | CLI executable tool - wraps `ic-asset`                                                      |
-
-
 
 ### feat: use JSON5 file format for frontend canister asset configuration
 
