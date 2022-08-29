@@ -4,6 +4,17 @@
 
 ## DFX
 
+### feat: Backwards compatibility for flags
+
+The location of some flags has moved. For example:
+
+```
+Old: dfx canister --network local id mydapp
+New: dfx canister id --network local mydapp
+```
+
+To reduce disruption, this PR rewrites some common command line patterns from the old format to the new, and issuses a warning.
+
 ### feat: print the dashboard URL on startup
 
 When running `dfx start` or `dfx replica`, the path to the dashboard page is now printed.

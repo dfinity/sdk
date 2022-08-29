@@ -188,6 +188,8 @@ fn init_env(env_opts: EnvOpts) -> DfxResult<impl Environment> {
 }
 
 fn main() {
+    handle_legacy_flags();
+
     let cli_opts = CliOpts::parse();
     let command = cli_opts.command;
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
@@ -208,4 +210,93 @@ fn main() {
         print_error_and_diagnosis(err, error_diagnosis);
         std::process::exit(255);
     }
+}
+
+/// Some flags have moved.  In a few common cases we detect this, warn the user and reorder the flags.
+fn handle_legacy_flags() {
+    let arg_strings: Vec<String> = std::env::args().collect();
+    let args: Vec<&str> = arg_strings.iter().map(|s| s.as_str()).collect();
+    eprintln!("Args: {args:?}");
+
+    /// Macro for rewriting arguments.
+    ///
+    /// nargs == the number of arguments to consider for rewriting.
+    /// old == a pattern for the start of the provided arguments
+    /// new == the replacement arguments
+    /// condition == any additional condition, above pattern matching, to apply.
+    ///
+    /// Example:
+    /// ```
+    /// rewrite!(4, ["wallet", "--network", network, "balance"], ["wallet", "balance", "--network", network])
+    /// ```
+    macro_rules! rewrite {
+        ($nargs:expr, $old:pat, $new:expr) => {
+            rewrite!($nargs, $old, $new, $true);
+        };
+        ($nargs:expr, $old:pat, $new:expr, $condition:expr) => {
+            let arg_slice_start = 1;
+            let arg_slice_end = arg_slice_start + $nargs;
+            if args.len() >= arg_slice_end {
+                if let $old = &args[arg_slice_start..arg_slice_end] {
+                    if $condition {
+                        let mut exe = std::process::Command::new(std::env::current_exe().unwrap());
+                        exe.args($new).args(&args[arg_slice_end..]);
+                        eprintln!("dfx flags have moved.  Please see dfx --help for details.  Rewritten {:?} to: {:?}", args, exe.get_args());
+                        std::process::exit(exe.status().unwrap().code().unwrap_or_default());
+                    }
+                }
+            }
+        };
+    }
+
+    // The top level no longer supports --identity or --network so push these down to the subcommand.
+    // Example:
+    // Old: dfx --identity default canister id foo
+    // New: dfx canister --identity default id foo
+    rewrite!(
+        3,
+        [flag, value, command],
+        [command, flag, value],
+        !command.starts_with("--") && ["--identity", "--network"].contains(flag)
+    );
+    rewrite!(
+        5,
+        [flag1, value1, flag2, value2, command],
+        [command, flag1, value1, flag2, value2],
+        !command.starts_with("--")
+            && ["--identity", "--network"].contains(flag1)
+            && ["--identity", "--network"].contains(flag2)
+    );
+
+    // Push some flags down one further:
+    // Example:
+    // Old: dfx canister --network local id mydapp
+    // New: dfx canister id --network local mydapp
+    let commands = ["wallet", "canister", "identity"];
+    let flags = ["--identity", "--network", "--canister", "--wallet"];
+    rewrite!(
+        4,
+        [command, flag1, value1, subcommand],
+        [command, subcommand, flag1, value1],
+        commands.contains(command) && !subcommand.starts_with("--") && flags.contains(flag1)
+    );
+    rewrite!(
+        6,
+        [command, flag1, value1, flag2, value2, subcommand],
+        [command, subcommand, flag1, value1, flag2, value2],
+        commands.contains(command)
+            && !subcommand.starts_with("--")
+            && flags.contains(flag1)
+            && flags.contains(flag2)
+    );
+    rewrite!(
+        8,
+        [command, flag1, value1, flag2, value2, flag3, value3, subcommand],
+        [command, subcommand, flag1, value1, flag2, value2, flag3, value3],
+        commands.contains(command)
+            && !subcommand.starts_with("--")
+            && flags.contains(flag1)
+            && flags.contains(flag2)
+            && flags.contains(flag3)
+    );
 }
