@@ -29,9 +29,7 @@ jobs:
           rustup default ${{ matrix.rust }}
 
       - name: Check cargo test
-        run: |
-          cargo clean
-          cargo test --workspace --all-features --no-fail-fast
+        run: cargo test --workspace --all-features --no-fail-fast
 
   aggregate:
     name: unit:required
