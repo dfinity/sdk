@@ -25,6 +25,8 @@ Example of `.ic-assets.json` making use of this feature:
         "curl"
       ]
     }
+  }
+]
 ```
 
 ### refactor: Move replica URL functions into a module for reuse
