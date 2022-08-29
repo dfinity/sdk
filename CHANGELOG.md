@@ -4,6 +4,16 @@
 
 ## DFX
 
+### breaking change: dfx canister update-settings --compute-allocation always fails
+
+See https://forum.dfinity.org/t/fixing-incorrect-compute-allocation-fee/14830
+
+Until the rollout is complete, `dfx canister update-settings --compute-allocation <N>`
+will fail with an error from the replica such as the following:
+```
+The Replica returned an error: code 1, message: "Canister requested a compute allocation of 1% which cannot be satisfied because the Subnet's remaining compute capacity is 0%"
+```
+
 ### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
 
 ### refactor: Move replica URL functions into a module for reuse
@@ -245,6 +255,7 @@ Changed the text in this case to read:
 Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
 This incorporates the following executed proposals:
 
+* [77589](https://dashboard.internetcomputer.org/proposal/77589)
 * [76228](https://dashboard.internetcomputer.org/proposal/76228)
 * [75700](https://dashboard.internetcomputer.org/proposal/75700)
 * [75109](https://dashboard.internetcomputer.org/proposal/75109)
