@@ -738,7 +738,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.11.1-trigger"
+version = "0.11.1"
 dependencies = [
  "actix",
  "aes-gcm",

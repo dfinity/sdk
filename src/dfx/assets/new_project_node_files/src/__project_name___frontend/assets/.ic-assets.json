@@ -1,12 +1,2 @@
 [
-  {
-    "match": "**/*.svg",
-    "redirect": {
-      "to": {
-        "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
-        "path": "/img/IC_logo_horizontal.svg"
-      },
-      "response_code": 301
-    }
-  }
 ]
