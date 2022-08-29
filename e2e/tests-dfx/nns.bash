@@ -47,8 +47,7 @@ teardown() {
 }
 
 @test "dfx nns install runs" {
-    install_asset subnet_type/project_network_settings/system
-    define_project_network
+    install_asset subnet_type/shared_network_settings/system
 
     assert_command dfx start --clean --background
     assert_match "subnet_type: System"
