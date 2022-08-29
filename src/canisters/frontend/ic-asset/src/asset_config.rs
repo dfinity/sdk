@@ -50,9 +50,7 @@ impl<'de> Deserialize<'de> for RedirectUrl {
                 }
             }
             if host.is_none() && path.is_none() {
-                return Err(serde::de::Error::custom(format!(
-                    "Expected at least one of host or path"
-                )));
+                return Err(serde::de::Error::custom("Expected at least one of host or path".to_string()));
             }
             Ok(RedirectUrl { host, path })
         } else {
