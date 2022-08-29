@@ -4,6 +4,16 @@
 
 ## DFX
 
+### breaking change: dfx canister update-settings --compute-allocation always fails
+
+See https://forum.dfinity.org/t/fixing-incorrect-compute-allocation-fee/14830
+
+Until the rollout is complete, `dfx canister update-settings --compute-allocation <N>`
+will fail with an error from the replica such as the following:
+```
+The Replica returned an error: code 1, message: "Canister requested a compute allocation of 1% which cannot be satisfied because the Subnet's remaining compute capacity is 0%"
+```
+
 ### refactor: Move replica URL functions into a module for reuse
 
 The running replica port and url are generally useful information. Previously the code to get the URL was embedded in the network proxy code. This moves it out into a library for reuse.
