@@ -71,7 +71,7 @@ teardown() {
     # ... Just to be sure that the existence check does not always pass:
     assert_command_fail dfx canister id i-always-return-true
     # ... Pages should be accessible for the front end canisters:
-    BOUNDARY_ORIGIN="localhost:8080"
+    BOUNDARY_ORIGIN="localhost:$(dfx info webserver-port)"
     canister_url() {
       echo "http://$(dfx canister id "$1").${BOUNDARY_ORIGIN}"
     }
