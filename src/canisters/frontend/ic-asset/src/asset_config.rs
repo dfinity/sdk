@@ -22,7 +22,7 @@ pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
 }
 
-// TODO: implement custom deserializer which requires *minimum one* `.is_some()==true`
+// TODO: impl deserializer requiring *minimum one* of host or path to be `.is_some()==true`
 #[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct RedirectUrl {
     pub(crate) host: Option<String>,
@@ -50,8 +50,7 @@ struct AssetConfigRule {
     cache: Option<CacheConfig>,
     headers: Maybe<HeadersConfig>,
     ignore: Option<bool>,
-    // TODO: consider this to be Vec<Option<RedirectConfig>>
-    redirect: Option<RedirectConfig>,
+    redirect: Option<RedirectConfig>, // TODO: consider this to be Vec<Option<RedirectConfig>>
 }
 
 #[derive(Deserialize, Debug)]

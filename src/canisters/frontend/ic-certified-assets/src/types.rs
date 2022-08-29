@@ -1,8 +1,9 @@
 //! This module defines types shared by the certified assets state machine and the canister
 //! endpoints.
-use std::collections::HashMap;
-
-use crate::{rc_bytes::RcBytes, state_machine::AssetRedirect};
+use crate::{
+    rc_bytes::RcBytes,
+    state_machine::{AssetProperties, AssetRedirect},
+};
 use candid::{CandidType, Deserialize, Func, Nat};
 use serde_bytes::ByteBuf;
 
@@ -18,9 +19,7 @@ pub type Key = String;
 pub struct CreateAssetArguments {
     pub key: Key,
     pub content_type: String,
-    pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
-    pub redirects: Option<AssetRedirect>,
+    pub properties: AssetProperties,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]

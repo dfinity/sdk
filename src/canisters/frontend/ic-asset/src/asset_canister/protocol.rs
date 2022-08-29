@@ -68,6 +68,12 @@ pub struct CreateAssetArguments {
     pub key: String,
     /// The MIME type of this asset
     pub content_type: String,
+    /// Properties
+    pub properties: AssetProperties,
+}
+
+#[derive(CandidType, Debug)]
+pub struct AssetProperties {
     /// The cache HTTP header Time To Live parameter
     pub max_age: Option<u64>,
     /// The HTTP headers

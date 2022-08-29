@@ -264,9 +264,9 @@ impl State {
                     content_type: arg.content_type,
                     encodings: HashMap::new(),
                     properties: AssetProperties {
-                        max_age: arg.max_age,
-                        headers: arg.headers,
-                        redirect: arg.redirects,
+                        max_age: arg.properties.max_age,
+                        headers: arg.properties.headers,
+                        redirect: arg.properties.redirect,
                     },
                 },
             );

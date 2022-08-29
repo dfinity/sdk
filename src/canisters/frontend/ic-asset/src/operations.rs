@@ -1,5 +1,5 @@
 use crate::asset_canister::protocol::{
-    AssetDetails, BatchOperationKind, CreateAssetArguments, DeleteAssetArguments,
+    AssetDetails, AssetProperties, BatchOperationKind, CreateAssetArguments, DeleteAssetArguments,
     SetAssetContentArguments, UnsetAssetContentArguments,
 };
 use crate::plumbing::ProjectAsset;
@@ -70,9 +70,11 @@ pub(crate) fn create_new_assets(
             operations.push(BatchOperationKind::CreateAsset(CreateAssetArguments {
                 key: key.clone(),
                 content_type: project_asset.media_type.to_string(),
-                max_age,
-                headers,
-                redirect,
+                properties: AssetProperties {
+                    max_age,
+                    headers,
+                    redirect,
+                },
             }));
         }
     }
