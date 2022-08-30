@@ -65,3 +65,19 @@ teardown() {
     assert_command_fail curl http://localhost:8000
     assert_match "Connection refused"
 }
+
+@test "dfx uses .ic-assets.json file provided in src/__project_name__frontend/src" {
+    echo '[{"match": "*", "headers": {"x-key": "x-value"}}]' > src/e2e_project_frontend/src/.ic-assets.json
+
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install --all
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+    assert_command curl -vv http://localhost:"$PORT"/?canisterId="$ID"
+    assert_match "< x-key: x-value"
+    assert_command curl -vv http://localhost:"$PORT"/index.js?canisterId="$ID"
+    assert_match "< x-key: x-value"
+}
