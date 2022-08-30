@@ -52,10 +52,10 @@
         },
         "redirect": {
             "from": {
-                "host": ".raw.ic0.app",
+                "host": "([-a-z0-9]*)\\.raw.ic0.app"
             },
             "to": {
-                "host": ".raw.ic0.app",
+                "host":"${1}.ic0.app"
             },
             "response_code": 308,
             "user_agent": [
