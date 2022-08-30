@@ -461,5 +461,5 @@ XXX
     principal=$(dfx identity get-principal --identity alice)
     assert_command dfx identity import alice2 --seed-file seed.txt --disable-encryption
     assert_command dfx identity get-principal --identity alice2
-    assert_eq $principal
+    assert_eq "$principal"
 }
