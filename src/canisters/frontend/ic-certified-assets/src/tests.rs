@@ -987,14 +987,69 @@ mod test_http_redirects {
             response_code: 11111,
             user_agent: Some(vec![]),
         };
-
         assert!(a.is_valid().is_err());
 
         let a = AssetRedirect {
             to: RedirectUrl::new(Some(""), None),
             ..Default::default()
         };
-
         assert!(a.is_valid().is_ok());
+
+        let a = AssetRedirect {
+            to: RedirectUrl::new(Some("x"), None),
+            user_agent: Some(vec![]),
+            ..Default::default()
+        };
+        assert!(a.is_valid().is_ok());
+
+        let a = AssetRedirect {
+            to: RedirectUrl::new(Some("x"), None),
+            user_agent: None,
+            ..Default::default()
+        };
+        assert!(a.is_valid().is_ok());
+    }
+
+    #[test]
+    fn user_agent_empty_vs_none() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents-none.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    to: RedirectUrl::new(Some("ic0.app"), None),
+                    user_agent: None,
+                    response_code: 308,
+                    ..Default::default()
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        state.create_test_asset(
+            AssetBuilder::new("/contents-empty.html", "text/html").with_redirect(AssetRedirect {
+                to: RedirectUrl::new(Some("ic0.app"), None),
+                user_agent: None,
+                response_code: 308,
+                ..Default::default()
+            }),
+        );
+        let resp = state.fake_http_request_with_headers(
+            "https://aaaaa-aa.ic0.app",
+            "/contents-none.html",
+            vec![("user-agent", "mozilla")],
+        );
+        assert_eq!(resp.status_code, 308);
+        assert_redirect_location!(&resp, "https://ic0.app/contents-none.html");
+        let resp = state.fake_http_request_with_headers(
+            "https://aaaaa-aa.ic0.app",
+            "/contents-empty.html",
+            vec![("user-agent", "mozilla")],
+        );
+        assert_eq!(resp.status_code, 308);
+        assert_redirect_location!(&resp, "https://ic0.app/contents-empty.html");
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents-none.html");
+        assert_eq!(resp.status_code, 308);
+        assert_redirect_location!(&resp, "https://ic0.app/contents-none.html");
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents-empty.html");
+        assert_eq!(resp.status_code, 308);
+        assert_redirect_location!(&resp, "https://ic0.app/contents-empty.html");
     }
 }

@@ -59,62 +59,6 @@ pub struct AssetRedirect {
 }
 
 impl AssetRedirect {
-    pub fn is_valid(&self) -> Result<(), String> {
-        if self.from.is_some() {
-            if self.from.as_ref().unwrap().host.is_none()
-                && self.from.as_ref().unwrap().path.is_none()
-            {
-                return Err("AssetRedirect.from must have a host or path".to_string());
-            }
-        }
-        if self.to.host.is_none() && self.to.path.is_none() {
-            return Err("AssetRedirect.to must have a host or path".to_string());
-        }
-        Ok(())
-    }
-
-    fn matches_user_agent(&self, user_agent: &str) -> bool {
-        // if user-agent coming in HTTP Request is not found in list of user-agents from redirect config
-        // then we're returning None, otherwise proceed.
-        if self.user_agent.as_ref().map_or(false, |cfg_user_agents| {
-            if cfg_user_agents.is_empty() {
-                return false;
-            }
-            // TODO: performance hit for long lists. Consider using:
-            // - https://docs.rs/regex/latest/regex/struct.RegexSet.html
-            //   > The key advantage of using a regex set is that it will
-            //   > report the matching regexes using a single pass through
-            //   > the text. If one has hundreds or thousands of regexes
-            //   > to match repeatedly (like a URL router for a complex
-            //   > web application or a user agent matcher), then a regex set
-            //   > can realize huge performance gains.
-            !cfg_user_agents
-                .iter()
-                .any(|cfg_user_agent| user_agent.contains(cfg_user_agent))
-        }) {
-            return false;
-        }
-        true
-    }
-
-    fn redirect(&self, req: &HttpRequest) -> Option<HttpResponse> {
-        let check = self.is_valid();
-        if check.is_err() {
-            return Some(HttpResponse::build_400(&check.unwrap_err()));
-        }
-
-        if self.user_agent.is_some() {
-            if let Some(req_user_agent) = req.get_header_value("user-agent") {
-                if !self.matches_user_agent(&req_user_agent) {
-                    return None;
-                }
-            }
-        }
-
-        self.get_location_url(req)
-            .map(|loc| HttpResponse::build_redirect(self.response_code, loc))
-    }
-
     fn get_location_url(&self, req: &HttpRequest) -> Option<String> {
         let mut location = String::new();
 
@@ -167,6 +111,47 @@ impl AssetRedirect {
             }
             return Some(location);
         }
+    }
+
+    fn redirect(&self, req: &HttpRequest) -> Option<HttpResponse> {
+        if let Err(e) = self.is_valid() {
+            return Some(HttpResponse::build_400(&e));
+        }
+
+        if self.user_agent.is_some() {
+            if let Some(req_user_agent) = req.get_header_value("user-agent") {
+                if !self.matches_user_agent(&req_user_agent) {
+                    return None;
+                }
+            }
+        }
+
+        self.get_location_url(req)
+            .map(|loc| HttpResponse::build_redirect(self.response_code, loc))
+    }
+
+    pub fn is_valid(&self) -> Result<(), String> {
+        if self.from.is_some() {
+            if self.from.as_ref().unwrap().host.is_none()
+                && self.from.as_ref().unwrap().path.is_none()
+            {
+                return Err("AssetRedirect.from must have a host or path".to_string());
+            }
+        }
+        if self.to.host.is_none() && self.to.path.is_none() {
+            return Err("AssetRedirect.to must have a host or path".to_string());
+        }
+        Ok(())
+    }
+
+    fn matches_user_agent(&self, user_agent: &str) -> bool {
+        // if user-agent coming in HTTP Request is not found in list of user-agents from redirect config
+        // then skip redirection by returning false, otherwise proceed.
+        self.user_agent.as_ref().map_or(true, |cfg_user_agents| {
+            cfg_user_agents.is_empty()
+                || regex::RegexSet::new(cfg_user_agents)
+                    .map_or(false, |regex_set| regex_set.is_match(user_agent))
+        })
     }
 }
 
