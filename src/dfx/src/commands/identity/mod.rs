@@ -20,9 +20,9 @@ mod whoami;
 /// Setting an identity enables you to test user-based access controls.
 #[derive(Parser)]
 #[clap(name("identity"))]
-pub struct IdentityOpt {
+pub struct IdentityOpts {
     /// Override the compute network to connect to. By default, the local network is used.
-    #[clap(long)]
+    #[clap(long, global(true))]
     network: Option<String>,
 
     #[clap(subcommand)]
@@ -45,7 +45,7 @@ enum SubCommand {
     Whoami(whoami::WhoAmIOpts),
 }
 
-pub fn exec(env: &dyn Environment, opts: IdentityOpt) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: IdentityOpts) -> DfxResult {
     match opts.subcmd {
         SubCommand::DeployWallet(v) => deploy_wallet::exec(env, v, opts.network.clone()),
         SubCommand::Export(v) => export::exec(env, v),

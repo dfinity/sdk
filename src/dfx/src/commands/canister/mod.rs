@@ -31,12 +31,12 @@ pub struct CanisterOpts {
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
     /// ephemeral network will be created specifically for this request. E.g.
     /// "http://localhost:12345/" is a valid network name.
-    #[clap(long)]
+    #[clap(long, global(true))]
     network: Option<String>,
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
-    #[clap(long)]
+    #[clap(long, global(true))]
     wallet: Option<String>,
 
     #[clap(subcommand)]

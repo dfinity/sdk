@@ -39,7 +39,7 @@ pub enum Command {
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
     Generate(generate::GenerateOpts),
-    Identity(identity::IdentityOpt),
+    Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
     #[clap(name("_language-service"))]
     LanguageServices(language_service::LanguageServiceOpts),

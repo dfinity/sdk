@@ -40,7 +40,7 @@ mod transfer;
 #[clap(name("ledger"))]
 pub struct LedgerOpts {
     /// Override the compute network to connect to. By default, the local network is used.
-    #[clap(long)]
+    #[clap(long, global(true))]
     network: Option<String>,
 
     #[clap(subcommand)]
