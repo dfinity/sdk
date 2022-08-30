@@ -161,9 +161,7 @@ fn list() -> Vec<AssetDetails> {
 fn certified_tree() -> CertifiedTree {
     let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
 
-    STATE.with(|s| {
-        s.borrow().certified_tree(&certificate)
-    })
+    STATE.with(|s| s.borrow().certified_tree(&certificate))
 }
 
 #[query]
