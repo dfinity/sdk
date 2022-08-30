@@ -9,6 +9,7 @@ pub mod environment;
 pub mod error;
 pub mod ic_attributes;
 pub mod identity;
+pub mod info;
 pub mod installers;
 pub mod ledger_types;
 pub mod logger;
