@@ -7,7 +7,6 @@ use candid::Principal;
 use clap::{crate_authors, crate_version, Parser};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{agent, Agent, Identity};
-use time::UtcOffset;
 
 use crate::commands::upload::upload;
 use std::path::PathBuf;

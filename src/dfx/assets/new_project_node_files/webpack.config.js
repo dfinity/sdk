@@ -96,7 +96,11 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        path.resolve(__dirname, "src", frontendDirectory,"src", ".ic-assets.json"),
+        {
+          from: `src/${frontendDirectory}/src/.ic-assets.json*`,
+          to: ".ic-assets.json5",
+          noErrorOnMissing: true
+        },
       ],
     }),
   ],
