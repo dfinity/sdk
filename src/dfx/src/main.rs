@@ -3,9 +3,8 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
-use clap::{Args, Parser};
+use clap::Parser;
 use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
-use lib::error::DfxResult;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -19,20 +18,6 @@ mod util;
 #[derive(Parser)]
 #[clap(name("dfx"), version = dfx_version_str())]
 pub struct CliOpts {
-    #[clap(subcommand)]
-    command: commands::Command,
-}
-
-#[derive(Args)]
-pub struct BaseOpts<T: Args> {
-    #[clap(flatten)]
-    command_opts: T,
-    #[clap(flatten, next_help_heading = "COMMON")]
-    env_opts: EnvOpts,
-}
-
-#[derive(Args)]
-struct EnvOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
     #[clap(long, short('v'), parse(from_occurrences))]
     verbose: u64,
@@ -52,6 +37,9 @@ struct EnvOpts {
     /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
     #[clap(long)]
     identity: Option<String>,
+
+    #[clap(subcommand)]
+    command: commands::Command,
 }
 
 fn is_warning_disabled(warning: &str) -> bool {
@@ -104,7 +92,7 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(opts: &EnvOpts) -> (bool, slog::Logger) {
+fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
     // Create a logger with our argument matches.
     let level = opts.verbose as i64 - opts.quiet as i64;
 
@@ -174,32 +162,34 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-fn init_env(env_opts: EnvOpts) -> DfxResult<impl Environment> {
-    let (progress_bar, log) = setup_logging(&env_opts);
-    let env = EnvironmentImpl::new()?
-        .with_logger(log)
-        .with_progress_bar(progress_bar)
-        .with_identity_override(env_opts.identity);
-    slog::trace!(
-        env.get_logger(),
-        "Trace mode enabled. Lots of logs coming up."
-    );
-    Ok(env)
-}
-
 fn main() {
     let cli_opts = CliOpts::parse();
+    let (progress_bar, log) = setup_logging(&cli_opts);
+    let identity = cli_opts.identity;
     let command = cli_opts.command;
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
-            match commands::dispatch(command) {
-                Err(e) => {
-                    error_diagnosis = diagnose(&env, &e);
-                    Err(e)
+            match EnvironmentImpl::new().map(|env| {
+                env.with_logger(log)
+                    .with_progress_bar(progress_bar)
+                    .with_identity_override(identity)
+            }) {
+                Ok(env) => {
+                    slog::trace!(
+                        env.get_logger(),
+                        "Trace mode enabled. Lots of logs coming up."
+                    );
+                    match commands::exec(&env, command) {
+                        Err(e) => {
+                            error_diagnosis = diagnose(&env, &e);
+                            Err(e)
+                        }
+                        ok => ok,
+                    }
                 }
-                ok => ok,
+                Err(e) => Err(e),
             }
         }
         Err(e) => Err(e),
