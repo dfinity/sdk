@@ -76,7 +76,7 @@ frank'
     assert_command dfx identity new --disable-encryption alice
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
 
     # does not change the default identity
     assert_command dfx identity whoami
@@ -129,7 +129,7 @@ frank'
     assert_command dfx identity new --disable-encryption alice
 
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     assert_command dfx identity list
     assert_match \
 'alice
@@ -168,7 +168,7 @@ default'
     assert_command_fail dfx identity remove alice
 
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     assert_command dfx identity list
     assert_match \
 'alice
@@ -211,7 +211,7 @@ default'
 anonymous
 default'
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     x=$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem")
     local key="$x"
 
@@ -225,7 +225,7 @@ bob
 default'
     assert_command cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_eq "$key" "$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem")"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 }
 
@@ -236,7 +236,7 @@ default'
     assert_command dfx identity list
     assert_match 'bob'
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
 
     assert_command dfx identity whoami
     assert_eq 'bob'
@@ -262,7 +262,7 @@ default'
     assert_eq 'charlie'
 
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/charlie/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 }
 
@@ -427,7 +427,7 @@ default'
     echo -n 1 >> bob.pem
     tail -n 3 alice.pem > bob.pem
     assert_command_fail dfx identity import --disable-encryption bob bob.pem
-    assert_match 'Invalid Ed25519 private key in PEM file' "$stderr"
+    assert_match 'Failed to validate PEM content' "$stderr"
 }
 
 @test "identity: can import an EC key without an EC PARAMETERS section (as quill generate makes)" {
