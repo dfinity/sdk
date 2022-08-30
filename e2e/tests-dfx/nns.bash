@@ -64,6 +64,7 @@ test_project_import() {
 
     assert_command jq -r '.canisters."pfx-normal-canister".candid' dfx.json
     assert_eq "candid/pfx-normal-canister.did"
+    # shellcheck disable=SC2154
     assert_files_eq \
       "${assets}/project-import/project-directory/normal-canister-directory/some-subdirectory/the-candid-filename.did" \
       "candid/pfx-normal-canister.did"
