@@ -90,7 +90,7 @@ impl CanisterBuilder for RustBuilder {
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {} --locked",
             package
         );
-        let output = cargo.output().context("Failed to run 'cargo build'.")?;
+        let output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")?;
 
         info!(self.logger, "Optimizing WASM module.");
         let wasm_path = rust_info.get_output_wasm_path();
