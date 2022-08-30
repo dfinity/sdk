@@ -1052,4 +1052,61 @@ mod test_http_redirects {
         assert_eq!(resp.status_code, 308);
         assert_redirect_location!(&resp, "https://ic0.app/contents-empty.html");
     }
+
+    #[test]
+    fn cyclic_requests() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    from: Some(RedirectUrl::new(None, Some("/contents.html"))),
+                    to: RedirectUrl::new(None, Some("/contents.html")),
+                    response_code: 308,
+                    ..Default::default()
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    from: Some(RedirectUrl::new(None, Some("/contents.html"))),
+                    to: RedirectUrl::new(None, Some("/contents.html")),
+                    response_code: 308,
+                    ..Default::default()
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    to: RedirectUrl::new(None, Some("/contents.html")),
+                    response_code: 308,
+                    ..Default::default()
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_redirect(AssetRedirect {
+                    to: RedirectUrl::new(Some("https://aaaaa-aa.ic0.app"), Some("/contents.html")),
+                    response_code: 308,
+                    ..Default::default()
+                })
+                .with_encoding("identity", vec![BODY]),
+        );
+        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
+        assert_eq!(resp.status_code, 200);
+    }
 }
