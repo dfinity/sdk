@@ -46,14 +46,14 @@ pub enum Command {
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
     #[clap(hide(true))]
-    Nns(nns::NnsCommand),
+    Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
     Quickstart,
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
     #[clap(hide(true))]
-    Sns(sns::SnsCommand),
+    Sns(sns::SnsOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
     Toolchain(toolchain::ToolchainOpts),

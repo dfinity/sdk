@@ -1,4 +1,5 @@
-use crate::{DfxResult, Environment};
+use crate::lib::error::DfxResult;
+use crate::Environment;
 
 use crate::lib::sns;
 use crate::lib::sns::create_config::create_config;

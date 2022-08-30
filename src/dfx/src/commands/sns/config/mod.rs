@@ -1,6 +1,4 @@
-use crate::{BaseOpts, DfxResult};
-
-use crate::init_env;
+use crate::lib::{environment::Environment, error::DfxResult};
 use clap::Parser;
 
 mod create;
@@ -12,20 +10,20 @@ pub struct ConfigOpts {}
 /// SNS config commands.
 #[derive(Parser)]
 #[clap(name("config"))]
-pub struct SnsConfigCommand {
+pub struct SnsConfigOpts {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 enum SubCommand {
-    Create(BaseOpts<create::CreateOpts>),
-    Validate(BaseOpts<validate::ValidateOpts>),
+    Create(create::CreateOpts),
+    Validate(validate::ValidateOpts),
 }
 
-pub fn dispatch(cmd: SnsConfigCommand) -> DfxResult {
-    match cmd.subcmd {
-        SubCommand::Create(v) => create::exec(&init_env(v.env_opts)?, v.command_opts),
-        SubCommand::Validate(v) => validate::exec(&init_env(v.env_opts)?, v.command_opts),
+pub fn exec(env: &dyn Environment, opts: SnsConfigOpts) -> DfxResult {
+    match opts.subcmd {
+        SubCommand::Create(v) => create::exec(env, v),
+        SubCommand::Validate(v) => validate::exec(env, v),
     }
 }
