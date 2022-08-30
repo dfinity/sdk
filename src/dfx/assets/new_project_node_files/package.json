@@ -5,10 +5,10 @@
   "keywords": ["Internet Computer", "Motoko", "JavaScript", "Canister"],
   "scripts": {
     "build": "webpack",
-    "prebuild": "npm run copy:types",
+    "prebuild": "npm run generate",
     "start": "webpack serve --mode development --env development",
-    "prestart": "npm run copy:types",
-    "copy:types": "rsync -avr .dfx/$(echo ${DFX_NETWORK:-'**'})/canisters/** --exclude='assets/' --exclude='idl/' --exclude='*.wasm' --exclude='*.most' --delete src/declarations"
+    "prestart": "npm run generate",
+    "generate": "dfx generate {project_name}_backend"
   },
   "devDependencies": {
     "@dfinity/agent": "{js_agent_version}",
@@ -16,6 +16,7 @@
     "@dfinity/principal": "{js_agent_version}",
     "assert": "2.0.0",
     "buffer": "6.0.3",
+    "copy-webpack-plugin": "^11.0.0",
     "events": "3.3.0",
     "html-webpack-plugin": "5.5.0",
     "process": "0.11.10",

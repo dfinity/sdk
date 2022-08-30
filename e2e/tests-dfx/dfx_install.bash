@@ -2,6 +2,8 @@
 
 load ../utils/_
 
+# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
+
 setup() {
     standard_setup
 }
@@ -13,8 +15,7 @@ teardown() {
 }
 
 @test "dfx cache show does not install the dfx version into the cache" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
+    use_test_specific_cache_root
     test -z "$(ls -A "$DFX_CACHE_ROOT")"
 
     assert_command dfx cache show
@@ -28,8 +29,7 @@ teardown() {
 }
 
 @test "non-forced install populates an empty cache" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
+    use_test_specific_cache_root
     test ! -e "$(dfx cache show)"/dfx
 
     dfx_new
@@ -38,7 +38,7 @@ teardown() {
 }
 
 @test "forced install populates an empty cache" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+    use_test_specific_cache_root
 
     test ! -e "$(dfx cache show)"/dfx
 
@@ -48,8 +48,6 @@ teardown() {
 }
 
 @test "forced install over an install succeeds" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     assert_command dfx cache install
     test -f "$(dfx cache show)"/dfx
 
@@ -57,8 +55,6 @@ teardown() {
 }
 
 @test "forced install overwrites a cached version" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     assert_command dfx cache install
     test -f "$(dfx cache show)"/dfx
 

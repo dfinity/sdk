@@ -188,7 +188,6 @@ impl Handler<Shutdown> for Emulator {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn emulator_start_thread(
     logger: Logger,
     config: Config,

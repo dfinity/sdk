@@ -1,3 +1,1 @@
-#!/dev/null
-
-cat <<<"$(jq '.defaults.build.args="--compacting-gcX"' dfx.json)" >dfx.json
+jq '.defaults.build.args="--compacting-gcX"' dfx.json | sponge dfx.json

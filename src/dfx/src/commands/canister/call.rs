@@ -164,8 +164,8 @@ pub fn get_effective_canister_id(
                         "{} can only be called by a canister, not by an external user.",
                         method_name.as_ref()
                     ),
-                    format!("The easiest way to call {} externally is to proxy this call through a wallet. Try calling this with 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
-                    To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.", method_name.as_ref())
+                    format!("The easiest way to call {} externally is to proxy this call through a wallet. Try calling this with 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
+                    To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.", method_name.as_ref())
                 )).context("Method only callable by a canister.");
             }
             MgmtMethod::InstallCode => {
@@ -291,8 +291,8 @@ pub async fn exec(
         .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
-        return Err(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister (--network ic) --wallet <wallet id> call <other arguments>'.\n\
-        To figure out the id of your wallet, run 'dfx identity (--network ic) get-wallet'.".to_string())).context("Function caller is not a canister.");
+        return Err(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
+        To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.".to_string())).context("Function caller is not a canister.");
     }
 
     if is_query {

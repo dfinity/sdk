@@ -97,7 +97,9 @@ impl CanisterBuilder for AssetsBuilder {
             })?;
         }
 
-        let wasm_path = info.get_output_root().join(Path::new("assetstorage.wasm"));
+        let wasm_path = info
+            .get_output_root()
+            .join(Path::new("assetstorage.wasm.gz"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
         Ok(BuildOutput {
             canister_id: info.get_canister_id().expect("Could not find canister ID."),
@@ -182,7 +184,7 @@ impl CanisterBuilder for AssetsBuilder {
         }
 
         // delete unpacked wasm file
-        let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm"));
+        let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm.gz"));
         if wasm_path.exists() {
             std::fs::remove_file(&wasm_path)
                 .with_context(|| format!("Failed to remove {}.", wasm_path.to_string_lossy()))?;
@@ -191,6 +193,7 @@ impl CanisterBuilder for AssetsBuilder {
         let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
         let idl_path_rename = generate_output_dir
             .join(info.get_name())
+            .with_extension("")
             .with_extension("did");
         if idl_path.exists() {
             std::fs::rename(&idl_path, &idl_path_rename)
@@ -215,6 +218,9 @@ fn build_frontend(
         // Frontend build.
         slog::info!(logger, "Building frontend...");
         let mut cmd = std::process::Command::new("npm");
+
+        // Provide DFX_NETWORK at build time
+        cmd.env("DFX_NETWORK", network_name);
 
         cmd.arg("run").arg("build");
 

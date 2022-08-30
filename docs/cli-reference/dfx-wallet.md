@@ -31,6 +31,7 @@ For reference information and examples that illustrate using `dfx wallet` comman
 |[`deauthorize`](#dfx-wallet-deauthorize) | Deauthorize a cycles wallet custodian using the custodian's principal.
 |`help`|Displays a usage message and the help of the given subcommand(s).
 |[`name`](#dfx-wallet-name) |Returns the name of the cycles wallet if you've used the `dfx wallet set-name` command.
+|[`redeem-faucet-coupon`](#redeem-faucet-coupon) | Redeem a code at the cycles faucet. |
 |[`remove-controller`](#dfx-wallet-remove-controller) |Removes a specified controller from the selected identity's cycles wallet. 
 |[`send`](#dfx-wallet-send) |Sends a specified amount of cycles from the selected identity's cycles wallet to another cycles wallet using the destination wallet canister ID.
 |[`set-name`](#dfx-wallet-set-name) |Specify a name for your cycles wallet. 
@@ -140,7 +141,7 @@ You can use the following optional flags with the `dfx wallet add-controller` co
 You can use the `dfx wallet addresses` command to retrieve information on the addresses in your wallet's address book. For example:
 
 ```
-dfx wallet --network ic addresses
+dfx wallet addresses --network ic
 ```
 
 The command displays the controllers and custodians for the cycles wallet with output similar to the following:
@@ -382,6 +383,61 @@ If you have named your cycles wallet "Terrances_wallet", then the command would 
 
 ```
 Terrances_wallet
+```
+
+## dfx wallet redeem-faucet-coupon
+
+Use the `dfx wallet redeem-faucet-coupon` command to redeem a cycles faucet coupon.
+If you have no wallet set, this will create a wallet for you.
+If you have a wallet set already, this will add the coupon's cycles to your existing wallet.
+
+### Basic usage
+```
+dfx wallet redeem-faucet-coupon <your faucet coupon>
+```
+
+### Arguments
+
+Use the following necessary argument with the `dfx wallet redeem-faucet-coupon` command.
+
+
+|Argument |Description
+----------|--------------
+|`<your faucet coupon>` | The coupon code to redeem at the faucet.|
+
+
+### Flags
+
+You can use the following optional flags with the `dfx wallet redeem-faucet-coupon` command.
+
+
+|Flag |Description|
+|-----|-----------|
+|`--faucet`|Alternative faucet address. If not set, this uses the DFINTITY faucet.|
+|`-h`, `--help` |Displays usage information.|
+|`-V`, `--version` |Displays version information.|
+
+### Example
+
+If you have no wallet yet and a coupon code `ABCDE-ABCDE-ABCDE`, you can redeem it like this:
+``` bash
+dfx wallet redeem-faucet-coupon 'ABCDE-ABCDE-ABCDE'
+```
+
+This will print something similar to this:
+```
+Redeemed coupon ABCDE-ABCDE-ABCDE for a new wallet: rdmx6-jaaaa-aaaaa-aaadq-cai
+New wallet set.
+```
+
+If you have a wallet already and a coupon code `ABCDE-ABCDE-ABCDE`, you can redeem it like this:
+``` bash
+dfx wallet redeem-faucet-coupon 'ABCDE-ABCDE-ABCDE'
+```
+
+This will print something similar to this:
+```
+Redeemed coupon code ABCDE-ABCDE-ABCDE for 20.000 TC (trillion cycles).
 ```
 
 ## dfx wallet remove-controller

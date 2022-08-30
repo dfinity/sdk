@@ -1,3 +1,4 @@
+use crate::init_env;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
@@ -15,6 +16,8 @@ use ic_utils::call::SyncCall;
 use ic_utils::interfaces::WalletCanister;
 use tokio::runtime::Runtime;
 
+use super::NetworkOpts;
+
 mod add_controller;
 mod authorize;
 mod balance;
@@ -23,6 +26,7 @@ mod custodians;
 mod deauthorize;
 mod list_addresses;
 mod name;
+mod redeem_faucet_coupon;
 mod remove_controller;
 mod send;
 mod set_name;
@@ -31,53 +35,69 @@ mod upgrade;
 /// Helper commands to manage the user's cycles wallet.
 #[derive(Parser)]
 #[clap(name("wallet"))]
-pub struct WalletOpts {
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[clap(long)]
-    network: Option<String>,
-
+pub struct WalletCommand {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 enum SubCommand {
-    Addresses(list_addresses::AddressesOpts),
-    AddController(add_controller::AddControllerOpts),
-    Authorize(authorize::AuthorizeOpts),
-    Balance(balance::WalletBalanceOpts),
-    Controllers(controllers::ControllersOpts),
-    Custodians(custodians::CustodiansOpts),
-    Deauthorize(deauthorize::DeauthorizeOpts),
-    Name(name::NameOpts),
-    RemoveController(remove_controller::RemoveControllerOpts),
-    Send(send::SendOpts),
-    SetName(set_name::SetNameOpts),
-    Upgrade(upgrade::UpgradeOpts),
+    Addresses(NetworkOpts<list_addresses::AddressesOpts>),
+    AddController(NetworkOpts<add_controller::AddControllerOpts>),
+    Authorize(NetworkOpts<authorize::AuthorizeOpts>),
+    Balance(NetworkOpts<balance::WalletBalanceOpts>),
+    RedeemFaucetCoupon(NetworkOpts<redeem_faucet_coupon::RedeemFaucetCouponOpts>),
+    Controllers(NetworkOpts<controllers::ControllersOpts>),
+    Custodians(NetworkOpts<custodians::CustodiansOpts>),
+    Deauthorize(NetworkOpts<deauthorize::DeauthorizeOpts>),
+    Name(NetworkOpts<name::NameOpts>),
+    RemoveController(NetworkOpts<remove_controller::RemoveControllerOpts>),
+    Send(NetworkOpts<send::SendOpts>),
+    SetName(NetworkOpts<set_name::SetNameOpts>),
+    Upgrade(NetworkOpts<upgrade::UpgradeOpts>),
 }
 
-pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.clone())?;
-    let runtime = Runtime::new().expect("Unable to create a runtime");
-    runtime.block_on(async {
-        match opts.subcmd {
-            SubCommand::Addresses(v) => list_addresses::exec(&agent_env, v).await,
-            SubCommand::AddController(v) => add_controller::exec(&agent_env, v).await,
-            SubCommand::Authorize(v) => authorize::exec(&agent_env, v).await,
-            SubCommand::Balance(v) => balance::exec(&agent_env, v).await,
-            SubCommand::Controllers(v) => controllers::exec(&agent_env, v).await,
-            SubCommand::Custodians(v) => custodians::exec(&agent_env, v).await,
-            SubCommand::Deauthorize(v) => deauthorize::exec(&agent_env, v).await,
-            SubCommand::Name(v) => name::exec(&agent_env, v).await,
-            SubCommand::RemoveController(v) => remove_controller::exec(&agent_env, v).await,
-            SubCommand::Send(v) => send::exec(&agent_env, v).await,
-            SubCommand::SetName(v) => set_name::exec(&agent_env, v).await,
-            SubCommand::Upgrade(v) => upgrade::exec(&agent_env, v).await,
+macro_rules! with_env {
+    ($opts:expr, |$env:ident, $v:ident| $e:expr) => {{
+        let NetworkOpts { base_opts, network } = $opts;
+        let env = init_env(base_opts.env_opts)?;
+        let $env = create_agent_environment(&env, network)?;
+        let runtime = Runtime::new().expect("Unable to create a runtime");
+        let $v = base_opts.command_opts;
+        runtime.block_on($e)
+    }};
+}
+
+pub fn dispatch(cmd: WalletCommand) -> DfxResult {
+    match cmd.subcmd {
+        SubCommand::Addresses(v) => {
+            with_env!(v, |env, v| list_addresses::exec(&env, v))
         }
-    })
+        SubCommand::AddController(v) => {
+            with_env!(v, |env, v| add_controller::exec(&env, v))
+        }
+        SubCommand::Authorize(v) => with_env!(v, |env, v| authorize::exec(&env, v)),
+        SubCommand::Balance(v) => with_env!(v, |env, v| balance::exec(&env, v)),
+        SubCommand::RedeemFaucetCoupon(v) => {
+            with_env!(v, |env, v| redeem_faucet_coupon::exec(&env, v))
+        }
+        SubCommand::Controllers(v) => {
+            with_env!(v, |env, v| controllers::exec(&env, v))
+        }
+        SubCommand::Custodians(v) => {
+            with_env!(v, |env, v| custodians::exec(&env, v))
+        }
+        SubCommand::Deauthorize(v) => {
+            with_env!(v, |env, v| deauthorize::exec(&env, v))
+        }
+        SubCommand::Name(v) => with_env!(v, |env, v| name::exec(&env, v)),
+        SubCommand::RemoveController(v) => {
+            with_env!(v, |env, v| remove_controller::exec(&env, v))
+        }
+        SubCommand::Send(v) => with_env!(v, |env, v| send::exec(&env, v)),
+        SubCommand::SetName(v) => with_env!(v, |env, v| set_name::exec(&env, v)),
+        SubCommand::Upgrade(v) => with_env!(v, |env, v| upgrade::exec(&env, v)),
+    }
 }
 
 #[context("Failed to call query function '{}' on wallet.", method)]
@@ -92,8 +112,7 @@ where
         .to_string();
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
-    let wallet =
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name).await?;
 
     let out: O = wallet
         .query_(method)
@@ -130,7 +149,6 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
     fetch_root_key_if_needed(env).await?;
-    let wallet =
-        Identity::get_or_create_wallet_canister(env, network, &identity_name, false).await?;
+    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name).await?;
     Ok(wallet)
 }

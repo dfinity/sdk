@@ -4,17 +4,46 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 
 use anyhow::bail;
+use std::path::{Path, PathBuf};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum NetworkTypeDescriptor {
+    Ephemeral { wallet_config_path: PathBuf },
+
+    Persistent,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct NetworkDescriptor {
     pub name: String,
     pub providers: Vec<String>,
-    pub r#type: NetworkType,
+    pub r#type: NetworkTypeDescriptor,
     pub is_ic: bool,
     pub local_server_descriptor: Option<LocalServerDescriptor>,
 }
 
+impl NetworkTypeDescriptor {
+    pub fn new(r#type: NetworkType, ephemeral_wallet_config_path: &Path) -> Self {
+        match r#type {
+            NetworkType::Ephemeral => NetworkTypeDescriptor::Ephemeral {
+                wallet_config_path: ephemeral_wallet_config_path.to_path_buf(),
+            },
+            NetworkType::Persistent => NetworkTypeDescriptor::Persistent,
+        }
+    }
+}
+
 impl NetworkDescriptor {
+    pub fn ic() -> Self {
+        NetworkDescriptor {
+            name: "ic".to_string(),
+            providers: vec![DEFAULT_IC_GATEWAY.to_string()],
+            r#type: NetworkTypeDescriptor::Persistent,
+            is_ic: true,
+            local_server_descriptor: None,
+        }
+    }
+
     /// Determines whether the provided connection is the official IC or not.
     #[allow(clippy::ptr_arg)]
     pub fn is_ic(network_name: &str, providers: &Vec<String>) -> bool {

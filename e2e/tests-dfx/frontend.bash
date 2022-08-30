@@ -26,8 +26,7 @@ teardown() {
     assert_match "e2e_project_frontend: http://127.0.0.1:$PORT/\?canisterId=$ASSETS_ID"
 
     # the urls are a little nicer if the bind address is localhost:8000 rather than 127.0.0.1:8000
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bind="localhost:'"$PORT"'"' dfx.json)" >dfx.json
+    jq -n '.local.bind="localhost:'"$PORT"'"' >"$E2E_NETWORKS_JSON"
 
     assert_command dfx deploy
     assert_match "e2e_project_backend: http://$CANDID_UI_ID.localhost:$PORT/\?id=$APP_ID"
@@ -53,8 +52,7 @@ teardown() {
 
     dfx_start --host 127.0.0.1:12345
 
-    # shellcheck disable=SC2094
-    cat <<<"$(jq '.networks.local.bind="127.0.0.1:12345"' dfx.json)" >dfx.json
+    jq '.networks.local.bind="127.0.0.1:12345"' dfx.json | sponge dfx.json
 
     dfx canister create --all
     dfx build
@@ -66,4 +64,20 @@ teardown() {
 
     assert_command_fail curl http://localhost:8000
     assert_match "Connection refused"
+}
+
+@test "dfx uses .ic-assets.json file provided in src/__project_name__frontend/src" {
+    echo '[{"match": "*", "headers": {"x-key": "x-value"}}]' > src/e2e_project_frontend/src/.ic-assets.json
+
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install --all
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+    assert_command curl -vv http://localhost:"$PORT"/?canisterId="$ID"
+    assert_match "< x-key: x-value"
+    assert_command curl -vv http://localhost:"$PORT"/index.js?canisterId="$ID"
+    assert_match "< x-key: x-value"
 }
