@@ -1,7 +1,7 @@
-use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::call_sender;
 use crate::lib::provider::create_agent_environment;
+use crate::{lib::environment::Environment, NetworkOpt};
 
 use clap::{Parser, Subcommand};
 use tokio::runtime::Runtime;
@@ -27,12 +27,8 @@ mod update_settings;
 #[derive(Parser)]
 #[clap(name("canister"))]
 pub struct CanisterOpts {
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[clap(long, global(true))]
-    network: Option<String>,
+    #[clap(flatten)]
+    network: NetworkOpt,
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
@@ -64,7 +60,7 @@ pub enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.clone())?;
+    let agent_env = create_agent_environment(env, opts.network.network)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async {

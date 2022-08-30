@@ -10,6 +10,7 @@ use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
+use crate::NetworkOpt;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -39,9 +40,8 @@ mod transfer;
 #[derive(Parser)]
 #[clap(name("ledger"))]
 pub struct LedgerOpts {
-    /// Override the compute network to connect to. By default, the local network is used.
-    #[clap(long, global(true))]
-    network: Option<String>,
+    #[clap(flatten)]
+    network: NetworkOpt,
 
     #[clap(subcommand)]
     subcmd: SubCommand,
@@ -59,7 +59,7 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.clone())?;
+    let agent_env = create_agent_environment(env, opts.network.network)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {

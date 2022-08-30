@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::NetworkOpt;
 
 use clap::Parser;
 
@@ -8,9 +9,8 @@ mod generate_binding;
 /// Commands used to work with remote canisters
 #[derive(Parser)]
 pub struct RemoteOpts {
-    /// Override the compute network to connect to. By default, the local network is used.
-    #[clap(long, global(true))]
-    network: Option<String>,
+    #[clap(flatten)]
+    network: NetworkOpt,
 
     #[clap(subcommand)]
     subcmd: SubCommand,

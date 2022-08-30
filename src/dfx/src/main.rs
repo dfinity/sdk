@@ -3,7 +3,7 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
-use clap::Parser;
+use clap::{Args, Parser};
 use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use semver::Version;
 use std::path::PathBuf;
@@ -40,6 +40,16 @@ pub struct CliOpts {
 
     #[clap(subcommand)]
     command: commands::Command,
+}
+
+#[derive(Args, Clone, Debug)]
+struct NetworkOpt {
+    /// Override the compute network to connect to. By default, the local network is used.
+    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
+    /// ephemeral network will be created specifically for this request. E.g.
+    /// "http://localhost:12345/" is a valid network name.
+    #[clap(long, global(true))]
+    network: Option<String>,
 }
 
 fn is_warning_disabled(warning: &str) -> bool {
