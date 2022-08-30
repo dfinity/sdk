@@ -6,7 +6,6 @@ use crate::lib::provider::{
     LocalBindDetermination,
 };
 use crate::util::expiry_duration;
-use crate::NetworkOpt;
 
 use anyhow::{anyhow, Context};
 use clap::Parser;
@@ -17,8 +16,11 @@ use tokio::runtime::Runtime;
 /// Pings an Internet Computer network and returns its status.
 #[derive(Parser)]
 pub struct PingOpts {
-    #[clap(flatten)]
-    network: NetworkOpt,
+    /// The provider to use.
+    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
+    /// ephemeral network will be created specifically for this request. E.g.
+    /// "http://localhost:12345/" is a valid network name.
+    network: Option<String>,
 
     /// Repeatedly ping until the replica is healthy
     #[clap(long)]
@@ -31,7 +33,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     let agent_url = create_network_descriptor(
         env.get_config(),
         env.get_networks_config(),
-        opts.network.network,
+        opts.network,
         None,
         LocalBindDetermination::ApplyRunningWebserverPort,
     )
