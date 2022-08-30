@@ -89,6 +89,10 @@ pub enum IdentityCreationParameters {
         src_pem_file: PathBuf,
         disable_encryption: bool,
     },
+    SeedPhrase {
+        mnemonic: String,
+        disable_encryption: bool,
+    },
     Hardware {
         hsm: HardwareIdentityConfiguration,
     },
@@ -567,11 +571,15 @@ fn remove_identity_file(file: &Path) -> DfxResult {
 /// Generates a new secp256k1 key.
 #[context("Failed to generate a fresh secp256k1 key.")]
 pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
-    const DEFAULT_DERIVATION_PATH: &str = "m/44'/60'/0'/0/0";
     let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256)?, Language::English);
-    let seed = Seed::new(&mnemonic, ""); // good enough for quill
-    let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
-    let secret = SecretKey::from(pk.private_key());
+    let secret = mnemonic_to_key(&mnemonic)?;
     let pem = secret.to_pem(LineEnding::CRLF)?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
+}
+
+pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> DfxResult<SecretKey> {
+    const DEFAULT_DERIVATION_PATH: &str = "m/44'/60'/0'/0/0";
+    let seed = Seed::new(&mnemonic, "");
+    let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
+    Ok(SecretKey::from(pk.private_key()))
 }

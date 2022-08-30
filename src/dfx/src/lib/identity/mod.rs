@@ -12,6 +12,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
+use bip39::{Language, Mnemonic};
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
@@ -139,7 +140,7 @@ impl Identity {
                     Some(&identity_config),
                     pem_content.as_slice(),
                 )?;
-                eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
+                eprintln!("Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
             }
             IdentityCreationParameters::PemFile {
                 src_pem_file,
@@ -159,6 +160,20 @@ impl Identity {
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config.hsm = Some(hsm);
                 create(&temp_identity_dir)?;
+            }
+            IdentityCreationParameters::SeedPhrase {
+                mnemonic,
+                disable_encryption,
+            } => {
+                identity_config.encryption = create_encryption_config(disable_encryption)?;
+                let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
+                let key = identity_manager::mnemonic_to_key(&mnemonic)?;
+                let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
+                pem_encryption::write_pem_file(
+                    &pem_file,
+                    Some(&identity_config),
+                    key.to_pem(k256::pkcs8::LineEnding::CRLF)?.as_bytes(),
+                )?;
             }
         }
         identity_manager::write_identity_configuration(

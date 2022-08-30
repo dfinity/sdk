@@ -452,3 +452,14 @@ XXX
     assert_file_exists export.pem
     assert_command dfx identity import --disable-encryption bob export.pem
 }
+
+@test "identity: can import a seed phrase" {
+    reg="seed phrase for identity 'alice': ([a-z ]+)"
+    assert_command dfx identity new --disable-encryption alice
+    [[ $stderr =~ $reg ]]
+    echo "${BASH_REMATCH[1]}" >seed.txt
+    principal=$(dfx identity get-principal --identity alice)
+    assert_command dfx identity import alice2 --seed-file seed.txt --disable-encryption
+    assert_command dfx identity get-principal --identity alice2
+    assert_eq $principal
+}
