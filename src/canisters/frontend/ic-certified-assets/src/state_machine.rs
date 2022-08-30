@@ -50,6 +50,43 @@ pub struct RedirectUrl {
     pub(crate) path: Option<String>,
 }
 
+impl RedirectUrl {
+    pub fn check_cyclic_redirection(&self, req_host: &str, req_url: &str) -> Result<(), String> {
+        if let Some(host) = self.host.as_ref() {
+            if host == req_host && self.path.as_ref().map(|p| p == req_url).unwrap_or(false) {
+                return Err(format!("redirect loop: {:?} -> {}", &self, req_url));
+            }
+        } else {
+            if self.path.as_ref().map(|p| p == req_url).unwrap_or(false) {
+                return Err(format!("redirect loop: {:?} -> {}", &self, req_url));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn new(host: Option<&str>, path: Option<&str>) -> Self {
+        RedirectUrl {
+            host: host.map(|s| s.to_string()),
+            path: path.map(|s| s.to_string()),
+        }
+    }
+
+    pub fn get_location_url(&self) -> String {
+        let mut location_url = String::new();
+        if let Some(host) = &self.host {
+            if host.starts_with("http") {
+                location_url.push_str(host);
+            } else {
+                location_url.push_str(&format!("https://{}", host))
+            };
+        }
+        if let Some(path) = &self.path {
+            location_url.push_str(path);
+        }
+        location_url
+    }
+}
+
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct AssetRedirect {
     pub from: Option<RedirectUrl>,
@@ -59,7 +96,7 @@ pub struct AssetRedirect {
 }
 
 impl AssetRedirect {
-    fn get_location_url(&self, req: &HttpRequest) -> Option<String> {
+    fn get_location_url(&self, req: &HttpRequest) -> Option<RedirectUrl> {
         fn match_and_replace_segment(
             replace_from: &Option<String>,
             replace_with: &Option<String>,
@@ -78,7 +115,7 @@ impl AssetRedirect {
             None
         }
 
-        let mut location = String::new();
+        let mut location = RedirectUrl::new(None, None);
 
         if let Some(RedirectUrl {
             host: from_host,
@@ -91,11 +128,7 @@ impl AssetRedirect {
                     match_and_replace_segment(&from_host, &self.to.host, req_host)
                 {
                     host_same_as_original = &redirect_host == req_host;
-                    if redirect_host.starts_with("http") {
-                        location = redirect_host;
-                    } else {
-                        location = format!("https://{}", redirect_host);
-                    }
+                    location.host = Some(redirect_host);
                 }
             }
 
@@ -103,9 +136,9 @@ impl AssetRedirect {
                 match_and_replace_segment(&from_path, &self.to.path, &req.url)
             {
                 path_same_as_original = redirect_path == req.url;
-                location.push_str(&redirect_path);
+                location.path = Some(redirect_path);
             } else {
-                location.push_str(&req.url);
+                location.path = Some(req.url.clone());
             }
 
             if host_same_as_original && path_same_as_original {
@@ -117,17 +150,17 @@ impl AssetRedirect {
                 return None;
             }
         } else {
-            if let Some(host) = self.to.host.as_ref() {
+            if let Some(host) = &self.to.host {
                 if host.contains("http") {
-                    location = host.to_string();
+                    location.host = Some(host.to_string());
                 } else {
-                    location = format!("https://{}", host);
+                    location.host = Some(format!("https://{}", host));
                 }
             }
-            if let Some(path) = self.to.path.as_ref() {
-                location.push_str(path);
+            if let Some(path) = &self.to.path {
+                location.path = Some(path.to_string());
             } else {
-                location.push_str(&req.url);
+                location.path = Some(req.url.clone());
             }
         }
 
@@ -147,8 +180,24 @@ impl AssetRedirect {
             }
         }
 
-        self.get_location_url(req)
-            .map(|loc| HttpResponse::build_redirect(self.response_code, loc))
+        if let Some(location) = self.get_location_url(req) {
+            let req_host = req.get_header_value("Host");
+            if req_host.is_none() {
+                Some(HttpResponse::build_400("Host header is missing"))
+            } else if location
+                .check_cyclic_redirection(req_host.unwrap(), &req.url)
+                .is_err()
+            {
+                None
+            } else {
+                Some(HttpResponse::build_redirect(
+                    self.response_code,
+                    location.get_location_url(),
+                ))
+            }
+        } else {
+            None
+        }
     }
 
     pub fn is_valid(&self) -> Result<(), String> {

@@ -537,15 +537,6 @@ mod test_http_redirects {
         }
     }
 
-    impl RedirectUrl {
-        fn new(host: Option<&str>, path: Option<&str>) -> Self {
-            RedirectUrl {
-                host: host.map(|s| s.to_string()),
-                path: path.map(|s| s.to_string()),
-            }
-        }
-    }
-
     #[test]
     fn correct_redirect_codes() {
         for response_code in vec![300, 301, 302, 303, 304, 307, 308] {
