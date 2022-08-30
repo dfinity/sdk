@@ -60,17 +60,35 @@ pub struct AssetRedirect {
 
 impl AssetRedirect {
     fn get_location_url(&self, req: &HttpRequest) -> Option<String> {
+        fn match_and_replace_segment(
+            replace_from: &Option<String>,
+            replace_with: &Option<String>,
+            replace_in: &str,
+        ) -> Option<String> {
+            if let Some(with) = replace_with {
+                if replace_from.is_none() {
+                    return Some(with.to_owned());
+                }
+                if let Ok(re) = Regex::new(replace_from.as_ref().unwrap()) {
+                    return re
+                        .find(replace_in)
+                        .map(|_| re.replace(replace_in, with).into());
+                }
+            }
+            None
+        }
+
         let mut location = String::new();
 
-        if let Some(from) = &self.from {
-            let RedirectUrl {
-                host: from_host,
-                path: from_path,
-            } = from;
+        if let Some(RedirectUrl {
+            host: from_host,
+            path: from_path,
+        }) = &self.from
+        {
             let (mut host_same_as_original, mut path_same_as_original) = (true, true);
             if let Some(req_host) = req.get_header_value("Host") {
                 if let Some(redirect_host) =
-                    RedirectUrl::match_and_replace_segment(&from_host, &self.to.host, req_host)
+                    match_and_replace_segment(&from_host, &self.to.host, req_host)
                 {
                     host_same_as_original = &redirect_host == req_host;
                     if redirect_host.starts_with("http") {
@@ -82,7 +100,7 @@ impl AssetRedirect {
             }
 
             if let Some(redirect_path) =
-                RedirectUrl::match_and_replace_segment(&from_path, &self.to.path, &req.url)
+                match_and_replace_segment(&from_path, &self.to.path, &req.url)
             {
                 path_same_as_original = redirect_path == req.url;
                 location.push_str(&redirect_path);
@@ -91,10 +109,12 @@ impl AssetRedirect {
             }
 
             if host_same_as_original && path_same_as_original {
-                eprintln!("redirect loop detected: {:?} -> {:?}", from, self.to);
+                #[cfg(feature = "local_debugging")]
+                ic_cdk::print(format!(
+                    "redirect loop detected: req:{:?} => from:{:?} -> to:{:?}",
+                    req, self.from, self.to
+                ));
                 return None;
-            } else {
-                return Some(location);
             }
         } else {
             if let Some(host) = self.to.host.as_ref() {
@@ -109,8 +129,9 @@ impl AssetRedirect {
             } else {
                 location.push_str(&req.url);
             }
-            return Some(location);
         }
+
+        Some(location)
     }
 
     fn redirect(&self, req: &HttpRequest) -> Option<HttpResponse> {
@@ -805,26 +826,6 @@ fn create_token(
             index: Nat::from(chunk_index + 1),
             sha256: Some(ByteBuf::from(enc.sha256)),
         })
-    }
-}
-
-impl RedirectUrl {
-    fn match_and_replace_segment(
-        match_segment: &Option<String>,
-        replace_with: &Option<String>,
-        in_text: &str,
-    ) -> Option<String> {
-        if let Some(replace) = replace_with {
-            if match_segment.is_none() {
-                return Some(replace.to_owned());
-            }
-            if let Ok(regex) = Regex::new(match_segment.as_ref().unwrap()) {
-                return regex
-                    .find(in_text)
-                    .map(|_| regex.replace(in_text, replace).to_string());
-            }
-        }
-        None
     }
 }
 
