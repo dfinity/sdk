@@ -1,6 +1,7 @@
 use crate::config::dfinity::Config;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
+    WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -279,7 +280,14 @@ impl CanisterPool {
             })?;
             std::fs::copy(&build_idl_path, &idl_file_path)
                 .map(|_| {})
-                .map_err(DfxError::from)?;
+                .map_err(DfxError::from)
+                .with_context(|| {
+                    format!(
+                        "Failed to copy {} to {}",
+                        build_idl_path.display(),
+                        idl_file_path.display()
+                    )
+                })?;
 
             let mut perms = std::fs::metadata(&idl_file_path)
                 .with_context(|| {
@@ -443,13 +451,25 @@ impl CanisterPool {
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
     #[context("Failed while trying to build all canisters.")]
-    pub fn build_or_fail(&self, build_config: &BuildConfig) -> DfxResult<()> {
+    pub async fn build_or_fail(&self, build_config: &BuildConfig) -> DfxResult<()> {
+        self.download(build_config).await?;
         let outputs = self.build(build_config)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
         }
 
+        Ok(())
+    }
+
+    async fn download(&self, _build_config: &BuildConfig) -> DfxResult {
+        for canister in &self.canisters {
+            let info = canister.get_info();
+
+            if info.is_custom() {
+                custom_download(info, &self).await?;
+            }
+        }
         Ok(())
     }
 

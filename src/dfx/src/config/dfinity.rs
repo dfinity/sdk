@@ -132,7 +132,7 @@ pub enum CanisterTypeProperties {
     Custom {
         /// # WASM Path
         /// Path to WASM to be installed.
-        wasm: PathBuf,
+        wasm: String,
 
         /// # Candid File
         /// Path to this canister's candid interface declaration.
@@ -812,8 +812,9 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        let (mut package, mut source, mut candid, mut build, mut wasm, mut r#type) =
-            (None, None, None, None, None, None);
+        let mut wasm: Option<String> = None;
+        let (mut package, mut source, mut candid, mut build, mut r#type) =
+            (None, None, None, None, None);
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
