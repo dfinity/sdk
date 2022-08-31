@@ -1,5 +1,5 @@
 [package]
-name = "ic-assets-canister"
+name = "ic-frontend-canister"
 version = "0.2.5"
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
