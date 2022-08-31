@@ -1,5 +1,5 @@
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::{init_env, BaseOpts};
 
 use clap::Parser;
 
@@ -11,24 +11,24 @@ mod uninstall;
 /// Manage the dfx toolchains
 #[derive(Parser)]
 #[clap(name("toolchain"))]
-pub struct ToolchainCommand {
+pub struct ToolchainOpts {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 pub enum SubCommand {
-    Install(BaseOpts<install::ToolchainInstall>),
-    Uninstall(BaseOpts<uninstall::ToolchainUninstall>),
-    List(BaseOpts<list::ToolchainList>),
-    Default(BaseOpts<default::ToolchainDefault>),
+    Install(install::ToolchainInstall),
+    Uninstall(uninstall::ToolchainUninstall),
+    List(list::ToolchainList),
+    Default(default::ToolchainDefault),
 }
 
-pub fn dispatch(cmd: ToolchainCommand) -> DfxResult {
-    match cmd.subcmd {
-        SubCommand::Install(v) => install::exec(&init_env(v.env_opts)?, v.command_opts),
-        SubCommand::Uninstall(v) => uninstall::exec(&init_env(v.env_opts)?, v.command_opts),
-        SubCommand::List(v) => list::exec(&init_env(v.env_opts)?, v.command_opts),
-        SubCommand::Default(v) => default::exec(&init_env(v.env_opts)?, v.command_opts),
+pub fn exec(env: &dyn Environment, opts: ToolchainOpts) -> DfxResult {
+    match opts.subcmd {
+        SubCommand::Install(v) => install::exec(env, v),
+        SubCommand::Uninstall(v) => uninstall::exec(env, v),
+        SubCommand::List(v) => list::exec(env, v),
+        SubCommand::Default(v) => default::exec(env, v),
     }
 }

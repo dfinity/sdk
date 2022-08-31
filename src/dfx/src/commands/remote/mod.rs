@@ -1,32 +1,28 @@
-use crate::init_env;
-
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::create_agent_environment;
+use crate::NetworkOpt;
 
 use clap::Parser;
-
-use super::NetworkOpts;
 
 mod generate_binding;
 
 /// Commands used to work with remote canisters
 #[derive(Parser)]
-pub struct RemoteCommand {
+pub struct RemoteOpts {
+    #[clap(flatten)]
+    network: NetworkOpt,
+
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 enum SubCommand {
-    GenerateBinding(NetworkOpts<generate_binding::GenerateBindingOpts>),
+    GenerateBinding(generate_binding::GenerateBindingOpts),
 }
 
-pub fn dispatch(cmd: RemoteCommand) -> DfxResult {
-    match cmd.subcmd {
-        SubCommand::GenerateBinding(v) => {
-            let env = init_env(v.base_opts.env_opts)?;
-            let agent_env = create_agent_environment(&env, v.network)?;
-            generate_binding::exec(&agent_env, v.base_opts.command_opts)
-        }
+pub fn exec(env: &dyn Environment, opts: RemoteOpts) -> DfxResult {
+    match opts.subcmd {
+        SubCommand::GenerateBinding(v) => generate_binding::exec(env, v),
     }
 }

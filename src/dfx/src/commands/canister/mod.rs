@@ -1,13 +1,10 @@
-use crate::init_env;
-
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::call_sender;
 use crate::lib::provider::create_agent_environment;
+use crate::{lib::environment::Environment, NetworkOpt};
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use tokio::runtime::Runtime;
-
-use super::NetworkOpts;
 
 mod call;
 mod create;
@@ -26,109 +23,67 @@ mod stop;
 mod uninstall_code;
 mod update_settings;
 
-#[derive(Args)]
-pub struct CanisterOpts<T: Args> {
-    #[clap(flatten)]
-    network_opts: NetworkOpts<T>,
-
-    /// Specify a wallet canister id to perform the call.
-    /// If none specified, defaults to use the selected Identity's wallet canister.
-    #[clap(long)]
-    wallet: Option<String>,
-}
-
 /// Manages canisters deployed on a network replica.
 #[derive(Parser)]
 #[clap(name("canister"))]
-pub struct CanisterCommand {
+pub struct CanisterOpts {
+    #[clap(flatten)]
+    network: NetworkOpt,
+
+    /// Specify a wallet canister id to perform the call.
+    /// If none specified, defaults to use the selected Identity's wallet canister.
+    #[clap(long, global(true))]
+    wallet: Option<String>,
+
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Subcommand)]
-enum SubCommand {
-    Call(CanisterOpts<call::CanisterCallOpts>),
-    Create(CanisterOpts<create::CanisterCreateOpts>),
-    Delete(CanisterOpts<delete::CanisterDeleteOpts>),
-    DepositCycles(CanisterOpts<deposit_cycles::DepositCyclesOpts>),
-    Id(CanisterOpts<id::CanisterIdOpts>),
-    Info(CanisterOpts<info::InfoOpts>),
-    Install(CanisterOpts<install::CanisterInstallOpts>),
-    Metadata(CanisterOpts<metadata::CanisterMetadataOpts>),
-    RequestStatus(CanisterOpts<request_status::RequestStatusOpts>),
-    Send(CanisterOpts<send::CanisterSendOpts>),
-    Sign(CanisterOpts<sign::CanisterSignOpts>),
-    Start(CanisterOpts<start::CanisterStartOpts>),
-    Status(CanisterOpts<status::CanisterStatusOpts>),
-    Stop(CanisterOpts<stop::CanisterStopOpts>),
-    UninstallCode(CanisterOpts<uninstall_code::UninstallCodeOpts>),
-    UpdateSettings(CanisterOpts<update_settings::UpdateSettingsOpts>),
+pub enum SubCommand {
+    Call(call::CanisterCallOpts),
+    Create(create::CanisterCreateOpts),
+    Delete(delete::CanisterDeleteOpts),
+    DepositCycles(deposit_cycles::DepositCyclesOpts),
+    Id(id::CanisterIdOpts),
+    Info(info::InfoOpts),
+    Install(install::CanisterInstallOpts),
+    Metadata(metadata::CanisterMetadataOpts),
+    RequestStatus(request_status::RequestStatusOpts),
+    Send(send::CanisterSendOpts),
+    Sign(sign::CanisterSignOpts),
+    Start(start::CanisterStartOpts),
+    Status(status::CanisterStatusOpts),
+    Stop(stop::CanisterStopOpts),
+    UninstallCode(uninstall_code::UninstallCodeOpts),
+    UpdateSettings(update_settings::UpdateSettingsOpts),
 }
 
-macro_rules! with_env {
-    ($opts:expr, |$env:pat, $v:pat, $call_sender:pat_param| $e:expr) => {{
-        let CanisterOpts {
-            network_opts: NetworkOpts { base_opts, network },
-            wallet,
-        } = $opts;
-        let env = init_env(base_opts.env_opts)?;
-        let agent_env = create_agent_environment(&env, network)?;
-        let $v = base_opts.command_opts;
-        let runtime = Runtime::new().expect("Unable to create a runtime");
-        runtime.block_on(async {
-            let $call_sender = call_sender(&agent_env, &wallet).await?;
-            let $env = agent_env;
-            $e.await?;
-            Ok(())
-        })
-    }};
-}
+pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
+    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
-pub fn dispatch(cmd: CanisterCommand) -> DfxResult {
-    match cmd.subcmd {
-        SubCommand::Call(v) => {
-            with_env!(v, |env, v, call_sender| call::exec(&env, v, &call_sender))
+    runtime.block_on(async {
+        let call_sender = call_sender(&agent_env, &opts.wallet).await?;
+        match opts.subcmd {
+            SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Create(v) => create::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Delete(v) => delete::exec(&agent_env, v, &call_sender).await,
+            SubCommand::DepositCycles(v) => deposit_cycles::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Id(v) => id::exec(&agent_env, v).await,
+            SubCommand::Install(v) => install::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Info(v) => info::exec(&agent_env, v).await,
+            SubCommand::Metadata(v) => metadata::exec(&agent_env, v).await,
+            SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
+            SubCommand::Send(v) => send::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Sign(v) => sign::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Start(v) => start::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Status(v) => status::exec(&agent_env, v, &call_sender).await,
+            SubCommand::Stop(v) => stop::exec(&agent_env, v, &call_sender).await,
+            SubCommand::UninstallCode(v) => uninstall_code::exec(&agent_env, v, &call_sender).await,
+            SubCommand::UpdateSettings(v) => {
+                update_settings::exec(&agent_env, v, &call_sender).await
+            }
         }
-        SubCommand::Create(v) => {
-            with_env!(v, |env, v, call_sender| create::exec(&env, v, &call_sender))
-        }
-        SubCommand::Delete(v) => {
-            with_env!(v, |env, v, call_sender| delete::exec(&env, v, &call_sender))
-        }
-        SubCommand::DepositCycles(v) => with_env!(v, |env, v, call_sender| {
-            deposit_cycles::exec(&env, v, &call_sender)
-        }),
-        SubCommand::Id(v) => with_env!(v, |env, v, _| id::exec(&env, v)),
-        SubCommand::Install(v) => with_env!(v, |env, v, call_sender| {
-            install::exec(&env, v, &call_sender)
-        }),
-        SubCommand::Info(v) => with_env!(v, |env, v, _| info::exec(&env, v)),
-        SubCommand::Metadata(v) => {
-            with_env!(v, |env, v, _| metadata::exec(&env, v))
-        }
-        SubCommand::RequestStatus(v) => {
-            with_env!(v, |env, v, _| request_status::exec(&env, v))
-        }
-        SubCommand::Send(v) => {
-            with_env!(v, |env, v, call_sender| send::exec(&env, v, &call_sender))
-        }
-        SubCommand::Sign(v) => {
-            with_env!(v, |env, v, call_sender| sign::exec(&env, v, &call_sender))
-        }
-        SubCommand::Start(v) => {
-            with_env!(v, |env, v, call_sender| start::exec(&env, v, &call_sender))
-        }
-        SubCommand::Status(v) => {
-            with_env!(v, |env, v, call_sender| status::exec(&env, v, &call_sender))
-        }
-        SubCommand::Stop(v) => {
-            with_env!(v, |env, v, call_sender| stop::exec(&env, v, &call_sender))
-        }
-        SubCommand::UninstallCode(v) => with_env!(v, |env, v, call_sender| {
-            uninstall_code::exec(&env, v, &call_sender)
-        }),
-        SubCommand::UpdateSettings(v) => with_env!(v, |env, v, call_sender| {
-            update_settings::exec(&env, v, &call_sender)
-        }),
-    }
+    })
 }
