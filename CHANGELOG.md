@@ -280,6 +280,16 @@ Updated ic-ref to 0.0.1-1fba03ee
 
 ### Updated Motoko to 0.6.30
 
+# 0.11.2
+
+## DFX
+
+### fix: disable asset canister redirection of all HTTP traffic from `.raw.ic0.app` to `.ic0.app`
+
+### fix: disable asset canister's ETag HTTP headers
+
+The feature is not yet implemented on `icx-proxy`-level, and is causing 500 HTTP response for some type of assets every second request.
+
 # 0.11.1
 
 ## DFX
