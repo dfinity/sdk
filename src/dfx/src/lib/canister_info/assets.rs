@@ -21,9 +21,6 @@ impl AssetsCanisterInfo {
             .map(|sp| self.input_root.join(sp))
             .collect::<_>()
     }
-    pub fn get_output_wasm_path(&self) -> &Path {
-        self.output_wasm_path.as_path()
-    }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
     }
