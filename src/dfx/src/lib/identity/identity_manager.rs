@@ -20,6 +20,7 @@ use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::identity_utils::validate_pem_file;
 use super::WALLET_CONFIG_FILENAME;
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
@@ -237,6 +238,7 @@ impl IdentityManager {
         let config = self.get_identity_config_or_default(name)?;
         let pem_path = self.get_identity_pem_path(name, &config);
         let pem = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+        validate_pem_file(&pem)?;
         String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
 
