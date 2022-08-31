@@ -23,5 +23,7 @@ teardown() {
     dfx build
     dfx canister install whoami
     assert_command dfx canister call whoami whoami
-    assert_match "$(dfx identity get-principal)"
+    assert_eq '(principal "2nor3-keehi-duuup-d7jcn-onggn-3atzm-gejtl-5tlzn-k4g6c-nnbf7-7qe")'
+    assert_command dfx identity get-principal
+    assert_eq "2nor3-keehi-duuup-d7jcn-onggn-3atzm-gejtl-5tlzn-k4g6c-nnbf7-7qe"
 }
