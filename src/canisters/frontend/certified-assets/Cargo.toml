@@ -1,9 +1,9 @@
 [package]
-name = "certified-assets"
+name = "ic-assets-canister"
 version = "0.2.5"
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
-description = "The Asset Canister on IC."
+description = "Assets Canister for IC."
 repository = "https://github.com/dfinity/sdk"
 license = "Apache-2.0"
 categories = ["wasm"]
