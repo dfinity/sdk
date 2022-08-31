@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: generate secp256k1 keys by default
+
+When creating a new identity with `dfx identity new`, whereas previously it would have generated an Ed25519 key, it now generates a secp256k1 key. This is to enable users to write down a BIP39-style seed phrase, to recover their key in case of emergency, which will be printed when the key is generated and can be used with a new `--seed-phrase` flag in `dfx identity import`. `dfx identity import` is however still capable of importing an Ed25519 key.
+
 ### breaking change: dfx canister update-settings --compute-allocation always fails
 
 See https://forum.dfinity.org/t/fixing-incorrect-compute-allocation-fee/14830
