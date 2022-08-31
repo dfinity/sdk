@@ -1,4 +1,3 @@
-use crate::init_env;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
@@ -6,6 +5,7 @@ use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::expiry_duration;
+use crate::NetworkOpt;
 
 use anyhow::Context;
 use candid::utils::ArgumentDecoder;
@@ -15,8 +15,6 @@ use fn_error_context::context;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::WalletCanister;
 use tokio::runtime::Runtime;
-
-use super::NetworkOpts;
 
 mod add_controller;
 mod authorize;
@@ -35,69 +33,51 @@ mod upgrade;
 /// Helper commands to manage the user's cycles wallet.
 #[derive(Parser)]
 #[clap(name("wallet"))]
-pub struct WalletCommand {
+pub struct WalletOpts {
+    #[clap(flatten)]
+    network: NetworkOpt,
+
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 enum SubCommand {
-    Addresses(NetworkOpts<list_addresses::AddressesOpts>),
-    AddController(NetworkOpts<add_controller::AddControllerOpts>),
-    Authorize(NetworkOpts<authorize::AuthorizeOpts>),
-    Balance(NetworkOpts<balance::WalletBalanceOpts>),
-    RedeemFaucetCoupon(NetworkOpts<redeem_faucet_coupon::RedeemFaucetCouponOpts>),
-    Controllers(NetworkOpts<controllers::ControllersOpts>),
-    Custodians(NetworkOpts<custodians::CustodiansOpts>),
-    Deauthorize(NetworkOpts<deauthorize::DeauthorizeOpts>),
-    Name(NetworkOpts<name::NameOpts>),
-    RemoveController(NetworkOpts<remove_controller::RemoveControllerOpts>),
-    Send(NetworkOpts<send::SendOpts>),
-    SetName(NetworkOpts<set_name::SetNameOpts>),
-    Upgrade(NetworkOpts<upgrade::UpgradeOpts>),
+    Addresses(list_addresses::AddressesOpts),
+    AddController(add_controller::AddControllerOpts),
+    Authorize(authorize::AuthorizeOpts),
+    Balance(balance::WalletBalanceOpts),
+    Controllers(controllers::ControllersOpts),
+    Custodians(custodians::CustodiansOpts),
+    Deauthorize(deauthorize::DeauthorizeOpts),
+    Name(name::NameOpts),
+    RedeemFaucetCoupon(redeem_faucet_coupon::RedeemFaucetCouponOpts),
+    RemoveController(remove_controller::RemoveControllerOpts),
+    Send(send::SendOpts),
+    SetName(set_name::SetNameOpts),
+    Upgrade(upgrade::UpgradeOpts),
 }
 
-macro_rules! with_env {
-    ($opts:expr, |$env:ident, $v:ident| $e:expr) => {{
-        let NetworkOpts { base_opts, network } = $opts;
-        let env = init_env(base_opts.env_opts)?;
-        let $env = create_agent_environment(&env, network)?;
-        let runtime = Runtime::new().expect("Unable to create a runtime");
-        let $v = base_opts.command_opts;
-        runtime.block_on($e)
-    }};
-}
-
-pub fn dispatch(cmd: WalletCommand) -> DfxResult {
-    match cmd.subcmd {
-        SubCommand::Addresses(v) => {
-            with_env!(v, |env, v| list_addresses::exec(&env, v))
+pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
+    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
+    runtime.block_on(async {
+        match opts.subcmd {
+            SubCommand::Addresses(v) => list_addresses::exec(&agent_env, v).await,
+            SubCommand::AddController(v) => add_controller::exec(&agent_env, v).await,
+            SubCommand::Authorize(v) => authorize::exec(&agent_env, v).await,
+            SubCommand::Balance(v) => balance::exec(&agent_env, v).await,
+            SubCommand::Controllers(v) => controllers::exec(&agent_env, v).await,
+            SubCommand::Custodians(v) => custodians::exec(&agent_env, v).await,
+            SubCommand::Deauthorize(v) => deauthorize::exec(&agent_env, v).await,
+            SubCommand::Name(v) => name::exec(&agent_env, v).await,
+            SubCommand::RedeemFaucetCoupon(v) => redeem_faucet_coupon::exec(&agent_env, v).await,
+            SubCommand::RemoveController(v) => remove_controller::exec(&agent_env, v).await,
+            SubCommand::Send(v) => send::exec(&agent_env, v).await,
+            SubCommand::SetName(v) => set_name::exec(&agent_env, v).await,
+            SubCommand::Upgrade(v) => upgrade::exec(&agent_env, v).await,
         }
-        SubCommand::AddController(v) => {
-            with_env!(v, |env, v| add_controller::exec(&env, v))
-        }
-        SubCommand::Authorize(v) => with_env!(v, |env, v| authorize::exec(&env, v)),
-        SubCommand::Balance(v) => with_env!(v, |env, v| balance::exec(&env, v)),
-        SubCommand::RedeemFaucetCoupon(v) => {
-            with_env!(v, |env, v| redeem_faucet_coupon::exec(&env, v))
-        }
-        SubCommand::Controllers(v) => {
-            with_env!(v, |env, v| controllers::exec(&env, v))
-        }
-        SubCommand::Custodians(v) => {
-            with_env!(v, |env, v| custodians::exec(&env, v))
-        }
-        SubCommand::Deauthorize(v) => {
-            with_env!(v, |env, v| deauthorize::exec(&env, v))
-        }
-        SubCommand::Name(v) => with_env!(v, |env, v| name::exec(&env, v)),
-        SubCommand::RemoveController(v) => {
-            with_env!(v, |env, v| remove_controller::exec(&env, v))
-        }
-        SubCommand::Send(v) => with_env!(v, |env, v| send::exec(&env, v)),
-        SubCommand::SetName(v) => with_env!(v, |env, v| set_name::exec(&env, v)),
-        SubCommand::Upgrade(v) => with_env!(v, |env, v| upgrade::exec(&env, v)),
-    }
+    })
 }
 
 #[context("Failed to call query function '{}' on wallet.", method)]

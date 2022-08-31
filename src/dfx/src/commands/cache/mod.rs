@@ -1,5 +1,5 @@
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::{init_env, BaseOpts};
 
 use clap::Parser;
 
@@ -11,24 +11,24 @@ mod show;
 /// Manages the dfx version cache.
 #[derive(Parser)]
 #[clap(name("cache"))]
-pub struct CacheCommand {
+pub struct CacheOpts {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 pub enum SubCommand {
-    Delete(BaseOpts<delete::CacheDeleteOpts>),
-    Install(BaseOpts<install::CacheInstall>),
-    List(BaseOpts<list::CacheListOpts>),
-    Show(BaseOpts<show::CacheShowOpts>),
+    Delete(delete::CacheDeleteOpts),
+    Install(install::CacheInstall),
+    List(list::CacheListOpts),
+    Show(show::CacheShowOpts),
 }
 
-pub fn dispatch(cmd: CacheCommand) -> DfxResult {
-    match cmd.subcmd {
-        SubCommand::Delete(v) => delete::exec(&init_env(v.env_opts)?, v.command_opts),
-        SubCommand::Install(v) => install::exec(&init_env(v.env_opts)?, v.command_opts),
-        SubCommand::List(v) => list::exec(&init_env(v.env_opts)?, v.command_opts),
-        SubCommand::Show(v) => show::exec(&init_env(v.env_opts)?, v.command_opts),
+pub fn exec(env: &dyn Environment, opts: CacheOpts) -> DfxResult {
+    match opts.subcmd {
+        SubCommand::Delete(v) => delete::exec(env, v),
+        SubCommand::Install(v) => install::exec(env, v),
+        SubCommand::List(v) => list::exec(env, v),
+        SubCommand::Show(v) => show::exec(env, v),
     }
 }
