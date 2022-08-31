@@ -1,5 +1,6 @@
+use crate::lib::error::DfxResult;
 use crate::lib::project::import::ImportNetworkMapping;
-use crate::DfxResult;
+
 use anyhow::anyhow;
 
 pub fn get_network_mappings(input: &[String]) -> DfxResult<Vec<ImportNetworkMapping>> {

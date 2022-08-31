@@ -1,19 +1,19 @@
-use crate::DfxResult;
-use anyhow::{anyhow, Context};
-use std::collections::BTreeMap;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-
 use crate::config::dfinity::Config;
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store;
 use crate::lib::models::canister_id_store::CanisterIds;
+
+use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use hyper_rustls::ConfigBuilderExt;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 use slog::{info, Logger};
+use std::collections::BTreeMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use url::Url;
 
 #[derive(Clone, Debug, Deserialize)]

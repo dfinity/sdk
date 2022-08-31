@@ -1,7 +1,8 @@
-use crate::{DfxResult, Environment};
-
+use crate::lib::error::DfxResult;
 use crate::lib::project::import::import_canister_definitions;
 use crate::lib::project::network_mappings::get_network_mappings;
+use crate::Environment;
+
 use clap::Parser;
 
 /// Imports the nns canisters

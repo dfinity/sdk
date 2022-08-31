@@ -1,24 +1,25 @@
-use crate::{init_env, BaseOpts, DfxResult};
+use crate::lib::error::DfxResult;
+use crate::Environment;
 
 use clap::Parser;
 
 mod import;
 
-/// Ledger commands.
+/// Project commands.
 #[derive(Parser)]
 #[clap(name("project"))]
-pub struct ProjectCommand {
+pub struct ProjectOpts {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 enum SubCommand {
-    Import(BaseOpts<import::ImportOpts>),
+    Import(import::ImportOpts),
 }
 
-pub fn dispatch(cmd: ProjectCommand) -> DfxResult {
+pub fn exec(env: &dyn Environment, cmd: ProjectOpts) -> DfxResult {
     match cmd.subcmd {
-        SubCommand::Import(v) => import::exec(&init_env(v.env_opts)?, v.command_opts),
+        SubCommand::Import(v) => import::exec(env, v),
     }
 }

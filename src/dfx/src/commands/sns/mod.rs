@@ -1,7 +1,9 @@
-use crate::commands::sns::config::SnsConfigCommand;
-use crate::{init_env, BaseOpts, DfxResult};
+use crate::{
+    commands::sns::config::SnsConfigOpts,
+    commands::sns::import::SnsImportOpts,
+    lib::{environment::Environment, error::DfxResult},
+};
 
-use crate::commands::sns::import::SnsImportOpts;
 use clap::Parser;
 
 mod config;
@@ -10,7 +12,7 @@ mod import;
 /// SNS commands.
 #[derive(Parser)]
 #[clap(name("sns"))]
-pub struct SnsCommand {
+pub struct SnsOpts {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
@@ -18,15 +20,14 @@ pub struct SnsCommand {
 #[derive(Parser)]
 enum SubCommand {
     #[clap(hide(true))]
-    Config(SnsConfigCommand),
+    Config(SnsConfigOpts),
     #[clap(hide(true))]
-    Import(BaseOpts<SnsImportOpts>),
+    Import(SnsImportOpts),
 }
 
-pub fn dispatch(cmd: SnsCommand) -> DfxResult {
+pub fn exec(env: &dyn Environment, cmd: SnsOpts) -> DfxResult {
     match cmd.subcmd {
-        SubCommand::Config(v) => config::dispatch(v),
-
-        SubCommand::Import(v) => import::exec(&init_env(v.env_opts)?, v.command_opts),
+        SubCommand::Config(v) => config::exec(env, v),
+        SubCommand::Import(v) => import::exec(env, v),
     }
 }
