@@ -188,16 +188,17 @@ When installing a new WASM module to a canister, DFX will now wait for the updat
 
 `dfx config` has been removed. Please update Bash scripts to use `jq`, PowerShell scripts to use `ConvertTo-Json`, nushell scripts to use `to json`, etc.
 
-### feat!: move all the flags to the end
+### feat: move all the flags to the end
 
-Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are all positioned after the final subcommand. In prior versions, a command might look like:
+Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are able to be all positioned after the final subcommand. In prior versions, a command might look like:
 ```bash
 dfx --identity alice canister --network ic --wallet "$WALLET" create --all
 ```
-This command should now read:
+This command can now be written:
 ```bash
 dfx canister create --all --network ic --wallet "$WALLET" --identity alice
 ```
+The old syntax is still available, though, so you don't need to migrate your scripts.
 
 ### feat!: changed update-settings syntax
 
