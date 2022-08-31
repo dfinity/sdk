@@ -58,7 +58,7 @@ test_project_import() {
     DFX_JSON_LOCATION="$1"
 
     # this test is meant to demonstrate that the various
-    dfx project import "$DFX_JSON_LOCATION" --prefix "pfx-" --network-mapping ic=mainnet --all
+    dfx beta project import "$DFX_JSON_LOCATION" --prefix "pfx-" --network-mapping ic=mainnet --all
 
     jq . dfx.json
 
@@ -93,7 +93,7 @@ test_project_import_specific_canister() {
     LOCATION="$1"
 
     # this test is meant to demonstrate that the various
-    dfx project import "$LOCATION" normal-canister
+    dfx beta project import "$LOCATION" normal-canister
 
     jq . dfx.json
 
@@ -124,7 +124,7 @@ test_project_import_specific_canister() {
 
     start_webserver --directory "www/project-import"
 
-    dfx project import www/project-import/project-directory/dfx.json --all
+    dfx beta project import www/project-import/project-directory/dfx.json --all
 }
 
 @test "project import from url with no canister_ids.json" {
@@ -134,5 +134,5 @@ test_project_import_specific_canister() {
 
     start_webserver --directory "www/project-import"
 
-    dfx project import "http://localhost:$E2E_WEB_SERVER_PORT/project-directory/dfx.json" --all
+    dfx beta project import "http://localhost:$E2E_WEB_SERVER_PORT/project-directory/dfx.json" --all
 }

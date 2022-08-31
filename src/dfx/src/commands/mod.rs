@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 
 use clap::Subcommand;
 
+mod beta;
 mod bootstrap;
 mod build;
 mod cache;
@@ -18,7 +19,6 @@ mod ledger;
 mod new;
 mod nns;
 mod ping;
-mod project;
 mod quickstart;
 mod remote;
 mod replica;
@@ -32,6 +32,8 @@ mod wallet;
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[clap(hide(true))]
+    Beta(beta::BetaOpts),
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
@@ -48,8 +50,6 @@ pub enum Command {
     New(new::NewOpts),
     Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
-    #[clap(hide(true))]
-    Project(project::ProjectOpts),
     Quickstart,
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
@@ -65,6 +65,7 @@ pub enum Command {
 
 pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
     match cmd {
+        Command::Beta(v) => beta::exec(env, v),
         Command::Bootstrap(v) => bootstrap::exec(env, v),
         Command::Build(v) => build::exec(env, v),
         Command::Cache(v) => cache::exec(env, v),
@@ -80,7 +81,6 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::New(v) => new::exec(env, v),
         Command::Nns(v) => nns::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
-        Command::Project(v) => project::exec(env, v),
         Command::Quickstart => quickstart::exec(env),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
