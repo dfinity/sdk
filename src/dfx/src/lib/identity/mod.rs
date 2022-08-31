@@ -282,8 +282,9 @@ impl Identity {
             let pem_path = manager.load_identity_pem_path(name)?;
             let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
 
-            Identity::load_secp256k1_identity(manager, name, &pem_content)
-                .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
+            Identity::load_secp256k1_identity(manager, name, &pem_content).or_else(|e| {
+                Identity::load_basic_identity(manager, name, &pem_content).map_err(|_| e)
+            })
         }
     }
 
