@@ -132,7 +132,7 @@ You can specify the following options for the `dfx identity import` command.
 
 |Argument|Description|
 |--------|-----------|
-|`--disable-encryption` |DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk. I you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption with this flag.|
+|`--disable-encryption` |DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk. If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption with this flag.|
 |`--force` |If the identity already exists, remove and re-import it.|
 
 ### Examples
@@ -217,7 +217,7 @@ You can specify the following options for the `+dfx identity new+` command.
 
 |Argument|Description|
 |--------|-----------|
-|`--disable-encryption` |DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk. I you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption with this flag.|
+|`--disable-encryption` |DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk. If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption with this flag.|
 |`--force` |If the identity already exists, remove and re-import it.|
 |`--hsm-key-id <hsm key id>` |A sequence of pairs of hex digits.|
 |`--hsm-pkcs11-lib-path <hsm pkcs11 lib path>` |The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"|

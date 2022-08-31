@@ -10,7 +10,7 @@ mod tests;
 pub use crate::state_machine::StableState;
 use crate::{
     rc_bytes::RcBytes,
-    state_machine::{AssetDetails, EncodedAsset, State},
+    state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
 };
 use candid::{candid_method, Principal};
@@ -154,6 +154,14 @@ fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
 #[candid_method(query)]
 fn list() -> Vec<AssetDetails> {
     STATE.with(|s| s.borrow().list_assets())
+}
+
+#[query]
+#[candid_method(query)]
+fn certified_tree() -> CertifiedTree {
+    let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
+
+    STATE.with(|s| s.borrow().certified_tree(&certificate))
 }
 
 #[query]

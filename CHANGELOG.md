@@ -8,6 +8,11 @@
 
 When creating a new identity with `dfx identity new`, whereas previously it would have generated an Ed25519 key, it now generates a secp256k1 key. This is to enable users to write down a BIP39-style seed phrase, to recover their key in case of emergency, which will be printed when the key is generated and can be used with a new `--seed-phrase` flag in `dfx identity import`. `dfx identity import` is however still capable of importing an Ed25519 key.
 
+### feat: simplify verification of assets served by asset canister
+
+* SHA256 hashes of all assets are displayed when deploying the asset canister.
+* A query method is added to the asset canister that returns the entire asset hash tree together with the certificate containing the certified variables of the asset canister.
+
 ### breaking change: dfx canister update-settings --compute-allocation always fails
 
 See https://forum.dfinity.org/t/fixing-incorrect-compute-allocation-fee/14830
@@ -282,6 +287,16 @@ Updated ic-ref to 0.0.1-1fba03ee
 - trivial implementation of idle_cycles_burned_per_day
 
 ### Updated Motoko to 0.6.30
+
+# 0.11.2
+
+## DFX
+
+### fix: disable asset canister redirection of all HTTP traffic from `.raw.ic0.app` to `.ic0.app`
+
+### fix: disable asset canister's ETag HTTP headers
+
+The feature is not yet implemented on `icx-proxy`-level, and is causing 500 HTTP response for some type of assets every second request.
 
 # 0.11.1
 
