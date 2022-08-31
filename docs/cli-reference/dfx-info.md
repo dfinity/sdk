@@ -10,9 +10,10 @@ dfx info [type] [flag]
 
 These are the types of information that the `dfx info` command can display.
 
-| Option               | Description                          |
-|----------------------|--------------------------------------|
-| webserver-port       | The local webserver (icx-proxy) port |
+| Option         | Description                          |
+|----------------|--------------------------------------|
+| replica-rev    | The revision of the bundled replica  |
+| webserver-port | The local webserver (icx-proxy) port |
 
 ## Flags
 
