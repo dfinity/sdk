@@ -6,7 +6,7 @@ use crate::Environment;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
-/// Prints the account balance of the user
+/// Imports canister definitions from another project, as remote canisters
 #[derive(Parser)]
 pub struct ImportOpts {
     /// Path to dfx.json (local file path or url)
@@ -15,7 +15,7 @@ pub struct ImportOpts {
     /// Specifies the canister name. Either this or the --all flag are required.
     canister_name: Option<String>,
 
-    /// Creates all canisters configured in dfx.json.
+    /// Imports all canisters found in the other project.
     #[clap(long, required_unless_present("canister-name"))]
     all: bool,
 

@@ -6,7 +6,7 @@ use crate::Environment;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
-/// Imports the nns canisters
+/// Imports the sns canisters
 #[derive(Parser)]
 pub struct SnsImportOpts {
     /// Networks to import canisters ids for.
