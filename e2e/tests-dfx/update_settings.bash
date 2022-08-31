@@ -414,15 +414,24 @@ teardown() {
     assert_command dfx canister status "$CANISTER_ID"
     assert_match 'Memory allocation: 0'
     assert_match 'Compute allocation: 0'
+    assert_match 'Freezing threshold: 2_592_000'
 
     dfx canister update-settings --memory-allocation 2GB "$CANISTER_ID"
     assert_command dfx canister status "$CANISTER_ID"
     assert_match 'Memory allocation: 2_000_000_000'
     assert_match 'Compute allocation: 0'
+    assert_match 'Freezing threshold: 2_592_000'
 
-    # leaves the previous value alone
-    dfx canister update-settings --compute-allocation 4 "$CANISTER_ID"
+    # This is just checking that update-settings leaves the previous value
+    # (of memory allocation) alone when setting something else
+
+    # Compute allocations are temporarily disabled.
+    # See https://dfinity.atlassian.net/browse/RUN-314
+    # dfx canister update-settings --compute-allocation 1 "$CANISTER_ID"
+
+    dfx canister update-settings --freezing-threshold 172 "$CANISTER_ID"
     assert_command dfx canister status "$CANISTER_ID"
     assert_match 'Memory allocation: 2_000_000_000'
-    assert_match 'Compute allocation: 4'
+    # assert_match 'Compute allocation: 4'
+    assert_match 'Freezing threshold: 172'
 }

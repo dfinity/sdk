@@ -15,7 +15,7 @@ jobs:
     # ubuntu-latest has shellcheck 0.4.6, while macos-latest has 0.7.1
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install shellcheck
         run: |
           mkdir $HOME/bin
