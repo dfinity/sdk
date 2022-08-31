@@ -4,6 +4,11 @@
 
 ## DFX
 
+### feat: simplify verification of assets served by asset canister
+
+* SHA256 hashes of all assets are displayed when deploying the asset canister.
+* A query method is added to the asset canister that returns the entire asset hash tree together with the certificate containing the certified variables of the asset canister.
+
 ### breaking change: dfx canister update-settings --compute-allocation always fails
 
 See https://forum.dfinity.org/t/fixing-incorrect-compute-allocation-fee/14830
