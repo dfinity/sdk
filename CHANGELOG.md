@@ -97,9 +97,15 @@ dfx now stores data and control files in one of three places, rather than direct
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
 
-### feat: added `dfx info webserver-port` command
+### feat: added command `dfx info`
+
+#### feat: `dfx info webserver-port`
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+#### #feat: `dfx info replica-rev`
+
+This displays the revision of the replica bundled with dfx, which is the same revision referenced in replica election governance proposals.
 
 ### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
 
