@@ -1,0 +1,19 @@
+[package]
+name = "ic-frontend-canister"
+version = "0.2.5"
+authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
+edition = "2021"
+description = "Assets Canister for IC."
+repository = "https://github.com/dfinity/sdk"
+license = "Apache-2.0"
+categories = ["wasm"]
+keywords = ["internet-computer", "dfinity"]
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+ic-certified-assets = { path = "../ic-certified-assets" }
+ic-cdk = "0.5"
+ic-cdk-macros = "0.5"

@@ -31,7 +31,8 @@ use std::process::{self, Command};
 use std::time::Duration;
 
 use self::canisters::{
-    IcNnsInitCanister, SnsCanisterInstallation, StandardCanister, NNS_CORE, SNS_CANISTERS, NNS_FRONTEND
+    IcNnsInitCanister, SnsCanisterInstallation, StandardCanister, NNS_CORE, NNS_FRONTEND,
+    SNS_CANISTERS,
 };
 
 pub mod canisters;
@@ -107,7 +108,8 @@ pub async fn install_nns(
     set_cmc_authorized_subnets(&nns_url, &subnet_id.to_string())?;
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
-    println!(r#"
+    println!(
+        r#"
 
 ######################################
 # NNS CANISTER INSTALLATION COMPLETE #
@@ -120,9 +122,25 @@ Frontend canisters:
 {}
 
 "#,
-  NNS_CORE.iter().map(|canister| format!("{:20}  {}\n", canister.canister_name, canister.canister_id)).collect::<Vec<String>>().join(""),
-  // TODO:  Variable port
-  NNS_FRONTEND.iter().map(|canister| format!("{:20}  http://{}.localhost:8080\n", canister.canister_name, canister_id_store.get(canister.canister_name).map(|principal| principal.to_string()).unwrap_or_default())).collect::<Vec<String>>().join(""));
+        NNS_CORE
+            .iter()
+            .map(|canister| format!("{:20}  {}\n", canister.canister_name, canister.canister_id))
+            .collect::<Vec<String>>()
+            .join(""),
+        // TODO:  Variable port
+        NNS_FRONTEND
+            .iter()
+            .map(|canister| format!(
+                "{:20}  http://{}.localhost:8080\n",
+                canister.canister_name,
+                canister_id_store
+                    .get(canister.canister_name)
+                    .map(|principal| principal.to_string())
+                    .unwrap_or_default()
+            ))
+            .collect::<Vec<String>>()
+            .join("")
+    );
     Ok(())
 }
 
@@ -192,11 +210,11 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
     let tmp_dir = tempfile::Builder::new().tempdir()?;
     let downloaded_filename = {
         let filename = tmp_dir.path().join("wasm");
-        let mut file = fs::File::create(&filename).with_context(||format!("Failed to create file {}', filename.display()))?;
+        let mut file = fs::File::create(&filename)?;
         file.write_all(&buffer)?;
         filename
     };
-    fs::rename(downloaded_filename, target).with_context(||format!("Failed to rename {} to {}", downloaded_filename.display(), target.display()))?;
+    fs::rename(downloaded_filename, target)?;
     Ok(())
 }
 

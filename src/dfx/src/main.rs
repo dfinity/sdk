@@ -5,7 +5,6 @@ use crate::lib::logger::{create_root_logger, LoggingMode};
 use anyhow::Error;
 use clap::{Args, Parser};
 use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
-use lib::error::DfxResult;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -19,39 +18,38 @@ mod util;
 #[derive(Parser)]
 #[clap(name("dfx"), version = dfx_version_str())]
 pub struct CliOpts {
+    /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
+    #[clap(long, short('v'), parse(from_occurrences), global(true))]
+    verbose: u64,
+
+    /// Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.
+    #[clap(long, short('q'), parse(from_occurrences), global(true))]
+    quiet: u64,
+
+    /// The logging mode to use. You can log to stderr, a file, or both.
+    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]), global(true))]
+    logmode: String,
+
+    /// The file to log to, if logging to a file (see --logmode).
+    #[clap(long, global(true))]
+    logfile: Option<String>,
+
+    /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
+    #[clap(long, global(true))]
+    identity: Option<String>,
+
     #[clap(subcommand)]
     command: commands::Command,
 }
 
-#[derive(Args)]
-pub struct BaseOpts<T: Args> {
-    #[clap(flatten)]
-    command_opts: T,
-    #[clap(flatten, next_help_heading = "COMMON")]
-    env_opts: EnvOpts,
-}
-
-#[derive(Args)]
-struct EnvOpts {
-    /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
-    #[clap(long, short('v'), parse(from_occurrences))]
-    verbose: u64,
-
-    /// Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.
-    #[clap(long, short('q'), parse(from_occurrences))]
-    quiet: u64,
-
-    /// The logging mode to use. You can log to stderr, a file, or both.
-    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]))]
-    logmode: String,
-
-    /// The file to log to, if logging to a file (see --logmode).
-    #[clap(long)]
-    logfile: Option<String>,
-
-    /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
-    #[clap(long)]
-    identity: Option<String>,
+#[derive(Args, Clone, Debug)]
+struct NetworkOpt {
+    /// Override the compute network to connect to. By default, the local network is used.
+    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
+    /// ephemeral network will be created specifically for this request. E.g.
+    /// "http://localhost:12345/" is a valid network name.
+    #[clap(long, global(true))]
+    network: Option<String>,
 }
 
 fn is_warning_disabled(warning: &str) -> bool {
@@ -104,7 +102,7 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(opts: &EnvOpts) -> (bool, slog::Logger) {
+fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
     // Create a logger with our argument matches.
     let level = opts.verbose as i64 - opts.quiet as i64;
 
@@ -174,35 +172,36 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-fn init_env(env_opts: EnvOpts) -> DfxResult<impl Environment> {
-    let (progress_bar, log) = setup_logging(&env_opts);
-    let env = EnvironmentImpl::new()?
-        .with_logger(log)
-        .with_progress_bar(progress_bar)
-        .with_identity_override(env_opts.identity);
-    slog::trace!(
-        env.get_logger(),
-        "Trace mode enabled. Lots of logs coming up."
-    );
-    Ok(env)
-}
-
 fn main() {
-             
     handle_legacy_flags();
 
     let cli_opts = CliOpts::parse();
+    let (progress_bar, log) = setup_logging(&cli_opts);
+    let identity = cli_opts.identity;
     let command = cli_opts.command;
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
-            match commands::dispatch(command) {
-                Err(e) => {
-                    error_diagnosis = diagnose(&env, &e);
-                    Err(e)
+            match EnvironmentImpl::new().map(|env| {
+                env.with_logger(log)
+                    .with_progress_bar(progress_bar)
+                    .with_identity_override(identity)
+            }) {
+                Ok(env) => {
+                    slog::trace!(
+                        env.get_logger(),
+                        "Trace mode enabled. Lots of logs coming up."
+                    );
+                    match commands::exec(&env, command) {
+                        Err(e) => {
+                            error_diagnosis = diagnose(&env, &e);
+                            Err(e)
+                        }
+                        ok => ok,
+                    }
                 }
-                ok => ok,
+                Err(e) => Err(e),
             }
         }
         Err(e) => Err(e),
@@ -210,11 +209,9 @@ fn main() {
     if let Err(err) = result {
         let arg_strings: Vec<String> = std::env::args().collect();
         let args: Vec<&str> = arg_strings.iter().map(|s| s.as_str()).collect();
-                println!("Args: {:?}", args);
-                print_error_and_diagnosis(err, error_diagnosis);
-                std::process::exit(255);        
-            
-    
+        println!("Args: {:?}", args);
+        print_error_and_diagnosis(err, error_diagnosis);
+        std::process::exit(255);
     }
 }
 
@@ -225,12 +222,12 @@ fn handle_legacy_flags() {
     eprintln!("Args: {args:?}");
 
     /// Macro for rewriting arguments.
-    /// 
+    ///
     /// nargs == the number of arguments to consider for rewriting.
     /// old == a pattern for the start of the provided arguments
     /// new == the replacement arguments
     /// condition == any additional condition, above pattern matching, to apply.
-    /// 
+    ///
     /// Example:
     /// ```
     /// rewrite!(4, ["wallet", "--network", network, "balance"], ["wallet", "balance", "--network", network])
@@ -251,17 +248,47 @@ fn handle_legacy_flags() {
     }
 
     // The top level no longer supports --identity or --network so push these down to the subcommand:
-    rewrite!(3, [flag, value, command], [command, flag, value], !command.starts_with("--") && ["--identity", "--network"].contains(flag));
-    rewrite!(5, [flag1, value1, flag2, value2, command], [command, flag1, value1, flag2, value2],
-        !command.starts_with("--") && ["--identity", "--network"].contains(flag1) && ["--identity", "--network"].contains(flag2));
+    rewrite!(
+        3,
+        [flag, value, command],
+        [command, flag, value],
+        !command.starts_with("--") && ["--identity", "--network"].contains(flag)
+    );
+    rewrite!(
+        5,
+        [flag1, value1, flag2, value2, command],
+        [command, flag1, value1, flag2, value2],
+        !command.starts_with("--")
+            && ["--identity", "--network"].contains(flag1)
+            && ["--identity", "--network"].contains(flag2)
+    );
 
-    // Push some flags down one further:    
+    // Push some flags down one further:
     let commands = ["wallet", "canister", "identity"];
     let flags = ["--identity", "--network", "--canister", "--wallet"];
-    rewrite!(4, [command, flag1, value1, subcommand], [command, subcommand, flag1, value1],
-        commands.contains(command) && !subcommand.starts_with("--") && flags.contains(flag1));
-    rewrite!(6, [command, flag1, value1, flag2, value2, subcommand], [command, subcommand, flag1, value1, flag2, value2],
-        commands.contains(command) && !subcommand.starts_with("--") && flags.contains(flag1) && flags.contains(flag2));
-    rewrite!(8, [command, flag1, value1, flag2, value2, flag3, value3, subcommand], [command, subcommand, flag1, value1, flag2, value2, flag3, value3],
-            commands.contains(command) && !subcommand.starts_with("--") && flags.contains(flag1) && flags.contains(flag2) && flags.contains(flag3));
+    rewrite!(
+        4,
+        [command, flag1, value1, subcommand],
+        [command, subcommand, flag1, value1],
+        commands.contains(command) && !subcommand.starts_with("--") && flags.contains(flag1)
+    );
+    rewrite!(
+        6,
+        [command, flag1, value1, flag2, value2, subcommand],
+        [command, subcommand, flag1, value1, flag2, value2],
+        commands.contains(command)
+            && !subcommand.starts_with("--")
+            && flags.contains(flag1)
+            && flags.contains(flag2)
+    );
+    rewrite!(
+        8,
+        [command, flag1, value1, flag2, value2, flag3, value3, subcommand],
+        [command, subcommand, flag1, value1, flag2, value2, flag3, value3],
+        commands.contains(command)
+            && !subcommand.starts_with("--")
+            && flags.contains(flag1)
+            && flags.contains(flag2)
+            && flags.contains(flag3)
+    );
 }

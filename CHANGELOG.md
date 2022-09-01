@@ -4,11 +4,31 @@
 
 ## DFX
 
+### chore: update Candid UI canister with commit 528a4b04807904899f67b919a88597656e0cd6fa
+
+* Allow passing did files larger than 2KB.
+* Better integration with Motoko Playground.
+
+### feat: simplify verification of assets served by asset canister
+
+* SHA256 hashes of all assets are displayed when deploying the asset canister.
+* A query method is added to the asset canister that returns the entire asset hash tree together with the certificate containing the certified variables of the asset canister.
+
+### breaking change: dfx canister update-settings --compute-allocation always fails
+
+See https://forum.dfinity.org/t/fixing-incorrect-compute-allocation-fee/14830
+
+Until the rollout is complete, `dfx canister update-settings --compute-allocation <N>`
+will fail with an error from the replica such as the following:
+```
+The Replica returned an error: code 1, message: "Canister requested a compute allocation of 1% which cannot be satisfied because the Subnet's remaining compute capacity is 0%"
+```
+
+### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
+
 ### refactor: Move replica URL functions into a module for reuse
 
 The running replica port and url are generally useful information. Previously the code to get the URL was embedded in the network proxy code. This moves it out into a library for reuse.
-
-### feat: use JSON5 file format for .ic-assets.json5 config
 
 ### chore: Frontend canister build process no longer depends on `dfx` or `ic-cdk-optimizer`
 
@@ -18,14 +38,12 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 
 ### chore: Move all `frontend canister`-related code into the SDK repo
 
-| from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)        | summary                                                                                     |
-|:--------------------------------------------|:---------------------------------------------|:--------------------------------------------------------------------------------------------|
-| `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset` | the core of the frontend canister                                                           |
-| `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-asset`           | wrapper around the core, helps build the canister wasm                                      |
-| `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`           | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
-| `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`          | CLI executable tool - wraps `ic-asset`                                                      |
-
-
+| from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)          | summary                                                                                     |
+|:--------------------------------------------|:-----------------------------------------------|:--------------------------------------------------------------------------------------------|
+| `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset`   | the core of the frontend canister                                                           |
+| `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-frontend-canister` | wraps `ic-certified-assets` to build the canister wasm                                      |
+| `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`             | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
+| `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`            | CLI executable tool - wraps `ic-asset`                                                      |
 
 ### feat: use JSON5 file format for frontend canister asset configuration
 
@@ -89,9 +107,15 @@ dfx now stores data and control files in one of three places, rather than direct
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
 
-### feat: added `dfx info webserver-port` command
+### feat: added command `dfx info`
+
+#### feat: `dfx info webserver-port`
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+#### #feat: `dfx info replica-rev`
+
+This displays the revision of the replica bundled with dfx, which is the same revision referenced in replica election governance proposals.
 
 ### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
 
@@ -174,16 +198,17 @@ When installing a new WASM module to a canister, DFX will now wait for the updat
 
 `dfx config` has been removed. Please update Bash scripts to use `jq`, PowerShell scripts to use `ConvertTo-Json`, nushell scripts to use `to json`, etc.
 
-### feat!: move all the flags to the end
+### feat: move all the flags to the end
 
-Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are all positioned after the final subcommand. In prior versions, a command might look like:
+Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are able to be all positioned after the final subcommand. In prior versions, a command might look like:
 ```bash
 dfx --identity alice canister --network ic --wallet "$WALLET" create --all
 ```
-This command should now read:
+This command can now be written:
 ```bash
 dfx canister create --all --network ic --wallet "$WALLET" --identity alice
 ```
+The old syntax is still available, though, so you don't need to migrate your scripts.
 
 ### feat!: changed update-settings syntax
 
@@ -247,6 +272,7 @@ Changed the text in this case to read:
 Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
 This incorporates the following executed proposals:
 
+* [77589](https://dashboard.internetcomputer.org/proposal/77589)
 * [76228](https://dashboard.internetcomputer.org/proposal/76228)
 * [75700](https://dashboard.internetcomputer.org/proposal/75700)
 * [75109](https://dashboard.internetcomputer.org/proposal/75109)
@@ -263,6 +289,16 @@ Updated ic-ref to 0.0.1-1fba03ee
 - trivial implementation of idle_cycles_burned_per_day
 
 ### Updated Motoko to 0.6.30
+
+# 0.11.2
+
+## DFX
+
+### fix: disable asset canister redirection of all HTTP traffic from `.raw.ic0.app` to `.ic0.app`
+
+### fix: disable asset canister's ETag HTTP headers
+
+The feature is not yet implemented on `icx-proxy`-level, and is causing 500 HTTP response for some type of assets every second request.
 
 # 0.11.1
 

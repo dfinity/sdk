@@ -1,4 +1,5 @@
-use crate::{DfxResult, Environment};
+use crate::lib::error::DfxResult;
+use crate::Environment;
 use anyhow::anyhow;
 
 use crate::lib::nns::install_nns::{get_replica_url, get_with_retries, install_nns};

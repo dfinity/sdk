@@ -175,5 +175,4 @@ pub const SNS_CANISTERS: [&SnsCanisterInstallation; 5] = [
 ];
 
 /// Test account with well known public & private keys, used in NNS_LEDGER, NNS_DAPP and third party projects.
-pub const TEST_ACCOUNT: &str =
-    "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
+pub const TEST_ACCOUNT: &str = "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
