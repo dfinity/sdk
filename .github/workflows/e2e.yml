@@ -131,7 +131,7 @@ jobs:
 
   e2e_selenium:
     runs-on: ${{ matrix.os }}
-    # if: contains(matrix.os, 'ubuntu')
+    needs: [build_dfx]
     strategy:
       fail-fast: false
       matrix:
