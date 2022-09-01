@@ -1,9 +1,13 @@
 [package]
-name = "certified-assets"
+name = "ic-frontend-canister"
 version = "0.2.5"
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
-edition = "2018"
-
+edition = "2021"
+description = "Assets Canister for IC."
+repository = "https://github.com/dfinity/sdk"
+license = "Apache-2.0"
+categories = ["wasm"]
+keywords = ["internet-computer", "dfinity"]
 
 [lib]
 path = "src/lib.rs"

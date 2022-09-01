@@ -1,8 +1,9 @@
 mod webserver_port;
 
 use crate::commands::info::webserver_port::get_webserver_port;
+use crate::lib::error::DfxResult;
 use crate::lib::info;
-use crate::{DfxResult, Environment};
+use crate::Environment;
 use clap::Parser;
 
 #[derive(clap::ValueEnum, Clone, Debug)]

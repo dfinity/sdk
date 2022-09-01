@@ -8,6 +8,11 @@
 
 When creating a new identity with `dfx identity new`, whereas previously it would have generated an Ed25519 key, it now generates a secp256k1 key. This is to enable users to write down a BIP39-style seed phrase, to recover their key in case of emergency, which will be printed when the key is generated and can be used with a new `--seed-phrase` flag in `dfx identity import`. `dfx identity import` is however still capable of importing an Ed25519 key.
 
+### chore: update Candid UI canister with commit 528a4b04807904899f67b919a88597656e0cd6fa
+
+* Allow passing did files larger than 2KB.
+* Better integration with Motoko Playground.
+
 ### feat: simplify verification of assets served by asset canister
 
 * SHA256 hashes of all assets are displayed when deploying the asset canister.
@@ -37,12 +42,12 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 
 ### chore: Move all `frontend canister`-related code into the SDK repo
 
-| from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)        | summary                                                                                     |
-|:--------------------------------------------|:---------------------------------------------|:--------------------------------------------------------------------------------------------|
-| `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset` | the core of the frontend canister                                                           |
-| `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-asset`           | wrapper around the core, helps build the canister wasm                                      |
-| `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`           | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
-| `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`          | CLI executable tool - wraps `ic-asset`                                                      |
+| from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)          | summary                                                                                     |
+|:--------------------------------------------|:-----------------------------------------------|:--------------------------------------------------------------------------------------------|
+| `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset`   | the core of the frontend canister                                                           |
+| `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-frontend-canister` | wraps `ic-certified-assets` to build the canister wasm                                      |
+| `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`             | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
+| `dfinity/agent-rs` `/icx-asset`             | `/src/canisters/frontend/icx-asset`            | CLI executable tool - wraps `ic-asset`                                                      |
 
 ### feat: use JSON5 file format for frontend canister asset configuration
 
@@ -197,16 +202,17 @@ When installing a new WASM module to a canister, DFX will now wait for the updat
 
 `dfx config` has been removed. Please update Bash scripts to use `jq`, PowerShell scripts to use `ConvertTo-Json`, nushell scripts to use `to json`, etc.
 
-### feat!: move all the flags to the end
+### feat: move all the flags to the end
 
-Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are all positioned after the final subcommand. In prior versions, a command might look like:
+Command flags have been moved to a more traditional location; they are no longer positioned per subcommand, but instead are able to be all positioned after the final subcommand. In prior versions, a command might look like:
 ```bash
 dfx --identity alice canister --network ic --wallet "$WALLET" create --all
 ```
-This command should now read:
+This command can now be written:
 ```bash
 dfx canister create --all --network ic --wallet "$WALLET" --identity alice
 ```
+The old syntax is still available, though, so you don't need to migrate your scripts.
 
 ### feat!: changed update-settings syntax
 
