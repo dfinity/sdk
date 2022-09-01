@@ -157,9 +157,15 @@ def main():
     driver = prepare_driver()
     print(f"initialized {driver = }")
 
+    frontend_errors = []
+    candid_errors = []
+
+    # run the tests several times
     try:
-        frontend_errors = TestE2eFrontendCanister(frontend_url).test(driver)
-        candid_errors = TestE2eCandidCanister(candid_ui_url).test(driver)
+        for _ in range(3):
+            frontend_errors.append(TestE2eFrontendCanister(frontend_url).test(driver))
+        for _ in range(3):
+            candid_errors.append(TestE2eCandidCanister(candid_ui_url).test(driver))
     except Exception as e:
         print(f"Exception: {e}")
         raise e
