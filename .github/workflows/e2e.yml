@@ -129,10 +129,55 @@ jobs:
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 
+  e2e-selenium:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checking out repo
+        uses: actions/checkout@v2
+
+       # Setup python
+      - name: Setting up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Installing package list
+        run: apt list --installed
+      - name: Removing previous chrome instances on runner
+        run: sudo apt purge google-chrome-stable
+      - name: Installing all necessary packages
+        run: pip install chromedriver-autoinstaller selenium pyvirtualdisplay
+      - name: Install xvfb
+        run: sudo apt-get install xvfb
+
+       Setup dfx
+      - name: Download dfx binary
+        uses: actions/download-artifact@v2
+        with:
+          name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
+          path: /usr/local/bin
+      # - name: Download dfx binary
+      #   run: cargo install --path src/dfx
+      # - name: Download dfx binary
+      #   run: DFX_VERSION=0.12.0-beta.1 sh -ci "$(curl -fsSL https://smartcontracts.org/install.sh)"
+
+       # Setup canisters
+      - name: Deploy default dfx project
+        run: |
+          dfx new e2e_project
+          cd e2e_project
+          dfx start --background --clean
+          dfx deploy 2>&1 | tee deploy.log
+          echo FRONTEND_URL=$(cat deploy.log | grep "_frontend:" | grep -Eo "(http|https)://[a-zA-Z0-9./?=_&%:-]*") >> $GITHUB_ENV
+          echo CANDID_URL=$(cat deploy.log | grep "_backend:" | grep -Eo "(http|https)://[a-zA-Z0-9./?=_&%:-]*") >> $GITHUB_ENV
+
+       # Run script
+      - name: Running the Python script
+        run: python scripts/workflows/selenium-e2e-test.py $FRONTEND_URL $CANDID_URL
+
   aggregate:
     name: e2e:required
     if: ${{ always() }}
-    needs: [test, smoke]
+    needs: [test, smoke, e2e-selenium]
     runs-on: ubuntu-latest
     steps:
       - name: check smoke test result
@@ -140,4 +185,7 @@ jobs:
         run: exit 1
       - name: check e2e test result
         if: ${{ needs.test.result != 'success' }}
+        run: exit 1
+      - name: check selenium test result
+        if: ${{ needs.e2e-selenium.result != 'success' }}
         run: exit 1
