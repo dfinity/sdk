@@ -53,8 +53,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{fromJson(needs.list_tests.outputs.matrix.os)}}
-        rust: ${{fromJson(needs.list_tests.outputs.matrix.rust)}}
+        os: ${{fromJson(needs.build_dfx.outputs.matrix.os)}}
+        rust: ${{fromJson(needs.build_dfx.outputs.matrix.rust)}}
         exclude:
         - os: macos-latest
         - os: macos-11
