@@ -773,7 +773,6 @@ dependencies = [
  "indicatif",
  "itertools 0.10.3",
  "lazy_static",
- "libflate",
  "mime",
  "mime_guess",
  "mockito",

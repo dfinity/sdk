@@ -16,13 +16,13 @@ use crate::util::network::{get_replica_urls, get_running_replica_port};
 use crate::util::{blob_from_arguments, expiry_duration};
 
 use anyhow::{anyhow, Context};
+use flate2::bufread::GzDecoder;
 use fn_error_context::context;
 use futures_util::future::try_join_all;
 use garcon::{Delay, Waiter};
 use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
-use libflate::gzip::Decoder;
 use reqwest::Url;
 use std::fs;
 use std::io::{Read, Write};
@@ -204,9 +204,9 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
 #[context("Failed to download and unzip {:?} from {:?}.", target, source.as_str())]
 pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
     let response = reqwest::get(source.clone()).await?.bytes().await?;
-    let mut decoder = Decoder::new(&response[..])?;
+    let mut decoder = GzDecoder::new(&response[..]);
     let mut buffer = Vec::new();
-    decoder.read_to_end(&mut buffer)?;
+    decoder.read(&mut buffer)?;
 
     let tmp_dir = tempfile::Builder::new().tempdir()?;
     let downloaded_filename = {
