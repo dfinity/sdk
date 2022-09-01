@@ -215,7 +215,13 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
         file.write_all(&buffer)?;
         filename
     };
-    fs::rename(downloaded_filename, target)?;
+    fs::rename(&downloaded_filename, target).with_context(|| {
+        format!(
+            "Failed to rename {} to {}",
+            downloaded_filename.display(),
+            target.display()
+        )
+    })?;
     Ok(())
 }
 
