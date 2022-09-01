@@ -130,8 +130,11 @@ jobs:
         run: timeout 2400 bats "e2e/$E2E_TEST"
 
   e2e_selenium:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     if: contains(matrix.os, 'ubuntu')
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
     steps:
       - name: Checking out repo
         uses: actions/checkout@v2
