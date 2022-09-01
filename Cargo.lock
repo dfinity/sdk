@@ -434,15 +434,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fff2a6927b3bb87f9595d67196a70493f627687a71d87a0d692242c33f58c11"
 
 [[package]]
-name = "certified-assets"
-version = "0.2.5"
-dependencies = [
- "ic-cdk",
- "ic-cdk-macros",
- "ic-certified-assets",
-]
-
-[[package]]
 name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1591,6 +1582,15 @@ dependencies = [
  "serde",
  "serde_bytes",
  "sha2 0.9.9",
+]
+
+[[package]]
+name = "ic-frontend-canister"
+version = "0.2.5"
+dependencies = [
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic-certified-assets",
 ]
 
 [[package]]
