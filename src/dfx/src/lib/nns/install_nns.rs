@@ -192,11 +192,11 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
     let tmp_dir = tempfile::Builder::new().tempdir()?;
     let downloaded_filename = {
         let filename = tmp_dir.path().join("wasm");
-        let mut file = fs::File::create(&filename)?;
+        let mut file = fs::File::create(&filename).with_context(||format!("Failed to create file {}', filename.display()))?;
         file.write_all(&buffer)?;
         filename
     };
-    fs::rename(downloaded_filename, target)?;
+    fs::rename(downloaded_filename, target).with_context(||format!("Failed to rename {} to {}", downloaded_filename.display(), target.display()))?;
     Ok(())
 }
 

@@ -47,10 +47,9 @@ teardown() {
 }
 
 @test "dfx nns install runs" {
-    install_asset subnet_type/project_network_settings/system
-    define_project_network
+    install_asset subnet_type/shared_network_settings/system
 
-    assert_command dfx start --clean --background
+    assert_command dfx start --clean --background --host 127.0.0.1:0 
     assert_match "subnet_type: System"
 
     assert_command dfx nns install
@@ -58,8 +57,8 @@ teardown() {
     # Checking that the install worked:
     # ... Canisters should exist:
     # ... ... Backend canisters:
-    assert_command dfx canister id nns-registry
-    assert_command dfx canister id nns-governance
+    dfx canister id nns-registry
+    dfx canister id nns-governance
     assert_command dfx canister id nns-ledger
     assert_command dfx canister id nns-root
     assert_command dfx canister id nns-cycles-minting
@@ -72,7 +71,7 @@ teardown() {
     # ... Just to be sure that the existence check does not always pass:
     assert_command_fail dfx canister id i-always-return-true
     # ... Pages should be accessible for the front end canisters:
-    BOUNDARY_ORIGIN="localhost:8080"
+    BOUNDARY_ORIGIN="localhost:$(dfx info webserver-port)"
     canister_url() {
       echo "http://$(dfx canister id "$1").${BOUNDARY_ORIGIN}"
     }
