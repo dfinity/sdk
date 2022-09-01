@@ -131,6 +131,7 @@ jobs:
 
   e2e_selenium:
     runs-on: ubuntu-latest
+    if: contains(matrix.os, 'ubuntu')
     steps:
       - name: Checking out repo
         uses: actions/checkout@v2
@@ -177,7 +178,7 @@ jobs:
   aggregate:
     name: e2e:required
     if: ${{ always() }}
-    needs: [test, smoke, e2e-selenium]
+    needs: [test, smoke, e2e_selenium]
     runs-on: ubuntu-latest
     steps:
       - name: check smoke test result
@@ -187,5 +188,5 @@ jobs:
         if: ${{ needs.test.result != 'success' }}
         run: exit 1
       - name: check selenium test result
-        if: ${{ needs.e2e-selenium.result != 'success' }}
+        if: ${{ needs.e2e_selenium.result != 'success' }}
         run: exit 1
