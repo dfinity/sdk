@@ -4,6 +4,11 @@
 
 ## DFX
 
+### chore: update Candid UI canister with commit 528a4b04807904899f67b919a88597656e0cd6fa
+
+* Allow passing did files larger than 2KB.
+* Better integration with Motoko Playground.
+
 ### feat: simplify verification of assets served by asset canister
 
 * SHA256 hashes of all assets are displayed when deploying the asset canister.
