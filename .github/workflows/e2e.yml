@@ -129,7 +129,7 @@ jobs:
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 
-  e2e-selenium:
+  e2e_selenium:
     runs-on: ubuntu-latest
     steps:
       - name: Checking out repo
@@ -149,7 +149,7 @@ jobs:
       - name: Install xvfb
         run: sudo apt-get install xvfb
 
-       Setup dfx
+       # Setup dfx
       - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
