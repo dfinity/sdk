@@ -131,10 +131,15 @@ jobs:
 
   e2e_selenium:
     runs-on: ${{ matrix.os }}
-    if: contains(matrix.os, 'ubuntu')
+    # if: contains(matrix.os, 'ubuntu')
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
+      matrix:
+        os: ${{fromJson(needs.list_tests.outputs.matrix.os)}}
+        rust: ${{fromJson(needs.list_tests.outputs.matrix.rust)}}
+        exclude:
+        - os: macos-latest
+        - os: macos-11
     steps:
       - name: Checking out repo
         uses: actions/checkout@v2
