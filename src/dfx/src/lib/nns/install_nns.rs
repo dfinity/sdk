@@ -87,7 +87,7 @@ pub async fn install_nns(
         canister_id_store.add(canister_name, canister_id)?;
     }
 
-    println!("Uploading NNS data...");
+    println!("Uploading NNS configuration data...");
     upload_nns_sns_wasms_canister_wasms(env)?;
 
     // Install the GUI canisters:
