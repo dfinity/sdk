@@ -62,12 +62,10 @@ pub async fn install_nns(
 ) -> anyhow::Result<()> {
     println!("Checking out the environment...");
     // Check out the environment.
+    get_and_check_provider(env)?;
     get_and_check_replica_url(env)?;
     verify_local_replica_type_is_system(env)?;
-    let subnet_id = {
-        let root_key = agent.status().await?.root_key.unwrap();
-        Principal::self_authenticating(root_key).to_text()
-    };
+    let subnet_id = get_subnet_id(agent).await?.to_text();
     let nns_url = get_replica_urls(env, env.get_network_descriptor())?.remove(0);
 
     // Install the core backend wasm canisters
@@ -129,6 +127,40 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
     }
 
     Ok(provider_url)
+}
+
+/// Gets the local replica URL.  Note: This is not the same as the provider URL.
+///
+/// The replica URL hosts the canister dashboard and is used for installing NNS wasms.
+///
+/// Note: The port typically changes every time `dfx start --clean` is run.
+///
+/// # Errors
+/// - Returns an error if the replica URL could not be found.  Typically this indicates that the local replica
+///   is not running or is running in a different location.
+///
+/// # Panics
+/// This code is not expected to panic.
+pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
+    let port = get_running_replica_port(
+        env,
+        env.get_network_descriptor()
+            .local_server_descriptor
+            .as_ref()
+            .ok_or_else(|| anyhow!("Could not get the local server descriptor"))?,
+    )?
+    .ok_or_else(|| anyhow!("Could not determine the port of the local server"))?;
+    let url = Url::parse(&format!("http://localhost:{port}"))?;
+    Ok(url)
+}
+
+/// Gets the subnet ID
+#[context("Failed to determine subnet ID.")]
+async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
+    let root_key = agent.status().await
+        .with_context(|| "Could not get agent status")?
+        .root_key.with_context(|| "Agent should have fetched the root key.")?;
+    Ok( Principal::self_authenticating(root_key))
 }
 
 /// Provides the user with a printout detailing what has been installed for them.
@@ -330,31 +362,6 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     )
     .await?;
     Ok(())
-}
-
-/// Gets the local replica URL.  Note: This is not the same as the provider URL.
-///
-/// The replica URL hosts the canister dashboard and is used for installing NNS wasms.
-///
-/// Note: The port typically changes every time `dfx start --clean` is run.
-///
-/// # Errors
-/// - Returns an error if the replica URL could not be found.  Typically this indicates that the local replica
-///   is not running or is running in a different location.
-///
-/// # Panics
-/// This code is not expected to panic.
-pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
-    let port = get_running_replica_port(
-        env,
-        env.get_network_descriptor()
-            .local_server_descriptor
-            .as_ref()
-            .ok_or_else(|| anyhow!("Could not get the local server descriptor"))?,
-    )?
-    .ok_or_else(|| anyhow!("Could not determine the port of the local server"))?;
-    let url = Url::parse(&format!("http://localhost:{port}"))?;
-    Ok(url)
 }
 
 /// Arguments for the ic-nns-init command line function.
