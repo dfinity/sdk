@@ -12,9 +12,8 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::network::network_descriptor;
 use crate::lib::operations::canister::{create_canister, install_canister_wasm};
-use crate::util::network::{get_replica_urls, get_running_replica_port};
+use crate::util::network::get_replica_urls;
 use crate::util::{blob_from_arguments, expiry_duration};
 
 use anyhow::{anyhow, Context};
@@ -109,7 +108,7 @@ pub async fn install_nns(
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
-    print_nns_details(env)?;
+    print_nns_details(env, provider_url)?;
     Ok(())
 }
 
@@ -193,14 +192,7 @@ fn verify_nns_canister_ids_are_available(env: &dyn Environment) -> anyhow::Resul
 ///
 /// # Errors
 /// - May fail if the provider URL is invalid.
-fn print_nns_details(env: &dyn Environment) -> anyhow::Result<()> {
-    let provider_url = env
-        .get_network_descriptor()
-        .first_provider()
-        .with_context(|| "Environment has no providers")?;
-    let provider_url: Url = Url::parse(provider_url)
-        .with_context(|| "Malformed provider URL in this environment: {url_str}")?;
-
+fn print_nns_details(env: &dyn Environment, provider_url: Url) -> anyhow::Result<()> {
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_url = |canister_name: &str| -> anyhow::Result<String> {
         let canister_id = canister_id_store
