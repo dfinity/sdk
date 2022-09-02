@@ -65,6 +65,7 @@ pub async fn install_nns(
     get_and_check_provider(env)?;
     get_and_check_replica_url(env)?;
     verify_local_replica_type_is_system(env)?;
+    verify_nns_canister_ids_are_available(env)?;
     let subnet_id = get_subnet_id(agent).await?.to_text();
     let nns_url = get_replica_urls(env, env.get_network_descriptor())?.remove(0);
 
@@ -77,6 +78,8 @@ pub async fn install_nns(
         sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
+    // Add root canister IDs to canister_ids.json.
+    // TODO: Move this to ic nns init, although there are complications with doing that
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     for canisters::IcNnsInitCanister {
         canister_name,
@@ -104,7 +107,7 @@ pub async fn install_nns(
     // ... and configure the backend NNS canisters:
     println!("Configuring the NNS...");
     set_xdr_rate(1234567, &nns_url)?;
-    set_cmc_authorized_subnets(&nns_url, &subnet_id.to_string())?;
+    set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
     print_nns_details(env)?;
     Ok(())
@@ -118,12 +121,17 @@ pub async fn install_nns(
 ///   - The port constraint may be eased, perhaps, at some stage.
 ///   - The requirement that the domain root is 'localhost' is less likely to change; 127.0.0.1 doesn't support subdomains.
 fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
-
-    let provider_url = env.get_network_descriptor().first_provider().with_context(|| "Environment has no providers")?;
-    let provider_url: Url = Url::parse(provider_url).with_context(|| "Malformed provider URL in this environment: {url_str}")?;
+    let provider_url = env
+        .get_network_descriptor()
+        .first_provider()
+        .with_context(|| "Environment has no providers")?;
+    let provider_url: Url = Url::parse(provider_url)
+        .with_context(|| "Malformed provider URL in this environment: {url_str}")?;
 
     if provider_url.port() != Some(8080) {
-        return Err(anyhow!("dfx nns install supports only the provider localhost:8080"))
+        return Err(anyhow!(
+            "dfx nns install supports only the provider localhost:8080"
+        ));
     }
 
     Ok(provider_url)
@@ -157,10 +165,31 @@ pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
 /// Gets the subnet ID
 #[context("Failed to determine subnet ID.")]
 async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
-    let root_key = agent.status().await
+    let root_key = agent
+        .status()
+        .await
         .with_context(|| "Could not get agent status")?
-        .root_key.with_context(|| "Agent should have fetched the root key.")?;
-    Ok( Principal::self_authenticating(root_key))
+        .root_key
+        .with_context(|| "Agent should have fetched the root key.")?;
+    Ok(Principal::self_authenticating(root_key))
+}
+
+#[context("dfx nns install must be run on a clean network")]
+fn verify_nns_canister_ids_are_available(env: &dyn Environment) -> anyhow::Result<()> {
+    let canister_id_store = CanisterIdStore::for_env(env)?;
+    for IcNnsInitCanister {
+        canister_id,
+        canister_name,
+        ..
+    } in NNS_CORE.iter()
+    {
+        if canister_id_store.get_name(canister_id).is_some() {
+            return Err(anyhow!(
+                "The ID for the {canister_name} canister has already been taken."
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Provides the user with a printout detailing what has been installed for them.
@@ -168,18 +197,23 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
 /// # Errors
 /// - May fail if the provider URL is invalid.
 fn print_nns_details(env: &dyn Environment) -> anyhow::Result<()> {
-    let provider_url = env.get_network_descriptor().first_provider().with_context(|| "Environment has no providers")?;
-    let provider_url: Url = Url::parse(provider_url).with_context(|| "Malformed provider URL in this environment: {url_str}")?;
+    let provider_url = env
+        .get_network_descriptor()
+        .first_provider()
+        .with_context(|| "Environment has no providers")?;
+    let provider_url: Url = Url::parse(provider_url)
+        .with_context(|| "Malformed provider URL in this environment: {url_str}")?;
 
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_url = |canister_name: &str| -> anyhow::Result<String> {
         let canister_id = canister_id_store
-                    .get(canister_name)
-                    .map(|principal| principal.to_string())
-                    .with_context(|| "Could not get canister ID for {canister_name}")?;
+            .get(canister_name)
+            .map(|principal| principal.to_string())
+            .with_context(|| "Could not get canister ID for {canister_name}")?;
         let mut url = provider_url.clone();
         let host = format!("{}.localhost", canister_id);
-        url.set_host(Some(&host)).with_context(||"Could not add canister ID as a subdomain to localhost")?;
+        url.set_host(Some(&host))
+            .with_context(|| "Could not add canister ID as a subdomain to localhost")?;
         Ok(url.to_string())
     };
 
@@ -207,8 +241,7 @@ Frontend canisters:
             .map(|canister| format!(
                 "{:20}  {}\n",
                 canister.canister_name,
-                canister_url(&canister.canister_name)
-                .unwrap_or_default()
+                canister_url(&canister.canister_name).unwrap_or_default()
             ))
             .collect::<Vec<String>>()
             .join("")
@@ -307,7 +340,8 @@ pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
     let downloaded_filename = {
         let filename = tmp_dir.path().join("wasm");
         let mut file = fs::File::create(&filename)?;
-        std::io::copy(&mut decoder, &mut file).with_context(|| format!("failed to unzip WASM to {}", filename.display()))?;
+        std::io::copy(&mut decoder, &mut file)
+            .with_context(|| format!("failed to unzip WASM to {}", filename.display()))?;
         filename
     };
     fs::rename(downloaded_filename, target)?;
