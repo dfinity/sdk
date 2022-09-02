@@ -25,6 +25,7 @@ use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use reqwest::Url;
+use url::Host;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -58,7 +59,7 @@ pub mod canisters;
 pub async fn install_nns(
     env: &dyn Environment,
     agent: &Agent,
-    _provider_url: &str,
+    provider_url: &str,
     ic_nns_init_path: &Path,
 ) -> anyhow::Result<()> {
     println!("Checking out the environment...");
@@ -108,7 +109,32 @@ pub async fn install_nns(
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id.to_string())?;
 
+    print_nns_details(env)?;
+    Ok(())
+}
+
+/// Provides the user with a printout detailing what has been installed for them.
+///
+/// # Errors
+/// - May fail if the provider URL is invalid.
+fn print_nns_details(env: &dyn Environment) -> anyhow::Result<()> {
+    // Canister URLs are <canister_id>.localhost but we need to know the port, which we get from the provider URL.
+    // Note: The domain root is always localhost; 127.0.0.1 doesn't support subdomains.
+    let provider_url = env.get_network_descriptor().first_provider().with_context(|| "Environment has no providers")?;
+    let provider_url: Url = Url::parse(provider_url).with_context(|| "Malformed provider URL in this environment: {url_str}")?;
+
     let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_url = |canister_name: &str| -> anyhow::Result<String> {
+        let canister_id = canister_id_store
+                    .get(canister_name)
+                    .map(|principal| principal.to_string())
+                    .with_context(|| "Could not get canister ID for {canister_name}")?;
+        let mut url = provider_url.clone();
+        let host = format!("{}.localhost", canister_id);
+        url.set_host(Some(&host)).with_context(||"Could not add canister ID as a subdomain to localhost")?;
+        Ok(url.to_string())
+    };
+
     println!(
         r#"
 
@@ -128,16 +154,13 @@ Frontend canisters:
             .map(|canister| format!("{:20}  {}\n", canister.canister_name, canister.canister_id))
             .collect::<Vec<String>>()
             .join(""),
-        // TODO:  Variable port
         NNS_FRONTEND
             .iter()
             .map(|canister| format!(
-                "{:20}  http://{}.localhost:8080\n",
+                "{:20}  {}\n",
                 canister.canister_name,
-                canister_id_store
-                    .get(canister.canister_name)
-                    .map(|principal| principal.to_string())
-                    .unwrap_or_default()
+                canister_url(&canister.canister_name)
+                .unwrap_or_default()
             ))
             .collect::<Vec<String>>()
             .join("")

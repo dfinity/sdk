@@ -47,14 +47,18 @@ teardown() {
 }
 
 @test "dfx nns install runs" {
-    install_asset subnet_type/shared_network_settings/system
+    # Setup
+    install_shared_asset subnet_type/shared_network_settings/system
+    assert_command dfx start --clean --background --host 127.0.0.1:0
+    assert_match "subnet_type: System" 
 
-    assert_command dfx start --clean --background --host 127.0.0.1:0 
-    assert_match "subnet_type: System"
-
+    # Run th einstallation
     assert_command dfx nns install
 
-    # Checking that the install worked:
+    # Checking that the install worked.
+    # Note:  The installation is quite expensive, so we test extensively on one installation
+    #        rather than doing a separate installation for every test.  The tests are read-only
+    #        so no test should affect the output of another.
     # ... Canisters should exist:
     # ... ... Backend canisters:
     dfx canister id nns-registry
