@@ -25,7 +25,6 @@ use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use reqwest::Url;
-use url::Host;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -59,11 +58,11 @@ pub mod canisters;
 pub async fn install_nns(
     env: &dyn Environment,
     agent: &Agent,
-    provider_url: &str,
     ic_nns_init_path: &Path,
 ) -> anyhow::Result<()> {
     println!("Checking out the environment...");
     // Check out the environment.
+    get_and_check_replica_url(env)?;
     verify_local_replica_type_is_system(env)?;
     let subnet_id = {
         let root_key = agent.status().await?.root_key.unwrap();
@@ -113,13 +112,30 @@ pub async fn install_nns(
     Ok(())
 }
 
+/// Gets and checks the provider URL
+///
+/// # Errors
+/// - The provider may be malformed.
+/// - Only provider localhost:8080 is supported; this is compiled into the canister IDs.
+///   - The port constraint may be eased, perhaps, at some stage.
+///   - The requirement that the domain root is 'localhost' is less likely to change; 127.0.0.1 doesn't support subdomains.
+fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
+
+    let provider_url = env.get_network_descriptor().first_provider().with_context(|| "Environment has no providers")?;
+    let provider_url: Url = Url::parse(provider_url).with_context(|| "Malformed provider URL in this environment: {url_str}")?;
+
+    if provider_url.port() != Some(8080) {
+        return Err(anyhow!("dfx nns install supports only the provider localhost:8080"))
+    }
+
+    Ok(provider_url)
+}
+
 /// Provides the user with a printout detailing what has been installed for them.
 ///
 /// # Errors
 /// - May fail if the provider URL is invalid.
 fn print_nns_details(env: &dyn Environment) -> anyhow::Result<()> {
-    // Canister URLs are <canister_id>.localhost but we need to know the port, which we get from the provider URL.
-    // Note: The domain root is always localhost; 127.0.0.1 doesn't support subdomains.
     let provider_url = env.get_network_descriptor().first_provider().with_context(|| "Environment has no providers")?;
     let provider_url: Url = Url::parse(provider_url).with_context(|| "Malformed provider URL in this environment: {url_str}")?;
 
@@ -328,7 +344,7 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
 ///
 /// # Panics
 /// This code is not expected to panic.
-pub fn get_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
+pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
     let port = get_running_replica_port(
         env,
         env.get_network_descriptor()
