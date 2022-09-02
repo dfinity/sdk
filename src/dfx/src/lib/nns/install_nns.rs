@@ -60,15 +60,14 @@ pub async fn install_nns(
     agent: &Agent,
     ic_nns_init_path: &Path,
 ) -> anyhow::Result<()> {
-    println!("Checking out the environment...");
-    // Check out the environment.
+    eprintln!("Checking out the environment...");
     verify_local_replica_type_is_system(env)?;
     verify_nns_canister_ids_are_available(env)?;
     let provider_url = get_and_check_provider(env)?;
     let nns_url = get_and_check_replica_url(env)?;
     let subnet_id = get_subnet_id(agent).await?.to_text();
 
-    // Install the core backend wasm canisters
+    eprintln!("Installing the core backend wasm canisters...");
     download_nns_wasms(env).await?;
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: nns_wasm_dir(env),
@@ -89,7 +88,7 @@ pub async fn install_nns(
         canister_id_store.add(canister_name, canister_id)?;
     }
 
-    println!("Uploading NNS configuration data...");
+    eprintln!("Uploading NNS configuration data...");
     upload_nns_sns_wasms_canister_wasms(env)?;
 
     // Install the GUI canisters:
@@ -104,7 +103,7 @@ pub async fn install_nns(
         install_canister(env, agent, canister_name, &local_wasm_path).await?;
     }
     // ... and configure the backend NNS canisters:
-    println!("Configuring the NNS...");
+    eprintln!("Configuring the NNS...");
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
