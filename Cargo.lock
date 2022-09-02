@@ -783,6 +783,7 @@ dependencies = [
  "hex",
  "humantime",
  "humantime-serde",
+ "hyper-rustls",
  "ic-agent",
  "ic-asset",
  "ic-identity-hsm",

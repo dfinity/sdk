@@ -6,6 +6,7 @@ use crate::NetworkOpt;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
+mod import;
 mod install;
 
 /// NNS commands.
@@ -22,6 +23,8 @@ pub struct NnsOpts {
 #[derive(Parser)]
 enum SubCommand {
     #[clap(hide(true))]
+    Import(import::ImportOpts),
+    #[clap(hide(true))]
     Install(install::InstallOpts),
 }
 
@@ -30,6 +33,7 @@ pub fn exec(env: &dyn Environment, opts: NnsOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {
+            SubCommand::Import(v) => import::exec(&env, v).await,
             SubCommand::Install(v) => install::exec(&env, v).await,
         }
     })
