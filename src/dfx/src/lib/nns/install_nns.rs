@@ -10,6 +10,7 @@ use crate::config::dfinity::ReplicaSubnetType;
 use crate::lib::environment::Environment;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::info::replica_rev;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister_wasm};
 use crate::util::network::{get_replica_urls, get_running_replica_port};
@@ -25,7 +26,7 @@ use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use reqwest::Url;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::time::Duration;
@@ -230,14 +231,12 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
 pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
     let response = reqwest::get(source.clone()).await?.bytes().await?;
     let mut decoder = GzDecoder::new(&response[..]);
-    let mut buffer = Vec::new();
-    decoder.read(&mut buffer)?;
 
     let tmp_dir = tempfile::Builder::new().tempdir()?;
     let downloaded_filename = {
         let filename = tmp_dir.path().join("wasm");
         let mut file = fs::File::create(&filename)?;
-        file.write_all(&buffer)?;
+        std::io::copy(&mut decoder, &mut file).with_context(|| format!("failed to unzip WASM to {}", filename.display()))?;
         filename
     };
     fs::rename(downloaded_filename, target)?;
@@ -270,8 +269,7 @@ pub async fn download_ic_repo_wasm(
 
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
-    // TODO: Include the canister ID in the path.  .dfx/local/wasms/nns/${COMMIT}/....
-    let ic_commit = "3982db093a87e90cbe0595877a4110e4f37ac740"; // TODO: Where should this commit come from?
+    let ic_commit = replica_rev();
     let wasm_dir = &nns_wasm_dir(env);
     for IcNnsInitCanister {
         wasm_name,
