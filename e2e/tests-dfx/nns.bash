@@ -59,15 +59,15 @@ teardown() {
     # ... ... Backend canisters:
     dfx canister id nns-registry
     dfx canister id nns-governance
-    assert_command dfx canister id nns-ledger
-    assert_command dfx canister id nns-root
-    assert_command dfx canister id nns-cycles-minting
-    assert_command dfx canister id nns-lifeline
-    assert_command dfx canister id nns-genesis-token
-    assert_command dfx canister id nns-sns-wasm
+    dfx canister id nns-ledger
+    dfx canister id nns-root
+    dfx canister id nns-cycles-minting
+    dfx canister id nns-lifeline
+    dfx canister id nns-genesis-token
+    dfx canister id nns-sns-wasm
     # ... ... Frontend canisters:
-    assert_command dfx canister id nns-identity
-    assert_command dfx canister id nns-ui
+    dfx canister id nns-identity
+    dfx canister id nns-ui
     # ... Just to be sure that the existence check does not always pass:
     assert_command_fail dfx canister id i-always-return-true
     # ... Pages should be accessible for the front end canisters:
@@ -75,6 +75,21 @@ teardown() {
     canister_url() {
       echo "http://$(dfx canister id "$1").${BOUNDARY_ORIGIN}"
     }
-    assert_command curl --fail -sSL "$(canister_url nns-identity)"
-    assert_command curl --fail -sSL "$(canister_url nns-ui)"
+    curl --fail -sSL "$(canister_url nns-identity)"
+    curl --fail -sSL "$(canister_url nns-ui)"
+    # The downloaded wasm files match the installed wasms
+    installed_wasm_hash() {
+        dfx canister info "$1" | awk '/Module hash/{print $3}'
+    }
+    downloaded_wasm_hash() {
+        sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-$%s", $1, $2}')/$1" | awk '{print "0x" $1}'
+    }
+    wasm_matches() {
+            [[ "$(installed_wasm_hash $1)" == "$(downloaded_wasm_hash $2)" ]] || {
+                echo "ERROR:  There is a wasm hash mismatch between $1 and $2"
+                exit 1
+            }>&2
+    }
+    wasm_matches nns-registry registry-canister.wasm
+    wasm_matches nns-governance governance-canister_test.wasm
 }
