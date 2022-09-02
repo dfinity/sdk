@@ -12,6 +12,7 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::network::network_descriptor;
 use crate::lib::operations::canister::{create_canister, install_canister_wasm};
 use crate::util::network::{get_replica_urls, get_running_replica_port};
 use crate::util::{blob_from_arguments, expiry_duration};
@@ -62,12 +63,11 @@ pub async fn install_nns(
 ) -> anyhow::Result<()> {
     println!("Checking out the environment...");
     // Check out the environment.
-    get_and_check_provider(env)?;
-    get_and_check_replica_url(env)?;
     verify_local_replica_type_is_system(env)?;
     verify_nns_canister_ids_are_available(env)?;
+    let provider_url = get_and_check_provider(env)?;
+    let nns_url = get_and_check_replica_url(env)?;
     let subnet_id = get_subnet_id(agent).await?.to_text();
-    let nns_url = get_replica_urls(env, env.get_network_descriptor())?.remove(0);
 
     // Install the core backend wasm canisters
     download_nns_wasms(env).await?;
@@ -146,20 +146,17 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 /// # Errors
 /// - Returns an error if the replica URL could not be found.  Typically this indicates that the local replica
 ///   is not running or is running in a different location.
+/// - Returns an error if the network name is not "local"; that is the only network that `ic nns install` can deploy to.
 ///
 /// # Panics
 /// This code is not expected to panic.
+#[context("Failed to determine the replica URL.")]
 pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
-    let port = get_running_replica_port(
-        env,
-        env.get_network_descriptor()
-            .local_server_descriptor
-            .as_ref()
-            .ok_or_else(|| anyhow!("Could not get the local server descriptor"))?,
-    )?
-    .ok_or_else(|| anyhow!("Could not determine the port of the local server"))?;
-    let url = Url::parse(&format!("http://localhost:{port}"))?;
-    Ok(url)
+    let network_descriptor = env.get_network_descriptor();
+    if network_descriptor.name != "local" {
+       return Err(anyhow!("dfx nns install can only deploy to the 'local' network."));
+    }
+    Ok(get_replica_urls(env, env.get_network_descriptor())?.remove(0))
 }
 
 /// Gets the subnet ID
