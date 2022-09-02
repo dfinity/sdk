@@ -1,6 +1,4 @@
 use crate::lib::error::DfxError;
-
-use ring::error::Unspecified;
 use std::boxed::Box;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -15,9 +13,6 @@ pub enum IdentityError {
 
     #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
-
-    #[error("Cannot generate key pair.")]
-    CannotGenerateKeyPair(Unspecified),
 
     #[error("Cannot create identity directory at '{0}': {1:#}")]
     CannotCreateIdentityDirectory(PathBuf, Box<DfxError>),

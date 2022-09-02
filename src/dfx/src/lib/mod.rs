@@ -24,6 +24,7 @@ pub mod nns_types;
 pub mod operations;
 pub mod package_arguments;
 pub mod progress_bar;
+pub mod project;
 pub mod provider;
 pub mod replica_config;
 pub mod root_key;
