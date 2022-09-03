@@ -172,6 +172,7 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
     Ok(Principal::self_authenticating(root_key))
 }
 
+/// The NNS canisters use the very first few canister IDs; they must be available.
 #[context("dfx nns install must be run just after dfx start --clean")]
 fn verify_nns_canister_ids_are_available(env: &dyn Environment) -> anyhow::Result<()> {
     let canister_id_store = CanisterIdStore::for_env(env)?;
@@ -232,7 +233,7 @@ Frontend canisters:
             .map(|canister| format!(
                 "{:20}  {}\n",
                 canister.canister_name,
-                canister_url(&canister.canister_name).unwrap_or_default()
+                canister_url(canister.canister_name).unwrap_or_default()
             ))
             .collect::<Vec<String>>()
             .join("")
