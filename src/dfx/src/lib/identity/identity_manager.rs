@@ -7,16 +7,20 @@ use crate::lib::identity::{
 };
 
 use anyhow::{anyhow, bail, Context};
+use bip32::XPrv;
+use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
 use fn_error_context::context;
-use pem::{encode, Pem};
-use ring::{rand, rand::SecureRandom, signature};
+use k256::pkcs8::LineEnding;
+use k256::SecretKey;
+use ring::{rand, rand::SecureRandom};
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::identity_utils::validate_pem_file;
 use super::WALLET_CONFIG_FILENAME;
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
@@ -84,6 +88,10 @@ pub enum IdentityCreationParameters {
     },
     PemFile {
         src_pem_file: PathBuf,
+        disable_encryption: bool,
+    },
+    SeedPhrase {
+        mnemonic: String,
         disable_encryption: bool,
     },
     Hardware {
@@ -230,6 +238,7 @@ impl IdentityManager {
         let config = self.get_identity_config_or_default(name)?;
         let pem_path = self.get_identity_pem_path(name, &config);
         let pem = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+        validate_pem_file(&pem)?;
         String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
 
@@ -468,8 +477,9 @@ To create a more secure identity, create and use an identity that is protected b
                 "  - generating new key at {}",
                 identity_pem_path.display()
             );
-            let key = generate_key()?;
+            let (key, mnemonic) = generate_key()?;
             pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())?;
+            eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
         }
     } else {
         slog::info!(
@@ -560,21 +570,18 @@ fn remove_identity_file(file: &Path) -> DfxResult {
     Ok(())
 }
 
-/// Generates a new Ed25519 key.
-#[context("Failed to generate a fresh ed25519 key.")]
-pub(super) fn generate_key() -> DfxResult<Vec<u8>> {
-    let rng = rand::SystemRandom::new();
-    let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
-        .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
-
-    let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
-    Ok(Vec::from(encoded_pem))
+/// Generates a new secp256k1 key.
+#[context("Failed to generate a fresh secp256k1 key.")]
+pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
+    let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256)?, Language::English);
+    let secret = mnemonic_to_key(&mnemonic)?;
+    let pem = secret.to_pem(LineEnding::CRLF)?;
+    Ok((pem.as_bytes().to_vec(), mnemonic))
 }
 
-fn encode_pem_private_key(key: &[u8]) -> String {
-    let pem = Pem {
-        tag: "PRIVATE KEY".to_owned(),
-        contents: key.to_vec(),
-    };
-    encode(&pem)
+pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> DfxResult<SecretKey> {
+    const DEFAULT_DERIVATION_PATH: &str = "m/44'/60'/0'/0/0";
+    let seed = Seed::new(mnemonic, "");
+    let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
+    Ok(SecretKey::from(pk.private_key()))
 }
