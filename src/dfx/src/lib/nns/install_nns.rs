@@ -85,6 +85,7 @@ pub async fn install_nns(
         ..
     } in canisters::NNS_CORE
     {
+        eprintln!("Registering {canister_name} in the canister ID store...");
         canister_id_store.add(canister_name, canister_id)?;
     }
 

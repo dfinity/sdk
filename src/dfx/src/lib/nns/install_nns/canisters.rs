@@ -32,7 +32,7 @@ pub const NNS_LEDGER: IcNnsInitCanister = IcNnsInitCanister {
     canister_name: "nns-ledger",
     wasm_name: "ledger-canister_notify-method.wasm",
     test_wasm_name: None,
-    canister_id: "ryjl3-tyaaa-aaaaa-aa&aba-cai",
+    canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai",
 };
 /// Canister that controls all NNS canisters.
 pub const NNS_ROOT: IcNnsInitCanister = IcNnsInitCanister {

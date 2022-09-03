@@ -67,6 +67,7 @@ dfx_start_for_nns_install() {
     #        so no test should affect the output of another.
     # ... Canisters should exist:
     # ... ... Backend canisters:
+    cat .dfx/local/canister_ids.json
     dfx canister id nns-registry
     dfx canister id nns-governance
     dfx canister id nns-ledger
