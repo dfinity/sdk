@@ -77,8 +77,8 @@ dfx_start_for_nns_install() {
     dfx canister id nns-genesis-token
     dfx canister id nns-sns-wasm
     # ... ... Frontend canisters:
-    dfx canister id nns-identity
-    dfx canister id nns-ui
+    dfx canister id internet_identity
+    dfx canister id nns-dapp
     # ... Just to be sure that the existence check does not always pass:
     assert_command_fail dfx canister id i-always-return-true
     # ... Pages should be accessible for the front end canisters:
@@ -86,8 +86,8 @@ dfx_start_for_nns_install() {
     canister_url() {
       echo "http://$(dfx canister id "$1").${BOUNDARY_ORIGIN}"
     }
-    curl --fail -sSL "$(canister_url nns-identity)"
-    curl --fail -sSL "$(canister_url nns-ui)"
+    curl --fail -sSL "$(canister_url internet_identity)"
+    curl --fail -sSL "$(canister_url nns-dapp)"
     # The downloaded wasm files match the installed wasms
     installed_wasm_hash() {
         dfx canister info "$1" | awk '/Module hash/{print $3}'
