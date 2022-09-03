@@ -153,7 +153,9 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
     let network_descriptor = env.get_network_descriptor();
     if network_descriptor.name != "local" {
-       return Err(anyhow!("dfx nns install can only deploy to the 'local' network."));
+        return Err(anyhow!(
+            "dfx nns install can only deploy to the 'local' network."
+        ));
     }
     Ok(get_replica_urls(env, env.get_network_descriptor())?.remove(0))
 }
