@@ -103,6 +103,14 @@ dfx_start_for_nns_install() {
     }
     wasm_matches nns-registry registry-canister.wasm
     wasm_matches nns-governance governance-canister_test.wasm
+    wasm_matches nns-ledger ledger-canister_notify-method.wasm
+    wasm_matches nns-root root-canister.wasm
+    wasm_matches nns-cycles-minting cycles-minting-canister.wasm
+    wasm_matches nns-lifeline lifeline.wasm
+    wasm_matches nns-genesis-token genesis-token-canister.wasm
+    wasm_matches nns-sns-wasm sns-wasm-canister.wasm
+    wasm_matches internet_identity internet_identity_dev.wasm
+    wasm_matches nns-dapp nns-dapp_local.wasm
     dfx stop
 }
 
