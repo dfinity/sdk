@@ -46,14 +46,20 @@ teardown() {
     assert_command dfx nns install --help
 }
 
+dfx_start_for_nns_install() {
+    # TODO: When nns-dapp supports dynamic ports, this wait can be removed.
+    assert_command timeout 600 sh -c \
+        "until dfx start --clean --background --host 127.0.0.1:8080; do echo waiting for port 8080 to become free; sleep 3; done" \
+        || (echo "could not connect to replica on port ${replica_port}" && exit 1)
+    assert_match "subnet_type: System"
+    assert_match "127.0.0.1:8080"
+}
+
 @test "dfx nns install runs" {
     # Setup
     install_shared_asset subnet_type/shared_network_settings/system
-    assert_command dfx start --clean --background --host 127.0.0.1:0
-    assert_match "subnet_type: System" 
-
-    # Run th einstallation
-    assert_command dfx nns install
+    dfx_start_for_nns_install
+    dfx nns install
 
     # Checking that the install worked.
     # Note:  The installation is quite expensive, so we test extensively on one installation
@@ -96,4 +102,25 @@ teardown() {
     }
     wasm_matches nns-registry registry-canister.wasm
     wasm_matches nns-governance governance-canister_test.wasm
+    dfx stop
+}
+
+@test "dfx nns install should fail on unclean testnet" {
+    # Setup
+    # ... Install the usual configuration
+    install_shared_asset subnet_type/shared_network_settings/system
+    # ... Check that the usual configuration is suitable
+    (( $(jq '.canisters | to_entries | del(.[] | select(.value.remote)) | length' dfx.json) > 0 )) || {
+        echo "This test needs dfx.json to define at least one non-remote canister"
+        exit 1
+    } >&2
+    # ... Start dfx
+    dfx_start_for_nns_install
+    # ... Steal canister numbber zero
+    dfx canister create --all --no-wallet
+    # ... Installing the nns should now fail but there should be a helpful error message.
+    assert_command_fail dfx nns install
+    assert_match "dfx start --clean"
+
+    dfx stop
 }

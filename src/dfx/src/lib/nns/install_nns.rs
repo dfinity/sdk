@@ -128,7 +128,7 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 
     if provider_url.port() != Some(8080) {
         return Err(anyhow!(
-            "dfx nns install supports only the provider localhost:8080"
+            "dfx nns install supports only the provider localhost:8080 or 127.0.0.1:8080, not {provider_url}."
         ));
     }
 
@@ -169,7 +169,7 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
     Ok(Principal::self_authenticating(root_key))
 }
 
-#[context("dfx nns install must be run on a clean network")]
+#[context("dfx nns install must be run just after dfx start --clean")]
 fn verify_nns_canister_ids_are_available(env: &dyn Environment) -> anyhow::Result<()> {
     let canister_id_store = CanisterIdStore::for_env(env)?;
     for IcNnsInitCanister {
