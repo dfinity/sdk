@@ -183,24 +183,35 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
 /// The NNS canisters use the very first few canister IDs; they must be available.
 #[context("Failed to verify that the network is empty; dfx nns install must be run just after dfx start --clean")]
 async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<()> {
-    try_join_all(NNS_CORE.iter().map(
-    |IcNnsInitCanister {
-        canister_id,
-        canister_name,
-        ..
-    }|
-    {
-        let canister_principal = Principal::from_text(canister_id)
-          .with_context(|| "Internal error: {canister_name} has an invalid canister ID: {canister_id}")?;
+    async fn verify_canister_id_is_available(
+        agent: &Agent,
+        canister_id: &str,
+        canister_name: &str,
+    ) -> anyhow::Result<()> {
+        let canister_principal = Principal::from_text(canister_id).with_context(|| {
+            "Internal error: {canister_name} has an invalid canister ID: {canister_id}"
+        })?;
         if agent
-        .read_state_canister_info(canister_principal, "module_hash", false)
-        .await.is_ok() {
+            .read_state_canister_info(canister_principal, "module_hash", false)
+            .await
+            .is_ok()
+        {
             return Err(anyhow!(
                 "The ID for the {canister_name} canister has already been taken."
             ));
         }
         Ok(())
-    }))
+    }
+
+    try_join_all(NNS_CORE.iter().cloned().map(
+        |IcNnsInitCanister {
+             canister_id,
+             canister_name,
+             ..
+         }| verify_canister_id_is_available(agent, canister_id, canister_name),
+    ))
+    .await?;
+    Ok(())
 }
 
 /// Provides the user with a printout detailing what has been installed for them.
