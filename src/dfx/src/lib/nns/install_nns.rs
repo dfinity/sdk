@@ -111,7 +111,7 @@ pub async fn install_nns(
     set_xdr_rate(1234567, &nns_url)?;
     set_cmc_authorized_subnets(&nns_url, &subnet_id)?;
 
-    print_nns_details(env, provider_url)?;
+    print_nns_details(provider_url)?;
     Ok(())
 }
 
@@ -219,13 +219,8 @@ async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<
 /// # Errors
 /// - May fail if the provider URL is invalid.
 #[context("Failed to print NNS details.")]
-fn print_nns_details(env: &dyn Environment, provider_url: Url) -> anyhow::Result<()> {
-    let canister_id_store = CanisterIdStore::for_env(env)?;
-    let canister_url = |canister_name: &str| -> anyhow::Result<String> {
-        let canister_id = canister_id_store
-            .get(canister_name)
-            .map(|principal| principal.to_string())
-            .with_context(|| "Could not get canister ID for {canister_name}")?;
+fn print_nns_details(provider_url: Url) -> anyhow::Result<()> {
+    let canister_url = |canister_id: &str| -> anyhow::Result<String> {
         let mut url = provider_url.clone();
         let host = format!("{}.localhost", canister_id);
         url.set_host(Some(&host))
@@ -257,7 +252,7 @@ Frontend canisters:
             .map(|canister| format!(
                 "{:20}  {}\n",
                 canister.canister_name,
-                canister_url(canister.canister_name).unwrap_or_default()
+                canister_url(canister.canister_id).unwrap_or_default()
             ))
             .collect::<Vec<String>>()
             .join("")
