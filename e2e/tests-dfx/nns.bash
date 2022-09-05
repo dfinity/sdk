@@ -46,6 +46,11 @@ teardown() {
     assert_command dfx nns install --help
 }
 
+# dfx nns install works only on port 8080, as URLs are compiled into the wasms.
+# - It may be possible in future for the wasms to detect their own URL and recompute signatures accordingly,
+#   however until such a time, we have this restriction.
+# - It may also be that ic-nns-install, if used on a non-standard port, installs only the core canisters not the UI.
+# - However until we have implemented good solutions, all tests on ic-nns-install must run on port 8080.
 dfx_start_for_nns_install() {
     # TODO: When nns-dapp supports dynamic ports, this wait can be removed.
     assert_command timeout 600 sh -c \
@@ -53,6 +58,25 @@ dfx_start_for_nns_install() {
         || (echo "could not connect to replica on port ${replica_port}" && exit 1)
     assert_match "subnet_type: System"
     assert_match "127.0.0.1:8080"
+}
+
+# The nns canister IDs should be installed without touching any of the repository files,
+# so we cannot rely on `dfx canister id` when testing.
+nns_canister_id() {
+    case "$1" in
+    nns-registry)          echo "rwlgt-iiaaa-aaaaa-aaaaa-cai" ;;
+    nns-governance)        echo "rrkah-fqaaa-aaaaa-aaaaq-cai" ;;
+    nns-ledger)            echo "ryjl3-tyaaa-aaaaa-aaaba-cai" ;;
+    nns-root)              echo "r7inp-6aaaa-aaaaa-aaabq-cai" ;;
+    nns-cycles-minting)    echo "rkp4c-7iaaa-aaaaa-aaaca-cai" ;;
+    nns-lifeline)          echo "rno2w-sqaaa-aaaaa-aaacq-cai" ;;
+    nns-genesis-token)     echo "renrk-eyaaa-aaaaa-aaada-cai" ;;
+    nns-sns-wasm)          echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
+    internet_identity)     echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
+    nns-dapp)              echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
+    *)                     echo "ERROR: Unknown NNS canister '$1'." >&2
+                           exit 1;;
+    esac
 }
 
 @test "dfx nns install runs" {
@@ -65,32 +89,15 @@ dfx_start_for_nns_install() {
     # Note:  The installation is quite expensive, so we test extensively on one installation
     #        rather than doing a separate installation for every test.  The tests are read-only
     #        so no test should affect the output of another.
-    # ... Canisters should exist:
-    # ... ... Backend canisters:
-    cat .dfx/local/canister_ids.json
-    dfx canister id nns-registry
-    dfx canister id nns-governance
-    dfx canister id nns-ledger
-    dfx canister id nns-root
-    dfx canister id nns-cycles-minting
-    dfx canister id nns-lifeline
-    dfx canister id nns-genesis-token
-    dfx canister id nns-sns-wasm
-    # ... ... Frontend canisters:
-    dfx canister id internet_identity
-    dfx canister id nns-dapp
-    # ... Just to be sure that the existence check does not always pass:
-    assert_command_fail dfx canister id i-always-return-true
-    # ... Pages should be accessible for the front end canisters:
     BOUNDARY_ORIGIN="localhost:$(dfx info webserver-port)"
     canister_url() {
-      echo "http://$(dfx canister id "$1").${BOUNDARY_ORIGIN}"
+      echo "http://$(nns_canister_id "$1").${BOUNDARY_ORIGIN}"
     }
     curl --fail -sSL "$(canister_url internet_identity)"
     curl --fail -sSL "$(canister_url nns-dapp)"
     # The downloaded wasm files match the installed wasms
     installed_wasm_hash() {
-        dfx canister info "$1" | awk '/Module hash/{print $3}'
+        dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
     }
     downloaded_wasm_hash() {
         sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-$%s", $1, $2}')/$1" | awk '{print "0x" $1}'
