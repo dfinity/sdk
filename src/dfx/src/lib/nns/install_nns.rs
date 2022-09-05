@@ -121,6 +121,7 @@ pub async fn install_nns(
 /// - Only provider localhost:8080 is supported; this is compiled into the canister IDs.
 ///   - The port constraint may be eased, perhaps, at some stage.
 ///   - The requirement that the domain root is 'localhost' is less likely to change; 127.0.0.1 doesn't support subdomains.
+#[context("Failed to get a valid provider for network '{}'", env.get_network_descriptor().name)]
 fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
     let provider_url = env
         .get_network_descriptor()
@@ -151,7 +152,7 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 ///
 /// # Panics
 /// This code is not expected to panic.
-#[context("Failed to determine the replica URL.")]
+#[context("Failed to determine the replica URL for network '{}'", env.get_network_descriptor().name)]
 pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
     let network_descriptor = env.get_network_descriptor();
     if network_descriptor.name != "local" {
