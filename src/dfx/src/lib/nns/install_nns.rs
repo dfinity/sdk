@@ -122,7 +122,7 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 
     if provider_url.port() != Some(8080) {
         return Err(anyhow!(
-            "dfx nns install supports only the provider localhost:8080 or 127.0.0.1:8080, not {provider_url}."
+            "dfx nns install supports only port 8080, not {provider_url}."
         ));
     }
 
