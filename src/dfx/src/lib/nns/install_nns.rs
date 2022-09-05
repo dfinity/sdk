@@ -100,7 +100,9 @@ pub async fn install_nns(
     } in NNS_FRONTEND
     {
         let local_wasm_path = nns_wasm_dir(env).join(wasm_name);
-        download(&Url::parse(wasm_url)?, &local_wasm_path).await?;
+        let parsed_wasm_url = Url::parse(wasm_url)
+            .with_context(|| format!("Could not parse url for {canister_name} wasm: {wasm_url}"))?;
+        download(&parsed_wasm_url, &local_wasm_path).await?;
         install_canister(env, agent, canister_name, &local_wasm_path).await?;
     }
     // ... and configure the backend NNS canisters:
@@ -157,7 +159,11 @@ pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
             "dfx nns install can only deploy to the 'local' network."
         ));
     }
-    Ok(get_replica_urls(env, env.get_network_descriptor())?.remove(0))
+    get_replica_urls(env, env.get_network_descriptor())?
+        .pop()
+        .ok_or_else(|| {
+            anyhow!("The list of replica URLs is empty; `dfx run` appears to be unhealthy.")
+        })
 }
 
 /// Gets the subnet ID
@@ -303,18 +309,26 @@ pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Res
 /// Downloads a file
 #[context("Failed to download {:?} to {:?}.", source, target)]
 pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
-    let buffer = reqwest::get(source.clone()).await?.bytes().await?;
-    let tmp_dir = tempfile::Builder::new().tempdir()?;
+    let buffer = reqwest::get(source.clone())
+        .await
+        .with_context(|| "Failed to connect")?
+        .bytes()
+        .await
+        .with_context(|| "Download was interrupted")?;
+    let tmp_dir = tempfile::Builder::new()
+        .tempdir()
+        .with_context(|| "Failed to create temporary directory for download")?;
     let downloaded_filename = {
         let filename = tmp_dir.path().join("wasm");
         let mut file = fs::File::create(&filename)
-            .with_context(|| format!("Failed to create file {}", filename.display()))?;
-        file.write_all(&buffer)?;
+            .with_context(|| format!("Failed to create temp file at '{}'", filename.display()))?;
+        file.write_all(&buffer)
+            .with_context(|| format!("Failed to write temp file at '{}'.", filename.display()))?;
         filename
     };
     fs::rename(&downloaded_filename, target).with_context(|| {
         format!(
-            "Failed to rename {} to {}",
+            "Failed to rename '{}' to '{}'",
             downloaded_filename.display(),
             target.display()
         )
@@ -325,18 +339,36 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
 /// Downloads and unzips a file
 #[context("Failed to download and unzip {:?} from {:?}.", target, source.as_str())]
 pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
-    let response = reqwest::get(source.clone()).await?.bytes().await?;
+    let response = reqwest::get(source.clone())
+        .await
+        .with_context(|| "Failed to connect")?
+        .bytes()
+        .await
+        .with_context(|| "Download was interrupted")?;
     let mut decoder = GzDecoder::new(&response[..]);
 
-    let tmp_dir = tempfile::Builder::new().tempdir()?;
+    let tmp_dir = tempfile::Builder::new()
+        .tempdir()
+        .with_context(|| "Failed to create temporary directory for download")?;
     let downloaded_filename = {
         let filename = tmp_dir.path().join("wasm");
-        let mut file = fs::File::create(&filename)?;
+        let mut file = fs::File::create(&filename).with_context(|| {
+            format!(
+                "Failed to write temp file when downloading '{}'.",
+                filename.display()
+            )
+        })?;
         std::io::copy(&mut decoder, &mut file)
-            .with_context(|| format!("failed to unzip WASM to {}", filename.display()))?;
+            .with_context(|| format!("Failed to unzip WASM to '{}'", filename.display()))?;
         filename
     };
-    fs::rename(downloaded_filename, target)?;
+    fs::rename(&downloaded_filename, target).with_context(|| {
+        format!(
+            "Failed to move downloaded tempfile '{}' to '{}'.",
+            downloaded_filename.display(),
+            target.display()
+        )
+    })?;
     Ok(())
 }
 
@@ -347,7 +379,8 @@ pub async fn download_ic_repo_wasm(
     ic_commit: &str,
     wasm_dir: &Path,
 ) -> anyhow::Result<()> {
-    fs::create_dir_all(wasm_dir)?;
+    fs::create_dir_all(wasm_dir)
+        .with_context(|| format!("Failed to create wasm directory: '{}'", wasm_dir.display()))?;
     let final_path = wasm_dir.join(&wasm_name);
     if final_path.exists() {
         return Ok(());
@@ -355,7 +388,8 @@ pub async fn download_ic_repo_wasm(
 
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
-    let url = Url::parse(&url_str)?;
+    let url = Url::parse(&url_str)
+      .with_context(|| format!("Could not determine download URL.  Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
     println!(
         "Downloading {}\n  from {}",
         final_path.to_string_lossy(),
@@ -397,9 +431,11 @@ pub struct IcNnsInitOpts {
     /// A directory that needs to be populated will all required wasms before calling ic-nns-init.
     wasm_dir: PathBuf,
     /// The ID of a test account that ic-nns-init will create and to initialise with tokens.
-    test_accounts: Option<String>, // TODO, does the CLI actually support several?
+    /// Note: At present only one test account is supported.
+    test_accounts: Option<String>,
     /// A subnet for SNS canisters.
-    sns_subnets: Option<String>, // TODO: Can there be several?
+    /// Note: In this context we support at most one subnet.
+    sns_subnets: Option<String>,
 }
 
 /// Calls the `ic-nns-init` executable.
