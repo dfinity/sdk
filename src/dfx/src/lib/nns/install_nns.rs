@@ -202,6 +202,7 @@ fn verify_nns_canister_ids_are_available(env: &dyn Environment) -> anyhow::Resul
 ///
 /// # Errors
 /// - May fail if the provider URL is invalid.
+#[context("Failed to print NNS details.")]
 fn print_nns_details(env: &dyn Environment, provider_url: Url) -> anyhow::Result<()> {
     let canister_id_store = CanisterIdStore::for_env(env)?;
     let canister_url = |canister_name: &str| -> anyhow::Result<String> {
@@ -249,6 +250,7 @@ Frontend canisters:
 }
 
 /// Gets a URL, trying repeatedly until it is available.
+#[context("Failed to download after multiple tries: {}", url)]
 pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
     /// The time between the first try and the second.
     const RETRY_PAUSE: Duration = Duration::from_millis(200);
@@ -400,6 +402,7 @@ pub async fn download_ic_repo_wasm(
 }
 
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
+#[context("Failed to download NNS wasm files")]
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     let ic_commit = replica_rev();
     let wasm_dir = &nns_wasm_dir(env);
@@ -478,6 +481,7 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
 /// This is done by proposal.  Just after startung a test server, ic-admin
 /// proposals with a test user pass immediately, as the small test neuron is
 /// the only neuron and has absolute majority.
+#[context("Failed to set an initial exchange rate between ICP and cycles.  It may not be possible to create canisters or purchase cycles.")]
 pub fn set_xdr_rate(rate: u64, nns_url: &Url) -> anyhow::Result<()> {
     std::process::Command::new("ic-admin")
         .arg("--nns-url")
@@ -501,6 +505,7 @@ pub fn set_xdr_rate(rate: u64, nns_url: &Url) -> anyhow::Result<()> {
 }
 
 /// Sets the subnets the CMC is authorized to create canisters in.
+#[context("Failed to authorize a subnet for use by the cycles management canister.  The CMC may not be able to create canisters.")]
 pub fn set_cmc_authorized_subnets(nns_url: &Url, subnet: &str) -> anyhow::Result<()> {
     std::process::Command::new("ic-admin")
         .arg("--nns-url")
@@ -528,6 +533,7 @@ pub fn set_cmc_authorized_subnets(nns_url: &Url, subnet: &str) -> anyhow::Result
 }
 
 /// Uploads wasms to the nns-sns-wasm canister.
+#[context("Failed to upload wasm fils to the nns-sns-wasm canister; it may not be possible to create an SNS.")]
 pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     for SnsCanisterInstallation {
         upload_name,
@@ -576,6 +582,7 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
 // Notes:
 // - This does not pass any initialisation argument.  If needed, one can be added to the code.
 // - This function may be needed by other plugins as well.
+#[context("Faied to install canister '{canister_name}' on network '{}' using wasm at '{}'.", env.get_network_descriptor().name, wasm_path.display())]
 pub async fn install_canister(
     env: &dyn Environment,
     agent: &Agent,
