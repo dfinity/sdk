@@ -62,7 +62,7 @@ pub async fn install_nns(
 ) -> anyhow::Result<()> {
     eprintln!("Checking out the environment...");
     verify_local_replica_type_is_system(env)?;
-    verify_nns_canister_ids_are_available(env)?;
+    verify_nns_canister_ids_are_available(agent).await?;
     let provider_url = get_and_check_provider(env)?;
     let nns_url = get_and_check_replica_url(env)?;
     let subnet_id = get_subnet_id(agent).await?.to_text();
@@ -97,6 +97,7 @@ pub async fn install_nns(
         wasm_url,
         wasm_name,
         canister_name,
+        ..
     } in NNS_FRONTEND
     {
         let local_wasm_path = nns_wasm_dir(env).join(wasm_name);
@@ -181,15 +182,18 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
 
 /// The NNS canisters use the very first few canister IDs; they must be available.
 #[context("Failed to verify that the network is empty; dfx nns install must be run just after dfx start --clean")]
-fn verify_nns_canister_ids_are_available(env: &dyn Environment) -> anyhow::Result<()> {
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<()> {
     for IcNnsInitCanister {
         canister_id,
         canister_name,
         ..
     } in NNS_CORE.iter()
     {
-        if canister_id_store.get_name(canister_id).is_some() {
+        let canister_principal = Principal::from_text(canister_id)
+          .with_context(|| "Internal error: {canister_name} has an invalid canister ID: {canister_id}")?;
+        if agent
+        .read_state_canister_info(canister_principal, "module_hash", false)
+        .await.is_ok() {
             return Err(anyhow!(
                 "The ID for the {canister_name} canister has already been taken."
             ));
