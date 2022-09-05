@@ -8,13 +8,13 @@
 
 use crate::config::dfinity::ReplicaSubnetType;
 use crate::lib::environment::Environment;
-use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
-use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::{create_canister, install_canister_wasm};
+use crate::lib::operations::canister::install_canister_wasm;
+use crate::lib::waiter::waiter_with_timeout;
+use crate::util::blob_from_arguments;
+use crate::util::expiry_duration;
 use crate::util::network::get_replica_urls;
-use crate::util::{blob_from_arguments, expiry_duration};
 
 use anyhow::{anyhow, Context};
 use flate2::bufread::GzDecoder;
@@ -24,6 +24,7 @@ use garcon::{Delay, Waiter};
 use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::ManagementCanister;
 use reqwest::Url;
 use std::fs;
 use std::io::Write;
@@ -76,18 +77,6 @@ pub async fn install_nns(
         sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
-    // Add root canister IDs to canister_ids.json.
-    // TODO: Move this to ic nns init, although there are complications with doing that
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
-    for canisters::IcNnsInitCanister {
-        canister_name,
-        canister_id,
-        ..
-    } in canisters::NNS_CORE
-    {
-        eprintln!("Registering {canister_name} in the canister ID store...");
-        canister_id_store.add(canister_name, canister_id)?;
-    }
 
     eprintln!("Uploading NNS configuration data...");
     upload_nns_sns_wasms_canister_wasms(env)?;
@@ -189,7 +178,7 @@ async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<
         canister_name: &str,
     ) -> anyhow::Result<()> {
         let canister_principal = Principal::from_text(canister_id).with_context(|| {
-            "Internal error: {canister_name} has an invalid canister ID: {canister_id}"
+            format!("Internal error: {canister_name} has an invalid canister ID: {canister_id}")
         })?;
         if agent
             .read_state_canister_info(canister_principal, "module_hash", false)
@@ -600,32 +589,21 @@ pub async fn install_canister(
     canister_name: &str,
     wasm_path: &Path,
 ) -> anyhow::Result<()> {
-    env.get_logger();
-    let timeout = expiry_duration();
-    let with_cycles = None;
-    let call_sender = CallSender::SelectedId;
-    let canister_settings = CanisterSettings {
-        controllers: None,
-        compute_allocation: None,
-        memory_allocation: None,
-        freezing_threshold: None,
-    };
+    let mgr = ManagementCanister::create(agent);
+    let builder = mgr
+        .create_canister()
+        .as_provisional_create_with_amount(None);
 
-    create_canister(
-        env,
-        canister_name,
-        timeout,
-        with_cycles,
-        &call_sender,
-        canister_settings,
-    )
-    .await?;
-
-    let canister_id_store = CanisterIdStore::for_env(env)?;
-    let canister_id = canister_id_store.get(canister_name)?;
+    let res = builder
+        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .await;
+    let canister_id: Principal = res.context("Canister creation call failed.")?.0;
+    let canister_id_str = canister_id.to_text();
 
     let install_args = blob_from_arguments(None, None, None, &None)?;
     let install_mode = InstallMode::Install;
+    let timeout = expiry_duration();
+    let call_sender = CallSender::SelectedId;
 
     install_canister_wasm(
         env,
@@ -639,7 +617,8 @@ pub async fn install_canister(
         fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
     )
     .await?;
-    println!("Installed {canister_name} at {canister_name}");
+
+    println!("Installed {canister_name} at {canister_id_str}");
 
     Ok(())
 }

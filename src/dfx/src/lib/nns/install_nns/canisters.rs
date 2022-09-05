@@ -74,14 +74,14 @@ pub const NNS_IDENTITY: IcNnsInitCanister = IcNnsInitCanister {
     canister_name: "nns-identity",
     wasm_name: "identity-canister.wasm",
     test_wasm_name: None,
-    canister_id: "",
+    canister_id: "rdmx6-jaaaa-aaaaa-aaadq-cai",
 };
 /// Placeholder for the nns-dapp.  Not used.
 pub const NNS_UI: IcNnsInitCanister = IcNnsInitCanister {
     canister_name: "nns-ui",
     wasm_name: "nns-ui-canister.wasm",
     test_wasm_name: None,
-    canister_id: "",
+    canister_id: "qoctq-giaaa-aaaaa-aaaea-cai",
 };
 /// Minimum data needed to download and deploy a standard canister via dfx deploy NAME.
 pub struct StandardCanister {
