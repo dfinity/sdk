@@ -62,8 +62,8 @@ dfx_start_for_nns_install() {
     assert_match "127.0.0.1:8080"
 }
 
-# The nns canister IDs should be installed without touching any of the repository files,
-# so we cannot rely on `dfx canister id` when testing.
+# The nns canisters should be installed without changing any of the developer's project files,
+# so we cannot rely on `dfx canister id` when testing.  We rely on these hard-wired values instead:
 nns_canister_id() {
     case "$1" in
     nns-registry)          echo "rwlgt-iiaaa-aaaaa-aaaaa-cai" ;;
