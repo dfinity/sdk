@@ -16,6 +16,7 @@ use crate::util::blob_from_arguments;
 use crate::util::expiry_duration;
 use crate::util::network::get_replica_urls;
 
+use anyhow::bail;
 use anyhow::{anyhow, Context};
 use flate2::bufread::GzDecoder;
 use fn_error_context::context;
@@ -87,14 +88,19 @@ pub async fn install_nns(
         wasm_url,
         wasm_name,
         canister_name,
-        ..
+        canister_id,
     } in NNS_FRONTEND
     {
         let local_wasm_path = nns_wasm_dir(env).join(wasm_name);
         let parsed_wasm_url = Url::parse(wasm_url)
             .with_context(|| format!("Could not parse url for {canister_name} wasm: {wasm_url}"))?;
         download(&parsed_wasm_url, &local_wasm_path).await?;
-        install_canister(env, agent, canister_name, &local_wasm_path).await?;
+        let installed_canister_id = install_canister(env, agent, canister_name, &local_wasm_path)
+            .await?
+            .to_text();
+        if canister_id != &installed_canister_id {
+            bail!("Canister was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
+        }
     }
     // ... and configure the backend NNS canisters:
     eprintln!("Configuring the NNS...");
@@ -577,7 +583,7 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
     Ok(())
 }
 
-/// Installs a canister without adding it to dfx.json.
+/// Installs a canister without adding it to `dfx.json` or `canister_ids.json`.
 ///
 /// # Errors
 /// - Returns an error if the canister could not be created.
@@ -593,7 +599,7 @@ pub async fn install_canister(
     agent: &Agent,
     canister_name: &str,
     wasm_path: &Path,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Principal> {
     let mgr = ManagementCanister::create(agent);
     let builder = mgr
         .create_canister()
@@ -625,7 +631,7 @@ pub async fn install_canister(
 
     println!("Installed {canister_name} at {canister_id_str}");
 
-    Ok(())
+    Ok(canister_id)
 }
 
 /// The local directory where NNS wasm files are cached.  The directory is typically created on demand.
