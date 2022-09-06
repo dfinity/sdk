@@ -55,9 +55,7 @@ pub async fn install_canister(
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = candid {
             use crate::util::check_candid_file;
-            let candid_path = canister_info
-                .get_output_idl_path()
-                .expect("Generated did file not found");
+            let candid_path = canister_info.get_build_idl_path();
             let deployed_path = canister_info.get_build_idl_path().with_extension("old.did");
             std::fs::write(&deployed_path, candid).with_context(|| {
                 format!(
