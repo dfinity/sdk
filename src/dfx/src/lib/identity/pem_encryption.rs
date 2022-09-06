@@ -3,7 +3,6 @@ use std::path::Path;
 use crate::lib::error::DfxResult;
 
 use super::identity_manager::EncryptionConfiguration;
-use super::identity_utils;
 use super::IdentityConfiguration;
 
 use crate::lib::identity::pem_encryption::PromptMode::{DecryptingToUse, EncryptingToCreate};
@@ -21,7 +20,6 @@ pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> Dfx
     let content = std::fs::read(path)
         .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
     let content = maybe_decrypt_pem(content.as_slice(), config)?;
-    identity_utils::validate_pem_file(&content)?;
     Ok(content)
 }
 

@@ -212,3 +212,18 @@ assert_directory_not_exists() {
         | fail
     fi
 }
+
+# Asserts that the contents of two files are equal.
+# Arguments:
+#    $1 - The name of the file containing the expected value.
+#    $2 - The name of the file containing the actual value.
+assert_files_eq() {
+    expected="$(cat "$1")"
+    actual="$(cat "$2")"
+
+    if [[ ! "$actual" == "$expected" ]]; then
+        diff "$1" "$2" \
+            | batslib_decorate "contents of $1 do not match contents of $2" \
+            | fail
+    fi
+}

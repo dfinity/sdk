@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 
 use clap::Subcommand;
 
+mod beta;
 mod bootstrap;
 mod build;
 mod cache;
@@ -31,6 +32,8 @@ mod wallet;
 
 #[derive(Subcommand)]
 pub enum Command {
+    #[clap(hide(true))]
+    Beta(beta::BetaOpts),
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
@@ -45,7 +48,6 @@ pub enum Command {
     LanguageServices(language_service::LanguageServiceOpts),
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
-    #[clap(hide(true))]
     Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
     Quickstart,
@@ -63,6 +65,7 @@ pub enum Command {
 
 pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
     match cmd {
+        Command::Beta(v) => beta::exec(env, v),
         Command::Bootstrap(v) => bootstrap::exec(env, v),
         Command::Build(v) => build::exec(env, v),
         Command::Cache(v) => cache::exec(env, v),
