@@ -161,7 +161,7 @@ pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
     get_replica_urls(env, env.get_network_descriptor())?
         .pop()
         .ok_or_else(|| {
-            anyhow!("The list of replica URLs is empty; `dfx run` appears to be unhealthy.")
+            anyhow!("The list of replica URLs is empty; `dfx start` appears to be unhealthy.")
         })
 }
 
