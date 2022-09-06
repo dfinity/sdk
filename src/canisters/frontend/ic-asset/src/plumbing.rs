@@ -85,6 +85,7 @@ async fn make_project_asset_encoding(
             batch_id,
             asset_descriptor,
             content,
+            &sha256,
             content_encoding,
             semaphores,
         )
@@ -254,6 +255,7 @@ async fn upload_content_chunks(
     batch_id: &Nat,
     asset_descriptor: &AssetDescriptor,
     content: &Content,
+    sha256: &Vec<u8>,
     content_encoding: &str,
     semaphores: &Semaphores,
 ) -> anyhow::Result<Vec<Nat>> {
@@ -261,9 +263,10 @@ async fn upload_content_chunks(
         let empty = vec![];
         let chunk_id = create_chunk(canister_call_params, batch_id, &empty, semaphores).await?;
         println!(
-            "  {}{} 1/1 (0 bytes)",
+            "  {}{} 1/1 (0 bytes) sha {}",
             &asset_descriptor.key,
-            content_encoding_descriptive_suffix(content_encoding)
+            content_encoding_descriptive_suffix(content_encoding),
+            hex::encode(&sha256)
         );
         return Ok(vec![chunk_id]);
     }
@@ -277,12 +280,13 @@ async fn upload_content_chunks(
             create_chunk(canister_call_params, batch_id, data_chunk, semaphores).map_ok(
                 move |chunk_id| {
                     println!(
-                        "  {}{} {}/{} ({} bytes){}",
+                        "  {}{} {}/{} ({} bytes) sha {}{}",
                         &asset_descriptor.key,
                         content_encoding_descriptive_suffix(content_encoding),
                         i + 1,
                         count,
                         data_chunk.len(),
+                        hex::encode(&sha256)
                         &asset_descriptor.config
                     );
                     chunk_id

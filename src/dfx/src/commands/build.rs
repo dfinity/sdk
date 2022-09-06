@@ -4,6 +4,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
+use crate::NetworkOpt;
 
 use clap::Parser;
 
@@ -22,16 +23,12 @@ pub struct CanisterBuildOpts {
     #[clap(long)]
     check: bool,
 
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[clap(long)]
-    network: Option<String>,
+    #[clap(flatten)]
+    network: NetworkOpt,
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network)?;
+    let env = create_agent_environment(env, opts.network.network)?;
 
     let logger = env.get_logger();
 

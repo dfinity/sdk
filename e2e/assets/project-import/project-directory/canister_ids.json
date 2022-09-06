@@ -1,0 +1,38 @@
+{
+  "sibling": {
+    "mainnet": "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+    "small01": "rwlgt-iiaaa-aaaaa-aaaaa-cai"
+  },
+  "normal-canister": {
+    "mainnet": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+    "small01": "rrkah-fqaaa-aaaaa-aaaaq-cai"
+  },
+  "ledger": {
+    "mainnet": "ryjl3-tyaaa-aaaaa-aaaba-cai",
+    "small01": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+  },
+  "root": {
+    "mainnet": "r7inp-6aaaa-aaaaa-aaabq-cai",
+    "small01": "r7inp-6aaaa-aaaaa-aaabq-cai"
+  },
+  "cycles-minting": {
+    "mainnet": "rkp4c-7iaaa-aaaaa-aaaca-cai",
+    "small01": "rkp4c-7iaaa-aaaaa-aaaca-cai"
+  },
+  "lifeline": {
+    "mainnet": "rno2w-sqaaa-aaaaa-aaacq-cai",
+    "small01": "rno2w-sqaaa-aaaaa-aaacq-cai"
+  },
+  "genesis-token": {
+    "mainnet": "renrk-eyaaa-aaaaa-aaada-cai",
+    "small01": "renrk-eyaaa-aaaaa-aaada-cai"
+  },
+  "identity": {
+    "mainnet": "rdmx6-jaaaa-aaaaa-aaadq-cai",
+    "small01": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+  },
+  "nns-ui": {
+    "mainnet": "qoctq-giaaa-aaaaa-aaaea-cai",
+    "small01": "qoctq-giaaa-aaaaa-aaaea-cai"
+  }
+}

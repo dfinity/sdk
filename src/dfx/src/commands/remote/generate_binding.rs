@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
+use crate::lib::provider::create_agent_environment;
 use crate::util::check_candid_file;
 
 use anyhow::Context;
@@ -29,6 +29,7 @@ pub struct GenerateBindingOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
+    let env = create_agent_environment(env, None)?;
     let config = env.get_config_or_anyhow()?;
     let log = env.get_logger();
 
@@ -36,7 +37,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
     let canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister.as_deref())?;
-    let canister_pool = CanisterPool::load(env, false, &canister_names)?;
+    let canister_pool = CanisterPool::load(&env, false, &canister_names)?;
 
     for canister in canister_pool.get_canister_list() {
         let info = canister.get_info();
