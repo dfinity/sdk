@@ -246,9 +246,7 @@ pub struct ConfigDefaultsCanisterHttp {
 
 impl Default for ConfigDefaultsCanisterHttp {
     fn default() -> Self {
-        ConfigDefaultsCanisterHttp {
-            enabled: true
-        }
+        ConfigDefaultsCanisterHttp { enabled: true }
     }
 }
 

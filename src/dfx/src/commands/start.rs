@@ -20,6 +20,7 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
+use slog::{warn, Logger};
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -27,7 +28,6 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
-use slog::{Logger, warn};
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -351,7 +351,10 @@ pub fn apply_command_line_parameters(
     enable_canister_http: bool,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
-        warn!(logger, "The --enable-canister-http parameter is deprecated.");
+        warn!(
+            logger,
+            "The --enable-canister-http parameter is deprecated."
+        );
         warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
     }
 
