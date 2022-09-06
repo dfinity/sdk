@@ -360,8 +360,10 @@ pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
         .with_context(|| "Download was interrupted")?;
     let mut decoder = GzDecoder::new(&response[..]);
 
-    let tmp_dir = tempfile::Builder::new()
-        .tempdir()
+    let target_parent = target
+        .parent()
+        .unwrap_or(Path::new(Component::CurDir.as_os_str()));
+    let tmp_dir = tempfile::TempDir::new_in(target_parent)
         .with_context(|| "Failed to create temporary directory for download")?;
     let downloaded_filename = {
         let filename = tmp_dir.path().join("wasm");
