@@ -253,8 +253,8 @@ async fn install_canisters(
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
-        let maybe_path = canister_info.get_output_idl_path();
-        let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
+        let idl_path = canister_info.get_build_idl_path();
+        let init_type = get_candid_init_type(&idl_path);
         let install_args = || blob_from_arguments(argument, None, argument_type, &init_type);
 
         install_canister(
