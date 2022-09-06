@@ -27,6 +27,7 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
+use slog::{Logger, warn};
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -142,6 +143,7 @@ pub fn exec(
     )?;
 
     let network_descriptor = apply_command_line_parameters(
+        env.get_logger(),
         network_descriptor,
         host,
         None,
@@ -340,6 +342,7 @@ pub fn exec(
 }
 
 pub fn apply_command_line_parameters(
+    logger: &Logger,
     network_descriptor: NetworkDescriptor,
     host: Option<String>,
     replica_port: Option<String>,
@@ -347,6 +350,11 @@ pub fn apply_command_line_parameters(
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
 ) -> DfxResult<NetworkDescriptor> {
+    if enable_canister_http {
+        warn!(logger, "The --enable-canister-http parameter is deprecated.");
+        warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
+    }
+
     let _ = network_descriptor.local_server_descriptor()?;
     let mut local_server_descriptor = network_descriptor.local_server_descriptor.unwrap();
 
@@ -368,10 +376,6 @@ pub fn apply_command_line_parameters(
 
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
-    }
-
-    if enable_canister_http {
-        local_server_descriptor = local_server_descriptor.with_canister_http_enabled();
     }
 
     Ok(NetworkDescriptor {

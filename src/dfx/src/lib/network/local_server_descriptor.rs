@@ -186,14 +186,6 @@ impl LocalServerDescriptor {
         Self { bitcoin, ..self }
     }
 
-    pub(crate) fn with_canister_http_enabled(self) -> LocalServerDescriptor {
-        let canister_http = ConfigDefaultsCanisterHttp { enabled: true };
-        Self {
-            canister_http,
-            ..self
-        }
-    }
-
     pub(crate) fn with_bootstrap_ip(self, ip: IpAddr) -> LocalServerDescriptor {
         let bootstrap = ConfigDefaultsBootstrap {
             ip,
@@ -254,9 +246,9 @@ impl LocalServerDescriptor {
         }
 
         if self.canister_http.enabled {
-            println!("  canister http: enabled (default: disabled)");
+            println!("  canister http: enabled");
         } else {
-            println!("  canister http: disabled");
+            println!("  canister http: disabled (default: enabled)");
         }
 
         if include_replica {
