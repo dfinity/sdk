@@ -2,15 +2,6 @@
 
 # UNRELEASED
 
-## Dependencies
-
-### Replica
-
-Updated replica to elected commit 999f7cc6bbe17abdb7b7a1eab73840a94597e363.
-This incorporates the following executed proposals:
-
-- [78693](https://dashboard.internetcomputer.org/proposal/78693)
-
 ## DFX
 
 ### feat: generate secp256k1 keys by default
@@ -282,9 +273,10 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit b6de557d9cb278bd7ea6a825fbf78323f4692b60.
+Updated replica to elected commit 999f7cc6bbe17abdb7b7a1eab73840a94597e363.
 This incorporates the following executed proposals:
 
+* [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)
 * [76228](https://dashboard.internetcomputer.org/proposal/76228)
 * [75700](https://dashboard.internetcomputer.org/proposal/75700)
