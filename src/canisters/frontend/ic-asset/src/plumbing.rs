@@ -286,7 +286,7 @@ async fn upload_content_chunks(
                         i + 1,
                         count,
                         data_chunk.len(),
-                        hex::encode(&sha256)
+                        hex::encode(&sha256),
                         &asset_descriptor.config
                     );
                     chunk_id
