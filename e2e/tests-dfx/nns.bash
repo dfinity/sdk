@@ -48,7 +48,10 @@ teardown() {
     assert_command dfx nns install --help
 }
 
-# dfx nns install works only on port 8080, as URLs are compiled into the wasms.
+# Tries to start dfx on the default port, repeating until it succeeds or times out.
+#
+# Motivation: dfx nns install works only on port 8080, as URLs are compiled into the wasms.  This means that multiple
+# tests MAY compete for the same port.
 # - It may be possible in future for the wasms to detect their own URL and recompute signatures accordingly,
 #   however until such a time, we have this restriction.
 # - It may also be that ic-nns-install, if used on a non-standard port, installs only the core canisters not the UI.
