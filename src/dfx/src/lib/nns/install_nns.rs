@@ -29,6 +29,7 @@ use ic_utils::interfaces::ManagementCanister;
 use reqwest::Url;
 use std::fs;
 use std::io::Write;
+use std::path::Component;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::time::Duration;
@@ -325,8 +326,10 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
         .bytes()
         .await
         .with_context(|| "Download was interrupted")?;
-    let tmp_dir = tempfile::Builder::new()
-        .tempdir()
+    let target_parent = target
+        .parent()
+        .unwrap_or(Path::new(Component::CurDir.as_os_str()));
+    let tmp_dir = tempfile::TempDir::new_in(target_parent)
         .with_context(|| "Failed to create temporary directory for download")?;
     let downloaded_filename = {
         let filename = tmp_dir.path().join("wasm");
