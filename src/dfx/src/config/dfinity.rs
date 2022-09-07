@@ -309,7 +309,7 @@ pub enum ReplicaLogLevel {
 
 impl Default for ReplicaLogLevel {
     fn default() -> Self {
-        Self::Warning
+        Self::Error
     }
 }
 
@@ -338,7 +338,7 @@ pub struct ConfigDefaultsReplica {
     /// Defaults to 'application'.
     pub subnet_type: Option<ReplicaSubnetType>,
 
-    /// Run replica with the provided log level. Default is 'warning'
+    /// Run replica with the provided log level. Default is 'error'. Debug prints still get displayed
     pub log_level: Option<ReplicaLogLevel>,
 }
 

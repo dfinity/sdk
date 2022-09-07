@@ -220,3 +220,14 @@ teardown() {
     assert_command dfx start --background
     assert_match "log_level: Trace"
 }
+
+@test "debug print statements work with default log level" {
+    dfx_new
+    install_asset print
+    dfx_start 2>stderr.txt
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project hello
+    sleep 2
+    run tail -2 stderr.txt
+    assert_match "Hello, World! from DFINITY"
+}
