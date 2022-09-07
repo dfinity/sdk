@@ -98,8 +98,8 @@ nns_canister_id() {
     canister_url() {
       echo "http://$(nns_canister_id "$1").${BOUNDARY_ORIGIN}"
     }
-    curl --fail -sSL "$(canister_url internet_identity)"
-    curl --fail -sSL "$(canister_url nns-dapp)"
+    #curl --fail -sSL "$(canister_url internet_identity)"
+    #curl --fail -sSL "$(canister_url nns-dapp)"
     # The downloaded wasm files match the installed wasms
     installed_wasm_hash() {
         dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
