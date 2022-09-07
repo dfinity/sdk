@@ -4,6 +4,14 @@
 
 ## DFX
 
+### feat: canister HTTP support is now enabled by default.
+
+`dfx start` and `dfx replica` now ignore the `--enable-canister-http` parameter.
+
+You can still disable the canister http feature through configuration:
+- ~/.config/dfx/networks.json: `.local.canister_http.enabled=false`
+- dfx.json (project-specific networks) : `.networks.local.canister_http.enabled=false`
+
 ### feat: deploy NNS canisters
 
 A developer is now able to install NNS canisters, including back end canisters such as ledger and governance, and front end canisters such as nns-dapp and internet-identity, on their local DFX server.  Usage:
