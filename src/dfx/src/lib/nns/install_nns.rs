@@ -328,7 +328,7 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
         .with_context(|| "Download was interrupted")?;
     let target_parent = target
         .parent()
-        .unwrap_or(Path::new(Component::CurDir.as_os_str()));
+        .unwrap_or_else(|| Path::new(Component::CurDir.as_os_str()));
     let tmp_dir = tempfile::TempDir::new_in(target_parent)
         .with_context(|| "Failed to create temporary directory for download")?;
     let downloaded_filename = {
@@ -362,7 +362,7 @@ pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
 
     let target_parent = target
         .parent()
-        .unwrap_or(Path::new(Component::CurDir.as_os_str()));
+        .unwrap_or_else(|| Path::new(Component::CurDir.as_os_str()));
     let tmp_dir = tempfile::TempDir::new_in(target_parent)
         .with_context(|| "Failed to create temporary directory for download")?;
     let downloaded_filename = {
