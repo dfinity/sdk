@@ -126,26 +126,6 @@ nns_canister_id() {
     dfx stop
 }
 
-@test "dfx nns install should fail on unclean testnet" {
-    # Setup
-    # ... Install the usual configuration
-    install_shared_asset subnet_type/shared_network_settings/system
-    # ... Check that the usual configuration is suitable
-    (( $(jq '.canisters | to_entries | del(.[] | select(.value.remote)) | length' dfx.json) > 0 )) || {
-        echo "This test needs dfx.json to define at least one non-remote canister"
-        exit 1
-    } >&2
-    # ... Start dfx
-    dfx_start_for_nns_install
-    # ... Steal canister numbber zero
-    dfx canister create --all --no-wallet
-    # ... Installing the nns should now fail but there should be a helpful error message.
-    assert_command_fail dfx nns install
-    assert_match "dfx start --clean"
-
-    dfx stop
-}
-
 test_project_import() {
     DFX_JSON_LOCATION="$1"
 
