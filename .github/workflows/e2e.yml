@@ -48,7 +48,7 @@ jobs:
           path: ${{ matrix.binary_path }}/dfx
 
   e2e_selenium:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: [build_dfx]
     strategy:
       fail-fast: false
