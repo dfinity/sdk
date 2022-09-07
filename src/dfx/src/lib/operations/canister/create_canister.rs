@@ -16,8 +16,8 @@ use slog::info;
 use std::format;
 use std::time::Duration;
 
-// The cycle fee for create request is 1T cycles.
-const CANISTER_CREATE_FEE: u128 = 1_000_000_000_000_u128;
+// The cycle fee for create request is 0.1T cycles.
+const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
 // We do not know the minimum cycle balance a canister should have.
 // For now create the canister with 3T cycle balance.
 const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;

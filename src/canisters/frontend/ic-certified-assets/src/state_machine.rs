@@ -68,6 +68,12 @@ pub struct AssetEncodingDetails {
     pub modified: Timestamp,
 }
 
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct CertifiedTree {
+    pub certificate: Vec<u8>,
+    pub tree: Vec<u8>,
+}
+
 pub struct Chunk {
     pub batch_id: BatchId,
     pub content: RcBytes,
@@ -338,6 +344,20 @@ impl State {
                 }
             })
             .collect::<Vec<_>>()
+    }
+
+    pub fn certified_tree(&self, certificate: &[u8]) -> CertifiedTree {
+        use ic_certified_map::labeled;
+
+        let hash_tree = labeled(b"http_assets", self.asset_hashes.as_hash_tree());
+        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+        serializer.self_describe().unwrap();
+        hash_tree.serialize(&mut serializer).unwrap();
+
+        CertifiedTree {
+            certificate: certificate.to_vec(),
+            tree: serializer.into_inner(),
+        }
     }
 
     pub fn get(&self, arg: GetArg) -> Result<EncodedAsset, String> {

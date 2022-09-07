@@ -222,20 +222,6 @@ impl CanisterInfo {
             .with_extension("js")
     }
 
-    pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
-        if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
-            Some(info.get_output_wasm_path().to_path_buf())
-        } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
-            Some(info.get_output_wasm_path().to_path_buf())
-        } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
-            Some(info.get_output_wasm_path().to_path_buf())
-        } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
-            Some(info.get_output_wasm_path().to_path_buf())
-        } else {
-            None
-        }
-    }
-
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
         match &self.type_specific {
             CanisterTypeProperties::Motoko { .. } => self

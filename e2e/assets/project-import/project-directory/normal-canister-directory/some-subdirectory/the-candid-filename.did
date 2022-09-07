@@ -1,0 +1,14 @@
+type AccountIdentifier = record { hash : vec nat8 };
+type Action = variant {
+  RegisterKnownNeuron : KnownNeuron;
+  ManageNeuron : ManageNeuron;
+  ExecuteNnsFunction : ExecuteNnsFunction;
+  RewardNodeProvider : RewardNodeProvider;
+  SetSnsTokenSwapOpenTimeWindow : SetSnsTokenSwapOpenTimeWindow;
+  SetDefaultFollowees : SetDefaultFollowees;
+  RewardNodeProviders : RewardNodeProviders;
+  ManageNetworkEconomics : NetworkEconomics;
+  ApproveGenesisKyc : ApproveGenesisKyc;
+  AddOrRemoveNodeProvider : AddOrRemoveNodeProvider;
+  Motion : Motion;
+};

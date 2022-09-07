@@ -185,6 +185,18 @@ assert_file_not_empty() {
     fi
 }
 
+assert_file_empty() {
+    filename="$1"
+
+    assert_file_exists "$filename"
+
+    if [[ -s $filename ]]; then
+        echo "$filename is not empty" \
+        | batslib_decorate "File not empty" \
+        | fail
+    fi
+}
+
 assert_file_not_exists() {
     filename="$1"
 
@@ -210,5 +222,20 @@ assert_directory_not_exists() {
         ( echo "Contents of $directory:" ; ls -AlR "$directory" ) \
         | batslib_decorate "Expected directory '$directory' to not exist." \
         | fail
+    fi
+}
+
+# Asserts that the contents of two files are equal.
+# Arguments:
+#    $1 - The name of the file containing the expected value.
+#    $2 - The name of the file containing the actual value.
+assert_files_eq() {
+    expected="$(cat "$1")"
+    actual="$(cat "$2")"
+
+    if [[ ! "$actual" == "$expected" ]]; then
+        diff "$1" "$2" \
+            | batslib_decorate "contents of $1 do not match contents of $2" \
+            | fail
     fi
 }
