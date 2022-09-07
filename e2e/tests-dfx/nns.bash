@@ -94,13 +94,6 @@ nns_canister_id() {
     # Note:  The installation is quite expensive, so we test extensively on one installation
     #        rather than doing a separate installation for every test.  The tests are read-only
     #        so no test should affect the output of another.
-    BOUNDARY_ORIGIN="localhost:$(dfx info webserver-port)"
-    canister_url() {
-      echo "http://$(nns_canister_id "$1").${BOUNDARY_ORIGIN}"
-    }
-    #curl --fail -sSL "$(canister_url internet_identity)"
-    #curl --fail -sSL "$(canister_url nns-dapp)"
-    # The downloaded wasm files match the installed wasms
     installed_wasm_hash() {
         dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
     }
