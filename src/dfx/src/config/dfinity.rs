@@ -296,6 +296,36 @@ pub struct ConfigDefaultsBuild {
     pub args: Option<String>,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ReplicaLogLevel {
+    Critical,
+    Error,
+    Warning,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl Default for ReplicaLogLevel {
+    fn default() -> Self {
+        Self::Warning
+    }
+}
+
+impl ReplicaLogLevel {
+    pub fn as_ic_starter_string(&self) -> String {
+        match self {
+            Self::Critical => "critical".to_string(),
+            Self::Error => "error".to_string(),
+            Self::Warning => "warning".to_string(),
+            Self::Info => "info".to_string(),
+            Self::Debug => "debug".to_string(),
+            Self::Trace => "trace".to_string(),
+        }
+    }
+}
+
 /// # Local Replica Configuration
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsReplica {
@@ -307,6 +337,9 @@ pub struct ConfigDefaultsReplica {
     /// Affects things like cycles accounting, message size limits, cycle limits.
     /// Defaults to 'application'.
     pub subnet_type: Option<ReplicaSubnetType>,
+
+    /// Run replica with the provided log level. Default is 'warning'
+    pub log_level: Option<ReplicaLogLevel>,
 }
 
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.

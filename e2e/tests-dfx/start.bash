@@ -207,3 +207,16 @@ teardown() {
     assert_command_fail dfx start
     assert_match "dfx is already running"
 }
+
+@test "dfx sets correct replica log level" {
+    dfx_new hello
+    jq '.defaults.replica.log_level="error"' dfx.json | sponge dfx.json
+
+    assert_command dfx start --background
+    assert_match "log_level: Error"
+    assert_command dfx stop
+
+    jq '.defaults.replica.log_level="trace"' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_match "log_level: Trace"
+}
