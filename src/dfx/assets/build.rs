@@ -181,10 +181,18 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         .output()?
         .stdout;
     let head_commit_sha = String::from_utf8_lossy(&head_commit_sha);
+    let is_dirty = Command::new("git")
+        .arg("status")
+        .arg("--porcelain")
+        .output()?
+        .stdout
+        .len()
+        == 0;
     Ok(format!(
-        "{tag}-{sha}",
+        "{tag}-{sha}{dirty}",
         tag = latest_tag.1,
-        sha = head_commit_sha.trim()
+        sha = head_commit_sha.trim(),
+        dirty = if is_dirty { "" } else { "-dirty" }
     ))
 }
 
