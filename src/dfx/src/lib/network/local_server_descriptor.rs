@@ -1,5 +1,6 @@
 use crate::config::dfinity::{
-    to_socket_addr, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
+    to_socket_addr, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
+    DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::config::dfinity::{
     ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
@@ -273,8 +274,15 @@ impl LocalServerDescriptor {
             } else {
                 "".to_string()
             };
-
             println!("    subnet type: {:?}{}", subnet_type, diffs);
+
+            let log_level = self.replica.log_level.unwrap_or_default();
+            let diffs: String = if log_level != ReplicaLogLevel::default() {
+                format!(" (default: {:?})", ReplicaLogLevel::default())
+            } else {
+                "".to_string()
+            };
+            println!("    log level: {:?}{}", log_level, diffs);
         }
         println!("  data directory: {}", self.data_directory.display());
         let scope = match self.scope {

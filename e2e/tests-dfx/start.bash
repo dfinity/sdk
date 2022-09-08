@@ -208,15 +208,44 @@ teardown() {
     assert_match "dfx is already running"
 }
 
-@test "dfx sets correct replica log level" {
-    dfx_new hello
+@test "dfx starts replica with correct log level - project defaults" {
+    dfx_new
     jq '.defaults.replica.log_level="error"' dfx.json | sponge dfx.json
+    define_project_network
 
     assert_command dfx start --background
     assert_match "log_level: Error"
     assert_command dfx stop
 
     jq '.defaults.replica.log_level="trace"' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_match "log_level: Trace"
+}
+
+@test "dfx starts replica with correct log level - local network" {
+    dfx_new
+    jq '.networks.local.replica.log_level="error"' dfx.json | sponge dfx.json
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "log_level: Error"
+    assert_command dfx stop
+
+    jq '.networks.local.replica.log_level="trace"' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_match "log_level: Trace"
+}
+
+@test "dfx starts replica with correct log level - shared network" {
+    dfx_new
+    create_networks_json
+    jq '.local.replica.log_level="error"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+    assert_command dfx start --background
+    assert_match "log_level: Error"
+    assert_command dfx stop
+
+    jq '.local.replica.log_level="trace"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
     assert_command dfx start --background
     assert_match "log_level: Trace"
 }

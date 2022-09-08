@@ -4,7 +4,6 @@ use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
-use crate::config::dfinity::ReplicaLogLevel;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -245,6 +244,11 @@ pub fn exec(
         .replica
         .subnet_type
         .unwrap_or_default();
+    println!("{:#?}", &local_server_descriptor);
+    let log_level = local_server_descriptor
+        .replica
+        .log_level
+        .unwrap_or_default();
     let network_descriptor = network_descriptor.clone();
 
     let system = actix::System::new();
@@ -286,18 +290,6 @@ pub fn exec(
                 } else {
                     (None, None)
                 };
-            let log_level = if let Some(config) = project_config {
-                config
-                    .get_config()
-                    .get_defaults()
-                    .replica
-                    .clone()
-                    .unwrap_or_default()
-                    .log_level
-                    .unwrap_or_default()
-            } else {
-                ReplicaLogLevel::default()
-            };
             let mut replica_config = ReplicaConfig::new(&state_root, subnet_type, log_level)
                 .with_random_port(&replica_port_path);
             if btc_adapter_config.is_some() {
