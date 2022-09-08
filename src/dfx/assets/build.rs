@@ -147,7 +147,8 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
 /// Gets a git tag with the least number of revs between HEAD of current branch and the tag,
 /// and combines is with SHA of the HEAD commit. Example of expected output: `0.12.0-beta.1-b9ace030`
 fn get_git_hash() -> Result<String, std::io::Error> {
-    let mut latest_tag: (u128, String) = (u128::MAX, String::from("0"));
+    let mut latest_tag = String::from("0");
+    let mut latest_distance = u128::MAX;
     let tags = Command::new("git")
         .arg("tag")
         .stdout(Stdio::piped())
@@ -164,13 +165,14 @@ fn get_git_hash() -> Result<String, std::io::Error> {
             .spawn()?
             .wait_with_output()?
             .stdout;
-        if let Some(rev) = String::from_utf8_lossy(&output)
+        if let Some(count) = String::from_utf8_lossy(&output)
             .split_whitespace()
             .next()
             .and_then(|v| v.parse::<u128>().ok())
         {
-            if rev < latest_tag.0 {
-                latest_tag = (rev, String::from(tag));
+            if count < latest_distance {
+                latest_tag = String::from(tag);
+                latest_distance = count;
             }
         }
     }
@@ -190,7 +192,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         == 0;
     Ok(format!(
         "{tag}-{sha}{dirty}",
-        tag = latest_tag.1,
+        tag = latest_tag,
         sha = head_commit_sha.trim(),
         dirty = if is_dirty { "" } else { "-dirty" }
     ))
