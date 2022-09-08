@@ -82,6 +82,8 @@ jobs:
         with:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
           path: /usr/local/bin
+      - name: Setup dfx binary
+        run: chmod +x /usr/local/bin/dfx
       # - name: Download dfx binary
       #   run: cargo install --path src/dfx
       # - name: Download dfx binary
