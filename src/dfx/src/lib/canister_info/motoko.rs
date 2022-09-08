@@ -8,7 +8,6 @@ use std::path::{Path, PathBuf};
 pub struct MotokoCanisterInfo {
     input_path: PathBuf,
     output_root: PathBuf,
-    idl_path: PathBuf,
 
     output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
@@ -59,7 +58,6 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let workspace_root = info.get_workspace_root();
         let build_root = info.get_build_root();
         let name = info.get_name();
-        let idl_path = build_root.join("idl/");
         ensure!(
             matches!(info.type_specific, CanisterTypeProperties::Motoko { .. }),
             "Attempted to construct a custom canister from a type:{} canister config",
@@ -84,7 +82,6 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         Ok(MotokoCanisterInfo {
             input_path,
             output_root,
-            idl_path,
             output_wasm_path,
             output_idl_path,
             output_stable_path,
