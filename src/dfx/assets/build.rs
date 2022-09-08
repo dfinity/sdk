@@ -194,7 +194,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         "{tag}-{sha}{dirty}",
         tag = latest_tag,
         sha = head_commit_sha.trim(),
-        dirty = if is_dirty { "" } else { "-dirty" }
+        dirty = if is_dirty { "-dirty" } else { "" }
     ))
 }
 
