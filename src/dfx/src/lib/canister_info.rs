@@ -37,9 +37,7 @@ pub struct CanisterInfo {
     remote_candid: Option<PathBuf>, // always exists if the field is configured
 
     workspace_root: PathBuf,
-    build_root: PathBuf,
-    output_root: PathBuf,
-    canister_root: PathBuf,
+    output_root: PathBuf, // <project dir>/.dfx/<network>/canisters/<canister>
 
     canister_id: Option<CanisterId>,
 
@@ -64,8 +62,8 @@ impl CanisterInfo {
         let network_name = get_network_context()?;
         let build_root = config
             .get_temp_path()
-            .join(util::network_to_pathcompat(&network_name));
-        let build_root = build_root.join("canisters");
+            .join(util::network_to_pathcompat(&network_name))
+            .join("canisters");
         std::fs::create_dir_all(&build_root)
             .with_context(|| format!("Failed to create {}.", build_root.to_string_lossy()))?;
 
@@ -77,7 +75,6 @@ impl CanisterInfo {
             .get(name)
             .ok_or_else(|| anyhow!("Cannot find canister '{}',", name.to_string()))?;
 
-        let canister_root = workspace_root.to_path_buf();
         let declarations_config_pre = canister_config.declarations.clone();
 
         let remote_id = canister_config
@@ -120,9 +117,7 @@ impl CanisterInfo {
             remote_id,
             remote_candid,
             workspace_root: workspace_root.to_path_buf(),
-            build_root,
             output_root,
-            canister_root,
             canister_id,
             packtool: build_defaults.get_packtool(),
             args,
@@ -159,9 +154,6 @@ impl CanisterInfo {
     }
     pub fn get_workspace_root(&self) -> &Path {
         &self.workspace_root
-    }
-    pub fn get_build_root(&self) -> &Path {
-        &self.build_root
     }
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
@@ -202,24 +194,15 @@ impl CanisterInfo {
     }
 
     pub fn get_build_wasm_path(&self) -> PathBuf {
-        self.build_root
-            .join(PathBuf::from(&self.name))
-            .join(&self.name)
-            .with_extension("wasm")
+        self.output_root.join(&self.name).with_extension("wasm")
     }
 
     pub fn get_build_idl_path(&self) -> PathBuf {
-        self.build_root
-            .join(PathBuf::from(&self.name))
-            .join(&self.name)
-            .with_extension("did")
+        self.output_root.join(&self.name).with_extension("did")
     }
 
     pub fn get_index_js_path(&self) -> PathBuf {
-        self.build_root
-            .join(PathBuf::from(&self.name))
-            .join("index")
-            .with_extension("js")
+        self.output_root.join("index").with_extension("js")
     }
 
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
