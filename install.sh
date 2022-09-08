@@ -134,19 +134,19 @@ downloader() {
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
         if check_help_for curl --proto --tlsv1.2; then
-            curl --proto '=https' --tlsv1.2 --show-error --fail --location "$1" --output "$2"
+            curl --proto '=https' --tlsv1.2 --show-error --fail --connect-timeout 10 --retry 5 --location "$1" --output "$2"
         elif ! [ "$flag_INSECURE" ]; then
             warn "Not forcing TLS v1.2, this is potentially less secure"
-            curl --show-error --fail --location "$1" --output "$2"
+            curl --show-error --fail --connect-timeout 10 --retry 5 --location "$1" --output "$2"
         else
             err "TLS 1.2 is not supported on this platform. To force using it, use the --insecure flag."
         fi
     elif [ "$_dld" = wget ]; then
         if check_help_for wget --https-only --secure-protocol; then
-            wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2"
+            wget --https-only --secure-protocol=TLSv1_2 --timeout 10 --tries 5 --waitretry 5 "$1" -O "$2"
         elif ! [ "$flag_INSECURE" ]; then
             warn "Not forcing TLS v1.2, this is potentially less secure"
-            wget "$1" -O "$2"
+            wget --timeout 10 --tries 5 --waitretry 5 "$1" -O "$2"
         else
             err "TLS 1.2 is not supported on this platform. To force using it, use the --insecure flag."
         fi
@@ -160,7 +160,7 @@ DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
 DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
 DFX_VERSION="${DFX_VERSION:-}"
-SCRIPT_COMMIT_DESC="68d254c0a01d99e1d3ff1f87b67d842c1fb3d97a"
+SCRIPT_COMMIT_DESC="6176c1eea3b4da76aafd407851d41f2f906f4c0d"
 get_tag_from_manifest_json() {
     cat \
         | tr -d '\n' \
