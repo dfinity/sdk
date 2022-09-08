@@ -96,6 +96,7 @@ pub fn exec(
         LocalBindDetermination::AsConfigured,
     )?;
     let network_descriptor = apply_command_line_parameters(
+        env.get_logger(),
         network_descriptor,
         None,
         port,
