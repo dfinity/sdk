@@ -183,7 +183,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         .output()?
         .stdout;
     let head_commit_sha = String::from_utf8_lossy(&head_commit_sha);
-    let is_dirty = Command::new("git")
+    let is_dirty = !Command::new("git")
         .arg("status")
         .arg("--porcelain")
         .output()?
