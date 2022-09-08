@@ -251,6 +251,8 @@ teardown() {
 }
 
 @test "debug print statements work with default log level" {
+    [ "$USE_IC_REF" ] && skip "printing from mo not specified"
+
     dfx_new
     install_asset print
     dfx_start 2>stderr.txt
