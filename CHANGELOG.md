@@ -4,7 +4,16 @@
 
 ## DFX
 
+
 ### fix: `cargo run -p dfx -- --version` prints correct version
+
+### feat: canister HTTP support is now enabled by default.
+
+`dfx start` and `dfx replica` now ignore the `--enable-canister-http` parameter.
+
+You can still disable the canister http feature through configuration:
+- ~/.config/dfx/networks.json: `.local.canister_http.enabled=false`
+- dfx.json (project-specific networks) : `.networks.local.canister_http.enabled=false`
 
 ### feat: deploy NNS canisters
 
@@ -303,7 +312,12 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko to 0.6.30
+### Updated Motoko to 0.7.0
+
+### Cycles wallet
+
+- Module hash: b944b1e5533064d12e951621d5045d5291bcfd8cf9d60c28fef02c8fdb68e783
+- https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
 
 # 0.11.2
 
