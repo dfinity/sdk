@@ -25,7 +25,10 @@ teardown() {
     dfx_new
     assert_command dfx sns config create
     assert_match 'Created SNS configuration at: sns.yml'
+    : "Check that the file exists..."
     test -e sns.yml
+    : "Check that the file is well formed YAML..."
+    python3 -c 'import yaml ; y=yaml.safe_load(open("sns.yml"))'
 }
 
 @test "sns config validate approves a valid configuration" {
