@@ -134,7 +134,7 @@ pub fn exec(
         Some(env.get_logger().clone())
     };
     let network_descriptor = create_network_descriptor(
-        project_config.clone(),
+        project_config,
         env.get_networks_config(),
         None,
         network_descriptor_logger,
@@ -244,7 +244,6 @@ pub fn exec(
         .replica
         .subnet_type
         .unwrap_or_default();
-    println!("{:#?}", &local_server_descriptor);
     let log_level = local_server_descriptor
         .replica
         .log_level
