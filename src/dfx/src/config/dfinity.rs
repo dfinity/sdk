@@ -237,16 +237,22 @@ impl Default for ConfigDefaultsBitcoin {
 }
 
 /// # HTTP Adapter Configuration
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsCanisterHttp {
     /// # Enable HTTP Adapter
-    #[serde(default)]
+    #[serde(default = "default_as_true")]
     pub enabled: bool,
 }
 
-fn default_as_false() -> bool {
+impl Default for ConfigDefaultsCanisterHttp {
+    fn default() -> Self {
+        ConfigDefaultsCanisterHttp { enabled: true }
+    }
+}
+
+fn default_as_true() -> bool {
     // sigh https://github.com/serde-rs/serde/issues/368
-    false
+    true
 }
 
 /// # Bootstrap Server Configuration
