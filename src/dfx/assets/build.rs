@@ -187,9 +187,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         .arg("status")
         .arg("--porcelain")
         .output()?
-        .stdout
-        .len()
-        == 0;
+        .stdout.is_empty();
     Ok(format!(
         "{tag}-{sha}{dirty}",
         tag = latest_tag,
