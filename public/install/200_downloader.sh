@@ -69,19 +69,19 @@ downloader() {
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
         if check_help_for curl --proto --tlsv1.2; then
-            curl --proto '=https' --tlsv1.2 --show-error --fail --location "$1" --output "$2"
+            curl --proto '=https' --tlsv1.2 --show-error --fail --connect-timeout 10 --retry 5 --location "$1" --output "$2"
         elif ! [ "$flag_INSECURE" ]; then
             warn "Not forcing TLS v1.2, this is potentially less secure"
-            curl --show-error --fail --location "$1" --output "$2"
+            curl --show-error --fail --connect-timeout 10 --retry 5 --location "$1" --output "$2"
         else
             err "TLS 1.2 is not supported on this platform. To force using it, use the --insecure flag."
         fi
     elif [ "$_dld" = wget ]; then
         if check_help_for wget --https-only --secure-protocol; then
-            wget --https-only --secure-protocol=TLSv1_2 "$1" -O "$2"
+            wget --https-only --secure-protocol=TLSv1_2 --timeout 10 --tries 5 --waitretry 5 "$1" -O "$2"
         elif ! [ "$flag_INSECURE" ]; then
             warn "Not forcing TLS v1.2, this is potentially less secure"
-            wget "$1" -O "$2"
+            wget --timeout 10 --tries 5 --waitretry 5 "$1" -O "$2"
         else
             err "TLS 1.2 is not supported on this platform. To force using it, use the --insecure flag."
         fi
