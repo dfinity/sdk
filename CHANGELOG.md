@@ -294,6 +294,8 @@ However, at that point, it isn't "a" passphrase.  It's either your passphrase, o
 Changed the text in this case to read:
     "Please enter the passphrase for your identity"
 
+### chore: add retry logic to dfx download script
+
 ## Dependencies
 
 ### Replica
