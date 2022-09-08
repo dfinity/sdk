@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: sns config create
+
+There is a new command that creates an sns config template.
+
 ### feat: canister HTTP support is now enabled by default.
 
 `dfx start` and `dfx replica` now ignore the `--enable-canister-http` parameter.
