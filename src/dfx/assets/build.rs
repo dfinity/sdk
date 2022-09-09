@@ -191,14 +191,11 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         .is_empty();
 
     Ok(format!(
-        "{tag}.{sha}{dirty}",
+        "{tag}.rev{count}.{sha}{dirty}",
         tag = latest_tag,
-        sha = head_commit_sha.trim(),
-<<<<<<< HEAD
-        dirty = if is_dirty { "-dirty" } else { "" }
-=======
-        dirty = if is_dirty { "" } else { ".dirty" }
->>>>>>> 9cec71a0 (use dots instead of dashes?)
+        count = latest_distance,
+        sha = head_commit_sha,
+        dirty = if is_dirty { ".dirty" } else { ".clean" }
     ))
 }
 
