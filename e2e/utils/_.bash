@@ -34,6 +34,7 @@ standard_setup() {
 
     cd "$x/working-dir" || exit
 
+    export CARGO_HOME="$HOME/.cargo"
     export HOME="$x/home-dir"
     export DFX_CACHE_ROOT="$cache_root"
     export DFX_CONFIG_ROOT="$x/config-root"
