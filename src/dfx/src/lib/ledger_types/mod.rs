@@ -130,6 +130,7 @@ pub struct TimeStamp {
 pub struct NotifyCreateCanisterArg {
     pub block_index: BlockIndex,
     pub controller: Principal,
+    pub subnet_type: Option<String>,
 }
 
 #[derive(CandidType)]
@@ -156,6 +157,11 @@ pub enum NotifyError {
 pub type NotifyCreateCanisterResult = Result<Principal, NotifyError>;
 
 pub type NotifyTopUpResult = Result<u128, NotifyError>;
+
+#[derive(CandidType, Deserialize, Debug)]
+pub struct GetSubnetTypesToSubnetsResult {
+    pub data: Vec<(String, Vec<Principal>)>,
+}
 
 #[cfg(test)]
 mod tests {

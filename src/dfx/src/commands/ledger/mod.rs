@@ -1,9 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{
-    AccountIdBlob, BlockHeight, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult,
-    NotifyTopUpArg, NotifyTopUpResult, TimeStamp, TransferArgs, TransferError, TransferResult,
-    MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+    AccountIdBlob, BlockHeight, GetSubnetTypesToSubnetsResult, Memo, NotifyCreateCanisterArg,
+    NotifyCreateCanisterResult, NotifyTopUpArg, NotifyTopUpResult, TimeStamp, TransferArgs,
+    TransferError, TransferResult, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
 };
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
@@ -20,10 +20,12 @@ use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 
+const GET_SUBNET_TYPES_TO_SUBNETS_METHOD: &str = "get_subnet_types_to_subnets";
 const TRANSFER_METHOD: &str = "transfer";
 const NOTIFY_TOP_UP_METHOD: &str = "notify_top_up";
 const NOTIFY_CREATE_METHOD: &str = "notify_create_canister";
@@ -199,6 +201,7 @@ pub async fn notify_create(
     agent: &Agent,
     controller: Principal,
     block_height: BlockHeight,
+    subnet_type: Option<String>,
 ) -> DfxResult<NotifyCreateCanisterResult> {
     let result = agent
         .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_CREATE_METHOD)
@@ -206,6 +209,7 @@ pub async fn notify_create(
             Encode!(&NotifyCreateCanisterArg {
                 block_index: block_height,
                 controller,
+                subnet_type,
             })
             .context("Failed to encode notify arguments.")?,
         )
@@ -236,6 +240,34 @@ pub async fn notify_top_up(
         .context("Notify call failed.")?;
     let result = Decode!(&result, NotifyTopUpResult).context("Failed to decode notify response")?;
     Ok(result)
+}
+
+pub async fn validate_subnet_type(agent: &Agent, subnet_type: &Option<String>) -> DfxResult<()> {
+    let result = agent
+        .update(
+            &MAINNET_CYCLE_MINTER_CANISTER_ID,
+            GET_SUBNET_TYPES_TO_SUBNETS_METHOD,
+        )
+        .with_arg(Encode!(&()).context("Failed to encode get_subnet_types_to_subnets arguments.")?)
+        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .await
+        .context("get_subnet_types_to_subnets call failed.")?;
+    let result = Decode!(&result, GetSubnetTypesToSubnetsResult)
+        .context("Failed to decode get_subnet_types_to_subnets response")?;
+
+    let available_subnet_types: HashSet<String> = result.data.into_iter().map(|(x, _)| x).collect();
+
+    if let Some(t) = subnet_type {
+        if !available_subnet_types.contains(t) {
+            return Err(anyhow!(
+                "Unknown subnet type {}, available subnet types {:?}",
+                t,
+                available_subnet_types
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 fn retryable(agent_error: &AgentError) -> bool {
