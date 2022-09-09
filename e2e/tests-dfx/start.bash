@@ -214,12 +214,12 @@ teardown() {
     define_project_network
 
     assert_command dfx start --background
-    assert_match "log_level: Warning"
+    assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
     assert_command dfx start --background
-    assert_match "log_level: Critical"
+    assert_match "log level: Critical"
 }
 
 @test "dfx starts replica with correct log level - local network" {
@@ -228,12 +228,12 @@ teardown() {
     define_project_network
 
     assert_command dfx start --background
-    assert_match "log_level: Warning"
+    assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
     assert_command dfx start --background
-    assert_match "log_level: Critical"
+    assert_match "log level: Critical"
 }
 
 @test "dfx starts replica with correct log level - shared network" {
@@ -242,12 +242,12 @@ teardown() {
     jq '.local.replica.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background
-    assert_match "log_level: Warning"
+    assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
     assert_command dfx start --background
-    assert_match "log_level: Critical"
+    assert_match "log level: Critical"
 }
 
 @test "debug print statements work with default log level" {
