@@ -46,6 +46,8 @@ The Replica returned an error: code 1, message: "Canister requested a compute al
 
 ### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
 
+### fix: For `dfx start --clean --background`, the background process no longer cleans a second time.
+
 ### refactor: Move replica URL functions into a module for reuse
 
 The running replica port and url are generally useful information. Previously the code to get the URL was embedded in the network proxy code. This moves it out into a library for reuse.

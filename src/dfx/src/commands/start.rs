@@ -422,7 +422,12 @@ fn send_background() -> DfxResult<()> {
     let exe = std::env::current_exe().context("Failed to get current executable.")?;
     let mut cmd = Command::new(exe);
     // Skip 1 because arg0 is this executable's path.
-    cmd.args(std::env::args().skip(1).filter(|a| !a.eq("--background")));
+    cmd.args(
+        std::env::args()
+            .skip(1)
+            .filter(|a| !a.eq("--background"))
+            .filter(|a| !a.eq("--clean")),
+    );
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())
