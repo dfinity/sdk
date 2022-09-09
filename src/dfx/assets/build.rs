@@ -189,13 +189,11 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         .output()?
         .stdout
         .is_empty();
-    let status = if is_dirty { ".dirty" } else { "" };
 
     Ok(format!(
-        "{tag}+rev{count}{status}.{sha}",
-        tag = latest_tag,
+        "{latest_tag}+rev{count}.{head_status}{head_commit_sha}",
         count = latest_distance,
-        sha = head_commit_sha,
+        head_status = if is_dirty { "dirty-" } else { "" }
     ))
 }
 
