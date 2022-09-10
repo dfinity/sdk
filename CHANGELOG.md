@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: Use NNS did files that matches the wasms
+
+Previously the did files and wasms could be incompatible.
+
 ### feat: canister HTTP support is now enabled by default.
 
 `dfx start` and `dfx replica` now ignore the `--enable-canister-http` parameter.
