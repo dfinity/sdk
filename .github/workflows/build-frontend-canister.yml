@@ -9,6 +9,7 @@ on:
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    name: frontend-canister-up-to-date:required
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
