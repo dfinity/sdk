@@ -151,7 +151,7 @@ pub const SNS_GOVERNANCE: SnsCanisterInstallation = SnsCanisterInstallation {
 pub const SNS_SWAP: SnsCanisterInstallation = SnsCanisterInstallation {
     canister_name: "sns-swap",
     upload_name: "swap",
-    wasm_name: "sns-governance-canister.wasm",
+    wasm_name: "sns-swap-canister.wasm",
 };
 /// Stores account balances for an SNS project.
 pub const SNS_LEDGER: SnsCanisterInstallation = SnsCanisterInstallation {
