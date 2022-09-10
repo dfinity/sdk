@@ -111,7 +111,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src/dfx/assets/new_project_rust_files/src/__project_name___backend/Cargo.toml') }}-${{ matrix.rust }}-e2e-1
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src/dfx/assets/new_project_rust_files/src/__project_name___backend/Cargo.toml') }}-${{ matrix.rust }}-e2e-${{ matrix.test }}-1
       - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
