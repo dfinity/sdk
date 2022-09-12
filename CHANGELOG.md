@@ -4,6 +4,8 @@
 
 ## DFX
 
+### fix: allow users to skip compatibility check if parsing fails
+
 ### feat: canister HTTP support is now enabled by default.
 
 `dfx start` and `dfx replica` now ignore the `--enable-canister-http` parameter.
