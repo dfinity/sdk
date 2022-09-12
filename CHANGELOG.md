@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: add `--network` flag to `dfx generate`
+
+`dfx generate`'s generated bindings use network-specific canister IDs depending on the generated language, but there was previously no way to configure which network this was, so it defaulted to local. A `--network` flag has been added for this purpose.
+
 ### feat: canister HTTP support is now enabled by default.
 
 `dfx start` and `dfx replica` now ignore the `--enable-canister-http` parameter.
