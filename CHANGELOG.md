@@ -20,6 +20,8 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
+Support for a URL in the `candid` field is coming soon.
+
 ### feat: deploy NNS canisters
 
 A developer is now able to install NNS canisters, including back end canisters such as ledger and governance, and front end canisters such as nns-dapp and internet-identity, on their local DFX server.  Usage:
