@@ -89,7 +89,7 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    let pool = build_canisters(env, &canisters_to_build, &config)?;
+    let pool = build_canisters(env, &canisters_to_build, &config).await?;
 
     install_canisters(
         env,
@@ -190,7 +190,7 @@ async fn register_canisters(
 }
 
 #[context("Failed to build call canisters.")]
-fn build_canisters(
+async fn build_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     config: &Config,
@@ -199,7 +199,9 @@ fn build_canisters(
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
 
-    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)?;
+    canister_pool
+        .build_or_fail(&BuildConfig::from_config(config)?)
+        .await?;
     Ok(canister_pool)
 }
 

@@ -766,6 +766,7 @@ dependencies = [
  "base64",
  "bip32",
  "byte-unit",
+ "bytes",
  "candid",
  "clap",
  "console",
