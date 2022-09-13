@@ -12,6 +12,10 @@ The wasms dir path had a $ which is unwanted and now gone.
 
 Previously the incorrect wasm canister was installed.
 
+### fix: Use NNS did files that matches the wasms
+
+Previously the did files and wasms could be incompatible.
+
 ### fix: allow users to skip compatibility check if parsing fails
 
 ### feat: canister HTTP support is now enabled by default.
