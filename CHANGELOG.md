@@ -18,6 +18,8 @@ You can still disable the canister http feature through configuration:
 - ~/.config/dfx/networks.json: `.local.canister_http.enabled=false`
 - dfx.json (project-specific networks) : `.networks.local.canister_http.enabled=false`
 
+### feat: custom canister `wasm` field can now specify a URL from which to download
+
 ### feat: deploy NNS canisters
 
 A developer is now able to install NNS canisters, including back end canisters such as ledger and governance, and front end canisters such as nns-dapp and internet-identity, on their local DFX server.  Usage:
