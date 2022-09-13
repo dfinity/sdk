@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: Correct wasm for the SNS swap canister
+
+Previously the incorrect wasm canister was installed.
+
 ### fix: allow users to skip compatibility check if parsing fails
 
 ### feat: canister HTTP support is now enabled by default.
