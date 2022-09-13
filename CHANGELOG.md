@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: Correct wasm for the SNS swap canister
+
+Previously the incorrect wasm canister was installed.
+
 ### fix: Use NNS did files that matches the wasms
 
 Previously the did files and wasms could be incompatible.
