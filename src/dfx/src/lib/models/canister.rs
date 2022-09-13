@@ -467,7 +467,7 @@ impl CanisterPool {
             let info = canister.get_info();
 
             if info.is_custom() {
-                custom_download(info, &self).await?;
+                custom_download(info, self).await?;
             }
         }
         Ok(())

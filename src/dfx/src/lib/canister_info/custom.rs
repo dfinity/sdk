@@ -70,7 +70,7 @@ impl CanisterInfoFactory for CustomCanisterInfo {
         let candid = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
             remote_candid
         } else {
-            PathBuf::from(candid)
+            candid
         };
         let output_idl_path = workspace_root.join(candid);
 
