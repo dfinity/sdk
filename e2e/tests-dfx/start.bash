@@ -207,3 +207,58 @@ teardown() {
     assert_command_fail dfx start
     assert_match "dfx is already running"
 }
+
+@test "dfx starts replica with correct log level - project defaults" {
+    dfx_new
+    jq '.defaults.replica.log_level="warning"' dfx.json | sponge dfx.json
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "log level: Warning"
+    assert_command dfx stop
+
+    jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_match "log level: Critical"
+}
+
+@test "dfx starts replica with correct log level - local network" {
+    dfx_new
+    jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
+    define_project_network
+
+    assert_command dfx start --background
+    assert_match "log level: Warning"
+    assert_command dfx stop
+
+    jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_match "log level: Critical"
+}
+
+@test "dfx starts replica with correct log level - shared network" {
+    dfx_new
+    create_networks_json
+    jq '.local.replica.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+    assert_command dfx start --background
+    assert_match "log level: Warning"
+    assert_command dfx stop
+
+    jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+    assert_command dfx start --background
+    assert_match "log level: Critical"
+}
+
+@test "debug print statements work with default log level" {
+    [ "$USE_IC_REF" ] && skip "printing from mo not specified"
+
+    dfx_new
+    install_asset print
+    dfx_start 2>stderr.txt
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project hello
+    sleep 2
+    run tail -2 stderr.txt
+    assert_match "Hello, World! from DFINITY"
+}

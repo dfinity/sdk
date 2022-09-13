@@ -644,7 +644,7 @@ pub async fn install_canister(
 
 /// The local directory where NNS wasm files are cached.  The directory is typically created on demand.
 fn nns_wasm_dir(env: &dyn Environment) -> PathBuf {
-    Path::new(&format!(".dfx/wasms/nns/dfx-${}/", env.get_version())).to_path_buf()
+    Path::new(&format!(".dfx/wasms/nns/dfx-{}/", env.get_version())).to_path_buf()
 }
 
 /// Get the path to a bundled command line binary

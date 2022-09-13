@@ -246,6 +246,10 @@ pub fn exec(
         .replica
         .subnet_type
         .unwrap_or_default();
+    let log_level = local_server_descriptor
+        .replica
+        .log_level
+        .unwrap_or_default();
     let network_descriptor = network_descriptor.clone();
 
     let system = actix::System::new();
@@ -287,9 +291,8 @@ pub fn exec(
                 } else {
                     (None, None)
                 };
-
-            let mut replica_config =
-                ReplicaConfig::new(&state_root, subnet_type).with_random_port(&replica_port_path);
+            let mut replica_config = ReplicaConfig::new(&state_root, subnet_type, log_level)
+                .with_random_port(&replica_port_path);
             if btc_adapter_config.is_some() {
                 replica_config = replica_config.with_btc_adapter_enabled();
                 if let Some(btc_adapter_socket) = btc_adapter_socket_path {
@@ -419,7 +422,12 @@ fn send_background() -> DfxResult<()> {
     let exe = std::env::current_exe().context("Failed to get current executable.")?;
     let mut cmd = Command::new(exe);
     // Skip 1 because arg0 is this executable's path.
-    cmd.args(std::env::args().skip(1).filter(|a| !a.eq("--background")));
+    cmd.args(
+        std::env::args()
+            .skip(1)
+            .filter(|a| !a.eq("--background"))
+            .filter(|a| !a.eq("--clean")),
+    );
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())

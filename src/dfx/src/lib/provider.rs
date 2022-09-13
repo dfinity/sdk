@@ -464,7 +464,7 @@ mod tests {
     use crate::config::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
     use crate::config::dfinity::{
         to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
-        ConfigDefaultsReplica,
+        ConfigDefaultsReplica, ReplicaLogLevel,
     };
     use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
     use std::fs;
@@ -884,7 +884,8 @@ mod tests {
                   "bind": "127.0.0.1:8000",
                   "replica": {
                     "subnet_type": "verifiedapplication",
-                    "port": 17001
+                    "port": 17001,
+                    "log_level": "trace"
                   }
                 }
               }
@@ -909,7 +910,8 @@ mod tests {
             replica_config,
             &ConfigDefaultsReplica {
                 subnet_type: Some(VerifiedApplication),
-                port: Some(17001)
+                port: Some(17001),
+                log_level: Some(ReplicaLogLevel::Trace)
             }
         );
     }
@@ -955,7 +957,8 @@ mod tests {
             replica_config,
             &ConfigDefaultsReplica {
                 subnet_type: Some(System),
-                port: None
+                port: None,
+                log_level: None
             }
         );
     }

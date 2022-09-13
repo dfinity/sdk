@@ -171,6 +171,13 @@ teardown() {
     assert_command dfx canister deposit-cycles 1 hello_backend --wallet "$(dfx identity get-wallet)"
 }
 
+@test "dfx canister deposit-cycles uses default wallet if no wallet is specified" {
+    dfx_new hello
+    dfx_start
+    dfx deploy
+    assert_command dfx canister deposit-cycles 1 hello_backend
+}
+
 @test "detects if there is no wallet to upgrade" {
     dfx_new hello
     assert_command_fail dfx wallet upgrade

@@ -6,6 +6,7 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 
 use clap::Parser;
+use tokio::runtime::Runtime;
 
 /// Generate type declarations for canisters from the code in your project
 #[derive(Parser)]
@@ -54,7 +55,8 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
             env.get_logger(),
             "Building canisters before generate for Motoko"
         );
-        canister_pool.build_or_fail(&build_config)?;
+        let runtime = Runtime::new().expect("Unable to create a runtime");
+        runtime.block_on(canister_pool.build_or_fail(&build_config))?;
     }
 
     for canister in canister_pool.get_canister_list() {

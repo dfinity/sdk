@@ -131,8 +131,8 @@ pub enum CanisterTypeProperties {
     /// # Custom-Specific Properties
     Custom {
         /// # WASM Path
-        /// Path to WASM to be installed.
-        wasm: PathBuf,
+        /// Path to WASM to be installed. URLs to a WASM module are also acceptable.
+        wasm: String,
 
         /// # Candid File
         /// Path to this canister's candid interface declaration.
@@ -302,6 +302,36 @@ pub struct ConfigDefaultsBuild {
     pub args: Option<String>,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ReplicaLogLevel {
+    Critical,
+    Error,
+    Warning,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl Default for ReplicaLogLevel {
+    fn default() -> Self {
+        Self::Error
+    }
+}
+
+impl ReplicaLogLevel {
+    pub fn as_ic_starter_string(&self) -> String {
+        match self {
+            Self::Critical => "critical".to_string(),
+            Self::Error => "error".to_string(),
+            Self::Warning => "warning".to_string(),
+            Self::Info => "info".to_string(),
+            Self::Debug => "debug".to_string(),
+            Self::Trace => "trace".to_string(),
+        }
+    }
+}
+
 /// # Local Replica Configuration
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsReplica {
@@ -313,6 +343,9 @@ pub struct ConfigDefaultsReplica {
     /// Affects things like cycles accounting, message size limits, cycle limits.
     /// Defaults to 'application'.
     pub subnet_type: Option<ReplicaSubnetType>,
+
+    /// Run replica with the provided log level. Default is 'error'. Debug prints still get displayed
+    pub log_level: Option<ReplicaLogLevel>,
 }
 
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
@@ -779,8 +812,9 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        let (mut package, mut source, mut candid, mut build, mut wasm, mut r#type) =
-            (None, None, None, None, None, None);
+        let mut wasm: Option<String> = None;
+        let (mut package, mut source, mut candid, mut build, mut r#type) =
+            (None, None, None, None, None);
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
