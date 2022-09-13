@@ -131,7 +131,7 @@ pub enum CanisterTypeProperties {
     /// # Custom-Specific Properties
     Custom {
         /// # WASM Path
-        /// Path to WASM to be installed.
+        /// Path to WASM to be installed. URLs to a WASM module are also acceptable.
         wasm: String,
 
         /// # Candid File
