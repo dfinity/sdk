@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: remove $ from wasms dir
+
+The wasms dir path had a $ which is unwanted and now gone.
+
 ### fix: Correct wasm for the SNS swap canister
 
 Previously the incorrect wasm canister was installed.
@@ -21,6 +25,10 @@ Previously the did files and wasms could be incompatible.
 You can still disable the canister http feature through configuration:
 - ~/.config/dfx/networks.json: `.local.canister_http.enabled=false`
 - dfx.json (project-specific networks) : `.networks.local.canister_http.enabled=false`
+
+### feat: custom canister `wasm` field can now specify a URL from which to download
+
+Support for a URL in the `candid` field is coming soon.
 
 ### feat: deploy NNS canisters
 
