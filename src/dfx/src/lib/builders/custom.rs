@@ -6,7 +6,6 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use std::fs;
 
 use anyhow::{anyhow, bail, Context};
 use bytes::Bytes;
@@ -18,6 +17,7 @@ use hyper_rustls::ConfigBuilderExt;
 use reqwest::{Client, StatusCode};
 use slog::info;
 use slog::Logger;
+use std::fs;
 use std::fs::{create_dir_all, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
