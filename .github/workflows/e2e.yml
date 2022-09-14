@@ -16,6 +16,8 @@ jobs:
         binary_path: ["target/release"]
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Cache Cargo
         uses: actions/cache@v2
         with:
