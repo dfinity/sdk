@@ -24,7 +24,7 @@ teardown() {
 @test "sns config create creates a default configuration" {
     dfx_new
     assert_command dfx sns config create
-    assert_match 'Created SNS configuration at: sns.yml'
+    assert_match "Created SNS configuration at: ${PWD}/sns.yml"
     : "Check that the file exists..."
     test -e sns.yml
     : "Check that the file is well formed YAML..."
