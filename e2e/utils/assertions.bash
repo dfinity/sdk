@@ -85,7 +85,7 @@ assert_contains() {
         search_in="$2"
     fi
     if [[ ! "$search_in" == *"$search_for"* ]]; then
-        batslib_print_kv_single_or_multi 10 "regex" "$search_for" "actual" "$search_in" \
+        batslib_print_kv_single_or_multi 10 "search phrase" "$search_for" "actual output" "$search_in" \
             | batslib_decorate "output does not match" \
             | fail
     fi
