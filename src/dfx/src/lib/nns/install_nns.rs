@@ -16,8 +16,7 @@ use crate::util::blob_from_arguments;
 use crate::util::expiry_duration;
 use crate::util::network::get_replica_urls;
 
-use anyhow::bail;
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use flate2::bufread::GzDecoder;
 use fn_error_context::context;
 use futures_util::future::try_join_all;
@@ -580,7 +579,11 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
                     Err(anyhow!(
                         "Failed to upload {} from {} to the nns-sns-wasm canister:\n{:?} {:?}\nStdout:\n{:?}\n\nStderr:\n{:?}",
                         upload_name,
-                        wasm_path.to_string_lossy(), command.get_program(), command.get_args(), output.stdout, output.stderr
+                        wasm_path.to_string_lossy(),
+                        command.get_program(),
+                        command.get_args(),
+                        String::from_utf8_lossy(&output.stdout),
+                        String::from_utf8_lossy(&output.stderr)
                     ))
                 }
             })?;

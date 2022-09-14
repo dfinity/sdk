@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: sns config create
+
+There is a new command that creates an sns config template.
+
 ### fix: remove $ from wasms dir
 
 The wasms dir path had a $ which is unwanted and now gone.
