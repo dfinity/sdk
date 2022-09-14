@@ -23,9 +23,10 @@ teardown() {
 
 @test "sns config create creates a default configuration" {
     dfx_new
-    assert_command_fail dfx sns config create
-    # todo
-    assert_match 'not yet implemented'
+    assert_command dfx sns config create
+    assert_match "Created SNS configuration at: .*/sns.yml"
+    : "Check that the file exists..."
+    test -e sns.yml
 }
 
 @test "sns config validate approves a valid configuration" {

@@ -24,6 +24,8 @@ mod custom;
 mod motoko;
 mod rust;
 
+pub use custom::custom_download;
+
 #[derive(Debug)]
 pub enum WasmBuildOutput {
     // Wasm(Vec<u8>),
