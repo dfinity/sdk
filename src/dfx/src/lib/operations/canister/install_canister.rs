@@ -37,7 +37,7 @@ pub async fn install_canister(
     canister_id_store: &mut CanisterIdStore,
     canister_info: &CanisterInfo,
     args: impl FnOnce() -> DfxResult<Vec<u8>>,
-    mode: InstallMode,
+    mode: Option<InstallMode>,
     timeout: Duration,
     call_sender: &CallSender,
     installed_module_hash: Option<Vec<u8>>,
@@ -49,7 +49,13 @@ pub async fn install_canister(
     if !network.is_ic && named_canister::get_ui_canister_id(canister_id_store).is_none() {
         named_canister::install_ui_canister(env, canister_id_store, None).await?;
     }
-
+    let mode = mode.unwrap_or_else(|| {
+        if installed_module_hash.is_some() {
+            InstallMode::Upgrade
+        } else {
+            InstallMode::Install
+        }
+    });
     let canister_id = canister_info.get_canister_id()?;
     if matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;

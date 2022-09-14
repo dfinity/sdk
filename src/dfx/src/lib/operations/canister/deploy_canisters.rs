@@ -265,7 +265,7 @@ async fn install_canisters(
             &mut canister_id_store,
             &canister_info,
             &install_args,
-            install_mode,
+            Some(install_mode),
             timeout,
             call_sender,
             installed_module_hash,

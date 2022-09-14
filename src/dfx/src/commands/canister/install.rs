@@ -34,7 +34,7 @@ pub struct CanisterInstallOpts {
 
     /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
     #[clap(long, short('m'), default_value("install"),
-        possible_values(&["install", "reinstall", "upgrade"]))]
+        possible_values(&["install", "reinstall", "upgrade", "auto"]))]
     mode: String,
 
     /// Upgrade the canister even if the .wasm did not change.
@@ -66,11 +66,15 @@ pub async fn exec(
 
     fetch_root_key_if_needed(env).await?;
 
-    let mode = InstallMode::from_str(opts.mode.as_str()).map_err(|err| anyhow!(err))?;
+    let mode = if opts.mode == "auto" {
+        None
+    } else {
+        Some(InstallMode::from_str(&opts.mode).map_err(|err| anyhow!(err))?)
+    };
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let network = env.get_network_descriptor();
 
-    if mode == InstallMode::Reinstall && (opts.canister.is_none() || opts.all) {
+    if mode == Some(InstallMode::Reinstall) && (opts.canister.is_none() || opts.all) {
         bail!("The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister.");
     }
 
@@ -97,6 +101,7 @@ pub async fn exec(
             .and_then(|config| CanisterInfo::load(config, canister, Some(canister_id)));
         if let Some(wasm_path) = opts.wasm {
             // streamlined version, we can ignore most of the environment
+            let mode = mode.context("The install mode cannot be auto when using --wasm")?;
             let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
             install_canister_wasm(
                 env,
