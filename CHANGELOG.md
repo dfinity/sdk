@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: add `--network` flag to `dfx generate`
+
+`dfx generate`'s generated bindings use network-specific canister IDs depending on the generated language, but there was previously no way to configure which network this was, so it defaulted to local. A `--network` flag has been added for this purpose.
+
 ### feat: sns config validate
 
 There is a new command that verifies that an SNS initialization config is valid.
