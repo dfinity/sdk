@@ -9,6 +9,11 @@ use crate::Environment;
 ///
 #[context("Failed to validate SNS config at {}.", path.display())]
 pub fn validate_config(env: &dyn Environment, path: &Path) -> DfxResult {
-    let args = vec![OsString::from("init-config-file"), OsString::from("--init-config-file-path"), OsString::from(path), OsString::from("validate")];
+    let args = vec![
+        OsString::from("init-config-file"),
+        OsString::from("--init-config-file-path"),
+        OsString::from(path),
+        OsString::from("validate"),
+    ];
     call_sns_cli(env, &args)
 }

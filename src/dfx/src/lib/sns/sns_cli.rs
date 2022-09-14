@@ -11,7 +11,7 @@ use crate::Environment;
 pub fn call_sns_cli<S, I>(env: &dyn Environment, args: I) -> DfxResult
 where
     I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>, 
+    S: AsRef<OsStr>,
 {
     let cli_name = "sns";
     let sns_cli = env
