@@ -18,9 +18,11 @@ lazy_static! {
 /// That timestamp is taken from the DFX_TIMESTAMP_DEBUG_MODE_ONLY env var that is set in
 /// Nix.
 pub fn dfx_version() -> &'static Version {
+    println!("{}", env!("CARGO_PKG_VERSION"));
     &VERSION
 }
 
 pub fn dfx_version_str() -> &'static str {
+    println!("{}", env!("CARGO_PKG_VERSION"));
     &VERSION_STR
 }
