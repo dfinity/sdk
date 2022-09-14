@@ -21,6 +21,9 @@ install_shared_asset() {
 }
 
 standard_setup() {
+    # Ensure that this version exists in the cache
+    local ORIGINAL_CACHE_DIR="$(dfx cache show)"
+    test -d "$ORIGINAL_CACHE_DIR" || dfx cache install
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export E2E_TEMP_DIR="$x"
@@ -45,6 +48,9 @@ standard_setup() {
         export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/.local/share/dfx/network/local"
     fi
     export E2E_NETWORKS_JSON="$DFX_CONFIG_ROOT/.config/dfx/networks.json"
+    # Install the version in the cache
+    mkdir -p "$(dirname "$(dfx cache show)")"
+    cp -R "$ORIGINAL_CACHE_DIR" "$(dfx cache show)"
 }
 
 standard_teardown() {
