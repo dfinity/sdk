@@ -1,4 +1,5 @@
 use crate::lib::error::DfxResult;
+use crate::lib::info::replica_rev;
 use crate::lib::project::import::import_canister_definitions;
 use crate::lib::project::network_mappings::get_network_mappings;
 use crate::Environment;
@@ -23,11 +24,14 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let mut config = config.as_ref().clone();
 
     let network_mappings = get_network_mappings(&opts.network_mapping)?;
+    let ic_commit = replica_rev();
+    let dfx_url_str =
+        format!("https://raw.githubusercontent.com/dfinity/ic/{ic_commit}/rs/nns/dfx.json");
 
     import_canister_definitions(
         env.get_logger(),
         &mut config,
-        "https://raw.githubusercontent.com/dfinity/ic/master/rs/nns/dfx.json",
+        &dfx_url_str,
         Some("nns-"),
         None,
         &network_mappings,

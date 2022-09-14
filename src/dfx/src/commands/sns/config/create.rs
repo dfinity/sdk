@@ -13,5 +13,7 @@ pub fn exec(env: &dyn Environment, _opts: CreateOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let path = config.get_project_root().join(sns::CONFIG_FILE_NAME);
 
-    create_config(&path)
+    create_config(env, &path)?;
+    println!("Created SNS configuration at: {}", path.display());
+    Ok(())
 }

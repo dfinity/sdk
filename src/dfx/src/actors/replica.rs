@@ -306,6 +306,8 @@ fn replica_start_thread(
             &config.subnet_type.as_ic_starter_string(),
             "--ecdsa-keyid",
             "Secp256k1:dfx_test_key",
+            "--log-level",
+            &config.log_level.as_ic_starter_string(),
         ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);

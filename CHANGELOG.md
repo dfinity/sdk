@@ -4,8 +4,25 @@
 
 ## DFX
 
-
 ### fix: `cargo run -p dfx -- --version` prints correct version
+
+### feat: sns config create
+
+There is a new command that creates an sns config template.
+
+### fix: remove $ from wasms dir
+
+The wasms dir path had a $ which is unwanted and now gone.
+
+### fix: Correct wasm for the SNS swap canister
+
+Previously the incorrect wasm canister was installed.
+
+### fix: Use NNS did files that matches the wasms
+
+Previously the did files and wasms could be incompatible.
+
+### fix: allow users to skip compatibility check if parsing fails
 
 ### feat: canister HTTP support is now enabled by default.
 
@@ -14,6 +31,10 @@
 You can still disable the canister http feature through configuration:
 - ~/.config/dfx/networks.json: `.local.canister_http.enabled=false`
 - dfx.json (project-specific networks) : `.networks.local.canister_http.enabled=false`
+
+### feat: custom canister `wasm` field can now specify a URL from which to download
+
+Support for a URL in the `candid` field is coming soon.
 
 ### feat: deploy NNS canisters
 
@@ -48,6 +69,8 @@ The Replica returned an error: code 1, message: "Canister requested a compute al
 ```
 
 ### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
+
+### fix: For `dfx start --clean --background`, the background process no longer cleans a second time.
 
 ### refactor: Move replica URL functions into a module for reuse
 
@@ -129,6 +152,8 @@ dfx now stores data and control files in one of three places, rather than direct
 - `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (for the shared local network on MacOS)
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
+
+### fix: `dfx start` and `dfx stop` will take into account dfx/replica processes from dfx <= 0.11.x
 
 ### feat: added command `dfx info`
 
@@ -269,6 +294,15 @@ Caused by: Failed while determining if canister 'eop7r-riaaa-aaaak-qasxq-cai' is
     Invalid argument: Canister eop7r-riaaa-aaaak-qasxq-cai not found in dfx.json
 ```
 
+### feat: allow replica log level to be configured
+
+It is now possible to specify the replica's log level. Possible values are `critical`, `error`, `warning`, `info`, `debug`, and `trace`.
+The log level defaults to the level 'error'. Debug prints (e.g. `Debug.print("...")` in Motoko) still show up in the console.
+The log level can be specified in the following places (See [system-wide dfx start](#feat-system-wide-dfx-start) for more detailed explanations on the network types):
+- In file `networks.json` in the field `<network name>.replica.log_level` for shared networks.
+- In file `dfx.json` in the field `networks.<network name>.replica.log_level` for project-specific networks.
+- In file `dfx.json` in the field `defaults.replica.log_level` for project-specific networks. Requires a project-specific network to be run, otherwise this will have no effect.
+
 ### feat: enable canister sandboxing
 
 Canister sandboxing is enabled to be consistent with the mainnet.
@@ -277,6 +311,10 @@ Canister sandboxing is enabled to be consistent with the mainnet.
 
 It is now possible to do e.g. `dfx ledger account-id --of-canister fg7gi-vyaaa-aaaal-qadca-cai` as well as `dfx ledger account-id --of-canister my_canister_name` when checking the ledger account id of a canister.
 Previously, dfx only accepted canister aliases and produced an error message that was hard to understand.
+
+### chore: dfx canister deposit-cycles uses default wallet if none is specified
+
+Motivated by [this forum post](https://forum.dfinity.org/t/dfx-0-10-0-dfx-canister-deposit-cycles-returns-error/13251/6).
 
 ### fix: print links to cdk-rs docs in dfx new
 
@@ -287,6 +325,8 @@ The prompt for entering your passphrase in order to decrypt an identity password
 However, at that point, it isn't "a" passphrase.  It's either your passphrase, or incorrect.
 Changed the text in this case to read:
     "Please enter the passphrase for your identity"
+
+### chore: add retry logic to dfx download script
 
 ## Dependencies
 

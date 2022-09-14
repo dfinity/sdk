@@ -69,27 +69,34 @@ pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
         Some(env.get_logger().clone()),
         LocalBindDetermination::AsConfigured,
     )?;
-    let pid_file_path = network_descriptor.local_server_descriptor()?.dfx_pid_path();
-    if pid_file_path.exists() {
-        // Read and verify it's not running. If it is just return.
-        if let Ok(s) = std::fs::read_to_string(&pid_file_path) {
-            if let Ok(pid) = s.parse::<Pid>() {
-                let mut system = System::new();
-                system.refresh_processes();
-                let pids_killed = if let Some(proc) = system.process(pid) {
-                    kill_all(&system, proc)
-                } else {
-                    vec![]
-                };
-                wait_until_all_exited(system, pids_killed)?;
+
+    let mut found = false;
+    for pid_file_path in network_descriptor
+        .local_server_descriptor()?
+        .dfx_pid_paths()
+    {
+        if pid_file_path.exists() {
+            // Read and verify it's not running. If it is just return.
+            if let Ok(s) = std::fs::read_to_string(&pid_file_path) {
+                if let Ok(pid) = s.parse::<Pid>() {
+                    found = true;
+                    let mut system = System::new();
+                    system.refresh_processes();
+                    let pids_killed = if let Some(proc) = system.process(pid) {
+                        kill_all(&system, proc)
+                    } else {
+                        vec![]
+                    };
+                    wait_until_all_exited(system, pids_killed)?;
+                }
             }
+            // We ignore errors here because there is no effect for the user. We're just being nice.
+            let _ = std::fs::remove_file(&pid_file_path);
         }
-    } else {
+    }
+    if !found {
         eprintln!("No local network replica found. Nothing to do.");
     }
-
-    // We ignore errors here because there is no effect for the user. We're just being nice.
-    let _ = std::fs::remove_file(&pid_file_path);
 
     Ok(())
 }

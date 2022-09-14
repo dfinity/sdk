@@ -1,5 +1,6 @@
 use crate::config::dfinity::{
-    to_socket_addr, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
+    to_socket_addr, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
+    DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::config::dfinity::{
     ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
@@ -34,6 +35,8 @@ pub struct LocalServerDescriptor {
     pub replica: ConfigDefaultsReplica,
 
     pub scope: LocalNetworkScopeDescriptor,
+
+    legacy_pid_path: Option<PathBuf>,
 }
 
 impl LocalNetworkScopeDescriptor {
@@ -54,6 +57,7 @@ impl LocalServerDescriptor {
         canister_http: ConfigDefaultsCanisterHttp,
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
+        legacy_pid_path: Option<PathBuf>,
     ) -> DfxResult<Self> {
         let bind_address =
             to_socket_addr(&bind).context("Failed to convert 'bind' field to a SocketAddress")?;
@@ -65,6 +69,7 @@ impl LocalServerDescriptor {
             canister_http,
             replica,
             scope,
+            legacy_pid_path,
         })
     }
 
@@ -77,6 +82,16 @@ impl LocalServerDescriptor {
     /// This file contains the pid of the process started with `dfx start`
     pub fn dfx_pid_path(&self) -> PathBuf {
         self.data_directory.join("pid")
+    }
+
+    /// The path of the pid file, as well as one that dfx <= 0.11.x would have created
+    pub fn dfx_pid_paths(&self) -> Vec<PathBuf> {
+        let mut pid_paths: Vec<PathBuf> = vec![];
+        if let Some(legacy_pid_path) = &self.legacy_pid_path {
+            pid_paths.push(legacy_pid_path.clone());
+        }
+        pid_paths.push(self.dfx_pid_path());
+        pid_paths
     }
 
     /// This file contains the pid of the icx-proxy process
@@ -265,8 +280,15 @@ impl LocalServerDescriptor {
             } else {
                 "".to_string()
             };
-
             println!("    subnet type: {:?}{}", subnet_type, diffs);
+
+            let log_level = self.replica.log_level.unwrap_or_default();
+            let diffs: String = if log_level != ReplicaLogLevel::default() {
+                format!(" (default: {:?})", ReplicaLogLevel::default())
+            } else {
+                "".to_string()
+            };
+            println!("    log level: {:?}{}", log_level, diffs);
         }
         println!("  data directory: {}", self.data_directory.display());
         let scope = match self.scope {

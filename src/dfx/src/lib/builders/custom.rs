@@ -7,21 +7,30 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
+use bytes::Bytes;
 use candid::Principal as CanisterId;
 use console::style;
 use fn_error_context::context;
+use garcon::{Delay, Waiter};
+use hyper_rustls::ConfigBuilderExt;
+use reqwest::{Client, StatusCode};
 use slog::info;
 use slog::Logger;
-use std::fs::File;
+use std::fs;
+use std::fs::{create_dir_all, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::time::Duration;
+use url::Url;
 
 /// Set of extras that can be specified in the dfx.json.
 struct CustomBuilderExtra {
     /// A list of canister names to use as dependencies.
     dependencies: Vec<CanisterId>,
+    /// Where to download the wasm from
+    input_wasm_url: Option<Url>,
     /// Where the wasm output will be located.
     wasm: PathBuf,
     /// Where the candid output will be located.
@@ -46,12 +55,14 @@ impl CustomBuilderExtra {
             })
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
         let info = info.as_info::<CustomCanisterInfo>()?;
+        let input_wasm_url = info.get_input_wasm_url().to_owned();
         let wasm = info.get_output_wasm_path().to_owned();
         let candid = info.get_output_idl_path().to_owned();
         let build = info.get_build_tasks().to_owned();
 
         Ok(CustomBuilderExtra {
             dependencies,
+            input_wasm_url,
             wasm,
             candid,
             build,
@@ -97,6 +108,7 @@ impl CanisterBuilder for CustomBuilder {
     ) -> DfxResult<BuildOutput> {
         let CustomBuilderExtra {
             candid,
+            input_wasm_url: _,
             wasm,
             build,
             dependencies,
@@ -125,7 +137,8 @@ impl CanisterBuilder for CustomBuilder {
             }
         }
 
-        let mut file = File::open(&wasm)?;
+        let mut file =
+            File::open(&wasm).with_context(|| format!("Failed to open {}", wasm.display()))?;
         let mut header = [0; 4];
         file.read_exact(&mut header)?;
         if header != *b"\0asm" {
@@ -205,5 +218,76 @@ fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxRes
         Err(DfxError::new(BuildError::CustomToolError(
             output.status.code(),
         )))
+    }
+}
+
+pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult {
+    let CustomBuilderExtra {
+        candid: _,
+        input_wasm_url,
+        wasm,
+        build: _,
+        dependencies: _,
+    } = CustomBuilderExtra::try_from(info, pool)?;
+
+    if let Some(url) = input_wasm_url {
+        let wasm_parent_dir = wasm.parent().unwrap();
+        create_dir_all(&wasm_parent_dir).with_context(|| {
+            format!(
+                "Failed to create temp directory {}.",
+                wasm_parent_dir.display()
+            )
+        })?;
+
+        download_canister_wasm(url, &wasm).await?;
+    }
+
+    Ok(())
+}
+
+#[context("Failed to download {} to {}.", url, wasm.display())]
+async fn download_canister_wasm(url: Url, wasm: &Path) -> DfxResult {
+    let tls_config = rustls::ClientConfig::builder()
+        .with_safe_defaults()
+        .with_webpki_roots()
+        .with_no_client_auth();
+
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls_config)
+        .build()
+        .context("Could not create HTTP client.")?;
+
+    let mut waiter = Delay::builder()
+        .throttle(Duration::from_millis(1000))
+        .with(Delay::count_timeout(5))
+        .exponential_backoff_capped(Duration::from_millis(500), 1.4, Duration::from_secs(5))
+        .build();
+    waiter.start();
+
+    let body = loop {
+        match attempt_download(&client, &url).await {
+            Ok(Some(body)) => break Ok(body),
+            Ok(None) => bail!("Not found: {}", &url),
+            Err(request_error) => {
+                if let Err(_waiter_err) = waiter.async_wait().await {
+                    break Err(request_error);
+                }
+            }
+        }
+    }?;
+
+    fs::write(wasm, body).with_context(|| format!("Failed to write {}", wasm.display()))?;
+
+    Ok(())
+}
+
+async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>> {
+    let response = client.get(url.clone()).send().await?;
+
+    if response.status() == StatusCode::NOT_FOUND {
+        Ok(None)
+    } else {
+        let body = response.error_for_status()?.bytes().await?;
+        Ok(Some(body))
     }
 }
