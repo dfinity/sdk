@@ -16,8 +16,8 @@ fi
 brew install bats-core
 
 # Install Bats support.
-version=2.0.0
-curl --location --output bats-support.tar.gz https://github.com/bats-core/bats-support/archive/refs/tags/v$version.tar.gz
+version=0.3.0
+curl --location --output bats-support.tar.gz https://github.com/bats-core/bats-support/archive/v$version.tar.gz
 mkdir /usr/local/lib/bats-support
 tar --directory /usr/local/lib/bats-support --extract --file bats-support.tar.gz --strip-components 1
 rm bats-support.tar.gz
