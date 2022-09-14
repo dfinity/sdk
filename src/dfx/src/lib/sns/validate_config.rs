@@ -6,8 +6,9 @@ use std::process::{self, Command};
 use crate::lib::error::DfxResult;
 use crate::Environment;
 
-#[context("Failed to validate sns config at {}.", path.display())]
-pub fn validate_config(path: &Path) -> DfxResult {
+///
+#[context("Failed to validate SNS config at {}.", path.display())]
+pub fn validate_config(env: &dyn Environment, path: &Path) -> DfxResult {
     let cli_name = "sns";
     let sns_cli = env
         .get_cache()
@@ -37,5 +38,4 @@ pub fn validate_config(path: &Path) -> DfxResult {
             }
         })?;
     Ok(())
-
 }
