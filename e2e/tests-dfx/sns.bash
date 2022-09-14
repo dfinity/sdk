@@ -34,13 +34,15 @@ SNS_CONFIG_FILE_NAME="sns.yml"
 @test "sns config validate approves a valid configuration" {
     dfx_new
     cp "${BATS_TEST_DIRNAME}/../assets/sns/valid_sns_init_config.yaml" "$SNS_CONFIG_FILE_NAME"
-    dfx sns config validate
-    assert_match 'No errors found'
+    cp "${BATS_TEST_DIRNAME}/../assets/sns/logo.svg" .
+    assert_command dfx sns config validate
+    assert_match 'SNS config file is valid'
 }
 
 @test "sns config validate identifies a missing key" {
     dfx_new
     grep -v token_name "${BATS_TEST_DIRNAME}/../assets/sns/valid_sns_init_config.yaml" > "$SNS_CONFIG_FILE_NAME"
+    cp "${BATS_TEST_DIRNAME}/../assets/sns/logo.svg" .
     assert_command_fail dfx sns config validate
-    assert_match token_name
+    assert_match token.name
 }

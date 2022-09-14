@@ -8,7 +8,7 @@ use crate::Environment;
 
 /// Calls the sns cli tool from the SNS codebase in the ic repo.
 #[context("Failed to call sns CLI.")]
-pub fn call_sns_cli<S, I>(env: &dyn Environment, args: I) -> DfxResult
+pub fn call_sns_cli<S, I>(env: &dyn Environment, args: I) -> DfxResult<String>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
@@ -26,7 +26,7 @@ where
         .map_err(anyhow::Error::from)
         .and_then(|output| {
             if output.status.success() {
-                Ok(())
+                Ok(String::from_utf8_lossy(&output.stdout).into_owned())
             } else {
                 Err(anyhow!(
                     "SNS cli call failed:\n{:?} {:?}\nStdout:\n{:?}\n\nStderr:\n{:?}",
@@ -36,6 +36,5 @@ where
                     String::from_utf8_lossy(&output.stderr)
                 ))
             }
-        })?;
-    Ok(())
+        })
 }

@@ -13,5 +13,5 @@ pub fn exec(env: &dyn Environment, _opts: ValidateOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let path = config.get_project_root().join(sns::CONFIG_FILE_NAME);
 
-    validate_config(env, &path)
+    validate_config(env, &path).map(|stdout| println!("{}", stdout))
 }
