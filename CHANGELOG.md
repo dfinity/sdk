@@ -8,6 +8,24 @@
 
 `dfx generate`'s generated bindings use network-specific canister IDs depending on the generated language, but there was previously no way to configure which network this was, so it defaulted to local. A `--network` flag has been added for this purpose.
 
+### feat: sns config create
+
+There is a new command that creates an sns config template.
+
+### fix: remove $ from wasms dir
+
+The wasms dir path had a $ which is unwanted and now gone.
+
+### fix: Correct wasm for the SNS swap canister
+
+Previously the incorrect wasm canister was installed.
+
+### fix: Use NNS did files that matches the wasms
+
+Previously the did files and wasms could be incompatible.
+
+### fix: allow users to skip compatibility check if parsing fails
+
 ### feat: canister HTTP support is now enabled by default.
 
 `dfx start` and `dfx replica` now ignore the `--enable-canister-http` parameter.
@@ -15,6 +33,10 @@
 You can still disable the canister http feature through configuration:
 - ~/.config/dfx/networks.json: `.local.canister_http.enabled=false`
 - dfx.json (project-specific networks) : `.networks.local.canister_http.enabled=false`
+
+### feat: custom canister `wasm` field can now specify a URL from which to download
+
+Support for a URL in the `candid` field is coming soon.
 
 ### feat: deploy NNS canisters
 
