@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: sns config validate
+
+There is a new command that verifies that an SNS initialization config is valid.
+
 ### fix: remove $ from wasms dir
 
 The wasms dir path had a $ which is unwanted and now gone.
