@@ -10,8 +10,6 @@ use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
-use fn_error_context::context;
-use ic_agent::{Agent, AgentError};
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::fs;
@@ -122,8 +120,6 @@ pub async fn exec(
             let idl_path = canister_info.get_build_idl_path();
             let init_type = get_candid_init_type(&idl_path);
             let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
-            let installed_module_hash =
-                read_module_hash(agent, &canister_id_store, &canister_info).await?;
             install_canister(
                 env,
                 agent,
@@ -133,7 +129,6 @@ pub async fn exec(
                 mode,
                 timeout,
                 call_sender,
-                installed_module_hash,
                 opts.upgrade_unchanged,
                 None,
             )
@@ -160,8 +155,6 @@ pub async fn exec(
                 let canister_id =
                     Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
-                let installed_module_hash =
-                    read_module_hash(agent, &canister_id_store, &canister_info).await?;
 
                 let install_args = || Ok(vec![]);
 
@@ -174,7 +167,6 @@ pub async fn exec(
                     mode,
                     timeout,
                     call_sender,
-                    installed_module_hash,
                     opts.upgrade_unchanged,
                     None,
                 )
@@ -184,31 +176,5 @@ pub async fn exec(
         Ok(())
     } else {
         unreachable!()
-    }
-}
-
-#[context("Failed to read installed module hash for canister '{}'.", canister_info.get_name())]
-async fn read_module_hash(
-    agent: &Agent,
-    canister_id_store: &CanisterIdStore,
-    canister_info: &CanisterInfo,
-) -> DfxResult<Option<Vec<u8>>> {
-    match canister_id_store.find(canister_info.get_name()) {
-        Some(canister_id) => {
-            match agent
-                .read_state_canister_info(canister_id, "module_hash", false)
-                .await
-            {
-                Ok(installed_module_hash) => Ok(Some(installed_module_hash)),
-                // If the canister is empty, this path does not exist.
-                // The replica doesn't support negative lookups, therefore if the canister
-                // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-                Err(AgentError::LookupPathUnknown(_)) | Err(AgentError::LookupPathAbsent(_)) => {
-                    Ok(None)
-                }
-                Err(x) => bail!(x),
-            }
-        }
-        None => Ok(None),
     }
 }

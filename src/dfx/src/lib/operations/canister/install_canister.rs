@@ -40,7 +40,6 @@ pub async fn install_canister(
     mode: Option<InstallMode>,
     timeout: Duration,
     call_sender: &CallSender,
-    installed_module_hash: Option<Vec<u8>>,
     upgrade_unchanged: bool,
     pool: Option<&CanisterPool>,
 ) -> DfxResult {
@@ -49,6 +48,18 @@ pub async fn install_canister(
     if !network.is_ic && named_canister::get_ui_canister_id(canister_id_store).is_none() {
         named_canister::install_ui_canister(env, canister_id_store, None).await?;
     }
+    let canister_id = canister_info.get_canister_id()?;
+    let installed_module_hash = match agent
+        .read_state_canister_info(canister_id, "module_hash", false)
+        .await
+    {
+        Ok(installed_module_hash) => Some(installed_module_hash),
+        // If the canister is empty, this path does not exist.
+        // The replica doesn't support negative lookups, therefore if the canister
+        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
+        Err(AgentError::LookupPathUnknown(_) | AgentError::LookupPathAbsent(_)) => None,
+        Err(x) => bail!(x),
+    };
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
             InstallMode::Upgrade
@@ -56,7 +67,6 @@ pub async fn install_canister(
             InstallMode::Install
         }
     });
-    let canister_id = canister_info.get_canister_id()?;
     if matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = &candid {

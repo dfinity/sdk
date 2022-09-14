@@ -12,7 +12,6 @@ use crate::util::{blob_from_arguments, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
-use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
@@ -228,27 +227,12 @@ async fn install_canisters(
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
     for canister_name in canister_names {
-        let (install_mode, installed_module_hash) = if force_reinstall {
-            (InstallMode::Reinstall, None)
+        let install_mode = if force_reinstall {
+            Some(InstallMode::Reinstall)
         } else {
             match initial_canister_id_store.find(canister_name) {
-                Some(canister_id) => {
-                    match agent
-                        .read_state_canister_info(canister_id, "module_hash", false)
-                        .await
-                    {
-                        Ok(installed_module_hash) => {
-                            (InstallMode::Upgrade, Some(installed_module_hash))
-                        }
-                        // If the canister is empty, this path does not exist.
-                        // The replica doesn't support negative lookups, therefore if the canister
-                        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-                        Err(AgentError::LookupPathUnknown(_))
-                        | Err(AgentError::LookupPathAbsent(_)) => (InstallMode::Install, None),
-                        Err(x) => bail!(x),
-                    }
-                }
-                None => (InstallMode::Install, None),
+                Some(_) => None,
+                None => Some(InstallMode::Install),
             }
         };
 
@@ -265,10 +249,9 @@ async fn install_canisters(
             &mut canister_id_store,
             &canister_info,
             &install_args,
-            Some(install_mode),
+            install_mode,
             timeout,
             call_sender,
-            installed_module_hash,
             upgrade_unchanged,
             Some(&pool),
         )
