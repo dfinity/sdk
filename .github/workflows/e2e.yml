@@ -44,6 +44,9 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
+          # TODO: Artefacts are preserved across workflows, so as the key doesn't 
+          # specify a code version it may affect other jobs where the code is different.
+          # This looks to me like a bug.
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
           path: ${{ matrix.binary_path }}/dfx
 
@@ -94,16 +97,23 @@ jobs:
           time curl --fail http://localhost:"$(dfx info webserver-port)"/sample-asset.txt?canisterId=$(dfx canister id smoke_frontend)
           time dfx stop
 
-  test:
+  cache_install:
     runs-on: ${{ matrix.os }}
-    needs: [build_dfx, list_tests]
+    needs: [build_dfx]
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
-    env:
-      E2E_TEST: tests-${{ matrix.test }}.bash
+      matrix:
+        os: [macos-11, ubuntu-20.04]
+        rust: ["1.60.0"]
     steps:
       - uses: actions/checkout@v3
+      - name: Cache installation
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/dfinity/versions
+            /usr/local/bin/dfx
+          key: ${{ runner.os }}-${{ env.GITHUB_SHA }}-${{ matrix.rust }}-1-installation
       - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
@@ -111,6 +121,27 @@ jobs:
           path: /usr/local/bin
       - name: Setup dfx binary
         run: chmod +x /usr/local/bin/dfx
+      - name: Fill cache
+        run: /usr/local/bin/dfx cache install
+
+
+  test:
+    runs-on: ${{ matrix.os }}
+    needs: [cache_install, list_tests]
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
+    env:
+      E2E_TEST: tests-${{ matrix.test }}.bash
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache installation
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/dfinity/versions
+            /usr/local/bin/dfx
+          key: ${{ runner.os }}-${{ env.GITHUB_SHA }}-${{ matrix.rust }}-1-installation
       - name: Provision Darwin
         if: contains(matrix.os, 'macos')
         run: bash scripts/workflows/provision-darwin.sh

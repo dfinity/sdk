@@ -50,7 +50,7 @@ standard_setup() {
     export E2E_NETWORKS_JSON="$DFX_CONFIG_ROOT/.config/dfx/networks.json"
     # Install the version in the cache
     mkdir -p "$(dirname "$(dfx cache show)")"
-    cp -R "$ORIGINAL_CACHE_DIR" "$(dfx cache show)"
+    ln -s "$ORIGINAL_CACHE_DIR" "$(dfx cache show)"
 }
 
 standard_teardown() {
