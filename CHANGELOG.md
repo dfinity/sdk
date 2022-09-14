@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: add --mode=auto
+
+When using `dfx canister install`, you can now pass `auto` for the `--mode` flag, which will auto-select `install` or `upgrade` depending on need, the same way `dfx deploy` does. The default remains `install` to prevent mistakes.
+
 ### feat: sns config validate
 
 There is a new command that verifies that an SNS initialization config is valid.

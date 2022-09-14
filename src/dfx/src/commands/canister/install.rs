@@ -31,6 +31,7 @@ pub struct CanisterInstallOpts {
     async_call: bool,
 
     /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
+    /// If auto is selected, either install or upgrade will be used depending on if the canister has already been installed.
     #[clap(long, short('m'), default_value("install"),
         possible_values(&["install", "reinstall", "upgrade", "auto"]))]
     mode: String,
