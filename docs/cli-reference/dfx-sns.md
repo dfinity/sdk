@@ -11,7 +11,7 @@ Depending on the `dfx sns` subcommand you specify, additional arguments, options
 
 | Command                             | Description                                                                   |
 |-------------------------------------|-------------------------------------------------------------------------------|
-| [`create`](#_dfx_sns_create)        | Creates an SNS confoiguration template                                        |
+| [`create`](#_dfx_sns_create)        | Creates an SNS configuration template                                        |
 | [`validate`](#_dfx_sns_validate)    | Checks whether the sns config file is valid.                                  |
 | `help`                              | Displays usage information message for a specified subcommand.                |
 
@@ -24,7 +24,7 @@ dfx sns validate --help
 
 ## dfx sns create
 
-Use the `dfx sns create` command to create an SNS configuration file.  The configuration file specifies important, legally and financially relevant details about dapp decentralization.  The file leaves blank parameters such as token name; you will need to fill these in.
+Use the `dfx sns create` command to create an SNS configuration file. The configuration file specifies important, legally and financially relevant details about dapp decentralization.  The file leaves blank parameters such as token name; you will need to fill these in.
 
 ### Basic usage
 
