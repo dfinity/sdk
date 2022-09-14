@@ -6,6 +6,10 @@
 
 ### fix: `cargo run -p dfx -- --version` prints correct version
 
+### feat: sns config validate
+
+There is a new command that verifies that an SNS initialization config is valid.
+
 ### feat: sns config create
 
 There is a new command that creates an sns config template.
