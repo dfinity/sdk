@@ -151,6 +151,8 @@ dfx now stores data and control files in one of three places, rather than direct
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
 
+### fix: `dfx start` and `dfx stop` will take into account dfx/replica processes from dfx <= 0.11.x
+
 ### feat: added command `dfx info`
 
 #### feat: `dfx info webserver-port`
