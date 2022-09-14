@@ -8,6 +8,10 @@
 
 `dfx generate`'s generated bindings use network-specific canister IDs depending on the generated language, but there was previously no way to configure which network this was, so it defaulted to local. A `--network` flag has been added for this purpose.
 
+### feat: sns config validate
+
+There is a new command that verifies that an SNS initialization config is valid.
+
 ### feat: sns config create
 
 There is a new command that creates an sns config template.
@@ -154,6 +158,8 @@ dfx now stores data and control files in one of three places, rather than direct
 - `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (for the shared local network on MacOS)
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
+
+### fix: `dfx start` and `dfx stop` will take into account dfx/replica processes from dfx <= 0.11.x
 
 ### feat: added command `dfx info`
 
