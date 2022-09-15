@@ -4,6 +4,10 @@
 
 ## DFX
 
+### chore: Kill unwanted CI jobs
+
+If pushing twice to the same branch in quick succession, the earlier CI jobs are cancelled in favour of the later ones.
+
 ### feat: add --mode=auto
 
 When using `dfx canister install`, you can now pass `auto` for the `--mode` flag, which will auto-select `install` or `upgrade` depending on need, the same way `dfx deploy` does. The default remains `install` to prevent mistakes.
