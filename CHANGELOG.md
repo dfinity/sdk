@@ -4,6 +4,8 @@
 
 ## DFX
 
+### fix: `cargo run -p dfx -- --version` prints correct version
+
 ### chore: Kill unwanted CI jobs
 
 If pushing twice to the same branch in quick succession, the earlier CI jobs are cancelled in favour of the later ones.
