@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
+use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
@@ -242,11 +243,19 @@ pub struct ConfigDefaultsCanisterHttp {
     /// # Enable HTTP Adapter
     #[serde(default = "default_as_true")]
     pub enabled: bool,
+
+    /// # Logging Level
+    /// The logging level of the adapter.
+    #[serde(default)]
+    pub log_level: HttpAdapterLogLevel,
 }
 
 impl Default for ConfigDefaultsCanisterHttp {
     fn default() -> Self {
-        ConfigDefaultsCanisterHttp { enabled: true }
+        ConfigDefaultsCanisterHttp {
+            enabled: true,
+            log_level: HttpAdapterLogLevel::default(),
+        }
     }
 }
 

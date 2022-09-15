@@ -6,6 +6,7 @@ use crate::config::dfinity::{
     ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
     ConfigDefaultsReplica,
 };
+use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::error::DfxResult;
 
 use anyhow::Context;
@@ -262,6 +263,12 @@ impl LocalServerDescriptor {
 
         if self.canister_http.enabled {
             println!("  canister http: enabled");
+            let diffs: String = if self.canister_http.log_level != HttpAdapterLogLevel::default() {
+                format!(" (default: {:?})", HttpAdapterLogLevel::default())
+            } else {
+                "".to_string()
+            };
+            println!("    log level: {:?}{}", self.canister_http.log_level, diffs);
         } else {
             println!("  canister http: disabled (default: enabled)");
         }
