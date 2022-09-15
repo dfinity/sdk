@@ -1,3 +1,4 @@
+//! Code for creating SNS configurations
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use std::path::Path;
@@ -6,6 +7,7 @@ use std::process::{self, Command};
 use crate::lib::error::DfxResult;
 use crate::Environment;
 
+/// Ceates an SNS configuration template.
 #[context("Failed to create sns config at {}.", path.display())]
 pub fn create_config(env: &dyn Environment, path: &Path) -> DfxResult {
     let cli_name = "sns";

@@ -1,3 +1,4 @@
+//! Code for decentralizing dapps
 #![warn(clippy::missing_docs_in_private_items)]
 pub mod create_config;
 pub mod deploy;

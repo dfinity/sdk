@@ -1,3 +1,4 @@
+//! Code for the command line: `dfx nns import`
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
 use crate::lib::project::import::import_canister_definitions;
@@ -19,6 +20,7 @@ pub struct ImportOpts {
     network_mapping: Vec<String>,
 }
 
+/// Executes `dfx nns import`
 pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let mut config = config.as_ref().clone();

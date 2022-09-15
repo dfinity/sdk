@@ -1,3 +1,4 @@
+//! Command line interface for `dfx sns`.
 #![warn(clippy::missing_docs_in_private_items)]
 use crate::{
     commands::sns::config::SnsConfigOpts,
@@ -15,6 +16,7 @@ mod import;
 #[derive(Parser)]
 #[clap(name("sns"))]
 pub struct SnsOpts {
+    /// Arguments and flags for subcommands.
     #[clap(subcommand)]
     subcmd: SubCommand,
 }

@@ -1,3 +1,4 @@
+//! Code for creating an SNS.
 use fn_error_context::context;
 use std::ffi::OsString;
 use std::path::Path;
