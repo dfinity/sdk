@@ -1,3 +1,4 @@
+#![warn(clippy::missing_docs_in_private_items)]
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::provider::create_agent_environment;

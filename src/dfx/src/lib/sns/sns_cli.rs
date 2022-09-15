@@ -1,13 +1,15 @@
+//! Library for calling the `sns` command line tool.
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use std::ffi::OsStr;
+use std::path::Path;
 use std::process::{self, Command};
 
 use crate::lib::error::DfxResult;
 use crate::Environment;
 
-/// Calls the sns cli tool from the SNS codebase in the ic repo.
-#[context("Failed to call sns CLI.")]
+/// Calls the sns command line tool from the SNS codebase in the ic repo.
+#[context("Failed to call the bundled `sns` command.")]
 pub fn call_sns_cli<S, I>(env: &dyn Environment, args: I) -> DfxResult<String>
 where
     I: IntoIterator<Item = S>,
@@ -18,8 +20,11 @@ where
         .get_cache()
         .get_binary_command_path(cli_name)
         .with_context(|| format!("Could not find bundled binary '{cli_name}'."))?;
-    let mut command = Command::new(sns_cli);
+    let mut command = Command::new(&sns_cli);
     command.args(args);
+    // The sns command line tool itself calls dfx; it should call this dfx.
+    // The sns command line tool should not rely on commands not packaged with dfx.
+    command.env("PATH", sns_cli.parent().unwrap_or_else(|| Path::new(".")));
     command
         .stdin(process::Stdio::null())
         .output()

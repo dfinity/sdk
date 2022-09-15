@@ -47,3 +47,14 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     assert_command_fail dfx sns config validate
     assert_match token.name
 }
+
+@test "sns deploy exists" {
+    dfx sns deploy --help
+}
+
+@test "sns deploy fails without config file" {
+    dfx_new
+    rm -f sns.yml # Is not expected to be present anyway
+    assert_command_fail dfx sns deploy
+    assert_match 
+}
