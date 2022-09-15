@@ -4,6 +4,9 @@
 
 ## DFX
 
+
+### fix: `cargo run -p dfx -- --version` prints correct version
+
 ### feat: add --mode=auto
 
 When using `dfx canister install`, you can now pass `auto` for the `--mode` flag, which will auto-select `install` or `upgrade` depending on need, the same way `dfx deploy` does. The default remains `install` to prevent mistakes.
