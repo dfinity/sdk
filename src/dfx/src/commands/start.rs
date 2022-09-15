@@ -578,7 +578,8 @@ pub fn configure_canister_http_adapter_if_enabled(
     let socket_path =
         get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
 
-    let adapter_config = canister_http::adapter::Config::new(socket_path);
+    let log_level = local_server_descriptor.canister_http.log_level;
+    let adapter_config = canister_http::adapter::Config::new(socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;
