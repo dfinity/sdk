@@ -1,4 +1,4 @@
-//! Code for the comamnd line `dfx sns import`
+//! Code for the command line `dfx sns import`
 use crate::lib::error::DfxResult;
 use crate::lib::project::import::import_canister_definitions;
 use crate::lib::project::network_mappings::get_network_mappings;

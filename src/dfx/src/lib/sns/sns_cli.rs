@@ -9,7 +9,7 @@ use crate::lib::error::DfxResult;
 use crate::Environment;
 
 /// Calls the sns command line tool from the SNS codebase in the ic repo.
-#[context("Failed to call the bundled `sns` command.")]
+#[context("Failed to call sns CLI.")]
 pub fn call_sns_cli<S, I>(env: &dyn Environment, args: I) -> DfxResult<String>
 where
     I: IntoIterator<Item = S>,
@@ -33,10 +33,11 @@ where
             if output.status.success() {
                 Ok(String::from_utf8_lossy(&output.stdout).into_owned())
             } else {
+                let args: Vec<_> = command.get_args().into_iter().map(OsStr::to_string_lossy).collect();
                 Err(anyhow!(
-                    "SNS cli call failed:\n{:?} {:?}\nStdout:\n{:?}\n\nStderr:\n{:?}",
+                    "SNS cli call failed:\n{:?} {}\nStdout:\n{}\n\nStderr:\n{}",
                     command.get_program(),
-                    command.get_args(),
+                    args.join(" "),
                     String::from_utf8_lossy(&output.stdout),
                     String::from_utf8_lossy(&output.stderr)
                 ))

@@ -12,7 +12,7 @@ mod config;
 mod deploy;
 mod import;
 
-/// SNS subcommands.
+/// Options for `dfx sns`.
 #[derive(Parser)]
 #[clap(name("sns"))]
 pub struct SnsOpts {

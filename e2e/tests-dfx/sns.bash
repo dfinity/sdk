@@ -58,3 +58,15 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     assert_command_fail dfx sns deploy
     assert_match 
 }
+
+@test "sns deploy succeeds" {
+    dfx_new
+    install_shared_asset subnet_type/shared_network_settings/system
+    dfx start --clean --background --host 127.0.0.1:8080
+    sleep 1
+    dfx nns install
+    dfx nns import
+    cp "${BATS_TEST_DIRNAME}/../assets/sns/valid_sns_init_config.yaml" "$SNS_CONFIG_FILE_NAME"
+    cp "${BATS_TEST_DIRNAME}/../assets/sns/logo.svg" .
+    dfx sns deploy
+}
