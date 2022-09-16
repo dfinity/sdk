@@ -150,7 +150,8 @@ impl CanisterBuilder for CustomBuilder {
             add_candid_service_metadata = false;
         }
 
-        if config.shrink_after_build {
+        // Custom canister may have WASM gzipped
+        if config.shrink_after_build && wasm.extension().and_then(std::ffi::OsStr::to_str) == Some("wasm") {
             info!(self.logger, "Shrink WASM module size.");
             super::shrink_wasm(&wasm)?;
         }
