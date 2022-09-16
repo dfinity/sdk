@@ -77,8 +77,8 @@ nns_canister_id() {
     nns-lifeline)          echo "rno2w-sqaaa-aaaaa-aaacq-cai" ;;
     nns-genesis-token)     echo "renrk-eyaaa-aaaaa-aaada-cai" ;;
     nns-sns-wasm)          echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
-    internet_identity)     echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
-    nns-dapp)              echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
+    internet_identity)     echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
+    nns-dapp)              echo "qsgjb-riaaa-aaaaa-aaaga-cai" ;;
     *)                     echo "ERROR: Unknown NNS canister '$1'." >&2
                            exit 1;;
     esac
