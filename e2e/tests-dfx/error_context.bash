@@ -118,7 +118,7 @@ teardown() {
     assert_match "moc"
 
     # expect to see the full path of the binary
-    assert_match "$(dfx cache show)/moc"
+    assert_contains "$(dfx cache show)/moc"
 
     # expect to see the underlying cause
     assert_match "No such file or directory"
