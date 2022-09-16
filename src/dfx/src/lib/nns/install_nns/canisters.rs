@@ -67,7 +67,7 @@ pub const NNS_SNS_WASM: IcNnsInitCanister = IcNnsInitCanister {
     canister_name: "nns-sns-wasm",
     wasm_name: "sns-wasm-canister.wasm",
     test_wasm_name: None,
-    canister_id: "qjdve-lqaaa-aaaaa-aaaeq-cai",
+    canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai",
 };
 /// Placeholder for the Internet Identity.  Not used.
 pub const NNS_IDENTITY: IcNnsInitCanister = IcNnsInitCanister {

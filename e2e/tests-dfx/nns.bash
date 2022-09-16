@@ -76,7 +76,7 @@ nns_canister_id() {
     nns-cycles-minting)    echo "rkp4c-7iaaa-aaaaa-aaaca-cai" ;;
     nns-lifeline)          echo "rno2w-sqaaa-aaaaa-aaacq-cai" ;;
     nns-genesis-token)     echo "renrk-eyaaa-aaaaa-aaada-cai" ;;
-    nns-sns-wasm)          echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
+    nns-sns-wasm)          echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
     internet_identity)     echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
     nns-dapp)              echo "qsgjb-riaaa-aaaaa-aaaga-cai" ;;
     *)                     echo "ERROR: Unknown NNS canister '$1'." >&2
@@ -95,7 +95,7 @@ nns_canister_id() {
     # nns install does not install all required wasms.  We also need:
     jq '.canisters.internet_identity.remote.id.local="qhbym-qaaaa-aaaaa-aaafq-cai"' dfx.json | sponge dfx.json
     jq '.canisters["nns-dapp"].remote.id.local="qsgjb-riaaa-aaaaa-aaaga-cai"' dfx.json | sponge dfx.json
-    jq '.canisters["nns-sns-wasm"].remote.id.local="qjdve-lqaaa-aaaaa-aaaeq-cai"' dfx.json | sponge dfx.json
+    jq '.canisters["nns-sns-wasm"].remote.id.local="qaa6y-5yaaa-aaaaa-aaafa-cai"' dfx.json | sponge dfx.json
     # Showing the IDs we have...
     jq '.canisters | to_entries | map({key: .key, id: .value.remote.id.local})' dfx.json
     jq '.canisters["nns-sns-wasm"]' dfx.json
