@@ -30,23 +30,23 @@ icx_asset_sync() {
   if [ -z "$1" ]; then
       ASSETS=src/e2e_project_frontend/assets
   else
-      ASSETS="$@"
+      ASSETS=$@
   fi
-  assert_command "$ICX_ASSET" --pem $IDENTITY --replica $REPLICA_ADDRESS sync "$CANISTER_ID" $ASSETS
+  assert_command "$ICX_ASSET" --pem "$IDENTITY" --replica "$REPLICA_ADDRESS" sync "$CANISTER_ID" "$ASSETS"
 }
 
 icx_asset_list() {
   IDENTITY="$DFX_CONFIG_ROOT"/.config/dfx/identity/default/identity.pem
   REPLICA_ADDRESS="http://localhost:$(get_webserver_port)"
   CANISTER_ID=$(dfx canister id e2e_project_frontend)
-  assert_command "$ICX_ASSET" --pem $IDENTITY --replica $REPLICA_ADDRESS ls "$CANISTER_ID"
+  assert_command "$ICX_ASSET" --pem "$IDENTITY" --replica "$REPLICA_ADDRESS" ls "$CANISTER_ID"
 }
 
 icx_asset_upload() {
   IDENTITY="$DFX_CONFIG_ROOT"/.config/dfx/identity/default/identity.pem
   REPLICA_ADDRESS="http://localhost:$(get_webserver_port)"
   CANISTER_ID=$(dfx canister id e2e_project_frontend)
-  assert_command "$ICX_ASSET" --pem $IDENTITY --replica $REPLICA_ADDRESS upload "$CANISTER_ID" "$@"
+  assert_command "$ICX_ASSET" --pem "$IDENTITY" --replica "$REPLICA_ADDRESS" upload "$CANISTER_ID" "$@"
 }
 
 @test "lists assets" {
