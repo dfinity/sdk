@@ -101,8 +101,11 @@ nns_canister_id() {
         sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')/$1" | awk '{print "0x" $1}'
     }
     wasm_matches() {
-            [[ "$(installed_wasm_hash "$1")" == "$(downloaded_wasm_hash "$2")" ]] || {
+        local INSTALLED_WASM_HASH="$(installed_wasm_hash "$1")"
+        local DOWNLOADED_WASM_HASH="$(downloaded_wasm_hash "$2")"
+            [[ "$INSTALLED_WASM_HASH" == "$DOWNLOADED_WASM_HASH" ]] || {
                 echo "ERROR:  There is a wasm hash mismatch between $1 and $2"
+                echo "ERROR:  $INSTALLED_WASM_HASH vs $DOWNLOADED_WASM_HASH"
                 exit 1
             }>&2
     }

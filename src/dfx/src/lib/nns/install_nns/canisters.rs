@@ -106,7 +106,7 @@ pub const NNS_DAPP: StandardCanister = StandardCanister {
     canister_name: "nns-dapp",
     canister_id: "qsgjb-riaaa-aaaaa-aaaga-cai",
     wasm_name: "nns-dapp_local.wasm",
-    wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_local.wasm",
+    wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/proposal-80618/nns-dapp_local_v2.wasm",
 };
 /// Backend canisters deployed by `ic nns init`.
 pub const NNS_CORE: &[&IcNnsInitCanister; 10] = &[
