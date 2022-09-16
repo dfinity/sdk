@@ -90,16 +90,6 @@ nns_canister_id() {
     dfx_start_for_nns_install
     dfx nns install
 
-    echo Getting canister IDs so that we can test that the expected wasms are installed...
-    dfx nns import --network-mapping local=mainnet
-    # nns install does not install all required wasms.  We also need:
-    jq '.canisters.internet_identity.remote.id.local="qhbym-qaaaa-aaaaa-aaafq-cai"' dfx.json | sponge dfx.json
-    jq '.canisters["nns-dapp"].remote.id.local="qsgjb-riaaa-aaaaa-aaaga-cai"' dfx.json | sponge dfx.json
-    jq '.canisters["nns-sns-wasm"].remote.id.local="qaa6y-5yaaa-aaaaa-aaafa-cai"' dfx.json | sponge dfx.json
-    # Showing the IDs we have...
-    jq '.canisters | to_entries | map({key: .key, id: .value.remote.id.local})' dfx.json
-    jq '.canisters["nns-sns-wasm"]' dfx.json
-
     echo Checking that the install worked...
     # Note:  The installation is quite expensive, so we test extensively on one installation
     #        rather than doing a separate installation for every test.  The tests are read-only
@@ -107,19 +97,14 @@ nns_canister_id() {
     installed_wasm_hash() {
         dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
     }
-    download_dir() {
-        echo ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')"
-    }
     downloaded_wasm_hash() {
-        sha256sum "$(download_dir)/$1" | awk '{print "0x" $1}'
+        sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')/$1" | awk '{print "0x" $1}'
     }
     wasm_matches() {
         echo "Comparing $* ..."
         [[ "$(installed_wasm_hash "$1")" == "$(downloaded_wasm_hash "$2")" ]] || {
                 echo "ERROR:  There is a wasm hash mismatch between $1 and $2"
                 echo "ERROR:  $(installed_wasm_hash "$1") != $(downloaded_wasm_hash "$2")"
-                echo "ERROR:  Install:  $(dfx canister info "$1")"
-                echo "ERROR:  Download: $(ls -l "$(download_dir "$2")")"
                 exit 1
         }>&2
     }
