@@ -134,20 +134,20 @@
     },
     "icx-proxy-x86_64-darwin": {
         "builtin": false,
-        "rev": "594b6c81cde6da4e08faee8aa8e5a2e6ae815602",
-        "sha256": "09rxh6kjwy7qfsvvsy6xjzyn4r4zlb78k1qipi4k3x0w0ajvp0sp",
-        "tag": "rev-c312760",
+        "rev": "7624053a50e1683c48757ee5dacbb454921e39ef",
+        "sha256": "0756kkb17pnx89n023k9sxaz69qrd5svh0jxkm4q1r4dxk7067aw",
+        "tag": "rev-7624053",
         "type": "file",
-        "url": "https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-macos.tar.gz",
+        "url": "https://github.com/dfinity/icx-proxy/releases/download/rev-7624053/binaries-macos.tar.gz",
         "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<tag>/binaries-macos.tar.gz"
     },
     "icx-proxy-x86_64-linux": {
         "builtin": false,
-        "rev": "594b6c81cde6da4e08faee8aa8e5a2e6ae815602",
-        "sha256": "18czg11v5hiczqrahr962wmjig3gcafplqiprlnx44kmzfhi4mks",
-        "tag": "rev-c312760",
+        "rev": "7624053a50e1683c48757ee5dacbb454921e39ef",
+        "sha256": "1vr3a49qb0r1gvijq7zr8nk9f51j4am5l74ypb22avs9d0rj72yw",
+        "tag": "rev-7624053",
         "type": "file",
-        "url": "https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-linux.tar.gz",
+        "url": "https://github.com/dfinity/icx-proxy/releases/download/rev-7624053/binaries-linux.tar.gz",
         "url_template": "https://github.com/dfinity/icx-proxy/releases/download/<tag>/binaries-linux.tar.gz"
     },
     "motoko-base": {
