@@ -85,19 +85,19 @@ nns_canister_id() {
 }
 
 @test "dfx nns install runs" {
-    # Setup
+    echo Setting up...
     install_shared_asset subnet_type/shared_network_settings/system
     dfx_start_for_nns_install
     dfx nns install
 
-    # get canister IDs so that we can test that the expected wasms are installed:
+    echo Getting canister IDs so that we can test that the expected wasms are installed...
     dfx nns import --network-mapping local=mainnet
     # nns install does not install all required wasms.  We also need:
     jq '.canisters.internet_identity.remote.id.local="qhbym-qaaaa-aaaaa-aaafq-cai"' dfx.json | sponge dfx.json
     jq '.canisters["nns-dapp"].remote.id.local="qsgjb-riaaa-aaaaa-aaaga-cai"' dfx.json | sponge dfx.json
     jq '.canisters["nns-sns-wasm"].remote.id.local="qjdve-lqaaa-aaaaa-aaaeq-cai"' dfx.json | sponge dfx.json
 
-    # Checking that the install worked.
+    echo Checking that the install worked...
     # Note:  The installation is quite expensive, so we test extensively on one installation
     #        rather than doing a separate installation for every test.  The tests are read-only
     #        so no test should affect the output of another.
@@ -128,6 +128,8 @@ nns_canister_id() {
     wasm_matches nns-sns-wasm sns-wasm-canister.wasm
     wasm_matches internet_identity internet_identity_dev.wasm
     wasm_matches nns-dapp nns-dapp_local.wasm
+
+    echo Stopping dfx...
     dfx stop
 }
 
