@@ -48,5 +48,8 @@ BATS_SUPPORT="/usr/local/lib/bats-support"
 echo "BATSLIB=${BATS_SUPPORT}" >> "$GITHUB_ENV"
 echo "$HOME/bin" >> "$GITHUB_PATH"
 
+cargo build -p icx-asset
+ICX_ASSET="$(pwd)/target/debug/icx-asset"
+echo "ICX_ASSET=$ICX_ASSET" >> "$GITHUB_ENV"
 # Exit temporary directory.
 popd
