@@ -96,6 +96,9 @@ nns_canister_id() {
     jq '.canisters.internet_identity.remote.id.local="qhbym-qaaaa-aaaaa-aaafq-cai"' dfx.json | sponge dfx.json
     jq '.canisters["nns-dapp"].remote.id.local="qsgjb-riaaa-aaaaa-aaaga-cai"' dfx.json | sponge dfx.json
     jq '.canisters["nns-sns-wasm"].remote.id.local="qjdve-lqaaa-aaaaa-aaaeq-cai"' dfx.json | sponge dfx.json
+    # Showing the IDs we have...
+    jq '.canisters | to_entries | map({key: .key, id: .value.remote.id.local})' dfx.json
+    jq '.canisters["nns-sns-wasm"]' dfx.json
 
     echo Checking that the install worked...
     # Note:  The installation is quite expensive, so we test extensively on one installation
@@ -104,19 +107,21 @@ nns_canister_id() {
     installed_wasm_hash() {
         dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
     }
+    download_dir() {
+        echo ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')"
+    }
     downloaded_wasm_hash() {
-        sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')/$1" | awk '{print "0x" $1}'
+        sha256sum "$(download_dir)/$1" | awk '{print "0x" $1}'
     }
     wasm_matches() {
-        local INSTALLED_WASM_HASH
-        INSTALLED_WASM_HASH="$(installed_wasm_hash "$1")"
-        local DOWNLOADED_WASM_HASH
-        DOWNLOADED_WASM_HASH="$(downloaded_wasm_hash "$2")"
-            [[ "$INSTALLED_WASM_HASH" == "$DOWNLOADED_WASM_HASH" ]] || {
+        echo "Comparing $* ..."
+        [[ "$(installed_wasm_hash "$1")" == "$(downloaded_wasm_hash "$2")" ]] || {
                 echo "ERROR:  There is a wasm hash mismatch between $1 and $2"
-                echo "ERROR:  $INSTALLED_WASM_HASH vs $DOWNLOADED_WASM_HASH"
+                echo "ERROR:  $(installed_wasm_hash "$1") != $(downloaded_wasm_hash "$2")"
+                echo "ERROR:  Install:  $(dfx canister info "$1")"
+                echo "ERROR:  Download: $(ls -l "$(download_dir "$2")")"
                 exit 1
-            }>&2
+        }>&2
     }
     wasm_matches nns-registry registry-canister.wasm
     wasm_matches nns-governance governance-canister_test.wasm
