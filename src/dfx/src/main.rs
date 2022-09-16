@@ -102,9 +102,9 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
+fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
     // Create a logger with our argument matches.
-    let level = opts.verbose as i64 - opts.quiet as i64;
+    let verbose_level = opts.verbose as i64 - opts.quiet as i64;
 
     let mode = match opts.logmode.as_str() {
         "tee" => LoggingMode::Tee(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
@@ -113,7 +113,7 @@ fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
     };
 
     // Only show the progress bar if the level is INFO or more.
-    (level >= 0, create_root_logger(level, mode))
+    (verbose_level, create_root_logger(verbose_level, mode))
 }
 
 fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
@@ -174,7 +174,7 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 
 fn main() {
     let cli_opts = CliOpts::parse();
-    let (progress_bar, log) = setup_logging(&cli_opts);
+    let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let command = cli_opts.command;
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
@@ -183,8 +183,8 @@ fn main() {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
             match EnvironmentImpl::new().map(|env| {
                 env.with_logger(log)
-                    .with_progress_bar(progress_bar)
                     .with_identity_override(identity)
+                    .with_verbose_level(verbose_level)
             }) {
                 Ok(env) => {
                     slog::trace!(

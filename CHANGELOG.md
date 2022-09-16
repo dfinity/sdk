@@ -68,6 +68,11 @@ It is now possible to set the http adapter's log level in dfx.json or in network
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
+### chore: reduce verbosity of dfx start
+
+`dfx start` produces a lot of log output that is at best irrelevant for most users.
+Most output is no longer visible unless either `--verbose` is used with dfx or the relevant part's (e.g. http adapter, btc adapter, or replica) log level is changed in dfx.json or networks.json.
+
 ### feat: generate secp256k1 keys by default
 
 When creating a new identity with `dfx identity new`, whereas previously it would have generated an Ed25519 key, it now generates a secp256k1 key. This is to enable users to write down a BIP39-style seed phrase, to recover their key in case of emergency, which will be printed when the key is generated and can be used with a new `--seed-phrase` flag in `dfx identity import`. `dfx identity import` is however still capable of importing an Ed25519 key.

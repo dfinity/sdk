@@ -213,7 +213,7 @@ pub fn exec(
         send_background()?;
         return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
-    local_server_descriptor.describe(true, false);
+    local_server_descriptor.describe(env.get_logger(), true, false);
 
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
@@ -321,6 +321,7 @@ pub fn exec(
             bind: address_and_port,
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
+            verbose: env.get_verbose_level() > 0,
         };
 
         let proxy = start_icx_proxy_actor(
