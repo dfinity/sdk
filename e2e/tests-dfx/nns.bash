@@ -93,9 +93,9 @@ nns_canister_id() {
     # get canister IDs so that we can test that the expected wasms are installed:
     dfx nns import --network-mapping local=mainnet
     # nns install does not install all required wasms.  We also need:
-    jq '.canisters.internet_identity.remote.id.local="qhbym-qaaaa-aaaaa-aaafq-cai"' | sponge dfx.json
-    jq '.canisters["nns-dapp"].remote.id.local="qsgjb-riaaa-aaaaa-aaaga-cai"' | sponge dfx.json
-    jq '.canisters["nns-sns-wasm"].remote.id.local="qjdve-lqaaa-aaaaa-aaaeq-cai"' | sponge dfx.json
+    jq '.canisters.internet_identity.remote.id.local="qhbym-qaaaa-aaaaa-aaafq-cai"' dfx.json | sponge dfx.json
+    jq '.canisters["nns-dapp"].remote.id.local="qsgjb-riaaa-aaaaa-aaaga-cai"' dfx.json | sponge dfx.json
+    jq '.canisters["nns-sns-wasm"].remote.id.local="qjdve-lqaaa-aaaaa-aaaeq-cai"' dfx.json | sponge dfx.json
 
     # Checking that the install worked.
     # Note:  The installation is quite expensive, so we test extensively on one installation
