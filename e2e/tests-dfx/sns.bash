@@ -65,7 +65,12 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     dfx start --clean --background --host 127.0.0.1:8080
     sleep 1
     dfx nns install
-    dfx nns import
+    # There are no entries for "local" upstream yet, so we need a network mapping.
+    dfx nns import --network-mapping local=mainnet
+    # This canister ID is not included upstream .. yet.
+    jq '.canisters["nns-sns-wasm"].remote.id.local="qjdve-lqaaa-aaaaa-aaaeq-cai"' dfx.json | sponge dfx.json
+    ls candid
+    cat dfx.json
     cp "${BATS_TEST_DIRNAME}/../assets/sns/valid_sns_init_config.yaml" "$SNS_CONFIG_FILE_NAME"
     cp "${BATS_TEST_DIRNAME}/../assets/sns/logo.svg" .
     dfx sns deploy
