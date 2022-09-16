@@ -125,7 +125,6 @@ impl Replica {
 
     fn start_replica(&mut self, addr: Addr<Self>) -> DfxResult {
         let logger = self.logger.clone();
-        debug!(logger, "starting replica");
 
         // Create a replica config.
         let config = &self.config.replica_config;
