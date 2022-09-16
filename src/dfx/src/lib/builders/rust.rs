@@ -92,8 +92,10 @@ impl CanisterBuilder for RustBuilder {
         );
         let output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")?;
 
-        info!(self.logger, "Optimizing WASM module.");
-        super::shrink_wasm(rust_info.get_output_wasm_path(), config)?;
+        if config.shrink_after_build {
+            info!(self.logger, "Shrink WASM module size.");
+            super::shrink_wasm(rust_info.get_output_wasm_path())?;
+        }
 
         if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);
