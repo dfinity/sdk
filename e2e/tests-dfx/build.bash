@@ -15,7 +15,7 @@ teardown() {
     standard_teardown
 }
 
-@test "can build a custom canister with wasm from a url" {
+@test "can build a custom canister with wasm and/or candid from a url" {
     install_asset wasm/identity
     mkdir -p www/wasm
     mv main.wasm www/wasm/
@@ -27,12 +27,7 @@ teardown() {
 
     jq '.canisters={}' dfx.json | sponge dfx.json
 
-    # URL for candid field is not supported
-    # shellcheck disable=SC2154
-    cp "${assets}/wasm/identity/main.did" main.did
-    # jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project.candid="main.did"' dfx.json | sponge dfx.json
-
+    jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
     jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
     jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
 

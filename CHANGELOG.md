@@ -47,7 +47,7 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
-Support for a URL in the `candid` field is coming soon.
+### feat: custom canister `candid` field can now specify a URL from which to download
 
 ### feat: deploy NNS canisters
 
