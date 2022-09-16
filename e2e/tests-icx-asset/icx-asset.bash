@@ -28,8 +28,10 @@ icx_asset_sync() {
   REPLICA_ADDRESS="http://localhost:$(get_webserver_port)"
   CANISTER_ID=$(dfx canister id e2e_project_frontend)
   if [ -z "$1" ]; then
+      # shellcheck disable=SC2086
       assert_command "$ICX_ASSET" --pem "$IDENTITY" --replica "$REPLICA_ADDRESS" sync "$CANISTER_ID" src/e2e_project_frontend/assets
   else
+      # shellcheck disable=SC2086
       assert_command "$ICX_ASSET" --pem "$IDENTITY" --replica "$REPLICA_ADDRESS" sync "$CANISTER_ID" $1 $2
   fi
 }
