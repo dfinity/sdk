@@ -155,7 +155,7 @@ pub fn exec(
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let pid_file_path = local_server_descriptor.dfx_pid_path();
 
-    check_previous_process_running(&pid_file_path)?;
+    check_previous_process_running(local_server_descriptor)?;
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
@@ -456,16 +456,20 @@ fn frontend_address(
     Ok((frontend_url, address_and_port))
 }
 
-fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
-    if dfx_pid_path.exists() {
-        // Read and verify it's not running. If it is just return.
-        if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
-            if let Ok(pid) = s.parse::<Pid>() {
-                // If we find the pid in the file, we tell the user and don't start!
-                let mut system = System::new();
-                system.refresh_processes();
-                if let Some(_process) = system.process(pid) {
-                    bail!("dfx is already running.");
+fn check_previous_process_running(
+    local_server_descriptor: &LocalServerDescriptor,
+) -> DfxResult<()> {
+    for pid_path in local_server_descriptor.dfx_pid_paths() {
+        if pid_path.exists() {
+            // Read and verify it's not running. If it is just return.
+            if let Ok(s) = std::fs::read_to_string(&pid_path) {
+                if let Ok(pid) = s.parse::<Pid>() {
+                    // If we find the pid in the file, we tell the user and don't start!
+                    let mut system = System::new();
+                    system.refresh_processes();
+                    if let Some(_process) = system.process(pid) {
+                        bail!("dfx is already running.");
+                    }
                 }
             }
         }
@@ -574,7 +578,8 @@ pub fn configure_canister_http_adapter_if_enabled(
     let socket_path =
         get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
 
-    let adapter_config = canister_http::adapter::Config::new(socket_path);
+    let log_level = local_server_descriptor.canister_http.log_level;
+    let adapter_config = canister_http::adapter::Config::new(socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;

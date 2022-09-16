@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
+use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
@@ -135,8 +136,8 @@ pub enum CanisterTypeProperties {
         wasm: String,
 
         /// # Candid File
-        /// Path to this canister's candid interface declaration.
-        candid: PathBuf,
+        /// Path to this canister's candid interface declaration.  A URL to a candid file is also acceptable.
+        candid: String,
 
         /// # Build Commands
         /// Commands that are executed in order to produce this canister's WASM module.
@@ -242,11 +243,19 @@ pub struct ConfigDefaultsCanisterHttp {
     /// # Enable HTTP Adapter
     #[serde(default = "default_as_true")]
     pub enabled: bool,
+
+    /// # Logging Level
+    /// The logging level of the adapter.
+    #[serde(default)]
+    pub log_level: HttpAdapterLogLevel,
 }
 
 impl Default for ConfigDefaultsCanisterHttp {
     fn default() -> Self {
-        ConfigDefaultsCanisterHttp { enabled: true }
+        ConfigDefaultsCanisterHttp {
+            enabled: true,
+            log_level: HttpAdapterLogLevel::default(),
+        }
     }
 }
 
@@ -813,8 +822,8 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
     {
         let missing_field = A::Error::missing_field;
         let mut wasm: Option<String> = None;
-        let (mut package, mut source, mut candid, mut build, mut r#type) =
-            (None, None, None, None, None);
+        let mut candid: Option<String> = None;
+        let (mut package, mut source, mut build, mut r#type) = (None, None, None, None);
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -829,7 +838,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         let props = match r#type.as_deref() {
             Some("motoko") | None => CanisterTypeProperties::Motoko,
             Some("rust") => CanisterTypeProperties::Rust {
-                candid: candid.ok_or_else(|| missing_field("candid"))?,
+                candid: PathBuf::from(candid.ok_or_else(|| missing_field("candid"))?),
                 package: package.ok_or_else(|| missing_field("package"))?,
             },
             Some("assets") => CanisterTypeProperties::Assets {

@@ -4,6 +4,21 @@
 
 ## DFX
 
+
+### fix: `cargo run -p dfx -- --version` prints correct version
+
+### feat: add --mode=auto
+
+When using `dfx canister install`, you can now pass `auto` for the `--mode` flag, which will auto-select `install` or `upgrade` depending on need, the same way `dfx deploy` does. The default remains `install` to prevent mistakes.
+
+### feat: add `--network` flag to `dfx generate`
+
+`dfx generate`'s generated bindings use network-specific canister IDs depending on the generated language, but there was previously no way to configure which network this was, so it defaulted to local. A `--network` flag has been added for this purpose.
+
+### feat: sns config validate
+
+There is a new command that verifies that an SNS initialization config is valid.
+
 ### feat: sns config create
 
 There is a new command that creates an sns config template.
@@ -32,7 +47,7 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
-Support for a URL in the `candid` field is coming soon.
+### feat: custom canister `candid` field can now specify a URL from which to download
 
 ### feat: deploy NNS canisters
 
@@ -41,6 +56,17 @@ A developer is now able to install NNS canisters, including back end canisters s
 dfx start --clean --background
 dfx nns install
 ```
+
+### feat: configure logging level of http adapter
+
+It is now possible to set the http adapter's log level in dfx.json or in networks.json:
+
+    "http": {
+      "enabled": true,
+      "log_level": "info"
+    }
+
+By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
 ### feat: generate secp256k1 keys by default
 
@@ -150,6 +176,8 @@ dfx now stores data and control files in one of three places, rather than direct
 - `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (for the shared local network on MacOS)
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
+
+### fix: `dfx start` and `dfx stop` will take into account dfx/replica processes from dfx <= 0.11.x
 
 ### feat: added command `dfx info`
 

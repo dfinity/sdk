@@ -6,6 +6,7 @@ use crate::config::dfinity::{
     ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
     ConfigDefaultsReplica,
 };
+use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::error::DfxResult;
 
 use anyhow::Context;
@@ -35,6 +36,8 @@ pub struct LocalServerDescriptor {
     pub replica: ConfigDefaultsReplica,
 
     pub scope: LocalNetworkScopeDescriptor,
+
+    legacy_pid_path: Option<PathBuf>,
 }
 
 impl LocalNetworkScopeDescriptor {
@@ -55,6 +58,7 @@ impl LocalServerDescriptor {
         canister_http: ConfigDefaultsCanisterHttp,
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
+        legacy_pid_path: Option<PathBuf>,
     ) -> DfxResult<Self> {
         let bind_address =
             to_socket_addr(&bind).context("Failed to convert 'bind' field to a SocketAddress")?;
@@ -66,6 +70,7 @@ impl LocalServerDescriptor {
             canister_http,
             replica,
             scope,
+            legacy_pid_path,
         })
     }
 
@@ -78,6 +83,16 @@ impl LocalServerDescriptor {
     /// This file contains the pid of the process started with `dfx start`
     pub fn dfx_pid_path(&self) -> PathBuf {
         self.data_directory.join("pid")
+    }
+
+    /// The path of the pid file, as well as one that dfx <= 0.11.x would have created
+    pub fn dfx_pid_paths(&self) -> Vec<PathBuf> {
+        let mut pid_paths: Vec<PathBuf> = vec![];
+        if let Some(legacy_pid_path) = &self.legacy_pid_path {
+            pid_paths.push(legacy_pid_path.clone());
+        }
+        pid_paths.push(self.dfx_pid_path());
+        pid_paths
     }
 
     /// This file contains the pid of the icx-proxy process
@@ -248,6 +263,12 @@ impl LocalServerDescriptor {
 
         if self.canister_http.enabled {
             println!("  canister http: enabled");
+            let diffs: String = if self.canister_http.log_level != HttpAdapterLogLevel::default() {
+                format!(" (default: {:?})", HttpAdapterLogLevel::default())
+            } else {
+                "".to_string()
+            };
+            println!("    log level: {:?}{}", self.canister_http.log_level, diffs);
         } else {
             println!("  canister http: disabled (default: enabled)");
         }
