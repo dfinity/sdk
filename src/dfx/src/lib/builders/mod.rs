@@ -16,7 +16,7 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 mod assets;
@@ -340,6 +340,7 @@ pub fn environment_variables<'a>(
 pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
+    pub shrink_after_build: bool,
     pub network_name: String,
 
     /// The root of all IDL files.
@@ -362,6 +363,7 @@ impl BuildConfig {
             network_name,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
+            shrink_after_build: true,
             build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
@@ -374,6 +376,32 @@ impl BuildConfig {
             ..self
         }
     }
+
+    pub fn with_shrink_after_build(self, shrink_after_build: bool) -> Self {
+        Self {
+            shrink_after_build,
+            ..self
+        }
+    }
+}
+
+fn shrink_wasm(wasm_path: impl AsRef<Path>, config: &BuildConfig) -> DfxResult {
+    if config.shrink_after_build {
+        let wasm_path = wasm_path.as_ref();
+        let wasm = std::fs::read(wasm_path).expect("Could not read the WASM module.");
+        let mut module_config = walrus::ModuleConfig::new();
+        module_config.generate_name_section(true);
+        module_config.generate_producers_section(false);
+        let mut module = module_config
+            .parse(&wasm)
+            .expect("Could not parse the WASM module.");
+        ic_wasm::shrink::shrink(&mut module);
+        module
+            .emit_wasm_file(wasm_path)
+            .unwrap_or_else(|_| panic!("Could not write shrinked WASM to {:?}", wasm_path));
+    }
+
+    Ok(())
 }
 
 pub struct BuilderPool {

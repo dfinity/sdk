@@ -150,6 +150,9 @@ impl CanisterBuilder for CustomBuilder {
             add_candid_service_metadata = false;
         }
 
+        info!(self.logger, "Optimizing WASM module.");
+        super::shrink_wasm(&wasm, config)?;
+
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
