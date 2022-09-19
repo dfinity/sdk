@@ -150,6 +150,12 @@ impl CanisterBuilder for CustomBuilder {
             add_candid_service_metadata = false;
         }
 
+        // Custom canister may have WASM gzipped
+        if info.get_shrink() && header == *b"\0asm" {
+            info!(self.logger, "Shrink WASM module size.");
+            super::shrink_wasm(&wasm)?;
+        }
+
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),

@@ -91,6 +91,13 @@ teardown() {
     assert_command dfx build
 }
 
+@test "build succeeds if disable shrink" {
+    jq '.canisters.e2e_project_backend.shrink=false' dfx.json | sponge dfx.json
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
+}
+
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
 # Currently due to new canister ids, the wasm binary will be different for inter-canister calls.
 @test "build twice produces the same wasm binary" {
