@@ -24,10 +24,6 @@ pub struct CanisterBuildOpts {
     #[clap(long)]
     check: bool,
 
-    /// Disable default WASM shrink after build.
-    #[clap(long)]
-    no_shrink: bool,
-
     #[clap(flatten)]
     network: NetworkOpt,
 }
@@ -74,9 +70,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     slog::info!(logger, "Building canisters...");
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let build_config = BuildConfig::from_config(&config)?
-        .with_build_mode_check(build_mode_check)
-        .with_shrink_after_build(!opts.no_shrink);
+    let build_config = BuildConfig::from_config(&config)?.with_build_mode_check(build_mode_check);
     runtime.block_on(canister_pool.build_or_fail(&build_config))?;
 
     Ok(())

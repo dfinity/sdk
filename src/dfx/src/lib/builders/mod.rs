@@ -340,7 +340,6 @@ pub fn environment_variables<'a>(
 pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
-    pub shrink_after_build: bool,
     pub network_name: String,
 
     /// The root of all IDL files.
@@ -363,7 +362,6 @@ impl BuildConfig {
             network_name,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
-            shrink_after_build: true,
             build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
@@ -377,12 +375,6 @@ impl BuildConfig {
         }
     }
 
-    pub fn with_shrink_after_build(self, shrink_after_build: bool) -> Self {
-        Self {
-            shrink_after_build,
-            ..self
-        }
-    }
 }
 
 fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
