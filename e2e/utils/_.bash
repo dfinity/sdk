@@ -21,14 +21,11 @@ install_shared_asset() {
 }
 
 standard_setup() {
-    # Ensure that this version exists in the cache
-    E2E_CACHE_ROOT="$(dfx cache show)"
-    export E2E_CACHE_ROOT
     # We want to work from a temporary directory, different for every test.
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export E2E_TEMP_DIR="$x"
 
-    cache_root="${E2E_CACHE_ROOT:-$x/cache-root}"
+    cache_root="${E2E_CACHE_ROOT:-"$HOME/.e2e-cache-root"}"
 
     mkdir "$x/working-dir"
     mkdir -p "$cache_root"
