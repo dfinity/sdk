@@ -13,7 +13,7 @@ Depending on the `dfx sns` subcommand you specify, additional arguments, options
 |-------------------------------------|-------------------------------------------------------------------------------|
 | [`create`](#_dfx_sns_create)        | Creates an SNS configuration template                                         |
 | [`validate`](#_dfx_sns_validate)    | Checks whether the sns config file is valid.                                  |
-| [`deploy`](#_dfx_sns_deploy)        | Deploys SNS canisters according to th elocal config.                          |
+| [`deploy`](#_dfx_sns_deploy)        | Deploys SNS canisters according to the local config.                          |
 | `help`                              | Displays usage information message for a specified subcommand.                |
 
 To view usage information for a specific subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx sns validate`, you can run the following command:
