@@ -99,7 +99,7 @@ pub async fn install_nns(
             .await?
             .to_text();
         if canister_id != &installed_canister_id {
-            bail!("Canister was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
+            bail!("Canister '{canister_name}' was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
         }
     }
     // ... and configure the backend NNS canisters:

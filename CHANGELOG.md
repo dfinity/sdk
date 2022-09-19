@@ -47,7 +47,7 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
-Support for a URL in the `candid` field is coming soon.
+### feat: custom canister `candid` field can now specify a URL from which to download
 
 ### feat: deploy NNS canisters
 
@@ -356,9 +356,11 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 999f7cc6bbe17abdb7b7a1eab73840a94597e363.
+Updated replica to elected commit 8a454cdc2bfc4ba548c8f6ce4e762adfa6eba6e4.
 This incorporates the following executed proposals:
 
+
+* [79816](https://dashboard.internetcomputer.org/proposal/79816)
 * [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)
 * [76228](https://dashboard.internetcomputer.org/proposal/76228)

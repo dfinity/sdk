@@ -14,6 +14,7 @@ enum CustomFileLocation {
 pub struct CustomCanisterInfo {
     input_wasm_url: Option<Url>,
     output_wasm_path: PathBuf,
+    input_candid_url: Option<Url>,
     output_idl_path: PathBuf,
     build: Vec<String>,
 }
@@ -24,6 +25,9 @@ impl CustomCanisterInfo {
     }
     pub fn get_output_wasm_path(&self) -> &Path {
         self.output_wasm_path.as_path()
+    }
+    pub fn get_input_candid_url(&self) -> &Option<Url> {
+        &self.input_candid_url
     }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
@@ -67,16 +71,23 @@ impl CanisterInfoFactory for CustomCanisterInfo {
             let output_wasm_path = workspace_root.join(wasm);
             (None, output_wasm_path)
         };
-        let candid = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
-            remote_candid
-        } else {
-            candid
-        };
-        let output_idl_path = workspace_root.join(candid);
+        let (input_candid_url, output_idl_path) =
+            if let Some(remote_candid) = info.get_remote_candid_if_remote() {
+                (None, workspace_root.join(remote_candid))
+            } else if let Ok(input_candid_url) = Url::parse(&candid) {
+                let output_candid_path = info
+                    .get_output_root()
+                    .join(info.get_name())
+                    .with_extension("did");
+                (Some(input_candid_url), output_candid_path)
+            } else {
+                (None, workspace_root.join(candid))
+            };
 
         Ok(Self {
             input_wasm_url,
             output_wasm_path,
+            input_candid_url,
             output_idl_path,
             build,
         })
