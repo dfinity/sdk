@@ -4,6 +4,9 @@
 
 ## DFX
 
+### feat: Add dfx sns deploy
+
+This allows users to deploy a set of SNS canisters.
 
 ### fix: `cargo run -p dfx -- --version` prints correct version
 
