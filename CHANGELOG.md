@@ -66,6 +66,9 @@ dfx start --clean --background
 dfx nns install
 ```
 
+This feature currently requires that the network 'local' is used and that it runs on port 8080.
+The network's port can be controlled by using the field `"provider"` in the network's definition, e.g. by setting it to `"127.0.0.1:8080"`.
+
 ### feat: configure logging level of http adapter
 
 It is now possible to set the http adapter's log level in dfx.json or in networks.json:
