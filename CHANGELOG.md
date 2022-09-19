@@ -4,6 +4,9 @@
 
 ## DFX
 
+
+### fix: `cargo run -p dfx -- --version` prints correct version
+
 ### feat: add --mode=auto
 
 When using `dfx canister install`, you can now pass `auto` for the `--mode` flag, which will auto-select `install` or `upgrade` depending on need, the same way `dfx deploy` does. The default remains `install` to prevent mistakes.
@@ -44,7 +47,7 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
-Support for a URL in the `candid` field is coming soon.
+### feat: custom canister `candid` field can now specify a URL from which to download
 
 ### feat: deploy NNS canisters
 
@@ -53,6 +56,20 @@ A developer is now able to install NNS canisters, including back end canisters s
 dfx start --clean --background
 dfx nns install
 ```
+
+This feature currently requires that the network 'local' is used and that it runs on port 8080.
+The network's port can be controlled by using the field `"provider"` in the network's definition, e.g. by setting it to `"127.0.0.1:8080"`.
+
+### feat: configure logging level of http adapter
+
+It is now possible to set the http adapter's log level in dfx.json or in networks.json:
+
+    "http": {
+      "enabled": true,
+      "log_level": "info"
+    }
+
+By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
 ### feat: generate secp256k1 keys by default
 
@@ -342,9 +359,11 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 999f7cc6bbe17abdb7b7a1eab73840a94597e363.
+Updated replica to elected commit 8a454cdc2bfc4ba548c8f6ce4e762adfa6eba6e4.
 This incorporates the following executed proposals:
 
+
+* [79816](https://dashboard.internetcomputer.org/proposal/79816)
 * [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)
 * [76228](https://dashboard.internetcomputer.org/proposal/76228)
