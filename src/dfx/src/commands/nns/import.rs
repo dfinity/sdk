@@ -27,7 +27,9 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let ic_commit = replica_rev();
 
     let dfx_url_str = {
-        let ic_project = std::env::var("DFX_IC_SRC").unwrap_or_else(|_| format!("https://raw.githubusercontent.com/dfinity/ic/{ic_commit}"));
+        let ic_project = std::env::var("DFX_IC_SRC").unwrap_or_else(|_| {
+            format!("https://raw.githubusercontent.com/dfinity/ic/{ic_commit}")
+        });
         format!("{ic_project}/rs/nns/dfx.json")
     };
     import_canister_definitions(
