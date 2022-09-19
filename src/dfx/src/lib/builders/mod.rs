@@ -374,7 +374,6 @@ impl BuildConfig {
             ..self
         }
     }
-
 }
 
 fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
