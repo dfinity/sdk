@@ -22,7 +22,7 @@ const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 )]
 struct Opts {
     /// Some input. Because this isn't an Option<T> it's required to be used
-    #[clap(long, default_value = "http://localhost:8000/")]
+    #[clap(long, default_value = "http://localhost:4943/")]
     replica: String,
 
     /// An optional PEM file to read the identity from. If none is passed,
