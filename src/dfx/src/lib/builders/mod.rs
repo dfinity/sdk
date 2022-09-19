@@ -376,6 +376,7 @@ impl BuildConfig {
     }
 }
 
+#[context("Failed to shrink wasm at {}.", &wasm_path.as_ref().display())]
 fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
     let wasm_path = wasm_path.as_ref();
     let wasm = std::fs::read(wasm_path).expect("Could not read the WASM module.");
