@@ -1,7 +1,7 @@
 {
   "version": 1,
   "canisters": {
-    "post-install": {
+    "postinstall": {
       "main": "main.mo",
       "post_install": "echo hello-file"
     },
