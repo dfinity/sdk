@@ -418,7 +418,7 @@ pub async fn download_ic_repo_wasm(
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
 #[context("Failed to download NNS wasm files.")]
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
-    let ic_commit = std::env::var("DFX_IC_REF").unwrap_or_else(|_| replica_rev().to_string());
+    let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
     let wasm_dir = &nns_wasm_dir(env);
     for IcNnsInitCanister {
         wasm_name,
