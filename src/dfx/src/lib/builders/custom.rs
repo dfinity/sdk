@@ -33,8 +33,6 @@ struct CustomBuilderExtra {
     input_wasm_url: Option<Url>,
     /// Where the wasm output will be located.
     wasm: PathBuf,
-    /// Where to download the candid from
-    input_candid_url: Option<Url>,
     /// Where the candid output will be located.
     candid: PathBuf,
     /// A command to run to build this canister. This is optional if the canister
@@ -59,7 +57,6 @@ impl CustomBuilderExtra {
         let info = info.as_info::<CustomCanisterInfo>()?;
         let input_wasm_url = info.get_input_wasm_url().to_owned();
         let wasm = info.get_output_wasm_path().to_owned();
-        let input_candid_url = info.get_input_candid_url().to_owned();
         let candid = info.get_output_idl_path().to_owned();
         let build = info.get_build_tasks().to_owned();
 
@@ -67,7 +64,6 @@ impl CustomBuilderExtra {
             dependencies,
             input_wasm_url,
             wasm,
-            input_candid_url,
             candid,
             build,
         })
@@ -111,7 +107,6 @@ impl CanisterBuilder for CustomBuilder {
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let CustomBuilderExtra {
-            input_candid_url: _,
             candid,
             input_wasm_url: _,
             wasm,
@@ -148,12 +143,6 @@ impl CanisterBuilder for CustomBuilder {
         file.read_exact(&mut header)?;
         if header != *b"\0asm" {
             add_candid_service_metadata = false;
-        }
-
-        // Custom canister may have WASM gzipped
-        if info.get_shrink() && header == *b"\0asm" {
-            info!(self.logger, "Shrink WASM module size.");
-            super::shrink_wasm(&wasm)?;
         }
 
         Ok(BuildOutput {
@@ -234,8 +223,7 @@ fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxRes
 
 pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult {
     let CustomBuilderExtra {
-        input_candid_url,
-        candid,
+        candid: _,
         input_wasm_url,
         wasm,
         build: _,
@@ -243,25 +231,22 @@ pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxRes
     } = CustomBuilderExtra::try_from(info, pool)?;
 
     if let Some(url) = input_wasm_url {
-        download_file(&url, &wasm).await?;
-    }
-    if let Some(url) = input_candid_url {
-        download_file(&url, &candid).await?;
+        let wasm_parent_dir = wasm.parent().unwrap();
+        create_dir_all(&wasm_parent_dir).with_context(|| {
+            format!(
+                "Failed to create temp directory {}.",
+                wasm_parent_dir.display()
+            )
+        })?;
+
+        download_canister_wasm(url, &wasm).await?;
     }
 
     Ok(())
 }
 
-#[context("Failed to download {} to {}.", from, to.display())]
-async fn download_file(from: &Url, to: &Path) -> DfxResult {
-    let parent_dir = to.parent().unwrap();
-    create_dir_all(&parent_dir).with_context(|| {
-        format!(
-            "Failed to create output directory {}.",
-            parent_dir.display()
-        )
-    })?;
-
+#[context("Failed to download {} to {}.", url, wasm.display())]
+async fn download_canister_wasm(url: Url, wasm: &Path) -> DfxResult {
     let tls_config = rustls::ClientConfig::builder()
         .with_safe_defaults()
         .with_webpki_roots()
@@ -280,9 +265,9 @@ async fn download_file(from: &Url, to: &Path) -> DfxResult {
     waiter.start();
 
     let body = loop {
-        match attempt_download(&client, from).await {
+        match attempt_download(&client, &url).await {
             Ok(Some(body)) => break Ok(body),
-            Ok(None) => bail!("Not found: {}", from),
+            Ok(None) => bail!("Not found: {}", &url),
             Err(request_error) => {
                 if let Err(_waiter_err) = waiter.async_wait().await {
                     break Err(request_error);
@@ -291,7 +276,7 @@ async fn download_file(from: &Url, to: &Path) -> DfxResult {
         }
     }?;
 
-    fs::write(to, body).with_context(|| format!("Failed to write {}", to.display()))?;
+    fs::write(wasm, body).with_context(|| format!("Failed to write {}", wasm.display()))?;
 
     Ok(())
 }

@@ -99,7 +99,7 @@ pub async fn install_nns(
             .await?
             .to_text();
         if canister_id != &installed_canister_id {
-            bail!("Canister '{canister_name}' was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
+            bail!("Canister was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
         }
     }
     // ... and configure the backend NNS canisters:
@@ -129,7 +129,7 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 
     if provider_url.port() != Some(8080) {
         return Err(anyhow!(
-            "dfx nns install supports only port 8080, not {provider_url}. Please set the 'local' network's provider to '127.0.0.1:8080'."
+            "dfx nns install supports only port 8080, not {provider_url}."
         ));
     }
 
@@ -312,7 +312,7 @@ fn local_replica_type(env: &dyn Environment) -> anyhow::Result<ReplicaSubnetType
 pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Result<()> {
     match local_replica_type(env) {
         Ok(ReplicaSubnetType::System) => Ok(()),
-        other => Err(anyhow!("The replica subnet_type needs to be \"system\" to run NNS canisters. Current value: {other:?}. You can configure it by setting defaults.replica.subnet_type in your project's dfx.json or by setting local.replica.subnet_type in your global networks.json to \"system\".")),
+        other => Err(anyhow!("The replica subnet_type needs to be \"system\" to run NNS canisters.  Current value: {other:?}")),
     }
 }
 
@@ -403,7 +403,7 @@ pub async fn download_ic_repo_wasm(
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
-      .with_context(|| format!("Could not determine download URL. Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
+      .with_context(|| format!("Could not determine download URL.  Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
     println!(
         "Downloading {}\n  from {}",
         final_path.to_string_lossy(),

@@ -12,11 +12,6 @@ on:
   schedule:
     # * is a special character in YAML so you have to quote this string
     - cron:  '0 16 * * *'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   niv-updater:
     name: 'Check for updates'

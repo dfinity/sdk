@@ -76,46 +76,21 @@ nns_canister_id() {
     nns-cycles-minting)    echo "rkp4c-7iaaa-aaaaa-aaaca-cai" ;;
     nns-lifeline)          echo "rno2w-sqaaa-aaaaa-aaacq-cai" ;;
     nns-genesis-token)     echo "renrk-eyaaa-aaaaa-aaada-cai" ;;
-    nns-sns-wasm)          echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
-    internet_identity)     echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
-    nns-dapp)              echo "qsgjb-riaaa-aaaaa-aaaga-cai" ;;
+    nns-sns-wasm)          echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
+    internet_identity)     echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
+    nns-dapp)              echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
     *)                     echo "ERROR: Unknown NNS canister '$1'." >&2
                            exit 1;;
     esac
 }
 
-assert_nns_canister_id_matches() {
-    [[ "$(nns_canister_id "$1")" == "$(dfx canister id "$1")" ]] || {
-       echo "ERROR: NNS canister ID mismatch for $1: $(nns_canister_id "$1") != $(dfx canister id "$1")"
-       exit 1
-    } >&2
-}
-
-@test "dfx nns import ids are as expected" {
-    # TODO: The IC commit currently used by the sdk doesn't have all the canister IDs yet.
-    #       When it does, remove this DFX_IC_SRC override.
-    export DFX_IC_SRC="https://raw.githubusercontent.com/dfinity/ic/master"
-    dfx nns import --network-mapping local
-    assert_nns_canister_id_matches nns-registry
-    assert_nns_canister_id_matches nns-governance
-    assert_nns_canister_id_matches nns-ledger
-    assert_nns_canister_id_matches nns-root
-    assert_nns_canister_id_matches nns-cycles-minting
-    assert_nns_canister_id_matches nns-lifeline
-    assert_nns_canister_id_matches nns-genesis-token
-    assert_nns_canister_id_matches nns-sns-wasm
-    # TODO: No source provides these canister IDs - yet.
-    #assert_nns_canister_id_matches internet_identity
-    #assert_nns_canister_id_matches nns-dapp
-}
-
 @test "dfx nns install runs" {
-    echo Setting up...
+    # Setup
     install_shared_asset subnet_type/shared_network_settings/system
     dfx_start_for_nns_install
     dfx nns install
 
-    echo Checking that the install worked...
+    # Checking that the install worked.
     # Note:  The installation is quite expensive, so we test extensively on one installation
     #        rather than doing a separate installation for every test.  The tests are read-only
     #        so no test should affect the output of another.
@@ -126,12 +101,10 @@ assert_nns_canister_id_matches() {
         sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')/$1" | awk '{print "0x" $1}'
     }
     wasm_matches() {
-        echo "Comparing $* ..."
-        [[ "$(installed_wasm_hash "$1")" == "$(downloaded_wasm_hash "$2")" ]] || {
+            [[ "$(installed_wasm_hash "$1")" == "$(downloaded_wasm_hash "$2")" ]] || {
                 echo "ERROR:  There is a wasm hash mismatch between $1 and $2"
-                echo "ERROR:  $(installed_wasm_hash "$1") != $(downloaded_wasm_hash "$2")"
                 exit 1
-        }>&2
+            }>&2
     }
     wasm_matches nns-registry registry-canister.wasm
     wasm_matches nns-governance governance-canister_test.wasm
@@ -143,8 +116,6 @@ assert_nns_canister_id_matches() {
     wasm_matches nns-sns-wasm sns-wasm-canister.wasm
     wasm_matches internet_identity internet_identity_dev.wasm
     wasm_matches nns-dapp nns-dapp_local.wasm
-
-    echo Stopping dfx...
     dfx stop
 }
 

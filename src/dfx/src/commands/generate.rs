@@ -4,7 +4,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
-use crate::NetworkOpt;
 
 use clap::Parser;
 use tokio::runtime::Runtime;
@@ -15,13 +14,10 @@ pub struct GenerateOpts {
     /// Specifies the name of the canister to build.
     /// If you do not specify a canister names, generates types for all canisters.
     canister_name: Option<String>,
-
-    #[clap(flatten)]
-    network: NetworkOpt,
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.network)?;
+    let env = create_agent_environment(env, None)?;
 
     // Read the config.
     let config = env.get_config_or_anyhow()?;

@@ -976,8 +976,7 @@ mod tests {
                 "local": {
                   "bind": "127.0.0.1:8000",
                   "canister_http": {
-                    "enabled": true,
-                    "log_level": "debug"
+                    "enabled": true
                   }
                 }
               }
@@ -1000,10 +999,7 @@ mod tests {
 
         assert_eq!(
             canister_http_config,
-            &ConfigDefaultsCanisterHttp {
-                enabled: true,
-                log_level: crate::lib::canister_http::adapter::config::HttpAdapterLogLevel::Debug
-            }
+            &ConfigDefaultsCanisterHttp { enabled: true }
         );
     }
 

@@ -50,9 +50,3 @@ echo "$HOME/bin" >> "$GITHUB_PATH"
 
 # Exit temporary directory.
 popd
-
-if [ "$E2E_TEST" = "tests-icx-asset/icx-asset.bash" ]; then
-    cargo build -p icx-asset
-    ICX_ASSET="$(pwd)/target/debug/icx-asset"
-    echo "ICX_ASSET=$ICX_ASSET" >> "$GITHUB_ENV"
-fi

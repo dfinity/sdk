@@ -4,26 +4,6 @@
 
 ## DFX
 
-### feat: default to run ic-wasm shrink when build canisters
-This behavior applies to Motoko, Rust and Custom canisters.
-If you want to disable this behavior, you can config it in dfx.json:
-
-    "canisters" : {
-        "app" : {
-            "shrink" : false,
-        }
-    }
-
-### fix: `cargo run -p dfx -- --version` prints correct version
-
-### feat: add --mode=auto
-
-When using `dfx canister install`, you can now pass `auto` for the `--mode` flag, which will auto-select `install` or `upgrade` depending on need, the same way `dfx deploy` does. The default remains `install` to prevent mistakes.
-
-### feat: add `--network` flag to `dfx generate`
-
-`dfx generate`'s generated bindings use network-specific canister IDs depending on the generated language, but there was previously no way to configure which network this was, so it defaulted to local. A `--network` flag has been added for this purpose.
-
 ### feat: sns config validate
 
 There is a new command that verifies that an SNS initialization config is valid.
@@ -56,7 +36,7 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
-### feat: custom canister `candid` field can now specify a URL from which to download
+Support for a URL in the `candid` field is coming soon.
 
 ### feat: deploy NNS canisters
 
@@ -65,20 +45,6 @@ A developer is now able to install NNS canisters, including back end canisters s
 dfx start --clean --background
 dfx nns install
 ```
-
-This feature currently requires that the network 'local' is used and that it runs on port 8080.
-The network's port can be controlled by using the field `"provider"` in the network's definition, e.g. by setting it to `"127.0.0.1:8080"`.
-
-### feat: configure logging level of http adapter
-
-It is now possible to set the http adapter's log level in dfx.json or in networks.json:
-
-    "http": {
-      "enabled": true,
-      "log_level": "info"
-    }
-
-By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
 ### feat: generate secp256k1 keys by default
 
@@ -197,13 +163,9 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
 
-#### feat: `dfx info replica-rev`
+#### #feat: `dfx info replica-rev`
 
 This displays the revision of the replica bundled with dfx, which is the same revision referenced in replica election governance proposals.
-
-#### feat: `dfx info networks-json-path`
-
-This displays the path to your user's `networks.json` file where all networks are defined.
 
 ### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
 
@@ -372,11 +334,9 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 8a454cdc2bfc4ba548c8f6ce4e762adfa6eba6e4.
+Updated replica to elected commit 999f7cc6bbe17abdb7b7a1eab73840a94597e363.
 This incorporates the following executed proposals:
 
-
-* [79816](https://dashboard.internetcomputer.org/proposal/79816)
 * [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)
 * [76228](https://dashboard.internetcomputer.org/proposal/76228)

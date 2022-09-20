@@ -13,11 +13,6 @@ on:
     # * is a special character in YAML so you have to quote this string
     # Run every hour
     - cron:  '0 * * * *'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   niv-updater:
     name: 'Check for Motoko updates'
