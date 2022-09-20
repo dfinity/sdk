@@ -1,3 +1,4 @@
+//! Code for the command line `dfx sns import`
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
 use crate::lib::project::import::import_canister_definitions;
@@ -20,6 +21,7 @@ pub struct SnsImportOpts {
     network_mapping: Vec<String>,
 }
 
+/// Executes the command line `dfx sns import`.
 pub fn exec(env: &dyn Environment, opts: SnsImportOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let mut config = config.as_ref().clone();
