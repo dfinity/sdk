@@ -316,14 +316,20 @@ pub fn environment_variables<'a>(
             };
 
             vars.push((
-                Owned(format!("CANISTER_CANDID_PATH_{}", canister.get_name())),
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_")
+                )),
                 Borrowed(candid_path),
             ));
         }
     }
     for canister in pool.get_canister_list() {
         vars.push((
-            Owned(format!("CANISTER_ID_{}", canister.get_name())),
+            Owned(format!(
+                "CANISTER_ID_{}",
+                canister.get_name().replace('-', "_")
+            )),
             Owned(canister.canister_id().to_text().into()),
         ));
     }

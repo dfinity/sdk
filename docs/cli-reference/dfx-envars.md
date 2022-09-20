@@ -16,9 +16,9 @@ For example, if you have a `whoami_frontend` canister that lists `whoami` under 
 
 ## CANISTER_ID\_{canister.name}
 
-Use environment variables with the `CANISTER_ID` prefix to reference the canister identifier for each canister in the `dfx.json` file for your project.
+Use environment variables with the `CANISTER_ID` prefix to reference the canister identifier for each canister in the `dfx.json` file for your project.  Hyphens are invalid in environment variables and are replaced by underscores.
 
-For example, if you have a `linkedup` project that consists of the `linkedup` and `connectd` canisters, you could use the `CANISTER_ID_linkedup` and `CANISTER_ID_connectd` environment variables to refer to the canister identifiers—for example `ryjl3-tyaaa-aaaaa-aaaba-cai` and `rrkah-fqaaa-aaaaa-aaaaq-cai`—created for your project.
+For example, if you have a `linkedup` project that consists of the `linkedup` and `connect-d` canisters, you could use the `CANISTER_ID_linkedup` and `CANISTER_ID_connect_d` environment variables to refer to the canister identifiers—for example `ryjl3-tyaaa-aaaaa-aaaba-cai` and `rrkah-fqaaa-aaaaa-aaaaq-cai`—created for your project.
 
 ## DFX_CONFIG_ROOT
 

@@ -179,6 +179,9 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
 /// The NNS canisters use the very first few canister IDs; they must be available.
 #[context("Failed to verify that the network is empty; dfx nns install must be run just after dfx start --clean")]
 async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<()> {
+    /// Checks that the canister is unused on the given network.
+    ///
+    /// The network is queried directly; local state such as canister_ids.json has no effect on this function.
     async fn verify_canister_id_is_available(
         agent: &Agent,
         canister_id: &str,
@@ -415,7 +418,7 @@ pub async fn download_ic_repo_wasm(
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
 #[context("Failed to download NNS wasm files.")]
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
-    let ic_commit = replica_rev();
+    let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
     let wasm_dir = &nns_wasm_dir(env);
     for IcNnsInitCanister {
         wasm_name,
@@ -423,16 +426,16 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
         ..
     } in NNS_CORE
     {
-        download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir).await?;
+        download_ic_repo_wasm(wasm_name, &ic_commit, wasm_dir).await?;
         if let Some(test_wasm_name) = test_wasm_name {
-            download_ic_repo_wasm(test_wasm_name, ic_commit, wasm_dir).await?;
+            download_ic_repo_wasm(test_wasm_name, &ic_commit, wasm_dir).await?;
         }
     }
     try_join_all(
         SNS_CANISTERS
             .iter()
             .map(|SnsCanisterInstallation { wasm_name, .. }| {
-                download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir)
+                download_ic_repo_wasm(wasm_name, &ic_commit, wasm_dir)
             }),
     )
     .await?;
