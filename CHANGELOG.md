@@ -4,6 +4,16 @@
 
 ## DFX
 
+### feat: default to run ic-wasm shrink when build canisters
+This behavior applies to Motoko, Rust and Custom canisters.
+If you want to disable this behavior, you can config it in dfx.json:
+
+    "canisters" : {
+        "app" : {
+            "shrink" : false,
+        }
+    }
+
 ### feat: Add dfx sns deploy
 
 This allows users to deploy a set of SNS canisters.

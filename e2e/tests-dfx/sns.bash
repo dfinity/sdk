@@ -64,10 +64,10 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     dfx start --clean --background --host 127.0.0.1:8080
     sleep 1
     dfx nns install
-    # There are no entries for "local" upstream yet, so we need a network mapping.
-    dfx nns import --network-mapping local=mainnet
-    # This canister ID is not included upstream .. yet.
-    jq '.canisters["nns-sns-wasm"].remote.id.local="qjdve-lqaaa-aaaaa-aaaeq-cai"' dfx.json | sponge dfx.json
+    # TODO: The IC commit currently used by the sdk doesn't have all the canister IDs yet.
+    #       When it does, remove this DFX_IC_SRC override.
+    export DFX_IC_SRC="https://raw.githubusercontent.com/dfinity/ic/master"
+    dfx nns import --network-mapping local
     ls candid
     cat dfx.json
     install_asset sns/valid

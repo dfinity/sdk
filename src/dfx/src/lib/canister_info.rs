@@ -48,6 +48,7 @@ pub struct CanisterInfo {
     dependencies: Vec<String>,
     post_install: Vec<String>,
     main: Option<PathBuf>,
+    shrink: bool,
 }
 
 impl CanisterInfo {
@@ -125,6 +126,7 @@ impl CanisterInfo {
             dependencies: canister_config.dependencies.clone(),
             post_install,
             main: canister_config.main.clone(),
+            shrink: canister_config.shrink,
         };
 
         Ok(canister_info)
@@ -191,6 +193,10 @@ impl CanisterInfo {
 
     pub fn get_args(&self) -> &Option<String> {
         &self.args
+    }
+
+    pub fn get_shrink(&self) -> bool {
+        self.shrink
     }
 
     pub fn get_build_wasm_path(&self) -> PathBuf {
