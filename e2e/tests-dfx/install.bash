@@ -99,7 +99,7 @@ teardown() {
     assert_command dfx canister create --all
     assert_command dfx build
 
-    assert_command dfx canister install postinstall
+    assert_command dfx canister install post-install
     assert_match 'hello-file'
 
     assert_command dfx canister install postinstall_script
@@ -133,11 +133,11 @@ teardown() {
 @test "post-install tasks discover dependencies" {
     install_asset post_install
     dfx_start
-    echo "echo hello \$CANISTER_ID_postinstall" >> postinstall.sh
+    echo "echo hello \$CANISTER_ID_post_install" >> postinstall.sh
 
     assert_command dfx canister create --all
     assert_command dfx build
-    id=$(dfx canister id postinstall)
+    id=$(dfx canister id post-install)
     
     assert_command dfx canister install postinstall_script
     assert_match "hello $id"
