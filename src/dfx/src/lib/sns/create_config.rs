@@ -16,5 +16,6 @@ pub fn create_config(env: &dyn Environment, path: &Path) -> DfxResult {
         OsString::from(path),
         OsString::from("new"),
     ];
-    call_sns_cli(env, &args).map(|_| format!("SNS config file is valid: {}", path.display()))
+    call_sns_cli(env, &args)?;
+    Ok(())
 }
