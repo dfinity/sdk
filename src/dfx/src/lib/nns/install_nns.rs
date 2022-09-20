@@ -179,6 +179,9 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
 /// The NNS canisters use the very first few canister IDs; they must be available.
 #[context("Failed to verify that the network is empty; dfx nns install must be run just after dfx start --clean")]
 async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<()> {
+    /// Checks that the canister is unused on the given network.
+    ///
+    /// The network is queried directly; local state such as canister_ids.json has no effect on this function.
     async fn verify_canister_id_is_available(
         agent: &Agent,
         canister_id: &str,
