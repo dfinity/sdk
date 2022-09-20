@@ -181,6 +181,23 @@ fn http_request(req: HttpRequest) -> HttpResponse {
     })
 }
 
+#[update]
+#[candid_method(update)]
+fn http_request_update(req: HttpRequest) -> HttpResponse {
+    let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
+
+    STATE.with(|s| {
+        s.borrow().http_request(
+            req,
+            &certificate,
+            candid::Func {
+                method: "http_request_streaming_callback".to_string(),
+                principal: ic_cdk::id(),
+            },
+        )
+    })
+}
+
 #[query]
 #[candid_method(query)]
 fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCallbackHttpResponse {
