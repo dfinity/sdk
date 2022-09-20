@@ -24,7 +24,7 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let mut config = config.as_ref().clone();
 
     let network_mappings = get_network_mappings(&opts.network_mapping)?;
-    let ic_commit = std::env::var("DFX_IC_REF").unwrap_or_else(||replica_rev());
+    let ic_commit = std::env::var("DFX_IC_REF").unwrap_or_else(|| replica_rev());
 
     let dfx_url_str = {
         let ic_project = std::env::var("DFX_IC_SRC").unwrap_or_else(|_| {
