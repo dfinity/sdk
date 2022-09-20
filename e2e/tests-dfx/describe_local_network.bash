@@ -12,6 +12,14 @@ teardown() {
     standard_teardown
 }
 
+@test "dfx start with disabled canister http" {
+    create_networks_json
+    echo "{}" | jq '.local.canister_http.enabled=false' >"$E2E_NETWORKS_JSON"
+    assert_command dfx start --host 127.0.0.1:0 --background
+
+    assert_match "canister http: disabled \(default: enabled\)"
+}
+
 @test "dfx start with a nonstandard subnet type" {
     create_networks_json
     echo "{}" | jq '.local.replica.subnet_type="verifiedapplication"' >"$E2E_NETWORKS_JSON"
@@ -48,7 +56,7 @@ teardown() {
     assert_match "Local server configuration:"
     assert_match "bind address: 127.0.0.1:0 \(default: 127.0.0.1:4943\)"
     assert_match "bitcoin: disabled"
-    assert_match "canister http: disabled"
+    assert_match "canister http: enabled"
     assert_match "subnet type: Application"
     assert_match "scope: shared"
 }
@@ -89,7 +97,7 @@ teardown() {
     assert_match "Local server configuration:"
     assert_match "bind address: 127.0.0.1:0 \(default: 127.0.0.1:8000\)"
     assert_match "bitcoin: disabled"
-    assert_match "canister http: disabled"
+    assert_match "canister http: enabled"
     assert_match "subnet type: Application"
     assert_match "data directory: .*/working-dir/.dfx/network/local"
     assert_match "scope: project"
@@ -105,7 +113,7 @@ teardown() {
     assert_match "Local server configuration:"
     assert_match "bind address: 127.0.0.1:0 \(default: 127.0.0.1:4943\)"
     assert_match "bitcoin: disabled"
-    assert_match "canister http: disabled"
+    assert_match "canister http: enabled"
     assert_match "subnet type: Application"
 
     if [ "$(uname)" == "Darwin" ]; then

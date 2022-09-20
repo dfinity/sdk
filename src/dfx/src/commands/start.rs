@@ -20,6 +20,7 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
+use slog::{warn, Logger};
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -142,6 +143,7 @@ pub fn exec(
     )?;
 
     let network_descriptor = apply_command_line_parameters(
+        env.get_logger(),
         network_descriptor,
         host,
         None,
@@ -153,7 +155,7 @@ pub fn exec(
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let pid_file_path = local_server_descriptor.dfx_pid_path();
 
-    check_previous_process_running(&pid_file_path)?;
+    check_previous_process_running(local_server_descriptor)?;
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
@@ -244,6 +246,10 @@ pub fn exec(
         .replica
         .subnet_type
         .unwrap_or_default();
+    let log_level = local_server_descriptor
+        .replica
+        .log_level
+        .unwrap_or_default();
     let network_descriptor = network_descriptor.clone();
 
     let system = actix::System::new();
@@ -285,9 +291,8 @@ pub fn exec(
                 } else {
                     (None, None)
                 };
-
-            let mut replica_config =
-                ReplicaConfig::new(&state_root, subnet_type).with_random_port(&replica_port_path);
+            let mut replica_config = ReplicaConfig::new(&state_root, subnet_type, log_level)
+                .with_random_port(&replica_port_path);
             if btc_adapter_config.is_some() {
                 replica_config = replica_config.with_btc_adapter_enabled();
                 if let Some(btc_adapter_socket) = btc_adapter_socket_path {
@@ -340,6 +345,7 @@ pub fn exec(
 }
 
 pub fn apply_command_line_parameters(
+    logger: &Logger,
     network_descriptor: NetworkDescriptor,
     host: Option<String>,
     replica_port: Option<String>,
@@ -347,6 +353,14 @@ pub fn apply_command_line_parameters(
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
 ) -> DfxResult<NetworkDescriptor> {
+    if enable_canister_http {
+        warn!(
+            logger,
+            "The --enable-canister-http parameter is deprecated."
+        );
+        warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
+    }
+
     let _ = network_descriptor.local_server_descriptor()?;
     let mut local_server_descriptor = network_descriptor.local_server_descriptor.unwrap();
 
@@ -368,10 +382,6 @@ pub fn apply_command_line_parameters(
 
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
-    }
-
-    if enable_canister_http {
-        local_server_descriptor = local_server_descriptor.with_canister_http_enabled();
     }
 
     Ok(NetworkDescriptor {
@@ -412,7 +422,12 @@ fn send_background() -> DfxResult<()> {
     let exe = std::env::current_exe().context("Failed to get current executable.")?;
     let mut cmd = Command::new(exe);
     // Skip 1 because arg0 is this executable's path.
-    cmd.args(std::env::args().skip(1).filter(|a| !a.eq("--background")));
+    cmd.args(
+        std::env::args()
+            .skip(1)
+            .filter(|a| !a.eq("--background"))
+            .filter(|a| !a.eq("--clean")),
+    );
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())
@@ -441,16 +456,20 @@ fn frontend_address(
     Ok((frontend_url, address_and_port))
 }
 
-fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
-    if dfx_pid_path.exists() {
-        // Read and verify it's not running. If it is just return.
-        if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
-            if let Ok(pid) = s.parse::<Pid>() {
-                // If we find the pid in the file, we tell the user and don't start!
-                let mut system = System::new();
-                system.refresh_processes();
-                if let Some(_process) = system.process(pid) {
-                    bail!("dfx is already running.");
+fn check_previous_process_running(
+    local_server_descriptor: &LocalServerDescriptor,
+) -> DfxResult<()> {
+    for pid_path in local_server_descriptor.dfx_pid_paths() {
+        if pid_path.exists() {
+            // Read and verify it's not running. If it is just return.
+            if let Ok(s) = std::fs::read_to_string(&pid_path) {
+                if let Ok(pid) = s.parse::<Pid>() {
+                    // If we find the pid in the file, we tell the user and don't start!
+                    let mut system = System::new();
+                    system.refresh_processes();
+                    if let Some(_process) = system.process(pid) {
+                        bail!("dfx is already running.");
+                    }
                 }
             }
         }
@@ -559,7 +578,8 @@ pub fn configure_canister_http_adapter_if_enabled(
     let socket_path =
         get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
 
-    let adapter_config = canister_http::adapter::Config::new(socket_path);
+    let log_level = local_server_descriptor.canister_http.log_level;
+    let adapter_config = canister_http::adapter::Config::new(socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;

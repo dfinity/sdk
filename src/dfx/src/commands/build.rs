@@ -7,6 +7,7 @@ use crate::lib::provider::create_agent_environment;
 use crate::NetworkOpt;
 
 use clap::Parser;
+use tokio::runtime::Runtime;
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
 #[derive(Parser)]
@@ -68,9 +69,9 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     slog::info!(logger, "Building canisters...");
 
-    canister_pool.build_or_fail(
-        &BuildConfig::from_config(&config)?.with_build_mode_check(build_mode_check),
-    )?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
+    let build_config = BuildConfig::from_config(&config)?.with_build_mode_check(build_mode_check);
+    runtime.block_on(canister_pool.build_or_fail(&build_config))?;
 
     Ok(())
 }

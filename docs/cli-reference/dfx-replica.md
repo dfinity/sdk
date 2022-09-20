@@ -14,12 +14,12 @@ dfx replica [option] [flag]
 
 You can use the following optional flags with the `dfx replica` command.
 
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-| `--enable-bitcoin`| Enables bitcoin integration.  |
-| `--enable-canister-http` | Enables canister HTTP requests. |
+| Flag              | Description                                                          |
+|-------------------|----------------------------------------------------------------------|
+| `-h`, `--help`    | Displays usage information.                                          |
+| `-V`, `--version` | Displays version information.                                        |
+| `--enable-bitcoin`| Enables bitcoin integration.                                         |
+| `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default) |
 
 ## Options
 

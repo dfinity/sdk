@@ -63,7 +63,11 @@ fn get_config(
         http_handler.port = Some(port);
     };
 
-    let mut replica_config = ReplicaConfig::new(state_root, config.subnet_type.unwrap_or_default());
+    let mut replica_config = ReplicaConfig::new(
+        state_root,
+        config.subnet_type.unwrap_or_default(),
+        config.log_level.unwrap_or_default(),
+    );
     replica_config.http_handler = http_handler;
 
     Ok(replica_config)
@@ -92,6 +96,7 @@ pub fn exec(
         LocalBindDetermination::AsConfigured,
     )?;
     let network_descriptor = apply_command_line_parameters(
+        env.get_logger(),
         network_descriptor,
         None,
         port,

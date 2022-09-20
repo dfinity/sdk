@@ -27,7 +27,83 @@ Example of `.ic-assets.json` making use of this feature:
     }
   }
 ]
+
 ```
+### feat: default to run ic-wasm shrink when build canisters
+This behavior applies to Motoko, Rust and Custom canisters.
+If you want to disable this behavior, you can config it in dfx.json:
+
+    "canisters" : {
+        "app" : {
+            "shrink" : false,
+        }
+    }
+
+### fix: `cargo run -p dfx -- --version` prints correct version
+
+### feat: add --mode=auto
+
+When using `dfx canister install`, you can now pass `auto` for the `--mode` flag, which will auto-select `install` or `upgrade` depending on need, the same way `dfx deploy` does. The default remains `install` to prevent mistakes.
+
+### feat: add `--network` flag to `dfx generate`
+
+`dfx generate`'s generated bindings use network-specific canister IDs depending on the generated language, but there was previously no way to configure which network this was, so it defaulted to local. A `--network` flag has been added for this purpose.
+
+### feat: sns config validate
+
+There is a new command that verifies that an SNS initialization config is valid.
+
+### feat: sns config create
+
+There is a new command that creates an sns config template.
+
+### fix: remove $ from wasms dir
+
+The wasms dir path had a $ which is unwanted and now gone.
+
+### fix: Correct wasm for the SNS swap canister
+
+Previously the incorrect wasm canister was installed.
+
+### fix: Use NNS did files that matches the wasms
+
+Previously the did files and wasms could be incompatible.
+
+### fix: allow users to skip compatibility check if parsing fails
+
+### feat: canister HTTP support is now enabled by default.
+
+`dfx start` and `dfx replica` now ignore the `--enable-canister-http` parameter.
+
+You can still disable the canister http feature through configuration:
+- ~/.config/dfx/networks.json: `.local.canister_http.enabled=false`
+- dfx.json (project-specific networks) : `.networks.local.canister_http.enabled=false`
+
+### feat: custom canister `wasm` field can now specify a URL from which to download
+
+### feat: custom canister `candid` field can now specify a URL from which to download
+
+### feat: deploy NNS canisters
+
+A developer is now able to install NNS canisters, including back end canisters such as ledger and governance, and front end canisters such as nns-dapp and internet-identity, on their local DFX server.  Usage:
+```
+dfx start --clean --background
+dfx nns install
+```
+
+This feature currently requires that the network 'local' is used and that it runs on port 8080.
+The network's port can be controlled by using the field `"provider"` in the network's definition, e.g. by setting it to `"127.0.0.1:8080"`.
+
+### feat: configure logging level of http adapter
+
+It is now possible to set the http adapter's log level in dfx.json or in networks.json:
+
+    "http": {
+      "enabled": true,
+      "log_level": "info"
+    }
+
+By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
 ### feat: generate secp256k1 keys by default
 
@@ -54,6 +130,8 @@ The Replica returned an error: code 1, message: "Canister requested a compute al
 ```
 
 ### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
+
+### fix: For `dfx start --clean --background`, the background process no longer cleans a second time.
 
 ### refactor: Move replica URL functions into a module for reuse
 
@@ -136,15 +214,21 @@ dfx now stores data and control files in one of three places, rather than direct
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
 
+### fix: `dfx start` and `dfx stop` will take into account dfx/replica processes from dfx <= 0.11.x
+
 ### feat: added command `dfx info`
 
 #### feat: `dfx info webserver-port`
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
 
-#### #feat: `dfx info replica-rev`
+#### feat: `dfx info replica-rev`
 
 This displays the revision of the replica bundled with dfx, which is the same revision referenced in replica election governance proposals.
+
+#### feat: `dfx info networks-json-path`
+
+This displays the path to your user's `networks.json` file where all networks are defined.
 
 ### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
 
@@ -275,6 +359,15 @@ Caused by: Failed while determining if canister 'eop7r-riaaa-aaaak-qasxq-cai' is
     Invalid argument: Canister eop7r-riaaa-aaaak-qasxq-cai not found in dfx.json
 ```
 
+### feat: allow replica log level to be configured
+
+It is now possible to specify the replica's log level. Possible values are `critical`, `error`, `warning`, `info`, `debug`, and `trace`.
+The log level defaults to the level 'error'. Debug prints (e.g. `Debug.print("...")` in Motoko) still show up in the console.
+The log level can be specified in the following places (See [system-wide dfx start](#feat-system-wide-dfx-start) for more detailed explanations on the network types):
+- In file `networks.json` in the field `<network name>.replica.log_level` for shared networks.
+- In file `dfx.json` in the field `networks.<network name>.replica.log_level` for project-specific networks.
+- In file `dfx.json` in the field `defaults.replica.log_level` for project-specific networks. Requires a project-specific network to be run, otherwise this will have no effect.
+
 ### feat: enable canister sandboxing
 
 Canister sandboxing is enabled to be consistent with the mainnet.
@@ -283,6 +376,10 @@ Canister sandboxing is enabled to be consistent with the mainnet.
 
 It is now possible to do e.g. `dfx ledger account-id --of-canister fg7gi-vyaaa-aaaal-qadca-cai` as well as `dfx ledger account-id --of-canister my_canister_name` when checking the ledger account id of a canister.
 Previously, dfx only accepted canister aliases and produced an error message that was hard to understand.
+
+### chore: dfx canister deposit-cycles uses default wallet if none is specified
+
+Motivated by [this forum post](https://forum.dfinity.org/t/dfx-0-10-0-dfx-canister-deposit-cycles-returns-error/13251/6).
 
 ### fix: print links to cdk-rs docs in dfx new
 
@@ -294,13 +391,17 @@ However, at that point, it isn't "a" passphrase.  It's either your passphrase, o
 Changed the text in this case to read:
     "Please enter the passphrase for your identity"
 
+### chore: add retry logic to dfx download script
+
 ## Dependencies
 
 ### Replica
 
-Updated replica to elected commit 999f7cc6bbe17abdb7b7a1eab73840a94597e363.
+Updated replica to elected commit 8a454cdc2bfc4ba548c8f6ce4e762adfa6eba6e4.
 This incorporates the following executed proposals:
 
+
+* [79816](https://dashboard.internetcomputer.org/proposal/79816)
 * [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)
 * [76228](https://dashboard.internetcomputer.org/proposal/76228)
@@ -318,7 +419,12 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko to 0.6.30
+### Updated Motoko to 0.7.0
+
+### Cycles wallet
+
+- Module hash: b944b1e5533064d12e951621d5045d5291bcfd8cf9d60c28fef02c8fdb68e783
+- https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
 
 # 0.11.2
 

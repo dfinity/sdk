@@ -8,7 +8,20 @@ die() {
 
 cargo --version >/dev/null || die "Must have cargo installed."
 
-export RUSTFLAGS="--remap-path-prefix=\"${PWD}\"=./ --remap-path-prefix=\"${HOME}\"=_/"
+SCRIPT=$(readlink -f "${0}")
+SCRIPT_DIR=$(dirname "${SCRIPT}")
+cd ${SCRIPT_DIR}/..
+
+if [ -z "${CARGO_HOME}" ]
+then
+  export CARGO_HOME="${HOME}/.cargo"
+fi
+
+export RUSTFLAGS="--remap-path-prefix $(readlink -f ${SCRIPT_DIR}/..)=/build --remap-path-prefix ${CARGO_HOME}/bin=/cargo/bin --remap-path-prefix ${CARGO_HOME}/git=/cargo/git"
+for l in $(ls ${CARGO_HOME}/registry/src/)
+do
+  export RUSTFLAGS="--remap-path-prefix ${CARGO_HOME}/registry/src/${l}=/cargo/registry/src/github ${RUSTFLAGS}"
+done
 cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown
 
 BUILD_DIR="target/wasm32-unknown-unknown/release"
