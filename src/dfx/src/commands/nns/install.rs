@@ -1,3 +1,4 @@
+//! Code for the command line: `dfx nns install`
 use crate::lib::error::DfxResult;
 use crate::Environment;
 use anyhow::anyhow;
@@ -23,6 +24,7 @@ use clap::Parser;
 #[clap(about)]
 pub struct InstallOpts {}
 
+/// Executes `dfx nns install`.
 pub async fn exec(env: &dyn Environment, _opts: InstallOpts) -> DfxResult {
     let agent = env
         .get_agent()
