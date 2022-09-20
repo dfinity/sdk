@@ -55,7 +55,7 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     dfx_new
     rm -f sns.yml # Is not expected to be present anyway
     assert_command_fail dfx sns deploy
-    assert_match 
+    assert_match "Error encountered when generating the SnsInitPayload: Couldn't open initial parameters file"
 }
 
 @test "sns deploy succeeds" {
