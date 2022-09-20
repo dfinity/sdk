@@ -14,6 +14,10 @@ If you want to disable this behavior, you can config it in dfx.json:
         }
     }
 
+### fix: Valid canister-based env vars
+
+Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_${CANISTER_NAME}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
+
 ### feat: Add dfx sns deploy
 
 This allows users to deploy a set of SNS canisters.
