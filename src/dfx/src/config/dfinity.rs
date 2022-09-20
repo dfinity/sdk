@@ -108,6 +108,12 @@ pub struct ConfigCanistersCanister {
     /// # Path to Canister Entry Point
     /// Entry point for e.g. Motoko Compiler.
     pub main: Option<PathBuf>,
+
+    /// # Shrink Canister WASM
+    /// Whether run `ic-wasm shrink` after building the Canister.
+    /// Default is true.
+    #[serde(default = "default_as_true")]
+    pub shrink: bool,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]

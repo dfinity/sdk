@@ -84,6 +84,31 @@ nns_canister_id() {
     esac
 }
 
+assert_nns_canister_id_matches() {
+    [[ "$(nns_canister_id "$1")" == "$(dfx canister id "$1")" ]] || {
+       echo "ERROR: NNS canister ID mismatch for $1: $(nns_canister_id "$1") != $(dfx canister id "$1")"
+       exit 1
+    } >&2
+}
+
+@test "dfx nns import ids are as expected" {
+    # TODO: The IC commit currently used by the sdk doesn't have all the canister IDs yet.
+    #       When it does, remove this DFX_IC_SRC override.
+    export DFX_IC_SRC="https://raw.githubusercontent.com/dfinity/ic/master"
+    dfx nns import --network-mapping local
+    assert_nns_canister_id_matches nns-registry
+    assert_nns_canister_id_matches nns-governance
+    assert_nns_canister_id_matches nns-ledger
+    assert_nns_canister_id_matches nns-root
+    assert_nns_canister_id_matches nns-cycles-minting
+    assert_nns_canister_id_matches nns-lifeline
+    assert_nns_canister_id_matches nns-genesis-token
+    assert_nns_canister_id_matches nns-sns-wasm
+    # TODO: No source provides these canister IDs - yet.
+    #assert_nns_canister_id_matches internet_identity
+    #assert_nns_canister_id_matches nns-dapp
+}
+
 @test "dfx nns install runs" {
     echo Setting up...
     install_shared_asset subnet_type/shared_network_settings/system

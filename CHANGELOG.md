@@ -4,6 +4,15 @@
 
 ## DFX
 
+### feat: default to run ic-wasm shrink when build canisters
+This behavior applies to Motoko, Rust and Custom canisters.
+If you want to disable this behavior, you can config it in dfx.json:
+
+    "canisters" : {
+        "app" : {
+            "shrink" : false,
+        }
+    }
 
 ### fix: `cargo run -p dfx -- --version` prints correct version
 
@@ -56,6 +65,9 @@ A developer is now able to install NNS canisters, including back end canisters s
 dfx start --clean --background
 dfx nns install
 ```
+
+This feature currently requires that the network 'local' is used and that it runs on port 8080.
+The network's port can be controlled by using the field `"provider"` in the network's definition, e.g. by setting it to `"127.0.0.1:8080"`.
 
 ### feat: configure logging level of http adapter
 
