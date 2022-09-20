@@ -12,7 +12,7 @@ use clap::Parser;
 enum InfoType {
     ReplicaRev,
     WebserverPort,
-    NetworksJson,
+    NetworksJsonPath,
 }
 
 #[derive(Parser)]
@@ -26,7 +26,7 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     let value = match opts.info_type {
         InfoType::ReplicaRev => info::replica_rev().to_string(),
         InfoType::WebserverPort => get_webserver_port(env)?,
-        InfoType::NetworksJson => NetworksConfig::new()?
+        InfoType::NetworksJsonPath => NetworksConfig::new()?
             .get_path()
             .to_str()
             .context("Failed to convert networks.json path to a string.")?

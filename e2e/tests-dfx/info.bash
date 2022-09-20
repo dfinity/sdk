@@ -26,7 +26,7 @@ teardown() {
 }
 
 @test "displays path to networks.json" {
-    assert_command dfx info networks-json
+    assert_command dfx info networks-json-path
     assert_eq "$E2E_NETWORKS_JSON"
 }
 
