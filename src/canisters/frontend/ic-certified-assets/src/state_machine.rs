@@ -957,11 +957,15 @@ impl HttpResponse {
             headers,
             body,
             streaming_strategy,
-            upgrade: None,
+            upgrade: Some(true),
         }
     }
 
-    fn build_redirect(status_code: u16, location: String, upgrade: Option<bool>) -> HttpResponse {
+    pub fn build_redirect(
+        status_code: u16,
+        location: String,
+        upgrade: Option<bool>,
+    ) -> HttpResponse {
         if ![300, 301, 302, 303, 304, 307, 308].contains(&status_code) {
             return HttpResponse::build_400(&format!(
                 "incorrect asset redirect configuration: response_code \"{}\" is not valid HTTP respone code",

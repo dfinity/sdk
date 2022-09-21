@@ -16,6 +16,7 @@ use crate::{
 use candid::{candid_method, Principal};
 use ic_cdk::api::{caller, data_certificate, set_certified_data, time, trap};
 use ic_cdk_macros::{query, update};
+use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
 thread_local! {
@@ -184,18 +185,15 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 #[update]
 #[candid_method(update)]
 fn http_request_update(req: HttpRequest) -> HttpResponse {
-    let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
-
-    STATE.with(|s| {
-        s.borrow().http_request(
-            req,
-            &certificate,
-            candid::Func {
-                method: "http_request_streaming_callback".to_string(),
-                principal: ic_cdk::id(),
-            },
-        )
-    })
+    let mut headers = req.headers.clone();
+    headers.push(("Location".to_string(), "https://google.com".to_string()));
+    HttpResponse {
+        status_code: 308,
+        headers,
+        body: RcBytes::from(req.body),
+        streaming_strategy: None,
+        upgrade: None,
+    }
 }
 
 #[query]
