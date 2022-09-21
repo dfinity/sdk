@@ -359,6 +359,11 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
 /// Downloads and unzips a file
 #[context("Failed to download and unzip '{:?}' from '{:?}'.", target, source.as_str())]
 pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
+    println!(
+        "Decompressing {}\n  from {}",
+        target.to_string_lossy(),
+        source.as_str()
+    );
     let response = reqwest::get(source.clone())
         .await
         .with_context(|| "Failed to connect")?
