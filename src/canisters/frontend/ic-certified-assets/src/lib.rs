@@ -192,7 +192,7 @@ fn http_request_update(req: HttpRequest) -> HttpResponse {
         headers,
         body: RcBytes::from(req.body),
         streaming_strategy: None,
-        upgrade: None,
+        upgrade: false,
     }
 }
 

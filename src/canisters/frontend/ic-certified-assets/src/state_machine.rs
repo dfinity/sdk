@@ -194,9 +194,9 @@ impl AssetRedirect {
                     self.response_code,
                     location.get_location_url(),
                     if req_host.map_or(false, |v| v.contains(&".ic0.app") && !v.contains(".raw.")) {
-                        Some(true)
+                        true
                     } else {
-                        None
+                        false
                     },
                 ))
             }
@@ -957,15 +957,11 @@ impl HttpResponse {
             headers,
             body,
             streaming_strategy,
-            upgrade: Some(true),
+            upgrade: true,
         }
     }
 
-    pub fn build_redirect(
-        status_code: u16,
-        location: String,
-        upgrade: Option<bool>,
-    ) -> HttpResponse {
+    pub fn build_redirect(status_code: u16, location: String, upgrade: bool) -> HttpResponse {
         if ![300, 301, 302, 303, 304, 307, 308].contains(&status_code) {
             return HttpResponse::build_400(&format!(
                 "incorrect asset redirect configuration: response_code \"{}\" is not valid HTTP respone code",
@@ -987,7 +983,7 @@ impl HttpResponse {
             headers: vec![],
             body: RcBytes::from(ByteBuf::from(err_msg)),
             streaming_strategy: None,
-            upgrade: None,
+            upgrade: false,
         }
     }
 
@@ -997,7 +993,7 @@ impl HttpResponse {
             headers: vec![certificate_header],
             body: RcBytes::from(ByteBuf::from("not found")),
             streaming_strategy: None,
-            upgrade: None,
+            upgrade: false,
         }
     }
 }
