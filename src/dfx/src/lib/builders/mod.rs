@@ -380,15 +380,8 @@ impl BuildConfig {
 fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
     let wasm_path = wasm_path.as_ref();
     let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
-    let mut module_config = walrus::ModuleConfig::new();
-    module_config.generate_name_section(true);
-    module_config.generate_producers_section(false);
-    let mut module = module_config
-        .parse(&wasm)
-        .context("Could not parse the WASM module.")?;
-    ic_wasm::shrink::shrink(&mut module);
-    module
-        .emit_wasm_file(wasm_path)
+    let shrinked_wasm = ic_wasm::shrink::shrink(&wasm).context("Could not shrink the WASM module.")?;
+    std::fs::write(wasm_path, &shrinked_wasm)
         .with_context(|| format!("Could not write shrinked WASM to {:?}", wasm_path))?;
     Ok(())
 }
