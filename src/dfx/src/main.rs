@@ -112,7 +112,6 @@ fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
         _ => LoggingMode::Stderr,
     };
 
-    // Only show the progress bar if the level is INFO or more.
     (verbose_level, create_root_logger(verbose_level, mode))
 }
 

@@ -196,6 +196,7 @@ impl Environment for EnvironmentImpl {
     }
 
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
+        // Only show the progress bar if the level is INFO or more.
         if self.verbose_level >= 0 {
             ProgressBar::new_spinner(message)
         } else {
