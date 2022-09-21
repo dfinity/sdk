@@ -61,7 +61,7 @@ dfx_start_for_nns_install() {
     assert_command timeout 300 sh -c \
         "until dfx start --clean --background --host 127.0.0.1:8080 --verbose; do echo waiting for port 8080 to become free; sleep 3; done" \
         || (echo "could not connect to replica on port 8080" && exit 1)
-    assert_match "subnet_type: System"
+    assert_match "subnet type: System"
     assert_match "127.0.0.1:8080"
 }
 
