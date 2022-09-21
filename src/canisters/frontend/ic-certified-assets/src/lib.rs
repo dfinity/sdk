@@ -167,19 +167,16 @@ fn certified_tree() -> CertifiedTree {
 
 #[query]
 #[candid_method(query)]
-fn http_request(req: HttpRequest) -> HttpResponse {
-    let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
-
-    STATE.with(|s| {
-        s.borrow().http_request(
-            req,
-            &certificate,
-            candid::Func {
-                method: "http_request_streaming_callback".to_string(),
-                principal: ic_cdk::id(),
-            },
-        )
-    })
+fn http_request(_req: HttpRequest) -> HttpResponse {
+    HttpResponse {
+        status_code: 200,
+        headers: vec![],
+        body: RcBytes::from(ByteBuf::from(
+            "<html><head><title>hello</title></head><body><h1>hello</h1></body></html>",
+        )),
+        streaming_strategy: None,
+        upgrade: Some(true),
+    }
 }
 
 #[update]
@@ -192,7 +189,7 @@ fn http_request_update(req: HttpRequest) -> HttpResponse {
         headers,
         body: RcBytes::from(req.body),
         streaming_strategy: None,
-        upgrade: false,
+        upgrade: None,
     }
 }
 
