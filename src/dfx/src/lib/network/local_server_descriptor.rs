@@ -243,10 +243,10 @@ impl LocalServerDescriptor {
         } else {
             "".to_string()
         };
-        debug!(log, " ∟bind address: {:?}{}", self.bind_address, diffs);
+        debug!(log, "  bind address: {:?}{}", self.bind_address, diffs);
         if self.bitcoin.enabled {
             let default_nodes = crate::lib::bitcoin::adapter::config::default_nodes();
-            debug!(log, " ∟bitcoin: enabled (default: disabled)");
+            debug!(log, "  bitcoin: enabled (default: disabled)");
             let nodes: Vec<SocketAddr> = if let Some(ref nodes) = self.bitcoin.nodes {
                 nodes.clone()
             } else {
@@ -257,13 +257,13 @@ impl LocalServerDescriptor {
             } else {
                 "".to_string()
             };
-            debug!(log, " | ∟nodes: {:?}{}", nodes, diffs);
+            debug!(log, "    nodes: {:?}{}", nodes, diffs);
         } else {
-            debug!(log, " ∟bitcoin: disabled");
+            debug!(log, "  bitcoin: disabled");
         }
 
         if self.canister_http.enabled {
-            debug!(log, " ∟canister http: enabled");
+            debug!(log, "  canister http: enabled");
             let diffs: String = if self.canister_http.log_level != HttpAdapterLogLevel::default() {
                 format!(" (default: {:?})", HttpAdapterLogLevel::default())
             } else {
@@ -271,16 +271,16 @@ impl LocalServerDescriptor {
             };
             debug!(
                 log,
-                " | ∟log level: {:?}{}", self.canister_http.log_level, diffs
+                "    log level: {:?}{}", self.canister_http.log_level, diffs
             );
         } else {
-            debug!(log, " ∟canister http: disabled (default: enabled)");
+            debug!(log, "  canister http: disabled (default: enabled)");
         }
 
         if include_replica {
-            debug!(log, " ∟replica:");
+            debug!(log, "  replica:");
             if include_replica_port {
-                debug!(log, "   ∟port: ");
+                debug!(log, "    port: ");
             }
             let subnet_type = self
                 .replica
@@ -291,7 +291,7 @@ impl LocalServerDescriptor {
             } else {
                 "".to_string()
             };
-            debug!(log, " | ∟subnet type: {:?}{}", subnet_type, diffs);
+            debug!(log, "    subnet type: {:?}{}", subnet_type, diffs);
 
             let log_level = self.replica.log_level.unwrap_or_default();
             let diffs: String = if log_level != ReplicaLogLevel::default() {
@@ -299,14 +299,14 @@ impl LocalServerDescriptor {
             } else {
                 "".to_string()
             };
-            debug!(log, " | ∟log level: {:?}{}", log_level, diffs);
+            debug!(log, "    log level: {:?}{}", log_level, diffs);
         }
-        debug!(log, " ∟data directory: {}", self.data_directory.display());
+        debug!(log, "  data directory: {}", self.data_directory.display());
         let scope = match self.scope {
             LocalNetworkScopeDescriptor::Project => "project",
             LocalNetworkScopeDescriptor::Shared { .. } => "shared",
         };
-        debug!(log, " ∟scope: {}", scope);
+        debug!(log, "  scope: {}", scope);
         debug!(log, "");
     }
 
@@ -318,21 +318,21 @@ impl LocalServerDescriptor {
         } else {
             "".to_string()
         };
-        debug!(log, " ∟ip: {:?}{}", self.bootstrap.ip, diffs);
+        debug!(log, "  ip: {:?}{}", self.bootstrap.ip, diffs);
 
         let diffs = if self.bootstrap.port != default.port {
             format!("  (default: {})", default.port)
         } else {
             "".to_string()
         };
-        debug!(log, " ∟port: {}{}", self.bootstrap.port, diffs);
+        debug!(log, "  port: {}{}", self.bootstrap.port, diffs);
 
         let diffs = if self.bootstrap.timeout != default.timeout {
             format!("  (default: {})", default.timeout)
         } else {
             "".to_string()
         };
-        debug!(log, " ∟timeout: {}{}", self.bootstrap.timeout, diffs);
+        debug!(log, "  timeout: {}{}", self.bootstrap.timeout, diffs);
         debug!(log, "");
     }
 }
