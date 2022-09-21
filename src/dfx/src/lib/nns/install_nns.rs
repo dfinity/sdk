@@ -322,6 +322,11 @@ pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Res
 /// Downloads a file
 #[context("Failed to download '{:?}' to '{:?}'.", source, target)]
 pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
+    println!(
+        "Downloading {}\n  from {}",
+        target.to_string_lossy(),
+        source.as_str()
+    );
     let buffer = reqwest::get(source.clone())
         .await
         .with_context(|| "Failed to connect")?
@@ -407,11 +412,6 @@ pub async fn download_ic_repo_wasm(
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
       .with_context(|| format!("Could not determine download URL.  Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
-    println!(
-        "Downloading {}\n  from {}",
-        final_path.to_string_lossy(),
-        url_str
-    );
     download_gz(&url, &final_path).await
 }
 
