@@ -85,7 +85,7 @@ teardown() {
     assert_command dfx start --background --verbose
 
     assert_match "There is no project-specific network 'local' because there is no project \(no dfx.json\)."
-    assert_match "Found shared network 'local' in $DFX_CONFIG_ROOT/.config/dfx/networks.json"
+    assert_match "Using shared network 'local' defined in $DFX_CONFIG_ROOT/.config/dfx/networks.json"
 }
 
 @test "dfx start describes default project-specific network" {
