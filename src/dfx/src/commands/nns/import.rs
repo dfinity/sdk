@@ -1,3 +1,4 @@
+//! Code for the command line: `dfx nns import`
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
 use crate::lib::project::import::import_canister_definitions;
@@ -19,12 +20,13 @@ pub struct ImportOpts {
     network_mapping: Vec<String>,
 }
 
+/// Executes `dfx nns import`
 pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let mut config = config.as_ref().clone();
 
     let network_mappings = get_network_mappings(&opts.network_mapping)?;
-    let ic_commit = replica_rev();
+    let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
 
     let dfx_url_str = {
         let ic_project = std::env::var("DFX_IC_SRC").unwrap_or_else(|_| {

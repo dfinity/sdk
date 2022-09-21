@@ -14,6 +14,14 @@ If you want to disable this behavior, you can config it in dfx.json:
         }
     }
 
+### fix: Valid canister-based env vars
+
+Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_${CANISTER_NAME}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
+
+### feat: Add dfx sns deploy
+
+This allows users to deploy a set of SNS canisters.
+
 ### fix: `cargo run -p dfx -- --version` prints correct version
 
 ### feat: add --mode=auto
@@ -202,9 +210,13 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
 
-#### #feat: `dfx info replica-rev`
+#### feat: `dfx info replica-rev`
 
 This displays the revision of the replica bundled with dfx, which is the same revision referenced in replica election governance proposals.
+
+#### feat: `dfx info networks-json-path`
+
+This displays the path to your user's `networks.json` file where all networks are defined.
 
 ### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
 

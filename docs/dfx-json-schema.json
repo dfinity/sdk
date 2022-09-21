@@ -192,7 +192,7 @@
             },
             "candid": {
               "title": "Candid File",
-              "description": "Path to this canister's candid interface declaration.",
+              "description": "Path to this canister's candid interface declaration.  A URL to a candid file is also acceptable.",
               "type": "string"
             },
             "type": {
@@ -203,7 +203,7 @@
             },
             "wasm": {
               "title": "WASM Path",
-              "description": "Path to WASM to be installed.",
+              "description": "Path to WASM to be installed. URLs to a WASM module are also acceptable.",
               "type": "string"
             }
           }
@@ -312,6 +312,12 @@
               "type": "null"
             }
           ]
+        },
+        "shrink": {
+          "title": "Shrink Canister WASM",
+          "description": "Whether run `ic-wasm shrink` after building the Canister. Default is true.",
+          "default": true,
+          "type": "boolean"
         }
       }
     },
@@ -482,8 +488,18 @@
       "properties": {
         "enabled": {
           "title": "Enable HTTP Adapter",
-          "default": false,
+          "default": true,
           "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "error",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
         }
       }
     },
@@ -491,6 +507,17 @@
       "title": "Local Replica Configuration",
       "type": "object",
       "properties": {
+        "log_level": {
+          "description": "Run replica with the provided log level. Default is 'error'. Debug prints still get displayed",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaLogLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "port": {
           "description": "Port the replica listens on.",
           "type": [
@@ -611,6 +638,18 @@
         }
       }
     },
+    "HttpAdapterLogLevel": {
+      "description": "Represents the log level of the HTTP adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
     "InitializationValues": {
       "title": "Initial Resource Allocations",
       "type": "object",
@@ -669,6 +708,17 @@
       "enum": [
         "Debug",
         "Release"
+      ]
+    },
+    "ReplicaLogLevel": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
       ]
     },
     "ReplicaSubnetType": {
