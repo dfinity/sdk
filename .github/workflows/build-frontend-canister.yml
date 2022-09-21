@@ -1,4 +1,4 @@
-name: Check frontend canister build
+name: Update frontend canister
 
 on:
   push:
@@ -20,14 +20,13 @@ jobs:
       - name: Build frontend canister
         run: |
           ./scripts/update-frontend-canister.sh
-      - name: Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: assetstorage
-          path: ${{ github.workspace }}/src/distributed/assetstorage.wasm.gz
-      - name: Compare
+      - name: Update wasm
         run: |
           if [ "$(git diff src/distributed/assetstorage.wasm.gz)" != "" ]
           then
-            exit 1
+            git config user.name "GitHub Actions Bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/distributed/assetstorage.wasm.gz
+            git commit -m "update src/distributed/assetstorage.wasm.gz" || true
+            git push
           fi
