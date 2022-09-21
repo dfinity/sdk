@@ -386,7 +386,8 @@ impl BuildConfig {
 fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
     let wasm_path = wasm_path.as_ref();
     let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
-    let shrinked_wasm = ic_wasm::shrink::shrink(&wasm).context("Could not shrink the WASM module.")?;
+    let shrinked_wasm =
+        ic_wasm::shrink::shrink(&wasm).context("Could not shrink the WASM module.")?;
     std::fs::write(wasm_path, &shrinked_wasm)
         .with_context(|| format!("Could not write shrinked WASM to {:?}", wasm_path))?;
     Ok(())
