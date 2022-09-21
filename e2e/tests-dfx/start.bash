@@ -213,12 +213,12 @@ teardown() {
     jq '.defaults.replica.log_level="warning"' dfx.json | sponge dfx.json
     define_project_network
 
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Critical"
 }
 
@@ -227,12 +227,12 @@ teardown() {
     jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
     define_project_network
 
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Critical"
 }
 
@@ -241,12 +241,12 @@ teardown() {
     create_networks_json
     jq '.local.replica.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Critical"
 }
 

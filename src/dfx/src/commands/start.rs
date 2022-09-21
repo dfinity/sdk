@@ -4,6 +4,7 @@ use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
+use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -20,7 +21,7 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
-use slog::{warn, Logger};
+use slog::{info, warn, Logger};
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -127,6 +128,13 @@ pub fn exec(
         enable_canister_http,
     }: StartOpts,
 ) -> DfxResult {
+    if !background {
+        info!(
+            env.get_logger(),
+            "Running dfx start for version {}",
+            dfx_version_str()
+        );
+    }
     let project_config = env.get_config();
 
     let network_descriptor_logger = if background {
@@ -213,7 +221,7 @@ pub fn exec(
         send_background()?;
         return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
-    local_server_descriptor.describe(true, false);
+    local_server_descriptor.describe(env.get_logger(), true, false);
 
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
@@ -321,6 +329,7 @@ pub fn exec(
             bind: address_and_port,
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
+            verbose: env.get_verbose_level() > 0,
         };
 
         let proxy = start_icx_proxy_actor(
