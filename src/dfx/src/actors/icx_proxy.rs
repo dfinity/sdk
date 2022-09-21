@@ -41,6 +41,9 @@ pub struct IcxProxyConfig {
 
     /// does the icx-proxy need to fetch the root key
     pub fetch_root_key: bool,
+
+    /// run icx-proxy in non-quiet mode
+    pub verbose: bool,
 }
 
 /// The configuration for the icx_proxy actor.
@@ -94,6 +97,7 @@ impl IcxProxy {
                 icx_proxy_pid_path.clone(),
                 receiver,
                 fetch_root_key,
+                config.verbose,
             ),
             "Failed to start ICX proxy thread.",
         )?;
@@ -186,6 +190,7 @@ fn icx_proxy_start_thread(
     icx_proxy_pid_path: PathBuf,
     receiver: Receiver<()>,
     fetch_root_key: bool,
+    verbose: bool,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         // Use a Waiter for waiting for the file to be created.
@@ -208,6 +213,9 @@ fn icx_proxy_start_thread(
         for url in &replica_urls {
             let s = format!("{}", url);
             cmd.args(&["--replica", &s]);
+        }
+        if !verbose {
+            cmd.arg("-q");
         }
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());

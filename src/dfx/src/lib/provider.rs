@@ -17,7 +17,7 @@ use garcon::{Delay, Waiter};
 use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
 use ic_agent::Agent;
 use lazy_static::lazy_static;
-use slog::{info, warn, Logger};
+use slog::{debug, info, warn, Logger};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -240,14 +240,14 @@ fn create_shared_network_descriptor(
         }
         (network_name, None) => {
             if shared_config_file_exists {
-                info!(
+                debug!(
                     logger,
                     "There is no shared network '{}' defined in {}",
                     &shared_config_display_path,
                     network_name
                 );
             } else {
-                info!(
+                debug!(
                     logger,
                     "There is no shared network '{}' because {} does not exist.",
                     network_name,
@@ -259,7 +259,7 @@ fn create_shared_network_descriptor(
         (network_name, Some(network)) => {
             info!(
                 logger,
-                "Found shared network '{}' in {}",
+                "Using shared network '{}' defined in {}",
                 network_name,
                 shared_config.get_path().display()
             );
@@ -297,7 +297,7 @@ fn create_project_network_descriptor(
         if let Some(config_network) = config.get_config().get_network(network_name) {
             info!(
                 logger,
-                "Found project-specific network '{}' in {}",
+                "Using project-specific network '{}' defined in {}",
                 network_name,
                 config.get_path().display(),
             );
@@ -324,16 +324,16 @@ fn create_project_network_descriptor(
                 legacy_pid_path,
             ))
         } else {
-            info!(
+            debug!(
                 logger,
-                "There is no project-specific network '{}' defined in {}.",
+                "There is no project-specific network '{}' defined in {}",
                 network_name,
                 config.get_path().display()
             );
             None
         }
     } else {
-        info!(
+        debug!(
             logger,
             "There is no project-specific network '{}' because there is no project (no dfx.json).",
             network_name
