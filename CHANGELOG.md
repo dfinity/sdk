@@ -369,6 +369,10 @@ Previously, dfx only accepted canister aliases and produced an error message tha
 
 Motivated by [this forum post](https://forum.dfinity.org/t/dfx-0-10-0-dfx-canister-deposit-cycles-returns-error/13251/6).
 
+### chore: projects created with `dfx new` are not pinned to a specific dfx version anymore
+
+It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pin to>"` to a project's `dfx.json`.
+
 ### fix: print links to cdk-rs docs in dfx new
 
 ### fix: Small grammar change to identity password decryption prompt
