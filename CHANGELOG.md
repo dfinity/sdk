@@ -14,6 +14,10 @@ If you want to disable this behavior, you can config it in dfx.json:
         }
     }
 
+### fix: Valid canister-based env vars
+
+Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_${CANISTER_NAME}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
+
 ### feat: Add dfx sns deploy
 
 This allows users to deploy a set of SNS canisters.
@@ -83,6 +87,11 @@ It is now possible to set the http adapter's log level in dfx.json or in network
     }
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
+
+### chore: reduce verbosity of dfx start
+
+`dfx start` produces a lot of log output that is at best irrelevant for most users.
+Most output is no longer visible unless either `--verbose` is used with dfx or the relevant part's (e.g. http adapter, btc adapter, or replica) log level is changed in dfx.json or networks.json.
 
 ### feat: generate secp256k1 keys by default
 
@@ -359,6 +368,10 @@ Previously, dfx only accepted canister aliases and produced an error message tha
 ### chore: dfx canister deposit-cycles uses default wallet if none is specified
 
 Motivated by [this forum post](https://forum.dfinity.org/t/dfx-0-10-0-dfx-canister-deposit-cycles-returns-error/13251/6).
+
+### chore: projects created with `dfx new` are not pinned to a specific dfx version anymore
+
+It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pin to>"` to a project's `dfx.json`.
 
 ### fix: print links to cdk-rs docs in dfx new
 
