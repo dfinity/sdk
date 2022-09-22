@@ -42,8 +42,8 @@ pub struct IdentityConfiguration {
     /// If the identity's PEM file is encrypted on disk this contains everything (except the password) to decrypt the file.
     pub encryption: Option<EncryptionConfiguration>,
 
-    /// If the identity's PEM file is stored in the system's keyring, this field contains the identity's name.
-    pub keyring_identity_name: Option<String>,
+    /// If the identity's PEM file is stored in the system's keyring, this field contains the identity's name WITHOUT the common prefix.
+    pub keyring_identity_suffix: Option<String>,
 }
 
 /// The information necessary to de- and encrypt (except the password) the identity's .pem file
@@ -239,14 +239,36 @@ impl IdentityManager {
     /// Returns the pem file content of the selected identity
     #[context("Failed to export identity '{}'.", name)]
     pub fn export(&self, name: &str) -> DfxResult<String> {
-        todo!();
         self.require_identity_exists(name)?;
-
         let config = self.get_identity_config_or_default(name)?;
-        let pem_path = self.get_identity_pem_path(name);
-        let pem = pem_safekeeping::load_pem_from_file(&pem_path, Some(&config))?;
-        validate_pem_file(&pem)?;
-        String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
+        let pem_content = if let Some(keyring_identity_suffix) = config.keyring_identity_suffix {
+            // case 1: keyring identity
+            pem_safekeeping::load_pem_from_keyring(&keyring_identity_suffix)?
+        } else if let Some(_encryption_config) = &config.encryption {
+            // case 2: encrypted identity
+            let pem_path = self.get_identity_pem_path(name);
+            pem_safekeeping::load_pem_from_file(&pem_path, Some(&config))?
+        } else if let Some(_hsm_config) = config.hsm {
+            // case 3: hsm identity
+            bail!(
+                "Selected identity '{}' is an HSM identity. Export does not make sense.",
+                name
+            )
+        } else if self.get_legacy_identity_pem_path(name).exists() {
+            // case 4: legacy plaintext identity
+            let path = self.get_legacy_identity_pem_path(name);
+            pem_safekeeping::load_pem_from_file(&path, Some(&config))?
+        } else {
+            // case 5: something's borked
+            bail!(
+                "Unable to locate pem file content for identity '{}' given config {:?}",
+                name,
+                config
+            )
+        };
+        validate_pem_file(&pem_content)?;
+        String::from_utf8(pem_content)
+            .map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
 
     /// Remove a named identity.

@@ -292,7 +292,7 @@ impl Identity {
                 pem_safekeeping::load_pem_from_file(&encrypted_pem_path, Some(&config))?;
             Identity::load_secp256k1_identity(manager, name, &pem_content)
                 .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
-        } else if let Some(keyring_identity) = config.keyring_identity_name {
+        } else if let Some(keyring_identity) = config.keyring_identity_suffix {
             let pem_content = pem_safekeeping::load_pem_from_keyring(name)?;
             Identity::load_secp256k1_identity(manager, name, &pem_content)
                 .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
@@ -303,13 +303,17 @@ impl Identity {
             let encrypted_pem_path = manager.get_identity_pem_path(name);
             if plaintext_pem_path.exists() {
                 // Guess 1: It's a legacy plaintext identity.
-                todo!();
+                todo!("cleanup: import as keyring file if possible");
+                let pem_content =
+                    pem_safekeeping::load_pem_from_file(&plaintext_pem_path, Some(&config))?;
+                Identity::load_secp256k1_identity(manager, name, &pem_content)
+                    .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
             } else if maybe_keyring_pem.is_ok() {
                 // Guess 2: PEM file is stored in keyring, but config is not up to date.
                 let updated_config = IdentityConfiguration {
                     hsm: None,
                     encryption: None,
-                    keyring_identity_name: Some(name.to_string()),
+                    keyring_identity_suffix: Some(name.to_string()),
                 };
                 identity_manager::write_identity_configuration(&json_path, &updated_config)?;
                 let pem_content = maybe_keyring_pem?;

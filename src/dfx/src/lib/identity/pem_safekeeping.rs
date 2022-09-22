@@ -13,8 +13,8 @@ use argon2::{password_hash::PasswordHasher, Argon2};
 use fn_error_context::context;
 use keyring;
 
-pub const KEYRING_SERVICE_NAME: &str = "dfx";
-pub const KEYRING_IDENTITY_PREFIX: &str = "dfx_identity_";
+pub const KEYRING_SERVICE_NAME: &str = "internet_computer_identities";
+pub const KEYRING_IDENTITY_PREFIX: &str = "internet_computer_identity_";
 
 fn todo() {
     todo!(); //"Can the public functions be combined into one?"
@@ -22,10 +22,10 @@ fn todo() {
 
 #[context(
     "Failed to load PEM file from keyring for identity '{}'.",
-    identity_name
+    identity_name_suffix
 )]
-pub fn load_pem_from_keyring(identity_name: &str) -> DfxResult<Vec<u8>> {
-    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name);
+pub fn load_pem_from_keyring(identity_name_suffix: &str) -> DfxResult<Vec<u8>> {
+    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name_suffix);
     let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
     let encoded_pem = entry.get_password()?;
     let pem = hex::decode(&encoded_pem)?;
@@ -51,6 +51,7 @@ pub fn keyring_contains(identity_name: &str) -> bool {
     entry.get_password().is_ok()
 }
 
+/// Loads a pem file, no matter if it is a legacy plaintext pem file or if it is encrypted with a password.
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
 ///
 /// Try to only load the pem file once, as the user may be prompted for the password every single time you call this function.
