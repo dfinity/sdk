@@ -88,6 +88,10 @@ It is now possible to set the http adapter's log level in dfx.json or in network
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
+### fix(typescript): add index.d.ts file for type safety when importing generated declarations
+
+Adds an index.d.ts file to the generated declarations, allowing for better type safety in TypeScript projects.
+
 ### chore: reduce verbosity of dfx start
 
 `dfx start` produces a lot of log output that is at best irrelevant for most users.

@@ -43,12 +43,12 @@ The behavior of `dfx generate` is controlled by the `dfx.json` configuration fil
 
 Outputs from `dfx generate`:
 
-| Language         | File                                    |
-|------------------|-----------------------------------------|
-| `JavaScript(js)` | `index.js` and `<canister_name>.did.js` |
-| `TypeScript(ts)` | `<canister_name>.did.ts`                |
-| `Candid(did)`    | `<canister_name>.did`                   |
-| `Motoko(mo)`     | `<canister_name>.mo`                    |
+| Language         | File                                     |
+|------------------|------------------------------------------|
+| `JavaScript(js)` | `index.js` and `<canister_name>.did.js`  |
+| `TypeScript(ts)` | `index.d.ts` and `<canister_name>.did.ts`|
+| `Candid(did)`    | `<canister_name>.did`                    |
+| `Motoko(mo)`     | `<canister_name>.mo`                     |
 
 ## Examples
 
