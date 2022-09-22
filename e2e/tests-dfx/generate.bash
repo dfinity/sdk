@@ -23,10 +23,9 @@ teardown() {
     dfx --version
     dfx generate
 
-    assert_command ls src/declarations/hello_backend
-    assert_match "hello_backend.did"
-    assert_match "hello_backend.did.js"
-    assert_match "hello_backend.did.d.ts"
-    assert_match "index.js"
-    assert_match "index.d.ts"
+    assert_file_exists "src/declarations/hello_backend/hello_backend.did"
+    assert_file_exists "src/declarations/hello_backend/hello_backend.did.js"
+    assert_file_exists "src/declarations/hello_backend/hello_backend.did.d.ts"
+    assert_file_exists "src/declarations/hello_backend/index.js"
+    assert_file_exists "src/declarations/hello_backend/index.d.ts"
 }
