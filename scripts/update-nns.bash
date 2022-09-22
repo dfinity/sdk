@@ -43,6 +43,7 @@ get_binary ic-nns-init
 get_wasm registry-canister.wasm
 get_wasm governance-canister.wasm
 get_wasm governance-canister_test.wasm
+get_wasm ic-ckbtc-minter.wasm
 get_wasm ledger-canister_notify-method.wasm
 get_wasm root-canister.wasm
 get_wasm cycles-minting-canister.wasm
