@@ -7,10 +7,14 @@ initial_token_distribution:
       airdrop_neurons:
       - controller: w3i5o-5ylvd-cmm42-pw66i-n6qcw-fw3q7-kk5la-4edui-ozozq-5qq3j-dae
         stake_e8s: 100000000
+        memo: 42
+        dissolve_delay_seconds: 86400
     developer_distribution:
       developer_neurons:
       - controller: dktcs-d43lz-rosn2-wnwsj-kef34-6kl3i-ux7qb-ka6xr-biref-ykeaj-sqe
         stake_e8s: 100000000
+        memo: 42
+        dissolve_delay_seconds: 86400
     swap_distribution:
       initial_swap_amount_e8s: 200000000
       total_e8s: 1000000000
