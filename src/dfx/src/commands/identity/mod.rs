@@ -1,8 +1,8 @@
-use crate::{init_env, lib::error::DfxResult};
+use crate::lib::environment::Environment;
+use crate::lib::error::DfxResult;
+use crate::NetworkOpt;
 
 use clap::Parser;
-
-use super::NetworkOpts;
 
 mod deploy_wallet;
 mod export;
@@ -21,68 +21,43 @@ mod whoami;
 /// Setting an identity enables you to test user-based access controls.
 #[derive(Parser)]
 #[clap(name("identity"))]
-pub struct IdentityCommand {
+pub struct IdentityOpts {
+    #[clap(flatten)]
+    network: NetworkOpt,
+
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 enum SubCommand {
-    DeployWallet(NetworkOpts<deploy_wallet::DeployWalletOpts>),
-    Export(NetworkOpts<export::ExportOpts>),
-    GetWallet(NetworkOpts<get_wallet::GetWalletOpts>),
-    Import(NetworkOpts<import::ImportOpts>),
-    List(NetworkOpts<list::ListOpts>),
-    New(NetworkOpts<new::NewIdentityOpts>),
-    GetPrincipal(NetworkOpts<principal::GetPrincipalOpts>),
-    Remove(NetworkOpts<remove::RemoveOpts>),
-    Rename(NetworkOpts<rename::RenameOpts>),
-    SetWallet(NetworkOpts<set_wallet::SetWalletOpts>),
-    Use(NetworkOpts<r#use::UseOpts>),
-    Whoami(NetworkOpts<whoami::WhoAmIOpts>),
+    DeployWallet(deploy_wallet::DeployWalletOpts),
+    Export(export::ExportOpts),
+    GetWallet(get_wallet::GetWalletOpts),
+    Import(import::ImportOpts),
+    List(list::ListOpts),
+    New(new::NewIdentityOpts),
+    GetPrincipal(principal::GetPrincipalOpts),
+    Remove(remove::RemoveOpts),
+    Rename(rename::RenameOpts),
+    SetWallet(set_wallet::SetWalletOpts),
+    Use(r#use::UseOpts),
+    Whoami(whoami::WhoAmIOpts),
 }
 
-pub fn dispatch(cmd: IdentityCommand) -> DfxResult {
-    match cmd.subcmd {
-        SubCommand::DeployWallet(v) => deploy_wallet::exec(
-            &init_env(v.base_opts.env_opts)?,
-            v.base_opts.command_opts,
-            v.network,
-        ),
-        SubCommand::Export(v) => {
-            export::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts)
-        }
-        SubCommand::GetWallet(v) => get_wallet::exec(
-            &init_env(v.base_opts.env_opts)?,
-            v.base_opts.command_opts,
-            v.network,
-        ),
-        SubCommand::List(v) => {
-            list::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts)
-        }
-        SubCommand::New(v) => new::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts),
-        SubCommand::GetPrincipal(v) => {
-            principal::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts)
-        }
-        SubCommand::Import(v) => {
-            import::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts)
-        }
-        SubCommand::Remove(v) => {
-            remove::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts)
-        }
-        SubCommand::Rename(v) => {
-            rename::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts)
-        }
-        SubCommand::SetWallet(v) => set_wallet::exec(
-            &init_env(v.base_opts.env_opts)?,
-            v.base_opts.command_opts,
-            v.network,
-        ),
-        SubCommand::Use(v) => {
-            r#use::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts)
-        }
-        SubCommand::Whoami(v) => {
-            whoami::exec(&init_env(v.base_opts.env_opts)?, v.base_opts.command_opts)
-        }
+pub fn exec(env: &dyn Environment, opts: IdentityOpts) -> DfxResult {
+    match opts.subcmd {
+        SubCommand::DeployWallet(v) => deploy_wallet::exec(env, v, opts.network.network),
+        SubCommand::Export(v) => export::exec(env, v),
+        SubCommand::GetWallet(v) => get_wallet::exec(env, v, opts.network.network),
+        SubCommand::List(v) => list::exec(env, v),
+        SubCommand::New(v) => new::exec(env, v),
+        SubCommand::GetPrincipal(v) => principal::exec(env, v),
+        SubCommand::Import(v) => import::exec(env, v),
+        SubCommand::Remove(v) => remove::exec(env, v),
+        SubCommand::Rename(v) => rename::exec(env, v),
+        SubCommand::SetWallet(v) => set_wallet::exec(env, v, opts.network.network),
+        SubCommand::Use(v) => r#use::exec(env, v),
+        SubCommand::Whoami(v) => whoami::exec(env, v),
     }
 }

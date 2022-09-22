@@ -2,6 +2,10 @@ name: Update Docs
 on:
   pull_request
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   update_dfx_json_schema:
     runs-on: ${{ matrix.os }}
@@ -15,6 +19,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: Install Rust
         run: |
           rustup update ${{ matrix.rust }} --no-self-update
@@ -33,8 +38,17 @@ jobs:
           cat docs/dfx-json-schema.json
           echo "networks.json schema:"
           cat docs/networks-json-schema.json
-          git config user.name "GitHub Actions Bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/dfx-json-schema.json docs/networks-json-schema.json
-          git commit -m "update dfx-json-schema and networks-json-schema" || true
-          git push
+          if [[ $(git status | wc -l) -eq 2 ]]; then
+            if [[ ${{ github.event.pull_request.head.repo.full_name == github.repository }} ]]; then
+              git config user.name "GitHub Actions Bot"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add docs/dfx-json-schema.json docs/networks-json-schema.json
+              git commit -m "update dfx-json-schema and networks-json-schema" || true
+              git push
+            else
+              echo "Schemas are not up to date. Please run the following:"
+              echo "  dfx schema --outfile docs/dfx-json-schema.json"
+              echo "  dfx schema --for networks --outfile docs/networks-json-schema.json"
+              exit 1
+            fi
+          fi

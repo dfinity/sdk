@@ -7,7 +7,6 @@ use candid::Principal;
 use clap::{crate_authors, crate_version, Parser};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{agent, Agent, Identity};
-use time::UtcOffset;
 
 use crate::commands::upload::upload;
 use std::path::PathBuf;
@@ -23,7 +22,7 @@ const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 )]
 struct Opts {
     /// Some input. Because this isn't an Option<T> it's required to be used
-    #[clap(long, default_value = "http://localhost:8000/")]
+    #[clap(long, default_value = "http://localhost:4943/")]
     replica: String,
 
     /// An optional PEM file to read the identity from. If none is passed,

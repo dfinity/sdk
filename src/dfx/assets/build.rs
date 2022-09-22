@@ -2,10 +2,10 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use openssl::sha::Sha256;
 use std::fs::{read_to_string, File};
-use std::io::{Read, Write};
+use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::{env, fs};
+use std::process::{Command, Stdio};
+use std::{env, fs, io};
 use walkdir::WalkDir;
 
 const INPUTS: &[&str] = &[
@@ -13,7 +13,7 @@ const INPUTS: &[&str] = &[
     "scripts/dfx-asset-sources.sh",
     "scripts/prepare-dfx-assets.sh",
     "src/distributed/assetstorage.did",
-    "src/distributed/assetstorage.wasm",
+    "src/distributed/assetstorage.wasm.gz",
     "src/distributed/ui.did",
     "src/distributed/ui.wasm",
     "src/distributed/wallet.did",
@@ -35,16 +35,19 @@ fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
     hex::encode(sha256.finish())
 }
 
+fn get_project_root_path() -> PathBuf {
+    let project_root_dir = format!("{}/../..", env!("CARGO_MANIFEST_DIR"));
+    PathBuf::from(project_root_dir)
+        .canonicalize()
+        .expect("Unable to determine project root")
+}
+
 fn find_assets() -> PathBuf {
     println!("cargo:rerun-if-env-changed=DFX_ASSETS");
     if let Ok(a) = env::var("DFX_ASSETS") {
         PathBuf::from(a)
     } else {
-        let project_root_dir = format!("{}/../..", env!("CARGO_MANIFEST_DIR"));
-        let project_root_path: PathBuf = PathBuf::from(project_root_dir)
-            .canonicalize()
-            .expect("Unable to determine project root");
-
+        let project_root_path = get_project_root_path();
         let prepare_script_path = project_root_path.join("scripts/prepare-dfx-assets.sh");
         for input in INPUTS {
             println!(
@@ -141,16 +144,60 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
     .unwrap();
 }
 
-fn get_git_hash() -> Option<String> {
-    match Command::new("git").arg("describe").arg("--dirty").output() {
-        Ok(output) if output.status.success() => {
-            Some(String::from_utf8_lossy(&output.stdout).to_string())
+/// Gets a git tag with the least number of revs between HEAD of current branch and the tag,
+/// and combines is with SHA of the HEAD commit. Example of expected output: `0.12.0-beta.1-b9ace030`
+fn get_git_hash() -> Result<String, std::io::Error> {
+    let mut latest_tag = String::from("0");
+    let mut latest_distance = u128::MAX;
+    let tags = Command::new("git")
+        .arg("tag")
+        .stdout(Stdio::piped())
+        .spawn()?
+        .wait_with_output()?
+        .stdout;
+    for tag in String::from_utf8_lossy(&tags).split_whitespace() {
+        let output = Command::new("git")
+            .arg("rev-list")
+            .arg("--count")
+            .arg(format!("{}..HEAD", tag))
+            .arg(tag)
+            .stdout(Stdio::piped())
+            .spawn()?
+            .wait_with_output()?
+            .stdout;
+        if let Some(count) = String::from_utf8_lossy(&output)
+            .split_whitespace()
+            .next()
+            .and_then(|v| v.parse::<u128>().ok())
+        {
+            if count < latest_distance {
+                latest_tag = String::from(tag);
+                latest_distance = count;
+            }
         }
-        _ => None,
     }
+    let head_commit_sha = Command::new("git")
+        .arg("rev-parse")
+        .arg("--short")
+        .arg("HEAD")
+        .output()?
+        .stdout;
+    let head_commit_sha = String::from_utf8_lossy(&head_commit_sha);
+    let is_dirty = !Command::new("git")
+        .arg("status")
+        .arg("--porcelain")
+        .output()?
+        .stdout
+        .is_empty();
+
+    Ok(format!(
+        "{latest_tag}+rev{count}.{head_status}{head_commit_sha}",
+        count = latest_distance,
+        head_status = if is_dirty { "dirty-" } else { "" }
+    ))
 }
 
-fn main() {
+fn add_assets() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let loader_path = Path::new(&out_dir).join("load_assets.rs");
     let mut f = File::create(&loader_path).unwrap();
@@ -187,14 +234,44 @@ fn main() {
         &mut f,
         "assets/new_project_rust_files",
     );
+}
 
-    // Pass a version in the environment, or the git describe version at time of build,
-    // or let the cargo.toml version.
+/// Use a verion based on environment variable,
+/// or the latest git tag plus sha of current git HEAD at time of build,
+/// or let the cargo.toml version.
+fn define_dfx_version() {
     if let Ok(v) = std::env::var("DFX_VERSION") {
+        // If the version is passed in the environment, use that.
+        // Used by the release process in .github/workflows/publish.yml
         println!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
-    } else if let Some(git) = get_git_hash() {
+    } else if let Ok(git) = get_git_hash() {
+        // If the version isn't passed in the environment, use the git describe version.
+        // Used when building from source.
         println!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
     } else {
         // Nothing to do here, as there is no GIT. We keep the CARGO_PKG_VERSION.
     }
+}
+
+fn define_replica_rev() {
+    let pathname = get_project_root_path().join("scripts/dfx-asset-sources.sh");
+    let file = File::open(pathname).expect("Unable to read scripts/dfx-asset-sources.sh");
+    let reader = io::BufReader::new(file);
+
+    let prefix = "REPLICA_REV=";
+
+    let replica_rev_line = reader
+        .lines()
+        .map(|line| line.expect("Could not parse line"))
+        .find(|line| line.starts_with(prefix))
+        .expect("No REPLICA_REV in scripts/dfx-asset-sources.sh");
+    let replica_rev = &replica_rev_line[prefix.len()..];
+
+    println!("cargo:rustc-env=DFX_ASSET_REPLICA_REV={}", replica_rev);
+}
+
+fn main() {
+    add_assets();
+    define_dfx_version();
+    define_replica_rev();
 }

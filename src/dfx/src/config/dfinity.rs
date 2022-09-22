@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
+use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
@@ -107,6 +108,12 @@ pub struct ConfigCanistersCanister {
     /// # Path to Canister Entry Point
     /// Entry point for e.g. Motoko Compiler.
     pub main: Option<PathBuf>,
+
+    /// # Shrink Canister WASM
+    /// Whether run `ic-wasm shrink` after building the Canister.
+    /// Default is true.
+    #[serde(default = "default_as_true")]
+    pub shrink: bool,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -131,12 +138,12 @@ pub enum CanisterTypeProperties {
     /// # Custom-Specific Properties
     Custom {
         /// # WASM Path
-        /// Path to WASM to be installed.
-        wasm: PathBuf,
+        /// Path to WASM to be installed. URLs to a WASM module are also acceptable.
+        wasm: String,
 
         /// # Candid File
-        /// Path to this canister's candid interface declaration.
-        candid: PathBuf,
+        /// Path to this canister's candid interface declaration.  A URL to a candid file is also acceptable.
+        candid: String,
 
         /// # Build Commands
         /// Commands that are executed in order to produce this canister's WASM module.
@@ -237,16 +244,30 @@ impl Default for ConfigDefaultsBitcoin {
 }
 
 /// # HTTP Adapter Configuration
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsCanisterHttp {
     /// # Enable HTTP Adapter
-    #[serde(default)]
+    #[serde(default = "default_as_true")]
     pub enabled: bool,
+
+    /// # Logging Level
+    /// The logging level of the adapter.
+    #[serde(default)]
+    pub log_level: HttpAdapterLogLevel,
 }
 
-fn default_as_false() -> bool {
+impl Default for ConfigDefaultsCanisterHttp {
+    fn default() -> Self {
+        ConfigDefaultsCanisterHttp {
+            enabled: true,
+            log_level: HttpAdapterLogLevel::default(),
+        }
+    }
+}
+
+fn default_as_true() -> bool {
     // sigh https://github.com/serde-rs/serde/issues/368
-    false
+    true
 }
 
 /// # Bootstrap Server Configuration
@@ -296,6 +317,36 @@ pub struct ConfigDefaultsBuild {
     pub args: Option<String>,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ReplicaLogLevel {
+    Critical,
+    Error,
+    Warning,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl Default for ReplicaLogLevel {
+    fn default() -> Self {
+        Self::Error
+    }
+}
+
+impl ReplicaLogLevel {
+    pub fn as_ic_starter_string(&self) -> String {
+        match self {
+            Self::Critical => "critical".to_string(),
+            Self::Error => "error".to_string(),
+            Self::Warning => "warning".to_string(),
+            Self::Info => "info".to_string(),
+            Self::Debug => "debug".to_string(),
+            Self::Trace => "trace".to_string(),
+        }
+    }
+}
+
 /// # Local Replica Configuration
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsReplica {
@@ -307,6 +358,9 @@ pub struct ConfigDefaultsReplica {
     /// Affects things like cycles accounting, message size limits, cycle limits.
     /// Defaults to 'application'.
     pub subnet_type: Option<ReplicaSubnetType>,
+
+    /// Run replica with the provided log level. Default is 'error'. Debug prints still get displayed
+    pub log_level: Option<ReplicaLogLevel>,
 }
 
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
@@ -773,8 +827,9 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        let (mut package, mut source, mut candid, mut build, mut wasm, mut r#type) =
-            (None, None, None, None, None, None);
+        let mut wasm: Option<String> = None;
+        let mut candid: Option<String> = None;
+        let (mut package, mut source, mut build, mut r#type) = (None, None, None, None);
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -789,7 +844,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         let props = match r#type.as_deref() {
             Some("motoko") | None => CanisterTypeProperties::Motoko,
             Some("rust") => CanisterTypeProperties::Rust {
-                candid: candid.ok_or_else(|| missing_field("candid"))?,
+                candid: PathBuf::from(candid.ok_or_else(|| missing_field("candid"))?),
                 package: package.ok_or_else(|| missing_field("package"))?,
             },
             Some("assets") => CanisterTypeProperties::Assets {

@@ -9,9 +9,33 @@ setup() {
 }
 
 teardown() {
+    stop_webserver
     dfx_stop
 
     standard_teardown
+}
+
+@test "can build a custom canister with wasm and/or candid from a url" {
+    install_asset wasm/identity
+    mkdir -p www/wasm
+    mv main.wasm www/wasm/
+    mv main.did www/wasm
+    start_webserver --directory www
+    dfx_start
+
+    dfx_new
+
+    jq '.canisters={}' dfx.json | sponge dfx.json
+
+    jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project)
+    assert_command dfx canister call e2e_project getCanisterId
+    assert_match "$ID"
 }
 
 @test "build uses default build args" {
@@ -67,6 +91,13 @@ teardown() {
     assert_command dfx build
 }
 
+@test "build succeeds if disable shrink" {
+    jq '.canisters.e2e_project_backend.shrink=false' dfx.json | sponge dfx.json
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
+}
+
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
 # Currently due to new canister ids, the wasm binary will be different for inter-canister calls.
 @test "build twice produces the same wasm binary" {
@@ -108,6 +139,7 @@ teardown() {
 
 @test "can build a custom canister type" {
   install_asset custom_canister
+  install_asset wasm/identity
   dfx_start
   dfx canister create --all
   assert_command dfx build custom
@@ -127,6 +159,8 @@ teardown() {
 
 @test "upgrade check writes .old.did under .dfx" {
   install_asset custom_canister
+  install_asset wasm/identity
+
   dfx_start
   dfx deploy
 
@@ -142,6 +176,8 @@ teardown() {
 
 @test "custom canister build script picks local executable first" {
   install_asset custom_canister
+  install_asset wasm/identity
+
   dfx_start
   dfx canister create custom2
   jq '.canisters.custom2.build="ln"' dfx.json | sponge dfx.json
@@ -203,6 +239,7 @@ teardown() {
 
 @test "does not add candid:service metadata for a custom canister if there are no build steps" {
   install_asset prebuilt_custom_canister
+  install_asset wasm/identity
 
   dfx_start
   dfx deploy

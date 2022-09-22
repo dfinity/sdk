@@ -6,13 +6,17 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_matrix:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - id: set-matrix
         run: echo "::set-output name=matrix::$(scripts/workflows/audit-matrix.py)"
 
@@ -24,10 +28,10 @@ jobs:
       matrix: ${{fromJson(needs.build_matrix.outputs.matrix)}}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           path: sdk
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           repository: 'RustSec/advisory-db'
           path: advisory-db

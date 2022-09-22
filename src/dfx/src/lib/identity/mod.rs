@@ -12,6 +12,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
+use bip39::{Language, Mnemonic};
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
@@ -36,7 +37,7 @@ pub use identity_manager::{
     IdentityManager,
 };
 
-use s&&uper::diagnosis::DiagnosedError;
+use super::diagnosis::DiagnosedError;
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_PEM: &str = "identity.pem";
@@ -132,7 +133,8 @@ impl Identity {
         match parameters {
             IdentityCreationParameters::Pem { skip_keyring } => {
                 identity_config.encryption = create_encryption_config(skip_keyring)?;
-                let pem_content = identity_manager::generate_key()?;
+                let (pem_content, mnemonic) = identity_manager::generate_key()?;
+                todo!("check if keyring available - skip if not");
                 if skip_keyring {
                     let pem_file = manager.get_identity_pem_path(&temp_identity_name);
                     pem_safekeeping::write_pem_to_file(
@@ -143,6 +145,7 @@ impl Identity {
                 } else {
                     pem_safekeeping::write_pem_to_keyring(name, pem_content.as_slice())?;
                 }
+                eprintln!("Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
             }
             IdentityCreationParameters::PemFile {
                 src_pem_file,
@@ -150,6 +153,8 @@ impl Identity {
             } => {
                 identity_config.encryption = create_encryption_config(skip_keyring)?;
                 let src_pem_content = pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
+                identity_utils::validate_pem_file(&src_pem_content)?;
+                todo!("check if keyring available - skip if not");
                 if skip_keyring {
                     let dst_pem_file = manager.get_identity_pem_path(&temp_identity_name);
                     pem_safekeeping::write_pem_to_file(
@@ -164,6 +169,21 @@ impl Identity {
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config.hsm = Some(hsm);
                 create(&temp_identity_dir)?;
+            }
+            IdentityCreationParameters::SeedPhrase {
+                mnemonic,
+                skip_keyring,
+            } => {
+                todo!("keyring handling");
+                identity_config.encryption = create_encryption_config(skip_keyring)?;
+                let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
+                let key = identity_manager::mnemonic_to_key(&mnemonic)?;
+                let pem_file = manager.get_identity_pem_path(&temp_identity_name);
+                pem_safekeeping::write_pem_to_file(
+                    &pem_file,
+                    Some(&identity_config),
+                    key.to_pem(k256::pkcs8::LineEnding::CRLF)?.as_bytes(),
+                )?;
             }
         }
         let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
@@ -266,7 +286,7 @@ impl Identity {
         };
         if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
-        } else if let Some(encryption_config) = config.encryption {
+        } else if let Some(encryption_config) = &config.encryption {
             let encrypted_pem_path = manager.get_identity_pem_path(name);
             let pem_content =
                 pem_safekeeping::load_pem_from_file(&encrypted_pem_path, Some(&config))?;
@@ -583,6 +603,7 @@ impl Identity {
     /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
+    /// This can be inhibited by setting the DFX_DISABLE_AUTO_WALLET env var.
     #[context("Failed to get wallet for identity '{}' on network '{}'.", name, network.name)]
     pub async fn get_or_create_wallet(
         env: &dyn Environment,
@@ -592,7 +613,7 @@ impl Identity {
         match Identity::wallet_canister_id(network, name)? {
             None => {
                 // If the network is not the IC, we ignore the error and create a new wallet for the identity.
-                if !network.is_ic {
+                if !network.is_ic && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err() {
                     Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
@@ -646,6 +667,7 @@ impl Identity {
     /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
+    /// This can be inhibited by setting the DFX_DISABLE_AUTO_WALLET env var.
     #[allow(clippy::needless_lifetimes)]
     #[context("Failed to get wallet canister caller for identity '{}' on network '{}'.", name, network.name)]
     pub async fn get_or_create_wallet_canister<'env>(

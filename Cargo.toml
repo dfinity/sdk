@@ -4,7 +4,7 @@ members = [
     "src/canisters/frontend/ic-asset",
     "src/canisters/frontend/icx-asset",
     "src/canisters/frontend/ic-certified-assets",
-    "src/canisters/frontend/certified-assets",
+    "src/canisters/frontend/ic-frontend-canister",
 ]
 default-members = ["src/dfx"]
 
@@ -34,6 +34,6 @@ lto = true
 [profile.dev.package.argon2]
 opt-level = 3
 
-[profile.release.package.certified-assets]
+[profile.release.package.ic-frontend-canister]
 opt-level = 'z'
 

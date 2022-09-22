@@ -90,17 +90,12 @@ impl CanisterBuilder for RustBuilder {
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {} --locked",
             package
         );
-        let output = cargo.output().context("Failed to run 'cargo build'.")?;
+        let output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")?;
 
-        info!(self.logger, "Optimizing WASM module.");
-        let wasm_path = rust_info.get_output_wasm_path();
-        let wasm = std::fs::read(wasm_path).expect("Could not read the WASM module.");
-        let wasm_optimized =
-            ic_wasm::optimize::optimize(&wasm).map_err(|e| anyhow!(e.to_string()))?;
-        // The optimized wasm overwrites the original wasm.
-        // Because the `get_output_wasm_path` must give the same path,
-        // no matter optimized or not.
-        std::fs::write(wasm_path, wasm_optimized).expect("Could not write optimized WASM module.");
+        if canister_info.get_shrink() {
+            info!(self.logger, "Shrink WASM module size.");
+            super::shrink_wasm(rust_info.get_output_wasm_path())?;
+        }
 
         if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);

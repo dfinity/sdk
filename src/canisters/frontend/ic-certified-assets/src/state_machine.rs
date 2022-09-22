@@ -68,6 +68,12 @@ pub struct AssetEncodingDetails {
     pub modified: Timestamp,
 }
 
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct CertifiedTree {
+    pub certificate: Vec<u8>,
+    pub tree: Vec<u8>,
+}
+
 pub struct Chunk {
     pub batch_id: BatchId,
     pub content: RcBytes,
@@ -340,6 +346,20 @@ impl State {
             .collect::<Vec<_>>()
     }
 
+    pub fn certified_tree(&self, certificate: &[u8]) -> CertifiedTree {
+        use ic_certified_map::labeled;
+
+        let hash_tree = labeled(b"http_assets", self.asset_hashes.as_hash_tree());
+        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+        serializer.self_describe().unwrap();
+        hash_tree.serialize(&mut serializer).unwrap();
+
+        CertifiedTree {
+            certificate: certificate.to_vec(),
+            tree: serializer.into_inner(),
+        }
+    }
+
     pub fn get(&self, arg: GetArg) -> Result<EncodedAsset, String> {
         let asset = self
             .assets
@@ -561,39 +581,6 @@ impl From<StableState> for State {
             on_asset_change(&mut state.asset_hashes, asset_name, asset);
         }
         state
-    }
-}
-
-#[test]
-fn test_decode_seq() {
-    for (value, expected) in [
-        (
-            r#""0000000000000000000000000000000000000000000000000000000000000000""#,
-            vec![[0u8; 32]],
-        ),
-        (
-            r#""0000000000000000000000000000000000000000000000000000000000000000", "1111111111111111111111111111111111111111111111111111111111111111""#,
-            vec![[0u8; 32], [17u8; 32]],
-        ),
-    ] {
-        let decoded = decode_etag_seq(value)
-            .unwrap_or_else(|e| panic!("failed to parse good ETag value {}: {}", value, e));
-        assert_eq!(decoded, expected);
-    }
-
-    for value in [
-        r#""00000000000000000000000000000000""#,
-        r#"0000000000000000000000000000000000000000000000000000000000000000"#,
-        r#""0000000000000000000000000000000000000000000000000000000000000000" "1111111111111111111111111111111111111111111111111111111111111111""#,
-        r#"0000000000000000000000000000000000000000000000000000000000000000 1111111111111111111111111111111111111111111111111111111111111111"#,
-    ] {
-        let result = decode_etag_seq(value);
-        assert!(
-            result.is_err(),
-            "should have failed to parse invalid ETag value {}, got: {:?}",
-            value,
-            result
-        );
     }
 }
 

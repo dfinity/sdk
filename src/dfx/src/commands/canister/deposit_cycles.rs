@@ -1,13 +1,13 @@
-use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::{environment::Environment, identity::Identity};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
-use anyhow::{bail, Context};
+use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
 use slog::info;
@@ -62,10 +62,20 @@ async fn deposit_cycles(
 pub async fn exec(
     env: &dyn Environment,
     opts: DepositCyclesOpts,
-    call_sender: &CallSender,
+    mut call_sender: &CallSender,
 ) -> DfxResult {
+    let proxy_sender;
+
+    // choose default wallet if no wallet is specified
     if call_sender == &CallSender::SelectedId {
-        bail!("The deposit cycles call needs to be proxied via the wallet canister. Please run this command using 'dfx canister deposit-cycles --wallet <your wallet id> <other arguments>'.");
+        let wallet = Identity::get_or_create_wallet_canister(
+            env,
+            env.get_network_descriptor(),
+            env.get_selected_identity().expect("No selected identity"),
+        )
+        .await?;
+        proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+        call_sender = &proxy_sender;
     }
 
     // amount has been validated by cycle_amount_validator

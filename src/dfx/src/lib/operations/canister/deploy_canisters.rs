@@ -12,7 +12,6 @@ use crate::util::{blob_from_arguments, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
-use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
@@ -89,7 +88,7 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    let pool = build_canisters(env, &canisters_to_build, &config)?;
+    let pool = build_canisters(env, &canisters_to_build, &config).await?;
 
     install_canisters(
         env,
@@ -190,7 +189,7 @@ async fn register_canisters(
 }
 
 #[context("Failed to build call canisters.")]
-fn build_canisters(
+async fn build_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     config: &Config,
@@ -199,7 +198,9 @@ fn build_canisters(
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
 
-    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)?;
+    canister_pool
+        .build_or_fail(&BuildConfig::from_config(config)?)
+        .await?;
     Ok(canister_pool)
 }
 
@@ -226,35 +227,20 @@ async fn install_canisters(
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
     for canister_name in canister_names {
-        let (install_mode, installed_module_hash) = if force_reinstall {
-            (InstallMode::Reinstall, None)
+        let install_mode = if force_reinstall {
+            Some(InstallMode::Reinstall)
         } else {
             match initial_canister_id_store.find(canister_name) {
-                Some(canister_id) => {
-                    match agent
-                        .read_state_canister_info(canister_id, "module_hash", false)
-                        .await
-                    {
-                        Ok(installed_module_hash) => {
-                            (InstallMode::Upgrade, Some(installed_module_hash))
-                        }
-                        // If the canister is empty, this path does not exist.
-                        // The replica doesn't support negative lookups, therefore if the canister
-                        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-                        Err(AgentError::LookupPathUnknown(_))
-                        | Err(AgentError::LookupPathAbsent(_)) => (InstallMode::Install, None),
-                        Err(x) => bail!(x),
-                    }
-                }
-                None => (InstallMode::Install, None),
+                Some(_) => None,
+                None => Some(InstallMode::Install),
             }
         };
 
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
-        let maybe_path = canister_info.get_output_idl_path();
-        let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
+        let idl_path = canister_info.get_build_idl_path();
+        let init_type = get_candid_init_type(&idl_path);
         let install_args = || blob_from_arguments(argument, None, argument_type, &init_type);
 
         install_canister(
@@ -266,7 +252,6 @@ async fn install_canisters(
             install_mode,
             timeout,
             call_sender,
-            installed_module_hash,
             upgrade_unchanged,
             Some(&pool),
         )

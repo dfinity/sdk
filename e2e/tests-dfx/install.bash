@@ -145,10 +145,21 @@ teardown() {
 
 @test "can install wasm.gz canisters" {
     install_asset gzip
+    install_asset wasm/identity
     dfx_start
     assert_command dfx canister create --all 
     assert_command dfx build
     assert_command dfx canister install --all
     assert_command dfx canister call gzipped fromQuery '()'
     assert_match "$(dfx identity get-principal)"
+}
+
+@test "--mode=auto selects install or upgrade automatically" {
+    dfx_start
+    assert_command dfx canister create e2e_project_backend
+    assert_command dfx build e2e_project_backend
+    assert_command dfx canister install e2e_project_backend --mode auto
+    assert_command dfx canister call e2e_project_backend greet dfx
+    assert_command dfx canister install e2e_project_backend --mode auto --upgrade-unchanged
+    assert_command dfx canister call e2e_project_backend greet dfx
 }

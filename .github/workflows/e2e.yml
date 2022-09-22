@@ -5,6 +5,10 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_dfx:
     runs-on: ${{ matrix.os }}
@@ -15,7 +19,9 @@ jobs:
         rust: ["1.60.0"]
         binary_path: ["target/release"]
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Cache Cargo
         uses: actions/cache@v2
         with:
@@ -52,7 +58,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - id: set-matrix
         run: echo "::set-output name=matrix::$(scripts/workflows/e2e-matrix.py)"
 
@@ -70,7 +76,7 @@ jobs:
         os: [macos-11, ubuntu-20.04]
         rust: ["1.60.0"]
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
@@ -103,7 +109,7 @@ jobs:
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Download dfx binary
         uses: actions/download-artifact@v2
         with:
@@ -127,7 +133,7 @@ jobs:
           fi
           export
       - name: Run e2e test
-        run: timeout 1800 bats "e2e/$E2E_TEST"
+        run: timeout 2400 bats "e2e/$E2E_TEST"
 
   aggregate:
     name: e2e:required

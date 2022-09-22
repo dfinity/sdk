@@ -4,15 +4,11 @@ version = "0.20.0"
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
 description = "Library for storing files in an asset canister."
-homepage = "https://docs.rs/ic-asset"
 documentation = "https://docs.rs/ic-asset"
-repository = "https://github.com/dfinity/agent-rs"
+repository = "https://github.com/dfinity/sdk"
 license = "Apache-2.0"
-readme = "README.md"
 categories = ["api-bindings", "data-structures"]
 keywords = ["internet-computer", "assets", "icp", "dfinity"]
-include = ["src", "Cargo.toml", "../LICENSE", "README.md"]
-rust-version = "1.60.0"
 
 [dependencies]
 anyhow = "1.0"
@@ -27,10 +23,10 @@ ic-agent = { version = "0.20", features = [ "pem" ] }
 ic-utils = "0.20"
 mime = "0.3.16"
 mime_guess = "2.0.4"
-pathdiff = "0.2.1"
 serde = "1.0"
 serde_bytes = "0.11.2"
 serde_json = "1.0.81"
+json5 = "0.4.1"
 sha2 = "0.10"
 walkdir = "2.2.9"
 derivative = "2.2.0"

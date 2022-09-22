@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::path::{Path, PathBuf};
 
-use crate::config::dfinity::ReplicaSubnetType;
+use crate::config::dfinity::{ReplicaLogLevel, ReplicaSubnetType};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HttpHandlerConfig {
@@ -52,10 +52,15 @@ pub struct ReplicaConfig {
     pub subnet_type: ReplicaSubnetType,
     pub btc_adapter: BtcAdapterConfig,
     pub canister_http_adapter: CanisterHttpAdapterConfig,
+    pub log_level: ReplicaLogLevel,
 }
 
 impl ReplicaConfig {
-    pub fn new(state_root: &Path, subnet_type: ReplicaSubnetType) -> Self {
+    pub fn new(
+        state_root: &Path,
+        subnet_type: ReplicaSubnetType,
+        log_level: ReplicaLogLevel,
+    ) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
                 write_port_to: None,
@@ -79,6 +84,7 @@ impl ReplicaConfig {
                 enabled: false,
                 socket_path: None,
             },
+            log_level,
         }
     }
 
