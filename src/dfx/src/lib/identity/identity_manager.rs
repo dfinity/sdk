@@ -317,7 +317,6 @@ impl IdentityManager {
     /// to refer to the new identity name.
     #[context("Failed to rename identity '{}' to '{}'.", from, to)]
     pub fn rename(&mut self, env: &dyn Environment, from: &str, to: &str) -> DfxResult<bool> {
-        todo!();
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
@@ -331,7 +330,6 @@ impl IdentityManager {
         }
 
         DfxIdentity::map_wallets_to_renamed_identity(env, from, to)?;
-
         std::fs::rename(&from_dir, &to_dir).map_err(|err| {
             DfxError::new(IdentityError::CannotRenameIdentityDirectory(
                 from_dir,
@@ -339,6 +337,15 @@ impl IdentityManager {
                 Box::new(DfxError::new(err)),
             ))
         })?;
+        if pem_safekeeping::keyring_contains(from) {
+            let pem = pem_safekeeping::load_pem_from_keyring(from)?;
+            pem_safekeeping::write_pem_to_keyring(to, &pem)?;
+            let config_path = self.get_identity_json_path(to);
+            let mut config = self.get_identity_config_or_default(to)?;
+            config.keyring_identity_suffix = Some(String::from(to));
+            write_identity_configuration(&config_path, &config)?;
+            pem_safekeeping::delete_pem_from_keyring(from)?;
+        }
 
         if from == self.configuration.default {
             self.write_default_identity(to)
@@ -456,7 +463,6 @@ fn initialize(
     identity_json_path: &Path,
     identity_root_path: &Path,
 ) -> DfxResult<Configuration> {
-    todo!();
     slog::info!(
         logger,
         r#"Creating the "default" identity.
@@ -523,7 +529,6 @@ To create a more secure identity, create and use an identity that is protected b
 
 #[context("Failed to get legacy pem path.")]
 fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
-    todo!();
     let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
     let home = std::env::var("HOME")
         .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
