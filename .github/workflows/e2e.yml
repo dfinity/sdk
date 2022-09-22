@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, ubuntu-20.04]
+        os: [ubuntu-22.04]
         rust: ["1.60.0"]
         binary_path: ["target/release"]
     steps:
@@ -73,7 +73,7 @@ jobs:
         # ubuntu-18.04 not supported due to:
         #     /home/runner/.cache/dfinity/versions/0.8.3-34-g36e39809/ic-starter:
         #     /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found
-        os: [macos-11, ubuntu-20.04]
+        os: [ubuntu-22.04]
         rust: ["1.60.0"]
     steps:
       - uses: actions/checkout@v3
