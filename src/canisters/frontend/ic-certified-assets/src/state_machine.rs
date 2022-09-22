@@ -168,6 +168,16 @@ impl AssetRedirect {
     }
 
     fn redirect(&self, req: &HttpRequest) -> Option<HttpResponse> {
+        let r = Some(HttpResponse {
+            status_code: 200,
+            headers: vec![],
+            body: RcBytes::from(ByteBuf::from(
+                "<html><head><title>hello</title></head><body><h1>hello</h1></body></html>",
+            )),
+            streaming_strategy: None,
+            upgrade: Some(true),
+        });
+
         if let Err(e) = self.is_valid() {
             return Some(HttpResponse::build_400(&e));
         }
@@ -183,23 +193,21 @@ impl AssetRedirect {
         if let Some(location) = self.get_location_url(req) {
             let req_host = req.get_header_value("Host");
             if req_host.is_none() {
-                Some(HttpResponse::build_400("Host header is missing"))
-            } else if location
+                return Some(HttpResponse::build_400("Host header is missing"));
+            }
+            if location
                 .check_cyclic_redirection(req_host.unwrap(), &req.url)
                 .is_err()
             {
-                None
-            } else {
-                Some(HttpResponse::build_redirect(
-                    self.response_code,
-                    location.get_location_url(),
-                    if req_host.map_or(false, |v| v.contains(&".ic0.app") && !v.contains(".raw.")) {
-                        Some(true)
-                    } else {
-                        None
-                    },
-                ))
+                return None;
             }
+            let upgrade =
+                req_host.and_then(|v| Some(v.contains(&".ic0.app") && !v.contains(".raw.")));
+            Some(HttpResponse::build_redirect(
+                self.response_code,
+                location.get_location_url(),
+                upgrade,
+            ))
         } else {
             None
         }
@@ -957,7 +965,7 @@ impl HttpResponse {
             headers,
             body,
             streaming_strategy,
-            upgrade: Some(true),
+            upgrade: None,
         }
     }
 
@@ -972,13 +980,24 @@ impl HttpResponse {
                 status_code
             ));
         }
-        HttpResponse {
-            status_code,
-            headers: vec![("Location".to_string(), location)],
-            body: RcBytes::from(ByteBuf::default()),
+        // if let Some(up) = upgrade {
+        return HttpResponse {
+            status_code: 200,
+            headers: vec![],
+            body: RcBytes::from(ByteBuf::from(
+                "<html><head><title>hello</title></head><body><h1>hello</h1></body></html>",
+            )),
             streaming_strategy: None,
-            upgrade,
-        }
+            upgrade: Some(true),
+        };
+        // }
+        // HttpResponse {
+        //     status_code,
+        //     headers: vec![("Location".to_string(), location)],
+        //     body: RcBytes::from(ByteBuf::default()),
+        //     streaming_strategy: None,
+        //     upgrade,
+        // }
     }
 
     fn build_400(err_msg: &str) -> Self {

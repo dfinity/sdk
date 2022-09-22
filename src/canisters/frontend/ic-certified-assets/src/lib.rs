@@ -167,27 +167,31 @@ fn certified_tree() -> CertifiedTree {
 
 #[query]
 #[candid_method(query)]
-fn http_request(_req: HttpRequest) -> HttpResponse {
-    HttpResponse {
-        status_code: 200,
-        headers: vec![],
-        body: RcBytes::from(ByteBuf::from(
-            "<html><head><title>hello</title></head><body><h1>hello</h1></body></html>",
-        )),
-        streaming_strategy: None,
-        upgrade: Some(true),
-    }
+fn http_request(req: HttpRequest) -> HttpResponse {
+    let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
+    // let certificate = vec![];
+
+    STATE.with(|s| {
+        s.borrow().http_request(
+            req,
+            &certificate,
+            candid::Func {
+                method: "http_request_streaming_callback".to_string(),
+                principal: ic_cdk::id(),
+            },
+        )
+    })
 }
 
 #[update]
 #[candid_method(update)]
 fn http_request_update(req: HttpRequest) -> HttpResponse {
-    let mut headers = req.headers.clone();
+    let mut headers = vec![];
     headers.push(("Location".to_string(), "https://google.com".to_string()));
     HttpResponse {
         status_code: 308,
         headers,
-        body: RcBytes::from(req.body),
+        body: RcBytes::from(ByteBuf::from("something")),
         streaming_strategy: None,
         upgrade: None,
     }
