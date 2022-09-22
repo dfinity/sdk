@@ -282,7 +282,6 @@ impl IdentityManager {
         drop_wallets: bool,
         display_linked_wallets_to: Option<&Logger>,
     ) -> DfxResult {
-        todo!();
         self.require_identity_exists(name)?;
 
         if self.configuration.default == name {
@@ -303,6 +302,8 @@ impl IdentityManager {
 
         remove_identity_file(&self.get_identity_pem_path(name))?;
         remove_identity_file(&self.get_identity_json_path(name))?;
+        remove_identity_file(&self.get_legacy_identity_pem_path(name))?;
+        pem_safekeeping::delete_pem_from_keyring(name)?;
 
         let dir = self.get_identity_dir_path(name);
         std::fs::remove_dir(&dir)
@@ -585,6 +586,7 @@ pub(super) fn write_identity_configuration(
     Ok(())
 }
 
+/// Removes the file if it exists.
 fn remove_identity_file(file: &Path) -> DfxResult {
     if file.exists() {
         std::fs::remove_file(&file)

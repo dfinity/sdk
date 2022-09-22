@@ -34,10 +34,10 @@ pub fn load_pem_from_keyring(identity_name_suffix: &str) -> DfxResult<Vec<u8>> {
 
 #[context(
     "Failed to write PEM file to keyring for identity '{}'.",
-    identity_name
+    identity_name_suffix
 )]
-pub fn write_pem_to_keyring(identity_name: &str, pem_content: &[u8]) -> DfxResult<()> {
-    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name);
+pub fn write_pem_to_keyring(identity_name_suffix: &str, pem_content: &[u8]) -> DfxResult<()> {
+    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name_suffix);
     let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
     let encoded_pem = hex::encode(pem_content);
     entry.set_password(&encoded_pem)?;
@@ -45,10 +45,17 @@ pub fn write_pem_to_keyring(identity_name: &str, pem_content: &[u8]) -> DfxResul
 }
 
 /// Determines if the keyring contains data for the specified identity.
-pub fn keyring_contains(identity_name: &str) -> bool {
-    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name);
+pub fn keyring_contains(identity_name_suffix: &str) -> bool {
+    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name_suffix);
     let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
     entry.get_password().is_ok()
+}
+
+pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> DfxResult {
+    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name_suffix);
+    let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
+    entry.delete_password()?;
+    Ok(())
 }
 
 /// Loads a pem file, no matter if it is a legacy plaintext pem file or if it is encrypted with a password.
