@@ -800,7 +800,6 @@ dependencies = [
  "tokio",
  "url",
  "walkdir",
- "walrus",
  "wasmparser 0.87.0",
  "which",
 ]
@@ -1599,9 +1598,9 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82e9cac29df1f2906137c327ed24dfc398460eda054abaa6107273c11afe6384"
+checksum = "0a7d9569a4c91d5c9c202c1666f799a9761bab70a2b59464ee78c45b005e47b8"
 dependencies = [
  "crc32fast",
  "data-encoding",
@@ -1635,14 +1634,15 @@ dependencies = [
 
 [[package]]
 name = "ic-wasm"
-version = "0.1.4"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebed180ae82aa994a90c4477fc928379efb8d55e52e5b90c3ab1611dd4c11ab1"
+checksum = "a6bcb4b8c4455f08fe0c2671fa815affbec6b3eee631f61bd9adcd287bfbc4a2"
 dependencies = [
  "anyhow",
  "candid",
  "clap",
  "ic-types",
+ "thiserror",
  "walrus",
 ]
 
@@ -3366,18 +3366,18 @@ checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
 
 [[package]]
 name = "thiserror"
-version = "1.0.32"
+version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5f6586b7f764adc0231f4c79be7b920e766bb2f3e51b3661cdb263828f19994"
+checksum = "c53f98874615aea268107765aa1ed8f6116782501d18e53d08b471733bea6c85"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.32"
+version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12bafc5b54507e0149cdf1b145a5d80ab80a90bcd9275df43d4fff68460f6c21"
+checksum = "f8b463991b4eab2d801e724172285ec4195c650e8ec79b149e6c2a8e6dd3f783"
 dependencies = [
  "proc-macro2",
  "quote",

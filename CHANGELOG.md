@@ -393,10 +393,12 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 8a454cdc2bfc4ba548c8f6ce4e762adfa6eba6e4.
+Updated replica to elected commit 6de9963fdc752394475149a9659d42f01ab8b0d3.
 This incorporates the following executed proposals:
 
-
+* [81788](https://dashboard.internetcomputer.org/proposal/81788)
+* [81571](https://dashboard.internetcomputer.org/proposal/81571)
+* [80992](https://dashboard.internetcomputer.org/proposal/80992)
 * [79816](https://dashboard.internetcomputer.org/proposal/79816)
 * [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)

@@ -133,6 +133,7 @@ teardown() {
 @test "dfx starts replica with subnet_type application - project defaults" {
     install_asset subnet_type/project_defaults/application
     define_project_network
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
@@ -141,6 +142,7 @@ teardown() {
 @test "dfx starts replica with subnet_type verifiedapplication - project defaults" {
     install_asset subnet_type/project_defaults/verified_application
     define_project_network
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
@@ -149,6 +151,7 @@ teardown() {
 @test "dfx starts replica with subnet_type system - project defaults" {
     install_asset subnet_type/project_defaults/system
     define_project_network
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
@@ -157,6 +160,7 @@ teardown() {
 @test "dfx starts replica with subnet_type application - local network" {
     install_asset subnet_type/project_network_settings/application
     define_project_network
+    jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
@@ -165,6 +169,7 @@ teardown() {
 @test "dfx starts replica with subnet_type verifiedapplication - local network" {
     install_asset subnet_type/project_network_settings/verified_application
     define_project_network
+    jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
@@ -173,6 +178,7 @@ teardown() {
 @test "dfx starts replica with subnet_type system - local network" {
     install_asset subnet_type/project_network_settings/system
     define_project_network
+    jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
@@ -181,6 +187,7 @@ teardown() {
 
 @test "dfx starts replica with subnet_type application - shared network" {
     install_shared_asset subnet_type/shared_network_settings/application
+    jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
@@ -188,6 +195,7 @@ teardown() {
 
 @test "dfx starts replica with subnet_type verifiedapplication - shared network" {
     install_shared_asset subnet_type/shared_network_settings/verified_application
+    jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
@@ -195,6 +203,7 @@ teardown() {
 
 @test "dfx starts replica with subnet_type system - shared network" {
     install_shared_asset subnet_type/shared_network_settings/system
+    jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
