@@ -75,7 +75,7 @@ pub async fn install_nns(
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: nns_wasm_dir(env),
         nns_url: nns_url.to_string(),
-        test_accounts: Some(canisters::TEST_ACCOUNT.to_string()),
+        test_accounts: vec![canisters::ED25519_TEST_ACCOUNT.to_string(), canisters::SECP256K1_TEST_ACCOUNT.to_string()],
         sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
@@ -450,7 +450,7 @@ pub struct IcNnsInitOpts {
     wasm_dir: PathBuf,
     /// The ID of a test account that ic-nns-init will create and to initialise with tokens.
     /// Note: At present only one test account is supported.
-    test_accounts: Option<String>,
+    test_accounts: Vec<String>,
     /// A subnet for SNS canisters.
     /// Note: In this context we support at most one subnet.
     sns_subnets: Option<String>,
@@ -477,6 +477,12 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
         cmd.arg("--sns-subnet");
         cmd.arg(subnet);
     });
+    let args: Vec<_> = cmd
+    .get_args()
+    .into_iter()
+    .map(OsStr::to_string_lossy)
+    .collect();
+    println!("ic-nns-init {args}");
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
     let output = cmd

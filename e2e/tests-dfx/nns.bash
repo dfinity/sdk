@@ -144,6 +144,19 @@ assert_nns_canister_id_matches() {
     wasm_matches internet_identity internet_identity_dev.wasm
     wasm_matches nns-dapp nns-dapp_local.wasm
 
+    account_has_funds() {
+        assert_command dfx ledger balance "$1"
+        assert_eq "1000000000.00000000 ICP"
+    }
+    SECP256K1_ACCOUNT_ID="2b8fbde99de881f695f279d2a892b1137bfe81a42d7694e064b1be58701e1138"
+    ED25519_ACCOUNT_ID="5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087"
+    account_has_funds "$SECP256K1_ACCOUNT_ID"
+    account_has_funds "$ED25519_ACCOUNT_ID"
+    install_asset ident-1
+    dfx identity import ident-1 ident-1/identity.pem
+    assert_command dfx ledger account-id --identity indent-1
+    assert_eq "$SECP256K1_ACCOUNT_ID"
+
     echo Stopping dfx...
     dfx stop
 }
