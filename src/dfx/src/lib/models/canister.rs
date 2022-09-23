@@ -596,6 +596,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
             }
             // skip
             "index.js.hbs" => {}
+            "index.d.ts.hbs" => {}
             _ => unreachable!(),
         }
     }
