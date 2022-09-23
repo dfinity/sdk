@@ -83,6 +83,13 @@ pub const NNS_UI: IcNnsInitCanister = IcNnsInitCanister {
     test_wasm_name: None,
     canister_id: "qoctq-giaaa-aaaaa-aaaea-cai",
 };
+/// Canister that converts between bitcoin and ckBTC
+pub const NNS_IC_CKBTC_MINTER: IcNnsInitCanister = IcNnsInitCanister {
+    canister_name: "nns-ic-ckbtc-minter",
+    wasm_name: "ic-ckbtc-minter.wasm",
+    test_wasm_name: None,
+    canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai",
+};
 /// Minimum data needed to download and deploy a standard canister via dfx deploy NAME.
 pub struct StandardCanister {
     /// The typical name of the canister, as seen in dfx.json or used in `dfx canister id NAME`.
@@ -106,10 +113,10 @@ pub const NNS_DAPP: StandardCanister = StandardCanister {
     canister_name: "nns-dapp",
     canister_id: "qsgjb-riaaa-aaaaa-aaaga-cai",
     wasm_name: "nns-dapp_local.wasm",
-    wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/proposal-80618/nns-dapp_local_v2.wasm",
+    wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_t2.wasm",
 };
 /// Backend canisters deployed by `ic nns init`.
-pub const NNS_CORE: &[&IcNnsInitCanister; 10] = &[
+pub const NNS_CORE: &[&IcNnsInitCanister; 11] = &[
     &NNS_REGISTRY,
     &NNS_GOVERNANCE,
     &NNS_LEDGER,
@@ -118,6 +125,7 @@ pub const NNS_CORE: &[&IcNnsInitCanister; 10] = &[
     &NNS_LIFELINE,
     &NNS_GENESIS_TOKENS,
     &NNS_SNS_WASM,
+    &NNS_IC_CKBTC_MINTER,
     &NNS_IDENTITY,
     &NNS_UI,
 ];

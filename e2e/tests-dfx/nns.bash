@@ -76,9 +76,10 @@ nns_canister_id() {
     nns-cycles-minting)    echo "rkp4c-7iaaa-aaaaa-aaaca-cai" ;;
     nns-lifeline)          echo "rno2w-sqaaa-aaaaa-aaacq-cai" ;;
     nns-genesis-token)     echo "renrk-eyaaa-aaaaa-aaada-cai" ;;
-    nns-sns-wasm)          echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
-    internet_identity)     echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
-    nns-dapp)              echo "qsgjb-riaaa-aaaaa-aaaga-cai" ;;
+    nns-ic-ckbtc-minter)   echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
+    nns-sns-wasm)          echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
+    internet_identity)     echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
+    nns-dapp)              echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
     *)                     echo "ERROR: Unknown NNS canister '$1'." >&2
                            exit 1;;
     esac
@@ -103,6 +104,7 @@ assert_nns_canister_id_matches() {
     assert_nns_canister_id_matches nns-cycles-minting
     assert_nns_canister_id_matches nns-lifeline
     assert_nns_canister_id_matches nns-genesis-token
+    assert_nns_canister_id_matches nns-ic-ckbtc-minter
     assert_nns_canister_id_matches nns-sns-wasm
     # TODO: No source provides these canister IDs - yet.
     #assert_nns_canister_id_matches internet_identity
