@@ -67,7 +67,7 @@ pub const NNS_SNS_WASM: IcNnsInitCanister = IcNnsInitCanister {
     canister_name: "nns-sns-wasm",
     wasm_name: "sns-wasm-canister.wasm",
     test_wasm_name: None,
-    canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai",
+    canister_id: "qjdve-lqaaa-aaaaa-aaaeq-cai",
 };
 /// Placeholder for the Internet Identity.  Not used.
 pub const NNS_IDENTITY: IcNnsInitCanister = IcNnsInitCanister {
@@ -104,14 +104,14 @@ pub struct StandardCanister {
 /// A canister that provides login as a service for other dapps.
 pub const INTERNET_IDENTITY: StandardCanister = StandardCanister {
     canister_name: "internet_identity",
-    canister_id: "qhbym-qaaaa-aaaaa-aaafq-cai",
+    canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai",
     wasm_name: "internet_identity_dev.wasm",
     wasm_url: "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm"
 };
 /// Frontend dapp for voting and managing neurons.
 pub const NNS_DAPP: StandardCanister = StandardCanister {
     canister_name: "nns-dapp",
-    canister_id: "qsgjb-riaaa-aaaaa-aaaga-cai",
+    canister_id: "qhbym-qaaaa-aaaaa-aaafq-cai",
     wasm_name: "nns-dapp_local.wasm",
     wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_t2.wasm",
 };
