@@ -76,7 +76,7 @@ jobs:
               exit 1
           fi
         if: contains(matrix.os, 'macos')
-      - name: Check dynamically-linked libraries (ubuntu)
+      - name: Check dynamically-linked libraries (ubuntu 20.04)
         run: |
           ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
           EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libdl.so.2 libgcc_s.so.1 libm.so.6 libpthread.so.0 linux-vdso.so.1"
@@ -86,7 +86,18 @@ jobs:
           if [ "$ACTUAL" != "$EXPECTED" ]; then
               exit 1
           fi
-        if: contains(matrix.os, 'ubuntu')
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
+      - name: Check dynamically-linked libraries (ubuntu 22.04)
+        run: |
+          ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
+          EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libgcc_s.so.1 libm.so.6 linux-vdso.so.1"
+          echo "Dynamically-linked libraries:"
+          echo "  Actual:   $ACTUAL"
+          echo "  Expected: $EXPECTED"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+              exit 1
+          fi
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
       - name: Strip binaries
         run: |
           cd ${{ matrix.binary_path }}
