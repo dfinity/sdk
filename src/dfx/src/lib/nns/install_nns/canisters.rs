@@ -62,13 +62,6 @@ pub const NNS_GENESIS_TOKENS: IcNnsInitCanister = IcNnsInitCanister {
     test_wasm_name: None,
     canister_id: "renrk-eyaaa-aaaaa-aaada-cai",
 };
-/// Canister that spawns SNS canister groups.
-pub const NNS_SNS_WASM: IcNnsInitCanister = IcNnsInitCanister {
-    canister_name: "nns-sns-wasm",
-    wasm_name: "sns-wasm-canister.wasm",
-    test_wasm_name: None,
-    canister_id: "qjdve-lqaaa-aaaaa-aaaeq-cai",
-};
 /// Placeholder for the Internet Identity.  Not used.
 pub const NNS_IDENTITY: IcNnsInitCanister = IcNnsInitCanister {
     canister_name: "nns-identity",
@@ -82,6 +75,13 @@ pub const NNS_UI: IcNnsInitCanister = IcNnsInitCanister {
     wasm_name: "nns-ui-canister.wasm",
     test_wasm_name: None,
     canister_id: "qoctq-giaaa-aaaaa-aaaea-cai",
+};
+/// Canister that spawns SNS canister groups.
+pub const NNS_SNS_WASM: IcNnsInitCanister = IcNnsInitCanister {
+    canister_name: "nns-sns-wasm",
+    wasm_name: "sns-wasm-canister.wasm",
+    test_wasm_name: None,
+    canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai",
 };
 /// Canister that converts between bitcoin and ckBTC
 pub const NNS_IC_CKBTC_MINTER: IcNnsInitCanister = IcNnsInitCanister {
