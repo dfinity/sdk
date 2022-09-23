@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::lib::error::DfxResult;
 
 use super::identity_manager::EncryptionConfiguration;
-use super::IdentityConfiguration;
+use super::{IdentityConfiguration, TEMP_IDENTITY_PREFIX};
 
 use crate::lib::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
 use aes_gcm::aead::{Aead, NewAead};
@@ -49,6 +49,17 @@ pub fn keyring_contains(identity_name_suffix: &str) -> bool {
     let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name_suffix);
     let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
     entry.get_password().is_ok()
+}
+
+/// Determines if keyring is available by trying to write a dummy entry.
+pub fn keyring_available() -> bool {
+    // by using the temp identity prefix this will not clash with real identities
+    let dummy_entry_name = format!(
+        "{}{}{}",
+        KEYRING_IDENTITY_PREFIX, TEMP_IDENTITY_PREFIX, "dummy"
+    );
+    let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &dummy_entry_name);
+    entry.set_password("dummy entry").is_ok()
 }
 
 pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> DfxResult {

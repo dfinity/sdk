@@ -134,8 +134,8 @@ impl Identity {
             IdentityCreationParameters::Pem { skip_keyring } => {
                 identity_config.encryption = create_encryption_config(skip_keyring)?;
                 let (pem_content, mnemonic) = identity_manager::generate_key()?;
-                todo!("check if keyring available - skip if not");
-                if skip_keyring {
+                todo!("dedupe a lot of code");
+                if skip_keyring || !pem_safekeeping::keyring_available() {
                     let pem_file = manager.get_identity_pem_path(&temp_identity_name);
                     pem_safekeeping::write_pem_to_file(
                         &pem_file,
@@ -154,8 +154,7 @@ impl Identity {
                 identity_config.encryption = create_encryption_config(skip_keyring)?;
                 let src_pem_content = pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
                 identity_utils::validate_pem_file(&src_pem_content)?;
-                todo!("check if keyring available - skip if not");
-                if skip_keyring {
+                if skip_keyring || !pem_safekeeping::keyring_available() {
                     let dst_pem_file = manager.get_identity_pem_path(&temp_identity_name);
                     pem_safekeeping::write_pem_to_file(
                         &dst_pem_file,
@@ -174,16 +173,21 @@ impl Identity {
                 mnemonic,
                 skip_keyring,
             } => {
-                todo!("keyring handling");
                 identity_config.encryption = create_encryption_config(skip_keyring)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
                 let key = identity_manager::mnemonic_to_key(&mnemonic)?;
-                let pem_file = manager.get_identity_pem_path(&temp_identity_name);
-                pem_safekeeping::write_pem_to_file(
-                    &pem_file,
-                    Some(&identity_config),
-                    key.to_pem(k256::pkcs8::LineEnding::CRLF)?.as_bytes(),
-                )?;
+                let pem = key.to_pem(k256::pkcs8::LineEnding::CRLF)?;
+                let pem_content = pem.as_bytes();
+                if skip_keyring || !pem_safekeeping::keyring_available() {
+                    let pem_file = manager.get_identity_pem_path(&temp_identity_name);
+                    pem_safekeeping::write_pem_to_file(
+                        &pem_file,
+                        Some(&identity_config),
+                        pem_content,
+                    )?;
+                } else {
+                    pem_safekeeping::write_pem_to_keyring(name, pem_content)?;
+                }
             }
         }
         let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
