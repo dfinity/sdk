@@ -1,6 +1,4 @@
-use crate::commands::ledger::{
-    get_icpts_from_args, notify_create, transfer_cmc, validate_subnet_type,
-};
+use crate::commands::ledger::{get_icpts_from_args, notify_create, transfer_cmc};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{Memo, NotifyError};
@@ -81,8 +79,6 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
-
-    validate_subnet_type(agent, &opts.subnet_type).await?;
 
     let height = transfer_cmc(agent, memo, amount, fee, opts.from_subaccount, controller).await?;
     println!("Transfer sent at block height {height}");

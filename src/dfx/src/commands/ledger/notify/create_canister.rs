@@ -1,5 +1,4 @@
 use super::super::notify_create;
-use crate::commands::ledger::validate_subnet_type;
 use crate::lib::ledger_types::NotifyError;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, error::DfxResult};
@@ -40,8 +39,6 @@ pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
-
-    validate_subnet_type(agent, &opts.subnet_type).await?;
 
     let result = notify_create(agent, controller, block_height, opts.subnet_type).await?;
 
