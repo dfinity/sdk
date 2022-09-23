@@ -55,7 +55,7 @@ enum SubCommand {
     CreateCanister(create_canister::CreateCanisterOpts),
     FabricateCycles(fabricate_cycles::FabricateCyclesOpts),
     Notify(notify::NotifyOpts),
-    ShowSubnetTypes,
+    ShowSubnetTypes(show_subnet_types::ShowSubnetTypesOpts),
     TopUp(top_up::TopUpOpts),
     Transfer(transfer::TransferOpts),
 }
@@ -70,7 +70,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
             SubCommand::CreateCanister(v) => create_canister::exec(&agent_env, v).await,
             SubCommand::FabricateCycles(v) => fabricate_cycles::exec(&agent_env, v).await,
             SubCommand::Notify(v) => notify::exec(&agent_env, v).await,
-            SubCommand::ShowSubnetTypes => show_subnet_types::exec(&agent_env).await,
+            SubCommand::ShowSubnetTypes(v) => show_subnet_types::exec(&agent_env, v).await,
             SubCommand::TopUp(v) => top_up::exec(&agent_env, v).await,
             SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
         }

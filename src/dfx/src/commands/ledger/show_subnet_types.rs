@@ -7,20 +7,33 @@ use crate::util::expiry_duration;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, Context};
-use candid::{Decode, Encode};
+use candid::{Decode, Encode, Principal};
+use clap::Parser;
 
 const GET_SUBNET_TYPES_TO_SUBNETS_METHOD: &str = "get_subnet_types_to_subnets";
 
-pub async fn exec(env: &dyn Environment) -> DfxResult {
+/// Show available subnet types in the cycles minting canister.
+#[derive(Parser)]
+pub struct ShowSubnetTypesOpts {
+    #[clap(long)]
+    /// Canister ID of the cycles minting canister.
+    cycles_minting_canister_id: Option<Principal>,
+}
+
+pub async fn exec(env: &dyn Environment, opts: ShowSubnetTypesOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
 
+    let cycles_minting_canister_id = opts
+        .cycles_minting_canister_id
+        .unwrap_or(MAINNET_CYCLE_MINTER_CANISTER_ID);
+
     let result = agent
         .update(
-            &MAINNET_CYCLE_MINTER_CANISTER_ID,
+            &cycles_minting_canister_id,
             GET_SUBNET_TYPES_TO_SUBNETS_METHOD,
         )
         .with_arg(Encode!(&()).context("Failed to encode get_subnet_types_to_subnets arguments.")?)
