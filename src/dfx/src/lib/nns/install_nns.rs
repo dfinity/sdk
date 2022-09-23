@@ -26,6 +26,7 @@ use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use reqwest::Url;
+use std::ffi::OsStr;
 use std::fs;
 use std::io::Write;
 use std::path::Component;
@@ -75,7 +76,10 @@ pub async fn install_nns(
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: nns_wasm_dir(env),
         nns_url: nns_url.to_string(),
-        test_accounts: vec![canisters::ED25519_TEST_ACCOUNT.to_string(), canisters::SECP256K1_TEST_ACCOUNT.to_string()],
+        test_accounts: vec![
+            canisters::ED25519_TEST_ACCOUNT.to_string(),
+            canisters::SECP256K1_TEST_ACCOUNT.to_string(),
+        ],
         sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
@@ -478,11 +482,11 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
         cmd.arg(subnet);
     });
     let args: Vec<_> = cmd
-    .get_args()
-    .into_iter()
-    .map(OsStr::to_string_lossy)
-    .collect();
-    println!("ic-nns-init {args}");
+        .get_args()
+        .into_iter()
+        .map(OsStr::to_string_lossy)
+        .collect();
+    println!("ic-nns-init {}", args.join(" "));
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
     let output = cmd

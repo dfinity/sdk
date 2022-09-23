@@ -190,7 +190,8 @@ pub const SNS_CANISTERS: [&SnsCanisterInstallation; 5] = [
 ///  base64ToUInt8Array(privateKey)
 /// );
 /// ```
-pub const ED25519_TEST_ACCOUNT: &str = "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
+pub const ED25519_TEST_ACCOUNT: &str =
+    "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
 
 /// Test account for command line usage.  The test account is typically called ident-1
 /// The keys use the secp256k1 curve.  To use:
@@ -206,4 +207,5 @@ pub const ED25519_TEST_ACCOUNT: &str = "5b315d2f6702cb3a27d826161797d7b2c2e131cd
 /// ```
 /// $ dfx --identity ident-1 ledger account-id
 /// ```
-pub const SECP256K1_TEST_ACCOUNT: &str = "2b8fbde99de881f695f279d2a892b1137bfe81a42d7694e064b1be58701e1138";
+pub const SECP256K1_TEST_ACCOUNT: &str =
+    "2b8fbde99de881f695f279d2a892b1137bfe81a42d7694e064b1be58701e1138";
