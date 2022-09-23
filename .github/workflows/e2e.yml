@@ -20,7 +20,7 @@ jobs:
         #   Error: IO: Dynamic loading not supported
         os: [ macos-11, ubuntu-20.04, ubuntu-22.04 ]
         include:
-          - os: macos-latest
+          - os: macos-11
             target: x86_64-apple-darwin
             binary_path: target/x86_64-apple-darwin/release
           - os: ubuntu-20.04
