@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: Initialise the nns with an account controlled by a secp256k1 key
+
+This enables easy access to toy ICP using command line tools.
+
 ### feat: default to run ic-wasm shrink when build canisters
 This behavior applies to Motoko, Rust and Custom canisters.
 If you want to disable this behavior, you can config it in dfx.json:
