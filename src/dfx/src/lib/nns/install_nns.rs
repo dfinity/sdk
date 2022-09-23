@@ -322,6 +322,15 @@ pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Res
 /// Downloads a file
 #[context("Failed to download '{:?}' to '{:?}'.", source, target)]
 pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
+    if target.exists() {
+        println!("Already downloaded: {}", target.to_string_lossy());
+        return Ok(());
+    }
+    println!(
+        "Downloading {}\n  from: {}",
+        target.to_string_lossy(),
+        source.as_str()
+    );
     let buffer = reqwest::get(source.clone())
         .await
         .with_context(|| "Failed to connect")?
@@ -354,6 +363,15 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
 /// Downloads and unzips a file
 #[context("Failed to download and unzip '{:?}' from '{:?}'.", target, source.as_str())]
 pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
+    if target.exists() {
+        println!("Already downloaded: {}", target.to_string_lossy());
+        return Ok(());
+    }
+    println!(
+        "Downloading {}\n  from .gz: {}",
+        target.to_string_lossy(),
+        source.as_str()
+    );
     let response = reqwest::get(source.clone())
         .await
         .with_context(|| "Failed to connect")?
@@ -399,19 +417,10 @@ pub async fn download_ic_repo_wasm(
     fs::create_dir_all(wasm_dir)
         .with_context(|| format!("Failed to create wasm directory: '{}'", wasm_dir.display()))?;
     let final_path = wasm_dir.join(&wasm_name);
-    if final_path.exists() {
-        return Ok(());
-    }
-
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
       .with_context(|| format!("Could not determine download URL. Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
-    println!(
-        "Downloading {}\n  from {}",
-        final_path.to_string_lossy(),
-        url_str
-    );
     download_gz(&url, &final_path).await
 }
 
