@@ -4,6 +4,8 @@
 
 ## DFX
 
+### feat: `dfx nns install` works offline if all assets have been cached.
+
 ### feat: default to run ic-wasm shrink when build canisters
 This behavior applies to Motoko, Rust and Custom canisters.
 If you want to disable this behavior, you can config it in dfx.json:
