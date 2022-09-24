@@ -140,7 +140,7 @@ async fn import_candid_definition(
     Ok(())
 }
 
-fn get_canisters_json_object(config: &mut Config) -> DfxResult<&mut Map<String, Value>> {
+pub fn get_canisters_json_object(config: &mut Config) -> DfxResult<&mut Map<String, Value>> {
     let config_canisters_object = config
         .get_mut_json()
         .pointer_mut("/canisters")
@@ -150,7 +150,7 @@ fn get_canisters_json_object(config: &mut Config) -> DfxResult<&mut Map<String, 
     Ok(config_canisters_object)
 }
 
-fn set_remote_canister_ids(
+pub fn set_remote_canister_ids(
     logger: &Logger,
     their_canister_name: &str,
     network_mappings: &[ImportNetworkMapping],
@@ -170,14 +170,16 @@ fn set_remote_canister_ids(
             );
             info!(
                 logger,
-                "Canister id on network '{}' is {}",
+                "{} canister id on network '{}' is {}",
+                their_canister_name,
                 network_mapping.network_name_in_this_project,
                 remote_canister_id,
             );
         } else {
             info!(
                 logger,
-                "There is no canister id for network '{}'",
+                "{} has no canister id for network '{}'",
+                their_canister_name,
                 network_mapping.network_name_in_this_project
             );
         }
