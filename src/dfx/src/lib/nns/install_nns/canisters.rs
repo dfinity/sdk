@@ -117,15 +117,15 @@ pub const NNS_DAPP: StandardCanister = StandardCanister {
 };
 /// Backend canisters deployed by `ic nns init`.
 pub const NNS_CORE: &[&IcNnsInitCanister; 11] = &[
-    &NNS_REGISTRY, // 0
-    &NNS_GOVERNANCE, // 1
-    &NNS_LEDGER, // 2
-    &NNS_ROOT, // 3
+    &NNS_REGISTRY,       // 0
+    &NNS_GOVERNANCE,     // 1
+    &NNS_LEDGER,         // 2
+    &NNS_ROOT,           // 3
     &NNS_CYCLES_MINTING, // 4
-    &NNS_LIFELINE, // 5
+    &NNS_LIFELINE,       // 5
     &NNS_GENESIS_TOKENS, // 6
-    &NNS_IDENTITY, // 7
-    &NNS_UI, // 8
+    &NNS_IDENTITY,       // 7
+    &NNS_UI,             // 8
     // 9 - unused
     &NNS_SNS_WASM, // 10
     // ic-icrc1-ledger is expected to go in place 11.
