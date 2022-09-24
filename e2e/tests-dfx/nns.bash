@@ -61,7 +61,7 @@ dfx_start_for_nns_install() {
     assert_command timeout 300 sh -c \
         "until dfx start --clean --background --host 127.0.0.1:8080 --verbose; do echo waiting for port 8080 to become free; sleep 3; done" \
         || (echo "could not connect to replica on port 8080" && exit 1)
-    assert_match "subnet_type: System"
+    assert_match "subnet type: System"
     assert_match "127.0.0.1:8080"
 }
 
@@ -76,6 +76,8 @@ nns_canister_id() {
     nns-cycles-minting)    echo "rkp4c-7iaaa-aaaaa-aaaca-cai" ;;
     nns-lifeline)          echo "rno2w-sqaaa-aaaaa-aaacq-cai" ;;
     nns-genesis-token)     echo "renrk-eyaaa-aaaaa-aaada-cai" ;;
+    # Coming soon:
+    #nns-ic-ckbtc-minter)   echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
     nns-sns-wasm)          echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
     internet_identity)     echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
     nns-dapp)              echo "qsgjb-riaaa-aaaaa-aaaga-cai" ;;
@@ -92,10 +94,7 @@ assert_nns_canister_id_matches() {
 }
 
 @test "dfx nns import ids are as expected" {
-    # TODO: The IC commit currently used by the sdk doesn't have all the canister IDs yet.
-    #       When it does, remove this DFX_IC_SRC override.
-    export DFX_IC_SRC="https://raw.githubusercontent.com/dfinity/ic/master"
-    dfx nns import --network-mapping local
+    dfx nns import
     assert_nns_canister_id_matches nns-registry
     assert_nns_canister_id_matches nns-governance
     assert_nns_canister_id_matches nns-ledger
@@ -103,6 +102,8 @@ assert_nns_canister_id_matches() {
     assert_nns_canister_id_matches nns-cycles-minting
     assert_nns_canister_id_matches nns-lifeline
     assert_nns_canister_id_matches nns-genesis-token
+    # Coming soon:
+    # assert_nns_canister_id_matches nns-ic-ckbtc-minter
     assert_nns_canister_id_matches nns-sns-wasm
     # TODO: No source provides these canister IDs - yet.
     #assert_nns_canister_id_matches internet_identity

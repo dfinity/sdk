@@ -90,6 +90,10 @@ It is now possible to set the http adapter's log level in dfx.json or in network
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
+### fix(typescript): add index.d.ts file for type safety when importing generated declarations
+
+Adds an index.d.ts file to the generated declarations, allowing for better type safety in TypeScript projects.
+
 ### chore: reduce verbosity of dfx start
 
 `dfx start` produces a lot of log output that is at best irrelevant for most users.
@@ -391,10 +395,14 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 8a454cdc2bfc4ba548c8f6ce4e762adfa6eba6e4.
-This incorporates the following executed proposals:
+Updated replica to release candidate at commit 9173c5f1b28e140931060b90e9de65b923ee57e6.
+This release candidate has not yet been elected.
 
+This also incorporates the following executed proposals:
 
+* [81788](https://dashboard.internetcomputer.org/proposal/81788)
+* [81571](https://dashboard.internetcomputer.org/proposal/81571)
+* [80992](https://dashboard.internetcomputer.org/proposal/80992)
 * [79816](https://dashboard.internetcomputer.org/proposal/79816)
 * [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)
