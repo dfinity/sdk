@@ -1,11 +1,19 @@
 //! Code for the command line: `dfx nns import`
+use std::collections::BTreeMap;
+
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
-use crate::lib::project::import::import_canister_definitions;
+use crate::lib::models::canister_id_store::CanisterIds;
+use crate::lib::nns::install_nns::canisters::NNS_CORE;
+use crate::lib::project::import::{
+    get_canisters_json_object, import_canister_definitions, set_remote_canister_ids,
+    ImportNetworkMapping,
+};
 use crate::lib::project::network_mappings::get_network_mappings;
 use crate::Environment;
 
 use clap::Parser;
+use slog::info;
 
 /// Imports the nns canisters
 #[derive(Parser)]
@@ -42,5 +50,49 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
         None,
         &network_mappings,
     )
-    .await
+    .await?;
+
+    // The "local" entries at the remote URL do not match our NNS installation.
+    // Always set the local values per our local NNS deployment.
+    let local_canister_ids: CanisterIds = NNS_CORE
+        .iter()
+        .map(|canister| {
+            (
+                canister.canister_name.to_string(),
+                BTreeMap::from([("local".to_string(), canister.canister_id.to_string())]),
+            )
+        })
+        .collect();
+    let local_mappings = [ImportNetworkMapping {
+        network_name_in_this_project: "local".to_string(),
+        network_name_in_project_being_imported: "local".to_string(),
+    }];
+
+    let canisters = get_canisters_json_object(&mut config)?;
+
+    for canister in NNS_CORE {
+        // Not all NNS canisters may be listed in the remote dfx.json
+        let dfx_canister = canisters
+            .get_mut(canister.canister_name)
+            .map(|canister_entry| canister_entry.as_object_mut())
+            .flatten();
+        // If the canister is in dfx.json, set the local canister ID.
+        if let Some(dfx_canister) = dfx_canister {
+            set_remote_canister_ids(
+                env.get_logger(),
+                canister.canister_name,
+                &local_mappings,
+                &local_canister_ids,
+                dfx_canister,
+            )?;
+        } else {
+            info!(
+                env.get_logger(),
+                "{} has no local canister ID.", canister.canister_name
+            );
+        }
+    }
+    config.save()?;
+
+    Ok(())
 }
