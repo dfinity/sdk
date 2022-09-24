@@ -94,10 +94,7 @@ assert_nns_canister_id_matches() {
 }
 
 @test "dfx nns import ids are as expected" {
-    # TODO: The IC commit currently used by the sdk doesn't have all the canister IDs yet.
-    #       When it does, remove this DFX_IC_SRC override.
-    export DFX_IC_SRC="https://raw.githubusercontent.com/dfinity/ic/master"
-    dfx nns import --network-mapping local
+    dfx nns import
     assert_nns_canister_id_matches nns-registry
     assert_nns_canister_id_matches nns-governance
     assert_nns_canister_id_matches nns-ledger
