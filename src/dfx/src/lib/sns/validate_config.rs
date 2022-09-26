@@ -1,3 +1,4 @@
+//! Code for checking SNS config file validity
 use fn_error_context::context;
 use std::ffi::OsString;
 use std::path::Path;
@@ -6,7 +7,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::sns::sns_cli::call_sns_cli;
 use crate::Environment;
 
-///
+/// Checks whether an SNS configuration file is valid.
 #[context("Failed to validate SNS config at {}.", path.display())]
 pub fn validate_config(env: &dyn Environment, path: &Path) -> DfxResult<String> {
     let args = vec![

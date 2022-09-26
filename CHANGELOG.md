@@ -17,6 +17,14 @@ If you want to disable this behavior, you can config it in dfx.json:
         }
     }
 
+### fix: Valid canister-based env vars
+
+Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_${CANISTER_NAME}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
+
+### feat: Add dfx sns deploy
+
+This allows users to deploy a set of SNS canisters.
+
 ### fix: `cargo run -p dfx -- --version` prints correct version
 
 ### feat: add --mode=auto
@@ -82,6 +90,15 @@ It is now possible to set the http adapter's log level in dfx.json or in network
     }
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
+
+### fix(typescript): add index.d.ts file for type safety when importing generated declarations
+
+Adds an index.d.ts file to the generated declarations, allowing for better type safety in TypeScript projects.
+
+### chore: reduce verbosity of dfx start
+
+`dfx start` produces a lot of log output that is at best irrelevant for most users.
+Most output is no longer visible unless either `--verbose` is used with dfx or the relevant part's (e.g. http adapter, btc adapter, or replica) log level is changed in dfx.json or networks.json.
 
 ### feat: generate secp256k1 keys by default
 
@@ -200,9 +217,13 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
 
-#### #feat: `dfx info replica-rev`
+#### feat: `dfx info replica-rev`
 
 This displays the revision of the replica bundled with dfx, which is the same revision referenced in replica election governance proposals.
+
+#### feat: `dfx info networks-json-path`
+
+This displays the path to your user's `networks.json` file where all networks are defined.
 
 ### feat: added ic-nns-init, ic-admin, and sns executables to the binary cache
 
@@ -355,6 +376,10 @@ Previously, dfx only accepted canister aliases and produced an error message tha
 
 Motivated by [this forum post](https://forum.dfinity.org/t/dfx-0-10-0-dfx-canister-deposit-cycles-returns-error/13251/6).
 
+### chore: projects created with `dfx new` are not pinned to a specific dfx version anymore
+
+It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pin to>"` to a project's `dfx.json`.
+
 ### fix: print links to cdk-rs docs in dfx new
 
 ### fix: Small grammar change to identity password decryption prompt
@@ -371,10 +396,14 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 8a454cdc2bfc4ba548c8f6ce4e762adfa6eba6e4.
-This incorporates the following executed proposals:
+Updated replica to release candidate at commit 9173c5f1b28e140931060b90e9de65b923ee57e6.
+This release candidate has not yet been elected.
 
+This also incorporates the following executed proposals:
 
+* [81788](https://dashboard.internetcomputer.org/proposal/81788)
+* [81571](https://dashboard.internetcomputer.org/proposal/81571)
+* [80992](https://dashboard.internetcomputer.org/proposal/80992)
 * [79816](https://dashboard.internetcomputer.org/proposal/79816)
 * [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)

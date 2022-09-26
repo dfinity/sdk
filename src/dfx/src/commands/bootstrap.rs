@@ -54,7 +54,7 @@ pub fn exec(
     let network_descriptor =
         apply_arguments(network_descriptor, ip, port.as_deref(), timeout.as_deref())?;
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
-    local_server_descriptor.describe_bootstrap();
+    local_server_descriptor.describe_bootstrap(env.get_logger());
     let config_bootstrap = &local_server_descriptor.bootstrap;
 
     create_dir_all(&local_server_descriptor.data_directory).with_context(|| {
@@ -99,6 +99,7 @@ pub fn exec(
                 bind: socket_addr,
                 replica_urls,
                 fetch_root_key: !network_descriptor.is_ic,
+                verbose: env.get_verbose_level() > 0,
             };
 
             let port_ready_subscribe = None;
