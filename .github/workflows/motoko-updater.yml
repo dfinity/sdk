@@ -18,6 +18,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   niv-updater:
     name: 'Check for Motoko updates'

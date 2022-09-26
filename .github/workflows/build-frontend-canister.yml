@@ -6,6 +6,12 @@ on:
       - master
   pull_request:
 
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
