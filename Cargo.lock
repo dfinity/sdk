@@ -256,27 +256,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
 
 [[package]]
-name = "binaryen"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "783bea139d75b6a565b13fab54d12ec4d58724a9458598ad7283d578f4f8777a"
-dependencies = [
- "binaryen-sys",
-]
-
-[[package]]
-name = "binaryen-sys"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86e9636d01b92f2df45dce29c35a9e3724687c1055bb4472fb4b829cc4a5a561"
-dependencies = [
- "cc",
- "cmake",
- "heck 0.3.3",
- "regex",
-]
-
-[[package]]
 name = "binread"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -521,15 +500,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cmake"
-version = "0.1.48"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8ad8cef104ac57b68b89df3208164d228503abbdce70f6880ffa3d970e7443a"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "codespan-reporting"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -766,6 +736,7 @@ dependencies = [
  "base64",
  "bip32",
  "byte-unit",
+ "bytes",
  "candid",
  "clap",
  "console",
@@ -829,7 +800,6 @@ dependencies = [
  "tokio",
  "url",
  "walkdir",
- "walrus",
  "wasmparser 0.87.0",
  "which",
 ]
@@ -1273,12 +1243,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glob"
-version = "0.2.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
-
-[[package]]
 name = "globset"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1422,12 +1386,6 @@ name = "httpdate"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
-
-[[package]]
-name = "humansize"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02296996cb8796d7c6e3bc2d9211b7802812d36999a51bb754123ead7d37d026"
 
 [[package]]
 name = "humantime"
@@ -1640,9 +1598,9 @@ dependencies = [
 
 [[package]]
 name = "ic-types"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82e9cac29df1f2906137c327ed24dfc398460eda054abaa6107273c11afe6384"
+checksum = "0a7d9569a4c91d5c9c202c1666f799a9761bab70a2b59464ee78c45b005e47b8"
 dependencies = [
  "crc32fast",
  "data-encoding",
@@ -1676,15 +1634,15 @@ dependencies = [
 
 [[package]]
 name = "ic-wasm"
-version = "0.1.4"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebed180ae82aa994a90c4477fc928379efb8d55e52e5b90c3ab1611dd4c11ab1"
+checksum = "a6bcb4b8c4455f08fe0c2671fa815affbec6b3eee631f61bd9adcd287bfbc4a2"
 dependencies = [
- "binaryen",
+ "anyhow",
  "candid",
- "humansize",
+ "clap",
  "ic-types",
- "wabt",
+ "thiserror",
  "walrus",
 ]
 
@@ -3408,18 +3366,18 @@ checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
 
 [[package]]
 name = "thiserror"
-version = "1.0.32"
+version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5f6586b7f764adc0231f4c79be7b920e766bb2f3e51b3661cdb263828f19994"
+checksum = "c53f98874615aea268107765aa1ed8f6116782501d18e53d08b471733bea6c85"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.32"
+version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12bafc5b54507e0149cdf1b145a5d80ab80a90bcd9275df43d4fff68460f6c21"
+checksum = "f8b463991b4eab2d801e724172285ec4195c650e8ec79b149e6c2a8e6dd3f783"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3716,29 +3674,6 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
-
-[[package]]
-name = "wabt"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00bef93d5e6c81a293bccf107cf43aa47239382f455ba14869d36695d8963b9c"
-dependencies = [
- "serde",
- "serde_derive",
- "serde_json",
- "wabt-sys",
-]
-
-[[package]]
-name = "wabt-sys"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a4e043159f63e16986e713e9b5e1c06043df4848565bf672e27c523864c7791"
-dependencies = [
- "cc",
- "cmake",
- "glob",
-]
 
 [[package]]
 name = "wait-timeout"

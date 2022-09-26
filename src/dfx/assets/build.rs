@@ -4,7 +4,7 @@ use openssl::sha::Sha256;
 use std::fs::{read_to_string, File};
 use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::{env, fs, io};
 use walkdir::WalkDir;
 
@@ -144,13 +144,57 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
     .unwrap();
 }
 
-fn get_git_hash() -> Option<String> {
-    match Command::new("git").arg("describe").arg("--dirty").output() {
-        Ok(output) if output.status.success() => {
-            Some(String::from_utf8_lossy(&output.stdout).to_string())
+/// Gets a git tag with the least number of revs between HEAD of current branch and the tag,
+/// and combines is with SHA of the HEAD commit. Example of expected output: `0.12.0-beta.1-b9ace030`
+fn get_git_hash() -> Result<String, std::io::Error> {
+    let mut latest_tag = String::from("0");
+    let mut latest_distance = u128::MAX;
+    let tags = Command::new("git")
+        .arg("tag")
+        .stdout(Stdio::piped())
+        .spawn()?
+        .wait_with_output()?
+        .stdout;
+    for tag in String::from_utf8_lossy(&tags).split_whitespace() {
+        let output = Command::new("git")
+            .arg("rev-list")
+            .arg("--count")
+            .arg(format!("{}..HEAD", tag))
+            .arg(tag)
+            .stdout(Stdio::piped())
+            .spawn()?
+            .wait_with_output()?
+            .stdout;
+        if let Some(count) = String::from_utf8_lossy(&output)
+            .split_whitespace()
+            .next()
+            .and_then(|v| v.parse::<u128>().ok())
+        {
+            if count < latest_distance {
+                latest_tag = String::from(tag);
+                latest_distance = count;
+            }
         }
-        _ => None,
     }
+    let head_commit_sha = Command::new("git")
+        .arg("rev-parse")
+        .arg("--short")
+        .arg("HEAD")
+        .output()?
+        .stdout;
+    let head_commit_sha = String::from_utf8_lossy(&head_commit_sha);
+    let is_dirty = !Command::new("git")
+        .arg("status")
+        .arg("--porcelain")
+        .output()?
+        .stdout
+        .is_empty();
+
+    Ok(format!(
+        "{latest_tag}+rev{count}.{head_status}{head_commit_sha}",
+        count = latest_distance,
+        head_status = if is_dirty { "dirty-" } else { "" }
+    ))
 }
 
 fn add_assets() {
@@ -192,12 +236,17 @@ fn add_assets() {
     );
 }
 
+/// Use a verion based on environment variable,
+/// or the latest git tag plus sha of current git HEAD at time of build,
+/// or let the cargo.toml version.
 fn define_dfx_version() {
-    // Pass a version in the environment, or the git describe version at time of build,
-    // or let the cargo.toml version.
     if let Ok(v) = std::env::var("DFX_VERSION") {
+        // If the version is passed in the environment, use that.
+        // Used by the release process in .github/workflows/publish.yml
         println!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
-    } else if let Some(git) = get_git_hash() {
+    } else if let Ok(git) = get_git_hash() {
+        // If the version isn't passed in the environment, use the git describe version.
+        // Used when building from source.
         println!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
     } else {
         // Nothing to do here, as there is no GIT. We keep the CARGO_PKG_VERSION.

@@ -133,6 +133,7 @@ teardown() {
 @test "dfx starts replica with subnet_type application - project defaults" {
     install_asset subnet_type/project_defaults/application
     define_project_network
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
@@ -141,6 +142,7 @@ teardown() {
 @test "dfx starts replica with subnet_type verifiedapplication - project defaults" {
     install_asset subnet_type/project_defaults/verified_application
     define_project_network
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
@@ -149,6 +151,7 @@ teardown() {
 @test "dfx starts replica with subnet_type system - project defaults" {
     install_asset subnet_type/project_defaults/system
     define_project_network
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
@@ -157,6 +160,7 @@ teardown() {
 @test "dfx starts replica with subnet_type application - local network" {
     install_asset subnet_type/project_network_settings/application
     define_project_network
+    jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
@@ -165,6 +169,7 @@ teardown() {
 @test "dfx starts replica with subnet_type verifiedapplication - local network" {
     install_asset subnet_type/project_network_settings/verified_application
     define_project_network
+    jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
@@ -173,6 +178,7 @@ teardown() {
 @test "dfx starts replica with subnet_type system - local network" {
     install_asset subnet_type/project_network_settings/system
     define_project_network
+    jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
@@ -181,6 +187,7 @@ teardown() {
 
 @test "dfx starts replica with subnet_type application - shared network" {
     install_shared_asset subnet_type/shared_network_settings/application
+    jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background
     assert_match "subnet_type: Application"
@@ -188,6 +195,7 @@ teardown() {
 
 @test "dfx starts replica with subnet_type verifiedapplication - shared network" {
     install_shared_asset subnet_type/shared_network_settings/verified_application
+    jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background
     assert_match "subnet_type: VerifiedApplication"
@@ -195,6 +203,7 @@ teardown() {
 
 @test "dfx starts replica with subnet_type system - shared network" {
     install_shared_asset subnet_type/shared_network_settings/system
+    jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
     assert_command dfx start --background
     assert_match "subnet_type: System"
@@ -206,4 +215,59 @@ teardown() {
 
     assert_command_fail dfx start
     assert_match "dfx is already running"
+}
+
+@test "dfx starts replica with correct log level - project defaults" {
+    dfx_new
+    jq '.defaults.replica.log_level="warning"' dfx.json | sponge dfx.json
+    define_project_network
+
+    assert_command dfx start --background --verbose
+    assert_match "log level: Warning"
+    assert_command dfx stop
+
+    jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
+    assert_command dfx start --background --verbose
+    assert_match "log level: Critical"
+}
+
+@test "dfx starts replica with correct log level - local network" {
+    dfx_new
+    jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
+    define_project_network
+
+    assert_command dfx start --background --verbose
+    assert_match "log level: Warning"
+    assert_command dfx stop
+
+    jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
+    assert_command dfx start --background --verbose
+    assert_match "log level: Critical"
+}
+
+@test "dfx starts replica with correct log level - shared network" {
+    dfx_new
+    create_networks_json
+    jq '.local.replica.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+    assert_command dfx start --background --verbose
+    assert_match "log level: Warning"
+    assert_command dfx stop
+
+    jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+    assert_command dfx start --background --verbose
+    assert_match "log level: Critical"
+}
+
+@test "debug print statements work with default log level" {
+    [ "$USE_IC_REF" ] && skip "printing from mo not specified"
+
+    dfx_new
+    install_asset print
+    dfx_start 2>stderr.txt
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project hello
+    sleep 2
+    run tail -2 stderr.txt
+    assert_match "Hello, World! from DFINITY"
 }

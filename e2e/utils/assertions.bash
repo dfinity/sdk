@@ -73,6 +73,24 @@ assert_match() {
     fi
 }
 
+# Asserts that a string contains another string
+# Arguments:
+#    $1 - The string to search for.
+#    $2 - The string to search in.
+assert_contains() {
+    search_for="$1"
+    if [[ $# -lt 2 ]]; then
+        search_in="$output"
+    else
+        search_in="$2"
+    fi
+    if [[ ! "$search_in" == *"$search_for"* ]]; then
+        batslib_print_kv_single_or_multi 10 "search phrase" "$search_for" "actual output" "$search_in" \
+            | batslib_decorate "output does not match" \
+            | fail
+    fi
+}
+
 # Asserts that a string does not contain another string, using regexp.
 # Arguments:
 #    $1 - The regex to use to match.

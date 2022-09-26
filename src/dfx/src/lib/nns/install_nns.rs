@@ -16,8 +16,7 @@ use crate::util::blob_from_arguments;
 use crate::util::expiry_duration;
 use crate::util::network::get_replica_urls;
 
-use anyhow::bail;
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use flate2::bufread::GzDecoder;
 use fn_error_context::context;
 use futures_util::future::try_join_all;
@@ -100,7 +99,7 @@ pub async fn install_nns(
             .await?
             .to_text();
         if canister_id != &installed_canister_id {
-            bail!("Canister was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
+            bail!("Canister '{canister_name}' was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
         }
     }
     // ... and configure the backend NNS canisters:
@@ -130,7 +129,7 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 
     if provider_url.port() != Some(8080) {
         return Err(anyhow!(
-            "dfx nns install supports only port 8080, not {provider_url}."
+            "dfx nns install supports only port 8080, not {provider_url}. Please set the 'local' network's provider to '127.0.0.1:8080'."
         ));
     }
 
@@ -180,6 +179,9 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
 /// The NNS canisters use the very first few canister IDs; they must be available.
 #[context("Failed to verify that the network is empty; dfx nns install must be run just after dfx start --clean")]
 async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<()> {
+    /// Checks that the canister is unused on the given network.
+    ///
+    /// The network is queried directly; local state such as canister_ids.json has no effect on this function.
     async fn verify_canister_id_is_available(
         agent: &Agent,
         canister_id: &str,
@@ -313,7 +315,7 @@ fn local_replica_type(env: &dyn Environment) -> anyhow::Result<ReplicaSubnetType
 pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Result<()> {
     match local_replica_type(env) {
         Ok(ReplicaSubnetType::System) => Ok(()),
-        other => Err(anyhow!("The replica subnet_type needs to be \"system\" to run NNS canisters.  Current value: {other:?}")),
+        other => Err(anyhow!("The replica subnet_type needs to be \"system\" to run NNS canisters. Current value: {other:?}. You can configure it by setting defaults.replica.subnet_type in your project's dfx.json or by setting local.replica.subnet_type in your global networks.json to \"system\".")),
     }
 }
 
@@ -404,7 +406,7 @@ pub async fn download_ic_repo_wasm(
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
-      .with_context(|| format!("Could not determine download URL.  Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
+      .with_context(|| format!("Could not determine download URL. Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
     println!(
         "Downloading {}\n  from {}",
         final_path.to_string_lossy(),
@@ -416,7 +418,7 @@ pub async fn download_ic_repo_wasm(
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
 #[context("Failed to download NNS wasm files.")]
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
-    let ic_commit = replica_rev();
+    let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
     let wasm_dir = &nns_wasm_dir(env);
     for IcNnsInitCanister {
         wasm_name,
@@ -424,16 +426,16 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
         ..
     } in NNS_CORE
     {
-        download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir).await?;
+        download_ic_repo_wasm(wasm_name, &ic_commit, wasm_dir).await?;
         if let Some(test_wasm_name) = test_wasm_name {
-            download_ic_repo_wasm(test_wasm_name, ic_commit, wasm_dir).await?;
+            download_ic_repo_wasm(test_wasm_name, &ic_commit, wasm_dir).await?;
         }
     }
     try_join_all(
         SNS_CANISTERS
             .iter()
             .map(|SnsCanisterInstallation { wasm_name, .. }| {
-                download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir)
+                download_ic_repo_wasm(wasm_name, &ic_commit, wasm_dir)
             }),
     )
     .await?;
@@ -580,7 +582,11 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
                     Err(anyhow!(
                         "Failed to upload {} from {} to the nns-sns-wasm canister:\n{:?} {:?}\nStdout:\n{:?}\n\nStderr:\n{:?}",
                         upload_name,
-                        wasm_path.to_string_lossy(), command.get_program(), command.get_args(), output.stdout, output.stderr
+                        wasm_path.to_string_lossy(),
+                        command.get_program(),
+                        command.get_args(),
+                        String::from_utf8_lossy(&output.stdout),
+                        String::from_utf8_lossy(&output.stderr)
                     ))
                 }
             })?;
@@ -641,7 +647,7 @@ pub async fn install_canister(
 
 /// The local directory where NNS wasm files are cached.  The directory is typically created on demand.
 fn nns_wasm_dir(env: &dyn Environment) -> PathBuf {
-    Path::new(&format!(".dfx/wasms/nns/dfx-${}/", env.get_version())).to_path_buf()
+    Path::new(&format!(".dfx/wasms/nns/dfx-{}/", env.get_version())).to_path_buf()
 }
 
 /// Get the path to a bundled command line binary
