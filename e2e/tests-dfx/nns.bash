@@ -124,7 +124,7 @@ assert_nns_canister_id_matches() {
         dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
     }
     downloaded_wasm_hash() {
-        sha256sum "$DFX_CACHE_ROOT/.cache/dfinity/versions/dfx-$(dfx --version | awk '{printf "%s-%s", $1, $2}')/wasms/$1" | awk '{print "0x" $1}'
+        sha256sum "$DFX_CACHE_ROOT/.cache/dfinity/versions/$(dfx --version | awk '{printf "%s", $2}')/wasms/$1" | awk '{print "0x" $1}'
     }
     wasm_matches() {
         echo "Comparing $* ..."
