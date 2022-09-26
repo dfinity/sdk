@@ -191,7 +191,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
         .is_empty();
 
     Ok(format!(
-        "{latest_tag}-rev{count}.{head_status}{head_commit_sha}",
+        "{latest_tag}+rev{count}.{head_status}{head_commit_sha}",
         count = latest_distance,
         head_status = if is_dirty { "dirty-" } else { "" }
     ))
@@ -243,11 +243,11 @@ fn define_dfx_version() {
     if let Ok(v) = std::env::var("DFX_VERSION") {
         // If the version is passed in the environment, use that.
         // Used by the release process in .github/workflows/publish.yml
-        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
+        panic!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
     } else if let Ok(git) = get_git_hash() {
         // If the version isn't passed in the environment, use the git describe version.
         // Used when building from source.
-        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
+        panic!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
     } else {
         // Nothing to do here, as there is no GIT. We keep the CARGO_PKG_VERSION.
     }
