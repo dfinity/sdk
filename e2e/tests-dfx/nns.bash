@@ -59,9 +59,9 @@ teardown() {
 dfx_start_for_nns_install() {
     # TODO: When nns-dapp supports dynamic ports, this wait can be removed.
     assert_command timeout 300 sh -c \
-        "until dfx start --clean --background --host 127.0.0.1:8080; do echo waiting for port 8080 to become free; sleep 3; done" \
+        "until dfx start --clean --background --host 127.0.0.1:8080 --verbose; do echo waiting for port 8080 to become free; sleep 3; done" \
         || (echo "could not connect to replica on port 8080" && exit 1)
-    assert_match "subnet_type: System"
+    assert_match "subnet type: System"
     assert_match "127.0.0.1:8080"
 }
 
@@ -76,21 +76,47 @@ nns_canister_id() {
     nns-cycles-minting)    echo "rkp4c-7iaaa-aaaaa-aaaca-cai" ;;
     nns-lifeline)          echo "rno2w-sqaaa-aaaaa-aaacq-cai" ;;
     nns-genesis-token)     echo "renrk-eyaaa-aaaaa-aaada-cai" ;;
-    nns-sns-wasm)          echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
-    internet_identity)     echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
-    nns-dapp)              echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
+    # Coming soon:
+    #nns-ic-ckbtc-minter)   echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
+    nns-sns-wasm)          echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
+    internet_identity)     echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
+    nns-dapp)              echo "qsgjb-riaaa-aaaaa-aaaga-cai" ;;
     *)                     echo "ERROR: Unknown NNS canister '$1'." >&2
                            exit 1;;
     esac
 }
 
+assert_nns_canister_id_matches() {
+    [[ "$(nns_canister_id "$1")" == "$(dfx canister id "$1")" ]] || {
+       echo "ERROR: NNS canister ID mismatch for $1: $(nns_canister_id "$1") != $(dfx canister id "$1")"
+       exit 1
+    } >&2
+}
+
+@test "dfx nns import ids are as expected" {
+    dfx nns import
+    assert_nns_canister_id_matches nns-registry
+    assert_nns_canister_id_matches nns-governance
+    assert_nns_canister_id_matches nns-ledger
+    assert_nns_canister_id_matches nns-root
+    assert_nns_canister_id_matches nns-cycles-minting
+    assert_nns_canister_id_matches nns-lifeline
+    assert_nns_canister_id_matches nns-genesis-token
+    # Coming soon:
+    # assert_nns_canister_id_matches nns-ic-ckbtc-minter
+    assert_nns_canister_id_matches nns-sns-wasm
+    # TODO: No source provides these canister IDs - yet.
+    #assert_nns_canister_id_matches internet_identity
+    #assert_nns_canister_id_matches nns-dapp
+}
+
 @test "dfx nns install runs" {
-    # Setup
+    echo Setting up...
     install_shared_asset subnet_type/shared_network_settings/system
     dfx_start_for_nns_install
     dfx nns install
 
-    # Checking that the install worked.
+    echo Checking that the install worked...
     # Note:  The installation is quite expensive, so we test extensively on one installation
     #        rather than doing a separate installation for every test.  The tests are read-only
     #        so no test should affect the output of another.
@@ -98,13 +124,15 @@ nns_canister_id() {
         dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
     }
     downloaded_wasm_hash() {
-        sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-$%s", $1, $2}')/$1" | awk '{print "0x" $1}'
+        sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')/$1" | awk '{print "0x" $1}'
     }
     wasm_matches() {
-            [[ "$(installed_wasm_hash "$1")" == "$(downloaded_wasm_hash "$2")" ]] || {
+        echo "Comparing $* ..."
+        [[ "$(installed_wasm_hash "$1")" == "$(downloaded_wasm_hash "$2")" ]] || {
                 echo "ERROR:  There is a wasm hash mismatch between $1 and $2"
+                echo "ERROR:  $(installed_wasm_hash "$1") != $(downloaded_wasm_hash "$2")"
                 exit 1
-            }>&2
+        }>&2
     }
     wasm_matches nns-registry registry-canister.wasm
     wasm_matches nns-governance governance-canister_test.wasm
@@ -116,6 +144,8 @@ nns_canister_id() {
     wasm_matches nns-sns-wasm sns-wasm-canister.wasm
     wasm_matches internet_identity internet_identity_dev.wasm
     wasm_matches nns-dapp nns-dapp_local.wasm
+
+    echo Stopping dfx...
     dfx stop
 }
 

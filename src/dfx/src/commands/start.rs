@@ -4,6 +4,7 @@ use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
+use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -20,7 +21,7 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
-use slog::{warn, Logger};
+use slog::{info, warn, Logger};
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -127,6 +128,13 @@ pub fn exec(
         enable_canister_http,
     }: StartOpts,
 ) -> DfxResult {
+    if !background {
+        info!(
+            env.get_logger(),
+            "Running dfx start for version {}",
+            dfx_version_str()
+        );
+    }
     let project_config = env.get_config();
 
     let network_descriptor_logger = if background {
@@ -155,7 +163,7 @@ pub fn exec(
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let pid_file_path = local_server_descriptor.dfx_pid_path();
 
-    check_previous_process_running(&pid_file_path)?;
+    check_previous_process_running(local_server_descriptor)?;
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
@@ -213,7 +221,7 @@ pub fn exec(
         send_background()?;
         return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
-    local_server_descriptor.describe(true, false);
+    local_server_descriptor.describe(env.get_logger(), true, false);
 
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
@@ -321,6 +329,7 @@ pub fn exec(
             bind: address_and_port,
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
+            verbose: env.get_verbose_level() > 0,
         };
 
         let proxy = start_icx_proxy_actor(
@@ -456,16 +465,20 @@ fn frontend_address(
     Ok((frontend_url, address_and_port))
 }
 
-fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
-    if dfx_pid_path.exists() {
-        // Read and verify it's not running. If it is just return.
-        if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
-            if let Ok(pid) = s.parse::<Pid>() {
-                // If we find the pid in the file, we tell the user and don't start!
-                let mut system = System::new();
-                system.refresh_processes();
-                if let Some(_process) = system.process(pid) {
-                    bail!("dfx is already running.");
+fn check_previous_process_running(
+    local_server_descriptor: &LocalServerDescriptor,
+) -> DfxResult<()> {
+    for pid_path in local_server_descriptor.dfx_pid_paths() {
+        if pid_path.exists() {
+            // Read and verify it's not running. If it is just return.
+            if let Ok(s) = std::fs::read_to_string(&pid_path) {
+                if let Ok(pid) = s.parse::<Pid>() {
+                    // If we find the pid in the file, we tell the user and don't start!
+                    let mut system = System::new();
+                    system.refresh_processes();
+                    if let Some(_process) = system.process(pid) {
+                        bail!("dfx is already running.");
+                    }
                 }
             }
         }
@@ -574,7 +587,8 @@ pub fn configure_canister_http_adapter_if_enabled(
     let socket_path =
         get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
 
-    let adapter_config = canister_http::adapter::Config::new(socket_path);
+    let log_level = local_server_descriptor.canister_http.log_level;
+    let adapter_config = canister_http::adapter::Config::new(socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;

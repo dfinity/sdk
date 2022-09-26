@@ -83,8 +83,18 @@
       "properties": {
         "enabled": {
           "title": "Enable HTTP Adapter",
-          "default": false,
+          "default": true,
           "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "error",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
         }
       }
     },
@@ -92,6 +102,17 @@
       "title": "Local Replica Configuration",
       "type": "object",
       "properties": {
+        "log_level": {
+          "description": "Run replica with the provided log level. Default is 'error'. Debug prints still get displayed",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaLogLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "port": {
           "description": "Port the replica listens on.",
           "type": [
@@ -212,6 +233,18 @@
         }
       }
     },
+    "HttpAdapterLogLevel": {
+      "description": "Represents the log level of the HTTP adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
     "NetworkType": {
       "title": "Network Type",
       "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
@@ -219,6 +252,17 @@
       "enum": [
         "ephemeral",
         "persistent"
+      ]
+    },
+    "ReplicaLogLevel": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
       ]
     },
     "ReplicaSubnetType": {

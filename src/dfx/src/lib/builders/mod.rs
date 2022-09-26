@@ -16,13 +16,15 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 mod assets;
 mod custom;
 mod motoko;
 mod rust;
+
+pub use custom::custom_download;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -314,14 +316,20 @@ pub fn environment_variables<'a>(
             };
 
             vars.push((
-                Owned(format!("CANISTER_CANDID_PATH_{}", canister.get_name())),
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_")
+                )),
                 Borrowed(candid_path),
             ));
         }
     }
     for canister in pool.get_canister_list() {
         vars.push((
-            Owned(format!("CANISTER_ID_{}", canister.get_name())),
+            Owned(format!(
+                "CANISTER_ID_{}",
+                canister.get_name().replace('-', "_")
+            )),
             Owned(canister.canister_id().to_text().into()),
         ));
     }
@@ -372,6 +380,17 @@ impl BuildConfig {
             ..self
         }
     }
+}
+
+#[context("Failed to shrink wasm at {}.", &wasm_path.as_ref().display())]
+fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
+    let wasm_path = wasm_path.as_ref();
+    let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
+    let shrinked_wasm =
+        ic_wasm::shrink::shrink(&wasm).context("Could not shrink the WASM module.")?;
+    std::fs::write(wasm_path, &shrinked_wasm)
+        .with_context(|| format!("Could not write shrinked WASM to {:?}", wasm_path))?;
+    Ok(())
 }
 
 pub struct BuilderPool {
