@@ -109,10 +109,10 @@ jobs:
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
       CARGO_NET_RETRY: 10
-      CURL_HOME: "${{ env.GITHUB_WORKSPACE }}"
     steps:
-      - name: Check CURL_HOME
-        run: echo CURL_HOME="$CURL_HOME"
+      - name: Set CURL_HOME
+        run:
+          echo CURL_HOME="$PWD" >> $GITHUB_ENV
       - uses: actions/checkout@v3
       - name: Download dfx binary
         uses: actions/download-artifact@v2
