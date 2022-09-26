@@ -389,6 +389,10 @@ Changed the text in this case to read:
 
 ### chore: add retry logic to dfx download script
 
+### feat: Add subnet type argument when creating canisters
+
+`dfx ledger create-canister` gets a new option `--subnet-type` that allows users to choose a type of subnet that their canister can be created on. Additionally, a `dfx ledger show-subnet-types` is introduced which allows to list the available subnet types.
+
 ## Dependencies
 
 ### Replica
