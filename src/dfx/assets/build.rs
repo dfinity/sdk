@@ -147,7 +147,7 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
 /// Gets a git tag with the least number of revs between HEAD of current branch and the tag,
 /// and combines is with SHA of the HEAD commit. Example of expected output: `0.12.0-beta.1-b9ace030`
 fn get_git_hash() -> Result<String, std::io::Error> {
-    let mut latest_tag = String::from("0");
+    let mut latest_tag = String::from("0.0.0");
     let mut latest_distance = u128::MAX;
     let tags = Command::new("git")
         .arg("tag")
