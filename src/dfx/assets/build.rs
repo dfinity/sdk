@@ -243,11 +243,11 @@ fn define_dfx_version() {
     if let Ok(v) = std::env::var("DFX_VERSION") {
         // If the version is passed in the environment, use that.
         // Used by the release process in .github/workflows/publish.yml
-        panic!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
+        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", v);
     } else if let Ok(git) = get_git_hash() {
         // If the version isn't passed in the environment, use the git describe version.
         // Used when building from source.
-        panic!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
+        println!("cargo:rustc-env=CARGO_PKG_VERSION={}", git);
     } else {
         // Nothing to do here, as there is no GIT. We keep the CARGO_PKG_VERSION.
     }
