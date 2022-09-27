@@ -97,8 +97,25 @@ You can use the following optional flags with the `dfx nns install` command.
 
 ### Examples
 
-An account in the local ledger is initialized with ICP that can be used for testing.  To use the ICP:
+#### Example: Making API calls to the local NNS.
 
+``` bash
+$ dfx stop
+$ nohup dfx start --clean
+$ dfx nns install
+$ dfx nns import
+$ dfx canister call --network ic nns-governance get_pending_proposals '()'
+```
+
+You can view the API calls that can be made for each NNS canister by looking at the interface definition files installed by `dfx nns import` in `candid/*.did`.  The API methods are in the `service` section, which is usually located at the end of a `.did` file.  It is easiest to start experimenting with methods that take no arguments.
+
+#### Example: Accessing ICP on the command line
+Two accounts in the local ledger is initialized with ICP that can be used for testing.  One uses a secp256k1 key, which is convenient for command line usage, another uses an ed25519 key, which is more convenient in web applications.
+
+
+
+To use ICP on the command line:
+* Start dfx and install the NNS, as described in [`install`](#_dfx_nns_install).
 * Put this secret key into a file called `ident-1.pem`:
 ``` bash
 $ cat <<EOF >ident-1.pem
@@ -109,6 +126,10 @@ oUQDQgAEPas6Iag4TUx+Uop+3NhE6s3FlayFtbwdhRVjvOar0kPTfE/N8N6btRnd
 -----END EC PRIVATE KEY-----
 EOF
 ```
+* Check the key: (optional)
+```
+$ openssl ec -in ident-1.pem -noout -text
+```
 * Create an identity with that secret key:
 ``` bash
 $ dfx identity import ident-1 ident-1.pem
@@ -117,3 +138,26 @@ $ dfx identity import ident-1 ident-1.pem
 ``` bash
 $ dfx ledger balance
 ```
+
+To use ICP in an existing web application:
+* Install the [@dfinity/agent npm module](https://www.npmjs.com/package/@dfinity/agent).
+* Create an identity with this key pair:
+```
+  const publicKey = "Uu8wv55BKmk9ZErr6OIt5XR1kpEGXcOSOC1OYzrAwuk=";
+  const privateKey =
+    "N3HB8Hh2PrWqhWH2Qqgr1vbU9T3gb1zgdBD8ZOdlQnVS7zC/nkEqaT1kSuvo4i3ldHWSkQZdw5I4LU5jOsDC6Q==";
+  const identity = Ed25519KeyIdentity.fromKeyPair(
+    base64ToUInt8Array(publicKey),
+    base64ToUInt8Array(privateKey)
+  );
+
+  // If using node:
+  const base64ToUInt8Array = (base64String: string): Uint8Array => {
+    return Buffer.from(base64String, 'base64')
+  };
+  // If in a browser:
+  const base64ToUInt8Array = (base64String: string): Uint8Array => {
+    return Uint8Array.from(window.atob(base64String), (c) => c.charCodeAt(0));
+  };
+```
+* That identity can now make API calls, including sending ICP.
