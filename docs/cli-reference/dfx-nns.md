@@ -53,7 +53,7 @@ $ dfx canister call --network ic nns-governance get_pending_proposals '()'
 
 ## dfx nns install
 
-Use the `dfx nns install` command to install a local NNS.  This provides local ledger and governance canisters as well as the GUI canisters Internet Identity and NNS-Dapp.
+Use the `dfx nns install` command to install a local NNS. This provides local ledger and governance canisters as well as the GUI canisters Internet Identity and NNS-Dapp.
 
 ### Basic usage
 The local network needs to be set up with a very specific configuration:
