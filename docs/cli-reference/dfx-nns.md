@@ -36,11 +36,11 @@ $ dfx nns import
 
 You can use the following optional flags with the `dfx nns import` command.
 
-| Flag                | Description                                   |
-|---------------------|-----------------------------------------------|
-| `-h`, `--help`      | Displays usage information.                   |
+| Flag                | Description                                    |
+|---------------------|------------------------------------------------|
+| `-h`, `--help`      | Displays usage information.                    |
 | `--network-mapping` | Renames networks when installing canister IDs. |
-| `-V`, `--version`   | Displays version information.                 |
+| `-V`, `--version`   | Displays version information.                  |
 
 ### Examples
 
@@ -49,6 +49,12 @@ You can use the `dfx nns import` command to get did files and so query NNS canis
 ``` bash
 $ dfx nns import
 $ dfx canister call --network ic nns-governance get_pending_proposals '()'
+```
+
+You can rename a network on import.  For example, if you have `test-ic` set up as an alias of the `ic` network then you can set NNS canister IDs for `test-ic` with:
+
+``` bash
+$ dfx nns import --network-mapping test-ic=ic
 ```
 
 ## dfx nns install
