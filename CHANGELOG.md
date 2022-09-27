@@ -7,6 +7,22 @@
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
 
+### feat: Initialise the nns with an account controlled by a secp256k1 key
+
+This enables easy access to toy ICP using command line tools and this key:
+```
+-----BEGIN EC PRIVATE KEY-----
+MHQCAQEEICJxApEbuZznKFpV+VKACRK30i6+7u5Z13/DOl18cIC+oAcGBSuBBAAK
+oUQDQgAEPas6Iag4TUx+Uop+3NhE6s3FlayFtbwdhRVjvOar0kPTfE/N8N6btRnd
+74ly5xXEBNSXiENyxhEuzOZrIWMCNQ==
+-----END EC PRIVATE KEY-----
+```
+For example, you can create an identity in dfx by putting this key in the file `ident-1.pem` and importing it:
+```
+dfx identity import ident-1 ident-1.pem
+dfx --identity ident-1 ledger balance
+```
+
 ### feat: default to run ic-wasm shrink when build canisters
 This behavior applies to Motoko, Rust and Custom canisters.
 If you want to disable this behavior, you can config it in dfx.json:
