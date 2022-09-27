@@ -4,6 +4,9 @@
 
 ## DFX
 
+### fix: Only kill main process on `dfx stop`
+Removes misleading panics when running `dfx stop`.
+
 ### feat: Initialise the nns with an account controlled by a secp256k1 key
 
 This enables easy access to toy ICP using command line tools and this key:
@@ -19,8 +22,6 @@ For example, you can create an identity in dfx by putting this key in the file `
 dfx identity import ident-1 ident-1.pem
 dfx --identity ident-1 ledger balance
 ```
-
-
 
 ### feat: default to run ic-wasm shrink when build canisters
 This behavior applies to Motoko, Rust and Custom canisters.
@@ -105,6 +106,10 @@ It is now possible to set the http adapter's log level in dfx.json or in network
     }
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
+
+### fix(typescript): add index.d.ts file for type safety when importing generated declarations
+
+Adds an index.d.ts file to the generated declarations, allowing for better type safety in TypeScript projects.
 
 ### chore: reduce verbosity of dfx start
 
@@ -407,10 +412,14 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 8a454cdc2bfc4ba548c8f6ce4e762adfa6eba6e4.
-This incorporates the following executed proposals:
+Updated replica to release candidate at commit 9173c5f1b28e140931060b90e9de65b923ee57e6.
+This release candidate has not yet been elected.
 
+This also incorporates the following executed proposals:
 
+* [81788](https://dashboard.internetcomputer.org/proposal/81788)
+* [81571](https://dashboard.internetcomputer.org/proposal/81571)
+* [80992](https://dashboard.internetcomputer.org/proposal/80992)
 * [79816](https://dashboard.internetcomputer.org/proposal/79816)
 * [78693](https://dashboard.internetcomputer.org/proposal/78693)
 * [77589](https://dashboard.internetcomputer.org/proposal/77589)

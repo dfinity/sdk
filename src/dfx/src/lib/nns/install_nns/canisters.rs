@@ -62,13 +62,6 @@ pub const NNS_GENESIS_TOKENS: IcNnsInitCanister = IcNnsInitCanister {
     test_wasm_name: None,
     canister_id: "renrk-eyaaa-aaaaa-aaada-cai",
 };
-/// Canister that spawns SNS canister groups.
-pub const NNS_SNS_WASM: IcNnsInitCanister = IcNnsInitCanister {
-    canister_name: "nns-sns-wasm",
-    wasm_name: "sns-wasm-canister.wasm",
-    test_wasm_name: None,
-    canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai",
-};
 /// Placeholder for the Internet Identity.  Not used.
 pub const NNS_IDENTITY: IcNnsInitCanister = IcNnsInitCanister {
     canister_name: "nns-identity",
@@ -82,6 +75,20 @@ pub const NNS_UI: IcNnsInitCanister = IcNnsInitCanister {
     wasm_name: "nns-ui-canister.wasm",
     test_wasm_name: None,
     canister_id: "qoctq-giaaa-aaaaa-aaaea-cai",
+};
+/// Canister that spawns SNS canister groups.
+pub const NNS_SNS_WASM: IcNnsInitCanister = IcNnsInitCanister {
+    canister_name: "nns-sns-wasm",
+    wasm_name: "sns-wasm-canister.wasm",
+    test_wasm_name: None,
+    canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai",
+};
+/// Canister that converts between bitcoin and ckBTC.
+pub const NNS_IC_CKBTC_MINTER: IcNnsInitCanister = IcNnsInitCanister {
+    canister_name: "nns-ic-ckbtc-minter",
+    wasm_name: "ic-ckbtc-minter.wasm",
+    test_wasm_name: None,
+    canister_id: "qjdve-lqaaa-aaaaa-aaaeq-cai",
 };
 /// Minimum data needed to download and deploy a standard canister via dfx deploy NAME.
 pub struct StandardCanister {
@@ -106,20 +113,23 @@ pub const NNS_DAPP: StandardCanister = StandardCanister {
     canister_name: "nns-dapp",
     canister_id: "qsgjb-riaaa-aaaaa-aaaga-cai",
     wasm_name: "nns-dapp_local.wasm",
-    wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/proposal-80618/nns-dapp_local_v2.wasm",
+    wasm_url: "https://github.com/dfinity/nns-dapp/releases/download/tip/nns-dapp_t2.wasm",
 };
 /// Backend canisters deployed by `ic nns init`.
-pub const NNS_CORE: &[&IcNnsInitCanister; 10] = &[
-    &NNS_REGISTRY,
-    &NNS_GOVERNANCE,
-    &NNS_LEDGER,
-    &NNS_ROOT,
-    &NNS_CYCLES_MINTING,
-    &NNS_LIFELINE,
-    &NNS_GENESIS_TOKENS,
-    &NNS_SNS_WASM,
-    &NNS_IDENTITY,
-    &NNS_UI,
+pub const NNS_CORE: &[&IcNnsInitCanister; 11] = &[
+    &NNS_REGISTRY,       // 0
+    &NNS_GOVERNANCE,     // 1
+    &NNS_LEDGER,         // 2
+    &NNS_ROOT,           // 3
+    &NNS_CYCLES_MINTING, // 4
+    &NNS_LIFELINE,       // 5
+    &NNS_GENESIS_TOKENS, // 6
+    &NNS_IDENTITY,       // 7
+    &NNS_UI,             // 8
+    // 9 - unused
+    &NNS_SNS_WASM, // 10
+    // ic-icrc1-ledger is expected to go in place 11.
+    &NNS_IC_CKBTC_MINTER, // Index not defined here: https://github.com/dfinity/ic/blob/master/rs/nns/constants/src/lib.rs
 ];
 /// Frontend canisters deployed by `ic nns init`.  The deployment is normal, like any other canister.
 pub const NNS_FRONTEND: [&StandardCanister; 2] = [&INTERNET_IDENTITY, &NNS_DAPP];
