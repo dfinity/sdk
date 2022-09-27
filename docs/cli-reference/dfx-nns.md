@@ -12,7 +12,7 @@ Depending on the `dfx nns` subcommand you specify, additional arguments, options
 | Command                             | Description                                                                   |
 |-------------------------------------|-------------------------------------------------------------------------------|
 | [`import`](#_dfx_nns_import)        | Adds the NNS canisters to the local dfx.json as remote canisters.             |
-| [`install`](#_dfx_nns_install)      | Deploys NNS canisters to the local dfx server                                 |
+| [`install`](#_dfx_nns_install)      | Deploys NNS canisters to the local dfx server.                                 |
 | `help`                              | Displays usage information message for a specified subcommand.                |
 
 To view usage information for a specific subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx nns install`, you can run the following command:
