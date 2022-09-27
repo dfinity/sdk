@@ -85,7 +85,7 @@ This is because:
 In addition, the local dfx server needs to be clean:
 
 ``` bash
-$ nohup dfx start --clean
+$ dfx start --clean --background
 $ dfx nns install
 ```
 
@@ -107,7 +107,7 @@ You can use the following optional flags with the `dfx nns install` command.
 
 ``` bash
 $ dfx stop
-$ nohup dfx start --clean
+$ dfx start --clean --background
 $ dfx nns install
 $ dfx nns import
 $ dfx canister call --network ic nns-governance get_pending_proposals '()'
