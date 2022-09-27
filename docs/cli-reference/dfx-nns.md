@@ -12,7 +12,7 @@ Depending on the `dfx nns` subcommand you specify, additional arguments, options
 | Command                             | Description                                                                   |
 |-------------------------------------|-------------------------------------------------------------------------------|
 | [`import`](#_dfx_nns_import)        | Adds the NNS canisters to the local dfx.json as remote canisters.             |
-| [`install`](#_dfx_nns_install)      | Deploys NNS canisters to the local dfx server                                 |
+| [`install`](#_dfx_nns_install)      | Deploys NNS canisters to the local dfx server.                                 |
 | `help`                              | Displays usage information message for a specified subcommand.                |
 
 To view usage information for a specific subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx nns install`, you can run the following command:
@@ -39,7 +39,7 @@ You can use the following optional flags with the `dfx nns import` command.
 | Flag                | Description                                   |
 |---------------------|-----------------------------------------------|
 | `-h`, `--help`      | Displays usage information.                   |
-| `--network-mapping` | Renames networks when installing canister ids |
+| `--network-mapping` | Renames networks when installing canister IDs. |
 | `-V`, `--version`   | Displays version information.                 |
 
 ### Examples
@@ -53,7 +53,7 @@ $ dfx canister call --network ic nns-governance get_pending_proposals '()'
 
 ## dfx nns install
 
-Use the `dfx nns install` command to install a local NNS.  This provides local ledger and governance canisters as well as the GUI canisters Internet Identity and NNS-Dapp.
+Use the `dfx nns install` command to install a local NNS. This provides local ledger and governance canisters as well as the GUI canisters Internet Identity and NNS-Dapp.
 
 ### Basic usage
 The local network needs to be set up with a very specific configuration:
