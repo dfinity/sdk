@@ -39,7 +39,7 @@ You can use the following optional flags with the `dfx nns import` command.
 | Flag                | Description                                   |
 |---------------------|-----------------------------------------------|
 | `-h`, `--help`      | Displays usage information.                   |
-| `--network-mapping` | Renames networks when installing canister ids |
+| `--network-mapping` | Renames networks when installing canister IDs. |
 | `-V`, `--version`   | Displays version information.                 |
 
 ### Examples
