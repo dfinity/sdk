@@ -26,12 +26,9 @@ fn list_all_descendants<'a>(system: &'a System, proc: &'a Process) -> Vec<&'a Pr
     result
 }
 
-/// Recursively kill a process and ALL its children.
-fn kill_all(system: &System, proc: &Process) -> Vec<Pid> {
+/// Recursively list all descendants of a process.
+fn descendant_pids(system: &System, proc: &Process) -> Vec<Pid> {
     let processes = list_all_descendants(system, proc);
-    for proc in &processes {
-        proc.kill_with(Signal::Term);
-    }
     processes.iter().map(|proc| proc.pid()).collect()
 }
 
@@ -82,12 +79,15 @@ pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
                     found = true;
                     let mut system = System::new();
                     system.refresh_processes();
-                    let pids_killed = if let Some(proc) = system.process(pid) {
-                        kill_all(&system, proc)
+                    let descendant_pids = if let Some(proc) = system.process(pid) {
+                        let descendants = descendant_pids(&system, proc);
+                        proc.kill_with(Signal::Term);
+                        descendants
                     } else {
                         vec![]
                     };
-                    wait_until_all_exited(system, pids_killed)?;
+
+                    wait_until_all_exited(system, descendant_pids)?;
                 }
             }
             // We ignore errors here because there is no effect for the user. We're just being nice.
