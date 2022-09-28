@@ -15,7 +15,7 @@ use k256::pkcs8::LineEnding;
 use k256::SecretKey;
 use ring::{rand, rand::SecureRandom};
 use serde::{Deserialize, Serialize};
-use slog::Logger;
+use slog::{debug, Logger};
 use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -153,9 +153,9 @@ impl IdentityManager {
 
     /// Create an Identity instance for use with an Agent
     #[context("Failed to instantiate selected identity.")]
-    pub fn instantiate_selected_identity(&mut self) -> DfxResult<Box<DfxIdentity>> {
+    pub fn instantiate_selected_identity(&mut self, log: &Logger) -> DfxResult<Box<DfxIdentity>> {
         let name = self.selected_identity.clone();
-        self.instantiate_identity_from_name(name.as_str())
+        self.instantiate_identity_from_name(name.as_str(), log)
     }
 
     /// Provide a valid Identity name and create its Identity instance for use with an Agent
@@ -163,12 +163,13 @@ impl IdentityManager {
     pub fn instantiate_identity_from_name(
         &mut self,
         identity_name: &str,
+        log: &Logger,
     ) -> DfxResult<Box<DfxIdentity>> {
         let identity = match identity_name {
             ANONYMOUS_IDENTITY_NAME => Box::new(DfxIdentity::anonymous()),
             identity_name => {
                 self.require_identity_exists(identity_name)?;
-                Box::new(DfxIdentity::load(self, identity_name)?)
+                Box::new(DfxIdentity::load(self, identity_name, log)?)
             }
         };
         use ic_agent::identity::Identity;
@@ -183,6 +184,7 @@ impl IdentityManager {
     #[context("Failed to create new identity '{}'.", name)]
     pub fn create_new_identity(
         &mut self,
+        log: &Logger,
         name: &str,
         parameters: IdentityCreationParameters,
         force: bool,
@@ -191,7 +193,7 @@ impl IdentityManager {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
 
-        DfxIdentity::create(self, name, parameters, force)
+        DfxIdentity::create(log, self, name, parameters, force)
     }
 
     /// Return a sorted list of all available identity names
@@ -238,34 +240,11 @@ impl IdentityManager {
 
     /// Returns the pem file content of the selected identity
     #[context("Failed to export identity '{}'.", name)]
-    pub fn export(&self, name: &str) -> DfxResult<String> {
+    pub fn export(&self, log: &Logger, name: &str) -> DfxResult<String> {
         self.require_identity_exists(name)?;
         let config = self.get_identity_config_or_default(name)?;
-        let pem_content = if let Some(keyring_identity_suffix) = config.keyring_identity_suffix {
-            // case 1: keyring identity
-            pem_safekeeping::load_pem_from_keyring(&keyring_identity_suffix)?
-        } else if let Some(_encryption_config) = &config.encryption {
-            // case 2: encrypted identity
-            let pem_path = self.get_identity_pem_path(name);
-            pem_safekeeping::load_pem_from_file(&pem_path, Some(&config))?
-        } else if let Some(_hsm_config) = config.hsm {
-            // case 3: hsm identity
-            bail!(
-                "Selected identity '{}' is an HSM identity. Export does not make sense.",
-                name
-            )
-        } else if self.get_legacy_identity_pem_path(name).exists() {
-            // case 4: legacy plaintext identity
-            let path = self.get_legacy_identity_pem_path(name);
-            pem_safekeeping::load_pem_from_file(&path, Some(&config))?
-        } else {
-            // case 5: something's borked
-            bail!(
-                "Unable to locate pem file content for identity '{}' given config {:?}",
-                name,
-                config
-            )
-        };
+        let (_, pem_content) = pem_safekeeping::load_pem(log, self, name, &config)?;
+
         validate_pem_file(&pem_content)?;
         String::from_utf8(pem_content)
             .map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
@@ -316,12 +295,19 @@ impl IdentityManager {
     /// If renaming the selected (default) identity, changes that
     /// to refer to the new identity name.
     #[context("Failed to rename identity '{}' to '{}'.", from, to)]
-    pub fn rename(&mut self, env: &dyn Environment, from: &str, to: &str) -> DfxResult<bool> {
+    pub fn rename(
+        &mut self,
+        log: &Logger,
+        env: &dyn Environment,
+        from: &str,
+        to: &str,
+    ) -> DfxResult<bool> {
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
         self.require_identity_exists(from)?;
 
+        let identity_config = self.get_identity_config_or_default(from)?;
         let from_dir = self.get_identity_dir_path(from);
         let to_dir = self.get_identity_dir_path(to);
 
@@ -337,14 +323,17 @@ impl IdentityManager {
                 Box::new(DfxError::new(err)),
             ))
         })?;
-        if pem_safekeeping::keyring_contains(from) {
-            let pem = pem_safekeeping::load_pem_from_keyring(from)?;
-            pem_safekeeping::write_pem_to_keyring(to, &pem)?;
+        if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
+            debug!(log, "Migrating keyring content.");
+            let (_, pem) = pem_safekeeping::load_pem(log, self, from, &identity_config)?;
+            let new_config = IdentityConfiguration {
+                keyring_identity_suffix: Some(to.to_string()),
+                ..identity_config
+            };
+            pem_safekeeping::save_pem(log, self, to, &new_config, pem.as_ref())?;
             let config_path = self.get_identity_json_path(to);
-            let mut config = self.get_identity_config_or_default(to)?;
-            config.keyring_identity_suffix = Some(String::from(to));
-            write_identity_configuration(&config_path, &config)?;
-            pem_safekeeping::delete_pem_from_keyring(from)?;
+            write_identity_configuration(&config_path, &new_config)?;
+            pem_safekeeping::delete_pem_from_keyring(keyring_identity_suffix)?;
         }
 
         if from == self.configuration.default {

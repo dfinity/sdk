@@ -233,7 +233,7 @@ impl<'a> AgentEnvironment<'a> {
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
         let mut identity_manager = IdentityManager::new(backend)?;
-        let identity = identity_manager.instantiate_selected_identity()?;
+        let identity = identity_manager.instantiate_selected_identity(backend.get_logger())?;
         let url = network_descriptor.first_provider()?;
 
         Ok(AgentEnvironment {

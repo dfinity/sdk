@@ -22,7 +22,7 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use serde::{Deserialize, Serialize};
-use slog::{info, Logger};
+use slog::{debug, info, warn, Logger};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -74,6 +74,7 @@ impl Identity {
     ///
     /// `force`: If the identity already exists, remove it and re-create.
     pub fn create(
+        log: &Logger,
         manager: &mut IdentityManager,
         name: &str,
         parameters: IdentityCreationParameters,
@@ -105,9 +106,17 @@ impl Identity {
             })
         }
         fn create_encryption_config(
+            log: &Logger,
             skip_keyring: bool,
+            keyring_available: bool,
         ) -> DfxResult<Option<EncryptionConfiguration>> {
-            if skip_keyring {
+            if skip_keyring || !keyring_available {
+                if !keyring_available {
+                    warn!(
+                        log,
+                        "Keyring is not available. Encrypting PEM file instead."
+                    );
+                }
                 // keyring skipped = use our own encryption mechanism
                 Ok(Some(identity_manager::EncryptionConfiguration::new()?))
             } else {
@@ -130,40 +139,36 @@ impl Identity {
         }
 
         let mut identity_config = IdentityConfiguration::default();
+        let keyring_available = pem_safekeeping::keyring_available();
         match parameters {
             IdentityCreationParameters::Pem { skip_keyring } => {
-                identity_config.encryption = create_encryption_config(skip_keyring)?;
                 let (pem_content, mnemonic) = identity_manager::generate_key()?;
-                todo!("dedupe a lot of code");
-                if skip_keyring || !pem_safekeeping::keyring_available() {
-                    let pem_file = manager.get_identity_pem_path(&temp_identity_name);
-                    pem_safekeeping::write_pem_to_file(
-                        &pem_file,
-                        Some(&identity_config),
-                        Vec::from(pem_content).as_slice(),
-                    )?;
-                } else {
-                    pem_safekeeping::write_pem_to_keyring(name, pem_content.as_slice())?;
-                }
+                identity_config.encryption =
+                    create_encryption_config(log, skip_keyring, keyring_available)?;
+                pem_safekeeping::save_pem(
+                    log,
+                    manager,
+                    name,
+                    &identity_config,
+                    pem_content.as_slice(),
+                )?;
                 eprintln!("Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
             }
             IdentityCreationParameters::PemFile {
                 src_pem_file,
                 skip_keyring,
             } => {
-                identity_config.encryption = create_encryption_config(skip_keyring)?;
+                identity_config.encryption =
+                    create_encryption_config(log, skip_keyring, keyring_available)?;
                 let src_pem_content = pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
                 identity_utils::validate_pem_file(&src_pem_content)?;
-                if skip_keyring || !pem_safekeeping::keyring_available() {
-                    let dst_pem_file = manager.get_identity_pem_path(&temp_identity_name);
-                    pem_safekeeping::write_pem_to_file(
-                        &dst_pem_file,
-                        Some(&identity_config),
-                        src_pem_content.as_slice(),
-                    )?;
-                } else {
-                    pem_safekeeping::write_pem_to_keyring(name, src_pem_content.as_slice())?;
-                }
+                pem_safekeeping::save_pem(
+                    log,
+                    manager,
+                    name,
+                    &identity_config,
+                    src_pem_content.as_slice(),
+                )?;
             }
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config.hsm = Some(hsm);
@@ -173,21 +178,13 @@ impl Identity {
                 mnemonic,
                 skip_keyring,
             } => {
-                identity_config.encryption = create_encryption_config(skip_keyring)?;
+                identity_config.encryption =
+                    create_encryption_config(log, skip_keyring, keyring_available)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
                 let key = identity_manager::mnemonic_to_key(&mnemonic)?;
                 let pem = key.to_pem(k256::pkcs8::LineEnding::CRLF)?;
                 let pem_content = pem.as_bytes();
-                if skip_keyring || !pem_safekeeping::keyring_available() {
-                    let pem_file = manager.get_identity_pem_path(&temp_identity_name);
-                    pem_safekeeping::write_pem_to_file(
-                        &pem_file,
-                        Some(&identity_config),
-                        pem_content,
-                    )?;
-                } else {
-                    pem_safekeeping::write_pem_to_keyring(name, pem_content)?;
-                }
+                pem_safekeeping::save_pem(log, manager, name, &identity_config, pem_content)?;
             }
         }
         let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
@@ -281,55 +278,38 @@ impl Identity {
     }
 
     #[context("Failed to load identity '{}'.", name)]
-    pub fn load(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
+    pub fn load(manager: &IdentityManager, name: &str, log: &Logger) -> DfxResult<Self> {
         let json_path = manager.get_identity_json_path(name);
         let config = if json_path.exists() {
             identity_manager::read_identity_configuration(&json_path)?
         } else {
+            debug!(log, "Found no identity configuration. Using default.");
             IdentityConfiguration::default()
         };
         if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
-        } else if let Some(encryption_config) = &config.encryption {
-            let encrypted_pem_path = manager.get_identity_pem_path(name);
-            let pem_content =
-                pem_safekeeping::load_pem_from_file(&encrypted_pem_path, Some(&config))?;
-            Identity::load_secp256k1_identity(manager, name, &pem_content)
-                .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
-        } else if let Some(keyring_identity) = config.keyring_identity_suffix {
-            let pem_content = pem_safekeeping::load_pem_from_keyring(name)?;
-            Identity::load_secp256k1_identity(manager, name, &pem_content)
-                .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
         } else {
-            // Configuration is no help, we have to look for the PEM and clean up information.
-            let plaintext_pem_path = manager.get_legacy_identity_pem_path(name);
-            let maybe_keyring_pem = pem_safekeeping::load_pem_from_keyring(name);
-            let encrypted_pem_path = manager.get_identity_pem_path(name);
-            if plaintext_pem_path.exists() {
-                // Guess 1: It's a legacy plaintext identity.
-                todo!("cleanup: import as keyring file if possible");
-                let pem_content =
-                    pem_safekeeping::load_pem_from_file(&plaintext_pem_path, Some(&config))?;
-                Identity::load_secp256k1_identity(manager, name, &pem_content)
-                    .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
-            } else if maybe_keyring_pem.is_ok() {
-                // Guess 2: PEM file is stored in keyring, but config is not up to date.
-                let updated_config = IdentityConfiguration {
-                    hsm: None,
-                    encryption: None,
-                    keyring_identity_suffix: Some(name.to_string()),
-                };
-                identity_manager::write_identity_configuration(&json_path, &updated_config)?;
-                let pem_content = maybe_keyring_pem?;
-                Identity::load_secp256k1_identity(manager, name, &pem_content)
-                    .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
-            } else if encrypted_pem_path.exists() {
-                // Guess 3: It's an encrypted PEM file, but we lost the encryption configuration.
-                bail!("Unable to find information to decrypt PEM file.")
-            } else {
-                // No fourth option, have to give up.
-                bail!("Unable to find any trace of a PEM file.")
+            let (maybe_new_config, pem_content) =
+                pem_safekeeping::load_pem(log, manager, name, &config)?;
+            let identity = Identity::load_secp256k1_identity(manager, name, &pem_content)
+                .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))?;
+
+            if let Some(new_config) = maybe_new_config {
+                info!(log, "Trying to update the identity set up.");
+                let save_result =
+                    pem_safekeeping::save_pem(log, manager, name, &new_config, &pem_content);
+                match save_result {
+                    Err(_) => info!(log, "Failed to update identity set up."),
+                    Ok(_) => {
+                        identity_manager::write_identity_configuration(&json_path, &new_config)
+                            .unwrap_or_else(|_| {
+                                info!(log, "Failed to write new identity configuration.")
+                            })
+                    }
+                }
             }
+
+            Ok(identity)
         }
     }
 

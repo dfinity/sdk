@@ -14,7 +14,7 @@ pub struct ExportOpts {
 pub fn exec(env: &dyn Environment, opts: ExportOpts) -> DfxResult {
     let name = opts.exported_identity.as_str();
 
-    let pem = IdentityManager::new(env)?.export(name)?;
+    let pem = IdentityManager::new(env)?.export(env.get_logger(), name)?;
     print!("{}", pem);
 
     Ok(())

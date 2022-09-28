@@ -51,7 +51,7 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
         },
     };
 
-    IdentityManager::new(env)?.create_new_identity(name, creation_parameters, opts.force)?;
+    IdentityManager::new(env)?.create_new_identity(log, name, creation_parameters, opts.force)?;
 
     info!(log, r#"Created identity: "{}"."#, name);
     Ok(())

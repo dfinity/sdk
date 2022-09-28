@@ -49,7 +49,7 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
             skip_keyring: opts.skip_keyring,
         }
     };
-    IdentityManager::new(env)?.create_new_identity(name, params, opts.force)?;
+    IdentityManager::new(env)?.create_new_identity(log, name, params, opts.force)?;
     info!(log, r#"Imported identity: "{}"."#, name);
     Ok(())
 }
