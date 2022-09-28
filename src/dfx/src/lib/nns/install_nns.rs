@@ -6,6 +6,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
+use crate::config::cache::get_bin_cache;
 use crate::config::dfinity::ReplicaSubnetType;
 use crate::lib::environment::Environment;
 use crate::lib::identity::identity_utils::CallSender;
@@ -74,7 +75,7 @@ pub async fn install_nns(
     eprintln!("Installing the core backend wasm canisters...");
     download_nns_wasms(env).await?;
     let ic_nns_init_opts = IcNnsInitOpts {
-        wasm_dir: nns_wasm_dir(env),
+        wasm_dir: nns_wasm_dir(env)?,
         nns_url: nns_url.to_string(),
         test_accounts: vec![
             canisters::ED25519_TEST_ACCOUNT.to_string(),
@@ -95,7 +96,7 @@ pub async fn install_nns(
         canister_id,
     } in NNS_FRONTEND
     {
-        let local_wasm_path = nns_wasm_dir(env).join(wasm_name);
+        let local_wasm_path = nns_wasm_dir(env)?.join(wasm_name);
         let parsed_wasm_url = Url::parse(wasm_url)
             .with_context(|| format!("Could not parse url for {canister_name} wasm: {wasm_url}"))?;
         download(&parsed_wasm_url, &local_wasm_path).await?;
@@ -326,6 +327,15 @@ pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Res
 /// Downloads a file
 #[context("Failed to download '{:?}' to '{:?}'.", source, target)]
 pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
+    if target.exists() {
+        println!("Already downloaded: {}", target.to_string_lossy());
+        return Ok(());
+    }
+    println!(
+        "Downloading {}\n  from: {}",
+        target.to_string_lossy(),
+        source.as_str()
+    );
     let buffer = reqwest::get(source.clone())
         .await
         .with_context(|| "Failed to connect")?
@@ -358,6 +368,15 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
 /// Downloads and unzips a file
 #[context("Failed to download and unzip '{:?}' from '{:?}'.", target, source.as_str())]
 pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
+    if target.exists() {
+        println!("Already downloaded: {}", target.to_string_lossy());
+        return Ok(());
+    }
+    println!(
+        "Downloading {}\n  from .gz: {}",
+        target.to_string_lossy(),
+        source.as_str()
+    );
     let response = reqwest::get(source.clone())
         .await
         .with_context(|| "Failed to connect")?
@@ -403,19 +422,10 @@ pub async fn download_ic_repo_wasm(
     fs::create_dir_all(wasm_dir)
         .with_context(|| format!("Failed to create wasm directory: '{}'", wasm_dir.display()))?;
     let final_path = wasm_dir.join(&wasm_name);
-    if final_path.exists() {
-        return Ok(());
-    }
-
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
       .with_context(|| format!("Could not determine download URL. Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
-    println!(
-        "Downloading {}\n  from {}",
-        final_path.to_string_lossy(),
-        url_str
-    );
     download_gz(&url, &final_path).await
 }
 
@@ -423,7 +433,7 @@ pub async fn download_ic_repo_wasm(
 #[context("Failed to download NNS wasm files.")]
 pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
-    let wasm_dir = &nns_wasm_dir(env);
+    let wasm_dir = &nns_wasm_dir(env)?;
     for IcNnsInitCanister {
         wasm_name,
         test_wasm_name,
@@ -570,7 +580,7 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
     } in SNS_CANISTERS
     {
         let sns_cli = bundled_binary(env, "sns")?;
-        let wasm_path = nns_wasm_dir(env).join(wasm_name);
+        let wasm_path = nns_wasm_dir(env)?.join(wasm_name);
         let mut command = Command::new(sns_cli);
         command
             .arg("add-sns-wasm-for-tests")
@@ -656,8 +666,8 @@ pub async fn install_canister(
 }
 
 /// The local directory where NNS wasm files are cached.  The directory is typically created on demand.
-fn nns_wasm_dir(env: &dyn Environment) -> PathBuf {
-    Path::new(&format!(".dfx/wasms/nns/dfx-{}/", env.get_version())).to_path_buf()
+fn nns_wasm_dir(env: &dyn Environment) -> anyhow::Result<PathBuf> {
+    Ok(get_bin_cache(&env.get_version().to_string())?.join("wasms"))
 }
 
 /// Get the path to a bundled command line binary

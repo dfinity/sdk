@@ -7,6 +7,8 @@
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
 
+### feat: `dfx nns install` works offline if all assets have been cached.
+
 ### feat: Initialise the nns with an account controlled by a secp256k1 key
 
 This enables easy access to toy ICP using command line tools and this key:
