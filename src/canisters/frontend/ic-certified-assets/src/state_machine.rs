@@ -225,10 +225,34 @@ impl State {
     }
 
     pub fn retrieve(&self, key: &Key) -> Result<RcBytes, String> {
-        let asset = self
-            .assets
-            .get(key)
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset: &Asset;
+        let maybe_asset = self.assets.get(key);
+
+        if maybe_asset.is_some() {
+            asset = maybe_asset.unwrap();
+        } else {
+            // Remove trailing slash
+            fn remove_suffix<'a>(s: &'a str, p: &str) -> &'a str {
+                if s.ends_with(p) {
+                    &s[..s.len() - p.len()]
+                } else {
+                    s
+                }
+            }
+            let key = remove_suffix(key, "/");
+            // check for ommitted `.html` extension
+            let maybe_html = self.assets.get(&format!("{}.html", key));
+            if maybe_html.is_some() {
+                asset = maybe_html.unwrap();
+            } else {
+                // check for omitted /index.html
+                let maybe_directory = self
+                    .assets
+                    .get(&format!("{}/index.html", key))
+                    .ok_or_else(|| "asset not found".to_string())?;
+                asset = maybe_directory;
+            }
+        }
 
         let id_enc = asset
             .encodings
