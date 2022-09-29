@@ -21,7 +21,7 @@ use clap::Parser;
 /// - nns-dapp is a voting app and wallet. Source code is at <https://github.com/dfinity/nns-dapp>.
 ///   This frontend is typically served at: <http://qhbym-qaaaa-aaaaa-aaafq-cai.localhost:8080>.
 #[derive(Parser)]
-#[clap(about)]
+#[command(about)]
 pub struct InstallOpts {}
 
 /// Executes `dfx nns install`.

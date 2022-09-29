@@ -11,7 +11,7 @@ use clap::Parser;
 #[derive(Parser)]
 pub struct NotifyCreateOpts {
     /// BlockHeight at which the send transation was recorded.
-    #[clap(validator(e8s_validator))]
+    #[arg(value_parser = e8s_validator)]
     block_height: String,
 
     /// The controller of the created canister.
@@ -20,7 +20,7 @@ pub struct NotifyCreateOpts {
     /// Specify the optional subnet type to create the canister on. If no
     /// subnet type is provided, the canister will be created on a random
     /// default application subnet.
-    #[clap(long)]
+    #[arg(long)]
     subnet_type: Option<String>,
 }
 

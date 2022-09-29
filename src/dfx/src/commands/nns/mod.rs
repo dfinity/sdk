@@ -13,14 +13,14 @@ mod install;
 
 /// Options for `dfx nns` and its subcommands.
 #[derive(Parser)]
-#[clap(name("nns"))]
+#[command(name = "nns")]
 pub struct NnsOpts {
     /// `dfx nns` subcommand arguments.
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 
     /// An argument to choose the network from those specified in dfx.json.
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 }
 
@@ -28,10 +28,10 @@ pub struct NnsOpts {
 #[derive(Parser)]
 enum SubCommand {
     /// Options for importing NNS API definitions and canister IDs.
-    #[clap(hide(true))]
+    #[command(hide(true))]
     Import(import::ImportOpts),
     /// Options for installing an NNS.
-    #[clap(hide(true))]
+    #[command(hide(true))]
     Install(install::InstallOpts),
 }
 

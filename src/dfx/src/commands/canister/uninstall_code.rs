@@ -20,7 +20,7 @@ pub struct UninstallCodeOpts {
     canister: Option<String>,
 
     /// Uninstalls all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 

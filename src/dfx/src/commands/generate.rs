@@ -16,7 +16,7 @@ pub struct GenerateOpts {
     /// If you do not specify a canister names, generates types for all canisters.
     canister_name: Option<String>,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 }
 

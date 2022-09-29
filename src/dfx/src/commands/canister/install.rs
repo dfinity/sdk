@@ -23,33 +23,33 @@ pub struct CanisterInstallOpts {
     canister: Option<String>,
 
     /// Deploys all canisters configured in the project dfx.json files.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
-    #[clap(long)]
+    #[arg(long)]
     async_call: bool,
 
     /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
     /// If auto is selected, either install or upgrade will be used depending on if the canister has already been installed.
-    #[clap(long, short('m'), default_value("install"),
-        possible_values(&["install", "reinstall", "upgrade", "auto"]))]
+    #[arg(long, short('m'), default_value("install"),
+        value_parser = ["install", "reinstall", "upgrade", "auto"])]
     mode: String,
 
     /// Upgrade the canister even if the .wasm did not change.
-    #[clap(long)]
+    #[arg(long)]
     upgrade_unchanged: bool,
 
     /// Specifies the argument to pass to the method.
-    #[clap(long)]
+    #[arg(long)]
     argument: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     argument_type: Option<String>,
 
     /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
-    #[clap(long, conflicts_with("all"))]
+    #[arg(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 }
 

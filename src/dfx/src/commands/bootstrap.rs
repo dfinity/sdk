@@ -18,19 +18,19 @@ use std::net::{IpAddr, SocketAddr};
 #[derive(Parser, Clone)]
 pub struct BootstrapOpts {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
-    #[clap(long)]
+    #[arg(long)]
     ip: Option<String>,
 
     /// Specifies the port number that the bootstrap server listens on. Defaults to 8081.
-    #[clap(long)]
+    #[arg(long)]
     port: Option<String>,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
     /// Specifies the maximum number of seconds that the bootstrap server
     /// will wait for upstream requests to complete. Defaults to 30.
-    #[clap(long)]
+    #[arg(long)]
     timeout: Option<String>,
 }
 

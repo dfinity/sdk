@@ -5,24 +5,23 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use anyhow::Context;
-use clap::{arg_enum, Parser};
+use clap::{Parser, ValueEnum};
 use schemars::schema_for;
 
-arg_enum! {
-    enum ForFile {
-        Dfx,
-        Networks
-    }
+#[derive(ValueEnum, Clone, Debug)]
+enum ForFile {
+    Dfx,
+    Networks,
 }
 
 /// Prints the schema for dfx.json.
 #[derive(Parser)]
 pub struct SchemaOpts {
-    #[clap(long, case_insensitive(true))]
+    #[arg(long, ignore_case(true), value_enum)]
     r#for: Option<ForFile>,
 
     /// Outputs the schema to the specified file.
-    #[clap(long)]
+    #[arg(long)]
     outfile: Option<PathBuf>,
 }
 

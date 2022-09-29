@@ -18,16 +18,16 @@ pub struct ImportOpts {
     pem_file: Option<PathBuf>,
 
     /// The path to a file with your seed phrase.
-    #[clap(long, conflicts_with("pem-file"), required_unless_present("pem-file"))]
+    #[arg(long, conflicts_with("pem-file"), required_unless_present("pem-file"))]
     seed_file: Option<PathBuf>,
 
     /// DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk.
     /// If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
-    #[clap(long)]
+    #[arg(long)]
     disable_encryption: bool,
 
     /// If the identity already exists, remove and re-import it.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 

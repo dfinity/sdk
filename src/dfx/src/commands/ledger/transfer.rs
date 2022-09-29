@@ -19,32 +19,32 @@ pub struct TransferOpts {
     to: String,
 
     /// Subaccount to transfer from.
-    #[clap(long)]
+    #[arg(long)]
     from_subaccount: Option<Subaccount>,
 
     /// ICPs to transfer to the destination AccountIdentifier
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(long, validator(icpts_amount_validator))]
+    #[arg(long, value_parser = icpts_amount_validator)]
     amount: Option<String>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[clap(long, validator(e8s_validator), conflicts_with("amount"))]
+    #[arg(long, value_parser = e8s_validator, conflicts_with("amount"))]
     icp: Option<String>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[clap(long, validator(e8s_validator), conflicts_with("amount"))]
+    #[arg(long, value_parser = e8s_validator, conflicts_with("amount"))]
     e8s: Option<String>,
 
     /// Specify a numeric memo for this transaction.
-    #[clap(long, validator(memo_validator))]
+    #[arg(long, value_parser = memo_validator)]
     memo: String,
 
     /// Transaction fee, default is 10000 e8s.
-    #[clap(long, validator(icpts_amount_validator))]
+    #[arg(long, value_parser = icpts_amount_validator)]
     fee: Option<String>,
 
-    #[clap(long)]
+    #[arg(long)]
     /// Canister ID of the ledger canister.
     ledger_canister_id: Option<Principal>,
 }

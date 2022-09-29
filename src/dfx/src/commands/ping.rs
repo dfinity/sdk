@@ -16,6 +16,7 @@ use tokio::runtime::Runtime;
 /// Pings an Internet Computer network and returns its status.
 #[derive(Parser)]
 pub struct PingOpts {
+    /* Do not replace with NetworkOpt. This parameter is positional. */
     /// The provider to use.
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
     /// ephemeral network will be created specifically for this request. E.g.
@@ -23,7 +24,7 @@ pub struct PingOpts {
     network: Option<String>,
 
     /// Repeatedly ping until the replica is healthy
-    #[clap(long)]
+    #[arg(long)]
     wait_healthy: bool,
 }
 

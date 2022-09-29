@@ -18,7 +18,7 @@ use crate::util::get_reusable_socket_addr;
 
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
 use slog::{info, warn, Logger};
@@ -36,31 +36,31 @@ use tokio::runtime::Runtime;
 #[derive(Parser)]
 pub struct StartOpts {
     /// Specifies the host name and port number to bind the frontend to.
-    #[clap(long)]
+    #[arg(long)]
     host: Option<String>,
 
     /// Exits the dfx leaving the replica running. Will wait until the replica replies before exiting.
-    #[clap(long)]
+    #[arg(long)]
     background: bool,
 
     /// Cleans the state of the current project.
-    #[clap(long)]
+    #[arg(long)]
     clean: bool,
 
     /// Runs a dedicated emulator instead of the replica
-    #[clap(long)]
+    #[arg(long)]
     emulator: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
 }
 

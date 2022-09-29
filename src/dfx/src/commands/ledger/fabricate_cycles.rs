@@ -26,9 +26,9 @@ const DEFAULT_CYCLES_TO_FABRICATE: u128 = 10_000_000_000_000_u128;
 #[derive(Parser)]
 pub struct FabricateCyclesOpts {
     /// Specifies the amount of cycles to fabricate.
-    #[clap(
+    #[arg(
         long,
-        validator(cycle_amount_validator),
+        value_parser = cycle_amount_validator,
         conflicts_with("t"),
         conflicts_with("amount"),
         conflicts_with("icp"),
@@ -39,9 +39,9 @@ pub struct FabricateCyclesOpts {
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(
+    #[arg(
         long,
-        validator(icpts_amount_validator),
+        value_parser = icpts_amount_validator,
         conflicts_with("cycles"),
         conflicts_with("icp"),
         conflicts_with("e8s"),
@@ -50,9 +50,9 @@ pub struct FabricateCyclesOpts {
     amount: Option<String>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[clap(
+    #[arg(
         long,
-        validator(e8s_validator),
+        value_parser = e8s_validator,
         conflicts_with("amount"),
         conflicts_with("cycles"),
         conflicts_with("t")
@@ -60,9 +60,9 @@ pub struct FabricateCyclesOpts {
     icp: Option<String>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[clap(
+    #[arg(
         long,
-        validator(e8s_validator),
+        value_parser = e8s_validator,
         conflicts_with("amount"),
         conflicts_with("cycles"),
         conflicts_with("t")
@@ -70,20 +70,20 @@ pub struct FabricateCyclesOpts {
     e8s: Option<String>,
 
     /// Specifies the amount of trillion cycles to fabricate.
-    #[clap(
+    #[arg(
         long,
-        validator(trillion_cycle_amount_validator),
+        value_parser = trillion_cycle_amount_validator,
         conflicts_with("amount")
     )]
     t: Option<String>,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.
     /// You must specify either a canister name/id or the --all option.
-    #[clap(long, required_unless_present("all"))]
+    #[arg(long, required_unless_present("all"))]
     canister: Option<String>,
 
     /// Deposit cycles to all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 

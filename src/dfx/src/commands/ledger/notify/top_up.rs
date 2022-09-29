@@ -11,7 +11,7 @@ use clap::Parser;
 #[derive(Parser)]
 pub struct NotifyTopUpOpts {
     /// BlockHeight at which the send transation was recorded.
-    #[clap(validator(e8s_validator))]
+    #[arg(value_parser = e8s_validator)]
     block_height: String,
 
     /// The principal of the canister to top up.

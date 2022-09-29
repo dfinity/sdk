@@ -19,7 +19,7 @@ pub struct CanisterSendOpts {
     file_name: String,
 
     /// Send the signed request-status call in the message
-    #[clap(long)]
+    #[arg(long)]
     status: bool,
 }
 

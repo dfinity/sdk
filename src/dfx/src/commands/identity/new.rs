@@ -16,20 +16,20 @@ pub struct NewIdentityOpts {
     new_identity: String,
 
     /// The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"
-    #[clap(long, requires("hsm-key-id"))]
+    #[arg(long, requires("hsm-key-id"))]
     hsm_pkcs11_lib_path: Option<String>,
 
     /// A sequence of pairs of hex digits
-    #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_hsm_key_id))]
+    #[arg(long, requires("hsm-pkcs11-lib-path"), value_parser = is_hsm_key_id)]
     hsm_key_id: Option<String>,
 
     /// DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk.
     /// If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
-    #[clap(long)]
+    #[arg(long)]
     disable_encryption: bool,
 
     /// If the identity already exists, remove and re-create it.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 

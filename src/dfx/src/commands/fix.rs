@@ -13,7 +13,7 @@ use crate::{
 /// Makes no changes that would not have been suggested by `dfx diagnose`.
 #[derive(Parser)]
 pub struct FixOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 }
 

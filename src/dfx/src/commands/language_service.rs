@@ -19,14 +19,14 @@ const CANISTER_ARG: &str = "canister";
 /// Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the
 /// end-user.
 #[derive(Parser)]
-#[clap(hide(true))]
+#[command(hide(true))]
 pub struct LanguageServiceOpts {
     /// Specifies the canister name. If you don't specify this argument, all canisters are
     /// processed.
     canister: Option<String>,
 
     /// Forces the language server to start even when run from a terminal.
-    #[clap(long)]
+    #[arg(long)]
     force_tty: bool,
 }
 

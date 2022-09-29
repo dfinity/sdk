@@ -42,27 +42,27 @@ lazy_static! {
 #[derive(Parser)]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
-    #[clap(validator(project_name_validator))]
+    #[arg(value_parser = project_name_validator)]
     project_name: String,
 
     /// Choose the type of canister in the starter project. Default to be motoko.
-    #[clap(long, possible_values(&["motoko", "rust"]), default_value = "motoko")]
+    #[arg(long, value_parser = ["motoko", "rust"], default_value = "motoko")]
     r#type: String,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
-    #[clap(long)]
+    #[arg(long)]
     dry_run: bool,
 
     /// Installs the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.
-    #[clap(long)]
+    #[arg(long)]
     frontend: bool,
 
-    #[clap(long, conflicts_with = "frontend")]
+    #[arg(long, conflicts_with = "frontend")]
     no_frontend: bool,
 
     /// Overrides which version of the JavaScript Agent to install. By default, will contact
     /// NPM to decide.
-    #[clap(long, requires("frontend"))]
+    #[arg(long, requires("frontend"))]
     agent_version: Option<String>,
 }
 

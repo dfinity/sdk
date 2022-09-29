@@ -13,7 +13,7 @@ use crate::lib::project::import::{
 use crate::lib::project::network_mappings::get_network_mappings;
 use crate::Environment;
 
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use slog::{info, Logger};
 
 /// Imports the nns canisters
@@ -25,7 +25,7 @@ pub struct ImportOpts {
     /// Examples:
     ///   --network-mapping ic
     ///   --network-mapping ic=mainnet
-    #[clap(long, default_value = "ic=mainnet", multiple_occurrences(true))]
+    #[arg(long, default_value = "ic=mainnet", action = ArgAction::Append)]
     network_mapping: Vec<String>,
 }
 

@@ -6,9 +6,9 @@ use clap::Parser;
 
 /// Deletes a specific versioned cache of dfx.
 #[derive(Parser)]
-#[clap(name("delete"))]
+#[command(name = "delete")]
 pub struct CacheDeleteOpts {
-    #[clap(long)]
+    #[arg(long)]
     version: Option<String>,
 }
 

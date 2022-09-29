@@ -5,7 +5,7 @@ use clap::Parser;
 
 /// Forces unpacking the cache from this dfx version.
 #[derive(Parser)]
-#[clap(name("install"))]
+#[command(name = "install")]
 pub struct CacheInstall {}
 
 pub fn exec(env: &dyn Environment, _opts: CacheInstall) -> DfxResult {

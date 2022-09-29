@@ -15,7 +15,7 @@ use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 
 use anyhow::Context;
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use std::default::Default;
 use std::fs;
@@ -27,23 +27,23 @@ use std::path::{Path, PathBuf};
 #[derive(Parser)]
 pub struct ReplicaOpts {
     /// Specifies the port the local replica should listen to.
-    #[clap(long)]
+    #[arg(long)]
     port: Option<String>,
 
     /// Runs a dedicated emulator instead of the replica
-    #[clap(long)]
+    #[arg(long)]
     emulator: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
 }
 

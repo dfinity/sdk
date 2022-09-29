@@ -16,9 +16,9 @@ enum InfoType {
 }
 
 #[derive(Parser)]
-#[clap(name("info"))]
+#[command(name = "info")]
 pub struct InfoOpts {
-    #[clap(value_enum)]
+    #[arg(value_enum)]
     info_type: InfoType,
 }
 

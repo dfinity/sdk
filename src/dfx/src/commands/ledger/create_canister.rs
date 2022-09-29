@@ -22,35 +22,35 @@ pub struct CreateCanisterOpts {
     controller: String,
 
     /// Subaccount to withdraw from
-    #[clap(long)]
+    #[arg(long)]
     from_subaccount: Option<Subaccount>,
 
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(long, validator(icpts_amount_validator))]
+    #[arg(long, value_parser = icpts_amount_validator)]
     amount: Option<String>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[clap(long, validator(e8s_validator), conflicts_with("amount"))]
+    #[arg(long, value_parser = e8s_validator, conflicts_with("amount"))]
     icp: Option<String>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[clap(long, validator(e8s_validator), conflicts_with("amount"))]
+    #[arg(long, value_parser = e8s_validator, conflicts_with("amount"))]
     e8s: Option<String>,
 
     /// Transaction fee, default is 10000 e8s.
-    #[clap(long, validator(icpts_amount_validator))]
+    #[arg(long, value_parser = icpts_amount_validator)]
     fee: Option<String>,
 
     /// Max fee, default is 10000 e8s.
-    #[clap(long, validator(icpts_amount_validator))]
+    #[arg(long, value_parser = icpts_amount_validator)]
     max_fee: Option<String>,
 
     /// Specify the optional subnet type to create the canister on. If no
     /// subnet type is provided, the canister will be created on a random
     /// default application subnet.
-    #[clap(long)]
+    #[arg(long)]
     subnet_type: Option<String>,
 }
 

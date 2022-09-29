@@ -3,7 +3,7 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
-use clap::{Args, Parser};
+use clap::{ArgAction, Args, Parser};
 use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use semver::Version;
 use std::path::PathBuf;
@@ -16,29 +16,29 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Parser)]
-#[clap(name("dfx"), version = dfx_version_str())]
+#[command(name("dfx"), version = dfx_version_str())]
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
-    #[clap(long, short('v'), parse(from_occurrences), global(true))]
+    #[arg(long, short('v'), action = ArgAction::Count, global(true))]
     verbose: u64,
 
     /// Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.
-    #[clap(long, short('q'), parse(from_occurrences), global(true))]
+    #[arg(long, short('q'), action = ArgAction::Count, global(true))]
     quiet: u64,
 
     /// The logging mode to use. You can log to stderr, a file, or both.
-    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]), global(true))]
+    #[arg(long("log"), default_value("stderr"), value_parser = ["stderr", "tee", "file"], global(true))]
     logmode: String,
 
     /// The file to log to, if logging to a file (see --logmode).
-    #[clap(long, global(true))]
+    #[arg(long, global(true))]
     logfile: Option<String>,
 
     /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
-    #[clap(long, global(true))]
+    #[arg(long, global(true))]
     identity: Option<String>,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     command: commands::Command,
 }
 
@@ -48,7 +48,7 @@ struct NetworkOpt {
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
     /// ephemeral network will be created specifically for this request. E.g.
     /// "http://localhost:12345/" is a valid network name.
-    #[clap(long, global(true))]
+    #[arg(long, global(true))]
     network: Option<String>,
 }
 
