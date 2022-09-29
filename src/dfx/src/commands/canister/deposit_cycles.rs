@@ -4,7 +4,6 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, identity::Identity};
-use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 
 use anyhow::Context;
@@ -18,8 +17,7 @@ use std::time::Duration;
 pub struct DepositCyclesOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
-    #[arg(value_parser = cycle_amount_validator)]
-    cycles: String,
+    cycles: u128,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.
     /// You must specify either a canister name/id or the --all option.
@@ -78,20 +76,17 @@ pub async fn exec(
         call_sender = &proxy_sender;
     }
 
-    // amount has been validated by cycle_amount_validator
-    let cycles = opts.cycles.parse::<u128>().unwrap();
-
     let config = env.get_config_or_anyhow()?;
 
     fetch_root_key_if_needed(env).await?;
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
-        deposit_cycles(env, canister, timeout, call_sender, cycles).await
+        deposit_cycles(env, canister, timeout, call_sender, opts.cycles).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                deposit_cycles(env, canister, timeout, call_sender, cycles)
+                deposit_cycles(env, canister, timeout, call_sender, opts.cycles)
                     .await
                     .with_context(|| format!("Failed to deposit cycles into {}.", canister))?;
             }

@@ -4,7 +4,6 @@ use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, identity::Identity, named_canister};
-use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
 use crate::NetworkOpt;
 use std::collections::BTreeMap;
@@ -59,8 +58,8 @@ pub struct DeployOpts {
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[arg(long, value_parser = cycle_amount_validator)]
-    with_cycles: Option<String>,
+    #[arg(long)]
+    with_cycles: Option<u128>,
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
@@ -87,8 +86,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .transpose()
         .map_err(|err| anyhow!(err))
         .context("Failed to parse InstallMode.")?;
-
-    let with_cycles = opts.with_cycles.as_deref();
 
     let force_reinstall = match (mode, canister_name) {
         (None, _) => false,
@@ -126,7 +123,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         force_reinstall,
         opts.upgrade_unchanged,
         timeout,
-        with_cycles,
+        opts.with_cycles,
         &call_sender,
         create_call_sender,
     ))?;

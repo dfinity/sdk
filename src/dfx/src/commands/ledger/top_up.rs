@@ -6,12 +6,10 @@ use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
-use std::str::FromStr;
 
 const MEMO_TOP_UP_CANISTER: u64 = 1347768404_u64;
 
@@ -22,42 +20,36 @@ pub struct TopUpOpts {
     canister: String,
 
     /// Subaccount to withdraw from
-    #[arg(long)]
+    #[arg(long, value_parser)]
     from_subaccount: Option<Subaccount>,
 
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[arg(long, value_parser = icpts_amount_validator)]
-    amount: Option<String>,
+    #[arg(long, value_parser)]
+    amount: Option<ICPTs>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[arg(long, value_parser = e8s_validator, conflicts_with("amount"))]
-    icp: Option<String>,
+    #[arg(long)]
+    icp: Option<u64>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[arg(long, value_parser = e8s_validator, conflicts_with("amount"))]
-    e8s: Option<String>,
+    #[arg(long)]
+    e8s: Option<u64>,
 
     /// Transaction fee, default is 10000 e8s.
-    #[arg(long, value_parser = icpts_amount_validator)]
-    fee: Option<String>,
+    #[arg(long, value_parser)]
+    fee: Option<ICPTs>,
 
     /// Max fee, default is 10000 e8s.
-    #[arg(long, value_parser = icpts_amount_validator)]
-    max_fee: Option<String>,
+    #[arg(long, value_parser)]
+    max_fee: Option<ICPTs>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
-    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
+    let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
 
-    let fee = opts
-        .fee
-        .as_ref()
-        .map_or(Ok(TRANSACTION_FEE), |v| {
-            ICPTs::from_str(v).map_err(|err| anyhow!(err))
-        })
-        .context("Failed to determine fee.")?;
+    let fee = opts.fee.unwrap_or(TRANSACTION_FEE);
 
     let memo = Memo(MEMO_TOP_UP_CANISTER);
 

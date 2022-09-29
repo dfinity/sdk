@@ -9,9 +9,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::{
-    compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
-};
+use crate::util::clap::validators::{compute_allocation_parser, memory_allocation_parser};
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail, Context};
@@ -19,6 +17,7 @@ use candid::Principal as CanisterId;
 use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use ic_agent::identity::Identity;
+use ic_utils::interfaces::management_canister::builders::{ComputeAllocation, MemoryAllocation};
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Parser)]
@@ -43,23 +42,23 @@ pub struct UpdateSettingsOpts {
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
-    #[arg(long, short('c'), value_parser = compute_allocation_validator)]
-    compute_allocation: Option<String>,
+    #[arg(long, short('c'), value_parser = compute_allocation_parser)]
+    compute_allocation: Option<ComputeAllocation>,
 
     /// Specifies how much memory the canister is allowed to use in total.
     /// This should be a value in the range [0..12 GiB].
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
-    #[arg(long, value_parser = memory_allocation_validator)]
-    memory_allocation: Option<String>,
+    #[arg(long, value_parser = memory_allocation_parser)]
+    memory_allocation: Option<MemoryAllocation>,
 
     /// Sets the freezing_threshold in SECONDS.
     /// A canister is considered frozen whenever the IC estimates that the canister would be depleted of cycles
     /// before freezing_threshold seconds pass, given the canister's current size and the IC's current cost for storage.
     /// A frozen canister rejects any calls made to it.
-    #[arg(long, value_parser = freezing_threshold_validator)]
-    freezing_threshold: Option<String>,
+    #[arg(long)]
+    freezing_threshold: Option<u64>,
 
     /// Freezing thresholds above ~1.5 years require this flag as confirmation.
     #[arg(long)]
@@ -72,10 +71,7 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     // sanity checks
-    if let Some(ref threshold_string) = opts.freezing_threshold {
-        let threshold_in_seconds = threshold_string
-            .parse::<u128>()
-            .expect("freezing_threshold_validator did not properly validate.");
+    if let Some(threshold_in_seconds) = opts.freezing_threshold {
         if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
         {
             return Err(DiagnosedError::new(

@@ -27,7 +27,7 @@ pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
     timeout: Duration,
-    with_cycles: Option<&str>,
+    cycles: Option<u128>,
     call_sender: &CallSender,
     settings: CanisterSettings,
 ) -> DfxResult {
@@ -77,8 +77,6 @@ pub async fn create_canister(
             let mgr = ManagementCanister::create(agent);
             let cid = match call_sender {
                 CallSender::SelectedId => {
-                    // amount has been validated by cycle_amount_validator, which is u128
-                    let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
                     let mut builder = mgr
                         .create_canister()
                         .as_provisional_create_with_amount(cycles);
@@ -103,10 +101,8 @@ pub async fn create_canister(
                 CallSender::Wallet(wallet_id) => {
                     let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
                     // amount has been validated by cycle_amount_validator
-                    let cycles = with_cycles.map_or(
-                        CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
-                        |amount| amount.parse::<u128>().unwrap(),
-                    );
+                    let cycles =
+                        cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
                     match wallet
                         .wallet_create_canister(
                             cycles,

@@ -29,7 +29,7 @@ pub async fn deploy_canisters(
     force_reinstall: bool,
     upgrade_unchanged: bool,
     timeout: Duration,
-    with_cycles: Option<&str>,
+    with_cycles: Option<u128>,
     call_sender: &CallSender,
     create_call_sender: &CallSender,
 ) -> DfxResult {
@@ -128,7 +128,7 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     timeout: Duration,
-    with_cycles: Option<&str>,
+    with_cycles: Option<u128>,
     call_sender: &CallSender,
     config: &Config,
 ) -> DfxResult {

@@ -18,7 +18,7 @@ pub struct AccountIdOpts {
     /// Alias or principal of the canister controlling the account.
     pub of_canister: Option<String>,
 
-    #[arg(long, value_name = "SUBACCOUNT")]
+    #[arg(long, value_name = "SUBACCOUNT", value_parser)]
     /// Subaccount identifier (64 character long hex string).
     pub subaccount: Option<Subaccount>,
 }

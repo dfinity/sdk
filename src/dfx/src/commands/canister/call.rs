@@ -7,7 +7,6 @@ use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
-use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
 use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, Context};
@@ -23,7 +22,7 @@ use ic_utils::interfaces::WalletCanister;
 use std::fs;
 use std::io::{stdin, Read};
 use std::option::Option;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 /// Calls a method on a deployed canister.
@@ -54,13 +53,8 @@ pub struct CanisterCallOpts {
     argument: Option<String>,
 
     /// Specifies the file from which to read the argument to pass to the method.
-    #[arg(
-        long,
-        value_parser = file_or_stdin_validator,
-        conflicts_with("random"),
-        conflicts_with("argument")
-    )]
-    argument_file: Option<String>,
+    #[arg(long, conflicts_with("random"), conflicts_with("argument"))]
+    argument_file: Option<PathBuf>,
 
     /// Specifies the config for generating random argument.
     #[arg(long, conflicts_with("argument"), conflicts_with("argument-file"))]
@@ -78,8 +72,8 @@ pub struct CanisterCallOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
     /// Requires --wallet as a flag to `dfx canister`.
-    #[arg(long, value_parser = cycle_amount_validator)]
-    with_cycles: Option<String>,
+    #[arg(long)]
+    with_cycles: Option<u128>,
 
     /// Provide the .did file with which to decode the response.  Overrides value from dfx.json
     /// for project canisters.
@@ -238,7 +232,7 @@ pub async fn exec(
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file: Option<String> = opts.argument_file.map(|filename| {
-        if filename == "-" {
+        if filename == Path::new("-") {
             let mut content = String::new();
             stdin()
                 .read_to_string(&mut content)
@@ -285,10 +279,7 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     // amount has been validated by cycle_amount_validator
-    let cycles = opts
-        .with_cycles
-        .as_deref()
-        .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
+    let cycles = opts.with_cycles.unwrap_or(0);
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
         return Err(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\

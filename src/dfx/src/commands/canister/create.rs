@@ -8,16 +8,14 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::cycle_amount_validator;
-use crate::util::clap::validators::{
-    compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
-};
+use crate::util::clap::validators::{compute_allocation_parser, memory_allocation_parser};
 use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use clap::{ArgAction, Parser};
 use ic_agent::Identity as _;
+use ic_utils::interfaces::management_canister::builders::{ComputeAllocation, MemoryAllocation};
 use slog::info;
 
 /// Creates an empty canister and associates the assigned Canister ID to the canister name.
@@ -33,27 +31,27 @@ pub struct CanisterCreateOpts {
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[arg(long, value_parser = cycle_amount_validator)]
-    with_cycles: Option<String>,
+    #[arg(long)]
+    with_cycles: Option<u128>,
 
     /// Specifies the identity name or the principal of the new controller.
     #[arg(long, action = ArgAction::Append)]
     controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
-    #[arg(long, short('c'), value_parser = compute_allocation_validator)]
-    compute_allocation: Option<String>,
+    #[arg(long, short('c'), value_parser = compute_allocation_parser)]
+    compute_allocation: Option<ComputeAllocation>,
 
     /// Specifies how much memory the canister is allowed to use in total.
     /// This should be a value in the range [0..12 GiB].
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
-    #[arg(long, value_parser = memory_allocation_validator)]
-    memory_allocation: Option<String>,
+    #[arg(long, value_parser = memory_allocation_parser)]
+    memory_allocation: Option<MemoryAllocation>,
 
-    #[arg(long, value_parser = freezing_threshold_validator, hide(true))]
-    freezing_threshold: Option<String>,
+    #[arg(long, hide(true))]
+    freezing_threshold: Option<u64>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
@@ -70,8 +68,6 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     fetch_root_key_if_needed(env).await?;
-
-    let with_cycles = opts.with_cycles.as_deref();
 
     let config_interface = config.get_config();
     let network = env.get_network_descriptor();
@@ -125,19 +121,19 @@ pub async fn exec(
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
         }
         let compute_allocation = get_compute_allocation(
-            opts.compute_allocation.clone(),
+            opts.compute_allocation,
             Some(config_interface),
             Some(canister_name),
         )
         .with_context(|| format!("Failed to read compute allocation of {}.", canister_name))?;
         let memory_allocation = get_memory_allocation(
-            opts.memory_allocation.clone(),
+            opts.memory_allocation,
             Some(config_interface),
             Some(canister_name),
         )
         .with_context(|| format!("Failed to read memory allocation of {}.", canister_name))?;
         let freezing_threshold = get_freezing_threshold(
-            opts.freezing_threshold.clone(),
+            opts.freezing_threshold,
             Some(config_interface),
             Some(canister_name),
         )
@@ -146,7 +142,7 @@ pub async fn exec(
             env,
             canister_name,
             timeout,
-            with_cycles,
+            opts.with_cycles,
             call_sender,
             CanisterSettings {
                 controllers,
@@ -202,7 +198,7 @@ pub async fn exec(
                     env,
                     canister_name,
                     timeout,
-                    with_cycles,
+                    opts.with_cycles,
                     call_sender,
                     CanisterSettings {
                         controllers: controllers.clone(),
