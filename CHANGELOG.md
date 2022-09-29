@@ -4,6 +4,10 @@
 
 ## DFX
 
+### refactor: Factor out code for calling arbitrary bundled binaries
+
+The function for calling sns can now call any bundled binary.
+
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
 
