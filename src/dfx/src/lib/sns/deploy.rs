@@ -11,10 +11,17 @@ use crate::Environment;
 /// Creates an SNS.  This requires funds but no proposal.
 #[context("Failed to deploy SNS with config: {}", path.display())]
 pub fn deploy_sns(env: &dyn Environment, path: &Path) -> DfxResult<String> {
+    // Note: It MAY be possible to get the did file location using existing sdk methods.
     let did_file = "candid/nns-sns-wasm.did";
     if !Path::new(did_file).exists() {
         bail!("Missing did file at '{did_file}'.  Please run 'dfx nns import' to get the file.");
     }
+
+    // Note: The --network flag is not available at the moment,
+    //       so this always applies to local canister IDs.
+    //       This will have to be expanded to cover deployments to
+    //       mainnet quite soon.
+    let canister_ids_file = ".dfx/local/canister_ids.json";
 
     let args = vec![
         OsString::from("deploy"),
@@ -22,6 +29,15 @@ pub fn deploy_sns(env: &dyn Environment, path: &Path) -> DfxResult<String> {
         OsString::from(path),
         OsString::from("--candid"),
         OsString::from(did_file),
+        OsString::from("--save-to"),
+        OsString::from(canister_ids_file),
     ];
-    call_sns_cli(env, &args).map(|stdout| format!("Deployed SNS: {}\n{}", path.display(), stdout))
+    call_sns_cli(env, &args).map(|stdout| {
+        format!(
+            "Deployed SNS:\nSNS config: {}\nCanister ID file: {}\n\n{}",
+            path.display(),
+            canister_ids_file,
+            stdout
+        )
+    })
 }
