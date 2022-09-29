@@ -4,6 +4,8 @@
 
 ## DFX
 
+### chore: update Candid UI canister with commit 79d55e7f568aec00e16dd0329926cc7ea8e3a28b
+
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
 
