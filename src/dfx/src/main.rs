@@ -20,11 +20,11 @@ mod util;
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
     #[arg(long, short('v'), action = ArgAction::Count, global(true))]
-    verbose: u64,
+    verbose: u8,
 
     /// Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.
     #[arg(long, short('q'), action = ArgAction::Count, global(true))]
-    quiet: u64,
+    quiet: u8,
 
     /// The logging mode to use. You can log to stderr, a file, or both.
     #[arg(long("log"), default_value("stderr"), value_parser = ["stderr", "tee", "file"], global(true))]
