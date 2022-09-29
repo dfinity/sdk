@@ -16,6 +16,12 @@ pub struct NotifyCreateOpts {
 
     /// The controller of the created canister.
     controller: String,
+
+    /// Specify the optional subnet type to create the canister on. If no
+    /// subnet type is provided, the canister will be created on a random
+    /// default application subnet.
+    #[clap(long)]
+    subnet_type: Option<String>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
@@ -34,7 +40,7 @@ pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
-    let result = notify_create(agent, controller, block_height).await?;
+    let result = notify_create(agent, controller, block_height, opts.subnet_type).await?;
 
     match result {
         Ok(principal) => {
