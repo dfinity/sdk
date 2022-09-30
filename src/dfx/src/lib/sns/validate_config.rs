@@ -3,8 +3,8 @@ use fn_error_context::context;
 use std::ffi::OsString;
 use std::path::Path;
 
+use crate::lib::call_bundled::call_bundled;
 use crate::lib::error::DfxResult;
-use crate::lib::sns::sns_cli::call_sns_cli;
 use crate::Environment;
 
 /// Checks whether an SNS configuration file is valid.
@@ -16,5 +16,5 @@ pub fn validate_config(env: &dyn Environment, path: &Path) -> DfxResult<String> 
         OsString::from(path),
         OsString::from("validate"),
     ];
-    call_sns_cli(env, &args).map(|_| format!("SNS config file is valid: {}", path.display()))
+    call_bundled(env, "sns", &args).map(|_| format!("SNS config file is valid: {}", path.display()))
 }

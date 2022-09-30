@@ -1,4 +1,4 @@
-//! Library for calling the `sns` command line tool.
+//! Library for calling bundled command line tools.
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use std::ffi::OsStr;
@@ -8,23 +8,27 @@ use std::process::{self, Command};
 use crate::lib::error::DfxResult;
 use crate::Environment;
 
-/// Calls the sns command line tool from the SNS codebase in the ic repo.
+/// Calls a bundled command line tool.
+///
+/// # Returns
+/// - On success, returns stdout as a string.
+/// - On error, returns an error message including stdout and stderr.
 #[context("Failed to call sns CLI.")]
-pub fn call_sns_cli<S, I>(env: &dyn Environment, args: I) -> DfxResult<String>
+pub fn call_bundled<S, I>(env: &dyn Environment, command: &str, args: I) -> DfxResult<String>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {
-    let cli_name = "sns";
-    let sns_cli = env
+    let binary = env
         .get_cache()
-        .get_binary_command_path(cli_name)
-        .with_context(|| format!("Could not find bundled binary '{cli_name}'."))?;
-    let mut command = Command::new(&sns_cli);
+        .get_binary_command_path(command)
+        .with_context(|| format!("Could not find bundled binary '{command}'."))?;
+    let mut command = Command::new(&binary);
     command.args(args);
     // The sns command line tool itself calls dfx; it should call this dfx.
     // The sns command line tool should not rely on commands not packaged with dfx.
-    command.env("PATH", sns_cli.parent().unwrap_or_else(|| Path::new(".")));
+    // The same applies to other bundled binaries.
+    command.env("PATH", binary.parent().unwrap_or_else(|| Path::new(".")));
     command
         .stdin(process::Stdio::null())
         .output()
@@ -39,7 +43,7 @@ where
                     .map(OsStr::to_string_lossy)
                     .collect();
                 Err(anyhow!(
-                    "SNS cli call failed:\n{:?} {}\nStdout:\n{}\n\nStderr:\n{}",
+                    "Call failed:\n{:?} {}\nStdout:\n{}\n\nStderr:\n{}",
                     command.get_program(),
                     args.join(" "),
                     String::from_utf8_lossy(&output.stdout),
