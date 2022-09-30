@@ -1,22 +1,20 @@
 use crate::lib::error::DfxResult;
-use anyhow::Context;
+use anyhow::{bail, Context};
 use byte_unit::{Byte, ByteUnit};
+use ic_agent::RequestId;
 use ic_utils::interfaces::management_canister::builders::{ComputeAllocation, MemoryAllocation};
 
-pub fn is_request_id(v: &str) -> Result<(), String> {
+pub fn request_id_parser(v: &str) -> DfxResult<RequestId> {
     // A valid Request Id starts with `0x` and is a series of 64 hexadecimals.
     if !v.starts_with("0x") {
-        Err(String::from("A Request ID needs to start with 0x."))
+        bail!("A Request ID needs to start with 0x.")
     } else if v.len() != 66 {
-        Err(String::from(
-            "A Request ID is 64 hexadecimal prefixed with 0x.",
-        ))
+        bail!("A Request ID is 64 hexadecimal prefixed with 0x.",)
     } else if v[2..].contains(|c: char| !c.is_ascii_hexdigit()) {
-        Err(String::from(
-            "A Request ID is 64 hexadecimal prefixed with 0x. An invalid character was found.",
-        ))
+        bail!("A Request ID is 64 hexadecimal prefixed with 0x. An invalid character was found.")
     } else {
-        Ok(())
+        let bytes = hex::decode(&v[2..])?;
+        Ok(RequestId::new(bytes[..].try_into()?))
     }
 }
 
@@ -47,7 +45,7 @@ pub fn memory_allocation_parser(memory_allocation: &str) -> Result<MemoryAllocat
 /// Validate a String can be a valid project name.
 /// A project name is valid if it starts with a letter, and is alphanumeric (with hyphens).
 /// It cannot end with a dash.
-pub fn project_name_validator(name: &str) -> Result<(), String> {
+pub fn project_name_validator(name: &str) -> Result<String, String> {
     let mut chars = name.chars();
     // Check first character first. If there's no first character it's empty.
     if let Some(first) = chars.next() {
@@ -60,7 +58,7 @@ pub fn project_name_validator(name: &str) -> Result<(), String> {
                 .collect();
 
             if m.is_empty() {
-                Ok(())
+                Ok(name.to_owned())
             } else {
                 Err(format!(
                     r#"Invalid character(s): "{}""#,
@@ -75,12 +73,12 @@ pub fn project_name_validator(name: &str) -> Result<(), String> {
     }
 }
 
-pub fn is_hsm_key_id(key_id: &str) -> Result<(), String> {
+pub fn hsm_key_id_parser(key_id: &str) -> Result<String, String> {
     if key_id.len() % 2 != 0 {
         Err("Key id must consist of an even number of hex digits".to_string())
     } else if key_id.contains(|c: char| !c.is_ascii_hexdigit()) {
         Err("Key id must contain only hex digits".to_string())
     } else {
-        Ok(())
+        Ok(key_id.to_owned())
     }
 }

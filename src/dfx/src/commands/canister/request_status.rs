@@ -12,15 +12,14 @@ use clap::Parser;
 use garcon::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
-use std::str::FromStr;
 
 /// Requests the status of a call from a canister.
 #[derive(Parser)]
 pub struct RequestStatusOpts {
     /// Specifies the request identifier.
     /// The request identifier is an hexadecimal string starting with 0x.
-    #[arg(value_parser = validators::is_request_id)]
-    request_id: String,
+    #[arg(value_parser = validators::request_id_parser)]
+    request_id: RequestId,
 
     /// Specifies the name or id of the canister onto which the request was made.
     /// If the request was made to the Management canister, specify the id of the
@@ -37,8 +36,6 @@ pub struct RequestStatusOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
-    let request_id =
-        RequestId::from_str(&opts.request_id[2..]).context("Invalid argument: request_id")?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -57,7 +54,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         let mut request_accepted = false;
         loop {
             match agent
-                .request_status_raw(&request_id, canister_id, false)
+                .request_status_raw(&opts.request_id, canister_id, false)
                 .await
                 .context("Failed to fetch request status.")?
             {
@@ -87,7 +84,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                 }
                 RequestStatusResponse::Done => {
                     return Err(DfxError::new(AgentError::RequestStatusDoneNoReply(
-                        String::from(request_id),
+                        String::from(opts.request_id),
                     )))
                 }
             };

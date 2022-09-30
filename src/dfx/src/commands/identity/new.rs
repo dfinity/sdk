@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityManager,
 };
-use crate::util::clap::validators::is_hsm_key_id;
+use crate::util::clap::validators::hsm_key_id_parser;
 
 use clap::Parser;
 use slog::info;
@@ -20,7 +20,7 @@ pub struct NewIdentityOpts {
     hsm_pkcs11_lib_path: Option<String>,
 
     /// A sequence of pairs of hex digits
-    #[arg(long, requires("hsm-pkcs11-lib-path"), value_parser = is_hsm_key_id)]
+    #[arg(long, requires("hsm-pkcs11-lib-path"), value_parser = hsm_key_id_parser)]
     hsm_key_id: Option<String>,
 
     /// DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk.
