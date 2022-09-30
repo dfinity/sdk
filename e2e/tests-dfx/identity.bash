@@ -160,3 +160,7 @@ teardown() {
     assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
     assert_eq '(blob "hello")'
 }
+
+@test "test legacy plaintext" {
+    # TODO
+}

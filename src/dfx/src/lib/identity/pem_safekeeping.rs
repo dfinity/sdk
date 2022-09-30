@@ -12,7 +12,7 @@ use anyhow::{anyhow, bail, Context};
 use argon2::{password_hash::PasswordHasher, Argon2};
 use fn_error_context::context;
 use keyring;
-use slog::{debug, warn, Logger};
+use slog::{debug, trace, warn, Logger};
 
 pub const KEYRING_SERVICE_NAME: &str = "internet_computer_identities";
 pub const KEYRING_IDENTITY_PREFIX: &str = "internet_computer_identity_";
@@ -62,7 +62,7 @@ pub fn load_pem(
             // Guess 1: It's a legacy plaintext identity.
             debug!(log, "Found legacy plaintext PEM file.");
             let pem_content = load_pem_from_file(&plaintext_pem_path, Some(identity_config))?;
-            if keyring_available() {
+            if keyring_available(log) {
                 warn!(log, "Found legacy plaintext PEM file and your system has an available keyring. Will try to migrate your PEM file to keyring.");
                 let ideal_identity_config = IdentityConfiguration {
                     keyring_identity_suffix: Some(identity_name.to_string()),
@@ -92,19 +92,24 @@ pub fn load_pem(
     }
 }
 
-#[context("Failed to save PEM file for identity '{identity_name}'.")]
+#[context("Failed to save PEM file for identity '{name}'.")]
 pub fn save_pem(
     log: &Logger,
     manager: &IdentityManager,
-    identity_name: &str,
+    name: &str,
     identity_config: &IdentityConfiguration,
     pem_content: &[u8],
 ) -> DfxResult<()> {
+    trace!(
+        log,
+        "Saving pem with input identity name '{name}' and identity config {:?}",
+        identity_config
+    );
     if identity_config.hsm.is_some() {
         bail!("Cannot save PEM content for an HSM.")
     } else if identity_config.encryption.is_some() {
         debug!(log, "Saving encrypted identity.");
-        let path = manager.get_identity_pem_path(identity_name);
+        let path = manager.get_identity_pem_path(name);
         write_pem_to_file(&path, Some(identity_config), pem_content)
     } else if let Some(keyring_identity) = &identity_config.keyring_identity_suffix {
         debug!(log, "Saving keyring identity.");
@@ -138,16 +143,10 @@ fn write_pem_to_keyring(identity_name_suffix: &str, pem_content: &[u8]) -> DfxRe
     Ok(())
 }
 
-/// Determines if the keyring contains data for the specified identity.
-pub fn keyring_contains(identity_name_suffix: &str) -> bool {
-    let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name_suffix);
-    let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
-    entry.get_password().is_ok()
-}
-
 /// Determines if keyring is available by trying to write a dummy entry.
-pub fn keyring_available() -> bool {
+pub fn keyring_available(log: &Logger) -> bool {
     // by using the temp identity prefix this will not clash with real identities
+    trace!(log, "Checking for keyring availability.");
     let dummy_entry_name = format!(
         "{}{}{}",
         KEYRING_IDENTITY_PREFIX, TEMP_IDENTITY_PREFIX, "dummy"
@@ -159,7 +158,9 @@ pub fn keyring_available() -> bool {
 pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> DfxResult {
     let keyring_identity_name = format!("{}{}", KEYRING_IDENTITY_PREFIX, identity_name_suffix);
     let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
-    entry.delete_password()?;
+    if entry.get_password().is_ok() {
+        entry.delete_password()?;
+    }
     Ok(())
 }
 

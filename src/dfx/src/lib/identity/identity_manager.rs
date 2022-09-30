@@ -15,7 +15,7 @@ use k256::pkcs8::LineEnding;
 use k256::SecretKey;
 use ring::{rand, rand::SecureRandom};
 use serde::{Deserialize, Serialize};
-use slog::{debug, Logger};
+use slog::{debug, trace, Logger};
 use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -141,7 +141,7 @@ impl IdentityManager {
         };
 
         if let Some(identity) = identity_override {
-            mgr.require_identity_exists(identity)?;
+            mgr.require_identity_exists(env.get_logger(), identity)?;
         }
 
         Ok(mgr)
@@ -168,7 +168,7 @@ impl IdentityManager {
         let identity = match identity_name {
             ANONYMOUS_IDENTITY_NAME => Box::new(DfxIdentity::anonymous()),
             identity_name => {
-                self.require_identity_exists(identity_name)?;
+                self.require_identity_exists(log, identity_name)?;
                 Box::new(DfxIdentity::load(self, identity_name, log)?)
             }
         };
@@ -198,7 +198,7 @@ impl IdentityManager {
 
     /// Return a sorted list of all available identity names
     #[context("Failed to list available identities.")]
-    pub fn get_identity_names(&self) -> DfxResult<Vec<String>> {
+    pub fn get_identity_names(&self, log: &Logger) -> DfxResult<Vec<String>> {
         let mut names = self
             .identity_root_path
             .read_dir()
@@ -221,7 +221,7 @@ impl IdentityManager {
             .filter(|identity_name| {
                 identity_name.is_ok()
                     && self
-                        .require_identity_exists(identity_name.as_ref().unwrap())
+                        .require_identity_exists(log, identity_name.as_ref().unwrap())
                         .is_ok()
             })
             .collect::<Result<Vec<_>, std::io::Error>>()
@@ -241,7 +241,7 @@ impl IdentityManager {
     /// Returns the pem file content of the selected identity
     #[context("Failed to export identity '{}'.", name)]
     pub fn export(&self, log: &Logger, name: &str) -> DfxResult<String> {
-        self.require_identity_exists(name)?;
+        self.require_identity_exists(log, name)?;
         let config = self.get_identity_config_or_default(name)?;
         let (_, pem_content) = pem_safekeeping::load_pem(log, self, name, &config)?;
 
@@ -257,11 +257,12 @@ impl IdentityManager {
     #[context("Failed to remove identity '{}'.", name)]
     pub fn remove(
         &self,
+        log: &Logger,
         name: &str,
         drop_wallets: bool,
         display_linked_wallets_to: Option<&Logger>,
     ) -> DfxResult {
-        self.require_identity_exists(name)?;
+        self.require_identity_exists(log, name)?;
 
         if self.configuration.default == name {
             return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
@@ -285,8 +286,11 @@ impl IdentityManager {
         pem_safekeeping::delete_pem_from_keyring(name)?;
 
         let dir = self.get_identity_dir_path(name);
-        std::fs::remove_dir(&dir)
-            .with_context(|| format!("Cannot remove identity directory at '{}'.", dir.display()))?;
+        if dir.exists() {
+            std::fs::remove_dir(&dir).with_context(|| {
+                format!("Cannot remove identity directory at '{}'.", dir.display())
+            })?;
+        }
 
         Ok(())
     }
@@ -305,7 +309,7 @@ impl IdentityManager {
         if to == ANONYMOUS_IDENTITY_NAME {
             return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
         }
-        self.require_identity_exists(from)?;
+        self.require_identity_exists(log, from)?;
 
         let identity_config = self.get_identity_config_or_default(from)?;
         let from_dir = self.get_identity_dir_path(from);
@@ -332,7 +336,7 @@ impl IdentityManager {
             };
             pem_safekeeping::save_pem(log, self, to, &new_config, pem.as_ref())?;
             let config_path = self.get_identity_json_path(to);
-            write_identity_configuration(&config_path, &new_config)?;
+            write_identity_configuration(log, &config_path, &new_config)?;
             pem_safekeeping::delete_pem_from_keyring(keyring_identity_suffix)?;
         }
 
@@ -347,8 +351,8 @@ impl IdentityManager {
 
     /// Select an identity by name to use by default
     #[context("Failed to switch default identity to '{}'.", name)]
-    pub fn use_identity_named(&mut self, name: &str) -> DfxResult {
-        self.require_identity_exists(name)?;
+    pub fn use_identity_named(&mut self, log: &Logger, name: &str) -> DfxResult {
+        self.require_identity_exists(log, name)?;
         self.write_default_identity(name)?;
         self.configuration.default = name.to_string();
         Ok(())
@@ -364,7 +368,8 @@ impl IdentityManager {
 
     /// Determines if there are enough files present to consider the identity as existing.
     /// Does NOT guarantee that the identity will load correctly.
-    pub fn require_identity_exists(&self, name: &str) -> DfxResult {
+    pub fn require_identity_exists(&self, log: &Logger, name: &str) -> DfxResult {
+        trace!(log, "Checking if identity '{name}' exists.");
         if name == ANONYMOUS_IDENTITY_NAME {
             return Ok(());
         }
@@ -379,14 +384,10 @@ impl IdentityManager {
         let identity_pem_path = self.get_identity_pem_path(name);
         let legacy_pem_path = self.get_legacy_identity_pem_path(name);
 
-        if !pem_safekeeping::keyring_contains(name)
-            && !identity_pem_path.exists()
-            && !legacy_pem_path.exists()
-            && !json_path.exists()
-        {
+        if !identity_pem_path.exists() && !legacy_pem_path.exists() && !json_path.exists() {
             Err(DfxError::new(IdentityError::IdentityDoesNotExist(
                 String::from(name),
-                identity_pem_path,
+                json_path,
             )))
         } else {
             Ok(())
@@ -566,11 +567,25 @@ pub(super) fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConf
 
 #[context("Failed to write identity configuration.")]
 pub(super) fn write_identity_configuration(
+    log: &Logger,
     path: &Path,
     config: &IdentityConfiguration,
 ) -> DfxResult {
+    trace!(log, "Writing identity configuration to {}", path.display());
     let content = serde_json::to_string_pretty(&config)
         .context("Failed to serialize identity configuration.")?;
+    std::fs::create_dir_all(path.parent().with_context(|| {
+        format!(
+            "Failed to determine parent of identity configuration file {}",
+            PathBuf::from(path).display(),
+        )
+    })?)
+    .with_context(|| {
+        format!(
+            "Failed to create directory for identity configuration file {}",
+            PathBuf::from(path).display()
+        )
+    })?;
     std::fs::write(&path, content).with_context(|| {
         format!(
             "Cannot write identity configuration file at '{}'.",

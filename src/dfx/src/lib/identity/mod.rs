@@ -6,7 +6,6 @@ use crate::config::dfinity::NetworksConfig;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
-use crate::lib::identity::identity_manager::EncryptionConfiguration;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
@@ -22,7 +21,7 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use serde::{Deserialize, Serialize};
-use slog::{debug, info, warn, Logger};
+use slog::{debug, info, trace, Logger};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -80,18 +79,20 @@ impl Identity {
         parameters: IdentityCreationParameters,
         force: bool,
     ) -> DfxResult {
+        trace!(log, "Creating identity '{name}'.");
         let identity_in_use = name;
         // cannot delete an identity in use. Use anonymous identity temporarily if we force-overwrite the identity currently in use
         let temporarily_use_anonymous_identity = identity_in_use == name && force;
 
-        if manager.require_identity_exists(name).is_ok() {
+        if manager.require_identity_exists(log, name).is_ok() {
+            trace!(log, "Identity already exists.");
             if force {
                 if temporarily_use_anonymous_identity {
                     manager
-                        .use_identity_named(ANONYMOUS_IDENTITY_NAME)
+                        .use_identity_named(log, ANONYMOUS_IDENTITY_NAME)
                         .context("Failed to temporarily switch over to anonymous identity.")?;
                 }
-                manager.remove(name, true, None)?;
+                manager.remove(log, name, true, None)?;
             } else {
                 bail!("Identity already exists.");
             }
@@ -105,22 +106,32 @@ impl Identity {
                 )
             })
         }
-        fn create_encryption_config(
+        fn create_identity_config(
             log: &Logger,
             skip_keyring: bool,
-            keyring_available: bool,
-        ) -> DfxResult<Option<EncryptionConfiguration>> {
-            if skip_keyring || !keyring_available {
-                if !keyring_available {
-                    warn!(
-                        log,
-                        "Keyring is not available. Encrypting PEM file instead."
-                    );
-                }
-                // keyring skipped = use our own encryption mechanism
-                Ok(Some(identity_manager::EncryptionConfiguration::new()?))
+            name: &str,
+            hardware_config: Option<HardwareIdentityConfiguration>,
+        ) -> DfxResult<IdentityConfiguration> {
+            if let Some(hsm) = hardware_config {
+                Ok(IdentityConfiguration {
+                    hsm: Some(hsm),
+                    ..Default::default()
+                })
+            } else if skip_keyring || !pem_safekeeping::keyring_available(log) {
+                trace!(log, "Keyring will be skipped.");
+                Ok(IdentityConfiguration {
+                    encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                    ..Default::default()
+                })
             } else {
-                Ok(None)
+                trace!(
+                    log,
+                    "Not creating encryption configuration - will use keyring."
+                );
+                Ok(IdentityConfiguration {
+                    keyring_identity_suffix: Some(String::from(name)),
+                    ..Default::default()
+                })
             }
         }
 
@@ -138,17 +149,15 @@ impl Identity {
             })?;
         }
 
-        let mut identity_config = IdentityConfiguration::default();
-        let keyring_available = pem_safekeeping::keyring_available();
+        let identity_config;
         match parameters {
             IdentityCreationParameters::Pem { skip_keyring } => {
                 let (pem_content, mnemonic) = identity_manager::generate_key()?;
-                identity_config.encryption =
-                    create_encryption_config(log, skip_keyring, keyring_available)?;
+                identity_config = create_identity_config(log, skip_keyring, name, None)?;
                 pem_safekeeping::save_pem(
                     log,
                     manager,
-                    name,
+                    &temp_identity_name,
                     &identity_config,
                     pem_content.as_slice(),
                 )?;
@@ -158,37 +167,42 @@ impl Identity {
                 src_pem_file,
                 skip_keyring,
             } => {
-                identity_config.encryption =
-                    create_encryption_config(log, skip_keyring, keyring_available)?;
+                identity_config = create_identity_config(log, skip_keyring, name, None)?;
                 let src_pem_content = pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
                 identity_utils::validate_pem_file(&src_pem_content)?;
                 pem_safekeeping::save_pem(
                     log,
                     manager,
-                    name,
+                    &temp_identity_name,
                     &identity_config,
                     src_pem_content.as_slice(),
                 )?;
             }
             IdentityCreationParameters::Hardware { hsm } => {
-                identity_config.hsm = Some(hsm);
+                identity_config = create_identity_config(log, true, name, Some(hsm))?;
                 create(&temp_identity_dir)?;
             }
             IdentityCreationParameters::SeedPhrase {
                 mnemonic,
                 skip_keyring,
             } => {
-                identity_config.encryption =
-                    create_encryption_config(log, skip_keyring, keyring_available)?;
+                identity_config = create_identity_config(log, skip_keyring, name, None)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
                 let key = identity_manager::mnemonic_to_key(&mnemonic)?;
                 let pem = key.to_pem(k256::pkcs8::LineEnding::CRLF)?;
                 let pem_content = pem.as_bytes();
-                pem_safekeeping::save_pem(log, manager, name, &identity_config, pem_content)?;
+                pem_safekeeping::save_pem(
+                    log,
+                    manager,
+                    &temp_identity_name,
+                    &identity_config,
+                    pem_content,
+                )?;
             }
         }
         let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
         identity_manager::write_identity_configuration(
+            log,
             &identity_config_location,
             &identity_config,
         )?;
@@ -204,7 +218,7 @@ impl Identity {
         })?;
 
         if temporarily_use_anonymous_identity {
-            manager.use_identity_named(identity_in_use)
+            manager.use_identity_named(log, identity_in_use)
                 .with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
         }
         Ok(())
@@ -301,7 +315,7 @@ impl Identity {
                 match save_result {
                     Err(_) => info!(log, "Failed to update identity set up."),
                     Ok(_) => {
-                        identity_manager::write_identity_configuration(&json_path, &new_config)
+                        identity_manager::write_identity_configuration(log, &json_path, &new_config)
                             .unwrap_or_else(|_| {
                                 info!(log, "Failed to write new identity configuration.")
                             })
