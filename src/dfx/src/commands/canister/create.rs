@@ -171,7 +171,7 @@ pub async fn exec(
                     continue;
                 }
                 let compute_allocation = get_compute_allocation(
-                    opts.compute_allocation.clone(),
+                    opts.compute_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -179,7 +179,7 @@ pub async fn exec(
                     format!("Failed to read compute allocation of {}.", canister_name)
                 })?;
                 let memory_allocation = get_memory_allocation(
-                    opts.memory_allocation.clone(),
+                    opts.memory_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -187,7 +187,7 @@ pub async fn exec(
                     format!("Failed to read memory allocation of {}.", canister_name)
                 })?;
                 let freezing_threshold = get_freezing_threshold(
-                    opts.freezing_threshold.clone(),
+                    opts.freezing_threshold,
                     Some(config_interface),
                     Some(canister_name),
                 )

@@ -106,21 +106,12 @@ pub async fn exec(
         let textual_cid = canister_id.to_text();
         let canister_name = canister_id_store.get_name(&textual_cid).map(|x| &**x);
 
-        let compute_allocation = get_compute_allocation(
-            opts.compute_allocation.clone(),
-            config_interface,
-            canister_name,
-        )?;
-        let memory_allocation = get_memory_allocation(
-            opts.memory_allocation.clone(),
-            config_interface,
-            canister_name,
-        )?;
-        let freezing_threshold = get_freezing_threshold(
-            opts.freezing_threshold.clone(),
-            config_interface,
-            canister_name,
-        )?;
+        let compute_allocation =
+            get_compute_allocation(opts.compute_allocation, config_interface, canister_name)?;
+        let memory_allocation =
+            get_memory_allocation(opts.memory_allocation, config_interface, canister_name)?;
+        let freezing_threshold =
+            get_freezing_threshold(opts.freezing_threshold, config_interface, canister_name)?;
         if let Some(added) = &opts.add_controller {
             let status = get_canister_status(env, canister_id, timeout, call_sender).await?;
             let mut existing_controllers = status.settings.controllers;
@@ -164,7 +155,7 @@ pub async fn exec(
                 let mut controllers = controllers.clone();
                 let canister_id = canister_id_store.get(canister_name)?;
                 let compute_allocation = get_compute_allocation(
-                    opts.compute_allocation.clone(),
+                    opts.compute_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -172,7 +163,7 @@ pub async fn exec(
                     format!("Failed to get compute allocation for {}.", canister_name)
                 })?;
                 let memory_allocation = get_memory_allocation(
-                    opts.memory_allocation.clone(),
+                    opts.memory_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -180,7 +171,7 @@ pub async fn exec(
                     format!("Failed to get memory allocation for {}.", canister_name)
                 })?;
                 let freezing_threshold = get_freezing_threshold(
-                    opts.freezing_threshold.clone(),
+                    opts.freezing_threshold,
                     Some(config_interface),
                     Some(canister_name),
                 )
