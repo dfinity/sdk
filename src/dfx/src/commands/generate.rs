@@ -12,8 +12,8 @@ use tokio::runtime::Runtime;
 /// Generate type declarations for canisters from the code in your project
 #[derive(Parser)]
 pub struct GenerateOpts {
-    /// Specifies the name of the canister to build.
-    /// If you do not specify a canister names, generates types for all canisters.
+    /// Specifies the name of the canister to generate type information for.
+    /// If you do not specify a canister name, generates types for all canisters.
     canister_name: Option<String>,
 
     #[clap(flatten)]
