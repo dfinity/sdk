@@ -4,6 +4,8 @@
 
 ## DFX
 
+### fix(generate): add missing typescript types and fix issues with bindings array in dfx.json
+
 ### chore: update Candid UI canister with commit 79d55e7f568aec00e16dd0329926cc7ea8e3a28b
 
 ### refactor: Factor out code for calling arbitrary bundled binaries
