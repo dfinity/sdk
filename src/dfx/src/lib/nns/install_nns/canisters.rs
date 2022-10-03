@@ -186,7 +186,7 @@ pub const SNS_LEDGER_INDEX: SnsCanisterInstallation = SnsCanisterInstallation {
 /// Note:  Sets of these canisters are deployed on request, so one network will
 /// typically have many sets of these canisters, one per project decentralized
 /// with the SNS toolchain.
-pub const SNS_CANISTERS: [&SnsCanisterInstallation; 5] = [
+pub const SNS_CANISTERS: [&SnsCanisterInstallation; 6] = [
     &SNS_ROOT,
     &SNS_GOVERNANCE,
     &SNS_SWAP,
