@@ -4,6 +4,8 @@
 
 ## DFX
 
+### fix: Compute Motoko dependencies in linear (not exponential) time by detecting visited imports.
+
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
 
