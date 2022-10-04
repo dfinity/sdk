@@ -73,7 +73,9 @@ impl CanisterBuilder for MotokoBuilder {
                     MotokoImport::Canister(_) => {
                         result.insert(import);
                     }
-                    MotokoImport::Relative(path) => {
+                    MotokoImport::Relative(ref path) => {
+                        let path = path.clone();
+                        result.insert(import);
                         find_deps_recursive(cache, path.as_path(), result)?;
                     }
                     MotokoImport::Lib(_) => (),
