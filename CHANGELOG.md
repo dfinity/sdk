@@ -130,6 +130,8 @@ Most output is no longer visible unless either `--verbose` is used with dfx or t
 
 When creating a new identity with `dfx identity new`, whereas previously it would have generated an Ed25519 key, it now generates a secp256k1 key. This is to enable users to write down a BIP39-style seed phrase, to recover their key in case of emergency, which will be printed when the key is generated and can be used with a new `--seed-phrase` flag in `dfx identity import`. `dfx identity import` is however still capable of importing an Ed25519 key.
 
+### chore: update `dfx new --type rust` dependencies
+
 ### chore: update Candid UI canister with commit 528a4b04807904899f67b919a88597656e0cd6fa
 
 * Allow passing did files larger than 2KB.
