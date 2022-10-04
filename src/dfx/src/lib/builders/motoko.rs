@@ -59,6 +59,8 @@ impl CanisterBuilder for MotokoBuilder {
                 return Ok(());
             }
 
+            result.insert(MotokoImport::Relative(file.to_path_buf()));
+
             let mut command = cache.get_binary_command("moc")?;
             let command = command.arg("--print-deps").arg(&file);
             let output = command
@@ -74,9 +76,7 @@ impl CanisterBuilder for MotokoBuilder {
                         result.insert(import);
                     }
                     MotokoImport::Relative(ref path) => {
-                        let path = path.clone();
-                        result.insert(import);
-                        find_deps_recursive(cache, path.as_path(), result)?;
+                       find_deps_recursive(cache, path.as_path(), result)?;
                     }
                     MotokoImport::Lib(_) => (),
                     MotokoImport::Ic(_) => (),
