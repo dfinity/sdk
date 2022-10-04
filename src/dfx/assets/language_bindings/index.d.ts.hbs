@@ -1,7 +1,11 @@
 import { ActorSubclass, HttpAgentOptions, ActorConfig } from '@dfinity/agent';
 import { Principal } from '@dfinity/principal';
+import { IDL } from '@dfinity/candid';
 
 import { _SERVICE } from './{{canister_name}}.did';
+
+export declare const idlFactory: IDL.InterfaceFactory;
+export declare const canisterId: string;
 
 export declare interface CreateActorOptions {
   agentOptions?: HttpAgentOptions;

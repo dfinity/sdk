@@ -1,5 +1,6 @@
 pub mod bitcoin;
 pub mod builders;
+pub mod call_bundled;
 pub mod canister_http;
 pub mod canister_info;
 pub mod config;
