@@ -426,11 +426,13 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to release candidate at commit 9173c5f1b28e140931060b90e9de65b923ee57e6.
+Updated replica to release candidate at commit c2dae5e06291713925afaee348580359f584be4a.
 This release candidate has not yet been elected.
 
 This also incorporates the following executed proposals:
 
+- [83786](https://dashboard.internetcomputer.org/proposal/83786)
+- [82425](https://dashboard.internetcomputer.org/proposal/82425)
 * [81788](https://dashboard.internetcomputer.org/proposal/81788)
 * [81571](https://dashboard.internetcomputer.org/proposal/81571)
 * [80992](https://dashboard.internetcomputer.org/proposal/80992)
