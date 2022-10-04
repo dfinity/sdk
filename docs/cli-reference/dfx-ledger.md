@@ -384,9 +384,10 @@ You can use the following optional flags with the `dfx ledger transfer` command.
 
 You can specify the following argument for the `dfx ledger transfer` command.
 
-| Argument | Description                                                                         |
-|----------|-------------------------------------------------------------------------------------|
-| `<to>`   | Specify the Account Identifier or address to which you want to transfer ICP tokens. |
+| Argument            | Description                                                                         |
+|---------------------|-------------------------------------------------------------------------------------|
+| `<to>`              | Specify the Account Identifier or address to which you want to transfer ICP tokens. |
+| `--memo <memo>`     | Specifies a numeric memo for this transaction.                                      |
 
 ### Options
 
@@ -398,7 +399,6 @@ You can specify the following argument for the `dfx ledger transfer` command.
 | `--e8s <e8s>`       | Specifies e8s as a whole number, where one e8 is smallest partition of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option alone or in conjunction with the `--icp` option. |
 | `--fee <fee>`       | Specifies a transaction fee. The default is 10000 e8s.                                                                                                                                                          |
 | `--icp <icp>`       | Specifies ICP as a whole number. You can use this option alone or in conjunction with `--e8s`.                                                                                                                  |
-| `--memo <memo>`     | Specifies a numeric memo for this transaction.                                                                                                                                                                  |
 
 ### Examples
 
