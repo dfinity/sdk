@@ -14,6 +14,14 @@
 
 The function for calling sns can now call any bundled binary.
 
+### docs: Document dfx nns subcommands
+
+`dfx nns` commands are used to deploy and manage local NNS canisters, such as:
+
+- Governance for integration with the Internet Computer voting system
+- Ledger for financial integration testing
+- Internet Identity for user registration and authenttication
+
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
 
