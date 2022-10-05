@@ -9,6 +9,7 @@ pub enum CacheError {
     #[error("Cannot find cache directory at '{0}'.")]
     CannotFindCacheDirectory(PathBuf),
 
+    #[cfg(not(windows))]
     #[error("Cannot find home directory.")]
     CannotFindHomeDirectory(),
 

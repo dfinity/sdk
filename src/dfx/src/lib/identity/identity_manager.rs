@@ -75,7 +75,14 @@ impl EncryptionConfiguration {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HardwareIdentityConfiguration {
-    /// The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"
+    #[cfg_attr(
+        not(windows),
+        doc = r#"The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so""#
+    )]
+    #[cfg_attr(
+        windows,
+        doc = r#"The file path to the opensc-pkcs11 library e.g. "C:\Program Files (x86)\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll"#
+    )]
     pub pkcs11_lib_path: String,
 
     /// A sequence of pairs of hex digits
@@ -457,29 +464,32 @@ To create a more secure identity, create and use an identity that is protected b
         }
 
         let creds_pem_path = get_legacy_creds_pem_path()?;
-        if creds_pem_path.exists() {
-            slog::info!(
-                logger,
-                "  - migrating key from {} to {}",
-                creds_pem_path.display(),
-                identity_pem_path.display()
-            );
-            fs::copy(&creds_pem_path, &identity_pem_path).with_context(|| {
-                format!(
-                    "Failed to migrate legacy identity from {} to {}.",
-                    creds_pem_path.to_string_lossy(),
-                    identity_pem_path.to_string_lossy()
-                )
-            })?;
-        } else {
-            slog::info!(
-                logger,
-                "  - generating new key at {}",
-                identity_pem_path.display()
-            );
-            let (key, mnemonic) = generate_key()?;
-            pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())?;
-            eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
+        match creds_pem_path {
+            Some(creds_pem_path) if creds_pem_path.exists() => {
+                slog::info!(
+                    logger,
+                    "  - migrating key from {} to {}",
+                    creds_pem_path.display(),
+                    identity_pem_path.display()
+                );
+                fs::copy(&creds_pem_path, &identity_pem_path).with_context(|| {
+                    format!(
+                        "Failed to migrate legacy identity from {} to {}.",
+                        creds_pem_path.to_string_lossy(),
+                        identity_pem_path.to_string_lossy()
+                    )
+                })?;
+            }
+            _ => {
+                slog::info!(
+                    logger,
+                    "  - generating new key at {}",
+                    identity_pem_path.display()
+                );
+                let (key, mnemonic) = generate_key()?;
+                pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())?;
+                eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
+            }
         }
     } else {
         slog::info!(
@@ -499,16 +509,22 @@ To create a more secure identity, create and use an identity that is protected b
 }
 
 #[context("Failed to get legacy pem path.")]
-fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
-    let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
-    let home = std::env::var("HOME")
-        .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
-    let root = config_root.unwrap_or(home);
+fn get_legacy_creds_pem_path() -> DfxResult<Option<PathBuf>> {
+    if cfg!(windows) {
+        Ok(None)
+    } else {
+        let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
+        let home = std::env::var("HOME")
+            .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
+        let root = config_root.unwrap_or(home);
 
-    Ok(PathBuf::from(root)
-        .join(".dfinity")
-        .join("identity")
-        .join("creds.pem"))
+        Ok(Some(
+            PathBuf::from(root)
+                .join(".dfinity")
+                .join("identity")
+                .join("creds.pem"),
+        ))
+    }
 }
 
 #[context("Failed to load identity manager config from {}.", path.to_string_lossy())]

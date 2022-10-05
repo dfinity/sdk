@@ -6,10 +6,18 @@ use std::path::PathBuf;
 
 #[context("Failed to get path to dfx config dir.")]
 pub fn get_config_dfx_dir_path() -> DfxResult<PathBuf> {
-    let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
-    let home = std::env::var("HOME").context("Failed to resolve 'HOME' env var.")?;
-    let root = config_root.unwrap_or(home);
-    let p = PathBuf::from(root).join(".config").join("dfx");
+    let config_root = std::env::var_os("DFX_CONFIG_ROOT");
+    #[cfg(not(windows))]
+    let p = {
+        let home = std::env::var_os("HOME").context("Failed to resolve 'HOME' env var.")?;
+        let root = config_root.unwrap_or(home);
+        PathBuf::from(root).join(".config").join("dfx")
+    };
+    #[cfg(windows)]
+    let p = config_root.map_or_else(
+        || dirs_next::config_dir().unwrap().join("dfx"),
+        PathBuf::from,
+    );
     if !p.exists() {
         std::fs::create_dir_all(&p)
             .with_context(|| format!("Cannot create config directory at {}", p.display()))?;

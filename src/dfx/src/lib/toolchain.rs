@@ -7,7 +7,7 @@ use fn_error_context::context;
 use semver::{Version, VersionReq};
 use std::fmt;
 use std::fmt::Formatter;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 
 const TOOLCHAINS_ROOT: &str = ".dfinity/toolchains/";
@@ -113,11 +113,20 @@ impl Toolchain {
                     format!("Failed to remove {}.", toolchain_path.to_string_lossy())
                 })?;
             }
+            #[cfg(unix)]
             std::os::unix::fs::symlink(&cache_path, &toolchain_path).with_context(|| {
                 format!(
                     "Failed to create symlink from {} to {}.",
-                    toolchain_path.to_string_lossy(),
-                    cache_path.to_string_lossy()
+                    toolchain_path.display(),
+                    cache_path.display(),
+                )
+            })?;
+            #[cfg(windows)]
+            junction::create(&cache_path, &toolchain_path).with_context(|| {
+                format!(
+                    "Failed to create junction from {} to {}.",
+                    toolchain_path.display(),
+                    cache_path.display(),
                 )
             })?;
         }
@@ -147,8 +156,7 @@ impl Toolchain {
 
     #[context("Failed to get toolchain path.")]
     pub fn get_path(&self) -> DfxResult<PathBuf> {
-        let home = std::env::var("HOME").context("Failed to resolve env var 'HOME'.")?;
-        let home = Path::new(&home);
+        let home = dirs_next::home_dir().context("Failed to resolve home dir.")?;
         let toolchains_dir = home.join(TOOLCHAINS_ROOT);
         std::fs::create_dir_all(&toolchains_dir).with_context(|| {
             format!(
@@ -172,11 +180,20 @@ impl Toolchain {
                 )
             })?;
         }
+        #[cfg(unix)]
         std::os::unix::fs::symlink(&toolchain_path, &default_path).with_context(|| {
             format!(
                 "Failed to create symlink from {} to {}.",
-                toolchain_path.to_string_lossy(),
-                default_path.to_string_lossy()
+                toolchain_path.display(),
+                default_path.display(),
+            )
+        })?;
+        #[cfg(windows)]
+        junction::create(&toolchain_path, &default_path).with_context(|| {
+            format!(
+                "Failed to create junction from {} to {}.",
+                toolchain_path.display(),
+                default_path.display(),
             )
         })?;
         println!("Default toolchain set to {}", self);
@@ -186,8 +203,7 @@ impl Toolchain {
 
 #[context("Failed to get installed toolchains.")]
 pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
-    let home = std::env::var("HOME").context("Failed to resolve env var 'HOME'.")?;
-    let home = Path::new(&home);
+    let home = dirs_next::home_dir().context("Failed to resolve home dir.")?;
     let toolchains_dir = home.join(TOOLCHAINS_ROOT);
     let mut toolchains = vec![];
     for entry in std::fs::read_dir(&toolchains_dir).with_context(|| {
@@ -230,8 +246,7 @@ pub fn get_default_toolchain() -> DfxResult<Toolchain> {
 
 #[context("Failed to get default toolchain path.")]
 fn get_default_path() -> DfxResult<PathBuf> {
-    let home = std::env::var("HOME").context("Failed to read env var 'HOME'.")?;
-    let home = Path::new(&home);
+    let home = dirs_next::home_dir().context("Failed to resolve home dir.")?;
     let default_path = home.join(DEFAULT_PATH);
     let parent = default_path.parent().unwrap();
     std::fs::create_dir_all(parent)
