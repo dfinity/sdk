@@ -23,7 +23,7 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Insta
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
-use openssl::sha::sha256;
+use sha2::{Digest, Sha256};
 use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
@@ -103,10 +103,10 @@ pub async fn install_canister(
     let wasm_path = canister_info.get_build_wasm_path();
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
-    let new_hash = sha256(&wasm_module);
+    let new_hash = Sha256::digest(&wasm_module);
 
     if mode == InstallMode::Upgrade
-        && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash)
+        && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
         println!(
@@ -139,7 +139,7 @@ pub async fn install_canister(
             .await
         {
             Ok(reported_hash) => {
-                if reported_hash == new_hash {
+                if reported_hash[..] == new_hash[..] {
                     break;
                 } else if installed_module_hash
                     .as_deref()
