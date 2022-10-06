@@ -12,7 +12,7 @@ keywords = ["internet-computer", "agent", "icp", "dfinity", "asset"]
 
 [dependencies]
 anyhow = "1.0.34"
-candid = "0.8.1"
+candid = "0.8.2"
 clap = { version = "3.0.14", features = ["derive", "cargo"] }
 delay = "0.3.1"
 garcon = "0.2.2"
