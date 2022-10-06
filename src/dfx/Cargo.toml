@@ -12,7 +12,7 @@ path = "src/main.rs"
 [build-dependencies]
 flate2 = "1.0.11"
 hex = "0.4.2"
-openssl = "0.10.32"
+sha2 = "0.10.6"
 tar = "0.4.26"
 walkdir = "2.3.2"
 
@@ -57,13 +57,12 @@ mime = "0.3.16"
 mime_guess = "2.0.4"
 net2 = "0.2.34"
 num-traits = "0.2"
-openssl = "0.10.32"
 pem = "1.0.2"
 petgraph = "0.6.0"
 rand = "0.8.5"
 regex = "1.5.5"
 ring = "0.16.11"
-reqwest = { version = "0.11.9", features = [ "blocking", "json", "rustls-tls" ] }
+reqwest = { version = "0.11.9", default-features = false, features = [ "blocking", "json", "rustls-tls", "native-tls-vendored" ] }
 rustls = "0.20.4"
 rust_decimal = "1.22.0"
 schemars = "0.8"
@@ -72,6 +71,7 @@ serde = "1.0"
 serde_bytes = "0.11.2"
 serde_cbor = "0.11.1"
 serde_json = "1.0.79"
+sha2 = "0.10.6"
 shell-words = "1.1.0"
 slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
@@ -94,6 +94,3 @@ env_logger = "0.9"
 proptest = "1.0"
 mockito = "0.31.0"
 tempfile = "3.1.0"
-
-[features]
-vendored-openssl = ["openssl/vendored"]
