@@ -26,7 +26,7 @@ base64 = "0.13.0"
 bip32 = "0.4.0"
 byte-unit = { version = "4.0.14", features = ["serde"] }
 bytes = "1.2.1"
-candid = { version = "0.7.15", features = [ "random" ] }
+candid = { version = "0.8.1", features = [ "random" ] }
 clap = { version = "3.1.6", features = [ "derive" ] }
 console = "0.15.0"
 crc32fast = "1.3.2"
@@ -44,8 +44,11 @@ hex = {version = "0.4.2", features = ["serde"] }
 humantime = "2.1.0"
 humantime-serde = "1.1.1"
 hyper-rustls = { version = "0.23.0", features = [ "webpki-roots", "http2" ] }
+ic-agent = { version = "0.21.0", features = ["reqwest"] }
 ic-asset = { version = "0.20.0", path = "../canisters/frontend/ic-asset" }
-ic-wasm = "0.2.0"
+ic-identity-hsm = "0.21.0"
+ic-utils = "0.21.0"
+ic-wasm = "0.2.1"
 indicatif = "0.16.0"
 itertools = "0.10.3"
 k256 = { version = "0.11.4", features = ["pem"] }
@@ -85,22 +88,6 @@ url = "2.1.0"
 walkdir = "2.2.9"
 wasmparser = "0.87.0"
 which = "4.2.5"
-
-[dependencies.ic-agent]
-version = "0.20.0"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
-features = ["reqwest"]
-
-[dependencies.ic-identity-hsm]
-version = "0.20.0"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
-
-[dependencies.ic-utils]
-version = "0.20.0"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
 
 [dev-dependencies]
 env_logger = "0.9"
