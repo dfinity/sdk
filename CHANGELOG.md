@@ -4,6 +4,8 @@
 
 ## DFX
 
+### fix(generate): Allow generating bindings for canisters that do not have a canister id
+
 ### fix: Compute Motoko dependencies in linear (not exponential) time by detecting visited imports.
 
 ### fix(generate): add missing typescript types and fix issues with bindings array in dfx.json

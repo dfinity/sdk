@@ -11,8 +11,8 @@ use tokio::runtime::Runtime;
 /// Generate type declarations for canisters from the code in your project
 #[derive(Parser)]
 pub struct GenerateOpts {
-    /// Specifies the name of the canister to build.
-    /// If you do not specify a canister names, generates types for all canisters.
+    /// Specifies the name of the canister to generate bindings for.
+    /// If you do not specify a canister name, it will generate types for all canisters.
     canister_name: Option<String>,
 
     #[clap(flatten)]
@@ -37,7 +37,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     // Get pool of canisters to build
     let canister_pool = CanisterPool::load(&env, false, &canister_names)?;
 
-    // If generate for motoko canister, build first
+    // If generating for a motoko canister, build first
     let mut build_before_generate = false;
     for canister in canister_pool.get_canister_list() {
         if canister.get_info().is_motoko() {
