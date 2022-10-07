@@ -2,7 +2,6 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 use crate::NetworkOpt;
 
@@ -12,8 +11,8 @@ use tokio::runtime::Runtime;
 /// Generate type declarations for canisters from the code in your project
 #[derive(Parser)]
 pub struct GenerateOpts {
-    /// Specifies the name of the canister to generate type information for.
-    /// If you do not specify a canister name, generates types for all canisters.
+    /// Specifies the name of the canister to build.
+    /// If you do not specify a canister names, generates types for all canisters.
     canister_name: Option<String>,
 
     #[clap(flatten)]
@@ -38,17 +37,11 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     // Get pool of canisters to build
     let canister_pool = CanisterPool::load(&env, false, &canister_names)?;
 
-    // This is just to display an error if trying to generate before creating the canister.
-    let store = CanisterIdStore::for_env(&env)?;
     // If generate for motoko canister, build first
     let mut build_before_generate = false;
     for canister in canister_pool.get_canister_list() {
-        let canister_name = canister.get_name();
-        let canister_id = store.get(canister_name)?;
-        if let Some(info) = canister_pool.get_canister_info(&canister_id) {
-            if info.is_motoko() {
-                build_before_generate = true;
-            }
+        if canister.get_info().is_motoko() {
+            build_before_generate = true;
         }
     }
 
