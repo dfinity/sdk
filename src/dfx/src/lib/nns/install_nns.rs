@@ -341,7 +341,9 @@ pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Res
                  dfx stop
                  dfx start --clean
              
-             "#, env.get_networks_config().get_path().to_string_lossy())),
+             "#,
+            env.get_networks_config().get_path().to_string_lossy()
+        )),
     }
 }
 
