@@ -320,7 +320,28 @@ fn local_replica_type(env: &dyn Environment) -> anyhow::Result<ReplicaSubnetType
 pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Result<()> {
     match local_replica_type(env) {
         Ok(ReplicaSubnetType::System) => Ok(()),
-        other => Err(anyhow!("The replica subnet_type needs to be \"system\" to run NNS canisters. Current value: {other:?}. You can configure it by setting defaults.replica.subnet_type in your project's dfx.json or by setting local.replica.subnet_type in your global networks.json to \"system\".")),
+        other => Err(anyhow!(
+            r#"The replica subnet_type needs to be \"system\" to run NNS canisters. Current value: {other:?}.
+             
+             You can configure it by setting local.replica.subnet_type to "system" in your global networks.json:
+             
+             1) Create or edit: {}
+             2) Set the local config to:
+                 {{
+                   "local": {{
+                     "bind": "127.0.0.1:8080",
+                     "type": "ephemeral",
+                     "replica": {{
+                       "subnet_type": "application"
+                     }}
+                   }}
+                 }}
+             3) Verify that you have no network configurations in dfx.json.
+             4) Restart dfx:
+                 dfx stop
+                 dfx start --clean
+             
+             "#, env.get_networks_config().get_path().to_string_lossy())),
     }
 }
 
