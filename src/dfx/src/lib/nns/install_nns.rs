@@ -321,7 +321,7 @@ pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Res
     match local_replica_type(env) {
         Ok(ReplicaSubnetType::System) => Ok(()),
         other => Err(anyhow!(
-            r#"The replica subnet_type needs to be "system" to run NNS canisters. Current value: {other:?}.
+            r#"The replica subnet_type needs to be 'system' to run NNS canisters. Current value: {other:?}.
              
              You can configure it by setting local.replica.subnet_type to "system" in your global networks.json:
              
