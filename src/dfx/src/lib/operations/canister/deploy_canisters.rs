@@ -32,6 +32,7 @@ pub async fn deploy_canisters(
     with_cycles: Option<&str>,
     call_sender: &CallSender,
     create_call_sender: &CallSender,
+    skip_consent: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -102,6 +103,7 @@ pub async fn deploy_canisters(
         timeout,
         call_sender,
         pool,
+        skip_consent,
     )
     .await?;
 
@@ -217,6 +219,7 @@ async fn install_canisters(
     timeout: Duration,
     call_sender: &CallSender,
     pool: CanisterPool,
+    skip_consent: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -254,6 +257,7 @@ async fn install_canisters(
             call_sender,
             upgrade_unchanged,
             Some(&pool),
+            skip_consent,
         )
         .await?;
     }

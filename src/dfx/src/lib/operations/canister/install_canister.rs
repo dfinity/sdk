@@ -42,6 +42,7 @@ pub async fn install_canister(
     call_sender: &CallSender,
     upgrade_unchanged: bool,
     pool: Option<&CanisterPool>,
+    skip_consent: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
@@ -67,7 +68,7 @@ pub async fn install_canister(
             InstallMode::Install
         }
     });
-    if matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
+    if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = &candid {
             match check_candid_compatibility(canister_info, candid) {
@@ -83,7 +84,7 @@ pub async fn install_canister(
             }
         }
     }
-    if canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade) {
+    if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade) {
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
         if let Some(stable_types) = &stable_types {
             match check_stable_compatibility(canister_info, env, stable_types) {
@@ -124,6 +125,7 @@ pub async fn install_canister(
             timeout,
             call_sender,
             wasm_module,
+            skip_consent,
         )
         .await?;
     }
@@ -357,10 +359,11 @@ pub async fn install_canister_wasm(
     timeout: Duration,
     call_sender: &CallSender,
     wasm_module: Vec<u8>,
+    skip_consent: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let mgr = ManagementCanister::create(agent);
-    if mode == InstallMode::Reinstall {
+    if !skip_consent && mode == InstallMode::Reinstall {
         let msg = if let Some(name) = canister_name {
             format!("You are about to reinstall the {name} canister")
         } else {
