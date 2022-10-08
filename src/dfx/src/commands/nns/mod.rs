@@ -27,11 +27,9 @@ pub struct NnsOpts {
 /// Command line options for subcommands of `dfx nns`.
 #[derive(Parser)]
 enum SubCommand {
-    /// Options for importing NNS API definitions and canister IDs.
-    #[clap(hide(true))]
+    /// Import NNS API definitions and canister IDs.
     Import(import::ImportOpts),
-    /// Options for installing an NNS.
-    #[clap(hide(true))]
+    /// Install an NNS on the local dfx server.
     Install(install::InstallOpts),
 }
 
