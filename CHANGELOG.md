@@ -4,6 +4,22 @@
 
 ## DFX
 
+### fix: Save SNS canister IDs
+
+SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
+
+### feat: NNS usability improvements
+
+The command line interface for nns commands has been updated to:
+
+- Give better help when the subnet type is incorrect
+- Not offer --network as a flag given that it is unused
+- List nns subcommands
+
+### feat: -y flag for canister installation
+
+`dfx canister install` and `dfx deploy` now have a `-y` flag that will automatically confirm any y/n checks made during canister installation.
+
 ### fix: Compute Motoko dependencies in linear (not exponential) time by detecting visited imports.
 
 ### fix(generate): add missing typescript types and fix issues with bindings array in dfx.json
@@ -441,6 +457,10 @@ This release candidate has not yet been elected.
 
 This also incorporates the following executed proposals:
 
+* [85007](https://dashboard.internetcomputer.org/proposal/85007)
+* [84391](https://dashboard.internetcomputer.org/proposal/84391)
+* [83786](https://dashboard.internetcomputer.org/proposal/83786)
+* [82425](https://dashboard.internetcomputer.org/proposal/82425)
 * [81788](https://dashboard.internetcomputer.org/proposal/81788)
 * [81571](https://dashboard.internetcomputer.org/proposal/81571)
 * [80992](https://dashboard.internetcomputer.org/proposal/80992)
