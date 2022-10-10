@@ -258,13 +258,7 @@ fn compile_handlebars_files(
                 "".to_string()
             } else {
                 format!(
-                    r#"
-
-/**
- * A ready-to-use agent for the {0} canister
- * @type {{import("@dfinity/agent").ActorSubclass<import("./{0}.did.js")._SERVICE>}}
-*/
-export const {0} = createActor(canisterId);"#,
+                    r#"export const {0} = createActor(canisterId);"#,
                     canister_name
                 )
                 .to_string()
