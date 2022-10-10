@@ -76,4 +76,9 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     install_asset sns/valid
     dfx sns config validate
     dfx sns deploy
+    # SNS canister IDs should be saved
+    dfx canister id sns_governance
+    dfx canister id sns_ledger
+    dfx canister id sns_root
+    dfx canister id sns_swap
 }

@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: Save SNS canister IDs
+
+SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
+
 ### feat: NNS usability improvements
 
 The command line interface for nns commands has been updated to:
