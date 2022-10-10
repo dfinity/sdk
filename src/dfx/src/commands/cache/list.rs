@@ -2,11 +2,11 @@ use crate::config::{cache, dfx_version};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 use std::io::Write;
 
 /// Lists installed and used version.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("list"))]
 pub struct CacheListOpts {}
 

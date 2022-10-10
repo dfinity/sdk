@@ -1,5 +1,6 @@
 use crate::lib::nns_types::icpts::ICPTs;
-use humanize_rs::bytes::{Bytes, Unit};
+use byte_unit::{Byte, ByteUnit};
+use std::path::Path;
 use std::str::FromStr;
 
 pub fn is_request_id(v: &str) -> Result<(), String> {
@@ -38,10 +39,33 @@ pub fn memo_validator(memo: &str) -> Result<(), String> {
 }
 
 pub fn cycle_amount_validator(cycles: &str) -> Result<(), String> {
-    if cycles.parse::<u64>().is_ok() {
+    if cycles.parse::<u128>().is_ok() {
         return Ok(());
     }
     Err("Must be a non negative amount.".to_string())
+}
+
+pub fn file_validator(path: &str) -> Result<(), String> {
+    if Path::new(path).exists() {
+        return Ok(());
+    }
+    Err("Path does not exist or is not a file.".to_string())
+}
+
+pub fn file_or_stdin_validator(path: &str) -> Result<(), String> {
+    if path == "-" {
+        // represents stdin
+        Ok(())
+    } else {
+        file_validator(path)
+    }
+}
+
+pub fn trillion_cycle_amount_validator(cycles: &str) -> Result<(), String> {
+    if format!("{}000000000000", cycles).parse::<u128>().is_ok() {
+        return Ok(());
+    }
+    Err("Must be a non negative amount. Currently only accepts whole numbers. Use --cycles otherwise.".to_string())
 }
 
 pub fn compute_allocation_validator(compute_allocation: &str) -> Result<(), String> {
@@ -54,13 +78,15 @@ pub fn compute_allocation_validator(compute_allocation: &str) -> Result<(), Stri
 }
 
 pub fn memory_allocation_validator(memory_allocation: &str) -> Result<(), String> {
-    let limit = Bytes::new(256, Unit::TByte).map_err(|_| "Parse Overflow.")?;
-    if let Ok(bytes) = memory_allocation.parse::<Bytes>() {
-        if bytes.size() <= limit.size() {
+    // This limit should track MAX_MEMORY_ALLOCATION
+    // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/rs/types/types/src/lib.rs#L492
+    let limit = Byte::from_unit(12., ByteUnit::GiB).expect("Parse Overflow.");
+    if let Ok(bytes) = memory_allocation.parse::<Byte>() {
+        if bytes.get_bytes() <= limit.get_bytes() {
             return Ok(());
         }
     }
-    Err("Must be a value between 0..256 TB inclusive.".to_string())
+    Err("Must be a value between 0..12 GiB inclusive.".to_string())
 }
 
 pub fn freezing_threshold_validator(freezing_threshold: &str) -> Result<(), String> {
@@ -92,8 +118,7 @@ pub fn project_name_validator(name: &str) -> Result<(), String> {
             } else {
                 Err(format!(
                     r#"Invalid character(s): "{}""#,
-                    m.iter()
-                        .fold(String::new(), |acc, &num| acc + &num.to_string())
+                    m.iter().fold(String::new(), |acc, &num| acc + num)
                 ))
             }
         } else {

@@ -1,0 +1,39 @@
+name: Check frontend canister build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    name: frontend-canister-up-to-date:required
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Set up
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install --version 0.2.0 ic-wasm
+      - name: Build frontend canister
+        run: |
+          ./scripts/update-frontend-canister.sh
+      - name: Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: assetstorage
+          path: ${{ github.workspace }}/src/distributed/assetstorage.wasm.gz
+      - name: Compare
+        run: |
+          if [ "$(git diff src/distributed/assetstorage.wasm.gz)" != "" ]
+          then
+            exit 1
+          fi

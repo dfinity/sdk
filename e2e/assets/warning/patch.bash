@@ -1,1 +1,1 @@
-dfx config canisters/e2e_project/main main.mo
+jq '.canisters.e2e_project_backend.main="main.mo"' dfx.json | sponge dfx.json

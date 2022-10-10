@@ -2,10 +2,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Shows the name of the current identity.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct WhoAmIOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: WhoAmIOpts) -> DfxResult {

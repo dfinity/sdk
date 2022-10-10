@@ -1,24 +1,31 @@
 name: Check shell scripts
 on:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
     paths:
       - 'e2e/**'
       - '.github/**'
       - 'scripts/release.sh'
+      - 'scripts/prepare-dfx-assets.sh'
   push:
     branches:
       - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
 
 jobs:
   check_macos:
     # ubuntu-latest has shellcheck 0.4.6, while macos-latest has 0.7.1
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install shellcheck
         run: |
           mkdir $HOME/bin
@@ -26,6 +33,8 @@ jobs:
           curl -L https://github.com/koalaman/shellcheck/releases/download/v0.7.1/shellcheck-v0.7.1.darwin.x86_64.tar.xz \
             | xz -d | tar x
       - name: Check e2e scripts
-        run: $HOME/bin/shellcheck-v0.7.1/shellcheck e2e/tests-dfx/*.bash e2e/tests-replica/*.bash
+        run: $HOME/bin/shellcheck-v0.7.1/shellcheck e2e/**/*.*sh
       - name: Check release script
         run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/release.sh
+      - name: Check asset prep script
+        run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/prepare-dfx-assets.sh

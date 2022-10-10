@@ -4,7 +4,9 @@ mod install_canister;
 
 pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
-pub use install_canister::install_canister;
+use fn_error_context::context;
+use ic_utils::Argument;
+pub use install_canister::{install_canister, install_canister_wasm, install_wallet};
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -14,18 +16,22 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::waiter::waiter_with_timeout;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
-use ic_types::principal::Principal as CanisterId;
-use ic_types::Principal;
-use ic_utils::call::AsyncCall;
+use candid::Principal as CanisterId;
+use candid::Principal;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
 use std::path::PathBuf;
 use std::time::Duration;
 
+#[context(
+    "Failed to call update function '{}' regarding canister '{}'.",
+    method,
+    destination_canister
+)]
 async fn do_management_call<A, O>(
     env: &dyn Environment,
     destination_canister: Principal,
@@ -33,32 +39,39 @@ async fn do_management_call<A, O>(
     arg: A,
     timeout: Duration,
     call_sender: &CallSender,
-    cycles: u64,
+    cycles: u128,
 ) -> DfxResult<O>
 where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let mgr = ManagementCanister::create(agent);
-
     let out = match call_sender {
         CallSender::SelectedId => {
+            let agent = env
+                .get_agent()
+                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+            let mgr = ManagementCanister::create(agent);
+
             mgr.update_(method)
                 .with_arg(arg)
                 .with_effective_canister_id(destination_canister)
                 .build()
                 .call_and_wait(waiter_with_timeout(timeout))
-                .await?
+                .await
+                .context("Update call (without wallet) failed.")?
         }
-        CallSender::Wallet(wallet_id) | CallSender::SelectedIdWallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env)?;
+        CallSender::Wallet(wallet_id) => {
+            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let out: O = wallet
-                .call_forward(mgr.update_(method).with_arg(arg).build(), cycles)?
+                .call(
+                    Principal::management_canister(),
+                    method,
+                    Argument::from_candid((arg,)),
+                    cycles,
+                )
                 .call_and_wait(waiter_with_timeout(timeout))
-                .await?;
+                .await
+                .context("Update call using wallet failed.")?;
             out
         }
     };
@@ -66,6 +79,7 @@ where
     Ok(out)
 }
 
+#[context("Failed to get canister status of {}.", canister_id)]
 pub async fn get_canister_status(
     env: &dyn Environment,
     canister_id: Principal,
@@ -90,6 +104,7 @@ pub async fn get_canister_status(
     Ok(out)
 }
 
+#[context("Failed to start canister {}.", canister_id)]
 pub async fn start_canister(
     env: &dyn Environment,
     canister_id: Principal,
@@ -114,6 +129,7 @@ pub async fn start_canister(
     Ok(())
 }
 
+#[context("Failed to stop canister {}.", canister_id)]
 pub async fn stop_canister(
     env: &dyn Environment,
     canister_id: Principal,
@@ -138,6 +154,7 @@ pub async fn stop_canister(
     Ok(())
 }
 
+#[context("Failed to update settings for {}.", canister_id)]
 pub async fn update_settings(
     env: &dyn Environment,
     canister_id: Principal,
@@ -180,6 +197,7 @@ pub async fn update_settings(
     Ok(())
 }
 
+#[context("Failed to uninstall code for {}.", canister_id)]
 pub async fn uninstall_code(
     env: &dyn Environment,
     canister_id: Principal,
@@ -204,6 +222,7 @@ pub async fn uninstall_code(
     Ok(())
 }
 
+#[context("Failed to delete {}.", canister_id)]
 pub async fn delete_canister(
     env: &dyn Environment,
     canister_id: Principal,
@@ -228,12 +247,13 @@ pub async fn delete_canister(
     Ok(())
 }
 
+#[context("Failed to deposit {} cycles into {}.", cycles, canister_id)]
 pub async fn deposit_cycles(
     env: &dyn Environment,
     canister_id: Principal,
     timeout: Duration,
     call_sender: &CallSender,
-    cycles: u64,
+    cycles: u128,
 ) -> DfxResult {
     #[derive(CandidType)]
     struct In {
@@ -253,6 +273,46 @@ pub async fn deposit_cycles(
     Ok(())
 }
 
+/// Can only run this locally, not on the real IC.
+/// Conjures cycles from nothing and deposits them in the selected canister.
+#[context(
+    "Failed provisional deposit of {} cycles to canister {}.",
+    cycles,
+    canister_id
+)]
+pub async fn provisional_deposit_cycles(
+    env: &dyn Environment,
+    canister_id: Principal,
+    timeout: Duration,
+    call_sender: &CallSender,
+    cycles: u128,
+) -> DfxResult {
+    #[derive(CandidType)]
+    struct In {
+        canister_id: Principal,
+        amount: u128,
+    }
+    let _: () = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ProvisionalTopUpCanister.as_ref(),
+        In {
+            canister_id,
+            amount: cycles,
+        },
+        timeout,
+        call_sender,
+        0,
+    )
+    .await?;
+
+    Ok(())
+}
+
+#[context(
+    "Failed to get canister id and path to its candid definitions for '{}'.",
+    canister_name
+)]
 pub fn get_local_cid_and_candid_path(
     env: &dyn Environment,
     canister_name: &str,

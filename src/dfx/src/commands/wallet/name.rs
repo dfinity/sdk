@@ -2,10 +2,10 @@ use crate::commands::wallet::wallet_query;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Get wallet name.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct NameOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: NameOpts) -> DfxResult {

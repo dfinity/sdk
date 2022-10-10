@@ -2,11 +2,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
 
-use clap::Clap;
+use clap::Parser;
 use std::io::Write;
 
 /// Lists existing identities.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct ListOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: ListOpts) -> DfxResult {

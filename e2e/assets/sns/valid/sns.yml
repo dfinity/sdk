@@ -1,0 +1,36 @@
+description: 'We''ve been making video game games since 2006, we''re based in Toronto'
+fallback_controller_principal_ids:
+- hpikg-6exdt-jn33w-ndty3-fc7jc-tl2lr-buih3-cs3y7-tftkp-sfp62-gqe
+initial_token_distribution:
+  FractionalDeveloperVotingPower:
+    airdrop_distribution:
+      airdrop_neurons:
+      - controller: w3i5o-5ylvd-cmm42-pw66i-n6qcw-fw3q7-kk5la-4edui-ozozq-5qq3j-dae
+        stake_e8s: 100000000
+        memo: 42
+        dissolve_delay_seconds: 86400
+    developer_distribution:
+      developer_neurons:
+      - controller: dktcs-d43lz-rosn2-wnwsj-kef34-6kl3i-ux7qb-ka6xr-biref-ykeaj-sqe
+        stake_e8s: 100000000
+        memo: 42
+        dissolve_delay_seconds: 86400
+    swap_distribution:
+      initial_swap_amount_e8s: 200000000
+      total_e8s: 1000000000
+    treasury_distribution:
+      total_e8s: 1000000000
+logo: logo.svg
+max_icp_e8s: 5000000000
+max_participant_icp_e8s: 5000000000
+min_icp_e8s: 100000000
+min_participant_icp_e8s: 100000000
+min_participants: 1
+name: "Car Pedal TESAT Robot"
+neuron_minimum_dissolve_delay_to_vote_seconds: 3600
+neuron_minimum_stake_e8s: 1000000
+proposal_reject_cost_e8s: 100000000
+token_name: "maxs awesome TESAT"
+token_symbol: TESAT
+transaction_fee_e8s: 10000
+url: https://nns.ic0.app

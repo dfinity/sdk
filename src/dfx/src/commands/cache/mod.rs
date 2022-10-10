@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 
 mod delete;
 mod install;
@@ -9,14 +9,14 @@ mod list;
 mod show;
 
 /// Manages the dfx version cache.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("cache"))]
 pub struct CacheOpts {
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub enum SubCommand {
     Delete(delete::CacheDeleteOpts),
     Install(install::CacheInstall),

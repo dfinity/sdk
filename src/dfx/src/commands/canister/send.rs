@@ -6,14 +6,14 @@ use crate::lib::sign::signed_message::SignedMessageV1;
 use ic_agent::agent::ReplicaV2Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 
-use anyhow::{anyhow, bail};
-use clap::Clap;
-use ic_types::Principal;
+use anyhow::{anyhow, bail, Context};
+use candid::Principal;
+use clap::Parser;
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 
-/// Send a signed message
-#[derive(Clap)]
+/// Send a previously-signed message.
+#[derive(Parser)]
 pub struct CanisterSendOpts {
     /// Specifies the file name of the message
     file_name: String,
@@ -29,7 +29,7 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     if *call_sender != CallSender::SelectedId {
-        bail!("`sign` currently doesn't support proxy through wallet canister, please use `dfx canister --no-wallet send ...`.");
+        bail!("`send` currently doesn't support proxying through the wallet canister, please use `dfx canister send --no-wallet ...`.");
     }
     let file_name = opts.file_name;
     let path = Path::new(&file_name);
@@ -42,9 +42,11 @@ pub async fn exec(
     message.validate()?;
 
     let network = message.network.clone();
-    let transport = ReqwestHttpReplicaV2Transport::create(network)?;
-    let content = hex::decode(&message.content)?;
-    let canister_id = Principal::from_text(message.canister_id.clone())?;
+    let transport = ReqwestHttpReplicaV2Transport::create(network)
+        .context("Failed to create transport object.")?;
+    let content = hex::decode(&message.content).context("Failed to decode message content.")?;
+    let canister_id = Principal::from_text(message.canister_id.clone())
+        .with_context(|| format!("Failed to parse canister id {:?}.", message.canister_id))?;
 
     if opts.status {
         if message.call_type.clone().as_str() != "update" {
@@ -53,8 +55,12 @@ pub async fn exec(
         if message.signed_request_status.is_none() {
             bail!("No signed_request_status in [{}].", file_name);
         }
-        let envelope = hex::decode(&message.signed_request_status.unwrap())?;
-        let response = transport.read_state(canister_id, envelope).await?;
+        let envelope = hex::decode(&message.signed_request_status.unwrap())
+            .context("Failed to decode envelope.")?;
+        let response = transport
+            .read_state(canister_id, envelope)
+            .await
+            .with_context(|| format!("Failed to read canister state of {}.", canister_id))?;
         eprintln!("To see the content of response, copy-paste the encoded string into cbor.me.");
         eprint!("Response: ");
         println!("{}", hex::encode(response));
@@ -74,14 +80,19 @@ pub async fn exec(
     // Not using dialoguer because it doesn't support non terminal env like bats e2e
     eprintln!("\nOkay? [y/N]");
     let mut input = String::new();
-    std::io::stdin().read_line(&mut input)?;
+    std::io::stdin()
+        .read_line(&mut input)
+        .context("Failed to read stdin.")?;
     if !["y", "yes"].contains(&input.to_lowercase().trim()) {
         return Ok(());
     }
 
     match message.call_type.as_str() {
         "query" => {
-            let response = transport.query(canister_id, content).await?;
+            let response = transport
+                .query(canister_id, content)
+                .await
+                .with_context(|| format!("Query call to {} failed.", canister_id))?;
             eprintln!(
                 "To see the content of response, copy-paste the encoded string into cbor.me."
             );
@@ -93,8 +104,12 @@ pub async fn exec(
                 &message
                     .request_id
                     .expect("Cannot get request_id from the update message."),
-            )?;
-            transport.call(canister_id, content, request_id).await?;
+            )
+            .context("Failed to read request_id.")?;
+            transport
+                .call(canister_id, content, request_id)
+                .await
+                .with_context(|| format!("Update call to {} failed.", canister_id))?;
 
             eprintln!(
                 "To check the status of this update call, append `--status` to current command."
@@ -104,7 +119,7 @@ pub async fn exec(
             eprint!("Request ID: ");
             println!("0x{}", String::from(request_id));
             eprint!("Canister ID: ");
-            println!("{}", canister_id.to_string());
+            println!("{}", canister_id);
         }
         // message.validate() guarantee that call_type must be query or update
         _ => unreachable!(),

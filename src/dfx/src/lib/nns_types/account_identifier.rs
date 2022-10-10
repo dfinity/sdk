@@ -4,10 +4,11 @@
 // dfinity-lab/dfinity@25999dd54d29c24edb31483801bddfd8c1d780c8
 // https://github.com/dfinity-lab/dfinity/blob/master/rs/rosetta-api/canister/src/account_identifier.rs
 
+use anyhow::Context;
 use candid::CandidType;
-use ic_types::principal::Principal;
-use openssl::sha::Sha224;
+use candid::Principal;
 use serde::{de, de::Error, Deserialize, Serialize};
+use sha2::{Digest, Sha224};
 use std::convert::{TryFrom, TryInto};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -37,7 +38,7 @@ impl AccountIdentifier {
         hash.update(&sub_account.0[..]);
 
         AccountIdentifier {
-            hash: hash.finish(),
+            hash: hash.finalize().into(),
         }
     }
 
@@ -64,11 +65,20 @@ impl AccountIdentifier {
         check_sum(*hex)
     }
 
-    pub fn to_hex(&self) -> String {
+    /// Converts this account identifier into a binary "address".
+    /// The address is CRC32(identifier) . identifier.
+    pub fn to_address(self) -> [u8; 32] {
+        let mut result = [0u8; 32];
+        result[0..4].copy_from_slice(&self.generate_checksum());
+        result[4..32].copy_from_slice(&self.hash);
+        result
+    }
+
+    pub fn to_hex(self) -> String {
         hex::encode(self.to_vec())
     }
 
-    pub fn to_vec(&self) -> Vec<u8> {
+    pub fn to_vec(self) -> Vec<u8> {
         [&self.generate_checksum()[..], &self.hash[..]].concat()
     }
 
@@ -159,7 +169,7 @@ pub struct Subaccount(pub [u8; 32]);
 
 impl Subaccount {
     #[allow(dead_code)]
-    pub fn to_vec(&self) -> Vec<u8> {
+    pub fn to_vec(self) -> Vec<u8> {
         self.0.to_vec()
     }
 }
@@ -179,5 +189,16 @@ impl TryFrom<&[u8]> for Subaccount {
 
     fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
         slice.try_into().map(Subaccount)
+    }
+}
+
+impl FromStr for Subaccount {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let hex = hex::decode(s)
+            .with_context(|| format!("Subaccount {s:?} is not a valid hex string."))?;
+        Self::try_from(&hex[..])
+            .with_context(|| format!("Subaccount {s:?} is not 64 characters long"))
     }
 }

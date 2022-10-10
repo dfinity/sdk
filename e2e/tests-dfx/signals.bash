@@ -2,6 +2,9 @@
 
 load ../utils/_
 
+# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
+
+
 setup() {
     standard_setup
 
@@ -25,14 +28,12 @@ teardown() {
 dfx_replica_kills_replica() {
     signal=$1
 
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-
     dfx_patchelf
     dfx replica --port 0 &
     DFX_PID=$!
 
     # wait for replica to start
-    assert_file_eventually_exists .dfx/replica-configuration/replica-1.port 15s
+    assert_file_eventually_exists "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port" 15s
 
     kill -"$signal" "$DFX_PID"
 

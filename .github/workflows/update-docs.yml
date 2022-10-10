@@ -1,0 +1,60 @@
+name: Update Docs
+on:
+  pull_request
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
+jobs:
+  update_dfx_json_schema:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ["1.60.0"]
+        os: [ ubuntu-20.04 ]
+    steps:
+      - uses: actions/checkout@v3.0.2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+      - name: Install Rust
+        run: |
+          rustup update ${{ matrix.rust }} --no-self-update
+          rustup component add clippy
+          rustup default ${{ matrix.rust }}
+
+      - name: Check cargo build
+        run: cargo build
+      - name: Show download worked
+        run: cargo run -- --version
+      - name: Update docs/dfx-json-schema.json
+        run: |
+          cargo run -- schema --outfile docs/dfx-json-schema.json
+          cargo run -- schema --for networks --outfile docs/networks-json-schema.json
+          echo "dfx.json schema:"
+          cat docs/dfx-json-schema.json
+          echo "networks.json schema:"
+          cat docs/networks-json-schema.json
+          if [[ $(git status | wc -l) -eq 2 ]]; then
+            if [[ ${{ github.event.pull_request.head.repo.full_name == github.repository }} ]]; then
+              git config user.name "GitHub Actions Bot"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add docs/dfx-json-schema.json docs/networks-json-schema.json
+              git commit -m "update dfx-json-schema and networks-json-schema" || true
+              git push
+            else
+              echo "Schemas are not up to date. Please run the following:"
+              echo "  dfx schema --outfile docs/dfx-json-schema.json"
+              echo "  dfx schema --for networks --outfile docs/networks-json-schema.json"
+              exit 1
+            fi
+          fi

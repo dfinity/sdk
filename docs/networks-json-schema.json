@@ -1,0 +1,277 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Map_of_ConfigNetwork",
+  "type": "object",
+  "additionalProperties": {
+    "$ref": "#/definitions/ConfigNetwork"
+  },
+  "definitions": {
+    "BitcoinAdapterLogLevel": {
+      "description": "Represents the log level of the bitcoin adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
+    "ConfigDefaultsBitcoin": {
+      "title": "Bitcoin Adapter Configuration",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "Enable Bitcoin Adapter",
+          "default": false,
+          "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "info",
+          "allOf": [
+            {
+              "$ref": "#/definitions/BitcoinAdapterLogLevel"
+            }
+          ]
+        },
+        "nodes": {
+          "title": "Available Nodes",
+          "description": "Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).",
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ConfigDefaultsBootstrap": {
+      "title": "Bootstrap Server Configuration",
+      "type": "object",
+      "properties": {
+        "ip": {
+          "description": "Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.",
+          "default": "127.0.0.1",
+          "type": "string",
+          "format": "ip"
+        },
+        "port": {
+          "description": "Specifies the port number that the bootstrap server listens on. Defaults to 8081.",
+          "default": 8081,
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "timeout": {
+          "description": "Specifies the maximum number of seconds that the bootstrap server will wait for upstream requests to complete. Defaults to 30.",
+          "default": 30,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "ConfigDefaultsCanisterHttp": {
+      "title": "HTTP Adapter Configuration",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "Enable HTTP Adapter",
+          "default": true,
+          "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "error",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsReplica": {
+      "title": "Local Replica Configuration",
+      "type": "object",
+      "properties": {
+        "log_level": {
+          "description": "Run replica with the provided log level. Default is 'error'. Debug prints still get displayed",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaLogLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "port": {
+          "description": "Port the replica listens on.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "subnet_type": {
+          "title": "Subnet Type",
+          "description": "Determines the subnet type the replica will run as. Affects things like cycles accounting, message size limits, cycle limits. Defaults to 'application'.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaSubnetType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigLocalProvider": {
+      "title": "Local Replica Configuration",
+      "type": "object",
+      "properties": {
+        "bind": {
+          "description": "Bind address for the webserver. For the shared local network, the default is 127.0.0.1:4943. For project-specific local networks, the default is 127.0.0.1:8000.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bitcoin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsBitcoin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bootstrap": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsBootstrap"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "canister_http": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsCanisterHttp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replica": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsReplica"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": {
+          "description": "Persistence type of this network.",
+          "default": "ephemeral",
+          "allOf": [
+            {
+              "$ref": "#/definitions/NetworkType"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigNetwork": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ConfigNetworkProvider"
+        },
+        {
+          "$ref": "#/definitions/ConfigLocalProvider"
+        }
+      ]
+    },
+    "ConfigNetworkProvider": {
+      "title": "Custom Network Configuration",
+      "type": "object",
+      "required": [
+        "providers"
+      ],
+      "properties": {
+        "providers": {
+          "description": "The URL(s) this network can be reached at.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "description": "Persistence type of this network.",
+          "default": "persistent",
+          "allOf": [
+            {
+              "$ref": "#/definitions/NetworkType"
+            }
+          ]
+        }
+      }
+    },
+    "HttpAdapterLogLevel": {
+      "description": "Represents the log level of the HTTP adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
+    "NetworkType": {
+      "title": "Network Type",
+      "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
+      "type": "string",
+      "enum": [
+        "ephemeral",
+        "persistent"
+      ]
+    },
+    "ReplicaLogLevel": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
+    "ReplicaSubnetType": {
+      "type": "string",
+      "enum": [
+        "system",
+        "application",
+        "verifiedapplication"
+      ]
+    }
+  }
+}

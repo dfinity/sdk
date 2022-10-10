@@ -12,7 +12,16 @@ setup() {
 
     dfx deploy
 
-    BACKEND="$(jq -r .networks.local.bind dfx.json)"
+    BACKEND="127.0.0.1:$(get_webserver_port)"
+
+    # In github workflows, at the time of this writing, we get:
+    #     macos-latest: mitmproxy 7.0.4
+    #     ubuntu-latest: mitmproxy 4.x
+    if [ "$(mitmdump --version | grep Mitmproxy | cut -d ' ' -f 2 | cut -c 1-2)" = "4." ]; then
+        MODIFY_BODY_ARG="--replacements"
+    else
+        MODIFY_BODY_ARG="--modify-body"
+    fi
 
     # Sometimes, something goes wrong with mitmdump's initialization.
     # It reports that it is listening, and the `nc` call succeeds,
@@ -28,10 +37,9 @@ setup() {
     while true
     do
         MITM_PORT=$(python3 "${BATS_TEST_DIRNAME}/../utils/get_ephemeral_port.py")
-        # shellcheck disable=SC2094
-        cat <<<"$(jq '.networks.local.bind="127.0.0.1:'"$MITM_PORT"'"' dfx.json)" >dfx.json
+        overwrite_webserver_port "$MITM_PORT"
 
-        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  --modify-body '/~s/Hello,/Hullo,' &
+        mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  "$MODIFY_BODY_ARG" '/~s/Hello,/Hullo,' &
         MITMDUMP_PID=$!
 
         timeout 5 sh -c \
@@ -47,7 +55,9 @@ setup() {
 }
 
 teardown() {
-    kill -9 $MITMDUMP_PID
+    # Kill child processes of mitmdump. Otherwise they hang around way too long
+    pkill -P $MITMDUMP_PID
+    kill $MITMDUMP_PID
 
     dfx_stop
 
@@ -55,7 +65,7 @@ teardown() {
 }
 
 @test "mitm attack - update: attack fails because certificate verification fails" {
-    assert_command_fail dfx canister call certificate hello_update '("Buckaroo")'
+    assert_command_fail dfx canister call certificate_backend hello_update '("Buckaroo")'
     assert_match 'Certificate verification failed.'
 }
 
@@ -63,6 +73,6 @@ teardown() {
     # The wallet does not have a query call forward method (currently calls forward from wallet's update method)
     # So call with users Identity as sender here
     # There may need to be a query version of wallet_call
-    assert_command dfx canister --no-wallet call certificate hello_query '("Buckaroo")'
+    assert_command dfx canister call certificate_backend hello_query '("Buckaroo")'
     assert_eq '("Hullo, Buckaroo!")'
 }

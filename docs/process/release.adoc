@@ -38,7 +38,7 @@ If you don't have a VPN connection set up for your computer, you'll need to foll
 +
 NOTE: If you are installing Nix for the first time, building the cache can take hours and might timeout depending on the reliability of your network connection.
 
-- You must have a registered NPM account.
+- You must have a registered NPM account and `npm` installed on your system.
 +
 If you don't have an account, you can go to the link:https://www.npmjs.com/[NPMJS] website and click *Sign Up* to create one using your `firstname.lastname@dfinity.org` email address.
 +
@@ -57,10 +57,13 @@ to verify:
 
 image:is-master-green.png[]
 
-=== Update your repository with merged commits
+=== Preparation
 
 . Connect to VPN.
 . Open a terminal and `cd` into your local copy of the `sdk` repo.
+
+=== Creating a New Release Branch
+
 . Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
 +
 [source, bash]
@@ -68,8 +71,36 @@ image:is-master-green.png[]
 git checkout master && git pull
 ----
 
+. Create the release branch.  Note that the branch name never includes alpha, beta, and so forth. All of these will be released on the same release branch.
++
+[source, bash]
+----
+git switch -c release-<n.n.n> && git push
+----
++
+For example, if creating the release branch for 0.7.0, you would run the following command:
++
+[source, bash]
+----
+git switch -c release-0.7.0 && git push
+----
+
+. Edit CHANGELOG.md to remove the "UNRELEASED" note from the version to be released.  Commit this to change to the release branch.
+
+=== Resuming on an Existing Release Branch
+
+. Check out the `master` branch and pull merged commits from the remote in your working directory by running the following command:
++
+[source, bash]
+----
+git checkout release-<n.n.n> && git pull
+----
+
+=== Ready
+
 At this point, you are ready to build a release candidate.
 There are two ways you can build a release candidate:
+
 - Using the <<script,SCRIPT-BASED release process>> to automate the build process and skip manual testing.
 - Using the <<manual,MANUAL STEPS release process>> to build and test the release.
 
@@ -108,8 +139,9 @@ Verify that you can build DFX from the `+master+` branch without errors.
 +
 [source, bash]
 ----
-export sdk_rc="$(nix-build ./dfx.nix -A build --option extra-binary-caches https://cache.dfinity.systems)"
-export dfx_rc="$sdk_rc/bin/dfx"
+cargo clean --release
+cargo build --release --locked
+export dfx_rc="$(pwd)/target/release/dfx"
 ----
 +
 The `nix-build` command can take a while to complete.
@@ -172,15 +204,15 @@ $dfx_rc canister call hello_world greet everyone
 +
 [source, bash]
 ----
-export hello_world_candid_url="http://localhost:8000/candid?canisterId=$($dfx_rc canister id hello_world)"
-export hello_world_assets_url="http://localhost:8000/?canisterId=$($dfx_rc canister id hello_world_assets)"
+export hello_world_backend_candid_url="http://localhost:4943/candid?canisterId=$($dfx_rc canister id hello_world_backend)"
+export hello_world_frontend_url="http://localhost:4943/?canisterId=$($dfx_rc canister id hello_world_frontend)"
 ----
 . Open a web browser and clear your cache or switch to Private Browsing/Incognito mode.
 . Open the following URL in your web browser:
 +
 [source,bash]
 ----
-echo "$hello_world_assets_url"
+echo "$hello_world_frontend_url"
 ----
 +
 . Verify that you are prompted to type a greeting in a prompt window.
@@ -194,7 +226,7 @@ Warnings can be ignored.
 +
 [source, bash]
 ----
-echo "$hello_world_candid_url"
+echo "$hello_world_backend_candid_url"
 ----
 +
 .. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
@@ -277,33 +309,29 @@ git add --all
 git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
 git push origin $USER/release-$NEW_DFX_VERSION
 ----
-. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.
+. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.  Change the base branch to `release-<n.n.n>`.
 . Have the validator review and approve the PR.
-. Apply the `automerge-squash` label.
-+
-image:automerge-label.png[]
-
-. Wait for the pull request to get merged.
+. Merge the PR manually (the automerge-squash label only works for PRs to the master branch).
 +
 NOTE: Depending on the number of jobs queued up, this step can take 45 to 60 minutes to complete.
 
-. Switch to the `stable` branch by running the following command:
+. Switch to the release branch by running the following command:
 +
 [source, bash]
 ----
-git switch stable
+git switch release-$NEW_DFX_VERSION
 ----
-. Pull the remote `stable` branch into your local `stable` branch by running the following command:
+. Set the upstream tracking information for the release branch:
 +
 [source, bash]
 ----
-git pull origin stable
+git branch --set-upstream-to=origin/$NEW_DFX_VERSION $NEW_DFX_VERSION
 ----
-. Pull the merged changes into the `stable` branch by running the following command:
+. Update the release branch:
 +
 [source, bash]
 ----
-git pull origin master --ff-only
+git pull
 ----
 . Create a new tag by running the following command:
 +
@@ -325,25 +353,13 @@ git describe --always
 git push origin $NEW_DFX_VERSION
 ----
 +
-CI will only publish `dfx` from the latest commit from the `stable` branch when that commit is tagged with a version.
-. Make sure the release tag is visible https://github.com/dfinity-lab/sdk/releases[here].
-. Push the `stable` branch by running the following command:
-+
-[source, bash]
-----
-git push origin stable
-----
-+
-Pushing the branch second is an optimization.
-Hydra will spur into action when `stable` advances, so if the branch is already tagged, it won't require a second fetch.
+The link:../../.github/workflows/publish.yml[publish.yml GitHub workflow] will build the release
+and upload to GitHub releases after you push the tag.
 
 [[post-build]]
 == Notification and post-build validation
 
-. Wait for the automatic slack message to
-link:https://dfinity.slack.com/archives/CUXGQBABF/p1594954197000100[_#build-notifications_]
-about the successful publishing of the `dfx` tarballs.
-
+. Wait for the publish workflow to complete.
 . Install the build using the `DFX_VERSION=<version>` environment variable.
 . Run through the link:https://sdk.dfinity.org/docs/quickstart/local-quickstart.html[_Quick start - Local development_] steps.
 . Run through link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#ping-the-network[Check the connection to the network] and link:https://sdk.dfinity.org/docs/quickstart/network-quickstart.html#net-deploy[Register, build, and deploy the application] steps to deploy to the network.

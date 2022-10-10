@@ -1,10 +1,10 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Forces unpacking the cache from this dfx version.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("install"))]
 pub struct CacheInstall {}
 

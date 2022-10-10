@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "canisters": {
+    "basic": {
+      "main": "basic.mo",
+      "dependencies": [ "remote" ]
+    },
+    "remote": {
+      "main": "remote.mo"
+    }
+  },
+  "defaults": {
+    "build": {
+      "output": "canisters/"
+    }
+  }
+}

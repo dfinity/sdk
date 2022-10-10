@@ -7,14 +7,17 @@ use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::metadata::names::CANDID_SERVICE;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 
 use anyhow::Context;
-use ic_types::principal::Principal as CanisterId;
+use candid::Principal as CanisterId;
+use fn_error_context::context;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::sync::Arc;
@@ -25,6 +28,7 @@ pub struct MotokoBuilder {
 }
 
 impl MotokoBuilder {
+    #[context("Failed to create MotokoBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(MotokoBuilder {
             logger: env.get_logger().new(o! {
@@ -36,6 +40,7 @@ impl MotokoBuilder {
 }
 
 impl CanisterBuilder for MotokoBuilder {
+    #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
         pool: &CanisterPool,
@@ -44,6 +49,7 @@ impl CanisterBuilder for MotokoBuilder {
         let mut result = BTreeSet::new();
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
 
+        #[context("Failed recursive dependency detection at {}.", file.to_string_lossy())]
         fn find_deps_recursive(
             cache: &dyn Cache,
             file: &Path,
@@ -53,15 +59,18 @@ impl CanisterBuilder for MotokoBuilder {
                 return Ok(());
             }
 
-            let output = cache
-                .get_binary_command("moc")?
-                .arg("--print-deps")
-                .arg(&file)
-                .output()?;
+            result.insert(MotokoImport::Relative(file.to_path_buf()));
+
+            let mut command = cache.get_binary_command("moc")?;
+            let command = command.arg("--print-deps").arg(&file);
+            let output = command
+                .output()
+                .with_context(|| format!("Error executing {:#?}", command))?;
 
             let output = String::from_utf8_lossy(&output.stdout);
             for line in output.lines() {
-                let import = MotokoImport::try_from(line)?;
+                let import =
+                    MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
                 match import {
                     MotokoImport::Canister(_) => {
                         result.insert(import);
@@ -95,10 +104,7 @@ impl CanisterBuilder for MotokoBuilder {
             .collect())
     }
 
-    fn supports(&self, info: &CanisterInfo) -> bool {
-        info.get_type() == "motoko"
-    }
-
+    #[context("Failed to build Motoko canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
         pool: &CanisterPool,
@@ -116,10 +122,16 @@ impl CanisterBuilder for MotokoBuilder {
             .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
             .collect();
 
-        std::fs::create_dir_all(motoko_info.get_output_root())?;
+        std::fs::create_dir_all(motoko_info.get_output_root()).with_context(|| {
+            format!(
+                "Failed to create {}.",
+                motoko_info.get_output_root().to_string_lossy()
+            )
+        })?;
         let cache = &self.cache;
         let idl_dir_path = &config.idl_root;
-        std::fs::create_dir_all(&idl_dir_path)?;
+        std::fs::create_dir_all(&idl_dir_path)
+            .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
@@ -132,19 +144,6 @@ impl CanisterBuilder for MotokoBuilder {
             .concat(),
             None => package_arguments,
         };
-
-        // Generate IDL
-        let output_idl_path = motoko_info.get_output_idl_path();
-        let params = MotokoParams {
-            build_target: BuildTarget::Idl,
-            suppress_warning: false,
-            input: &input_path,
-            package_arguments: &moc_arguments,
-            output: &output_idl_path,
-            idl_path: &idl_dir_path,
-            idl_map: &id_map,
-        };
-        motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
         // Generate wasm
         let params = MotokoParams {
@@ -152,88 +151,72 @@ impl CanisterBuilder for MotokoBuilder {
                 Profile::Release => BuildTarget::Release,
                 _ => BuildTarget::Debug,
             },
-            // Suppress the warnings the second time we call moc
-            suppress_warning: true,
-            input: &input_path,
+            suppress_warning: false,
+            input: input_path,
             package_arguments: &moc_arguments,
-            output: &output_wasm_path,
-            idl_path: &idl_dir_path,
+            output: output_wasm_path,
+            idl_path: idl_dir_path,
             idl_map: &id_map,
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
+        if canister_info.get_shrink() {
+            info!(self.logger, "Shrink WASM module size.");
+            super::shrink_wasm(motoko_info.get_output_wasm_path())?;
+        }
         Ok(BuildOutput {
             canister_id: canister_info
                 .get_canister_id()
                 .expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
+            add_candid_service_metadata: false,
         })
     }
 
     fn generate_idl(
         &self,
-        pool: &CanisterPool,
+        _pool: &CanisterPool,
         info: &CanisterInfo,
-        config: &BuildConfig,
+        _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        let input_path = motoko_info.get_main_path();
-
-        let id_map = pool
-            .get_canister_list()
-            .iter()
-            .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
-            .collect();
-
         let generate_output_dir = &info
             .get_declarations_config()
             .output
             .as_ref()
             .context("output here must not be None")?;
 
-        std::fs::create_dir_all(generate_output_dir)?;
-        let cache = &self.cache;
-        let idl_dir_path = &config.idl_root;
-        std::fs::create_dir_all(&idl_dir_path)?;
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
+            format!(
+                "Failed to create {}.",
+                generate_output_dir.to_string_lossy()
+            )
+        })?;
 
-        let package_arguments =
-            package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
-
-        let moc_arguments = match motoko_info.get_args() {
-            Some(args) => [
-                package_arguments,
-                args.split_whitespace().map(str::to_string).collect(),
-            ]
-            .concat(),
-            None => package_arguments,
-        };
-
-        // Generate IDL
         let output_idl_path = generate_output_dir
             .join(info.get_name())
             .with_extension("did");
-        let params = MotokoParams {
-            build_target: BuildTarget::Idl,
-            suppress_warning: false,
-            input: &input_path,
-            package_arguments: &moc_arguments,
-            output: &output_idl_path,
-            idl_path: &idl_dir_path,
-            idl_map: &id_map,
-        };
-        motoko_compile(&self.logger, cache.as_ref(), &params)?;
+
+        // get the path to candid file from dfx build
+        let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
+        let idl_from_build = motoko_info.get_output_idl_path().to_path_buf();
+
+        std::fs::copy(&idl_from_build, &output_idl_path).with_context(|| {
+            format!(
+                "Failed to copy {} to {}.",
+                idl_from_build.to_string_lossy(),
+                output_idl_path.to_string_lossy()
+            )
+        })?;
 
         Ok(output_idl_path)
     }
 }
 
 type CanisterIdMap = BTreeMap<String, String>;
-
 enum BuildTarget {
     Release,
     Debug,
-    Idl,
 }
 
 struct MotokoParams<'a> {
@@ -254,8 +237,10 @@ impl MotokoParams<'_> {
         match self.build_target {
             BuildTarget::Release => cmd.args(&["-c", "--release"]),
             BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
-            BuildTarget::Idl => cmd.arg("--idl"),
         };
+        cmd.arg("--idl").arg("--stable-types");
+        // TODO add a flag in dfx.json to opt-out public interface
+        cmd.arg("--public-metadata").arg(CANDID_SERVICE);
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
             for (name, canister_id) in self.idl_map.iter() {
@@ -267,10 +252,11 @@ impl MotokoParams<'_> {
 }
 
 /// Compile a motoko file.
+#[context("Failed to compile Motoko.")]
 fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
     params.to_args(&mut cmd);
-    run_command(logger, &mut cmd, params.suppress_warning)?;
+    run_command(logger, &mut cmd, params.suppress_warning).context("Failed to run 'moc'.")?;
     Ok(())
 }
 
@@ -351,7 +337,7 @@ fn run_command(
 ) -> DfxResult<Output> {
     trace!(logger, r#"Running {}..."#, format!("{:?}", cmd));
 
-    let output = cmd.output()?;
+    let output = cmd.output().context("Error while executing command.")?;
     if !output.status.success() {
         Err(DfxError::new(BuildError::CommandError(
             format!("{:?}", cmd),

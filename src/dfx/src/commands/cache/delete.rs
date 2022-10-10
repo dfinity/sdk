@@ -2,10 +2,10 @@ use crate::config::cache::delete_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Deletes a specific versioned cache of dfx.
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(name("delete"))]
 pub struct CacheDeleteOpts {
     #[clap(long)]

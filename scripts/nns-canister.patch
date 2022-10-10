@@ -1,0 +1,62 @@
+--- a/rs/nns/governance/canister/canister.rs
++++ b/rs/nns/governance/canister/canister.rs
+@@ -683,6 +683,15 @@ fn get_network_economics_parameters_() -> NetworkEconomics {
+ 
+ #[export_name = "canister_heartbeat"]
+ fn canister_heartbeat() {
++    // Distribute free maturity to all neurons.
++    const MATURITY_PER_HEARTBEAT: u64 = 1000000;
++    let now = governance().env.now();
++    for (_, neuron) in governance_mut().proto.neurons.iter_mut() {
++        if neuron.state(now) != ic_nns_governance::pb::v1::NeuronState::Dissolved {
++            neuron.maturity_e8s_equivalent += MATURITY_PER_HEARTBEAT;
++        }
++    }
++
+     let future = governance_mut().run_periodic_tasks();
+ 
+     // canister_heartbeat must be synchronous, so we cannot .await the future
+diff --git a/rs/nns/governance/src/governance.rs b/rs/nns/governance/src/governance.rs
+index 329e56bef..2f2d8f826 100644
+--- a/rs/nns/governance/src/governance.rs
++++ b/rs/nns/governance/src/governance.rs
+@@ -81,7 +81,7 @@ const MIN_NUMBER_VOTES_FOR_PROPOSAL_RATIO: f64 = 0.03;
+ 
+ // Parameter of the wait for quiet algorithm. This is the maximum amount the
+ // deadline can be delayed on each vote.
+-pub const WAIT_FOR_QUIET_DEADLINE_INCREASE_SECONDS: u64 = 2 * ONE_DAY_SECONDS;
++pub const WAIT_FOR_QUIET_DEADLINE_INCREASE_SECONDS: u64 = 2 * 60;
+ 
+ // 1 KB - maximum payload size of NNS function calls to keep in listing of
+ // proposals
+diff --git a/rs/nns/cmc/src/main.rs b/rs/nns/cmc/src/main.rs
+index 2c02d80dc..5a6072dc7 100644
+--- a/rs/nns/cmc/src/main.rs
++++ b/rs/nns/cmc/src/main.rs
+@@ -106,8 +106,8 @@ impl State {
+             minting_account_id: None,
+             authorized_subnets: BTreeMap::new(),
+             default_subnets: vec![],
+-            icp_xdr_conversion_rate: None,
+-            average_icp_xdr_conversion_rate: None,
++            icp_xdr_conversion_rate: Some(IcpXdrConversionRate{ timestamp_seconds: 1652443527, xdr_permyriad_per_icp: 60154 }),
++            average_icp_xdr_conversion_rate: Some(IcpXdrConversionRate{ timestamp_seconds: 1652443527, xdr_permyriad_per_icp: 60154 }),
+             recent_icp_xdr_rates: Some(vec![
+                 IcpXdrConversionRate::default();
+                 NUM_DAYS_FOR_ICP_XDR_AVERAGE
+@@ -320,6 +320,7 @@ fn get_icp_xdr_conversion_rate_() {
+ 
+ #[export_name = "canister_update set_icp_xdr_conversion_rate"]
+ fn set_icp_xdr_conversion_rate_() {
++    /*
+     let caller = caller();
+ 
+     assert_eq!(
+@@ -329,6 +330,7 @@ fn set_icp_xdr_conversion_rate_() {
+         caller,
+         "set_icp_xdr_conversion_rate"
+     );
++    */
+ 
+     let mut state = STATE.write().unwrap();
+     over(

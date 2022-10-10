@@ -1,8 +1,8 @@
 [package]
 name = "dfx"
-version = "0.8.1"
+version = "0.11.2"
 authors = ["DFINITY Team"]
-edition = "2018"
+edition = "2021"
 build = "assets/build.rs"
 
 [[bin]]
@@ -11,95 +11,86 @@ path = "src/main.rs"
 
 [build-dependencies]
 flate2 = "1.0.11"
+hex = "0.4.2"
+sha2 = "0.10.6"
 tar = "0.4.26"
+walkdir = "2.3.2"
 
 [dependencies]
-actix = "0.10.0"
-actix-cors = "0.4.0"
-actix-files = "0.3.0"
-actix-server = "1.0.4"
-actix-web = { version = "3.0.2", features = [ "default", "openssl", "rustls" ] }
-anyhow = "1.0.34"
+actix = "0.13.0"
+aes-gcm = "0.9.4"
+anyhow = "1.0.56"
+argon2 = "0.4.0"
 atty = "0.2.13"
-base64 = "0.11.0"
-candid = { version = "0.7.6", features = [ "random" ] }
-chrono = "0.4.9"
-clap = "=3.0.0-beta.2"
-clap_derive = "=3.0.0-beta.2"
-console = "0.7.7"
-crc32fast = "1.2.0"
+base64 = "0.13.0"
+bip32 = "0.4.0"
+byte-unit = { version = "4.0.14", features = ["serde"] }
+bytes = "1.2.1"
+candid = { version = "0.8.2", features = [ "random" ] }
+clap = { version = "3.1.6", features = [ "derive" ] }
+console = "0.15.0"
+crc32fast = "1.3.2"
 crossbeam = "0.8.1"
-ctrlc = { version = "3.1.6", features = [ "termination" ] }
-dialoguer = "0.6.2"
-erased-serde = "0.3.10"
+ctrlc = { version = "3.2.1", features = [ "termination" ] }
+dialoguer = "0.10.0"
+directories-next = "2.0.0"
 flate2 = "1.0.11"
-futures = "0.3.5"
+fn-error-context = "0.2.0"
+futures = "0.3.21"
+futures-util = "0.3.21"
 garcon = { version = "0.2", features = ["async"] }
+handlebars = "4.3.3"
 hex = {version = "0.4.2", features = ["serde"] }
-ic-types = "0.2.2"
-indicatif = "0.13.0"
-lazy-init = "0.5.0"
+humantime = "2.1.0"
+humantime-serde = "1.1.1"
+hyper-rustls = { version = "0.23.0", features = [ "webpki-roots", "http2" ] }
+ic-agent = { version = "0.21.0", features = ["reqwest"] }
+ic-asset = { version = "0.20.0", path = "../canisters/frontend/ic-asset" }
+ic-identity-hsm = "0.21.0"
+ic-utils = "0.21.0"
+ic-wasm = "0.2.1"
+indicatif = "0.16.0"
+itertools = "0.10.3"
+k256 = { version = "0.11.4", features = ["pem"] }
 lazy_static = "1.4.0"
-libflate = "0.1.27"
-humanize-rs = "0.1.5"
 mime = "0.3.16"
-mime_guess = "2.0.3"
-mockall = "0.6.0"
+mime_guess = "2.0.4"
 net2 = "0.2.34"
 num-traits = "0.2"
-openssl = "0.10.32"
-pem = "0.7.0"
-petgraph = "0.5.0"
-rand = "0.7.2"
-regex = "1.3.1"
+pem = "1.0.2"
+petgraph = "0.6.0"
+rand = "0.8.5"
+regex = "1.5.5"
 ring = "0.16.11"
-reqwest = { version = "0.11.4", features = [ "blocking", "json", "rustls-tls" ] }
-rustls = "0.18.0"
-rust_decimal = "1.10.3"
-semver = "0.9.0"
+reqwest = { version = "0.11.9", default-features = false, features = [ "blocking", "json", "rustls-tls", "native-tls-vendored" ] }
+rustls = "0.20.4"
+rust_decimal = "1.22.0"
+schemars = "0.8"
+semver = "1.0.6"
 serde = "1.0"
 serde_bytes = "0.11.2"
 serde_cbor = "0.11.1"
-serde_json = "1.0.57"
-serde_repr = "0.1.5"
-shell-words = "1.0.0"
+serde_json = "1.0.79"
+sha2 = "0.10.6"
+shell-words = "1.1.0"
 slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
-slog-term = "2.5.0"
-sysinfo = "0.9.6"
-tar = "0.4.37"
-tempfile = "3.1.0"
+slog-term = "2.9.0"
+sysinfo = "0.24.4"
+tar = "0.4.38"
+tempfile = "3.3.0"
+term = "0.7.0"
 thiserror = "1.0.20"
-tokio = { version = "1.8.1", features = [ "fs" ] }
-toml = "0.5.5"
+time = { version = "0.3.9", features = ["serde", "macros", "serde-human-readable"] }
+tiny-bip39 = "1.0.0"
+tokio = { version = "1.17.0", features = [ "fs" ] }
 url = "2.1.0"
 walkdir = "2.2.9"
-wasmparser = "0.45.0"
-webpki-roots = "0.21.0"
-
-[dependencies.ic-agent]
-version = "0.8.0"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "0cdb7e9cbd44afb368506cd6fd0febee1686316d"
-features = ["reqwest"]
-
-[dependencies.ic-asset]
-version = "0.3.0"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "0cdb7e9cbd44afb368506cd6fd0febee1686316d"
-
-[dependencies.ic-identity-hsm]
-version = "0.3.5"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "0cdb7e9cbd44afb368506cd6fd0febee1686316d"
-
-[dependencies.ic-utils]
-version = "0.6.0"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "0cdb7e9cbd44afb368506cd6fd0febee1686316d"
+wasmparser = "0.87.0"
+which = "4.2.5"
 
 [dev-dependencies]
-env_logger = "0.6"
-proptest = "0.9.5"
-mockito = "0.27.0"
+env_logger = "0.9"
+proptest = "1.0"
+mockito = "0.31.0"
 tempfile = "3.1.0"

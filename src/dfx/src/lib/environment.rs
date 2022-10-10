@@ -1,5 +1,5 @@
 use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, NetworksConfig};
 use crate::config::{cache, dfx_version};
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::IdentityManager;
@@ -7,29 +7,29 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 
 use anyhow::{anyhow, Context};
+use candid::Principal;
+use fn_error_context::context;
 use ic_agent::{Agent, Identity};
-use ic_types::Principal;
 use semver::Version;
 use slog::{Logger, Record};
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fs::create_dir_all;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Option<Arc<Config>>;
+    fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     fn is_in_project(&self) -> bool;
-    /// Return a temporary directory for configuration if none exists
-    /// for the current project or if not in a project. Following
-    /// invocations by other processes in the same project should
-    /// return the same configuration directory.
-    fn get_temp_dir(&self) -> &Path;
-    /// Return the directory where state for replica(s) is kept.
-    fn get_state_dir(&self) -> PathBuf;
+    /// Return a temporary directory for the current project.
+    /// If there is no project (no dfx.json), there is no project temp dir.
+    fn get_project_temp_dir(&self) -> Option<PathBuf>;
+
     fn get_version(&self) -> &Version;
 
     /// This is value of the name passed to dfx `--identity <name>`
@@ -41,10 +41,11 @@ pub trait Environment {
     fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
 
     #[allow(clippy::needless_lifetimes)]
-    fn get_network_descriptor<'a>(&'a self) -> Option<&'a NetworkDescriptor>;
+    fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
 
     fn get_logger(&self) -> &slog::Logger;
-    fn new_spinner(&self, message: &str) -> ProgressBar;
+    fn get_verbose_level(&self) -> i64;
+    fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
 
     // Explicit lifetimes are actually needed for mockall to work properly.
@@ -60,37 +61,28 @@ pub trait Environment {
 
 pub struct EnvironmentImpl {
     config: Option<Arc<Config>>,
-    temp_dir: PathBuf,
+    shared_networks_config: Arc<NetworksConfig>,
 
     cache: Arc<dyn Cache>,
 
     version: Version,
 
     logger: Option<slog::Logger>,
-    progress: bool,
+    verbose_level: i64,
 
     identity_override: Option<String>,
 }
 
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
-        let config = match Config::from_current_dir() {
-            Err(err) => {
-                if err.kind() == std::io::ErrorKind::NotFound {
-                    Ok(None)
-                } else {
-                    Err(err)
-                }
-            }
-            Ok(x) => Ok(Some(x)),
-        }?;
-        let temp_dir = match &config {
-            None => tempfile::tempdir()
-                .expect("Could not create a temporary directory.")
-                .into_path(),
-            Some(c) => c.get_path().parent().unwrap().join(".dfx"),
-        };
-        create_dir_all(&temp_dir)?;
+        let shared_networks_config = NetworksConfig::new()?;
+        let config = Config::from_current_dir()?;
+        if let Some(ref config) = config {
+            let temp_dir = config.get_temp_path();
+            create_dir_all(&temp_dir).with_context(|| {
+                format!("Failed to create temp directory {}.", temp_dir.display())
+            })?;
+        }
 
         // Figure out which version of DFX we should be running. This will use the following
         // fallback sequence:
@@ -105,14 +97,16 @@ impl EnvironmentImpl {
                 None => dfx_version().clone(),
                 Some(c) => match &c.get_config().get_dfx() {
                     None => dfx_version().clone(),
-                    Some(v) => Version::parse(&v)?,
+                    Some(v) => Version::parse(v)
+                        .with_context(|| format!("Failed to parse version from '{}'.", v))?,
                 },
             },
             Ok(v) => {
                 if v.is_empty() {
                     dfx_version().clone()
                 } else {
-                    Version::parse(&v)?
+                    Version::parse(&v)
+                        .with_context(|| format!("Failed to parse version from '{}'.", &v))?
                 }
             }
         };
@@ -120,10 +114,10 @@ impl EnvironmentImpl {
         Ok(EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),
             config: config.map(Arc::new),
-            temp_dir,
+            shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
             logger: None,
-            progress: true,
+            verbose_level: 0,
             identity_override: None,
         })
     }
@@ -133,13 +127,13 @@ impl EnvironmentImpl {
         self
     }
 
-    pub fn with_progress_bar(mut self, progress: bool) -> Self {
-        self.progress = progress;
+    pub fn with_identity_override(mut self, identity: Option<String>) -> Self {
+        self.identity_override = identity;
         self
     }
 
-    pub fn with_identity_override(mut self, identity: Option<String>) -> Self {
-        self.identity_override = identity;
+    pub fn with_verbose_level(mut self, verbose_level: i64) -> Self {
+        self.verbose_level = verbose_level;
         self
     }
 }
@@ -150,7 +144,11 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config(&self) -> Option<Arc<Config>> {
-        self.config.as_ref().map(|x| Arc::clone(x))
+        self.config.as_ref().map(Arc::clone)
+    }
+
+    fn get_networks_config(&self) -> Arc<NetworksConfig> {
+        self.shared_networks_config.clone()
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
@@ -163,12 +161,8 @@ impl Environment for EnvironmentImpl {
         self.config.is_some()
     }
 
-    fn get_temp_dir(&self) -> &Path {
-        &self.temp_dir
-    }
-
-    fn get_state_dir(&self) -> PathBuf {
-        self.get_temp_dir().join("state")
+    fn get_project_temp_dir(&self) -> Option<PathBuf> {
+        self.config.as_ref().map(|c| c.get_temp_path())
     }
 
     fn get_version(&self) -> &Version {
@@ -185,10 +179,10 @@ impl Environment for EnvironmentImpl {
         None
     }
 
-    fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
-        // create an AgentEnvironment explicitly, in order to specify network and agent.
-        // See install, build for examples.
-        None
+    fn get_network_descriptor(&self) -> &NetworkDescriptor {
+        // It's not valid to call get_network_descriptor on an EnvironmentImpl.
+        // All of the places that call this have an AgentEnvironment anyway.
+        unreachable!("NetworkDescriptor only available from an AgentEnvironment");
     }
 
     fn get_logger(&self) -> &slog::Logger {
@@ -197,8 +191,13 @@ impl Environment for EnvironmentImpl {
             .expect("Log was not setup, but is being used.")
     }
 
-    fn new_spinner(&self, message: &str) -> ProgressBar {
-        if self.progress {
+    fn get_verbose_level(&self) -> i64 {
+        self.verbose_level
+    }
+
+    fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
+        // Only show the progress bar if the level is INFO or more.
+        if self.verbose_level >= 0 {
             ProgressBar::new_spinner(message)
         } else {
             ProgressBar::discard()
@@ -226,20 +225,21 @@ pub struct AgentEnvironment<'a> {
 }
 
 impl<'a> AgentEnvironment<'a> {
+    #[context("Failed to create AgentEnvironment for network '{}'.", network_descriptor.name)]
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
     ) -> DfxResult<Self> {
+        let logger = backend.get_logger().clone();
         let mut identity_manager = IdentityManager::new(backend)?;
         let identity = identity_manager.instantiate_selected_identity()?;
+        let url = network_descriptor.first_provider()?;
 
-        let agent_url = network_descriptor.providers.first().unwrap();
         Ok(AgentEnvironment {
             backend,
-            agent: create_agent(backend.get_logger().clone(), agent_url, identity, timeout)
-                .expect("Failed to construct agent."),
-            network_descriptor,
+            agent: create_agent(logger, url, identity, timeout)?,
+            network_descriptor: network_descriptor.clone(),
             identity_manager,
         })
     }
@@ -254,6 +254,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_config()
     }
 
+    fn get_networks_config(&self) -> Arc<NetworksConfig> {
+        self.backend.get_networks_config()
+    }
+
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
         self.get_config().ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
@@ -264,12 +268,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.is_in_project()
     }
 
-    fn get_temp_dir(&self) -> &Path {
-        self.backend.get_temp_dir()
-    }
-
-    fn get_state_dir(&self) -> PathBuf {
-        self.backend.get_state_dir()
+    fn get_project_temp_dir(&self) -> Option<PathBuf> {
+        self.backend.get_project_temp_dir()
     }
 
     fn get_version(&self) -> &Version {
@@ -284,15 +284,19 @@ impl<'a> Environment for AgentEnvironment<'a> {
         Some(&self.agent)
     }
 
-    fn get_network_descriptor(&self) -> Option<&NetworkDescriptor> {
-        Some(&self.network_descriptor)
+    fn get_network_descriptor(&self) -> &NetworkDescriptor {
+        &self.network_descriptor
     }
 
     fn get_logger(&self) -> &slog::Logger {
         self.backend.get_logger()
     }
 
-    fn new_spinner(&self, message: &str) -> ProgressBar {
+    fn get_verbose_level(&self) -> i64 {
+        self.backend.get_verbose_level()
+    }
+
+    fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
         self.backend.new_spinner(message)
     }
 
@@ -319,7 +323,7 @@ pub struct AgentClient {
 
 impl AgentClient {
     pub fn new(logger: Logger, url: String) -> DfxResult<AgentClient> {
-        let url = reqwest::Url::parse(&url).context(format!("Invalid URL: {}", url))?;
+        let url = reqwest::Url::parse(&url).with_context(|| format!("Invalid URL: {}", url))?;
 
         let result = Self {
             logger,
@@ -334,6 +338,7 @@ impl AgentClient {
         Ok(result)
     }
 
+    #[context("Failed to determine http auth path.")]
     fn http_auth_path() -> DfxResult<PathBuf> {
         Ok(cache::get_cache_root()?.join("http_auth"))
     }
@@ -344,9 +349,11 @@ impl AgentClient {
         self.url.scheme() == "https" || self.url.host_str().unwrap_or("") == "localhost"
     }
 
+    #[context("Failed to read http auth map.")]
     fn read_http_auth_map(&self) -> DfxResult<BTreeMap<String, String>> {
         let p = &Self::http_auth_path()?;
-        let content = std::fs::read_to_string(p)?;
+        let content = std::fs::read_to_string(p)
+            .with_context(|| format!("Failed to read {}.", p.to_string_lossy()))?;
 
         // If there's an error parsing, simply use an empty map.
         Ok(
@@ -372,12 +379,14 @@ impl AgentClient {
                         // store the base64 encoding of `username:password`, but we decode it
                         // since the Agent requires username and password as separate fields.
                         let pair = base64::decode(&token).unwrap();
-                        let v: Vec<String> = String::from_utf8_lossy(pair.as_slice())
-                            .split(':')
-                            .take(2)
-                            .map(|s| s.to_owned())
-                            .collect();
-                        Ok(Some((v[0].to_owned(), v[1].to_owned())))
+                        let pair = String::from_utf8_lossy(pair.as_slice());
+                        let colon_pos = pair
+                            .find(':')
+                            .ok_or_else(|| anyhow!("Incorrectly formatted auth string (no `:`)"))?;
+                        Ok(Some((
+                            pair[..colon_pos].to_owned(),
+                            pair[colon_pos + 1..].to_owned(),
+                        )))
                     }
                 } else {
                     Ok(None)
@@ -393,7 +402,13 @@ impl AgentClient {
         map.insert(host.to_string(), auth.to_string());
 
         let p = Self::http_auth_path()?;
-        std::fs::write(&p, serde_json::to_string(&map)?.as_bytes())?;
+        std::fs::write(
+            &p,
+            serde_json::to_string(&map)
+                .context("Failed to serialize http auth map.")?
+                .as_bytes(),
+        )
+        .with_context(|| format!("Failed to write to {}.", p.to_string_lossy()))?;
 
         Ok(p)
     }
@@ -412,10 +427,16 @@ impl ic_agent::agent::http_transport::PasswordManager for AgentClient {
 
     fn required(&self, _url: &str) -> Result<(String, String), String> {
         eprintln!("Unauthorized HTTP Access... Please enter credentials:");
-        let username = dialoguer::Input::<String>::new()
-            .with_prompt("Username")
-            .interact()
-            .unwrap();
+        let mut username;
+        while {
+            username = dialoguer::Input::<String>::new()
+                .with_prompt("Username")
+                .interact()
+                .unwrap();
+            username.contains(':')
+        } {
+            eprintln!("Invalid username (unexpected `:`)")
+        }
         let password = dialoguer::Password::new()
             .with_prompt("Password")
             .interact()
@@ -443,24 +464,57 @@ impl ic_agent::agent::http_transport::PasswordManager for AgentClient {
     }
 }
 
-fn create_agent(
+#[context("Failed to create agent with url {}.", url)]
+pub fn create_agent(
     logger: Logger,
     url: &str,
     identity: Box<dyn Identity + Send + Sync>,
     timeout: Duration,
-) -> Option<Agent> {
-    AgentClient::new(logger, url.to_string())
-        .ok()
-        .and_then(|executor| {
-            Agent::builder()
-                .with_transport(
-                    ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(url)
-                        .unwrap()
-                        .with_password_manager(executor),
-                )
-                .with_boxed_identity(identity)
-                .with_ingress_expiry(Some(timeout))
+) -> DfxResult<Agent> {
+    let executor = AgentClient::new(logger, url.to_string())?;
+    let agent = Agent::builder()
+        .with_transport(
+            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(url)?
+                .with_password_manager(executor),
+        )
+        .with_boxed_identity(identity)
+        .with_ingress_expiry(Some(timeout))
+        .build()?;
+    Ok(agent)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, io};
+
+    use slog::{o, Drain, Logger};
+    use slog_term::{FullFormat, PlainSyncDecorator};
+    use tempfile::TempDir;
+
+    use super::AgentClient;
+
+    #[test]
+    fn test_passwords() {
+        let cache_root = TempDir::new().unwrap();
+        let old_var = env::var_os("DFX_CACHE_ROOT");
+        env::set_var("DFX_CACHE_ROOT", cache_root.path());
+        let log = Logger::root(
+            FullFormat::new(PlainSyncDecorator::new(io::stderr()))
                 .build()
-                .ok()
-        })
+                .fuse(),
+            o!(),
+        );
+        let client = AgentClient::new(log, "https://localhost".to_owned()).unwrap();
+        client
+            .save_http_auth("localhost", &base64::encode("default:hunter2:"))
+            .unwrap();
+        let (user, pass) = client.read_http_auth().unwrap().unwrap();
+        assert_eq!(user, "default");
+        assert_eq!(pass, "hunter2:");
+        if let Some(old_var) = old_var {
+            env::set_var("DFX_CACHE_ROOT", old_var);
+        } else {
+            env::remove_var("DFX_CACHE_ROOT");
+        }
+    }
 }

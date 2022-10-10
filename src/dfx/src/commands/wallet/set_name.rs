@@ -2,10 +2,10 @@ use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Clap;
+use clap::Parser;
 
 /// Set wallet name.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct SetNameOpts {
     /// Name of the wallet.
     name: String,

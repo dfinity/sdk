@@ -1,0 +1,14 @@
+type AddFirewallRulesPayload = record {
+  expected_hash : text;
+  scope : FirewallRulesScope;
+  positions : vec int32;
+  rules : vec FirewallRule;
+};
+type AddNodeOperatorPayload = record {
+  ipv6 : opt text;
+  node_operator_principal_id : opt principal;
+  node_allowance : nat64;
+  rewardable_nodes : vec record { text; nat32 };
+  node_provider_principal_id : opt principal;
+  dc_id : text;
+};

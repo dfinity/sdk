@@ -1,0 +1,55 @@
+name: Check dfx asset preparation
+# The cargo build steps in other workflows often benefit from caching of the results of this process,
+# so this workflow runs it separately.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
+jobs:
+  prepare:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [ '1.60.0' ]
+        os: [ ubuntu-latest, macos-latest ]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust
+        run: |
+          rustup update ${{ matrix.rust }} --no-self-update
+          rustup component add clippy
+          rustup default ${{ matrix.rust }}
+
+      - name: Prepare dfx assets
+        run: scripts/prepare-dfx-assets.sh "$(mktemp -d)"
+
+  aggregate:
+    name: prepare-dfx-assets:required
+    if: ${{ always() }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: check step result directly
+        if: ${{ needs.prepare.result != 'success' }}
+        run: exit 1

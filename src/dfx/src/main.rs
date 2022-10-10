@@ -2,7 +2,9 @@ use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
-use clap::{AppSettings, Clap};
+use anyhow::Error;
+use clap::{Args, Parser};
+use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use semver::Version;
 use std::path::PathBuf;
 
@@ -13,26 +15,41 @@ mod lib;
 mod util;
 
 /// The DFINITY Executor.
-#[derive(Clap)]
-#[clap(name("dfx"), version = dfx_version_str(), global_setting = AppSettings::ColoredHelp)]
+#[derive(Parser)]
+#[clap(name("dfx"), version = dfx_version_str())]
 pub struct CliOpts {
-    #[clap(long, short('v'), parse(from_occurrences))]
+    /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
+    #[clap(long, short('v'), parse(from_occurrences), global(true))]
     verbose: u64,
 
-    #[clap(long, short('q'), parse(from_occurrences))]
+    /// Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.
+    #[clap(long, short('q'), parse(from_occurrences), global(true))]
     quiet: u64,
 
-    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]))]
+    /// The logging mode to use. You can log to stderr, a file, or both.
+    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]), global(true))]
     logmode: String,
 
-    #[clap(long)]
+    /// The file to log to, if logging to a file (see --logmode).
+    #[clap(long, global(true))]
     logfile: Option<String>,
 
-    #[clap(long)]
+    /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
+    #[clap(long, global(true))]
     identity: Option<String>,
 
     #[clap(subcommand)]
     command: commands::Command,
+}
+
+#[derive(Args, Clone, Debug)]
+struct NetworkOpt {
+    /// Override the compute network to connect to. By default, the local network is used.
+    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
+    /// ephemeral network will be created specifically for this request. E.g.
+    /// "http://localhost:12345/" is a valid network name.
+    #[clap(long, global(true))]
+    network: Option<String>,
 }
 
 fn is_warning_disabled(warning: &str) -> bool {
@@ -85,9 +102,9 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
+fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
     // Create a logger with our argument matches.
-    let level = opts.verbose as i64 - opts.quiet as i64;
+    let verbose_level = opts.verbose as i64 - opts.quiet as i64;
 
     let mode = match opts.logmode.as_str() {
         "tee" => LoggingMode::Tee(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
@@ -95,29 +112,91 @@ fn setup_logging(opts: &CliOpts) -> (bool, slog::Logger) {
         _ => LoggingMode::Stderr,
     };
 
-    // Only show the progress bar if the level is INFO or more.
-    (level >= 0, create_root_logger(level, mode))
+    (verbose_level, create_root_logger(verbose_level, mode))
+}
+
+fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
+    let mut stderr = util::stderr_wrapper::stderr_wrapper();
+
+    // print error/cause stack
+    for (level, cause) in err.chain().enumerate() {
+        if level == 0 {
+            stderr
+                .fg(term::color::RED)
+                .expect("Failed to set stderr output color.");
+            write!(stderr, "Error: ").expect("Failed to write to stderr.");
+            stderr
+                .reset()
+                .expect("Failed to reset stderr output color.");
+
+            writeln!(stderr, "{}", err).expect("Failed to write to stderr.");
+            continue;
+        }
+        if level == 1 {
+            stderr
+                .fg(term::color::YELLOW)
+                .expect("Failed to set stderr output color.");
+            write!(stderr, "Caused by: ").expect("Failed to write to stderr.");
+            stderr
+                .reset()
+                .expect("Failed to reset stderr output color.");
+
+            writeln!(stderr, "{}", err).expect("Failed to write to stderr.");
+        }
+        eprintln!("{:width$}{}", "", cause, width = level * 2);
+    }
+
+    // print diagnosis
+    if let Some(error_explanation) = error_diagnosis.0 {
+        stderr
+            .fg(term::color::YELLOW)
+            .expect("Failed to set stderr output color.");
+        writeln!(stderr, "Error explanation:").expect("Failed to write to stderr.");
+        stderr
+            .reset()
+            .expect("Failed to reset stderr output color.");
+
+        writeln!(stderr, "{}", error_explanation).expect("Failed to write to stderr.");
+    }
+    if let Some(action_suggestion) = error_diagnosis.1 {
+        stderr
+            .fg(term::color::YELLOW)
+            .expect("Failed to set stderr output color.");
+        writeln!(stderr, "How to resolve the error:").expect("Failed to write to stderr.");
+        stderr
+            .reset()
+            .expect("Failed to reset stderr output color.");
+
+        writeln!(stderr, "{}", action_suggestion).expect("Failed to write to stderr.");
+    }
 }
 
 fn main() {
     let cli_opts = CliOpts::parse();
-    let (progress_bar, log) = setup_logging(&cli_opts);
+    let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let command = cli_opts.command;
+    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
             match EnvironmentImpl::new().map(|env| {
                 env.with_logger(log)
-                    .with_progress_bar(progress_bar)
                     .with_identity_override(identity)
+                    .with_verbose_level(verbose_level)
             }) {
                 Ok(env) => {
                     slog::trace!(
                         env.get_logger(),
                         "Trace mode enabled. Lots of logs coming up."
                     );
-                    commands::exec(&env, command)
+                    match commands::exec(&env, command) {
+                        Err(e) => {
+                            error_diagnosis = diagnose(&env, &e);
+                            Err(e)
+                        }
+                        ok => ok,
+                    }
                 }
                 Err(e) => Err(e),
             }
@@ -125,8 +204,7 @@ fn main() {
         Err(e) => Err(e),
     };
     if let Err(err) = result {
-        eprintln!("{}", err);
-
+        print_error_and_diagnosis(err, error_diagnosis);
         std::process::exit(255);
     }
 }

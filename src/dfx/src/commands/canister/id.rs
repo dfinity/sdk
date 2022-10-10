@@ -2,11 +2,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 
-use clap::Clap;
-use ic_types::principal::Principal;
+use candid::Principal;
+use clap::Parser;
 
 /// Prints the identifier of a canister.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct CanisterIdOpts {
     /// Specifies the name of the canister.
     canister: String,

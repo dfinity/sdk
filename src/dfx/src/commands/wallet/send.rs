@@ -1,15 +1,17 @@
-use crate::commands::wallet::wallet_update;
+use crate::commands::wallet::get_wallet;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators::cycle_amount_validator;
+use crate::util::expiry_duration;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use candid::CandidType;
-use clap::Clap;
-use ic_types::Principal;
+use candid::Principal;
+use clap::Parser;
 
 /// Send cycles to another cycles wallet.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct SendOpts {
     /// Canister ID of the destination cycles wallet.
     destination: String,
@@ -24,18 +26,25 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
     #[derive(CandidType)]
     struct In {
         canister: Principal,
-        amount: u64,
+        amount: u128,
     }
-    let canister = Principal::from_text(opts.destination.clone())?;
+    let canister = Principal::from_text(&opts.destination).with_context(|| {
+        format!(
+            "Failed to parse {:?} as destination principal.",
+            &opts.destination
+        )
+    })?;
     // amount has been validated by cycle_amount_validator
-    let amount = opts.amount.parse::<u64>().unwrap();
-    let (res,): (Result<(), String>,) =
-        wallet_update(env, "wallet_send", In { canister, amount }).await?;
-    Ok(res.map_err(|err| {
+    let amount = opts.amount.parse::<u128>().unwrap();
+    let res = get_wallet(env)
+        .await?
+        .wallet_send(canister, amount, waiter_with_timeout(expiry_duration()))
+        .await;
+    res.map_err(|err| {
         anyhow!(
             "Sending cycles to {} failed with: {}",
             opts.destination,
             err
         )
-    })?)
+    })
 }

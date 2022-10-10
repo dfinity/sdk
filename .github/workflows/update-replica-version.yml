@@ -1,0 +1,146 @@
+name: "chore: Update replica"
+on: 
+  workflow_dispatch:
+    inputs:
+      replicaVersionLatestOrCustom:
+        description: 'use latest replica version, or provide custom revision'
+        type: choice
+        default: 'latest'
+        options:
+        - latest
+        - custom
+      customReplicaVersion:
+        description: 'dfinity/ic commit SHA - get the latest Elect Replica Version from https://dashboard.internetcomputer.org/releases'     
+        default: "required if custom"
+      updateNnsCanisters:
+        description: 'Update the NNS canisters for e2e tests'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IC_RELEASES_API: "https://ic-api.internetcomputer.org/api/v3/subnet-replica-versions?limit=50&offset=0"
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
+jobs:
+  update-replica:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3.0.2
+
+    - name: determine replica commit sha
+      run: |
+        if [ '${{ github.event.inputs.replicaVersionLatestOrCustom }}' = 'latest' ]; then
+          echo "REPLICA_VERSION=$(curl -s "${{ env.IC_RELEASES_API }}" | jq  -r '.data[0].replica_version_id')" >> $GITHUB_ENV
+        else 
+          echo "REPLICA_VERSION=${{ github.event.inputs.customReplicaVersion }}" >> $GITHUB_ENV
+        fi
+        grep -s "REPLICA_VERSION" $GITHUB_ENV
+   
+    - name: install Nix
+      uses: cachix/install-nix-action@d64e0553100205688c0fb2fa16edb0fc8663c590 # https://github.com/cachix/install-nix-action/releases/tag/v17
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
+    - name: install niv (dependency manager for Nix projects)
+      run: nix-env -i niv -f '<nixpkgs>'
+
+    - name: intall packages from nix/sources.json
+      run: niv update
+
+    - name: update replica
+      run: |
+        if [ ${{ github.event.inputs.updateNnsCanisters }} = true ]; then
+          echo "updating the replica and NNS canisters for e2e test"
+          scripts/update-replica.sh ${{ env.REPLICA_VERSION }} --update-nns
+        else
+          echo "updating the replica"
+          scripts/update-replica.sh ${{ env.REPLICA_VERSION }} 
+        fi
+
+    - name: setup git config, then create new branch and push new commit to it
+      run: |
+        git config author.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
+        git config author.name "${{ github.event.sender.login }}"
+        git config committer.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config committer.name "GitHub Actions Bot"
+        git config user.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
+        git config user.name "${{ github.event.sender.login }}"
+        git checkout -b chore-update-replica-${{ env.REPLICA_VERSION }} 
+        git add .
+        git commit -m "chore: update replica version to ${{ env.REPLICA_VERSION }}"
+        git push origin chore-update-replica-${{ env.REPLICA_VERSION }} 
+      
+    - name: create Pull Request, with CHANGELOG.adoc entry suggestion 
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.NIV_UPDATER_TOKEN }} # act on behalf of https://github.com/dfinity-bot 
+        script: |
+          const { repo, owner } = context.repo;
+
+          let latest_dfx_release = await github.rest.repos.getLatestRelease({ owner, repo });
+          core.startGroup('latest dfx release');
+          core.info(JSON.stringify(latest_dfx_release, null, 2));
+          core.endGroup();
+
+          const re = /replica version used: ([a-f0-9]+)/g;
+          let latest_release_replica_version;
+          try {
+            latest_release_replica_version = re.exec(latest_dfx_release.data.body)[1];
+            core.info(`latest_release_replica_version = ${latest_release_replica_version}`);
+          } catch {
+            latest_release_replica_version = "";
+            core.warning("the phrase \"replica version used: <SHA>\" has not been found in latest GitHub Release");
+          }
+
+          let elected_replicas = await github.request("GET ${{ env.IC_RELEASES_API }}");
+          core.startGroup('elected_replicas fetched from ic-api.internetcomputer.org');
+          core.info(JSON.stringify(elected_replicas, null, 2));
+          core.endGroup();
+
+          let idx_start = elected_replicas.data.data.findIndex(el => el.replica_version_id === "${{ env.REPLICA_VERSION }}");
+          let idx_end = elected_replicas.data.data.findIndex(el => el.replica_version_id === latest_release_replica_version);
+          core.info(`idx_start:idx_end is ${idx_start}:${idx_end}`);
+          let new_proposals_since_last_release = elected_replicas.data.data.slice(idx_start, idx_end);
+          core.startGroup('new proposals since last release');
+          core.info(JSON.stringify(new_proposals_since_last_release, null, 2));
+          core.endGroup();
+
+          const new_replica_sha__short = "${{ env.REPLICA_VERSION }}".substring(0, 8);
+          const pr_create_result = await github.rest.pulls.create({
+            title: `chore: update replica version to ${new_replica_sha__short}`,
+            owner,
+            repo,
+            head: 'chore-update-replica-${{ env.REPLICA_VERSION }}',
+            base: 'master',
+            body: [
+              `## Suggested [CHANGELOG.md](https://github.com/${owner}/${repo}/edit/chore-update-replica-${{ env.REPLICA_VERSION }}/CHANGELOG.md) changes`,
+              '```',
+              '## Dependencies',
+              '',
+              '### Replica',
+              '',
+              'Updated replica to elected commit ${{ env.REPLICA_VERSION }}.',
+              'This incorporates the following executed proposals:',
+              '',
+              new_proposals_since_last_release.map(el => `- [${el.proposal_id}](https://dashboard.internetcomputer.org/proposal/${el.proposal_id})`).join('\n'),
+              '```',
+              '## Previous replica version',
+              `\`${latest_release_replica_version}\``
+            ].join('\n')
+          });
+          github.rest.issues.addLabels({
+            owner,
+            repo,
+            issue_number: pr_create_result.data.number,
+            labels: ['chore', 'automerge-squash']
+          });
+          core.startGroup('new PR JSON object');
+          core.info(JSON.stringify(pr_create_result, null, 2));
+          core.endGroup();

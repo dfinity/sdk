@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use indicatif::{ProgressBar as IndicatifProgressBar, ProgressDrawTarget};
 
 pub struct ProgressBar {
@@ -23,7 +25,7 @@ macro_rules! forward_fn_impl {
 }
 
 impl ProgressBar {
-    pub fn new_spinner(message: &str) -> Self {
+    pub fn new_spinner(message: Cow<'static, str>) -> Self {
         let progress_bar = IndicatifProgressBar::new_spinner();
         progress_bar.set_draw_target(ProgressDrawTarget::stderr());
 
@@ -35,7 +37,7 @@ impl ProgressBar {
         }
     }
 
-    forward_fn_impl!(finish_with_message, message: &str);
+    forward_fn_impl!(finish_with_message, message: Cow<'static, str>);
 
     pub fn discard() -> Self {
         ProgressBar { bar: None }

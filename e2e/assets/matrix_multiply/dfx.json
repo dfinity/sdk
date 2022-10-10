@@ -4,7 +4,7 @@
     "dot_product": {
       "main": "dot_product.mo"
     },
-    "hello": {
+    "hello_backend": {
       "main": "matrix.mo"
     },
     "transpose": {
@@ -14,11 +14,6 @@
   "defaults": {
     "build": {
       "output": "canisters/"
-    }
-  },
-  "networks": {
-    "local": {
-      "bind": "127.0.0.1:8000"
     }
   }
 }

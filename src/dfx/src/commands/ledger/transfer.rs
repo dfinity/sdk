@@ -1,27 +1,26 @@
-use crate::commands::ledger::get_icpts_from_args;
+use crate::commands::ledger::{get_icpts_from_args, transfer};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::nns_types::account_identifier::AccountIdentifier;
+use crate::lib::ledger_types::{Memo, MAINNET_LEDGER_CANISTER_ID};
+use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::nns_types::{BlockHeight, Memo, SendArgs, LEDGER_CANISTER_ID};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator, memo_validator};
-use crate::util::expiry_duration;
 
-use anyhow::anyhow;
-use candid::{Decode, Encode};
-use clap::Clap;
-use ic_types::principal::Principal;
+use anyhow::{anyhow, Context};
+use candid::Principal;
+use clap::Parser;
 use std::str::FromStr;
 
-const SEND_METHOD: &str = "send_dfx";
-
-/// Transfer ICP from the user to the destination AccountIdentifier
-#[derive(Clap)]
+/// Transfer ICP from the user to the destination account identifier.
+#[derive(Parser)]
 pub struct TransferOpts {
     /// AccountIdentifier of transfer destination.
     to: String,
+
+    /// Subaccount to transfer from.
+    #[clap(long)]
+    from_subaccount: Option<Subaccount>,
 
     /// ICPs to transfer to the destination AccountIdentifier
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
@@ -44,19 +43,34 @@ pub struct TransferOpts {
     /// Transaction fee, default is 10000 e8s.
     #[clap(long, validator(icpts_amount_validator))]
     fee: Option<String>,
+
+    #[clap(long)]
+    /// Canister ID of the ledger canister.
+    ledger_canister_id: Option<Principal>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
-    let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
+    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
 
-    let fee = opts.fee.map_or(Ok(TRANSACTION_FEE), |v| {
-        ICPTs::from_str(&v).map_err(|err| anyhow!(err))
-    })?;
+    let fee = opts.fee.clone().map_or(TRANSACTION_FEE, |v| {
+        ICPTs::from_str(&v).expect("bug: amount_validator did not validate the fee")
+    });
 
-    // validated by memo_validator
-    let memo = Memo(opts.memo.parse::<u64>().unwrap());
+    let memo = Memo(
+        opts.memo
+            .parse::<u64>()
+            .expect("bug: memo_validator did not validate the memo"),
+    );
 
-    let to = AccountIdentifier::from_str(&opts.to).map_err(|err| anyhow!(err))?;
+    let to = AccountIdentifier::from_str(&opts.to)
+        .map_err(|e| anyhow!(e))
+        .with_context(|| {
+            format!(
+                "Failed to parse transfer destination from string '{}'.",
+                &opts.to
+            )
+        })?
+        .to_address();
 
     let agent = env
         .get_agent()
@@ -64,22 +78,21 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
-    let canister_id = Principal::from_text(LEDGER_CANISTER_ID)?;
+    let canister_id = opts
+        .ledger_canister_id
+        .unwrap_or(MAINNET_LEDGER_CANISTER_ID);
 
-    let result = agent
-        .update(&canister_id, SEND_METHOD)
-        .with_arg(Encode!(&SendArgs {
-            memo,
-            amount,
-            fee,
-            from_subaccount: None,
-            to,
-            created_at_time: None,
-        })?)
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await?;
+    let block_height = transfer(
+        agent,
+        &canister_id,
+        memo,
+        amount,
+        fee,
+        opts.from_subaccount,
+        to,
+    )
+    .await?;
 
-    let block_height = Decode!(&result, BlockHeight)?;
     println!("Transfer sent at BlockHeight: {}", block_height);
 
     Ok(())

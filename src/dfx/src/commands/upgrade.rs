@@ -2,17 +2,18 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::manifest::{get_latest_release, get_latest_version};
 
-use clap::Clap;
+use anyhow::Context;
+use clap::Parser;
 use semver::Version;
 
 /// Upgrade DFX.
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct UpgradeOpts {
     /// Current Version.
     #[clap(long)]
     current_version: Option<String>,
 
-    #[clap(long, default_value = "https://sdk.dfinity.org", hidden = true)]
+    #[clap(long, default_value = "https://sdk.dfinity.org", hide(true))]
     release_root: String,
 }
 
@@ -24,7 +25,8 @@ pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
         _ => panic!("Not supported architecture"),
     };
     let current_version = if let Some(version) = opts.current_version {
-        Version::parse(&version)?
+        Version::parse(&version)
+            .with_context(|| format!("Failed to parse {} as version.", &version))?
     } else {
         env.get_version().clone()
     };

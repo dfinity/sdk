@@ -6,13 +6,13 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::expiry_duration;
 
-use clap::Clap;
-use ic_types::Principal;
+use candid::Principal;
+use clap::Parser;
 use slog::info;
 use std::time::Duration;
 
-/// Stops a canister that is currently running on the Internet Computer network.
-#[derive(Clap)]
+/// Stops a currently running canister.
+#[derive(Parser)]
 pub struct CanisterStopOpts {
     /// Specifies the name or id of the canister to stop.
     /// You must specify either a canister name/id or the --all option.
@@ -57,11 +57,11 @@ pub async fn exec(
     let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
-        stop_canister(env, &canister, timeout, call_sender).await
+        stop_canister(env, canister, timeout, call_sender).await
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                stop_canister(env, &canister, timeout, call_sender).await?;
+                stop_canister(env, canister, timeout, call_sender).await?;
             }
         }
         Ok(())
