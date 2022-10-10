@@ -12,6 +12,10 @@ The command line interface for nns commands has been updated to:
 - Not offer --network as a flag given that it is unused
 - List nns subcommands
 
+### feat: -y flag for canister installation
+
+`dfx canister install` and `dfx deploy` now have a `-y` flag that will automatically confirm any y/n checks made during canister installation.
+
 ### fix: Compute Motoko dependencies in linear (not exponential) time by detecting visited imports.
 
 ### fix(generate): add missing typescript types and fix issues with bindings array in dfx.json
