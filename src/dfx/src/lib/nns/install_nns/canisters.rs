@@ -176,8 +176,8 @@ pub const SNS_LEDGER_ARCHIVE: SnsCanisterInstallation = SnsCanisterInstallation 
     wasm_name: "ic-icrc1-archive.wasm",
 };
 /// Indexes ledger data.
-pub const SNS_LEDGER_INDEX: SnsCanisterInstallation = SnsCanisterInstallation {
-    canister_name: "sns-ledger-index",
+pub const SNS_INDEX: SnsCanisterInstallation = SnsCanisterInstallation {
+    canister_name: "sns-index",
     upload_name: "index",
     wasm_name: "ic-icrc1-index.wasm",
 };
@@ -192,7 +192,7 @@ pub const SNS_CANISTERS: [&SnsCanisterInstallation; 6] = [
     &SNS_SWAP,
     &SNS_LEDGER,
     &SNS_LEDGER_ARCHIVE,
-    &SNS_LEDGER_INDEX,
+    &SNS_INDEX,
 ];
 
 /// Test account with well known public & private keys, used in NNS_LEDGER, NNS_DAPP and third party projects.
