@@ -4,6 +4,14 @@
 
 ## DFX
 
+### feat: NNS usability improvements
+
+The command line interface for nns commands has been updated to:
+
+- Give better help when the subnet type is incorrect
+- Not offer --network as a flag given that it is unused
+- List nns subcommands
+
 ### fix: Compute Motoko dependencies in linear (not exponential) time by detecting visited imports.
 
 ### fix(generate): add missing typescript types and fix issues with bindings array in dfx.json

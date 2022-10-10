@@ -3,7 +3,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::provider::create_agent_environment;
-use crate::NetworkOpt;
 
 use clap::Parser;
 use tokio::runtime::Runtime;
@@ -18,26 +17,20 @@ pub struct NnsOpts {
     /// `dfx nns` subcommand arguments.
     #[clap(subcommand)]
     subcmd: SubCommand,
-
-    /// An argument to choose the network from those specified in dfx.json.
-    #[clap(flatten)]
-    network: NetworkOpt,
 }
 
 /// Command line options for subcommands of `dfx nns`.
 #[derive(Parser)]
 enum SubCommand {
-    /// Options for importing NNS API definitions and canister IDs.
-    #[clap(hide(true))]
+    /// Import NNS API definitions and canister IDs.
     Import(import::ImportOpts),
-    /// Options for installing an NNS.
-    #[clap(hide(true))]
+    /// Install an NNS on the local dfx server.
     Install(install::InstallOpts),
 }
 
 /// Executes `dfx nns` and its subcommands.
 pub fn exec(env: &dyn Environment, opts: NnsOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.network)?;
+    let env = create_agent_environment(env, None)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {
