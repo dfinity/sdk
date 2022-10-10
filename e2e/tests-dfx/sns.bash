@@ -81,4 +81,6 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     dfx canister id sns_ledger
     dfx canister id sns_root
     dfx canister id sns_swap
+    dfx canister id sns_ledger_archive
+    dfx canister id sns_ledger_index
 }

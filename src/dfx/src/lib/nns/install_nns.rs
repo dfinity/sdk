@@ -594,7 +594,7 @@ pub fn set_cmc_authorized_subnets(
 }
 
 /// Uploads wasms to the nns-sns-wasm canister.
-#[context("Failed to upload wasm fils to the nns-sns-wasm canister; it may not be possible to create an SNS.")]
+#[context("Failed to upload wasm files to the nns-sns-wasm canister; it may not be possible to create an SNS.")]
 pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Result<()> {
     for SnsCanisterInstallation {
         upload_name,
