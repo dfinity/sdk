@@ -4,9 +4,35 @@
 
 ## DFX
 
+### feat: NNS usability improvements
+
+The command line interface for nns commands has been updated to:
+
+- Give better help when the subnet type is incorrect
+- Not offer --network as a flag given that it is unused
+- List nns subcommands
+
+### feat: -y flag for canister installation
+
+`dfx canister install` and `dfx deploy` now have a `-y` flag that will automatically confirm any y/n checks made during canister installation.
+
+### fix: Compute Motoko dependencies in linear (not exponential) time by detecting visited imports.
+
+### fix(generate): add missing typescript types and fix issues with bindings array in dfx.json
+
+### chore: update Candid UI canister with commit 79d55e7f568aec00e16dd0329926cc7ea8e3a28b
+
 ### refactor: Factor out code for calling arbitrary bundled binaries
 
 The function for calling sns can now call any bundled binary.
+
+### docs: Document dfx nns subcommands
+
+`dfx nns` commands are used to deploy and manage local NNS canisters, such as:
+
+- Governance for integration with the Internet Computer voting system
+- Ledger for financial integration testing
+- Internet Identity for user registration and authenttication
 
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
@@ -427,6 +453,10 @@ This release candidate has not yet been elected.
 
 This also incorporates the following executed proposals:
 
+* [85007](https://dashboard.internetcomputer.org/proposal/85007)
+* [84391](https://dashboard.internetcomputer.org/proposal/84391)
+* [83786](https://dashboard.internetcomputer.org/proposal/83786)
+* [82425](https://dashboard.internetcomputer.org/proposal/82425)
 * [81788](https://dashboard.internetcomputer.org/proposal/81788)
 * [81571](https://dashboard.internetcomputer.org/proposal/81571)
 * [80992](https://dashboard.internetcomputer.org/proposal/80992)

@@ -1,6 +1,6 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use openssl::sha::Sha256;
+use sha2::{Digest, Sha256};
 use std::fs::{read_to_string, File};
 use std::io::{BufRead, Read, Write};
 use std::path::{Path, PathBuf};
@@ -32,7 +32,7 @@ fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
         sha256.update(&buffer);
     }
 
-    hex::encode(sha256.finish())
+    hex::encode(sha256.finalize())
 }
 
 fn get_project_root_path() -> PathBuf {
