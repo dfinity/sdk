@@ -71,6 +71,7 @@ impl Cache for DiskBasedCache {
 #[context("Failed to get cache root.")]
 pub fn get_cache_root() -> DfxResult<PathBuf> {
     let cache_root = std::env::var_os("DFX_CACHE_ROOT");
+    // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
     let p = {
         let home = std::env::var_os("HOME")
@@ -190,7 +191,7 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             }
             file.unpack_in(temp_p.as_path())
                 .context("Failed to unpack archive asset.")?;
-
+            // On *nix we need to set the execute permission as the tgz doesn't include it
             #[cfg(unix)]
             {
                 let full_path = temp_p.join(file.path().context("Failed to get file path.")?);
@@ -224,9 +225,9 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
                 dfx.to_string_lossy()
             )
         })?;
+        // On *nix we need to set the execute permission as the tgz doesn't include it
         #[cfg(unix)]
         {
-            // And make it executable.
             let mut perms = std::fs::metadata(&dfx)
                 .with_context(|| {
                     format!(

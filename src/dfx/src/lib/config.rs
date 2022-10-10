@@ -7,6 +7,7 @@ use std::path::PathBuf;
 #[context("Failed to get path to dfx config dir.")]
 pub fn get_config_dfx_dir_path() -> DfxResult<PathBuf> {
     let config_root = std::env::var_os("DFX_CONFIG_ROOT");
+    // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
     let p = {
         let home = std::env::var_os("HOME").context("Failed to resolve 'HOME' env var.")?;

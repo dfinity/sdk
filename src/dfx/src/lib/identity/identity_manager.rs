@@ -511,6 +511,7 @@ To create a more secure identity, create and use an identity that is protected b
 #[context("Failed to get legacy pem path.")]
 fn get_legacy_creds_pem_path() -> DfxResult<Option<PathBuf>> {
     if cfg!(windows) {
+        // No legacy path on Windows - there was no Windows support when paths were changed
         Ok(None)
     } else {
         let config_root = std::env::var("DFX_CONFIG_ROOT").ok();

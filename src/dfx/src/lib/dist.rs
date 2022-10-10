@@ -57,6 +57,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
     ))
     .map_err(|e| error_invalid_argument!("invalid url: {}", e))?;
 
+    // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
     let cache_dir =
         std::path::Path::new(&std::env::var_os("HOME").context("Failed to resolve env var HOME.")?)

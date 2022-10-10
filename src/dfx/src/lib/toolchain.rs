@@ -121,6 +121,8 @@ impl Toolchain {
                     cache_path.display(),
                 )
             })?;
+            // On Windows, symlinks require admin permission or developer mode,
+            // and junctions are preferable anyway as the filesystem parses them instead of the OS.
             #[cfg(windows)]
             junction::create(&cache_path, &toolchain_path).with_context(|| {
                 format!(
@@ -188,6 +190,8 @@ impl Toolchain {
                 default_path.display(),
             )
         })?;
+        // On Windows, symlinks require admin permission or developer mode,
+        // and junctions are preferable anyway as the filesystem parses them instead of the OS.
         #[cfg(windows)]
         junction::create(&toolchain_path, &default_path).with_context(|| {
             format!(

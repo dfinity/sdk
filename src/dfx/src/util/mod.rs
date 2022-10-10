@@ -42,6 +42,7 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
     let tcp_builder = tcp_builder
         .reuse_address(true)
         .context("Failed to set option reuse_address of tcp builder.")?;
+    // On Windows, SO_REUSEADDR without SO_EXCLUSIVEADDRUSE acts like SO_REUSEPORT (among other things), so this is only necessary on *nix.
     #[cfg(unix)]
     let tcp_builder = tcp_builder
         .reuse_port(true)

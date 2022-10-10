@@ -148,6 +148,7 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
     archive
         .unpack(&current_exe_dir)
         .with_context(|| format!("Failed to unpack to {}.", current_exe_dir.to_string_lossy()))?;
+    // On *nix we need to set the execute permission as the tgz doesn't include it
     #[cfg(unix)]
     {
         use std::{fs, os::unix::fs::PermissionsExt};
