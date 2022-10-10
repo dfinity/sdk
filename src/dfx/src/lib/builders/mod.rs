@@ -258,7 +258,9 @@ fn compile_handlebars_files(
                 "".to_string()
             } else {
                 format!(
-                    r#"export const {0} = createActor(canisterId);"#,
+                    r#"
+
+export const {0} = createActor(canisterId);"#,
                     canister_name
                 )
                 .to_string()
