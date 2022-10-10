@@ -680,6 +680,7 @@ pub async fn install_canister(
         timeout,
         &call_sender,
         fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
+        true,
     )
     .await?;
 
