@@ -13,14 +13,14 @@ export const canisterId = process.env.{canister_name_uppercase}_CANISTER_ID;
  * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig} | { agent?: import("@dfinity/agent").Agent; actorOptions?: import("@dfinity/agent").ActorConfig }} [options]
  * @return {import("@dfinity/agent").ActorSubclass<import("./{canister_name}.did.js")._SERVICE>}
  */
-export const createActor = (canisterId, options) => {
+export const createActor = (canisterId, options = {}) => {
   console.warn(`Deprecation warning: you are currently importing code from .dfx. Going forward, refactor to use the dfx generate command for JavaScript bindings.
 
 See https://internetcomputer.org/docs/current/developer-docs/updates/release-notes/ for migration instructions`);
-  const agent = options.agent || new HttpAgent(options ? { ...options.agentOptions } : {});
+  const agent = options.agent || new HttpAgent({ ...options.agentOptions });
   
   // Fetch root key for certificate validation during development
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.DFX_NETWORK !== "ic") {
     agent.fetchRootKey().catch(err => {
       console.warn("Unable to fetch root key. Check to ensure that your local replica is running");
       console.error(err);
