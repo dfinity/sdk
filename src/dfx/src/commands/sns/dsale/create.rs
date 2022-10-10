@@ -11,6 +11,7 @@ pub struct CreateOpts {}
 
 /// Executes `dfx sns config create`
 pub fn exec(env: &dyn Environment, _opts: CreateOpts) -> DfxResult {
-    println!("{}", call_bundled(env, "sns", ["dsale", "create", "--network", "local"])?); // TODO: --network
+    println!("{}", call_bundled(env, "sns", ["dsale", "create", "--network", "local"])?); // TODO: --network 
+    // TODO: Identity
     Ok(())
 }
