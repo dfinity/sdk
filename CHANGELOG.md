@@ -449,6 +449,10 @@ This release candidate has not yet been elected.
 
 This also incorporates the following executed proposals:
 
+* [85007](https://dashboard.internetcomputer.org/proposal/85007)
+* [84391](https://dashboard.internetcomputer.org/proposal/84391)
+* [83786](https://dashboard.internetcomputer.org/proposal/83786)
+* [82425](https://dashboard.internetcomputer.org/proposal/82425)
 * [81788](https://dashboard.internetcomputer.org/proposal/81788)
 * [81571](https://dashboard.internetcomputer.org/proposal/81571)
 * [80992](https://dashboard.internetcomputer.org/proposal/80992)
