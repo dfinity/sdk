@@ -5,10 +5,6 @@ use clap::Parser;
 mod create;
 mod validate;
 
-/// Command line options for `sdx sns config`.
-#[derive(Parser)]
-pub struct ConfigOpts {}
-
 /// SNS config command line arguments.
 #[derive(Parser)]
 #[clap(name("config"))]
