@@ -12,8 +12,8 @@ use std::io::Write;
 use tar::Archive;
 
 pub static DEFAULT_RELEASE_ROOT: &str = "https://sdk.dfinity.org";
-pub static CACHE_ROOT: &str = "dfinity/versions/";
-pub static DOWNLOADS_DIR: &str = "dfinity/downloads/";
+pub static CACHE_SUBDIR: &str = "dfinity/versions/";
+pub static DOWNLOADS_SUBDIR: &str = "dfinity/downloads/";
 
 #[context("Failed to get distribution manifest.")]
 pub fn get_manifest() -> DfxResult<Manifest> {
@@ -64,7 +64,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
     #[cfg(windows)]
     let cache_dir = dirs_next::cache_dir().unwrap();
 
-    let download_dir = cache_dir.join(DOWNLOADS_DIR);
+    let download_dir = cache_dir.join(DOWNLOADS_SUBDIR);
     if !download_dir.exists() {
         fs::create_dir_all(&download_dir)
             .with_context(|| format!("Failed to create dir {}.", download_dir.to_string_lossy()))?;
@@ -91,7 +91,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         b.finish_with_message("Download complete");
     }
 
-    let mut version_cache_dir = cache_dir.join(CACHE_ROOT);
+    let mut version_cache_dir = cache_dir.join(CACHE_SUBDIR);
     version_cache_dir.push(version.to_string());
     if !version_cache_dir.exists() {
         fs::create_dir_all(&version_cache_dir).with_context(|| {
