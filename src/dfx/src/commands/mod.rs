@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
+use anyhow::bail;
 use clap::Subcommand;
 
 mod beta;
@@ -84,12 +85,19 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Quickstart => quickstart::exec(env),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
-        Command::Schema(v) => schema::exec(env, v),
+        Command::Schema(v) => schema::exec(v),
         Command::Sns(v) => sns::exec(env, v),
         Command::Start(v) => start::exec(env, v),
         Command::Stop(v) => stop::exec(env, v),
         Command::Toolchain(v) => toolchain::exec(env, v),
         Command::Upgrade(v) => upgrade::exec(env, v),
         Command::Wallet(v) => wallet::exec(env, v),
+    }
+}
+
+pub fn exec_without_env(cmd: Command) -> DfxResult {
+    match cmd {
+        Command::Schema(v) => schema::exec(v),
+        _ => bail!("Cannot execute this command without environment."),
     }
 }
