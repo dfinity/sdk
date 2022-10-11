@@ -163,3 +163,11 @@ teardown() {
     assert_command dfx canister install e2e_project_backend --mode auto --upgrade-unchanged
     assert_command dfx canister call e2e_project_backend greet dfx
 }
+
+@test "-y skips compat check" {
+    dfx_start
+    assert_command dfx canister create e2e_project_backend
+    assert_command dfx build e2e_project_backend
+    assert_command dfx canister install e2e_project_backend
+    assert_command timeout -s9 20s dfx canister install e2e_project_backend --mode reinstall -y # if -y does not work, hangs without stdin
+}

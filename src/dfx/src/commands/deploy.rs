@@ -71,6 +71,11 @@ pub struct DeployOpts {
     /// Bypasses the Wallet canister.
     #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
+
+    /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
+    /// so this is not recommended outside of CI.
+    #[clap(long, short)]
+    yes: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -129,6 +134,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         with_cycles,
         &call_sender,
         create_call_sender,
+        opts.yes,
     ))?;
 
     display_urls(&env)
