@@ -12,15 +12,15 @@ keywords = ["internet-computer", "assets", "icp", "dfinity"]
 
 [dependencies]
 anyhow = "1.0"
-candid = "0.7.15"
+candid = "0.8.2"
 flate2 = "1.0.22"
 futures = "0.3.21"
 futures-intrusive = "0.4.0"
 garcon = { version = "0.2", features = ["async"] }
 globset = "0.4.9"
 hex = { version = "0.4.2", features = ["serde"] }
-ic-agent = { version = "0.20", features = [ "pem" ] }
-ic-utils = "0.20"
+ic-agent = { version = "0.21.0", features = [ "pem" ] }
+ic-utils = "0.21.0"
 mime = "0.3.16"
 mime_guess = "2.0.4"
 serde = "1.0"
