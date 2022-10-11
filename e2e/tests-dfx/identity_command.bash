@@ -465,8 +465,8 @@ XXX
 }
 
 @test "identity: consistently imports a known seed phrase" {
-    echo "hollow damage this yard journey anchor tool fat action school cash ridge oval beef tribe magnet apology cabbage leisure group sign around object exact">seed.txt
+    echo "display dawn estate night naive stomach receive lock expose boring square boy deposit mistake volume soldier coil rocket match diamond repair opinion action paddle">seed.txt
     assert_command dfx identity import alice --seed-file seed.txt --disable-encryption
     assert_command dfx identity get-principal --identity alice
-    assert_eq "zs7ty-uv4vo-rvgkk-srfjo-hjaxr-w55wx-ybo5x-qx7k3-noknf-wzwe5-pqe"
+    assert_eq "qimd7-lqrvx-kdvsm-7zeqn-bgoix-ukjfi-hgmfg-ur2he-odgb2-joms4-nae"
 }

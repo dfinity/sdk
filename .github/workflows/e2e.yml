@@ -41,7 +41,6 @@ jobs:
           fetch-depth: 0
       - name: Setup environment variables
         run: |
-          echo "OPENSSL_STATIC=yes" >> $GITHUB_ENV
           echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
       - name: Cache Cargo
         uses: actions/cache@v2
@@ -58,17 +57,6 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
         if: contains(matrix.os, 'macos')
-      - name: Build static-linked openssl
-        run: |
-          # https://github.com/rust-lang/cargo/issues/713#issuecomment-59597433
-          git clone git://git.openssl.org/openssl.git
-          cd openssl
-          ./config -fPIC --prefix=/usr/local --openssldir=/usr/local/ssl
-          make
-          sudo make install
-          echo "OPENSSL_LIB_DIR=/usr/local/lib64" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
-        if: contains(matrix.target, 'linux-gnu')
       - name: Build
         run: |
           cargo clean --target ${{ matrix.target }} --release
