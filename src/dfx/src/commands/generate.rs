@@ -7,6 +7,7 @@ use crate::lib::provider::create_agent_environment;
 use crate::NetworkOpt;
 
 use clap::Parser;
+use slog::trace;
 use tokio::runtime::Runtime;
 
 /// Generate type declarations for canisters from the code in your project
@@ -41,26 +42,35 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     // This is just to display an error if trying to generate before creating the canister.
     let store = CanisterIdStore::for_env(&env)?;
     // If generate for motoko canister, build first
-    let mut build_before_generate = false;
+    let mut build_before_generate = Vec::new();
     for canister in canister_pool.get_canister_list() {
         let canister_name = canister.get_name();
         let canister_id = store.get(canister_name)?;
         if let Some(info) = canister_pool.get_canister_info(&canister_id) {
             if info.is_motoko() {
-                build_before_generate = true;
+                build_before_generate.push(canister_name.to_string());
+                trace!(
+                    env.get_logger(),
+                    "Found Motoko canister '{}' - will have to build before generating IDL.",
+                    canister_name
+                );
             }
         }
     }
 
     let build_config = BuildConfig::from_config(&config)?;
 
-    if build_before_generate {
+    if !build_before_generate.is_empty() {
         slog::info!(
             env.get_logger(),
             "Building canisters before generate for Motoko"
         );
         let runtime = Runtime::new().expect("Unable to create a runtime");
-        runtime.block_on(canister_pool.build_or_fail(&build_config))?;
+        runtime.block_on(canister_pool.build_or_fail(
+            env.get_logger(),
+            &build_config,
+            &build_before_generate,
+        ))?;
     }
 
     for canister in canister_pool.get_canister_list() {

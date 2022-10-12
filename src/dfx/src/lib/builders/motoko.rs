@@ -146,6 +146,7 @@ impl CanisterBuilder for MotokoBuilder {
         };
 
         // Generate wasm
+        // todo!("add dependencies properly");
         let params = MotokoParams {
             build_target: match profile {
                 Profile::Release => BuildTarget::Release,

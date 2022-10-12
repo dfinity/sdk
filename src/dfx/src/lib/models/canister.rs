@@ -122,6 +122,12 @@ impl CanisterPool {
             _ => None,
         };
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
+        println!(
+            "Inserting into pool: canister {}, cid {:?}, cid-info {}",
+            canister_name,
+            canister_id.map(|a| a.to_text()),
+            info.get_canister_id().map(|c| c.to_text())?
+        );
         let builder = pool_helper.builder_pool.get(&info);
         pool_helper
             .canisters_map
@@ -200,8 +206,17 @@ impl CanisterPool {
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
 
         // Add all the canisters as nodes.
+        println!(
+            "All canisters in dependencies graph: {} canisters: {:?}",
+            self.canisters.len(),
+            self.canisters
+                .iter()
+                .map(|c| c.get_name())
+                .collect::<Vec<_>>()
+        );
         for canister in &self.canisters {
             let canister_id = canister.info.get_canister_id()?;
+            println!("Inserted id: {}", canister_id.to_text());
             id_set.insert(canister_id, graph.add_node(canister_id));
         }
 
@@ -238,8 +253,18 @@ impl CanisterPool {
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
-        if self.canisters.iter().any(|can| can.info.is_rust()) {
+    fn step_prebuild_all(
+        &self,
+        build_config: &BuildConfig,
+        canisters_to_build: &[String],
+    ) -> DfxResult<()> {
+        // cargo audit
+        if self
+            .canisters
+            .iter()
+            .filter(|can| canisters_to_build.contains(&can.info.get_name().to_string()))
+            .any(|can| can.info.is_rust())
+        {
             self.run_cargo_audit()?;
         } else {
             trace!(
@@ -247,6 +272,22 @@ impl CanisterPool {
                 "No canister of type 'rust' found. Not trying to run 'cargo audit'."
             )
         }
+
+        // make .did files available for canisters that are not getting built
+        for canister in &self.canisters {
+            if !canisters_to_build.contains(&canister.info.get_name().to_string()) {
+                if canister.info.is_remote() {
+                    println!("Copying did for canister {}.", canister.info.get_name());
+                    let to = build_config.idl_root.join(format!(
+                        "{}.did",
+                        canister.info.get_canister_id()?.to_text()
+                    ));
+                    std::fs::copy(canister.info.get_output_idl_path().unwrap(), to);
+                    // .with_context(|| format!("Failed to copy remote candid from {} to {}.",))
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -365,10 +406,16 @@ impl CanisterPool {
         &self,
         build_config: &BuildConfig,
         _order: &[CanisterId],
+        canisters_to_build: &[String],
     ) -> DfxResult<()> {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
-        for canister in &self.canisters {
+        for canister in self
+            .canisters
+            .iter()
+            .filter(|can| canisters_to_build.contains(&can.info.get_name().to_string()))
+            .collect::<Vec<&Arc<Canister>>>()
+        {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id();
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
@@ -384,12 +431,23 @@ impl CanisterPool {
     #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
+        log: &Logger,
         build_config: &BuildConfig,
+        canisters_to_build: &[String],
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(build_config)
+        self.step_prebuild_all(build_config, canisters_to_build)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let graph = self.build_dependencies_graph()?;
+        println!(
+            "Graph node count: {}, nodes: {:?}",
+            graph.node_count(),
+            graph
+                .raw_nodes()
+                .iter()
+                .map(|n| n.weight.to_text())
+                .collect::<Vec<_>>()
+        );
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -400,15 +458,28 @@ impl CanisterPool {
             };
             BuildError::DependencyError(format!("Found circular dependency: {}", message))
         })?;
+        println!("Nodes: {:?}", nodes);
         let order: Vec<CanisterId> = nodes
             .iter()
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
+        println!(
+            "Canisters in order: {:?}",
+            order.iter().map(|cid| cid.to_text()).collect::<Vec<_>>()
+        );
 
         let mut result = Vec::new();
+        println!("CAnisters to build: {:?}", canisters_to_build);
         for canister_id in &order {
+            println!("Looking at cid {}", canister_id);
             if let Some(canister) = self.get_canister(canister_id) {
+                if canisters_to_build.contains(&canister.info.get_name().to_string()) {
+                    trace!(log, "Building canister '{}'.", canister.info.get_name());
+                } else {
+                    println!("Not building {}", canister.info.get_name());
+                    continue;
+                }
                 result.push(
                     self.step_prebuild(build_config, canister)
                         .map_err(|e| {
@@ -442,7 +513,7 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order)
+        self.step_postbuild_all(build_config, &order, canisters_to_build)
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
@@ -451,9 +522,14 @@ impl CanisterPool {
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, build_config: &BuildConfig) -> DfxResult<()> {
-        self.download(build_config).await?;
-        let outputs = self.build(build_config)?;
+    pub async fn build_or_fail(
+        &self,
+        log: &Logger,
+        build_config: &BuildConfig,
+        canisters_to_build: &[String],
+    ) -> DfxResult<()> {
+        self.download(build_config, canisters_to_build).await?;
+        let outputs = self.build(log, build_config, canisters_to_build)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
@@ -462,8 +538,16 @@ impl CanisterPool {
         Ok(())
     }
 
-    async fn download(&self, _build_config: &BuildConfig) -> DfxResult {
-        for canister in &self.canisters {
+    async fn download(
+        &self,
+        _build_config: &BuildConfig,
+        canisters_to_build: &[String],
+    ) -> DfxResult {
+        for canister in self
+            .canisters
+            .iter()
+            .filter(|can| canisters_to_build.contains(&can.info.get_name().to_string()))
+        {
             let info = canister.get_info();
 
             if info.is_custom() {
