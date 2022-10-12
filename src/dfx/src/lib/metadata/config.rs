@@ -13,7 +13,7 @@ impl CanisterMetadataConfig {
     pub fn new(
         type_properties: &CanisterTypeProperties,
         sections: &Vec<CanisterMetadataSection>,
-        network: &String,
+        network: &str,
     ) -> Self {
         let mut map = BTreeMap::new();
         for section in sections {

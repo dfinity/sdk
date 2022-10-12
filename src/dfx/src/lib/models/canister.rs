@@ -22,7 +22,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 
@@ -119,7 +119,8 @@ impl Canister {
             return Ok(());
         }
 
-        let mut m = std::fs::read(&wasm_path).with_context(|| format!("Failed to read wasm at {}", wasm_path.display()))?;
+        let mut m = std::fs::read(&wasm_path)
+            .with_context(|| format!("Failed to read wasm at {}", wasm_path.display()))?;
 
         for (name, section) in &metadata.sections {
             if section.name == CANDID_SERVICE && self.info.is_motoko() {
@@ -161,13 +162,13 @@ impl Canister {
 }
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
-fn check_valid_subtype(compiled_idl_path: &PathBuf, specified_idl_path: &PathBuf) -> DfxResult {
+fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
     let (mut env, opt_specified) =
-        check_candid_file(&specified_idl_path).context("Checking specified candid file.")?;
+        check_candid_file(specified_idl_path).context("Checking specified candid file.")?;
     let specified_type =
         opt_specified.expect("Specified did file should contain some service interface");
     let (env2, opt_compiled) =
-        check_candid_file(&compiled_idl_path).context("Checking compiled candid file.")?;
+        check_candid_file(compiled_idl_path).context("Checking compiled candid file.")?;
     let compiled_type =
         opt_compiled.expect("Compiled did file should contain some service interface");
     let mut gamma = HashSet::new();
