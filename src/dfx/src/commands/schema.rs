@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use crate::config::dfinity::{ConfigInterface, TopLevelConfigNetworks};
-use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
 use anyhow::Context;
@@ -26,7 +25,7 @@ pub struct SchemaOpts {
     outfile: Option<PathBuf>,
 }
 
-pub fn exec(_env: &dyn Environment, opts: SchemaOpts) -> DfxResult {
+pub fn exec(opts: SchemaOpts) -> DfxResult {
     let schema = match opts.r#for {
         Some(ForFile::Networks) => schema_for!(TopLevelConfigNetworks),
         _ => schema_for!(ConfigInterface),
