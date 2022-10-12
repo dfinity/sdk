@@ -736,6 +736,10 @@ Calls made to retrieve the help output for `canister update-settings` was missin
 `WARN` and `ERROR` messages are now clearly labelled as such, and the labels are colored accordingly.
 This is now included when running `dfx canister update-settings -h`.
 
+### fix: `dfx schema` does not require valid dfx.json
+
+There is no real reason for `dfx schema` to not work when a broken dfx.json is in the current folder - this is actually a very common scenario when `dfx schema` gets used.
+
 ### fix: canister call uses candid file if canister type cannot be determined
 
 The candid file specified in the field `canisters.<canister name>.candid` of dfx.json, or if that not exists `canisters.<canister name>.remote.candid`, is now used when running `dfx canister call`, even when dfx fails to determine the canister type.

@@ -580,7 +580,7 @@ pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
 }
 
 pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> DfxResult<SecretKey> {
-    const DEFAULT_DERIVATION_PATH: &str = "m/44'/60'/0'/0/0";
+    const DEFAULT_DERIVATION_PATH: &str = "m/44'/223'/0'/0/0";
     let seed = Seed::new(mnemonic, "");
     let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
     Ok(SecretKey::from(pk.private_key()))
