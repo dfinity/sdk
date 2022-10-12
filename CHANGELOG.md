@@ -4,6 +4,8 @@
 
 ## DFX
 
+### feat: warn if an unencrypted identity is used on mainnet
+
 ### fix: Save SNS canister IDs
 
 SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
