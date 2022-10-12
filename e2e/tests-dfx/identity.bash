@@ -163,10 +163,10 @@ teardown() {
 
 @test "using an unencrypted identity on mainnet provokes a warning" {
     assert_command dfx ledger balance --network ic
-    assert_match WARN "$stderr"
+    assert_match "WARN: The default identity is not stored securely." "$stderr"
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/init_alice_with_pw.exp"
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/get_ledger_balance.exp"
     dfx identity new bob --disable-encryption
     assert_command dfx ledger balance --network ic --identity bob
-    assert_match WARN "$stderr"
+    assert_match "WARN: The bob identity is not stored securely." "$stderr"
 }
