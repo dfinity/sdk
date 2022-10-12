@@ -349,12 +349,11 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .collect::<_>()
 }
 
-#[cfg_attr(not(windows), allow(unused))]
-pub fn project_dirs() -> &'static ProjectDirs {
+pub fn project_dirs() -> DfxResult<&'static ProjectDirs> {
     lazy_static::lazy_static! {
-        static ref DIRS: ProjectDirs = ProjectDirs::from("org", "dfinity", "dfx").unwrap();
+        static ref DIRS: Option<ProjectDirs> = ProjectDirs::from("org", "dfinity", "dfx");
     }
-    &*DIRS
+    DIRS.as_ref().context("Failed to resolve 'HOME' env var.")
 }
 
 #[cfg(test)]

@@ -17,7 +17,10 @@ pub fn get_config_dfx_dir_path() -> DfxResult<PathBuf> {
         PathBuf::from(root).join(".config").join("dfx")
     };
     #[cfg(windows)]
-    let p = config_root.map_or_else(|| project_dirs().config_dir().to_owned(), PathBuf::from);
+    let p = match config_root {
+        Some(var) => PathBuf::from(var),
+        None => project_dirs()?.config_dir().to_owned(),
+    };
     if !p.exists() {
         std::fs::create_dir_all(&p)
             .with_context(|| format!("Cannot create config directory at {}", p.display()))?;

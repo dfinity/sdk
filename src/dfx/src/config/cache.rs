@@ -82,7 +82,10 @@ pub fn get_cache_root() -> DfxResult<PathBuf> {
         PathBuf::from(root).join(".cache").join("dfinity")
     };
     #[cfg(windows)]
-    let p = cache_root.map_or_else(|| project_dirs().cache_dir().to_owned(), PathBuf::from);
+    let p = match cache_root {
+        Some(var) => PathBuf::from(var),
+        None => project_dirs()?.cache_dir().to_owned(),
+    };
     if !p.exists() {
         if let Err(_e) = std::fs::create_dir_all(&p) {
             return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));

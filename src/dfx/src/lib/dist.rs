@@ -65,7 +65,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         std::path::Path::new(&std::env::var_os("HOME").context("Failed to resolve env var HOME.")?)
             .join(".cache/dfinity");
     #[cfg(windows)]
-    let cache_dir = project_dirs().cache_dir();
+    let cache_dir = project_dirs()?.cache_dir();
 
     let download_dir = cache_dir.join(DOWNLOADS_SUBDIR);
     if !download_dir.exists() {
