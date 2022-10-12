@@ -761,7 +761,6 @@ dependencies = [
  "ctrlc",
  "dialoguer",
  "directories-next",
- "dirs-next",
  "env_logger",
  "flate2",
  "fn-error-context",

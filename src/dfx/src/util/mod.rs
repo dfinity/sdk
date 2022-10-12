@@ -6,6 +6,7 @@ use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
+use directories_next::ProjectDirs;
 use fn_error_context::context;
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
@@ -346,6 +347,14 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .chars()
         .rev()
         .collect::<_>()
+}
+
+#[cfg_attr(not(windows), allow(unused))]
+pub fn project_dirs() -> &'static ProjectDirs {
+    lazy_static::lazy_static! {
+        static ref DIRS: ProjectDirs = ProjectDirs::from("org", "dfinity", "dfx").unwrap();
+    }
+    &*DIRS
 }
 
 #[cfg(test)]

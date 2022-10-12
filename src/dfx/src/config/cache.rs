@@ -1,6 +1,8 @@
 use crate::config::dfx_version;
 use crate::lib::error::{CacheError, DfxError, DfxResult};
 use crate::util;
+#[cfg(windows)]
+use crate::util::project_dirs;
 
 use anyhow::{bail, Context};
 use fn_error_context::context;
@@ -80,10 +82,7 @@ pub fn get_cache_root() -> DfxResult<PathBuf> {
         PathBuf::from(root).join(".cache").join("dfinity")
     };
     #[cfg(windows)]
-    let p = cache_root.map_or_else(
-        || dirs_next::cache_dir().unwrap().join("dfinity"),
-        PathBuf::from,
-    );
+    let p = cache_root.map_or_else(|| project_dirs().cache_dir().to_owned(), PathBuf::from);
     if !p.exists() {
         if let Err(_e) = std::fs::create_dir_all(&p) {
             return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));

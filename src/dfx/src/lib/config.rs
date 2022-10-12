@@ -1,4 +1,6 @@
 use crate::lib::error::DfxResult;
+#[cfg(windows)]
+use crate::util::project_dirs;
 
 use anyhow::{bail, Context};
 use fn_error_context::context;
@@ -15,10 +17,7 @@ pub fn get_config_dfx_dir_path() -> DfxResult<PathBuf> {
         PathBuf::from(root).join(".config").join("dfx")
     };
     #[cfg(windows)]
-    let p = config_root.map_or_else(
-        || dirs_next::config_dir().unwrap().join("dfx"),
-        PathBuf::from,
-    );
+    let p = config_root.map_or_else(|| project_dirs().config_dir().to_owned(), PathBuf::from);
     if !p.exists() {
         std::fs::create_dir_all(&p)
             .with_context(|| format!("Cannot create config directory at {}", p.display()))?;

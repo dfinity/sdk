@@ -1,5 +1,7 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::Manifest;
+#[cfg(windows)]
+use crate::util::project_dirs;
 use crate::{error_invalid_argument, error_invalid_data};
 
 use anyhow::Context;
@@ -12,8 +14,8 @@ use std::io::Write;
 use tar::Archive;
 
 pub static DEFAULT_RELEASE_ROOT: &str = "https://sdk.dfinity.org";
-pub static CACHE_SUBDIR: &str = "dfinity/versions/";
-pub static DOWNLOADS_SUBDIR: &str = "dfinity/downloads/";
+pub static CACHE_SUBDIR: &str = "versions";
+pub static DOWNLOADS_SUBDIR: &str = "downloads";
 
 #[context("Failed to get distribution manifest.")]
 pub fn get_manifest() -> DfxResult<Manifest> {
@@ -57,13 +59,13 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
     ))
     .map_err(|e| error_invalid_argument!("invalid url: {}", e))?;
 
-    // dirs-next is not used for *nix to preserve existing paths
+    // directories-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
     let cache_dir =
         std::path::Path::new(&std::env::var_os("HOME").context("Failed to resolve env var HOME.")?)
-            .join(".cache");
+            .join(".cache/dfinity");
     #[cfg(windows)]
-    let cache_dir = dirs_next::cache_dir().unwrap();
+    let cache_dir = project_dirs().cache_dir();
 
     let download_dir = cache_dir.join(DOWNLOADS_SUBDIR);
     if !download_dir.exists() {
