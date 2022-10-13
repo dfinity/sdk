@@ -246,7 +246,7 @@ impl MotokoParams<'_> {
         };
         cmd.arg("--idl").arg("--stable-types");
         if self.candid_service_metadata_visibility == MetadataVisibility::Public {
-            // private is the default
+            // moc defaults to private metadata, if this argument is not present.
             cmd.arg("--public-metadata").arg(CANDID_SERVICE);
         }
         if !self.idl_map.is_empty() {
