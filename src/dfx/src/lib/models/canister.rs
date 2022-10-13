@@ -122,12 +122,6 @@ impl CanisterPool {
             _ => None,
         };
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
-        println!(
-            "Inserting into pool: canister {}, cid {:?}, cid-info {}",
-            canister_name,
-            canister_id.map(|a| a.to_text()),
-            info.get_canister_id().map(|c| c.to_text())?
-        );
         let builder = pool_helper.builder_pool.get(&info);
         pool_helper
             .canisters_map
@@ -206,14 +200,6 @@ impl CanisterPool {
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
 
         // Add all the canisters as nodes.
-        println!(
-            "All canisters in dependencies graph: {} canisters: {:?}",
-            self.canisters.len(),
-            self.canisters
-                .iter()
-                .map(|c| c.get_name())
-                .collect::<Vec<_>>()
-        );
         for canister in &self.canisters {
             let canister_id = canister.info.get_canister_id()?;
             println!("Inserted id: {}", canister_id.to_text());
@@ -255,9 +241,40 @@ impl CanisterPool {
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(
         &self,
+        log: &Logger,
         build_config: &BuildConfig,
         canisters_to_build: &[String],
     ) -> DfxResult<()> {
+        // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
+        // Because remote canisters don't get built (and the did file not output in the right place) the .did files have to be copied over manually.
+        for canister in &self.canisters {
+            if !canisters_to_build.contains(&canister.info.get_name().to_string()) {
+                let maybe_from =
+                    if let Some(remote_candid) = canister.info.get_remote_candid_if_remote() {
+                        Some(remote_candid)
+                    } else {
+                        canister.info.get_output_idl_path()
+                    };
+                if maybe_from.is_some() && maybe_from.as_ref().unwrap().exists() {
+                    let from = maybe_from.unwrap();
+                    let to = build_config.idl_root.join(format!(
+                        "{}.did",
+                        canister.info.get_canister_id()?.to_text()
+                    ));
+                    if std::fs::copy(&from, &to).is_err() {
+                        warn!(
+                                log,
+                                "Failed to copy remote canister candid from {} to {}. This may produce errors during the build.",
+                                from.to_string_lossy(),
+                                to.to_string_lossy()
+                            );
+                    }
+                } else {
+                    warn!(log, "Failed to find a .did file for canister '{}'. Not providing that file may produce errors during the build.", canister.info.get_name());
+                }
+            }
+        }
+
         // cargo audit
         if self
             .canisters
@@ -271,21 +288,6 @@ impl CanisterPool {
                 self.logger,
                 "No canister of type 'rust' found. Not trying to run 'cargo audit'."
             )
-        }
-
-        // make .did files available for canisters that are not getting built
-        for canister in &self.canisters {
-            if !canisters_to_build.contains(&canister.info.get_name().to_string()) {
-                if canister.info.is_remote() {
-                    println!("Copying did for canister {}.", canister.info.get_name());
-                    let to = build_config.idl_root.join(format!(
-                        "{}.did",
-                        canister.info.get_canister_id()?.to_text()
-                    ));
-                    std::fs::copy(canister.info.get_output_idl_path().unwrap(), to);
-                    // .with_context(|| format!("Failed to copy remote candid from {} to {}.",))
-                }
-            }
         }
 
         Ok(())
@@ -435,19 +437,11 @@ impl CanisterPool {
         build_config: &BuildConfig,
         canisters_to_build: &[String],
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(build_config, canisters_to_build)
+        // todo!("is canisters_to_build really necessary? can it be put into buildconfig?");
+        self.step_prebuild_all(log, build_config, canisters_to_build)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let graph = self.build_dependencies_graph()?;
-        println!(
-            "Graph node count: {}, nodes: {:?}",
-            graph.node_count(),
-            graph
-                .raw_nodes()
-                .iter()
-                .map(|n| n.weight.to_text())
-                .collect::<Vec<_>>()
-        );
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -458,26 +452,19 @@ impl CanisterPool {
             };
             BuildError::DependencyError(format!("Found circular dependency: {}", message))
         })?;
-        println!("Nodes: {:?}", nodes);
         let order: Vec<CanisterId> = nodes
             .iter()
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
-        println!(
-            "Canisters in order: {:?}",
-            order.iter().map(|cid| cid.to_text()).collect::<Vec<_>>()
-        );
 
         let mut result = Vec::new();
-        println!("CAnisters to build: {:?}", canisters_to_build);
         for canister_id in &order {
-            println!("Looking at cid {}", canister_id);
             if let Some(canister) = self.get_canister(canister_id) {
                 if canisters_to_build.contains(&canister.info.get_name().to_string()) {
                     trace!(log, "Building canister '{}'.", canister.info.get_name());
                 } else {
-                    println!("Not building {}", canister.info.get_name());
+                    trace!(log, "Not building canister '{}'.", canister.info.get_name());
                     continue;
                 }
                 result.push(

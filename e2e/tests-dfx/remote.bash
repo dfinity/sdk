@@ -38,6 +38,7 @@ teardown() {
     # set up: remote method is update, local is query
     # call remote method as update to make a change
     assert_command dfx deploy --network actuallylocal -vv
+    # todo!("add test case")
     assert_command dfx canister call remote which_am_i --network actuallylocal
     assert_eq '("actual")'
 

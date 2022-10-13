@@ -54,7 +54,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     // Create canisters on the replica and associate canister ids locally.
     if build_mode_check {
         slog::warn!(
-            env.get_logger(),
+            logger,
             "Building canisters to check they build ok. Canister IDs might be hard coded."
         );
     } else {

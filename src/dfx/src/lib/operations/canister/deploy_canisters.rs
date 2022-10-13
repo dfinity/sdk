@@ -16,7 +16,7 @@ use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
-use slog::{info, trace};
+use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
@@ -44,12 +44,6 @@ pub async fn deploy_canisters(
     let network = env.get_network_descriptor();
 
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
-    trace!(
-        log,
-        "Found {} canisters to load: {:?}",
-        canisters_to_load.len(),
-        &canisters_to_load
-    );
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
@@ -77,11 +71,6 @@ pub async fn deploy_canisters(
             })
             .collect()
     };
-    trace!(
-        log,
-        "Found {} canisters to deploy.",
-        canisters_to_deploy.len()
-    );
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
