@@ -478,7 +478,10 @@ This also incorporates the following executed proposals:
 
 ### ic-ref
 
-Updated ic-ref to 0.0.1-1fba03ee
+Updated ic-ref to 0.0.1-934699aa
+- Update canister http service definition
+- Request IDs must be 32 bytes in length
+- fix: only ascii characters in strings
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
