@@ -7,7 +7,7 @@ use ic_agent::{AgentError, RequestId};
 use std::fs::{File, OpenOptions};
 use std::future::Future;
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::PathBuf;
 use std::pin::Pin;
 use thiserror::Error;
 
@@ -18,12 +18,12 @@ enum SerializeStatus {
 }
 
 pub(crate) struct SignReplicaV2Transport {
-    file_name: String,
+    file_name: PathBuf,
     message_template: SignedMessageV1,
 }
 
 impl SignReplicaV2Transport {
-    pub fn new<U: Into<String>>(file_name: U, message_template: SignedMessageV1) -> Self {
+    pub fn new<U: Into<PathBuf>>(file_name: U, message_template: SignedMessageV1) -> Self {
         Self {
             file_name: file_name.into(),
             message_template,
@@ -38,9 +38,8 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
         envelope: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
         async fn run(s: &SignReplicaV2Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
-            let path = Path::new(&s.file_name);
-            let mut file =
-                File::open(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
+            let path = &s.file_name;
+            let mut file = File::open(path).map_err(|x| AgentError::MessageError(x.to_string()))?;
             let mut json = String::new();
             file.read_to_string(&mut json)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
@@ -59,7 +58,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
             Err(AgentError::TransportError(
                 SerializeStatus::Success(format!(
                     "Signed request_status append to update message in [{}]",
-                    &s.file_name
+                    s.file_name.display()
                 ))
                 .into(),
             ))
@@ -87,14 +86,17 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
                 .with_content(hex::encode(&envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
-            let path = Path::new(&s.file_name);
+            let path = &s.file_name;
             let mut file =
-                File::create(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
+                File::create(path).map_err(|x| AgentError::MessageError(x.to_string()))?;
             file.write_all(json.as_bytes())
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             Err(AgentError::TransportError(
-                SerializeStatus::Success(format!("Update message generated at [{}]", &s.file_name))
-                    .into(),
+                SerializeStatus::Success(format!(
+                    "Update message generated at [{}]",
+                    s.file_name.display()
+                ))
+                .into(),
             ))
         }
 
@@ -114,14 +116,17 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
                 .with_content(hex::encode(&envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
-            let path = Path::new(&s.file_name);
+            let path = &s.file_name;
             let mut file =
-                File::create(&path).map_err(|x| AgentError::MessageError(x.to_string()))?;
+                File::create(path).map_err(|x| AgentError::MessageError(x.to_string()))?;
             file.write_all(json.as_bytes())
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             Err(AgentError::TransportError(
-                SerializeStatus::Success(format!("Query message generated at [{}]", &s.file_name))
-                    .into(),
+                SerializeStatus::Success(format!(
+                    "Query message generated at [{}]",
+                    s.file_name.display()
+                ))
+                .into(),
             ))
         }
 

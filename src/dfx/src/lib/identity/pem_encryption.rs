@@ -49,6 +49,7 @@ pub fn write_pem_file(
         .with_context(|| format!("Failed to read permissions of {}.", path.to_string_lossy()))?
         .permissions();
     permissions.set_readonly(true);
+    // On *nix, set the read permission to owner-only.
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
