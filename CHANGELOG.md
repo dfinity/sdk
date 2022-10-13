@@ -75,7 +75,7 @@ It's now possible to define custom wasm metadata sections and their visibility i
 
 At present, dfx can only add wasm metadata sections to canisters that are in wasm format.  It cannot add metadata sections to compressed canisters.  Since the frontend canister is now compressed, this means that at present it is not possible to add custom metadata sections to the frontend canister.
 
-dfx no longer adds `candid:service` metadata to custom canisters by default.  If you want dfx to add your canister's candid definition to your custom canister, you can do so like this:
+dfx no longer adds `candid:service` metadata to canisters of type `"custom"` by default.  If you want dfx to add your canister's candid definition to your custom canister, you can do so like this:
 
 ```
     "my_canister_name": {
