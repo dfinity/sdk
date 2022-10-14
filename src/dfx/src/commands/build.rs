@@ -44,12 +44,24 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let _all = opts.all;
 
     // Option can be None in which case --all was specified
-    let canister_names = config
+    let canisters_to_load = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
+    let canisters_to_build = canisters_to_load
+        .clone()
+        .into_iter()
+        .filter(|canister_name| {
+            !matches!(
+                config
+                    .get_config()
+                    .get_remote_canister_id(canister_name, &env.get_network_descriptor().name),
+                Ok(Some(_))
+            )
+        })
+        .collect();
 
     // Get pool of canisters to build
-    let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)?;
+    let canister_pool = CanisterPool::load(&env, build_mode_check, &canisters_to_load)?;
 
     // Create canisters on the replica and associate canister ids locally.
     if build_mode_check {
@@ -70,12 +82,10 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     slog::info!(logger, "Building canisters...");
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let build_config = BuildConfig::from_config(&config)?.with_build_mode_check(build_mode_check);
-    runtime.block_on(canister_pool.build_or_fail(
-        logger,
-        &build_config,
-        &canister_names.as_slice(),
-    ))?;
+    let build_config = BuildConfig::from_config(&config)?
+        .with_build_mode_check(build_mode_check)
+        .with_canisters_to_build(canisters_to_build);
+    runtime.block_on(canister_pool.build_or_fail(logger, &build_config))?;
 
     Ok(())
 }

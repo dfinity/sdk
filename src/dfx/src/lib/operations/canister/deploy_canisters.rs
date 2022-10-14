@@ -194,18 +194,18 @@ async fn register_canisters(
 #[context("Failed to build call canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
-    required_canisters: &[String],
+    referenced_canisters: &[String],
     canisters_to_build: &[String],
     config: &Config,
 ) -> DfxResult<CanisterPool> {
     let log = env.get_logger();
     info!(log, "Building canisters...");
     let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, required_canisters)?;
+    let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
 
-    canister_pool
-        .build_or_fail(log, &BuildConfig::from_config(config)?, canisters_to_build)
-        .await?;
+    let build_config =
+        BuildConfig::from_config(config)?.with_canisters_to_build(canisters_to_build.into());
+    canister_pool.build_or_fail(log, &build_config).await?;
     Ok(canister_pool)
 }
 

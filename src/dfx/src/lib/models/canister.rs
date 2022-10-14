@@ -202,7 +202,6 @@ impl CanisterPool {
         // Add all the canisters as nodes.
         for canister in &self.canisters {
             let canister_id = canister.info.get_canister_id()?;
-            println!("Inserted id: {}", canister_id.to_text());
             id_set.insert(canister_id, graph.add_node(canister_id));
         }
 
@@ -239,47 +238,39 @@ impl CanisterPool {
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(
-        &self,
-        log: &Logger,
-        build_config: &BuildConfig,
-        canisters_to_build: &[String],
-    ) -> DfxResult<()> {
+    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because remote canisters don't get built (and the did file not output in the right place) the .did files have to be copied over manually.
         for canister in &self.canisters {
-            if !canisters_to_build.contains(&canister.info.get_name().to_string()) {
-                let maybe_from =
-                    if let Some(remote_candid) = canister.info.get_remote_candid_if_remote() {
-                        Some(remote_candid)
-                    } else {
-                        canister.info.get_output_idl_path()
-                    };
-                if maybe_from.is_some() && maybe_from.as_ref().unwrap().exists() {
-                    let from = maybe_from.unwrap();
-                    let to = build_config.idl_root.join(format!(
-                        "{}.did",
-                        canister.info.get_canister_id()?.to_text()
-                    ));
-                    if std::fs::copy(&from, &to).is_err() {
-                        warn!(
+            let maybe_from =
+                if let Some(remote_candid) = canister.info.get_remote_candid_if_remote() {
+                    Some(remote_candid)
+                } else {
+                    canister.info.get_output_idl_path()
+                };
+            if maybe_from.is_some() && maybe_from.as_ref().unwrap().exists() {
+                let from = maybe_from.unwrap();
+                let to = build_config.idl_root.join(format!(
+                    "{}.did",
+                    canister.info.get_canister_id()?.to_text()
+                ));
+                if std::fs::copy(&from, &to).is_err() {
+                    warn!(
                                 log,
                                 "Failed to copy remote canister candid from {} to {}. This may produce errors during the build.",
                                 from.to_string_lossy(),
                                 to.to_string_lossy()
                             );
-                    }
-                } else {
-                    warn!(log, "Failed to find a .did file for canister '{}'. Not providing that file may produce errors during the build.", canister.info.get_name());
                 }
+            } else {
+                warn!(log, "Failed to find a .did file for canister '{}'. Not providing that file may produce errors during the build.", canister.info.get_name());
             }
         }
 
         // cargo audit
         if self
-            .canisters
+            .with_canisters_to_build(build_config)
             .iter()
-            .filter(|can| canisters_to_build.contains(&can.info.get_name().to_string()))
             .any(|can| can.info.is_rust())
         {
             self.run_cargo_audit()?;
@@ -408,16 +399,10 @@ impl CanisterPool {
         &self,
         build_config: &BuildConfig,
         _order: &[CanisterId],
-        canisters_to_build: &[String],
     ) -> DfxResult<()> {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
-        for canister in self
-            .canisters
-            .iter()
-            .filter(|can| canisters_to_build.contains(&can.info.get_name().to_string()))
-            .collect::<Vec<&Arc<Canister>>>()
-        {
+        for canister in self.with_canisters_to_build(build_config) {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id();
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
@@ -435,10 +420,8 @@ impl CanisterPool {
         &self,
         log: &Logger,
         build_config: &BuildConfig,
-        canisters_to_build: &[String],
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        // todo!("is canisters_to_build really necessary? can it be put into buildconfig?");
-        self.step_prebuild_all(log, build_config, canisters_to_build)
+        self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let graph = self.build_dependencies_graph()?;
@@ -458,10 +441,15 @@ impl CanisterPool {
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
 
+        let canister_names_to_build = self
+            .with_canisters_to_build(build_config)
+            .iter()
+            .map(|c| c.get_name())
+            .collect::<Vec<_>>();
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
-                if canisters_to_build.contains(&canister.info.get_name().to_string()) {
+                if canister_names_to_build.contains(&canister.get_name()) {
                     trace!(log, "Building canister '{}'.", canister.info.get_name());
                 } else {
                     trace!(log, "Not building canister '{}'.", canister.info.get_name());
@@ -500,7 +488,7 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order, canisters_to_build)
+        self.step_postbuild_all(build_config, &order)
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
@@ -509,14 +497,9 @@ impl CanisterPool {
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(
-        &self,
-        log: &Logger,
-        build_config: &BuildConfig,
-        canisters_to_build: &[String],
-    ) -> DfxResult<()> {
-        self.download(build_config, canisters_to_build).await?;
-        let outputs = self.build(log, build_config, canisters_to_build)?;
+    pub async fn build_or_fail(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+        self.download(build_config).await?;
+        let outputs = self.build(log, build_config)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
@@ -525,16 +508,8 @@ impl CanisterPool {
         Ok(())
     }
 
-    async fn download(
-        &self,
-        _build_config: &BuildConfig,
-        canisters_to_build: &[String],
-    ) -> DfxResult {
-        for canister in self
-            .canisters
-            .iter()
-            .filter(|can| canisters_to_build.contains(&can.info.get_name().to_string()))
-        {
+    async fn download(&self, build_config: &BuildConfig) -> DfxResult {
+        for canister in self.with_canisters_to_build(build_config) {
             let info = canister.get_info();
 
             if info.is_custom() {
@@ -595,6 +570,17 @@ impl CanisterPool {
             warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
         }
         Ok(())
+    }
+
+    pub fn with_canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
+        if let Some(canister_names) = &build_config.canisters_to_build {
+            self.canisters
+                .iter()
+                .filter(|can| canister_names.contains(&can.info.get_name().to_string()))
+                .collect()
+        } else {
+            self.canisters.iter().collect()
+        }
     }
 }
 
