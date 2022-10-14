@@ -46,7 +46,7 @@ pub fn deploy_sns(
     let args = vec![
         OsString::from("deploy"),
         OsString::from("--network"),
-        OsString::from(network_str),
+        OsString::from(sns_network_param),
         OsString::from("--init-config-file"),
         OsString::from(path),
         OsString::from("--candid"),
