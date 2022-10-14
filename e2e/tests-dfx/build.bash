@@ -147,6 +147,8 @@ teardown() {
   assert_command dfx build custom2
   assert_match "CUSTOM_CANISTER2_BUILD_DONE"
   assert_command dfx build custom3
+  assert_command dfx build custom4
+  assert_match "CUSTOM_CANISTER4_BUILD_DONE"
 
   dfx canister install --all
   assert_command dfx canister call custom fromQuery

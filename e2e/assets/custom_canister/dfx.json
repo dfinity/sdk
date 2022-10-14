@@ -17,6 +17,12 @@
       "type": "custom",
       "candid": "main.did",
       "wasm": "main.wasm"
+    },
+    "custom4": {
+      "type": "custom",
+      "candid": "main.did",
+      "wasm": "main.wasm",
+      "build": "echo -n CUSTOM_CANISTER4 && echo _BUILD_DONE"
     }
   },
   "defaults": {

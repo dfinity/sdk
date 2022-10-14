@@ -123,6 +123,12 @@ impl CanisterBuilder for CustomBuilder {
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
 
         let mut add_candid_service_metadata = false;
+
+        // If there's any build command, add metadata
+        if !build.is_empty() {
+            add_candid_service_metadata = true;
+        }
+
         for command in build {
             info!(
                 self.logger,
@@ -131,15 +137,8 @@ impl CanisterBuilder for CustomBuilder {
                 command
             );
 
-            // First separate everything as if it was read from a shell.
-            let args = shell_words::split(&command)
-                .with_context(|| format!("Cannot parse command '{}'.", command))?;
-            // No commands, noop.
-            if !args.is_empty() {
-                add_candid_service_metadata = true;
-                run_command(args, &vars, info.get_workspace_root())
-                    .with_context(|| format!("Failed to run {}.", command))?;
-            }
+            run_shell_command(&command, &vars, info.get_workspace_root())
+                .with_context(|| format!("Failed to run {}.", command))?;
         }
 
         let mut file =
@@ -202,16 +201,10 @@ impl CanisterBuilder for CustomBuilder {
     }
 }
 
-fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
-    let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = cwd
-        .join(command_name)
-        .canonicalize()
-        .or_else(|_| which::which(command_name))
-        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(&canonicalized);
-
-    cmd.args(arguments)
+fn run_shell_command(cmd_str: &str, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
+    let mut cmd = Command::new("sh");
+    cmd.arg("-c")
+        .arg(cmd_str)
         .current_dir(cwd)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());

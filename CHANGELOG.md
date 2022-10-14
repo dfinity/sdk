@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: build commands are run via /bin/sh
+
+`dfx canister build` (and all commands running builds) now run custom canister `build:` commands through `/bin/sh`.
+
 ### fix: Save SNS canister IDs
 
 SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
