@@ -177,6 +177,10 @@ impl CanisterIdStore {
         }
         self.save_ids()
     }
+
+    pub fn get_path(&self) -> Option<&PathBuf> {
+        self.path.as_ref()
+    }
 }
 
 #[context("Failed to get remote ids.")]

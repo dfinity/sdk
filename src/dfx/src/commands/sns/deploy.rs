@@ -19,9 +19,9 @@ pub struct DeployOpts {
 
 /// Executes the command line `dfx sns deploy`.
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
+    println!("Creating SNS canisters.  This typically takes about one minute...");
     let config = env.get_config_or_anyhow()?;
     let path = config.get_project_root().join(sns::CONFIG_FILE_NAME);
-
-    deploy_sns(env, &path, opts.network.network)?;
+    println!("{}", deploy_sns(env, &path, opts.network.network)?);
     Ok(())
 }

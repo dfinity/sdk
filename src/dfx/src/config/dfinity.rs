@@ -3,13 +3,12 @@ use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::util::{PossiblyStr, SerdeVec};
+use crate::util::{project_dirs, PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use candid::Principal;
-use directories_next::ProjectDirs;
 use fn_error_context::context;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
@@ -883,10 +882,10 @@ impl NetworksConfig {
     }
     #[context("Failed to determine shared network data directory.")]
     pub fn get_network_data_directory(network: &str) -> DfxResult<PathBuf> {
-        let project_dirs = ProjectDirs::from("org", "dfinity", "dfx").ok_or_else(|| {
-            anyhow!("Unable to retrieve a valid home directory path from the operating system")
-        })?;
-        Ok(project_dirs.data_local_dir().join("network").join(network))
+        Ok(project_dirs()?
+            .data_local_dir()
+            .join("network")
+            .join(network))
     }
 
     #[context("Failed to read shared networks configuration.")]

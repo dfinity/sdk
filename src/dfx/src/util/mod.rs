@@ -6,9 +6,11 @@ use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
+use directories_next::ProjectDirs;
 use fn_error_context::context;
-use net2::TcpListenerExt;
-use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
+#[cfg(unix)]
+use net2::unix::UnixTcpBuilderExt;
+use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
 use rust_decimal::Decimal;
 use schemars::JsonSchema;
@@ -38,11 +40,15 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
     } else {
         TcpBuilder::new_v6().context("Failed to create IPv6 builder.")?
     };
-    let listener = tcp_builder
+    let tcp_builder = tcp_builder
         .reuse_address(true)
-        .context("Failed to set option reuse_address of tcp builder.")?
+        .context("Failed to set option reuse_address of tcp builder.")?;
+    // On Windows, SO_REUSEADDR without SO_EXCLUSIVEADDRUSE acts like SO_REUSEPORT (among other things), so this is only necessary on *nix.
+    #[cfg(unix)]
+    let tcp_builder = tcp_builder
         .reuse_port(true)
-        .context("Failed to set option reuse_port of tcp builder.")?
+        .context("Failed to set option reuse_port of tcp builder.")?;
+    let listener = tcp_builder
         .bind(SocketAddr::new(ip, port))
         .with_context(|| format!("Failed to set socket of tcp builder to {}:{}.", ip, port))?
         .to_tcp_listener()
@@ -341,6 +347,13 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .chars()
         .rev()
         .collect::<_>()
+}
+
+pub fn project_dirs() -> DfxResult<&'static ProjectDirs> {
+    lazy_static::lazy_static! {
+        static ref DIRS: Option<ProjectDirs> = ProjectDirs::from("org", "dfinity", "dfx");
+    }
+    DIRS.as_ref().context("Failed to resolve 'HOME' env var.")
 }
 
 #[cfg(test)]

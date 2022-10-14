@@ -1,10 +1,12 @@
 //! Code for creating an SNS.
+use anyhow::{anyhow, bail};
 use fn_error_context::context;
 use std::ffi::OsString;
 use std::path::Path;
 
 use crate::lib::call_bundled::call_bundled;
 use crate::lib::error::DfxResult;
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 use crate::Environment;
 
@@ -24,13 +26,35 @@ pub fn deploy_sns(
     } else {
         "local"
     };
+
+    // Note: It MAY be possible to get the did file location using existing sdk methods.
+    let did_file = "candid/nns-sns-wasm.did";
+    if !Path::new(did_file).exists() {
+        bail!("Missing did file at '{did_file}'.  Please run 'dfx nns import' to get the file.");
+    }
+
+    let canister_id_store = CanisterIdStore::new(&network_descriptor, env.get_config())?;
+    let canister_ids_file = canister_id_store
+        .get_path()
+        .ok_or_else(|| anyhow!("Unable to determine canister_ids file."))?;
+
     let args = vec![
         OsString::from("deploy"),
         OsString::from("--network"),
         OsString::from(network_str),
         OsString::from("--init-config-file"),
         OsString::from(path),
+        OsString::from("--candid"),
+        OsString::from(did_file),
+        OsString::from("--save-to"),
+        OsString::from(canister_ids_file),
     ];
-    call_bundled(env, "sns", &args)
-        .map(|stdout| format!("Deployed SNS: {}\n{}", path.display(), stdout))
+    call_bundled(env, "sns", &args).map(|stdout| {
+        format!(
+            "Deployed SNS:\nSNS config: {}\nCanister ID file: {}\n\n{}",
+            path.display(),
+            canister_ids_file.display(),
+            stdout
+        )
+    })
 }

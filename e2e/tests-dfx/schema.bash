@@ -17,3 +17,8 @@ teardown() {
     assert_command jq type out.json
     assert_eq '"object"'
 }
+
+@test "dfx schema still works with broken dfx.json" {
+    jq '.broken_key="blahblahblah"' dfx.json | sponge dfx.json
+    assert_command dfx schema
+}

@@ -27,6 +27,7 @@ pub struct LocalServerDescriptor {
     ///     <project directory>/.dfx/network/local
     ///     $HOME/Library/Application Support/org.dfinity.dfx/network/local
     ///     $HOME/.local/share/dfx/network/local
+    ///     $APPDATA/dfx/network/local
     pub data_directory: PathBuf,
 
     pub bind_address: SocketAddr,
