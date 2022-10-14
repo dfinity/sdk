@@ -17,6 +17,7 @@ pub fn deploy_sns(
     path: &Path,
     network: Option<String>,
 ) -> DfxResult<String> {
+    // For networks other than ic and local we need a provider URL:
     let agent_environment = create_agent_environment(env, network)?;
     let network_descriptor = agent_environment.get_network_descriptor();
     let network_str = if network_descriptor.is_ic {
