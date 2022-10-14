@@ -17,10 +17,12 @@ pub fn deploy_sns(
     path: &Path,
     network: Option<String>,
 ) -> DfxResult<String> {
+
     // For networks other than ic and local we need a provider URL:
     let agent_environment = create_agent_environment(env, network.clone())?;
     let network_descriptor = agent_environment.get_network_descriptor();
     let sns_network_param = match network.as_ref().map(|network| network.as_ref()) {
+        None => "local",
         Some("ic") => "ic",
         Some("local") => "local",
         Some(url) if url::Url::parse(url).is_ok() => url,
@@ -38,7 +40,7 @@ pub fn deploy_sns(
         bail!("Missing did file at '{did_file}'.  Please run 'dfx nns import' to get the file.");
     }
 
-    let canister_id_store = CanisterIdStore::new(&network_descriptor, env.get_config())?;
+    let canister_id_store = CanisterIdStore::new(network_descriptor, env.get_config())?;
     let canister_ids_file = canister_id_store
         .get_path()
         .ok_or_else(|| anyhow!("Unable to determine canister_ids file."))?;
