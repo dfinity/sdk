@@ -1,5 +1,5 @@
 //! Code for creating an SNS.
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
 use std::ffi::OsString;
 use std::path::Path;
@@ -18,14 +18,18 @@ pub fn deploy_sns(
     network: Option<String>,
 ) -> DfxResult<String> {
     // For networks other than ic and local we need a provider URL:
-    let agent_environment = create_agent_environment(env, network)?;
+    let agent_environment = create_agent_environment(env, network.clone())?;
     let network_descriptor = agent_environment.get_network_descriptor();
-    let network_str = if network_descriptor.is_ic {
-        "ic"
-    } else if let Ok(url) = network_descriptor.first_provider() {
-        url
-    } else {
-        "local"
+    let sns_network_param = match network.as_ref().map(|network| network.as_ref()) {
+        Some("ic") => "ic",
+        Some("local") => "local",
+        Some(url) if url::Url::parse(url).is_ok() => url,
+        _ => network_descriptor.first_provider().with_context(|| {
+            format!(
+                "Network '{}' has no known provider URL.",
+                network.unwrap_or_default()
+            )
+        })?,
     };
 
     // Note: It MAY be possible to get the did file location using existing sdk methods.

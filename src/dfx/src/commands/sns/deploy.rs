@@ -13,6 +13,7 @@ use clap::Parser;
 /// - `opts` - Deployment options.
 #[derive(Parser)]
 pub struct DeployOpts {
+    /// The name of the network to deploy to.
     #[clap(flatten)]
     network: NetworkOpt,
 }
