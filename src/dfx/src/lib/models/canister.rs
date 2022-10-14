@@ -13,6 +13,7 @@ use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
+use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
@@ -440,15 +441,15 @@ impl CanisterPool {
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
 
-        let canister_names_to_build = self
-            .canisters_to_build(build_config)
-            .iter()
-            .map(|c| c.get_name())
-            .collect::<Vec<_>>();
+        let canisters_to_build = self.canisters_to_build(build_config);
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
-                if canister_names_to_build.contains(&canister.get_name()) {
+                if canisters_to_build
+                    .iter()
+                    .map(|c| c.get_name())
+                    .contains(&canister.get_name())
+                {
                     trace!(log, "Building canister '{}'.", canister.info.get_name());
                 } else {
                     trace!(log, "Not building canister '{}'.", canister.info.get_name());
