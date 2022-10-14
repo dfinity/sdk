@@ -241,13 +241,12 @@ impl CanisterPool {
     fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because remote canisters don't get built (and the did file not output in the right place) the .did files have to be copied over manually.
-        for canister in &self.canisters {
-            let maybe_from =
-                if let Some(remote_candid) = canister.info.get_remote_candid_if_remote() {
-                    Some(remote_candid)
-                } else {
-                    canister.info.get_output_idl_path()
-                };
+        for canister in self.canisters.iter().filter(|c| c.info.is_remote()) {
+            let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
+                Some(remote_candid)
+            } else {
+                canister.info.get_output_idl_path()
+            };
             if maybe_from.is_some() && maybe_from.as_ref().unwrap().exists() {
                 let from = maybe_from.unwrap();
                 let to = build_config.idl_root.join(format!(
@@ -269,7 +268,7 @@ impl CanisterPool {
 
         // cargo audit
         if self
-            .with_canisters_to_build(build_config)
+            .canisters_to_build(build_config)
             .iter()
             .any(|can| can.info.is_rust())
         {
@@ -402,7 +401,7 @@ impl CanisterPool {
     ) -> DfxResult<()> {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
-        for canister in self.with_canisters_to_build(build_config) {
+        for canister in self.canisters_to_build(build_config) {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id();
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
@@ -442,7 +441,7 @@ impl CanisterPool {
             .collect();
 
         let canister_names_to_build = self
-            .with_canisters_to_build(build_config)
+            .canisters_to_build(build_config)
             .iter()
             .map(|c| c.get_name())
             .collect::<Vec<_>>();
@@ -509,7 +508,7 @@ impl CanisterPool {
     }
 
     async fn download(&self, build_config: &BuildConfig) -> DfxResult {
-        for canister in self.with_canisters_to_build(build_config) {
+        for canister in self.canisters_to_build(build_config) {
             let info = canister.get_info();
 
             if info.is_custom() {
@@ -572,7 +571,7 @@ impl CanisterPool {
         Ok(())
     }
 
-    pub fn with_canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
+    pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
         if let Some(canister_names) = &build_config.canisters_to_build {
             self.canisters
                 .iter()

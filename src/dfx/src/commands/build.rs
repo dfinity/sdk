@@ -60,7 +60,6 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         })
         .collect();
 
-    // Get pool of canisters to build
     let canister_pool = CanisterPool::load(&env, build_mode_check, &canisters_to_load)?;
 
     // Create canisters on the replica and associate canister ids locally.

@@ -270,7 +270,6 @@ teardown() {
     setup_actuallylocal_shared_network
     setup_local_shared_network
     jq ".canisters.remote.remote.id.actuallylocal=\"$REMOTE_CANISTER_ID\"" dfx.json | sponge dfx.json
-    cat dfx.json
 
     assert_command dfx deploy
     assert_command dfx canister call basic read_remote
@@ -278,7 +277,6 @@ teardown() {
     assert_command dfx canister call remote which_am_i
     assert_eq '("mock")'
 
-    echo "DEPLOY STARTS HERE"
     assert_command dfx deploy --network actuallylocal -vv
     assert_match "Not building canister 'remote'"
     assert_command dfx canister call basic read_remote --network actuallylocal
