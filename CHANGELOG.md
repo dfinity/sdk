@@ -4,6 +4,22 @@
 
 ## DFX
 
+### fix(frontend-canister): Allow overwirting default HTTP Headers for assets in frontend canister 
+
+Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Notice this requires using correct capitalization, example `.ic-assets.json5` file:
+```json5
+[
+    {
+        "match": "web-gz.data.gz",
+        "headers": {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "gzip"
+        }
+    },
+]
+```
+
+
 ### fix: Save SNS canister IDs
 
 SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
