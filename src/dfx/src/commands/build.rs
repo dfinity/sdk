@@ -41,7 +41,6 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     env.get_cache().install()?;
 
     let build_mode_check = opts.check;
-    let _all = opts.all;
 
     // Option can be None in which case --all was specified
     let canisters_to_load = config

@@ -1,6 +1,8 @@
 use crate::config::dfx_version;
 use crate::lib::error::{CacheError, DfxError, DfxResult};
 use crate::util;
+#[cfg(windows)]
+use crate::util::project_dirs;
 
 use anyhow::{bail, Context};
 use fn_error_context::context;
@@ -8,11 +10,13 @@ use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use semver::Version;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::ExitStatus;
 
 // POSIX permissions for files in the cache.
+#[cfg(unix)]
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
 
 pub trait Cache {
@@ -68,11 +72,20 @@ impl Cache for DiskBasedCache {
 
 #[context("Failed to get cache root.")]
 pub fn get_cache_root() -> DfxResult<PathBuf> {
-    let cache_root = std::env::var("DFX_CACHE_ROOT").ok();
-    let home =
-        std::env::var("HOME").map_err(|_| DfxError::new(CacheError::CannotFindHomeDirectory()))?;
-    let root = cache_root.unwrap_or(home);
-    let p = PathBuf::from(root).join(".cache").join("dfinity");
+    let cache_root = std::env::var_os("DFX_CACHE_ROOT");
+    // dirs-next is not used for *nix to preserve existing paths
+    #[cfg(not(windows))]
+    let p = {
+        let home = std::env::var_os("HOME")
+            .ok_or_else(|| DfxError::new(CacheError::CannotFindHomeDirectory()))?;
+        let root = cache_root.unwrap_or(home);
+        PathBuf::from(root).join(".cache").join("dfinity")
+    };
+    #[cfg(windows)]
+    let p = match cache_root {
+        Some(var) => PathBuf::from(var),
+        None => project_dirs()?.cache_dir().to_owned(),
+    };
     if !p.exists() {
         if let Err(_e) = std::fs::create_dir_all(&p) {
             return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));
@@ -180,23 +193,26 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             }
             file.unpack_in(temp_p.as_path())
                 .context("Failed to unpack archive asset.")?;
-
-            let full_path = temp_p.join(file.path().context("Failed to get file path.")?);
-            let mut perms = std::fs::metadata(full_path.as_path())
-                .with_context(|| {
+            // On *nix we need to set the execute permission as the tgz doesn't include it
+            #[cfg(unix)]
+            {
+                let full_path = temp_p.join(file.path().context("Failed to get file path.")?);
+                let mut perms = std::fs::metadata(full_path.as_path())
+                    .with_context(|| {
+                        format!(
+                            "Failed to get file metadata for {}.",
+                            full_path.to_string_lossy()
+                        )
+                    })?
+                    .permissions();
+                perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
+                std::fs::set_permissions(full_path.as_path(), perms).with_context(|| {
                     format!(
-                        "Failed to get file metadata for {}.",
+                        "Failed to set file permissions for {}.",
                         full_path.to_string_lossy()
                     )
-                })?
-                .permissions();
-            perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-            std::fs::set_permissions(full_path.as_path(), perms).with_context(|| {
-                format!(
-                    "Failed to set file permissions for {}.",
-                    full_path.to_string_lossy()
-                )
-            })?;
+                })?;
+            }
         }
 
         // Copy our own binary in the cache.
@@ -211,19 +227,22 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
                 dfx.to_string_lossy()
             )
         })?;
-        // And make it executable.
-        let mut perms = std::fs::metadata(&dfx)
-            .with_context(|| {
-                format!(
-                    "Failed to read file metadata for {}.",
-                    dfx.to_string_lossy()
-                )
-            })?
-            .permissions();
-        perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-        std::fs::set_permissions(&dfx, perms).with_context(|| {
-            format!("Failed to set file metadata for {}.", dfx.to_string_lossy())
-        })?;
+        // On *nix we need to set the execute permission as the tgz doesn't include it
+        #[cfg(unix)]
+        {
+            let mut perms = std::fs::metadata(&dfx)
+                .with_context(|| {
+                    format!(
+                        "Failed to read file metadata for {}.",
+                        dfx.to_string_lossy()
+                    )
+                })?
+                .permissions();
+            perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
+            std::fs::set_permissions(&dfx, perms).with_context(|| {
+                format!("Failed to set file metadata for {}.", dfx.to_string_lossy())
+            })?;
+        }
 
         // atomically install cache version into place
         if force && p.exists() {
