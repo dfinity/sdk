@@ -54,6 +54,9 @@ impl CanisterInfoFactory for CustomCanisterInfo {
             )
         };
         let (input_wasm_url, output_wasm_path) = if let Ok(input_wasm_url) = Url::parse(&wasm) {
+            if !build.is_empty() {
+                bail!("Canister '{}' defines its wasm field as a URL, and has a build step.", info.name);
+            }
             let filename = input_wasm_url.path_segments().ok_or_else(|| {
                 anyhow!(
                     "unable to determine path segments for url {}",
