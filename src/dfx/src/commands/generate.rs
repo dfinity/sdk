@@ -76,11 +76,11 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     let generate_config =
         BuildConfig::from_config(&config)?.with_canisters_to_build(canisters_to_generate);
 
-    if !build_config
+    if build_config
         .canisters_to_build
         .as_ref()
-        .map(|v| v.is_empty())
-        .unwrap_or(true)
+        .map(|v| !v.is_empty())
+        .unwrap_or(false)
     {
         slog::info!(log, "Building canisters before generate for Motoko");
         let runtime = Runtime::new().expect("Unable to create a runtime");
