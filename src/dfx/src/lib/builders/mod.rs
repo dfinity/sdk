@@ -366,6 +366,7 @@ pub struct BuildConfig {
     /// The root for all build files.
     pub build_root: PathBuf,
     /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
+    /// If all canisters should be built, then this is None.
     pub canisters_to_build: Option<Vec<String>>,
 }
 
