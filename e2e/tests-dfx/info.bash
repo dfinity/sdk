@@ -14,6 +14,15 @@ teardown() {
     standard_teardown
 }
 
+@test "displays the replica port" {
+    assert_command_fail dfx info replica-port
+    assert_contains "No replica port found"
+
+    dfx_start
+    assert_command dfx info replica-port
+    assert_eq "$(get_replica_port)"
+}
+
 @test "displays the default webserver port for the local shared network" {
     assert_command dfx info webserver-port
     assert_eq "4943"
