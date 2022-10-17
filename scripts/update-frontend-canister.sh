@@ -1,33 +1,15 @@
 #!/usr/bin/env bash
-
-set -e
-die() {
-  echo "$1" >&2
-  exit 1
-}
-
-cargo --version >/dev/null || die "Must have cargo installed."
+set -euo pipefail
 
 SCRIPT=$(readlink -f "${0}")
 SCRIPT_DIR=$(dirname "${SCRIPT}")
 cd ${SCRIPT_DIR}/..
 
-if [ -z "${CARGO_HOME}" ]
-then
-  export CARGO_HOME="${HOME}/.cargo"
+if ! command -v rustc &> /dev/null; then
+    echo "Must have Rust installed" >&2
+    exit 1
 fi
 
-export RUSTFLAGS="--remap-path-prefix $(readlink -f ${SCRIPT_DIR}/..)=/build --remap-path-prefix ${CARGO_HOME}/bin=/cargo/bin --remap-path-prefix ${CARGO_HOME}/git=/cargo/git"
-for l in $(ls ${CARGO_HOME}/registry/src/)
-do
-  export RUSTFLAGS="--remap-path-prefix ${CARGO_HOME}/registry/src/${l}=/cargo/registry/src/github ${RUSTFLAGS}"
-done
-cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown
+rust_version=$(rustc --version | cut -wf 2) # fetches from rust-toolchain.toml
 
-BUILD_DIR="target/wasm32-unknown-unknown/release"
-ic-wasm --output $BUILD_DIR/ic_frontend_canister.wasm $BUILD_DIR/ic_frontend_canister.wasm metadata --file src/canisters/frontend/ic-certified-assets/assets.did --visibility public candid:service
-ic-wasm --output $BUILD_DIR/ic_frontend_canister.wasm $BUILD_DIR/ic_frontend_canister.wasm shrink
-gzip --best --keep --force --no-name $BUILD_DIR/ic_frontend_canister.wasm
-
-cp -f $BUILD_DIR/ic_frontend_canister.wasm.gz src/distributed/assetstorage.wasm.gz
-cp -f src/canisters/frontend/ic-certified-assets/assets.did src/distributed/assetstorage.did
+DOCKER_BUILDKIT=1 docker build . -f "$SCRIPT_DIR/update-frontend-canister.Dockerfile" -o src/distributed --build-arg=RUST_VERSION=$rust_version
