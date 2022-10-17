@@ -62,12 +62,10 @@ pub async fn deploy_canisters(
             .clone()
             .into_iter()
             .filter(|canister_name| {
-                !matches!(
-                    config
-                        .get_config()
-                        .get_remote_canister_id(canister_name, &network.name),
-                    Ok(Some(_))
-                )
+                !config
+                    .get_config()
+                    .is_remote_canister(canister_name, &env.get_network_descriptor().name)
+                    .unwrap_or(false)
             })
             .collect()
     };
