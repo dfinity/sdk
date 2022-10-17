@@ -4,7 +4,6 @@ RUN cargo install ic-wasm --version 0.2.0
 COPY . /build
 WORKDIR /build
 RUN export RUSTFLAGS="--remap-path-prefix $CARGO_HOME=/cargo" && \
-    echo $RUSTFLAGS >/final_rustflags.txt && \
     cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown
 
 RUN export BUILD_DIR=target/wasm32-unknown-unknown/release && \
