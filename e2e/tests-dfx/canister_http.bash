@@ -2,6 +2,8 @@
 
 load ../utils/_
 
+# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
+
 setup() {
     standard_setup
 }
@@ -34,14 +36,12 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "canister http feature is enabled by default" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_start
 
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
 }
 
 @test "canister http feature is enabled by default with empty json element" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     set_shared_local_network_canister_http_empty
 
     dfx_start
@@ -50,7 +50,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx restarts replica when ic-canister-http-adapter restarts" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     dfx_start
 
@@ -101,7 +100,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx restarts replica when ic-canister-http-adapter restarts - replica and bootstrap" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     dfx_replica
     dfx_bootstrap
@@ -149,7 +147,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx start --enable-canister-http with no other configuration succeeds" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
 
     dfx_start --enable-canister-http
@@ -158,7 +155,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx replica --enable-canister-http with no other configuration succeeds" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
 
     dfx_replica --enable-canister-http
@@ -167,7 +163,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can enable http through project default configuration - dfx start" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     define_project_network
     set_project_default_canister_http_enabled
@@ -178,7 +173,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through project default configuration - dfx start" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     define_project_network
     set_project_default_canister_http_enabled false
@@ -189,7 +183,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can enable http through project local network - dfx start" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     define_project_network
     set_project_local_network_canister_http_enabled
@@ -200,7 +193,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through project local network - dfx start" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     define_project_network
     set_project_local_network_canister_http_enabled false
@@ -211,7 +203,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can enable http through shared local network - dfx start" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     set_shared_local_network_canister_http_enabled
 
@@ -221,7 +212,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through shared local network - dfx start" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     set_shared_local_network_canister_http_enabled false
 
@@ -232,7 +222,6 @@ set_shared_local_network_canister_http_empty() {
 
 
 @test "can enable http through project default configuration - dfx replica" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     define_project_network
     set_project_default_canister_http_enabled
@@ -243,7 +232,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through project default configuration - dfx replica" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     define_project_network
     set_project_default_canister_http_enabled false
@@ -254,7 +242,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can enable http through project local network - dfx replica" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     define_project_network
     set_project_local_network_canister_http_enabled
@@ -265,7 +252,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through project local network - dfx replica" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     define_project_network
     set_project_local_network_canister_http_enabled false
@@ -276,7 +262,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can enable http through shared local network - dfx replica" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     set_shared_local_network_canister_http_enabled
 
@@ -286,7 +271,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through shared local network - dfx replica" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new hello
     set_shared_local_network_canister_http_enabled false
 
@@ -296,7 +280,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx starts http adapter with correct log level - project defaults" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new
     jq '.defaults.canister_http.log_level="warning"' dfx.json | sponge dfx.json
     define_project_network
@@ -311,7 +294,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx starts http adapter with correct log level - local network" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new
     jq '.networks.local.canister_http.log_level="warning"' dfx.json | sponge dfx.json
     define_project_network
@@ -326,7 +308,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx starts http adapter with correct log level - shared network" {
-    [ "$USE_IC_REF" ] && skip "no canister http adapter with ic-ref"
     dfx_new
     create_networks_json
     jq '.local.canister_http.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"

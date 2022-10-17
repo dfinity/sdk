@@ -20,6 +20,7 @@ matrix = {
     "rust": ["1.60.0"],
     "exclude": [
         {"backend": "ic-ref", "test": "dfx/bitcoin"},
+        {"backend": "ic-ref", "test": "dfx/canister_http"},
         {"backend": "ic-ref", "test": "dfx/dfx_install"},
         {"backend": "ic-ref", "test": "dfx/leak"},
         {"backend": "ic-ref", "test": "dfx/ledger"},
