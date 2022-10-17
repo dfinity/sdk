@@ -14,7 +14,7 @@ env:
 
 jobs:
   frontend:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     name: frontend-canister-up-to-date:required
     steps:
       - name: Check out the repo
@@ -23,7 +23,7 @@ jobs:
         run: |
           rustup target add wasm32-unknown-unknown
           cargo install --version 0.2.0 ic-wasm
-          brew install coreutils
+          # brew install coreutils
       - name: Build frontend canister
         run: ./scripts/update-frontend-canister.sh
       - name: Artifact
