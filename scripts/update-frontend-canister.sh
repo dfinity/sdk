@@ -10,6 +10,6 @@ if ! command -v rustc &> /dev/null; then
     exit 1
 fi
 
-rust_version=$(rustc --version | cut -wf 2) # fetches from rust-toolchain.toml
+rust_version=$(rustc --version | cut -f 2 -d ' ') # fetches from rust-toolchain.toml
 
 DOCKER_BUILDKIT=1 docker build . -f "$SCRIPT_DIR/update-frontend-canister.Dockerfile" -o src/distributed --build-arg=RUST_VERSION=$rust_version
