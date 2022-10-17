@@ -14,7 +14,7 @@ env:
 
 jobs:
   frontend:
-    runs-on: macos-latest
+    runs-on: macos-12
     name: frontend-canister-up-to-date:required
     steps:
       - name: Check out the repo
