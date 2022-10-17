@@ -27,7 +27,7 @@ jobs:
         run: |
           ./scripts/update-frontend-canister.sh
       - name: Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: assetstorage
           path: ${{ github.workspace }}/src/distributed/assetstorage.wasm.gz
