@@ -303,7 +303,7 @@ teardown() {
     assert_eq "null"
 }
 
-@test "build step sets remote cid env var correctly" {
+@test "build step sets remote cid environment variable correctly" {
     install_asset remote/envvar
     install_asset wasm/identity # need to have some .did and .wasm files to point our custom canister to
     dfx_start
