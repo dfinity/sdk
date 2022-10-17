@@ -555,7 +555,7 @@ Use the `dfx canister request-status` command to request the status of a specifi
 ### Basic usage
 
 ``` bash
-dfx canister request-status request_id canister <option>
+dfx canister request-status request_id canister [option]
 ```
 
 ### Flags
