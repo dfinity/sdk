@@ -248,22 +248,25 @@ impl CanisterPool {
             } else {
                 canister.info.get_output_idl_path()
             };
-            if maybe_from.is_some() && maybe_from.as_ref().unwrap().exists() {
-                let from = maybe_from.unwrap();
-                let to = build_config.idl_root.join(format!(
-                    "{}.did",
-                    canister.info.get_canister_id()?.to_text()
-                ));
-                if std::fs::copy(&from, &to).is_err() {
-                    warn!(
-                                log,
-                                "Failed to copy remote canister candid from {} to {}. This may produce errors during the build.",
-                                from.to_string_lossy(),
-                                to.to_string_lossy()
-                            );
+            if let Some(from) = maybe_from.as_ref() {
+                if from.exists() {
+                    let to = build_config.idl_root.join(format!(
+                        "{}.did",
+                        canister.info.get_canister_id()?.to_text()
+                    ));
+                    if std::fs::copy(&from, &to).is_err() {
+                        warn!(
+                                    log,
+                                    "Failed to copy remote canister candid from {} to {}. This may produce errors during the build.",
+                                    from.to_string_lossy(),
+                                    to.to_string_lossy()
+                                );
+                    }
+                } else {
+                    warn!(log, ".did file for canister '{}' does not exist at {}. This may result in errors during the build.", canister.get_name(), from.to_string_lossy());
                 }
             } else {
-                warn!(log, "Failed to find a .did file for canister '{}'. Not providing that file may produce errors during the build.", canister.info.get_name());
+                warn!(log, "Failed to find a configured .did file for canister '{}'. Not specifying that field may result in errors during the build.", canister.get_name());
             }
         }
 
@@ -450,9 +453,9 @@ impl CanisterPool {
                     .map(|c| c.get_name())
                     .contains(&canister.get_name())
                 {
-                    trace!(log, "Building canister '{}'.", canister.info.get_name());
+                    trace!(log, "Building canister '{}'.", canister.get_name());
                 } else {
-                    trace!(log, "Not building canister '{}'.", canister.info.get_name());
+                    trace!(log, "Not building canister '{}'.", canister.get_name());
                     continue;
                 }
                 result.push(
