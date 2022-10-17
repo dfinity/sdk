@@ -462,14 +462,6 @@ Updated replica to elected commit cbf9a3bbd63f37f343f5ebc44e88eafff1481767.
 This incorporates the following executed proposals:
 
 - [86279](https://dashboard.internetcomputer.org/proposal/86279)
-
-### Replica
-
-Updated replica to release candidate at commit 9173c5f1b28e140931060b90e9de65b923ee57e6.
-This release candidate has not yet been elected.
-
-This also incorporates the following executed proposals:
-
 * [85007](https://dashboard.internetcomputer.org/proposal/85007)
 * [84391](https://dashboard.internetcomputer.org/proposal/84391)
 * [83786](https://dashboard.internetcomputer.org/proposal/83786)
