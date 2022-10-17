@@ -302,3 +302,13 @@ teardown() {
     assert_command jq .remote canister_ids.json
     assert_eq "null"
 }
+
+@test "build step sets remote cid env var correctly" {
+    install_asset remote/envvar
+    install_asset wasm/identity # need to have some .did and .wasm files to point our custom canister to
+    dfx_start
+    setup_actuallylocal_shared_network
+
+    assert_command dfx deploy --network actuallylocal -vv
+    assert_match "CANISTER_ID_remote: qoctq-giaaa-aaaaa-aaaea-cai"
+}
