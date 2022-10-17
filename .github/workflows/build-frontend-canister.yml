@@ -14,7 +14,7 @@ env:
 
 jobs:
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     name: frontend-canister-up-to-date:required
     steps:
       - name: Check out the repo
