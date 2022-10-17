@@ -138,6 +138,7 @@ pub enum CanisterTypeProperties {
     Custom {
         /// # WASM Path
         /// Path to WASM to be installed. URLs to a WASM module are also acceptable.
+        /// A canister that has a URL to a WASM module can not also have `build` steps.
         wasm: String,
 
         /// # Candid File
@@ -147,6 +148,7 @@ pub enum CanisterTypeProperties {
         /// # Build Commands
         /// Commands that are executed in order to produce this canister's WASM module.
         /// Expected to produce the WASM in the path specified by the 'wasm' field.
+        /// No build commands are allowed if the `wasm` field is a URL.
         build: SerdeVec<String>,
     },
     /// # Motoko-Specific Properties

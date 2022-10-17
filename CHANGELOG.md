@@ -119,6 +119,8 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
+- note that dfx will report an error if a custom canister's `wasm` field is a URL and the canister also has `build` steps.
+
 ### feat: custom canister `candid` field can now specify a URL from which to download
 
 ### feat: deploy NNS canisters
