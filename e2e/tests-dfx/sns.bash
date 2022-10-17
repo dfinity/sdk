@@ -69,8 +69,6 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     dfx sns import
     ls candid
     cat dfx.json
-    # Early access to SNS deployments is gated; add ourselves to the whitelist:
-    dfx canister call nns-sns-wasm update_allowed_principals "(record{ added_principals = vec { $(dfx identity get-principal) } ; removed_principals = vec {} })"
     # Deploy the SNS
     install_asset sns/valid
     dfx sns config validate
