@@ -365,6 +365,9 @@ pub struct BuildConfig {
     pub lsp_root: PathBuf,
     /// The root for all build files.
     pub build_root: PathBuf,
+    /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
+    /// If all canisters should be built, then this is None.
+    pub canisters_to_build: Option<Vec<String>>,
 }
 
 impl BuildConfig {
@@ -382,12 +385,20 @@ impl BuildConfig {
             build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
+            canisters_to_build: None,
         })
     }
 
     pub fn with_build_mode_check(self, build_mode_check: bool) -> Self {
         Self {
             build_mode_check,
+            ..self
+        }
+    }
+
+    pub fn with_canisters_to_build(self, canisters: Vec<String>) -> Self {
+        Self {
+            canisters_to_build: Some(canisters),
             ..self
         }
     }
