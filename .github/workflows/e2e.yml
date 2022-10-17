@@ -80,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(scripts/workflows/e2e-matrix.py)"
+        run: echo "name=matrix::$(scripts/workflows/e2e-matrix.py)" >> $GITHUB_OUTPUT
 
   smoke:
     runs-on: ${{ matrix.os }}

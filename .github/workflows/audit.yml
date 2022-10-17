@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(scripts/workflows/audit-matrix.py)"
+        run: echo "name=matrix::$(scripts/workflows/audit-matrix.py)" >> $GITHUB_OUTPUT
 
   test:
     name: audit
