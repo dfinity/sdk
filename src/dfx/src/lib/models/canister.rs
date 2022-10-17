@@ -257,7 +257,7 @@ impl CanisterPool {
                     if std::fs::copy(&from, &to).is_err() {
                         warn!(
                                     log,
-                                    "Failed to copy remote canister candid from {} to {}. This may produce errors during the build.",
+                                    "Failed to copy canister candid from {} to {}. This may produce errors during the build.",
                                     from.to_string_lossy(),
                                     to.to_string_lossy()
                                 );
