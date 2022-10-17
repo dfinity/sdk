@@ -22,7 +22,7 @@ cargo --version >/dev/null || die "Must have cargo installed."
 # do
 #   export RUSTFLAGS="--remap-path-prefix ${CARGO_HOME}/registry/src/${l}=/cargo/registry/src/github ${RUSTFLAGS}"
 # done
-cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown --locked
+cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown
 
 BUILD_DIR="target/wasm32-unknown-unknown/release"
 # ic-wasm --output $BUILD_DIR/ic_frontend_canister.wasm $BUILD_DIR/ic_frontend_canister.wasm metadata --file src/canisters/frontend/ic-certified-assets/assets.did --visibility public candid:service
