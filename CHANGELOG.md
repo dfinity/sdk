@@ -4,9 +4,9 @@
 
 ## DFX
 
-### fix(frontend-canister): Allow overwirting default HTTP Headers for assets in frontend canister 
+### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
 
-Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Notice this requires using correct capitalization, example `.ic-assets.json5` file:
+Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
 ```json5
 [
     {
@@ -15,7 +15,7 @@ Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP
             "Content-Type": "application/octet-stream",
             "Content-Encoding": "gzip"
         }
-    },
+    }
 ]
 ```
 
