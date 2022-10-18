@@ -293,6 +293,10 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
 
+#### feat: `dfx info replica-port`
+
+This displays the listening port of the replica.
+
 #### feat: `dfx info replica-rev`
 
 This displays the revision of the replica bundled with dfx, which is the same revision referenced in replica election governance proposals.
