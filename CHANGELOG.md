@@ -119,6 +119,8 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
+- note that dfx will report an error if a custom canister's `wasm` field is a URL and the canister also has `build` steps.
+
 ### feat: custom canister `candid` field can now specify a URL from which to download
 
 ### feat: deploy NNS canisters
@@ -274,6 +276,10 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 #### feat: `dfx info webserver-port`
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+#### feat: `dfx info replica-port`
+
+This displays the listening port of the replica.
 
 #### feat: `dfx info replica-rev`
 
@@ -458,11 +464,10 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to release candidate at commit 9173c5f1b28e140931060b90e9de65b923ee57e6.
-This release candidate has not yet been elected.
+Updated replica to elected commit cbf9a3bbd63f37f343f5ebc44e88eafff1481767.
+This incorporates the following executed proposals:
 
-This also incorporates the following executed proposals:
-
+- [86279](https://dashboard.internetcomputer.org/proposal/86279)
 * [85007](https://dashboard.internetcomputer.org/proposal/85007)
 * [84391](https://dashboard.internetcomputer.org/proposal/84391)
 * [83786](https://dashboard.internetcomputer.org/proposal/83786)
