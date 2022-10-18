@@ -4,7 +4,7 @@ RUN cargo install ic-wasm --version 0.2.0
 COPY . /build
 WORKDIR /build
 RUN export RUSTFLAGS="--remap-path-prefix $CARGO_HOME/bin=/cargo/bin --remap-path-prefix $CARGO_HOME/git=/cargo/git --remap-path-prefix $CARGO_HOME/registry/src/github.com-1ecc6299db9ec823=/cargo/registry/src/github" && \
-    cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown
+    cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown --locked
 
 RUN export BUILD_DIR=target/wasm32-unknown-unknown/release && \
     ic-wasm --output $BUILD_DIR/ic_frontend_canister.wasm $BUILD_DIR/ic_frontend_canister.wasm metadata --file src/canisters/frontend/ic-certified-assets/assets.did --visibility public candid:service && \
