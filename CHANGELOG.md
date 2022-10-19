@@ -90,7 +90,7 @@ dfx no longer adds `candid:service` metadata to canisters of type `"custom"` by 
     },
 ```
 
-This changelog entry doesn't go into all of the details of the possible configuration.  For that, please see the docs in the JSON schema.
+This changelog entry doesn't go into all of the details of the possible configuration.  For that, please see [concepts/canister-metadata](docs/concepts/canister-metadata.md) the docs in the JSON schema.
 
 ### fix: Valid canister-based env vars
 
