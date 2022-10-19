@@ -513,16 +513,6 @@ CHERRIES" "$stdout"
     dfx_start
 
     touch src/e2e_project_frontend/assets/thing.json
-    touch src/e2e_project_frontend/assets/.ignored-by-defualt.txt
-
-    mkdir src/e2e_project_frontend/assets/.well-known
-    touch src/e2e_project_frontend/assets/.well-known/thing.json
-
-    mkdir src/e2e_project_frontend/assets/.well-known/.hidden
-    touch src/e2e_project_frontend/assets/.well-known/.hidden/ignored.txt
-
-    mkdir src/e2e_project_frontend/assets/.well-known/.another-hidden
-    touch src/e2e_project_frontend/assets/.well-known/.another-hidden/ignored.txt
 
     echo '[
       {
