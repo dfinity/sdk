@@ -480,9 +480,10 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit cbf9a3bbd63f37f343f5ebc44e88eafff1481767.
+Updated replica to elected commit f7e3c96a2be92186718f6a1e67eea37bf3252c00.
 This incorporates the following executed proposals:
 
+- [86738](https://dashboard.internetcomputer.org/proposal/86738)
 - [86279](https://dashboard.internetcomputer.org/proposal/86279)
 * [85007](https://dashboard.internetcomputer.org/proposal/85007)
 * [84391](https://dashboard.internetcomputer.org/proposal/84391)
