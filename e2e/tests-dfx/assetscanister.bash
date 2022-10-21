@@ -506,3 +506,30 @@ CHERRIES" "$stdout"
     assert_match "HTTP/1.1 404 Not Found"
 
 }
+
+@test "default redirect <filename> to <filename>.html" {
+    dfx_start
+
+    echo "test alias file" >'src/e2e_project_frontend/assets/test_alias_file.html'
+    dfx deploy
+
+    # decode as expected
+    assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/test_alias_file.html";headers=vec{};method="GET";body=vec{}})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
+    assert_match "test alias file"
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
+
+    #todo disable redirect, try again
+}

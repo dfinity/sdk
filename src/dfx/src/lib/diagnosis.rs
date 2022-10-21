@@ -7,6 +7,7 @@ use super::environment::Environment;
 /// Contains two Option<Strings> that can be displayed to the user:
 ///   - Error explanation: Goes into a bit of detail on what the error is and/or where the user can find out more about it.
 ///   - Action suggestion: Tells the user how to move forward to resolve the error.
+/// Further reading: https://wix-ux.com/when-life-gives-you-lemons-write-better-error-messages-46c5223e1a2f
 pub type Diagnosis = (Option<String>, Option<String>);
 pub const NULL_DIAGNOSIS: Diagnosis = (None, None);
 

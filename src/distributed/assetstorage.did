@@ -78,6 +78,7 @@ type StreamingStrategy = variant {
 };
 
 service: {
+  test: () -> ();
 
   get: (record {
     key: Key;
