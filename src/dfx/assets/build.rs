@@ -100,7 +100,7 @@ fn find_assets(sources: Sources) -> PathBuf {
             &*env::var("CARGO_CFG_TARGET_OS").unwrap(),
         ) {
             ("x86_64" | "aarch64", "macos") => sources.x86_64_darwin, // rosetta
-            ("x86_64", "linux") => sources.x86_64_linux,
+            ("x86_64", "linux" | "windows") => sources.x86_64_linux,
             (arch, os) => panic!("Unsupported OS type {arch}-{os}"),
         };
         prepare_assets::prepare(&dfx_assets_path, source_set);
