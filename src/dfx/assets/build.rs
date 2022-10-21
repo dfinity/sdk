@@ -1,16 +1,21 @@
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs::{read_to_string, File};
-use std::io::{BufRead, Read, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::{env, fs, io};
+use std::{env, fs};
 use walkdir::WalkDir;
+
+mod prepare_assets;
 
 const INPUTS: &[&str] = &[
     "nix/sources.json",
-    "scripts/dfx-asset-sources.sh",
+    "src/dfx/assets/prepare_assets.rs",
+    "src/dfx/assets/build.rs",
     "scripts/prepare-dfx-assets.sh",
     "src/distributed/assetstorage.did",
     "src/distributed/assetstorage.wasm.gz",
@@ -42,13 +47,34 @@ fn get_project_root_path() -> PathBuf {
         .expect("Unable to determine project root")
 }
 
-fn find_assets() -> PathBuf {
+#[derive(Deserialize, Clone)]
+struct Source {
+    url: String,
+    sha256: String,
+}
+
+impl Source {
+    fn sha256(&self) -> Vec<u8> {
+        hex::decode(&self.sha256).expect("Invalid SHA-256")
+    }
+}
+
+#[derive(Deserialize)]
+struct Sources {
+    #[serde(rename = "x86_64-linux")]
+    x86_64_linux: HashMap<String, Source>,
+    #[serde(rename = "x86_64-darwin")]
+    x86_64_darwin: HashMap<String, Source>,
+    #[serde(rename = "replica-rev")]
+    replica_rev: String,
+}
+
+fn find_assets(sources: Sources) -> PathBuf {
     println!("cargo:rerun-if-env-changed=DFX_ASSETS");
     if let Ok(a) = env::var("DFX_ASSETS") {
         PathBuf::from(a)
     } else {
         let project_root_path = get_project_root_path();
-        let prepare_script_path = project_root_path.join("scripts/prepare-dfx-assets.sh");
         for input in INPUTS {
             println!(
                 "cargo:rerun-if-changed={}",
@@ -69,18 +95,15 @@ fn find_assets() -> PathBuf {
             }
         }
 
-        let result = Command::new(&prepare_script_path)
-            .arg(&dfx_assets_path)
-            .output()
-            .expect("unable to run prepare script");
-        if !result.status.success() {
-            println!(
-                "cargo:error=unable to run {}:",
-                prepare_script_path.to_string_lossy()
-            );
-            println!("cargo:error={}", String::from_utf8_lossy(&result.stderr));
-            std::process::exit(1)
-        }
+        let source_set = match (
+            &*env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
+            &*env::var("CARGO_CFG_TARGET_OS").unwrap(),
+        ) {
+            ("x86_64" | "aarch64", "macos") => sources.x86_64_darwin, // rosetta
+            ("x86_64", "linux") => sources.x86_64_linux,
+            (arch, os) => panic!("Unsupported OS type {arch}-{os}"),
+        };
+        prepare_assets::prepare(&dfx_assets_path, source_set);
 
         fs::write(last_hash_of_inputs_path, hash_of_inputs)
             .expect("unable to write last hash of inputs");
@@ -197,7 +220,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
     ))
 }
 
-fn add_assets() {
+fn add_assets(sources: Sources) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let loader_path = Path::new(&out_dir).join("load_assets.rs");
     let mut f = File::create(&loader_path).unwrap();
@@ -213,7 +236,7 @@ fn add_assets() {
     )
     .unwrap();
 
-    let dfx_assets = find_assets();
+    let dfx_assets = find_assets(sources);
     add_asset_archive("binary_cache", &mut f, &dfx_assets);
     add_asset_archive("assetstorage_canister", &mut f, &dfx_assets);
     add_asset_archive("wallet_canister", &mut f, &dfx_assets);
@@ -253,25 +276,16 @@ fn define_dfx_version() {
     }
 }
 
-fn define_replica_rev() {
-    let pathname = get_project_root_path().join("scripts/dfx-asset-sources.sh");
-    let file = File::open(pathname).expect("Unable to read scripts/dfx-asset-sources.sh");
-    let reader = io::BufReader::new(file);
-
-    let prefix = "REPLICA_REV=";
-
-    let replica_rev_line = reader
-        .lines()
-        .map(|line| line.expect("Could not parse line"))
-        .find(|line| line.starts_with(prefix))
-        .expect("No REPLICA_REV in scripts/dfx-asset-sources.sh");
-    let replica_rev = &replica_rev_line[prefix.len()..];
-
+fn define_replica_rev(replica_rev: &str) {
     println!("cargo:rustc-env=DFX_ASSET_REPLICA_REV={}", replica_rev);
 }
 
 fn main() {
-    add_assets();
+    let sources: Sources = toml::from_slice(
+        &fs::read("assets/dfx-asset-sources.toml").expect("unable to read dfx-asset-sources.toml"),
+    )
+    .expect("unable to parse dfx-asset-sources.toml");
+    define_replica_rev(&sources.replica_rev);
+    add_assets(sources);
     define_dfx_version();
-    define_replica_rev();
 }
