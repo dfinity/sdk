@@ -151,11 +151,8 @@ fn write_archive_accessor(fn_name: &str, f: &mut File) {
     f.write_all(
         format!(
             "
-        pub fn {fn_name}() -> Result<Archive<GzDecoder<Cursor<Vec<u8>>>>> {{
-            let mut v = Vec::new();
-            v.extend_from_slice(include_bytes!(\"{fn_name}.tgz\"));
-
-            let tar = GzDecoder::new(std::io::Cursor::new(v));
+        pub fn {fn_name}() -> Result<Archive<GzDecoder<&'static [u8]>>> {{
+            let tar = GzDecoder::new(&include_bytes!(\"{fn_name}.tgz\")[..]);
             let archive = Archive::new(tar);
             Ok(archive)
         }}
@@ -228,7 +225,7 @@ fn add_assets(sources: Sources) {
     f.write_all(
         b"
         use flate2::read::GzDecoder;
-        use std::io::{Cursor, Result};
+        use std::io::Result;
         use std::vec::Vec;
         use tar::Archive;
 
