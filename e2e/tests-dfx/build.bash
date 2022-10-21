@@ -38,6 +38,27 @@ teardown() {
     assert_match "$ID"
 }
 
+@test "report an error if a canister defines both a wasm url and a build step" {
+    install_asset wasm/identity
+    mkdir -p www/wasm
+    mv main.wasm www/wasm/
+    mv main.did www/wasm
+    start_webserver --directory www
+    dfx_start
+
+    dfx_new
+
+    jq '.canisters={}' dfx.json | sponge dfx.json
+
+    jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.build="echo nope"' dfx.json | sponge dfx.json
+
+    assert_command_fail dfx deploy
+    assert_contains "Canister 'e2e_project' defines its wasm field as a URL, and has a build step."
+}
+
 @test "build uses default build args" {
     install_asset default_args
     dfx_start
