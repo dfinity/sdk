@@ -4,6 +4,7 @@ use std::{
     io::{self, BufWriter},
     path::{Path, PathBuf},
     sync::Arc,
+    time::Duration,
 };
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
@@ -55,7 +56,10 @@ fn copy_canisters(out_dir: PathBuf) {
 async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
     let sources = Arc::new(sources);
     let sources_ = sources.clone();
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(Duration::from_secs(300))
+        .build()
+        .unwrap();
     let client_ = client.clone();
     let mo_base = spawn(download_mo_base(client_, sources_));
     let sources_ = sources.clone();
