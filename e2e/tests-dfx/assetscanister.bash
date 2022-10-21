@@ -552,6 +552,6 @@ CHERRIES" "$stdout"
       }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
-    dfx deploy
-    assert_contains "Unused"
+    assert_command dfx deploy
+    assert_contains "WARN: Unused config: AssetConfigRule"
 }
