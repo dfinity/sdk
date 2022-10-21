@@ -4,6 +4,22 @@
 
 ## DFX
 
+### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
+
+Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
+```json5
+[
+    {
+        "match": "web-gz.data.gz",
+        "headers": {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "gzip"
+        }
+    }
+]
+```
+This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+
 ### fix: Save SNS canister IDs
 
 SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
@@ -500,6 +516,10 @@ Updated ic-ref to 0.0.1-1fba03ee
 
 - Module hash: b944b1e5533064d12e951621d5045d5291bcfd8cf9d60c28fef02c8fdb68e783
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
+
+### Frontend canister:
+- Module hash: 2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759
+- https://github.com/dfinity/sdk/pull/2689
 
 # 0.11.2
 
