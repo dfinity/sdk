@@ -539,3 +539,19 @@ CHERRIES" "$stdout"
     assert_not_match "etag: my-etag"
     assert_match "etag: \"[a-z0-9]{64}\""
 }
+
+@test "asset configuration via .ic-assets.json5 - detect unused config" {
+    install_asset assetscanister
+
+    dfx_start
+
+    echo '[
+      {
+        "match": "nevermatchme",
+        "cache": { "max_age": 2000 }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+    dfx deploy
+    assert_contains "Unused"
+}

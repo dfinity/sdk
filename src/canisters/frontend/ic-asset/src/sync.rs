@@ -73,13 +73,14 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
                 dir.display()
             )
         })?;
-        let configuration = AssetSourceDirectoryConfiguration::load(&dir)?;
+        let mut configuration = AssetSourceDirectoryConfiguration::load(&dir)?;
+        let mut read_configuration = configuration.clone();
         let mut asset_descriptors_interim = vec![];
         for e in WalkDir::new(&dir)
             .into_iter()
             .filter_entry(|entry| {
                 if let Ok(canonical_path) = &entry.path().canonicalize() {
-                    let config = configuration
+                    let config = read_configuration
                         .get_asset_config(canonical_path)
                         .unwrap_or_default();
                     include_entry(entry, &config)
@@ -122,6 +123,9 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
                 )
             }
             asset_descriptors.insert(asset_descriptor.key.clone(), asset_descriptor);
+        }
+        for c in configuration.get_unused_configs() {
+            println!("WARN: Unused config: {:?}", c);
         }
     }
     Ok(asset_descriptors.into_values().collect())

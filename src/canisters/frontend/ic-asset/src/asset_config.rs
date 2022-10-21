@@ -4,39 +4,73 @@ use globset::{Glob, GlobMatcher};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs,
+    hash::{Hash,Hasher},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
 pub(crate) type HeadersConfig = HashMap<String, String>;
-type ConfigMap = HashMap<PathBuf, Arc<AssetConfigTreeNode>>;
+type ConfigNode = Arc<Mutex<AssetConfigTreeNode>>;
+type ConfigMap = HashMap<PathBuf, ConfigNode>;
 
-#[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, Clone)]
 #[derivative(Debug)]
-struct AssetConfigRule {
+pub struct AssetConfigRule {
     #[derivative(Debug(format_with = "fmt_glob_field"))]
     r#match: GlobMatcher,
     cache: Option<CacheConfig>,
     headers: Maybe<HeadersConfig>,
     ignore: Option<bool>,
+    used: bool,
+    origin: PathBuf,
+}
+impl PartialEq for AssetConfigRule {
+fn eq(&self, other: &Self) -> bool {
+        self.r#match.glob() == other.r#match.glob()
+        && self.origin == other.origin
+        && self.ignore == other.ignore
+        && self.cache == other.cache
+        && self.headers == other.headers
+    }
+}
+impl Eq for AssetConfigRule {}
+impl Hash for AssetConfigRule {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.r#match.glob().hash(state);
+        self.origin.hash(state);
+        self.ignore.hash(state);
+        self.cache.hash(state);
+        self.headers.hash(state);
+    }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
 enum Maybe<T> {
     Null,
     Absent,
     Value(T),
 }
+
+impl Hash for Maybe<HeadersConfig> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Maybe::Null => "null".hash(state),
+            Maybe::Absent => "absent".hash(state),
+            Maybe::Value(v) => v.iter().for_each(|v| v.hash(state)),
+        }
+    }
+}
+
 
 fn fmt_glob_field(
     field: &GlobMatcher,
@@ -54,7 +88,7 @@ impl AssetConfigRule {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct AssetSourceDirectoryConfiguration {
     config_map: ConfigMap,
 }
@@ -68,7 +102,7 @@ pub(crate) struct AssetConfig {
 
 #[derive(Debug, Default)]
 struct AssetConfigTreeNode {
-    pub parent: Option<Arc<AssetConfigTreeNode>>,
+    pub parent: Option<ConfigNode>,
     pub rules: Vec<AssetConfigRule>,
 }
 
@@ -84,7 +118,7 @@ impl AssetSourceDirectoryConfiguration {
         Ok(Self { config_map })
     }
 
-    pub(crate) fn get_asset_config(&self, canonical_path: &Path) -> anyhow::Result<AssetConfig> {
+    pub(crate) fn get_asset_config(&mut self, canonical_path: &Path) -> anyhow::Result<AssetConfig> {
         let parent_dir = canonical_path.parent().with_context(|| {
             format!(
                 "unable to get the parent directory for asset path: {:?}",
@@ -100,8 +134,28 @@ impl AssetSourceDirectoryConfiguration {
                     parent_dir
                 )
             })?
-            .get_config(canonical_path))
+            .lock().unwrap().get_config(canonical_path))
     }
+
+    pub(crate) fn get_unused_configs(&self) -> HashSet<AssetConfigRule> {
+         self.config_map
+            .iter()
+            .flat_map(|(_,y)| {
+                y
+                    .clone()
+                    .lock()
+                    .unwrap()
+                    .rules
+                    .iter()
+                    .filter_map(|xxx|
+                        if !xxx.used {
+                            Some(xxx.clone())
+                        } else {
+                            None
+                        }).collect::<Vec<_>>()
+            }).collect::<_>()
+    }
+
 }
 
 #[derive(Deserialize)]
@@ -166,15 +220,17 @@ impl AssetConfigRule {
             cache,
             headers,
             ignore,
+            used: false,
+            origin: config_file_parent_dir.to_path_buf(),
         })
     }
 }
 
 impl AssetConfigTreeNode {
     fn load(
-        parent: Option<Arc<AssetConfigTreeNode>>,
+        parent: Option<ConfigNode>,
         dir: &Path,
-        configs: &mut HashMap<PathBuf, Arc<AssetConfigTreeNode>>,
+        configs: &mut ConfigMap,
     ) -> anyhow::Result<()> {
         let config_path: Option<PathBuf>;
         match (
@@ -213,7 +269,7 @@ impl AssetConfigTreeNode {
 
         let parent_ref = match parent {
             Some(p) if rules.is_empty() => p,
-            _ => Arc::new(Self { parent, rules }),
+            _ => Arc::new(Mutex::new(Self { parent, rules })),
         };
 
         configs.insert(dir.to_path_buf(), parent_ref.clone());
@@ -227,15 +283,18 @@ impl AssetConfigTreeNode {
         Ok(())
     }
 
-    fn get_config(&self, canonical_path: &Path) -> AssetConfig {
+    fn get_config(&mut self, canonical_path: &Path) -> AssetConfig {
         let base_config = match &self.parent {
-            Some(parent) => parent.get_config(canonical_path),
+            Some(parent) => parent.clone().lock().unwrap().get_config(canonical_path),
             None => AssetConfig::default(),
         };
         self.rules
-            .iter()
+            .iter_mut()
             .filter(|rule| rule.applies(canonical_path))
-            .fold(base_config, |acc, x| acc.merge(x))
+            .fold(base_config, |acc , x| {
+                x.used = true;
+                acc.merge(x)
+            })
     }
 }
 
@@ -326,7 +385,7 @@ mod with_tempdir {
         let assets_temp_dir = create_temporary_assets_directory(Some(cfg), 7).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
 
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         for f in ["nested/the-thing.txt", "nested/deep/the-next-thing.toml"] {
             assert_eq!(
                 assets_config.get_asset_config(assets_dir.join(f).as_path())?,
@@ -367,7 +426,7 @@ mod with_tempdir {
         let assets_temp_dir = create_temporary_assets_directory(cfg, 7).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
 
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         for f in ["nested/the-thing.txt", "nested/deep/the-next-thing.toml"] {
             assert_eq!(
                 assets_config.get_asset_config(assets_dir.join(f).as_path())?,
@@ -442,7 +501,7 @@ mod with_tempdir {
         )]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 1).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         let parsed_asset_config =
             assets_config.get_asset_config(assets_dir.join("index.html").as_path())?;
         let expected_asset_config = AssetConfig {
@@ -515,7 +574,7 @@ mod with_tempdir {
         let assets_temp_dir = create_temporary_assets_directory(cfg, 7).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
 
-        let assets_config = dbg!(AssetSourceDirectoryConfiguration::load(&assets_dir))?;
+        let mut assets_config = dbg!(AssetSourceDirectoryConfiguration::load(&assets_dir))?;
         for f in [
             "index.html",
             "js/index.js",
@@ -567,7 +626,7 @@ mod with_tempdir {
         )]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         assert_eq!(
             assets_config.get_asset_config(assets_dir.join("index.html").as_path())?,
             AssetConfig {
@@ -589,7 +648,7 @@ mod with_tempdir {
         ]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
@@ -608,7 +667,7 @@ mod with_tempdir {
         let cfg = Some(HashMap::from([("".to_string(), "[[[{{{".to_string())]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
@@ -633,7 +692,7 @@ mod with_tempdir {
         )]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
@@ -652,7 +711,7 @@ mod with_tempdir {
         let cfg = Some(HashMap::new());
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         assert_eq!(
             assets_config.get_asset_config(assets_dir.join("doesnt.exists").as_path())?,
             AssetConfig::default()
@@ -678,7 +737,7 @@ mod with_tempdir {
         )
         .unwrap();
 
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
