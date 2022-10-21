@@ -16,7 +16,6 @@ const INPUTS: &[&str] = &[
     "nix/sources.json",
     "src/dfx/assets/prepare_assets.rs",
     "src/dfx/assets/build.rs",
-    "scripts/prepare-dfx-assets.sh",
     "src/distributed/assetstorage.did",
     "src/distributed/assetstorage.wasm.gz",
     "src/distributed/ui.did",
