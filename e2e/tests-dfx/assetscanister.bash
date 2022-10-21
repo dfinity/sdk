@@ -536,5 +536,6 @@ CHERRIES" "$stdout"
     assert_match "cache-control: custom"
     assert_match "content-encoding: my-encoding"
     assert_match "content-type: x-type"
-    assert_not_match "etag: my-tag"
+    assert_not_match "etag: my-etag"
+    assert_match "etag: \"[a-z0-9]{64}\""
 }
