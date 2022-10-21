@@ -89,8 +89,8 @@ for platform in "darwin" "linux";
 do
     for name in "ic-ref" "icx-proxy" "ic-admin" "ic-btc-adapter" "ic-canister-http-adapter" "ic-nns-init" "ic-starter" "motoko" "replica" "canister_sandbox" "sandbox_launcher" "sns";
     do
-        if [[ "$name" == "replica" || "$name" == "canister-sandbox" ]]; then
-            echo "# The replica and canister-sandbox binaries must have the same revision." >>"$DFX_ASSET_SOURCES"
+        if [[ "$name" == "replica" || "$name" == "canister_sandbox" ]]; then
+            echo "# The replica and canister_sandbox binaries must have the same revision." >>"$DFX_ASSET_SOURCES"
         fi
         write_entry "$name" "x86_64-${platform}"
     done

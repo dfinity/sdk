@@ -14,7 +14,7 @@
     },
     "canister_sandbox-x86_64-darwin": {
         "builtin": false,
-        "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
+        "description": "The canister_sandbox binary. It must be updated together with the replica binary.",
         "rev": "f7e3c96a2be92186718f6a1e67eea37bf3252c00",
         "sha256": "0cb45xzrmm5p54n8ppr40lqbahgrf9rhjl4saca6jg2a8l2b2bmp",
         "type": "file",
@@ -23,7 +23,7 @@
     },
     "canister_sandbox-x86_64-linux": {
         "builtin": false,
-        "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
+        "description": "The canister_sandbox binary. It must be updated together with the replica binary.",
         "rev": "f7e3c96a2be92186718f6a1e67eea37bf3252c00",
         "sha256": "016ydsndy16iwp33j2kc6fn1sasnkcii84rhv65pgnkqgcl28w6q",
         "type": "file",
@@ -178,7 +178,7 @@
     },
     "replica-x86_64-darwin": {
         "builtin": false,
-        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
+        "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
         "rev": "f7e3c96a2be92186718f6a1e67eea37bf3252c00",
         "sha256": "1c2fy0chv9ja060sn5kypa2z07ciswh01qz21dy6ncwdqvcd8i2i",
         "type": "file",
@@ -187,7 +187,7 @@
     },
     "replica-x86_64-linux": {
         "builtin": false,
-        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
+        "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
         "rev": "f7e3c96a2be92186718f6a1e67eea37bf3252c00",
         "sha256": "0d37ciw81jbj1g1p32b3xy1s3naiidzysjkb8ik3djl638r3jry5",
         "type": "file",
