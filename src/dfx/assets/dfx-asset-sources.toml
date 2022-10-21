@@ -37,13 +37,12 @@ sha256 = 'e651c24b2bde4b3fce6813640114946882cef022e921a4976186273f273bb72a'
 [x86_64-darwin.replica]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-darwin/replica.gz'
 sha256 = '5144d4d8c68d336b7c0be2e30020d7911df085ba7e16ab81014aa60d19f04eb0'
-# The replica and canister-sandbox binaries must have the same revision.
 
-[x86_64-darwin.canister-sandbox]
+[x86_64-darwin.canister_sandbox]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-darwin/canister_sandbox.gz'
 sha256 = 'b72eb104454a3c6914539a50097372f941b5300524df8b2c29b7d49a7f2f6431'
 
-[x86_64-darwin.sandbox-launcher]
+[x86_64-darwin.sandbox_launcher]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-darwin/sandbox_launcher.gz'
 sha256 = 'be114e91de64bc5847f498eb84d14a4adaa90ca44207165811b01263767903fd'
 
@@ -91,13 +90,12 @@ sha256 = '3655796f6bd839b7fc00f00acbff3a340d45d0226d1b07d2a2ae83a0cdc8db8b'
 [x86_64-linux.replica]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-linux/replica.gz'
 sha256 = 'c56739321a86ca3666446b4aed7f8b51d9a183ef638971c30b72c98078646734'
-# The replica and canister-sandbox binaries must have the same revision.
 
-[x86_64-linux.canister-sandbox]
+[x86_64-linux.canister_sandbox]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-linux/canister_sandbox.gz'
 sha256 = 'd87024287b78da778bd9301314239b562b1dac336c0a39c6e5d104dfac6ede04'
 
-[x86_64-linux.sandbox-launcher]
+[x86_64-linux.sandbox_launcher]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-linux/sandbox_launcher.gz'
 sha256 = 'dc1d37c9aab48523935e40e9f99a5b67b806b42f32a3a4628f34846dd1b26557'
 

@@ -136,8 +136,8 @@ async fn download_binaries(
         "ic-canister-http-adapter",
         "ic-nns-init",
         "replica",
-        "canister-sandbox",
-        "sandbox-launcher",
+        "canister_sandbox",
+        "sandbox_launcher",
         "ic-starter",
         "sns",
     ] {
