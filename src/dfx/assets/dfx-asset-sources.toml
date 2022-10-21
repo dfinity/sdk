@@ -32,11 +32,12 @@ sha256 = '22281e79edc7439502d0b458f9df466e87b75ab6c058f9e56328f6d8523c8e59'
 [x86_64-darwin.motoko]
 url = 'https://github.com/dfinity/motoko/releases/download/0.7.0/motoko-macos-0.7.0.tar.gz'
 sha256 = 'e651c24b2bde4b3fce6813640114946882cef022e921a4976186273f273bb72a'
-# The replica and canister-sandbox binaries must have the same revision.
+# The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-darwin.replica]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-darwin/replica.gz'
 sha256 = '5144d4d8c68d336b7c0be2e30020d7911df085ba7e16ab81014aa60d19f04eb0'
+# The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-darwin.canister_sandbox]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-darwin/canister_sandbox.gz'
@@ -85,11 +86,12 @@ sha256 = 'b71cd9b1fe3a490a6550daebef8e16f24e6e0f44958bd6aadb1b5b30ad3fbff5'
 [x86_64-linux.motoko]
 url = 'https://github.com/dfinity/motoko/releases/download/0.7.0/motoko-linux64-0.7.0.tar.gz'
 sha256 = '3655796f6bd839b7fc00f00acbff3a340d45d0226d1b07d2a2ae83a0cdc8db8b'
-# The replica and canister-sandbox binaries must have the same revision.
+# The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-linux.replica]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-linux/replica.gz'
 sha256 = 'c56739321a86ca3666446b4aed7f8b51d9a183ef638971c30b72c98078646734'
+# The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-linux.canister_sandbox]
 url = 'https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-linux/canister_sandbox.gz'
