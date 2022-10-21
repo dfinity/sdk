@@ -15,6 +15,7 @@ use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
+use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
@@ -316,8 +317,43 @@ impl CanisterPool {
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
-        if self.canisters.iter().any(|can| can.info.is_rust()) {
+    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+        // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
+        // Because remote canisters don't get built (and the did file not output in the right place) the .did files have to be copied over manually.
+        for canister in self.canisters.iter().filter(|c| c.info.is_remote()) {
+            let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
+                Some(remote_candid)
+            } else {
+                canister.info.get_output_idl_path()
+            };
+            if let Some(from) = maybe_from.as_ref() {
+                if from.exists() {
+                    let to = build_config.idl_root.join(format!(
+                        "{}.did",
+                        canister.info.get_canister_id()?.to_text()
+                    ));
+                    if std::fs::copy(&from, &to).is_err() {
+                        warn!(
+                                    log,
+                                    "Failed to copy canister candid from {} to {}. This may produce errors during the build.",
+                                    from.to_string_lossy(),
+                                    to.to_string_lossy()
+                                );
+                    }
+                } else {
+                    warn!(log, ".did file for canister '{}' does not exist at {}. This may result in errors during the build.", canister.get_name(), from.to_string_lossy());
+                }
+            } else {
+                warn!(log, "Failed to find a configured .did file for canister '{}'. Not specifying that field may result in errors during the build.", canister.get_name());
+            }
+        }
+
+        // cargo audit
+        if self
+            .canisters_to_build(build_config)
+            .iter()
+            .any(|can| can.info.is_rust())
+        {
             self.run_cargo_audit()?;
         } else {
             trace!(
@@ -325,6 +361,7 @@ impl CanisterPool {
                 "No canister of type 'rust' found. Not trying to run 'cargo audit'."
             )
         }
+
         Ok(())
     }
 
@@ -445,7 +482,7 @@ impl CanisterPool {
     ) -> DfxResult<()> {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
-        for canister in &self.canisters {
+        for canister in self.canisters_to_build(build_config) {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id();
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
@@ -461,9 +498,10 @@ impl CanisterPool {
     #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
+        log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(build_config)
+        self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let graph = self.build_dependencies_graph()?;
@@ -483,9 +521,20 @@ impl CanisterPool {
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
 
+        let canisters_to_build = self.canisters_to_build(build_config);
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
+                if canisters_to_build
+                    .iter()
+                    .map(|c| c.get_name())
+                    .contains(&canister.get_name())
+                {
+                    trace!(log, "Building canister '{}'.", canister.get_name());
+                } else {
+                    trace!(log, "Not building canister '{}'.", canister.get_name());
+                    continue;
+                }
                 result.push(
                     self.step_prebuild(build_config, canister)
                         .map_err(|e| {
@@ -528,9 +577,9 @@ impl CanisterPool {
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, build_config: &BuildConfig) -> DfxResult<()> {
+    pub async fn build_or_fail(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
         self.download(build_config).await?;
-        let outputs = self.build(build_config)?;
+        let outputs = self.build(log, build_config)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
@@ -539,8 +588,8 @@ impl CanisterPool {
         Ok(())
     }
 
-    async fn download(&self, _build_config: &BuildConfig) -> DfxResult {
-        for canister in &self.canisters {
+    async fn download(&self, build_config: &BuildConfig) -> DfxResult {
+        for canister in self.canisters_to_build(build_config) {
             let info = canister.get_info();
 
             if info.is_custom() {
@@ -601,6 +650,17 @@ impl CanisterPool {
             warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
         }
         Ok(())
+    }
+
+    pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
+        if let Some(canister_names) = &build_config.canisters_to_build {
+            self.canisters
+                .iter()
+                .filter(|can| canister_names.contains(&can.info.get_name().to_string()))
+                .collect()
+        } else {
+            self.canisters.iter().collect()
+        }
     }
 }
 

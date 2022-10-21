@@ -320,3 +320,17 @@ set_shared_local_network_canister_http_empty() {
     assert_command dfx start --background --verbose
     assert_match "log level: Critical"
 }
+
+@test "can query a website" {
+    dfx_start
+
+    dfx_new
+    install_asset canister_http
+
+    dfx deploy
+
+    assert_command dfx canister call e2e_project_backend get_url '("smartcontracts.org:443","https://smartcontracts.org:443")'
+    assert_contains "Internet Computer"
+    assert_contains "smart contracts"
+    assert_contains "dapps"
+}

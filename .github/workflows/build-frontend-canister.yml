@@ -18,7 +18,7 @@ jobs:
     name: frontend-canister-up-to-date:required
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up
         run: |
           rustup target add wasm32-unknown-unknown
@@ -27,7 +27,7 @@ jobs:
         run: |
           ./scripts/update-frontend-canister.sh
       - name: Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: assetstorage
           path: ${{ github.workspace }}/src/distributed/assetstorage.wasm.gz

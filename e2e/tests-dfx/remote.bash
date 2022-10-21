@@ -137,7 +137,7 @@ teardown() {
     assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
 }
 
-@test "canister create --all and canister install --all skip remote canisters" {
+@test "canister create --all, canister install --all, dfx generate skip remote canisters" {
     install_asset remote/actual
     dfx_start
     setup_actuallylocal_shared_network
@@ -174,8 +174,12 @@ teardown() {
     assert_eq '("mock")'
 
     assert_command dfx canister create --all --network actuallylocal
-    assert_command dfx build --network actuallylocal
+    assert_command dfx build --network actuallylocal -vv
+    assert_match "Not building canister 'remote'"
     assert_command dfx canister install --all --network actuallylocal
+    assert_command dfx generate --network actuallylocal
+    assert_match "Generating type declarations for canister basic"
+    assert_not_match "Generating type declarations for canister remote"
 
     assert_command dfx canister call basic read_remote --network actuallylocal
     assert_eq '("this is data in the remote canister")'
@@ -273,7 +277,8 @@ teardown() {
     assert_command dfx canister call remote which_am_i
     assert_eq '("mock")'
 
-    assert_command dfx deploy --network actuallylocal
+    assert_command dfx deploy --network actuallylocal -vv
+    assert_match "Not building canister 'remote'"
     assert_command dfx canister call basic read_remote --network actuallylocal
     assert_eq '("this is data in the remote canister")'
 
@@ -296,4 +301,14 @@ teardown() {
 
     assert_command jq .remote canister_ids.json
     assert_eq "null"
+}
+
+@test "build step sets remote cid environment variable correctly" {
+    install_asset remote/envvar
+    install_asset wasm/identity # need to have some .did and .wasm files to point our custom canister to
+    dfx_start
+    setup_actuallylocal_shared_network
+
+    assert_command dfx deploy --network actuallylocal -vv
+    assert_match "CANISTER_ID_remote: qoctq-giaaa-aaaaa-aaaea-cai"
 }

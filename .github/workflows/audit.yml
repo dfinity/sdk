@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(scripts/workflows/audit-matrix.py)"
+        run: echo "matrix=$(scripts/workflows/audit-matrix.py)" >> $GITHUB_OUTPUT
 
   test:
     name: audit
@@ -43,7 +43,7 @@ jobs:
           path: advisory-db
           ref: ${{ matrix.advisory-db-rev }}
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
