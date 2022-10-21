@@ -151,7 +151,18 @@ async fn download_binaries(
     let mut map = HashMap::new();
     while let Some(res) = joinset.join_next().await {
         let (bin, content) = res.unwrap();
-        map.insert(bin.into(), content);
+        let decompressed = spawn_blocking(|| {
+            let mut buf = BytesMut::new();
+            io::copy(
+                &mut GzDecoder::new(content.reader()),
+                &mut (&mut buf).writer(),
+            )
+            .unwrap();
+            buf.freeze()
+        })
+        .await
+        .unwrap();
+        map.insert(bin.into(), decompressed);
     }
     map
 }
