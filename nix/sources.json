@@ -12,7 +12,7 @@
         "url": "https://github.com/RustSec/advisory-db/archive/1736a7bd7cf0d00161721ca6abb2799b05c96fc6.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "canister-sandbox-x86_64-darwin": {
+    "canister_sandbox-x86_64-darwin": {
         "builtin": false,
         "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
         "rev": "f7e3c96a2be92186718f6a1e67eea37bf3252c00",
@@ -21,7 +21,7 @@
         "url": "https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-darwin/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/canister_sandbox.gz"
     },
-    "canister-sandbox-x86_64-linux": {
+    "canister_sandbox-x86_64-linux": {
         "builtin": false,
         "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
         "rev": "f7e3c96a2be92186718f6a1e67eea37bf3252c00",
@@ -194,7 +194,7 @@
         "url": "https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-linux/replica.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/replica.gz"
     },
-    "sandbox-launcher-x86_64-darwin": {
+    "sandbox_launcher-x86_64-darwin": {
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
         "rev": "f7e3c96a2be92186718f6a1e67eea37bf3252c00",
@@ -203,7 +203,7 @@
         "url": "https://download.dfinity.systems/blessed/ic/f7e3c96a2be92186718f6a1e67eea37bf3252c00/sdk-release/x86_64-darwin/sandbox_launcher.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/sandbox_launcher.gz"
     },
-    "sandbox-launcher-x86_64-linux": {
+    "sandbox_launcher-x86_64-linux": {
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
         "rev": "f7e3c96a2be92186718f6a1e67eea37bf3252c00",
