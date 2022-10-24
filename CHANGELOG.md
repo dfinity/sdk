@@ -462,6 +462,8 @@ It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pi
 
 ### fix: print links to cdk-rs docs in dfx new
 
+### fix: broken link in new .mo project README
+
 ### fix: Small grammar change to identity password decryption prompt
 
 The prompt for entering your passphrase in order to decrypt an identity password read:
