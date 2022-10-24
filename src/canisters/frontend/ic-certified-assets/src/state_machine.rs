@@ -709,19 +709,19 @@ fn build_ok(
     callback: Func,
     etags: Vec<Hash>,
 ) -> HttpResponse {
-    let mut headers = vec![("Content-Type".to_string(), asset.content_type.to_string())];
+    let mut headers = HashMap::from([("content-type".to_string(), asset.content_type.to_string())]);
     if enc_name != "identity" {
-        headers.push(("Content-Encoding".to_string(), enc_name.to_string()));
+        headers.insert("content-encoding".to_string(), enc_name.to_string());
     }
     if let Some(head) = certificate_header {
-        headers.push(head);
+        headers.insert(head.0, head.1);
     }
     if let Some(max_age) = asset.max_age {
-        headers.push(("Cache-Control".to_string(), format!("max-age={}", max_age)));
+        headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
     }
     if let Some(arg_headers) = asset.headers.as_ref() {
         for (k, v) in arg_headers {
-            headers.push((k.to_owned(), v.to_owned()));
+            headers.insert(k.to_owned().to_lowercase(), v.to_owned());
         }
     }
 
@@ -731,16 +731,16 @@ fn build_ok(
     let (status_code, body) = if etags.contains(&enc.sha256) {
         (304, RcBytes::default())
     } else {
-        headers.push((
-            "ETag".to_string(),
+        headers.insert(
+            "etag".to_string(),
             format!("\"{}\"", hex::encode(enc.sha256)),
-        ));
+        );
         (200, enc.content_chunks[chunk_index].clone())
     };
 
     HttpResponse {
         status_code,
-        headers,
+        headers: headers.into_iter().collect::<_>(),
         body,
         streaming_strategy,
     }

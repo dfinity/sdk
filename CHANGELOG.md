@@ -4,6 +4,22 @@
 
 ## DFX
 
+### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
+
+Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
+```json5
+[
+    {
+        "match": "web-gz.data.gz",
+        "headers": {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "gzip"
+        }
+    }
+]
+```
+This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+
 ### fix: Save SNS canister IDs
 
 SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
@@ -119,6 +135,8 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
+- note that dfx will report an error if a custom canister's `wasm` field is a URL and the canister also has `build` steps.
+
 ### feat: custom canister `candid` field can now specify a URL from which to download
 
 ### feat: deploy NNS canisters
@@ -179,6 +197,12 @@ The Replica returned an error: code 1, message: "Canister requested a compute al
 ### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
 
 ### fix: For `dfx start --clean --background`, the background process no longer cleans a second time.
+
+### fix: do not build or generate remote canisters
+
+Canisters that specify a remote id for the network that's getting built falsely had their build steps run, blocking some normal use patterns of `dfx deploy`.
+Canisters with a remote id specified no longer get built.
+The same applies to `dfx generate`.
 
 ### refactor: Move replica URL functions into a module for reuse
 
@@ -268,6 +292,10 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 #### feat: `dfx info webserver-port`
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+#### feat: `dfx info replica-port`
+
+This displays the listening port of the replica.
 
 #### feat: `dfx info replica-rev`
 
@@ -452,11 +480,11 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to release candidate at commit 9173c5f1b28e140931060b90e9de65b923ee57e6.
-This release candidate has not yet been elected.
+Updated replica to elected commit f7e3c96a2be92186718f6a1e67eea37bf3252c00.
+This incorporates the following executed proposals:
 
-This also incorporates the following executed proposals:
-
+- [86738](https://dashboard.internetcomputer.org/proposal/86738)
+- [86279](https://dashboard.internetcomputer.org/proposal/86279)
 * [85007](https://dashboard.internetcomputer.org/proposal/85007)
 * [84391](https://dashboard.internetcomputer.org/proposal/84391)
 * [83786](https://dashboard.internetcomputer.org/proposal/83786)
@@ -488,6 +516,10 @@ Updated ic-ref to 0.0.1-1fba03ee
 
 - Module hash: b944b1e5533064d12e951621d5045d5291bcfd8cf9d60c28fef02c8fdb68e783
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
+
+### Frontend canister:
+- Module hash: 2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759
+- https://github.com/dfinity/sdk/pull/2689
 
 # 0.11.2
 
