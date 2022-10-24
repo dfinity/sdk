@@ -533,7 +533,10 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko to 0.7.1
+### Updated Motoko from 0.6.29 to 0.7.1
+
+- See https://github.com/dfinity/motoko/blob/master/Changelog.md#071-2022-10-24
+
 
 ### Cycles wallet
 
