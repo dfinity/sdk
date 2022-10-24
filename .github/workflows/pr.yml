@@ -33,5 +33,5 @@ jobs:
         # verb: feat, fix, ...
         # scope: refers to the part of code being changed.  E.g. " (accounts)" or " (accounts,canisters)"
         # !: Indicates that the PR contains a breaking change.
-        run: commit="${{ github.event.pull_request.title }}" perl -E 'exit !($ENV{commit} =~ /^(feat|fix|chore|build|ci|docs|style|refactor|perf|test)( \([a-zA-Z0-9,]+\))?!?:.*/)' ; echo $?
+        run: commit="${{ github.event.pull_request.title }}" perl -E 'exit !($ENV{commit} =~ /^(feat|fix|chore|build|ci|docs|style|refactor|perf|test)(\([-a-zA-Z0-9,]+\))?!?:.*/)' ; echo $?
         if: github.event_name == 'pull_request'
