@@ -55,19 +55,13 @@ fn copy_canisters(out_dir: PathBuf) {
 
 async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
     let sources = Arc::new(sources);
-    let sources_ = sources.clone();
     let client = Client::builder()
         .timeout(Duration::from_secs(300))
         .build()
         .unwrap();
-    let client_ = client.clone();
-    let mo_base = spawn(download_mo_base(client_, sources_));
-    let sources_ = sources.clone();
-    let client_ = client.clone();
-    let bins = spawn(download_binaries(client_, sources_));
-    let sources_ = sources.clone(); // if this list grows any more a macro is probably warranted
-    let client_ = client.clone();
-    let bin_tars = spawn(download_bin_tarballs(client_, sources_));
+    let mo_base = spawn(download_mo_base(client.clone(), sources.clone()));
+    let bins = spawn(download_binaries(client.clone(), sources.clone()));
+    let bin_tars = spawn(download_bin_tarballs(client.clone(), sources.clone()));
     let (mo_base, bins, bin_tars) = tokio::try_join!(mo_base, bins, bin_tars).unwrap();
     spawn_blocking(|| write_binary_cache(out_dir, mo_base, bins, bin_tars))
         .await
