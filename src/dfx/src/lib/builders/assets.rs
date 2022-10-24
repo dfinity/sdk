@@ -105,7 +105,6 @@ impl CanisterBuilder for AssetsBuilder {
             canister_id: info.get_canister_id().expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(wasm_path),
             idl: IdlBuildOutput::File(idl_path),
-            add_candid_service_metadata: false,
         })
     }
 
