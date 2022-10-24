@@ -41,7 +41,7 @@ Here is a simple example:
 ```
 ## Fields
 
-The [JSON schema](../dfx-json-schema.json) also documents these fields.
+The JSON schema also documents these fields.
 
 ### name
 
