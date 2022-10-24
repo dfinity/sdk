@@ -1,5 +1,7 @@
 #![allow(dead_code)]
-use crate::config::dfinity::{CanisterDeclarationsConfig, CanisterTypeProperties, Config};
+use crate::config::dfinity::{
+    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
+};
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
@@ -7,6 +9,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::provider::get_network_context;
 use crate::util;
 
+use crate::lib::metadata::config::CanisterMetadataConfig;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
@@ -49,6 +52,7 @@ pub struct CanisterInfo {
     post_install: Vec<String>,
     main: Option<PathBuf>,
     shrink: bool,
+    metadata: CanisterMetadataConfig,
 }
 
 impl CanisterInfo {
@@ -111,6 +115,8 @@ impl CanisterInfo {
         };
 
         let post_install = canister_config.post_install.clone().into_vec();
+        let metadata =
+            CanisterMetadataConfig::new(&type_specific, &canister_config.metadata, &network_name);
 
         let canister_info = CanisterInfo {
             name: name.to_string(),
@@ -127,6 +133,7 @@ impl CanisterInfo {
             post_install,
             main: canister_config.main.clone(),
             shrink: canister_config.shrink,
+            metadata,
         };
 
         Ok(canister_info)
@@ -253,5 +260,12 @@ impl CanisterInfo {
 
     pub fn is_assets(&self) -> bool {
         matches!(self.type_specific, CanisterTypeProperties::Assets { .. })
+    }
+
+    pub fn get_metadata(&self, name: &str) -> Option<&CanisterMetadataSection> {
+        self.metadata.get(name)
+    }
+    pub fn metadata(&self) -> &CanisterMetadataConfig {
+        &self.metadata
     }
 }
