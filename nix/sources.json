@@ -12,18 +12,18 @@
         "url": "https://github.com/RustSec/advisory-db/archive/fe7b79e8ebf9ad03660e573e0c2a1ed4e80dee5d.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "canister-sandbox-x86_64-darwin": {
+    "canister_sandbox-x86_64-darwin": {
         "builtin": false,
-        "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
+        "description": "The canister_sandbox binary. It must be updated together with the replica binary.",
         "rev": "3e1be1316341811db5c9300935c4236bfab8fa2a",
         "sha256": "07d5jf6y6a7kl3s4pgmjs7xsr93cvn6lp56gyr7zxziab81wp1i3",
         "type": "file",
         "url": "https://download.dfinity.systems/blessed/ic/3e1be1316341811db5c9300935c4236bfab8fa2a/sdk-release/x86_64-darwin/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/canister_sandbox.gz"
     },
-    "canister-sandbox-x86_64-linux": {
+    "canister_sandbox-x86_64-linux": {
         "builtin": false,
-        "description": "The canister-sandbox binary. It must be updated together with the replica binary.",
+        "description": "The canister_sandbox binary. It must be updated together with the replica binary.",
         "rev": "3e1be1316341811db5c9300935c4236bfab8fa2a",
         "sha256": "1vyxwlvh59irx0j4rbjdyrj2j7hhhnc1c5552yc0pbmip9xalzkr",
         "type": "file",
@@ -178,7 +178,7 @@
     },
     "replica-x86_64-darwin": {
         "builtin": false,
-        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
+        "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
         "rev": "3e1be1316341811db5c9300935c4236bfab8fa2a",
         "sha256": "06mvsa9ibj3waj600digpgnipj74lc020lgvvamzzvpqpvwh6hag",
         "type": "file",
@@ -187,14 +187,14 @@
     },
     "replica-x86_64-linux": {
         "builtin": false,
-        "description": "The replica binary. It must be updated together with the canister-sandbox binary.",
+        "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
         "rev": "3e1be1316341811db5c9300935c4236bfab8fa2a",
         "sha256": "1c71c3zzljdjgbgx85qgijf75ccqv9vm083sidycnrh8m1lrzh27",
         "type": "file",
         "url": "https://download.dfinity.systems/blessed/ic/3e1be1316341811db5c9300935c4236bfab8fa2a/sdk-release/x86_64-linux/replica.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-linux/replica.gz"
     },
-    "sandbox-launcher-x86_64-darwin": {
+    "sandbox_launcher-x86_64-darwin": {
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
         "rev": "3e1be1316341811db5c9300935c4236bfab8fa2a",
@@ -203,7 +203,7 @@
         "url": "https://download.dfinity.systems/blessed/ic/3e1be1316341811db5c9300935c4236bfab8fa2a/sdk-release/x86_64-darwin/sandbox_launcher.gz",
         "url_template": "https://download.dfinity.systems/blessed/ic/<rev>/sdk-release/x86_64-darwin/sandbox_launcher.gz"
     },
-    "sandbox-launcher-x86_64-linux": {
+    "sandbox_launcher-x86_64-linux": {
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
         "rev": "3e1be1316341811db5c9300935c4236bfab8fa2a",
