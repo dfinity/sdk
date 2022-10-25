@@ -4,6 +4,22 @@
 
 ## DFX
 
+### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
+
+Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
+```json5
+[
+    {
+        "match": "web-gz.data.gz",
+        "headers": {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "gzip"
+        }
+    }
+]
+```
+This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+
 ### fix: Save SNS canister IDs
 
 SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
@@ -69,6 +85,29 @@ If you want to disable this behavior, you can config it in dfx.json:
         }
     }
 
+### feat: configurable custom wasm sections
+
+It's now possible to define custom wasm metadata sections and their visibility in dfx.json.
+
+At present, dfx can only add wasm metadata sections to canisters that are in wasm format.  It cannot add metadata sections to compressed canisters.  Since the frontend canister is now compressed, this means that at present it is not possible to add custom metadata sections to the frontend canister.
+
+dfx no longer adds `candid:service` metadata to canisters of type `"custom"` by default.  If you want dfx to add your canister's candid definition to your custom canister, you can do so like this:
+
+```
+    "my_canister_name": {
+      "type": "custom",
+      "candid": "main.did",
+      "wasm": "main.wasm",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    },
+```
+
+This changelog entry doesn't go into all of the details of the possible configuration.  For that, please see [concepts/canister-metadata](docs/concepts/canister-metadata.md) and the docs in the JSON schema.
+
 ### fix: Valid canister-based env vars
 
 Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_${CANISTER_NAME}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
@@ -118,6 +157,8 @@ You can still disable the canister http feature through configuration:
 - dfx.json (project-specific networks) : `.networks.local.canister_http.enabled=false`
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
+
+- note that dfx will report an error if a custom canister's `wasm` field is a URL and the canister also has `build` steps.
 
 ### feat: custom canister `candid` field can now specify a URL from which to download
 
@@ -179,6 +220,12 @@ The Replica returned an error: code 1, message: "Canister requested a compute al
 ### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
 
 ### fix: For `dfx start --clean --background`, the background process no longer cleans a second time.
+
+### fix: do not build or generate remote canisters
+
+Canisters that specify a remote id for the network that's getting built falsely had their build steps run, blocking some normal use patterns of `dfx deploy`.
+Canisters with a remote id specified no longer get built.
+The same applies to `dfx generate`.
 
 ### refactor: Move replica URL functions into a module for reuse
 
@@ -268,6 +315,10 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 #### feat: `dfx info webserver-port`
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+#### feat: `dfx info replica-port`
+
+This displays the listening port of the replica.
 
 #### feat: `dfx info replica-rev`
 
@@ -434,6 +485,8 @@ It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pi
 
 ### fix: print links to cdk-rs docs in dfx new
 
+### fix: broken link in new .mo project README
+
 ### fix: Small grammar change to identity password decryption prompt
 
 The prompt for entering your passphrase in order to decrypt an identity password read:
@@ -452,11 +505,12 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to release candidate at commit 9173c5f1b28e140931060b90e9de65b923ee57e6.
-This release candidate has not yet been elected.
+Updated replica to elected commit 3e1be1316341811db5c9300935c4236bfab8fa2a.
+This incorporates the following executed proposals:
 
-This also incorporates the following executed proposals:
-
+- [87631](https://dashboard.internetcomputer.org/proposal/87631)
+- [86738](https://dashboard.internetcomputer.org/proposal/86738)
+- [86279](https://dashboard.internetcomputer.org/proposal/86279)
 * [85007](https://dashboard.internetcomputer.org/proposal/85007)
 * [84391](https://dashboard.internetcomputer.org/proposal/84391)
 * [83786](https://dashboard.internetcomputer.org/proposal/83786)
@@ -482,12 +536,19 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko to 0.7.0
+### Updated Motoko from 0.6.29 to 0.7.1
+
+- See https://github.com/dfinity/motoko/blob/master/Changelog.md#071-2022-10-24
+
 
 ### Cycles wallet
 
 - Module hash: b944b1e5533064d12e951621d5045d5291bcfd8cf9d60c28fef02c8fdb68e783
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
+
+### Frontend canister:
+- Module hash: 2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759
+- https://github.com/dfinity/sdk/pull/2689
 
 # 0.11.2
 

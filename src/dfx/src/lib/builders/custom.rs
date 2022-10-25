@@ -7,6 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 
+use crate::lib::wasm::file::is_wasm_format;
 use anyhow::{anyhow, bail, Context};
 use bytes::Bytes;
 use candid::Principal as CanisterId;
@@ -18,8 +19,7 @@ use reqwest::{Client, StatusCode};
 use slog::info;
 use slog::Logger;
 use std::fs;
-use std::fs::{create_dir_all, File};
-use std::io::Read;
+use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -122,7 +122,6 @@ impl CanisterBuilder for CustomBuilder {
         let canister_id = info.get_canister_id().unwrap();
         let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
 
-        let mut add_candid_service_metadata = false;
         for command in build {
             info!(
                 self.logger,
@@ -136,22 +135,13 @@ impl CanisterBuilder for CustomBuilder {
                 .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                add_candid_service_metadata = true;
                 run_command(args, &vars, info.get_workspace_root())
                     .with_context(|| format!("Failed to run {}.", command))?;
             }
         }
 
-        let mut file =
-            File::open(&wasm).with_context(|| format!("Failed to open {}", wasm.display()))?;
-        let mut header = [0; 4];
-        file.read_exact(&mut header)?;
-        if header != *b"\0asm" {
-            add_candid_service_metadata = false;
-        }
-
         // Custom canister may have WASM gzipped
-        if info.get_shrink() && header == *b"\0asm" {
+        if info.get_shrink() && is_wasm_format(&wasm)? {
             info!(self.logger, "Shrink WASM module size.");
             super::shrink_wasm(&wasm)?;
         }
@@ -160,7 +150,6 @@ impl CanisterBuilder for CustomBuilder {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
             idl: IdlBuildOutput::File(candid),
-            add_candid_service_metadata,
         })
     }
 
