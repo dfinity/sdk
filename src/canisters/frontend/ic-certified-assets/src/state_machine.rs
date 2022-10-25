@@ -152,7 +152,7 @@ impl State {
             return Err("encoding must have at least one chunk".to_string());
         }
 
-        let effective_redirect = get_effective_redirect(&self.assets, &self.asset_hashes, &arg.key);
+        let dependent = dependent_key(&self.assets, &self.asset_hashes, &arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -190,30 +190,28 @@ impl State {
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, effective_redirect);
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent);
 
         Ok(())
     }
 
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
-        let effective_redirect = get_effective_redirect(&self.assets, &self.asset_hashes, &arg.key);
+        let dependent = dependent_key(&self.assets, &self.asset_hashes, &arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
             .ok_or_else(|| "asset not found".to_string())?;
 
         if asset.encodings.remove(&arg.content_encoding).is_some() {
-            on_asset_change(&mut self.asset_hashes, &arg.key, asset, effective_redirect);
+            on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent);
         }
 
         Ok(())
     }
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
-        if let Some(redirect_key) =
-            get_effective_redirect(&self.assets, &self.asset_hashes, &arg.key)
-        {
-            self.asset_hashes.delete(redirect_key.as_bytes());
+        if let Some(dependent) = dependent_key(&self.assets, &self.asset_hashes, &arg.key) {
+            self.asset_hashes.delete(dependent.as_bytes());
         }
         self.assets.remove(&arg.key);
         self.asset_hashes.delete(arg.key.as_bytes());
@@ -257,7 +255,7 @@ impl State {
     }
 
     pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
-        let effective_redirect = get_effective_redirect(&self.assets, &self.asset_hashes, &arg.key);
+        let dependent = dependent_key(&self.assets, &self.asset_hashes, &arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
 
@@ -274,7 +272,7 @@ impl State {
         encoding.modified = Int::from(time);
         encoding.sha256 = hash;
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, effective_redirect);
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent);
         Ok(())
     }
 
@@ -637,7 +635,7 @@ fn on_asset_change(
     asset_hashes: &mut AssetHashes,
     key: &str,
     asset: &mut Asset,
-    effective_redirect: Option<Key>,
+    dependent_key: Option<Key>,
 ) {
     ic_cdk::api::print(format!("asset change: {}", key));
     // If the most preferred encoding is present and certified,
@@ -654,7 +652,7 @@ fn on_asset_change(
 
     if asset.encodings.is_empty() {
         asset_hashes.delete(key.as_bytes());
-        if let Some(redirect_key) = effective_redirect {
+        if let Some(redirect_key) = dependent_key {
             asset_hashes.delete(redirect_key.as_bytes());
         }
         return;
@@ -670,7 +668,7 @@ fn on_asset_change(
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
         if let Some(enc) = asset.encodings.get_mut(*enc_name) {
             asset_hashes.insert(key.to_string(), enc.sha256);
-            if let Some(redirect_key) = effective_redirect {
+            if let Some(redirect_key) = dependent_key {
                 ic_cdk::api::print(format!("also inserting for: {}", redirect_key));
                 asset_hashes.insert(redirect_key, enc.sha256);
             }
@@ -684,7 +682,7 @@ fn on_asset_change(
     // almost never happen anyway.
     if let Some(enc) = asset.encodings.values_mut().next() {
         asset_hashes.insert(key.to_string(), enc.sha256);
-        if let Some(redirect_key) = effective_redirect {
+        if let Some(redirect_key) = dependent_key {
             ic_cdk::api::print(format!("also inserting for2: {}", redirect_key));
             asset_hashes.insert(redirect_key, enc.sha256);
         }
@@ -821,7 +819,6 @@ fn build_404(certificate_header: HeaderField) -> HttpResponse {
     }
 }
 
-// todo!(naming)
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html
 fn redirect(key: &Key) -> Option<Key> {
     ic_cdk::api::print(format!("calculating redirect for {}", key));
@@ -832,7 +829,8 @@ fn redirect(key: &Key) -> Option<Key> {
     }
 }
 
-// todo!(naming)
+// Determines the possible original key in case the supplied key is being redirected to.
+// Reverse operation of `redirect`
 fn reverse_redirect(key: &Key) -> Option<Key> {
     ic_cdk::api::print(format!("calculating reverse redirect for {}", key));
     if key.ends_with(".html") {
@@ -842,8 +840,8 @@ fn reverse_redirect(key: &Key) -> Option<Key> {
     }
 }
 
-// todo!(naming)
-fn get_effective_redirect(
+// Returns `Key` that needs to be updated if the supplied key is changed.
+fn dependent_key(
     assets: &HashMap<Key, Asset>,
     asset_hashes: &AssetHashes,
     key: &Key,
