@@ -58,6 +58,11 @@ pub struct CommitBatchArguments {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct EnableRedirectArguments {
+    pub enable: bool,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StoreArg {
     pub key: Key,
     pub content_type: String,

@@ -83,7 +83,6 @@ pub struct Batch {
     pub expires_at: Timestamp,
 }
 
-#[derive(Default)]
 pub struct State {
     assets: HashMap<Key, Asset>,
 
@@ -97,6 +96,21 @@ pub struct State {
 
     asset_hashes: AssetHashes,
     redirect_enabled: bool,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            assets: HashMap::default(),
+            chunks: HashMap::default(),
+            next_chunk_id: ChunkId::default(),
+            batches: HashMap::default(),
+            next_batch_id: BatchId::default(),
+            authorized: Vec::default(),
+            asset_hashes: AssetHashes::default(),
+            redirect_enabled: true,
+        }
+    }
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -478,7 +492,7 @@ impl State {
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
         if let Some(asset) = self.assets.get(path).or_else(|| {
-            if let Some(original_path) = redirect(&path.into()) {
+            if let (Some(original_path), true) = (redirect(&path.into()), self.redirect_enabled) {
                 self.assets.get(&original_path)
             } else {
                 None
@@ -573,8 +587,8 @@ impl State {
             .assets
             .get(&key)
             .or_else(|| {
-                if let Some(redirect_key) = redirect(&key) {
-                    self.assets.get(&redirect_key)
+                if let (Some(original_key), true) = (redirect(&key), self.redirect_enabled) {
+                    self.assets.get(&original_key)
                 } else {
                     None
                 }
@@ -598,6 +612,38 @@ impl State {
             body: enc.content_chunks[chunk_index].clone(),
             token: create_token(asset, &content_encoding, enc, &key, chunk_index),
         })
+    }
+
+    pub fn enable_redirect(&mut self, enable: bool) {
+        match (self.redirect_enabled, enable) {
+            (true, false) => {
+                ic_cdk::api::print(format!("Disabling redirects"));
+                for key in self.assets.keys() {
+                    if let Some(dependent) =
+                        dependent_key(self.assets.keys(), &self.asset_hashes, key)
+                    {
+                        self.asset_hashes.delete(dependent.as_bytes());
+                        ic_cdk::api::print(format!("Deleting key: {}", dependent));
+                    }
+                }
+            }
+            (false, true) => {
+                ic_cdk::api::print(format!("Enabling redirects"));
+                for key in self.assets.keys() {
+                    if let Some(dependent) =
+                        dependent_key(self.assets.keys(), &self.asset_hashes, key)
+                    {
+                        self.asset_hashes.insert(
+                            dependent.clone(),
+                            *self.asset_hashes.get(key.as_bytes()).unwrap(),
+                        );
+                        ic_cdk::api::print(format!("Inserting key: {}", dependent));
+                    }
+                }
+            }
+            _ => (ic_cdk::api::print(format!("Unnecessary enable_redirect. No state change!"))),
+        }
+        self.redirect_enabled = enable;
     }
 }
 
@@ -850,7 +896,8 @@ fn dependent_key<'a>(
     ic_cdk::api::print(format!("calculating effective redirect for {}", key));
     if let Some(redirect_key) = reverse_redirect(&key.into()) {
         if !assets_keys.any(|elem| elem == &redirect_key)
-            && asset_hashes.get(redirect_key.as_bytes()) == asset_hashes.get(key.as_bytes())
+            && (asset_hashes.get(redirect_key.as_bytes()) == asset_hashes.get(key.as_bytes())
+                || asset_hashes.get(key.as_bytes()).is_none())
         {
             ic_cdk::api::print(format!("is {}", &redirect_key));
             Some(redirect_key)
@@ -860,8 +907,4 @@ fn dependent_key<'a>(
     } else {
         None
     }
-}
-
-fn enable_redirect(enable: bool) {
-    todo!();
 }

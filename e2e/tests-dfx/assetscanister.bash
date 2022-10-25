@@ -544,5 +544,41 @@ CHERRIES" "$stdout"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
 
-    #todo disable redirect, try again
+    # disabling redirect works
+    echo "DOING DISABLE NOW"
+    assert_command dfx canister call e2e_project_frontend enable_redirect '(record { enable = false; })'
+    
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
+
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "HTTP/1.1 404 Not Found" "$stderr"
+
+    # disabled redirect survives canister upgrade
+    echo "UPGRADE"
+    assert_command dfx deploy --upgrade-unchanged
+    
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
+
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "HTTP/1.1 404 Not Found" "$stderr"
+
+
+    # re-enabling redirect works
+    echo "DOING ENABLE NOW"
+    assert_command dfx canister call e2e_project_frontend enable_redirect '(record { enable = true; })'
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
 }
