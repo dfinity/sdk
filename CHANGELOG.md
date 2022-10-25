@@ -485,6 +485,8 @@ It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pi
 
 ### fix: print links to cdk-rs docs in dfx new
 
+### fix: broken link in new .mo project README
+
 ### fix: Small grammar change to identity password decryption prompt
 
 The prompt for entering your passphrase in order to decrypt an identity password read:
@@ -533,7 +535,10 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko to 0.7.0
+### Updated Motoko from 0.6.29 to 0.7.1
+
+- See https://github.com/dfinity/motoko/blob/master/Changelog.md#071-2022-10-24
+
 
 ### Cycles wallet
 
