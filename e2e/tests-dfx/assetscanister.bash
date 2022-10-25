@@ -531,5 +531,18 @@ CHERRIES" "$stdout"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
 
+    # redirect survives upgrade
+    assert_command dfx deploy --upgrade-unchanged
+    assert_match "is already installed"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
+
     #todo disable redirect, try again
 }

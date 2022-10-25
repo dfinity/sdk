@@ -96,12 +96,14 @@ pub struct State {
     authorized: Vec<Principal>,
 
     asset_hashes: AssetHashes,
+    redirect_enabled: bool,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StableState {
     authorized: Vec<Principal>,
     stable_assets: HashMap<String, Asset>,
+    redirect_enabled: bool,
 }
 
 impl State {
@@ -152,7 +154,7 @@ impl State {
             return Err("encoding must have at least one chunk".to_string());
         }
 
-        let dependent = dependent_key(&self.assets, &self.asset_hashes, &arg.key);
+        let dependent = dependent_key(self.assets.keys(), &self.asset_hashes, &arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -196,7 +198,7 @@ impl State {
     }
 
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
-        let dependent = dependent_key(&self.assets, &self.asset_hashes, &arg.key);
+        let dependent = dependent_key(self.assets.keys(), &self.asset_hashes, &arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -210,7 +212,7 @@ impl State {
     }
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
-        if let Some(dependent) = dependent_key(&self.assets, &self.asset_hashes, &arg.key) {
+        if let Some(dependent) = dependent_key(self.assets.keys(), &self.asset_hashes, &arg.key) {
             self.asset_hashes.delete(dependent.as_bytes());
         }
         self.assets.remove(&arg.key);
@@ -255,7 +257,7 @@ impl State {
     }
 
     pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
-        let dependent = dependent_key(&self.assets, &self.asset_hashes, &arg.key);
+        let dependent = dependent_key(self.assets.keys(), &self.asset_hashes, &arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
 
@@ -604,6 +606,7 @@ impl From<State> for StableState {
         Self {
             authorized: state.authorized,
             stable_assets: state.assets,
+            redirect_enabled: state.redirect_enabled,
         }
     }
 }
@@ -613,19 +616,17 @@ impl From<StableState> for State {
         let mut state = Self {
             authorized: stable_state.authorized,
             assets: stable_state.stable_assets,
+            redirect_enabled: stable_state.redirect_enabled,
             ..Self::default()
         };
 
+        let existing_assets = state.assets.keys().map(|k| k.clone()).collect::<Vec<Key>>();
         for (asset_name, asset) in state.assets.iter_mut() {
+            let dependent = dependent_key(existing_assets.iter(), &state.asset_hashes, asset_name);
             for enc in asset.encodings.values_mut() {
                 enc.certified = false;
             }
-            on_asset_change(
-                &mut state.asset_hashes,
-                asset_name,
-                asset,
-                None, //todo!("check redirect")
-            );
+            on_asset_change(&mut state.asset_hashes, asset_name, asset, dependent);
         }
         state
     }
@@ -841,14 +842,14 @@ fn reverse_redirect(key: &Key) -> Option<Key> {
 }
 
 // Returns `Key` that needs to be updated if the supplied key is changed.
-fn dependent_key(
-    assets: &HashMap<Key, Asset>,
+fn dependent_key<'a>(
+    mut assets_keys: impl Iterator<Item = &'a Key>,
     asset_hashes: &AssetHashes,
     key: &Key,
 ) -> Option<Key> {
     ic_cdk::api::print(format!("calculating effective redirect for {}", key));
     if let Some(redirect_key) = reverse_redirect(&key.into()) {
-        if !assets.contains_key(&redirect_key)
+        if !assets_keys.any(|elem| elem == &redirect_key)
             && asset_hashes.get(redirect_key.as_bytes()) == asset_hashes.get(key.as_bytes())
         {
             ic_cdk::api::print(format!("is {}", &redirect_key));
@@ -859,4 +860,8 @@ fn dependent_key(
     } else {
         None
     }
+}
+
+fn enable_redirect(enable: bool) {
+    todo!();
 }
