@@ -20,6 +20,7 @@ pub fn deploy_sns(
     // For networks other than ic and local we need a provider URL:
     let agent_environment = create_agent_environment(env, network.clone())?;
     let network_descriptor = agent_environment.get_network_descriptor();
+    // The underlying sns binary recognises "local", "ic" and provider URLs, so we need one of those:
     let sns_network_param = match network.as_ref().map(|network| network.as_ref()) {
         None => "local",
         Some("ic") => "ic",
