@@ -518,6 +518,10 @@ CHERRIES" "$stdout"
     assert_match "test alias file"
     assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
     assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "test alias file"
 
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
@@ -544,6 +548,11 @@ CHERRIES" "$stdout"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
 
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+
     # disabling redirect works
     echo "DOING DISABLE NOW"
     assert_command dfx canister call e2e_project_frontend enable_redirect '(record { enable = false; })'
@@ -555,6 +564,11 @@ CHERRIES" "$stdout"
 
     assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
     assert_match "HTTP/1.1 404 Not Found" "$stderr"
+
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "key not found"
 
     # disabled redirect survives canister upgrade
     echo "UPGRADE"
@@ -568,6 +582,11 @@ CHERRIES" "$stdout"
     assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
     assert_match "HTTP/1.1 404 Not Found" "$stderr"
 
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "key not found"
+
 
     # re-enabling redirect works
     echo "DOING ENABLE NOW"
@@ -580,5 +599,10 @@ CHERRIES" "$stdout"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
     assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test alias file"
+
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
     assert_match "test alias file"
 }
