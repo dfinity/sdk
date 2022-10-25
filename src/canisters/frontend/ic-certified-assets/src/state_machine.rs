@@ -558,8 +558,6 @@ impl State {
             None => &req.url[..],
         };
 
-        ic_cdk::api::print(format!("REQUESTING PATH {}", path));
-
         match url_decode(path) {
             Ok(path) => self.build_http_response(certificate, &path, encodings, 0, callback, etags),
             Err(err) => HttpResponse {
@@ -617,18 +615,15 @@ impl State {
     pub fn enable_redirect(&mut self, enable: bool) {
         match (self.redirect_enabled, enable) {
             (true, false) => {
-                ic_cdk::api::print(format!("Disabling redirects"));
                 for key in self.assets.keys() {
                     if let Some(dependent) =
                         dependent_key(self.assets.keys(), &self.asset_hashes, key)
                     {
                         self.asset_hashes.delete(dependent.as_bytes());
-                        ic_cdk::api::print(format!("Deleting key: {}", dependent));
                     }
                 }
             }
             (false, true) => {
-                ic_cdk::api::print(format!("Enabling redirects"));
                 for key in self.assets.keys() {
                     if let Some(dependent) =
                         dependent_key(self.assets.keys(), &self.asset_hashes, key)
@@ -637,11 +632,10 @@ impl State {
                             dependent.clone(),
                             *self.asset_hashes.get(key.as_bytes()).unwrap(),
                         );
-                        ic_cdk::api::print(format!("Inserting key: {}", dependent));
                     }
                 }
             }
-            _ => (ic_cdk::api::print(format!("Unnecessary enable_redirect. No state change!"))),
+            _ => (),
         }
         self.redirect_enabled = enable;
     }
@@ -684,7 +678,6 @@ fn on_asset_change(
     asset: &mut Asset,
     dependent_key: Option<Key>,
 ) {
-    ic_cdk::api::print(format!("asset change: {}", key));
     // If the most preferred encoding is present and certified,
     // there is nothing to do.
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
@@ -716,7 +709,6 @@ fn on_asset_change(
         if let Some(enc) = asset.encodings.get_mut(*enc_name) {
             asset_hashes.insert(key.to_string(), enc.sha256);
             if let Some(redirect_key) = dependent_key {
-                ic_cdk::api::print(format!("also inserting for: {}", redirect_key));
                 asset_hashes.insert(redirect_key, enc.sha256);
             }
             enc.certified = true;
@@ -730,7 +722,6 @@ fn on_asset_change(
     if let Some(enc) = asset.encodings.values_mut().next() {
         asset_hashes.insert(key.to_string(), enc.sha256);
         if let Some(redirect_key) = dependent_key {
-            ic_cdk::api::print(format!("also inserting for2: {}", redirect_key));
             asset_hashes.insert(redirect_key, enc.sha256);
         }
         enc.certified = true;
@@ -868,7 +859,6 @@ fn build_404(certificate_header: HeaderField) -> HttpResponse {
 
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html
 fn redirect(key: &Key) -> Option<Key> {
-    ic_cdk::api::print(format!("calculating redirect for {}", key));
     if !key.ends_with(".html") {
         Some(format!("{}.html", key))
     } else {
@@ -879,7 +869,6 @@ fn redirect(key: &Key) -> Option<Key> {
 // Determines the possible original key in case the supplied key is being redirected to.
 // Reverse operation of `redirect`
 fn reverse_redirect(key: &Key) -> Option<Key> {
-    ic_cdk::api::print(format!("calculating reverse redirect for {}", key));
     if key.ends_with(".html") {
         Some(key[..(key.len() - 5)].into())
     } else {
@@ -893,13 +882,11 @@ fn dependent_key<'a>(
     asset_hashes: &AssetHashes,
     key: &Key,
 ) -> Option<Key> {
-    ic_cdk::api::print(format!("calculating effective redirect for {}", key));
     if let Some(redirect_key) = reverse_redirect(&key.into()) {
         if !assets_keys.any(|elem| elem == &redirect_key)
             && (asset_hashes.get(redirect_key.as_bytes()) == asset_hashes.get(key.as_bytes())
                 || asset_hashes.get(key.as_bytes()).is_none())
         {
-            ic_cdk::api::print(format!("is {}", &redirect_key));
             Some(redirect_key)
         } else {
             None
