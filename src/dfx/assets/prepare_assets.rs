@@ -31,7 +31,7 @@ fn copy_canisters(out_dir: PathBuf) {
     for can in ["assetstorage", "wallet", "ui"] {
         let mut tar = Builder::new(GzEncoder::new(
             BufWriter::new(File::create(out_dir.join(format!("{can}_canister.tgz"))).unwrap()),
-            Compression::best(),
+            Compression::new(6),
         ));
         for ext in [
             ".did",
@@ -76,7 +76,7 @@ fn write_binary_cache(
 ) {
     let mut tar = Builder::new(GzEncoder::new(
         BufWriter::new(File::create(out_dir.join("binary_cache.tgz")).unwrap()),
-        Compression::best(),
+        Compression::new(6),
     ));
     for (path, bin) in bins.into_iter().chain(
         ["icx-proxy", "ic-ref", "moc", "mo-doc", "mo-ide"]
