@@ -73,6 +73,7 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     install_asset sns/valid
     dfx sns config validate
     # The remaining steps don't work any more as a pre-launch whitelist has been added.
+    # Note: When re-enabling, please also exercise the `sns deploy --network` option.
     #dfx sns deploy
     # SNS canister IDs should be saved
     #dfx canister id sns_governance

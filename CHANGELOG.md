@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat(sns): Support --network flag on sns deploy
+
+Support has been added for deploying an SNS to a named network.
+
 ### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
 
 Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:

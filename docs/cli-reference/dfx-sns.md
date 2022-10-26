@@ -102,6 +102,7 @@ You can use the following optional flags with the `dfx sns deploy` command.
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
 | `-V`, `--version` | Displays version information. |
+| `--network NAME`  | Deploys to the named network. |
 
 ### Examples
 
@@ -119,4 +120,3 @@ You can now verify that the sns canisters have been created.  E.g.:
 dfx canister info sns_root
 dfx canister info sns_ledger
 ```
-

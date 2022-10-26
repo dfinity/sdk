@@ -1,6 +1,6 @@
 //! Code for the command line `dfx sns deploy`.
 use crate::lib::error::DfxResult;
-use crate::Environment;
+use crate::{Environment, NetworkOpt};
 
 use crate::lib::sns;
 use crate::lib::sns::deploy::deploy_sns;
@@ -12,14 +12,17 @@ use clap::Parser;
 /// - `env` - The execution environment, including the network to deploy to and connection credentials.
 /// - `opts` - Deployment options.
 #[derive(Parser)]
-pub struct DeployOpts {}
+pub struct DeployOpts {
+    /// The name of the network to deploy to.
+    #[clap(flatten)]
+    network: NetworkOpt,
+}
 
 /// Executes the command line `dfx sns deploy`.
-pub fn exec(env: &dyn Environment, _opts: DeployOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     println!("Creating SNS canisters.  This typically takes about one minute...");
     let config = env.get_config_or_anyhow()?;
     let path = config.get_project_root().join(sns::CONFIG_FILE_NAME);
-
-    println!("{}", deploy_sns(env, &path)?);
+    println!("{}", deploy_sns(env, &path, opts.network.network)?);
     Ok(())
 }
