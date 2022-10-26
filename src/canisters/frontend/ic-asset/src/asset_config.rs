@@ -255,7 +255,7 @@ impl AssetConfig {
 }
 
 /// This module contains various utilities needed for serialization/deserialization
-/// and pretty-printing of the main data struct (i.e. AssetConfigRule).
+/// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
     use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
     use anyhow::Context;
