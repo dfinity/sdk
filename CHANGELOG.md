@@ -20,6 +20,8 @@ Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP
 ```
 This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
 
+### feat: warn if an unencrypted identity is used on mainnet
+
 ### fix: Save SNS canister IDs
 
 SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
