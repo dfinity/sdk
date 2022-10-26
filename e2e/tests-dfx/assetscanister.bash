@@ -554,8 +554,9 @@ CHERRIES" "$stdout"
     assert_match "test alias file"
 
     # disabling redirect works
-    echo "DOING DISABLE NOW"
-    assert_command dfx canister call e2e_project_frontend enable_redirect '(record { enable = false; })'
+    echo "DISABLING NOW"
+    jq '.canisters.e2e_project_frontend.redirect=false' dfx.json | sponge dfx.json
+    assert_command dfx deploy
     
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
     # shellcheck disable=SC2154
@@ -602,8 +603,9 @@ CHERRIES" "$stdout"
 
 
     # re-enabling redirect works
-    echo "DOING ENABLE NOW"
-    assert_command dfx canister call e2e_project_frontend enable_redirect '(record { enable = true; })'
+    echo "ENABLING NOW"
+    jq '.canisters.e2e_project_frontend.redirect=true' dfx.json | sponge dfx.json
+    assert_command dfx deploy
 
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
     # shellcheck disable=SC2154

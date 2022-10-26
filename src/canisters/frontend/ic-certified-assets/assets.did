@@ -58,6 +58,10 @@ type HttpResponse = record {
   streaming_strategy: opt StreamingStrategy;
 };
 
+type EnableRedirectArguments = record {
+  enable: bool;
+};
+
 type StreamingCallbackHttpResponse = record {
   body: blob;
   token: opt StreamingCallbackToken;
@@ -78,8 +82,6 @@ type StreamingStrategy = variant {
 };
 
 service: {
-  test: () -> ();
-
   get: (record {
     key: Key;
     accept_encodings: vec text;
@@ -143,6 +145,7 @@ service: {
 
   http_request: (request: HttpRequest) -> (HttpResponse) query;
   http_request_streaming_callback: (token: StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
+  enable_redirect: (EnableRedirectArguments) -> ();
 
   authorize: (principal) -> ();
 }
