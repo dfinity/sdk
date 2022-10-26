@@ -553,5 +553,5 @@ CHERRIES" "$stdout"
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
     assert_command dfx deploy
-    assert_contains "WARN: Unused config: AssetConfigRule"
+    assert_match "WARNING: 1 unmatched configuration in"
 }

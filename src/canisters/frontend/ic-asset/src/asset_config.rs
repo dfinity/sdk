@@ -1,12 +1,10 @@
 use anyhow::{bail, Context};
 use derivative::Derivative;
-use globset::{Glob, GlobMatcher};
+use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fs,
-    hash::{Hash, Hasher},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -14,69 +12,55 @@ use std::{
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
-pub(crate) type HeadersConfig = HashMap<String, String>;
-type ConfigNode = Arc<Mutex<AssetConfigTreeNode>>;
-type ConfigMap = HashMap<PathBuf, ConfigNode>;
+/// A final piece of metadata assigned to the asset
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Clone)]
+pub struct AssetConfig {
+    pub(crate) cache: Option<CacheConfig>,
+    pub(crate) headers: Option<HeadersConfig>,
+    pub(crate) ignore: Option<bool>,
+}
 
-#[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq, Hash)]
+pub(crate) type HeadersConfig = HashMap<String, String>;
+
+#[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
 }
 
-#[derive(Derivative, Clone)]
-#[derivative(Debug)]
+/// A single configuration object, from `.ic-assets.json` config file
+#[derive(Derivative, Clone, Serialize)]
+#[derivative(Debug, PartialEq)]
 pub struct AssetConfigRule {
-    #[derivative(Debug(format_with = "fmt_glob_field"))]
+    #[derivative(
+        Debug(format_with = "rule_utils::glob_fmt"),
+        PartialEq(compare_with = "rule_utils::glob_cmp")
+    )]
+    #[serde(serialize_with = "rule_utils::glob_serialize")]
     r#match: GlobMatcher,
+    #[serde(skip_serializing_if = "Option::is_none")]
     cache: Option<CacheConfig>,
+    #[serde(
+        serialize_with = "rule_utils::headers_serialize",
+        skip_serializing_if = "Maybe::is_absent"
+    )]
     headers: Maybe<HeadersConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     ignore: Option<bool>,
+    #[serde(skip_serializing)]
     used: bool,
-    origin: PathBuf,
-}
-impl PartialEq for AssetConfigRule {
-    fn eq(&self, other: &Self) -> bool {
-        self.r#match.glob() == other.r#match.glob()
-            && self.origin == other.origin
-            && self.ignore == other.ignore
-            && self.cache == other.cache
-            && self.headers == other.headers
-    }
-}
-impl Eq for AssetConfigRule {}
-impl Hash for AssetConfigRule {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.r#match.glob().hash(state);
-        self.origin.hash(state);
-        self.ignore.hash(state);
-        self.cache.hash(state);
-        self.headers.hash(state);
-    }
 }
 
-#[derive(Deserialize, Debug, Clone, Eq, PartialEq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 enum Maybe<T> {
     Null,
     Absent,
     Value(T),
 }
 
-impl Hash for Maybe<HeadersConfig> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            Maybe::Null => "null".hash(state),
-            Maybe::Absent => "absent".hash(state),
-            Maybe::Value(v) => v.iter().for_each(|v| v.hash(state)),
-        }
+impl<T> Default for Maybe<T> {
+    fn default() -> Self {
+        Self::Absent
     }
-}
-
-fn fmt_glob_field(
-    field: &GlobMatcher,
-    formatter: &mut std::fmt::Formatter,
-) -> Result<(), std::fmt::Error> {
-    formatter.write_str(field.glob().glob())?;
-    Ok(())
 }
 
 impl AssetConfigRule {
@@ -87,27 +71,28 @@ impl AssetConfigRule {
     }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct AssetSourceDirectoryConfiguration {
+type ConfigNode = Arc<Mutex<AssetConfigTreeNode>>;
+type ConfigMap = HashMap<PathBuf, ConfigNode>;
+
+/// The main public interface for aggregating `.ic-assets.json` files
+/// nested in directories. Each sub/directory will be represented
+/// as `AssetConfigTreeNode`.
+#[derive(Debug)]
+pub struct AssetSourceDirectoryConfiguration {
     config_map: ConfigMap,
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Serialize, Clone)]
-pub(crate) struct AssetConfig {
-    pub(crate) cache: Option<CacheConfig>,
-    pub(crate) headers: Option<HeadersConfig>,
-    pub(crate) ignore: Option<bool>,
-}
-
+/// A directory or subdirectory with assets.
 #[derive(Debug, Default)]
 struct AssetConfigTreeNode {
     pub parent: Option<ConfigNode>,
     pub rules: Vec<AssetConfigRule>,
+    pub origin: PathBuf,
 }
 
 impl AssetSourceDirectoryConfiguration {
     /// Constructs config tree for assets directory.
-    pub(crate) fn load(root_dir: &Path) -> anyhow::Result<Self> {
+    pub fn load(root_dir: &Path) -> anyhow::Result<Self> {
         if !root_dir.has_root() {
             bail!("root_dir paramenter is expected to be canonical path")
         }
@@ -117,7 +102,8 @@ impl AssetSourceDirectoryConfiguration {
         Ok(Self { config_map })
     }
 
-    pub(crate) fn get_asset_config(
+    /// Fetches the configuration for the asset.
+    pub fn get_asset_config(
         &mut self,
         canonical_path: &Path,
     ) -> anyhow::Result<AssetConfig> {
@@ -141,91 +127,45 @@ impl AssetSourceDirectoryConfiguration {
             .get_config(canonical_path))
     }
 
-    pub(crate) fn get_unused_configs(&self) -> HashSet<AssetConfigRule> {
-        self.config_map
-            .iter()
-            .flat_map(|(_, y)| {
-                y.clone()
-                    .lock()
-                    .unwrap()
-                    .rules
-                    .iter()
-                    .filter_map(|xxx| if !xxx.used { Some(xxx.clone()) } else { None })
-                    .collect::<Vec<_>>()
-            })
-            .collect::<_>()
-    }
-}
+    /// Returns a collection of unused configuration objects from all `.ic-assets.json` files
+    pub fn get_unused_configs(&self) -> HashMap<PathBuf, Vec<AssetConfigRule>> {
+        let mut hm = HashMap::new();
+        // aggregate
+        for (_fake_origin, node) in &self.config_map {
+            let config_node = &node.lock().unwrap();
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct InterimAssetConfigRule {
-    r#match: String,
-    cache: Option<CacheConfig>,
-    #[serde(default, deserialize_with = "deser_headers")]
-    headers: Maybe<HeadersConfig>,
-    ignore: Option<bool>,
-}
+            let origin = config_node.origin.clone();
 
-impl<T> Default for Maybe<T> {
-    fn default() -> Self {
-        Self::Absent
-    }
-}
-
-fn deser_headers<'de, D>(deserializer: D) -> Result<Maybe<HeadersConfig>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    match serde_json::value::Value::deserialize(deserializer)? {
-        Value::Object(v) => Ok(Maybe::Value(
-            v.into_iter()
-                .map(|(k, v)| (k, v.to_string().trim_matches('"').to_string()))
-                .collect::<HashMap<String, String>>(),
-        )),
-        Value::Null => Ok(Maybe::Null),
-        _ => Err(serde::de::Error::custom(
-            "wrong data format for field `headers` (only map or null are allowed)",
-        )),
-    }
-}
-
-impl AssetConfigRule {
-    fn from_interim(
-        InterimAssetConfigRule {
-            r#match,
-            cache,
-            headers,
-            ignore,
-        }: InterimAssetConfigRule,
-        config_file_parent_dir: &Path,
-    ) -> anyhow::Result<Self> {
-        let glob = Glob::new(
-            config_file_parent_dir
-                .join(&r#match)
-                .to_str()
-                .with_context(|| {
-                    format!(
-                        "cannot combine {} and {} into a string (to be later used as a glob pattern)",
-                        config_file_parent_dir.display(),
-                        r#match
-                    )
-                })?,
-        )
-        .with_context(|| format!("{} is not a valid glob pattern", r#match))?.compile_matcher();
-
-        Ok(Self {
-            r#match: glob,
-            cache,
-            headers,
-            ignore,
-            used: false,
-            origin: config_file_parent_dir.to_path_buf(),
-        })
+            for rule in config_node.rules.clone() {
+                if !rule.used {
+                    hm.entry(origin.clone())
+                        .and_modify(|v: &mut Vec<AssetConfigRule>| v.push(rule.clone()))
+                        .or_insert(vec![rule.clone()]);
+                }
+            }
+        }
+        // dedup and remove full path from "match" field
+        for (path, rules) in hm.iter_mut() {
+            rules.sort_by_key(|v| v.r#match.glob().to_string());
+            rules.dedup();
+            for mut rule in rules {
+                rule.r#match = globset::Glob::new(
+                    &rule
+                        .r#match
+                        .glob()
+                        .to_string()
+                        .replace(path.to_str().unwrap(), ""),
+                )
+                .unwrap()
+                .compile_matcher();
+            }
+        }
+        hm
     }
 }
 
 impl AssetConfigTreeNode {
+    /// Constructs config tree for assets directory in a recursive fashion.
     fn load(parent: Option<ConfigNode>, dir: &Path, configs: &mut ConfigMap) -> anyhow::Result<()> {
         let config_path: Option<PathBuf>;
         match (
@@ -241,7 +181,6 @@ impl AssetConfigTreeNode {
                 ))
             }
             (true, false) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON)),
-
             (false, true) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON5)),
             (false, false) => config_path = None,
         }
@@ -250,7 +189,7 @@ impl AssetConfigTreeNode {
             let content = fs::read_to_string(&config_path).with_context(|| {
                 format!("unable to read config file: {}", config_path.display())
             })?;
-            let interim_rules: Vec<InterimAssetConfigRule> = json5::from_str(&content)
+            let interim_rules: Vec<rule_utils::InterimAssetConfigRule> = json5::from_str(&content)
                 .with_context(|| {
                     format!(
                         "malformed JSON asset config file: {}",
@@ -264,7 +203,11 @@ impl AssetConfigTreeNode {
 
         let parent_ref = match parent {
             Some(p) if rules.is_empty() => p,
-            _ => Arc::new(Mutex::new(Self { parent, rules })),
+            _ => Arc::new(Mutex::new(Self {
+                parent,
+                rules,
+                origin: dir.to_path_buf(),
+            })),
         };
 
         configs.insert(dir.to_path_buf(), parent_ref.clone());
@@ -278,6 +221,8 @@ impl AssetConfigTreeNode {
         Ok(())
     }
 
+    /// Fetches asset config in a recursive fashion.
+    /// Marks config rules as *used*, whenever the rule' glob patter matched querried file.
     fn get_config(&mut self, canonical_path: &Path) -> AssetConfig {
         let base_config = match &self.parent {
             Some(parent) => parent.clone().lock().unwrap().get_config(canonical_path),
@@ -309,6 +254,121 @@ impl AssetConfig {
             self.ignore = other.ignore;
         }
         self
+    }
+}
+
+/// This module contains various utilities needed for serialization/deserialization
+/// and pretty-printing of the main data struct (i.e. AssetConfigRule).
+mod rule_utils {
+    use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
+    use anyhow::Context;
+    use globset::{Glob, GlobMatcher};
+    use serde::{Deserialize, Serializer};
+    use serde_json::Value;
+    use std::collections::HashMap;
+    use std::fmt;
+    use std::path::Path;
+
+    pub(super) fn glob_cmp(a: &GlobMatcher, b: &GlobMatcher) -> bool {
+        a.glob() == b.glob()
+    }
+
+    pub(super) fn glob_fmt(
+        field: &GlobMatcher,
+        formatter: &mut fmt::Formatter,
+    ) -> Result<(), fmt::Error> {
+        formatter.write_str(field.glob().glob())?;
+        Ok(())
+    }
+
+    pub(super) fn glob_serialize<S>(bytes: &GlobMatcher, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&bytes.glob().to_string())
+    }
+
+    pub(super) fn headers_serialize<S>(
+        bytes: &super::Maybe<HeadersConfig>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match bytes {
+            super::Maybe::Null => serializer.serialize_str("{}"),
+            super::Maybe::Value(v) => {
+                serializer.serialize_str(&serde_json::to_string_pretty(v).unwrap())
+            }
+            super::Maybe::Absent => unreachable!(), // this option is already skipped via `skip_serialization_with`
+        }
+    }
+
+    fn headers_deserialize<'de, D>(deserializer: D) -> Result<Maybe<HeadersConfig>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        match serde_json::value::Value::deserialize(deserializer)? {
+            Value::Object(v) => Ok(Maybe::Value(
+                v.into_iter()
+                    .map(|(k, v)| (k, v.to_string().trim_matches('"').to_string()))
+                    .collect::<HashMap<String, String>>(),
+            )),
+            Value::Null => Ok(Maybe::Null),
+            _ => Err(serde::de::Error::custom(
+                "wrong data format for field `headers` (only map or null are allowed)",
+            )),
+        }
+    }
+
+    impl<T> Maybe<T> {
+        pub(super) fn is_absent(&self) -> bool {
+            matches!(*self, Self::Absent)
+        }
+    }
+
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    pub(super) struct InterimAssetConfigRule {
+        r#match: String,
+        cache: Option<CacheConfig>,
+        #[serde(default, deserialize_with = "headers_deserialize")]
+        headers: Maybe<HeadersConfig>,
+        ignore: Option<bool>,
+    }
+
+    impl AssetConfigRule {
+        pub(super) fn from_interim(
+            InterimAssetConfigRule {
+                r#match,
+                cache,
+                headers,
+                ignore,
+            }: InterimAssetConfigRule,
+            config_file_parent_dir: &Path,
+        ) -> anyhow::Result<Self> {
+            let glob = Glob::new(
+            config_file_parent_dir
+                .join(&r#match)
+                .to_str()
+                .with_context(|| {
+                    format!(
+                        "cannot combine {} and {} into a string (to be later used as a glob pattern)",
+                        config_file_parent_dir.display(),
+                        r#match
+                    )
+                })?,
+        )
+        .with_context(|| format!("{} is not a valid glob pattern", r#match))?.compile_matcher();
+
+            Ok(Self {
+                r#match: glob,
+                cache,
+                headers,
+                ignore,
+                used: false,
+            })
+        }
     }
 }
 
