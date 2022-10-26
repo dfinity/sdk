@@ -28,12 +28,13 @@ jobs:
         os: [ ubuntu-latest, macos-latest ]
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
+            !target/*/build/dfx-*/out/dfx-assets
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
         run: |
@@ -41,8 +42,9 @@ jobs:
           rustup component add clippy
           rustup default ${{ matrix.rust }}
 
-      - name: Prepare dfx assets
-        run: scripts/prepare-dfx-assets.sh "$(mktemp -d)"
+      - name: Run build script
+        run: |
+          cargo check
 
   aggregate:
     name: prepare-dfx-assets:required

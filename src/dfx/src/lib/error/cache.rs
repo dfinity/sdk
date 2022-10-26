@@ -9,6 +9,8 @@ pub enum CacheError {
     #[error("Cannot find cache directory at '{0}'.")]
     CannotFindCacheDirectory(PathBuf),
 
+    // Windows paths do not require environment variables (and are found by dirs-next, which has its own errors)
+    #[cfg(not(windows))]
     #[error("Cannot find home directory.")]
     CannotFindHomeDirectory(),
 
