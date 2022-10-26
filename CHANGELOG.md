@@ -553,7 +553,7 @@ Updated ic-ref to 0.0.1-1fba03ee
 
 ### Frontend canister:
 - Module hash: ec89b752975d3302b234e29eeae48b0fed2c5938847942dd94a00df7d510b244
-- https://github.com/dfinity/sdk/pull/????
+- https://github.com/dfinity/sdk/pull/2720
 
 # 0.11.2
 
