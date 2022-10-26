@@ -506,6 +506,38 @@ CHERRIES" "$stdout"
     assert_match "HTTP/1.1 404 Not Found"
 
 }
+@test "asset configuration via .ic-assets.json5 - overwriting default headers" {
+    install_asset assetscanister
+
+    dfx_start
+
+    touch src/e2e_project_frontend/assets/thing.json
+
+    echo '[
+      {
+        "match": "thing.json",
+        "cache": { "max_age": 2000 },
+        "headers": {
+          "Content-Encoding": "my-encoding",
+          "Content-Type": "x-type",
+          "Cache-Control": "custom",
+          "etag": "my-etag"
+        }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+    assert_match "cache-control: custom"
+    assert_match "content-encoding: my-encoding"
+    assert_match "content-type: x-type"
+    assert_not_match "etag: my-etag"
+    assert_match "etag: \"[a-z0-9]{64}\""
+}
 
 @test "default redirect <filename> to <filename>.html" {
     dfx_start
