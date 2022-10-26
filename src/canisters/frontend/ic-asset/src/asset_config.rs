@@ -103,10 +103,7 @@ impl AssetSourceDirectoryConfiguration {
     }
 
     /// Fetches the configuration for the asset.
-    pub fn get_asset_config(
-        &mut self,
-        canonical_path: &Path,
-    ) -> anyhow::Result<AssetConfig> {
+    pub fn get_asset_config(&mut self, canonical_path: &Path) -> anyhow::Result<AssetConfig> {
         let parent_dir = canonical_path.parent().with_context(|| {
             format!(
                 "unable to get the parent directory for asset path: {:?}",

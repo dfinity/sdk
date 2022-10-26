@@ -4,10 +4,10 @@ use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind};
 use crate::asset_config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::params::CanisterCallParams;
 use crate::operations::{
     create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
 };
+use crate::params::CanisterCallParams;
 use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
 use anyhow::{bail, Context};
 use ic_utils::Canister;
