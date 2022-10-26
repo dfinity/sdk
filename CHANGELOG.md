@@ -54,6 +54,11 @@ The function for calling sns can now call any bundled binary.
 - Ledger for financial integration testing
 - Internet Identity for user registration and authenttication
 
+### feat(frontend-canister): Add simple redirects from `<asset>` to `<asset>.html`
+
+The asset canister now by default redirects any request to `<asset>` to `<asset>.html`.
+This can be disabled by setting the field `"redirect"` to `false` in the canister settings in dfx.json.
+
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
 
@@ -547,8 +552,8 @@ Updated ic-ref to 0.0.1-1fba03ee
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
 
 ### Frontend canister:
-- Module hash: 2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759
-- https://github.com/dfinity/sdk/pull/2689
+- Module hash: ec89b752975d3302b234e29eeae48b0fed2c5938847942dd94a00df7d510b244
+- https://github.com/dfinity/sdk/pull/????
 
 # 0.11.2
 
