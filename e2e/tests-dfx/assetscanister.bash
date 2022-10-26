@@ -545,6 +545,8 @@ CHERRIES" "$stdout"
     echo "test alias file" >'src/e2e_project_frontend/assets/test_alias_file.html'
     dfx deploy
 
+    assert_command_fail dfx canister info e2e_project_frontend
+
     # decode as expected
     assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/test_alias_file.html";headers=vec{};method="GET";body=vec{}})'
     assert_match "test alias file"

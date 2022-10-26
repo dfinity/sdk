@@ -628,10 +628,8 @@ impl State {
                     if let Some(dependent) =
                         dependent_key(self.assets.keys(), &self.asset_hashes, key)
                     {
-                        self.asset_hashes.insert(
-                            dependent.clone(),
-                            *self.asset_hashes.get(key.as_bytes()).unwrap(),
-                        );
+                        self.asset_hashes
+                            .insert(dependent, *self.asset_hashes.get(key.as_bytes()).unwrap());
                     }
                 }
             }
