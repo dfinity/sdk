@@ -588,6 +588,19 @@ CHERRIES" "$stdout"
     assert_match "key not found"
 
 
+    # redirects are disabled for assets that get uploaded after disabling happens
+    echo "second alias test" >'src/e2e_project_frontend/assets/test_alias_file_two.html'
+    assert_command dfx deploy
+    
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file_two.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "second alias test"
+
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file_two?canisterId="$ID"
+    assert_match "HTTP/1.1 404 Not Found" "$stderr"
+
+
     # re-enabling redirect works
     echo "DOING ENABLE NOW"
     assert_command dfx canister call e2e_project_frontend enable_redirect '(record { enable = true; })'
@@ -600,6 +613,15 @@ CHERRIES" "$stdout"
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file_two.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "second alias test"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file_two?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "second alias test"
 
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
     assert_match "test alias file"

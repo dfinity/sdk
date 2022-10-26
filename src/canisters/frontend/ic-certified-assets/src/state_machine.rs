@@ -660,14 +660,13 @@ impl From<StableState> for State {
             ..Self::default()
         };
 
-        let existing_assets = state.assets.keys().map(|k| k.clone()).collect::<Vec<Key>>();
         for (asset_name, asset) in state.assets.iter_mut() {
-            let dependent = dependent_key(existing_assets.iter(), &state.asset_hashes, asset_name);
             for enc in asset.encodings.values_mut() {
                 enc.certified = false;
             }
-            on_asset_change(&mut state.asset_hashes, asset_name, asset, dependent);
+            on_asset_change(&mut state.asset_hashes, asset_name, asset, None);
         }
+        state.enable_redirect(state.redirect_enabled);
         state
     }
 }
