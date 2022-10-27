@@ -574,6 +574,9 @@ CHERRIES" "$stdout"
     assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test index file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test/index?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test index file"
 
     # redirect survives upgrade
     assert_command dfx deploy --upgrade-unchanged

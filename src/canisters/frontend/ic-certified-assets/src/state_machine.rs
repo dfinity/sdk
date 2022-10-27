@@ -184,7 +184,7 @@ impl State {
             return Err("encoding must have at least one chunk".to_string());
         }
 
-        let dependent = dependent_key(self.assets.keys(), &self.asset_hashes, &arg.key);
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -222,27 +222,27 @@ impl State {
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent);
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
 
         Ok(())
     }
 
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
-        let dependent = dependent_key(self.assets.keys(), &self.asset_hashes, &arg.key);
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
             .ok_or_else(|| "asset not found".to_string())?;
 
         if asset.encodings.remove(&arg.content_encoding).is_some() {
-            on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent);
+            on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
         }
 
         Ok(())
     }
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
-        if let Some(dependent) = dependent_key(self.assets.keys(), &self.asset_hashes, &arg.key) {
+        for dependent in self.dependent_keys(&arg.key) {
             self.asset_hashes.delete(dependent.as_bytes());
         }
         self.assets.remove(&arg.key);
@@ -277,7 +277,7 @@ impl State {
     }
 
     pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
-        let dependent = dependent_key(self.assets.keys(), &self.asset_hashes, &arg.key);
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
 
@@ -294,7 +294,7 @@ impl State {
         encoding.modified = Int::from(time);
         encoding.sha256 = hash;
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent);
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
         Ok(())
     }
 
@@ -588,18 +588,14 @@ impl State {
         match (self.redirect_enabled, enable) {
             (true, false) => {
                 for key in self.assets.keys() {
-                    if let Some(dependent) =
-                        dependent_key(self.assets.keys(), &self.asset_hashes, key)
-                    {
+                    for dependent in self.dependent_keys(key) {
                         self.asset_hashes.delete(dependent.as_bytes());
                     }
                 }
             }
             (false, true) => {
                 for key in self.assets.keys() {
-                    if let Some(dependent) =
-                        dependent_key(self.assets.keys(), &self.asset_hashes, key)
-                    {
+                    for dependent in self.dependent_keys(key) {
                         self.asset_hashes
                             .insert(dependent, *self.asset_hashes.get(key.as_bytes()).unwrap());
                     }
@@ -608,6 +604,18 @@ impl State {
             _ => (),
         }
         self.redirect_enabled = enable;
+    }
+
+    // Returns keys that needs to be updated if the supplied key is changed.
+    fn dependent_keys<'a>(&self, key: &Key) -> Vec<Key> {
+        if self.redirect_enabled {
+            reverse_redirect(key)
+                .into_iter()
+                .filter(|k| !self.assets.contains_key(k))
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 }
 
@@ -634,7 +642,7 @@ impl From<StableState> for State {
             for enc in asset.encodings.values_mut() {
                 enc.certified = false;
             }
-            on_asset_change(&mut state.asset_hashes, asset_name, asset, None);
+            on_asset_change(&mut state.asset_hashes, asset_name, asset, Vec::new());
         }
         state.enable_redirect(state.redirect_enabled);
         state
@@ -645,7 +653,7 @@ fn on_asset_change(
     asset_hashes: &mut AssetHashes,
     key: &str,
     asset: &mut Asset,
-    dependent_key: Option<Key>,
+    dependent_keys: Vec<Key>,
 ) {
     // If the most preferred encoding is present and certified,
     // there is nothing to do.
@@ -661,8 +669,8 @@ fn on_asset_change(
 
     if asset.encodings.is_empty() {
         asset_hashes.delete(key.as_bytes());
-        if let Some(redirect_key) = dependent_key {
-            asset_hashes.delete(redirect_key.as_bytes());
+        for dependent in dependent_keys {
+            asset_hashes.delete(dependent.as_bytes());
         }
         return;
     }
@@ -677,8 +685,8 @@ fn on_asset_change(
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
         if let Some(enc) = asset.encodings.get_mut(*enc_name) {
             asset_hashes.insert(key.to_string(), enc.sha256);
-            if let Some(redirect_key) = dependent_key {
-                asset_hashes.insert(redirect_key, enc.sha256);
+            for dependent in dependent_keys {
+                asset_hashes.insert(dependent, enc.sha256);
             }
             enc.certified = true;
             return;
@@ -690,8 +698,8 @@ fn on_asset_change(
     // almost never happen anyway.
     if let Some(enc) = asset.encodings.values_mut().next() {
         asset_hashes.insert(key.to_string(), enc.sha256);
-        if let Some(redirect_key) = dependent_key {
-            asset_hashes.insert(redirect_key, enc.sha256);
+        for dependent in dependent_keys {
+            asset_hashes.insert(dependent, enc.sha256);
         }
         enc.certified = true;
     }
@@ -835,34 +843,17 @@ fn redirect(key: &Key) -> Vec<Key> {
     }
 }
 
-// Determines the possible original key in case the supplied key is being redirected to.
-// Reverse operation of `redirect`
-fn reverse_redirect(key: &Key) -> Option<Key> {
+// Determines possible original keys in case the supplied key is being redirected to.
+// Sort-of a reverse operation of `redirect`
+fn reverse_redirect(key: &Key) -> Vec<Key> {
     if key.ends_with("/index.html") {
-        Some(key[..(key.len() - 11)].into())
+        vec![
+            key[..(key.len() - 5)].into(),
+            key[..(key.len() - 11)].into(),
+        ]
     } else if key.ends_with(".html") {
-        Some(key[..(key.len() - 5)].into())
+        vec![key[..(key.len() - 5)].into()]
     } else {
-        None
-    }
-}
-
-// Returns `Key` that needs to be updated if the supplied key is changed.
-fn dependent_key<'a>(
-    mut assets_keys: impl Iterator<Item = &'a Key>,
-    asset_hashes: &AssetHashes,
-    key: &Key,
-) -> Option<Key> {
-    if let Some(redirect_key) = reverse_redirect(&key.into()) {
-        if !assets_keys.any(|elem| elem == &redirect_key)
-            && (asset_hashes.get(redirect_key.as_bytes()) == asset_hashes.get(key.as_bytes())
-                || asset_hashes.get(key.as_bytes()).is_none())
-        {
-            Some(redirect_key)
-        } else {
-            None
-        }
-    } else {
-        None
+        Vec::new()
     }
 }
