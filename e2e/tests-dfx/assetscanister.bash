@@ -581,14 +581,14 @@ CHERRIES" "$stdout"
     ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
     assert_command dfx deploy
-    assert_match 'WARNING: 1 unmatched configuration .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
+    assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
     assert_contains '{
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
   }
 }'
-    assert_match 'WARNING: 4 unmatched configurations .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
+    assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
     assert_contains '{
   "match": "nevermatchme",
   "headers": {},
