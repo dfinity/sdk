@@ -126,11 +126,10 @@ impl State {
             .get(key)
             .or_else(|| {
                 if self.redirect_enabled {
-                    if let Some(redirect_key) = redirect(key) {
-                        self.assets.get(&redirect_key)
-                    } else {
-                        None
-                    }
+                    redirect(key)
+                        .into_iter()
+                        .find(|redirect_key| self.assets.contains_key(redirect_key))
+                        .and_then(|found_key| self.assets.get(&found_key))
                 } else {
                     None
                 }
@@ -478,13 +477,7 @@ impl State {
         let certificate_header =
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
-        if let Some(asset) = self.assets.get(path).or_else(|| {
-            if let (Some(original_path), true) = (redirect(&path.into()), self.redirect_enabled) {
-                self.assets.get(&original_path)
-            } else {
-                None
-            }
-        }) {
+        if let Ok(asset) = self.get_asset(&path.into()) {
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
@@ -569,16 +562,8 @@ impl State {
         }: StreamingCallbackToken,
     ) -> Result<StreamingCallbackHttpResponse, String> {
         let asset = self
-            .assets
-            .get(&key)
-            .or_else(|| {
-                if let (Some(original_key), true) = (redirect(&key), self.redirect_enabled) {
-                    self.assets.get(&original_key)
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| "Invalid token on streaming: key not found.".to_string())?;
+            .get_asset(&key)
+            .map_err(|_| "Invalid token on streaming: key not found.".to_string())?;
         let enc = asset
             .encodings
             .get(&content_encoding)
@@ -841,19 +826,21 @@ fn build_404(certificate_header: HeaderField) -> HttpResponse {
     }
 }
 
-// path like /path/to/my/asset should also be valid for /path/to/my/asset.html
-fn redirect(key: &Key) -> Option<Key> {
+// path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
+fn redirect(key: &Key) -> Vec<Key> {
     if !key.ends_with(".html") {
-        Some(format!("{}.html", key))
+        vec![format!("{}.html", key), format!("{}/index.html", key)]
     } else {
-        None
+        Vec::new()
     }
 }
 
 // Determines the possible original key in case the supplied key is being redirected to.
 // Reverse operation of `redirect`
 fn reverse_redirect(key: &Key) -> Option<Key> {
-    if key.ends_with(".html") {
+    if key.ends_with("/index.html") {
+        Some(key[..(key.len() - 11)].into())
+    } else if key.ends_with(".html") {
         Some(key[..(key.len() - 5)].into())
     } else {
         None

@@ -540,9 +540,11 @@ CHERRIES" "$stdout"
 }
 
 @test "default redirect <filename> to <filename>.html" {
-    dfx_start
-
     echo "test alias file" >'src/e2e_project_frontend/assets/test_alias_file.html'
+    mkdir 'src/e2e_project_frontend/assets/index_test'
+    echo "test index file" >'src/e2e_project_frontend/assets/index_test/index.html'
+
+    dfx_start
     dfx deploy
 
     # decode as expected
@@ -550,10 +552,14 @@ CHERRIES" "$stdout"
     assert_match "test alias file"
     assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
     assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/index_test";headers=vec{};method="GET";body=vec{}})'
+    assert_match "test index file"
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
     assert_match "test alias file"
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
     assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_match "test index file"
 
     ID=$(dfx canister id e2e_project_frontend)
     PORT=$(get_webserver_port)
@@ -562,10 +568,12 @@ CHERRIES" "$stdout"
     # shellcheck disable=SC2154
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
-
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test index file"
 
     # redirect survives upgrade
     assert_command dfx deploy --upgrade-unchanged
@@ -575,15 +583,19 @@ CHERRIES" "$stdout"
     # shellcheck disable=SC2154
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
-
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test index file"
 
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
     assert_match "test alias file"
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
     assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_match "test index file"
 
     # disabling redirect works
     echo "DISABLING NOW"
@@ -594,13 +606,16 @@ CHERRIES" "$stdout"
     # shellcheck disable=SC2154
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
-
     assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "HTTP/1.1 404 Not Found" "$stderr"
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
     assert_match "HTTP/1.1 404 Not Found" "$stderr"
 
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
     assert_match "test alias file"
     assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "key not found"
+    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
     assert_match "key not found"
 
     # disabled redirect survives canister upgrade
@@ -611,13 +626,16 @@ CHERRIES" "$stdout"
     # shellcheck disable=SC2154
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
-
     assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "HTTP/1.1 404 Not Found" "$stderr"
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
     assert_match "HTTP/1.1 404 Not Found" "$stderr"
 
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
     assert_match "test alias file"
     assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "key not found"
+    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
     assert_match "key not found"
 
 
@@ -629,7 +647,6 @@ CHERRIES" "$stdout"
     # shellcheck disable=SC2154
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "second alias test"
-
     assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file_two?canisterId="$ID"
     assert_match "HTTP/1.1 404 Not Found" "$stderr"
 
@@ -643,16 +660,17 @@ CHERRIES" "$stdout"
     # shellcheck disable=SC2154
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
-
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "test alias file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "test index file"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file_two.html?canisterId="$ID"
     # shellcheck disable=SC2154
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "second alias test"
-
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file_two?canisterId="$ID"
     assert_match "HTTP/1.1 200 OK" "$stderr"
     assert_match "second alias test"
@@ -661,4 +679,6 @@ CHERRIES" "$stdout"
     assert_match "test alias file"
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
     assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_match "test index file"
 }
