@@ -147,11 +147,14 @@ impl AssetSourceDirectoryConfiguration {
             rules.dedup();
             for mut rule in rules {
                 let prefix_path = format!("{}/", path.display());
-                let original_glob = rule.r#match.glob().to_string().replace(&prefix_path, "");
-                let original_glob = globset::Glob::new(&original_glob)
-                    .unwrap()
-                    .compile_matcher();
-                rule.r#match = original_glob;
+                let modified_glob = rule.r#match.glob().to_string();
+                let original_glob = &modified_glob.strip_prefix(&prefix_path);
+                if let Some(og) = original_glob {
+                    let original_glob = globset::Glob::new(og)
+                        .unwrap()
+                        .compile_matcher();
+                    rule.r#match = original_glob;
+                }
             }
         }
         hm
