@@ -146,15 +146,12 @@ impl AssetSourceDirectoryConfiguration {
             rules.sort_by_key(|v| v.r#match.glob().to_string());
             rules.dedup();
             for mut rule in rules {
-                rule.r#match = globset::Glob::new(
-                    &rule
-                        .r#match
-                        .glob()
-                        .to_string()
-                        .replace(path.to_str().unwrap(), ""),
-                )
-                .unwrap()
-                .compile_matcher();
+                let prefix_path = format!("{}/", path.display());
+                let original_glob = rule.r#match.glob().to_string().replace(&prefix_path, "");
+                let original_glob = globset::Glob::new(&original_glob)
+                    .unwrap()
+                    .compile_matcher();
+                rule.r#match = original_glob;
             }
         }
         hm
@@ -286,16 +283,21 @@ mod rule_utils {
     }
 
     pub(super) fn headers_serialize<S>(
-        bytes: &super::Maybe<HeadersConfig>,
+        headers: &super::Maybe<HeadersConfig>,
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        match bytes {
-            super::Maybe::Null => serializer.serialize_str("{}"),
-            super::Maybe::Value(v) => {
-                serializer.serialize_str(&serde_json::to_string_pretty(v).unwrap())
+        use serde::ser::SerializeMap;
+        match headers {
+            super::Maybe::Null => serializer.serialize_map(Some(0))?.end(),
+            super::Maybe::Value(hm) => {
+                let mut map = serializer.serialize_map(Some(hm.len()))?;
+                for (k, v) in hm {
+                    map.serialize_entry(k, &v)?;
+                }
+                map.end()
             }
             super::Maybe::Absent => unreachable!(), // this option is already skipped via `skip_serialization_with`
         }
