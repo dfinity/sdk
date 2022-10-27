@@ -128,7 +128,7 @@ impl AssetSourceDirectoryConfiguration {
     pub fn get_unused_configs(&self) -> HashMap<PathBuf, Vec<AssetConfigRule>> {
         let mut hm = HashMap::new();
         // aggregate
-        for (_fake_origin, node) in &self.config_map {
+        for node in self.config_map.values() {
             let config_node = &node.lock().unwrap();
 
             let origin = config_node.origin.clone();
@@ -137,7 +137,7 @@ impl AssetSourceDirectoryConfiguration {
                 if !rule.used {
                     hm.entry(origin.clone())
                         .and_modify(|v: &mut Vec<AssetConfigRule>| v.push(rule.clone()))
-                        .or_insert(vec![rule.clone()]);
+                        .or_insert_with(|| vec![rule.clone()]);
                 }
             }
         }
