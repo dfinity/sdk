@@ -121,6 +121,23 @@ pub struct StableState {
 }
 
 impl State {
+    fn get_asset(&self, key: &Key) -> Result<&Asset, String> {
+        self.assets
+            .get(key)
+            .or_else(|| {
+                if self.redirect_enabled {
+                    if let Some(redirect_key) = redirect(key) {
+                        self.assets.get(&redirect_key)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| "asset not found".to_string())
+    }
+
     pub fn authorize_unconditionally(&mut self, principal: Principal) {
         if !self.is_authorized(&principal) {
             self.authorized.push(principal);
@@ -246,17 +263,7 @@ impl State {
     }
 
     pub fn retrieve(&self, key: &Key) -> Result<RcBytes, String> {
-        let asset = self
-            .assets
-            .get(key)
-            .or_else(|| {
-                if let Some(redirect_key) = redirect(key) {
-                    self.assets.get(&redirect_key)
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(key)?;
 
         let id_enc = asset
             .encodings
@@ -390,17 +397,7 @@ impl State {
     }
 
     pub fn get(&self, arg: GetArg) -> Result<EncodedAsset, String> {
-        let asset = self
-            .assets
-            .get(&arg.key)
-            .or_else(|| {
-                if let Some(redirect_key) = redirect(&arg.key) {
-                    self.assets.get(&redirect_key)
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(&arg.key)?;
 
         for enc in arg.accept_encodings.iter() {
             if let Some(asset_enc) = asset.encodings.get(enc) {
@@ -417,17 +414,7 @@ impl State {
     }
 
     pub fn get_chunk(&self, arg: GetChunkArg) -> Result<RcBytes, String> {
-        let asset = self
-            .assets
-            .get(&arg.key)
-            .or_else(|| {
-                if let Some(redirect_key) = redirect(&arg.key) {
-                    self.assets.get(&redirect_key)
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(&arg.key)?;
 
         let enc = asset
             .encodings

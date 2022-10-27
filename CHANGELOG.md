@@ -552,7 +552,7 @@ Updated ic-ref to 0.0.1-1fba03ee
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
 
 ### Frontend canister:
-- Module hash: 2aaafd92d89ba2e51ce7c5de6c01a9bae245d93738f350fb93816b0c764a909f
+- Module hash: TODO
 - https://github.com/dfinity/sdk/pull/2720
 
 # 0.11.2
