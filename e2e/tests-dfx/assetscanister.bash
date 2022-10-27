@@ -605,8 +605,9 @@ CHERRIES" "$stdout"
     "x-header": "x-value"
   },
   "ignore": false
-}
-{
+}'
+    # splitting this up into two checks, because the order is different on macos vs ubuntu
+    assert_contains '{
   "match": "/thanks-for-not-stripping-forward-slash",
   "headers": {
     "x-header": "x-value"
