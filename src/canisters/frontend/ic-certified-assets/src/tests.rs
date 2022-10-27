@@ -478,6 +478,209 @@ fn supports_custom_http_headers() {
 }
 
 #[test]
-fn feature() {
-    todo!("test redirects a lot");
+fn support_redirects() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>index</html>";
+    const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY]),
+            AssetBuilder::new("/index.html", "text/html")
+                .with_encoding("identity", vec![INDEX_BODY]),
+            AssetBuilder::new("/subdirectory/index.html", "text/html")
+                .with_encoding("identity", vec![SUBDIR_INDEX_BODY]),
+        ],
+    );
+
+    let normal_request = state.http_request(
+        RequestBuilder::get("/contents.html").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(normal_request.body.as_ref(), FILE_BODY);
+
+    let redirect_add_html = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(redirect_add_html.body.as_ref(), FILE_BODY);
+
+    let root_redirect =
+        state.http_request(RequestBuilder::get("/").build(), &[], unused_callback());
+    assert_eq!(root_redirect.body.as_ref(), INDEX_BODY);
+
+    let empty_path_redirect =
+        state.http_request(RequestBuilder::get("").build(), &[], unused_callback());
+    assert_eq!(empty_path_redirect.body.as_ref(), INDEX_BODY);
+
+    let subdirectory_index_redirect = state.http_request(
+        RequestBuilder::get("/subdirectory/index").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(subdirectory_index_redirect.body.as_ref(), SUBDIR_INDEX_BODY);
+
+    let subdirectory_index_redirect_2 = state.http_request(
+        RequestBuilder::get("/subdirectory/").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(
+        subdirectory_index_redirect_2.body.as_ref(),
+        SUBDIR_INDEX_BODY
+    );
+
+    let subdirectory_index_redirect_3 = state.http_request(
+        RequestBuilder::get("/subdirectory").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(
+        subdirectory_index_redirect_3.body.as_ref(),
+        SUBDIR_INDEX_BODY
+    );
+}
+
+#[test]
+fn redirect_enable_and_disable() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+    const FILE_BODY_2: &[u8] = b"<!DOCTYPE html><html>file body 2</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY]),
+            AssetBuilder::new("/subdirectory/index.html", "text/html")
+                .with_encoding("identity", vec![SUBDIR_INDEX_BODY]),
+        ],
+    );
+
+    let redirect_add_html = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(redirect_add_html.body.as_ref(), FILE_BODY);
+
+    state.enable_redirect(false);
+
+    let no_more_redirect = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_ne!(no_more_redirect.body.as_ref(), FILE_BODY);
+
+    let no_more_redirect_2 = state.http_request(
+        RequestBuilder::get("/subdirectory/index").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_ne!(no_more_redirect_2.body.as_ref(), SUBDIR_INDEX_BODY);
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/file2.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY_2])],
+    );
+
+    let new_file_no_redirect = state.http_request(
+        RequestBuilder::get("/file2").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_ne!(new_file_no_redirect.body.as_ref(), FILE_BODY_2);
+
+    state.enable_redirect(true);
+
+    let new_file_gets_redirected = state.http_request(
+        RequestBuilder::get("/file2").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(new_file_gets_redirected.body.as_ref(), FILE_BODY_2);
+
+    let redirect_add_html_again = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(redirect_add_html_again.body.as_ref(), FILE_BODY);
+}
+
+#[test]
+fn redirect_behavior_persists_through_upgrade() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY]),
+            AssetBuilder::new("/subdirectory/index.html", "text/html")
+                .with_encoding("identity", vec![SUBDIR_INDEX_BODY]),
+        ],
+    );
+
+    let redirect_add_html = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(redirect_add_html.body.as_ref(), FILE_BODY);
+
+    let stable_state: StableState = state.into();
+    let mut state: State = stable_state.into();
+
+    let redirect_works_after_upgrade = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(redirect_works_after_upgrade.body.as_ref(), FILE_BODY);
+
+    state.enable_redirect(false);
+
+    let redirect_stops = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_ne!(redirect_stops.body.as_ref(), FILE_BODY);
+
+    let stable_state: StableState = state.into();
+    let mut state: State = stable_state.into();
+
+    let redirect_stays_turned_off = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_ne!(redirect_stays_turned_off.body.as_ref(), FILE_BODY);
+
+    state.enable_redirect(true);
+
+    let redirect_works_again = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(redirect_works_again.body.as_ref(), FILE_BODY);
 }

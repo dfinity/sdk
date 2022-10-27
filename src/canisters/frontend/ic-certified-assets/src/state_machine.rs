@@ -836,7 +836,9 @@ fn build_404(certificate_header: HeaderField) -> HttpResponse {
 
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
 fn redirect(key: &Key) -> Vec<Key> {
-    if !key.ends_with(".html") {
+    if key.ends_with("/") {
+        vec![format!("{}index.html", key)]
+    } else if !key.ends_with(".html") {
         vec![format!("{}.html", key), format!("{}/index.html", key)]
     } else {
         Vec::new()
@@ -849,10 +851,11 @@ fn reverse_redirect(key: &Key) -> Vec<Key> {
     if key.ends_with("/index.html") {
         vec![
             key[..(key.len() - 5)].into(),
-            key[..(key.len() - 11)].into(),
+            key[..(key.len() - 10)].into(),
+            key[..(key.len() - 11)].to_string(),
         ]
     } else if key.ends_with(".html") {
-        vec![key[..(key.len() - 5)].into()]
+        vec![key[..(key.len() - 5)].to_string()]
     } else {
         Vec::new()
     }
