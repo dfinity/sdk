@@ -132,15 +132,6 @@ fn commit_batch(arg: CommitBatchArguments) {
     });
 }
 
-#[update(guard = "is_authorized")]
-#[candid_method(update)]
-fn enable_aliasing(arg: EnableRedirectArguments) {
-    STATE.with(|s| {
-        s.borrow_mut().enable_aliasing(arg.enable);
-        set_certified_data(&s.borrow().root_hash());
-    });
-}
-
 #[query]
 #[candid_method(query)]
 fn get(arg: GetArg) -> EncodedAsset {

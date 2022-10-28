@@ -29,6 +29,7 @@ struct AssetConfigRule {
     cache: Option<CacheConfig>,
     headers: Maybe<HeadersConfig>,
     ignore: Option<bool>,
+    enable_aliasing: Option<bool>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -64,6 +65,7 @@ pub(crate) struct AssetConfig {
     pub(crate) cache: Option<CacheConfig>,
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
+    pub(crate) enable_aliasing: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -112,6 +114,7 @@ struct InterimAssetConfigRule {
     #[serde(default, deserialize_with = "deser_headers")]
     headers: Maybe<HeadersConfig>,
     ignore: Option<bool>,
+    enable_aliasing: Option<bool>,
 }
 
 impl<T> Default for Maybe<T> {
@@ -144,6 +147,7 @@ impl AssetConfigRule {
             cache,
             headers,
             ignore,
+            enable_aliasing,
         }: InterimAssetConfigRule,
         config_file_parent_dir: &Path,
     ) -> anyhow::Result<Self> {
@@ -166,6 +170,7 @@ impl AssetConfigRule {
             cache,
             headers,
             ignore,
+            enable_aliasing,
         })
     }
 }

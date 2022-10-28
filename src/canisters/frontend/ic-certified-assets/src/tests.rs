@@ -26,6 +26,7 @@ struct AssetBuilder {
     max_age: Option<u64>,
     encodings: Vec<(String, Vec<ByteBuf>)>,
     headers: Option<HashMap<String, String>>,
+    aliasing: Option<bool>,
 }
 
 impl AssetBuilder {
@@ -36,6 +37,7 @@ impl AssetBuilder {
             max_age: None,
             encodings: vec![],
             headers: None,
+            aliasing: None,
         }
     }
 
@@ -58,6 +60,11 @@ impl AssetBuilder {
     fn with_header(mut self, header_key: &str, header_value: &str) -> Self {
         let hm = self.headers.get_or_insert(HashMap::new());
         hm.insert(header_key.to_string(), header_value.to_string());
+        self
+    }
+
+    fn with_aliasing(mut self, aliasing: bool) -> Self {
+        self.aliasing = Some(aliasing);
         self
     }
 }
@@ -106,6 +113,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             content_type: asset.content_type,
             max_age: asset.max_age,
             headers: asset.headers,
+            aliased: asset.aliasing,
         }));
 
         for (enc, chunks) in asset.encodings {
@@ -567,7 +575,13 @@ fn alias_enable_and_disable() {
     );
     assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
-    state.enable_aliasing(false);
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])
+            .with_aliasing(false)],
+    );
 
     let no_more_alias = state.http_request(
         RequestBuilder::get("/contents").build(),
@@ -597,7 +611,7 @@ fn alias_enable_and_disable() {
     );
     assert_ne!(new_file_no_alias.body.as_ref(), FILE_BODY_2);
 
-    state.enable_aliasing(true);
+    // state.enable_aliasing(true);
 
     let new_file_gets_aliased = state.http_request(
         RequestBuilder::get("/file2").build(),
@@ -649,7 +663,7 @@ fn alias_behavior_persists_through_upgrade() {
     );
     assert_eq!(alias_works_after_upgrade.body.as_ref(), FILE_BODY);
 
-    state.enable_aliasing(false);
+    // state.enable_aliasing(false);
 
     let alias_stops = state.http_request(
         RequestBuilder::get("/contents").build(),
@@ -668,7 +682,7 @@ fn alias_behavior_persists_through_upgrade() {
     );
     assert_ne!(alias_stays_turned_off.body.as_ref(), FILE_BODY);
 
-    state.enable_aliasing(true);
+    // state.enable_aliasing(true);
 
     let alias_works_again = state.http_request(
         RequestBuilder::get("/contents").build(),
