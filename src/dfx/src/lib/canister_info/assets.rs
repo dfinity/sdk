@@ -1,4 +1,4 @@
-use crate::config::dfinity::{CanisterTypeProperties, DEFAULT_ASSET_CANISTER_REDIRECT_BEHAVIOR};
+use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
 
@@ -12,8 +12,6 @@ pub struct AssetsCanisterInfo {
 
     output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
-
-    redirect: bool,
 }
 
 impl AssetsCanisterInfo {
@@ -25,10 +23,6 @@ impl AssetsCanisterInfo {
     }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
-    }
-
-    pub fn get_redirect(&self) -> bool {
-        self.redirect
     }
 
     #[context("Failed to assert source paths.")]
@@ -58,18 +52,14 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
     fn create(info: &CanisterInfo) -> DfxResult<AssetsCanisterInfo> {
         let input_root = info.get_workspace_root().to_path_buf();
         // If there are no "source" field, we just ignore this.
-        let (source_paths, redirect) =
-            if let CanisterTypeProperties::Assets { source, redirect } = &info.type_specific {
-                (
-                    source.clone(),
-                    redirect.unwrap_or(DEFAULT_ASSET_CANISTER_REDIRECT_BEHAVIOR),
-                )
-            } else {
-                bail!(
-                    "Attempted to construct an assets canister from a type:{} canister config",
-                    info.type_specific.name()
-                )
-            };
+        let source_paths = if let CanisterTypeProperties::Assets { source } = &info.type_specific {
+            source.clone()
+        } else {
+            bail!(
+                "Attempted to construct an assets canister from a type:{} canister config",
+                info.type_specific.name()
+            )
+        };
 
         let output_root = info.get_output_root();
 
@@ -81,7 +71,6 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
             source_paths,
             output_wasm_path,
             output_idl_path,
-            redirect,
         })
     }
 }

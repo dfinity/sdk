@@ -173,10 +173,6 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub metadata: Vec<CanisterMetadataSection>,
 }
-pub const DEFAULT_ASSET_CANISTER_REDIRECT_BEHAVIOR: bool = true;
-pub fn default_asset_canister_redirect_behavior() -> Option<bool> {
-    Some(DEFAULT_ASSET_CANISTER_REDIRECT_BEHAVIOR)
-}
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -196,11 +192,6 @@ pub enum CanisterTypeProperties {
         /// # Asset Source Folder
         /// Folders from which assets are uploaded.
         source: Vec<PathBuf>,
-
-        /// # Enable Redirects
-        /// Enable or disable redirecting behavior.
-        #[serde(default = "default_asset_canister_redirect_behavior")]
-        redirect: Option<bool>,
     },
     /// # Custom-Specific Properties
     Custom {
@@ -899,7 +890,6 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         let mut wasm: Option<String> = None;
         let mut candid: Option<String> = None;
         let (mut package, mut source, mut build, mut r#type) = (None, None, None, None);
-        let mut redirect: Option<bool> = default_asset_canister_redirect_behavior();
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -908,7 +898,6 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 "build" => build = Some(map.next_value()?),
                 "wasm" => wasm = Some(map.next_value()?),
                 "type" => r#type = Some(map.next_value::<String>()?),
-                "redirect" => redirect = Some(map.next_value()?),
                 _ => continue,
             }
         }
@@ -920,7 +909,6 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             },
             Some("assets") => CanisterTypeProperties::Assets {
                 source: source.ok_or_else(|| missing_field("source"))?,
-                redirect,
             },
             Some("custom") => CanisterTypeProperties::Custom {
                 build: build.unwrap_or_default(),
