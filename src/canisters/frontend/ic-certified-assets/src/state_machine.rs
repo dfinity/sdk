@@ -95,7 +95,7 @@ pub struct State {
     authorized: Vec<Principal>,
 
     asset_hashes: AssetHashes,
-    redirect_enabled: bool,
+    aliasing_enabled: bool,
 }
 
 impl Default for State {
@@ -108,7 +108,7 @@ impl Default for State {
             next_batch_id: BatchId::default(),
             authorized: Vec::default(),
             asset_hashes: AssetHashes::default(),
-            redirect_enabled: true,
+            aliasing_enabled: true,
         }
     }
 }
@@ -117,7 +117,7 @@ impl Default for State {
 pub struct StableState {
     authorized: Vec<Principal>,
     stable_assets: HashMap<String, Asset>,
-    redirect_enabled: bool,
+    aliasing_enabled: bool,
 }
 
 impl State {
@@ -125,11 +125,10 @@ impl State {
         self.assets
             .get(key)
             .or_else(|| {
-                if self.redirect_enabled {
-                    redirect(key)
+                if self.aliasing_enabled {
+                    alias_of(key)
                         .into_iter()
-                        .find(|redirect_key| self.assets.contains_key(redirect_key))
-                        .and_then(|found_key| self.assets.get(&found_key))
+                        .find_map(|alias_key| self.assets.get(&alias_key))
                 } else {
                     None
                 }
@@ -584,8 +583,8 @@ impl State {
         })
     }
 
-    pub fn enable_redirect(&mut self, enable: bool) {
-        match (self.redirect_enabled, enable) {
+    pub fn enable_aliasing(&mut self, enable: bool) {
+        match (self.aliasing_enabled, enable) {
             (true, false) => {
                 for key in self.assets.keys() {
                     for dependent in self.dependent_keys(key) {
@@ -603,13 +602,13 @@ impl State {
             }
             _ => (),
         }
-        self.redirect_enabled = enable;
+        self.aliasing_enabled = enable;
     }
 
     // Returns keys that needs to be updated if the supplied key is changed.
     fn dependent_keys<'a>(&self, key: &Key) -> Vec<Key> {
-        if self.redirect_enabled {
-            reverse_redirect(key)
+        if self.aliasing_enabled {
+            aliased_by(key)
                 .into_iter()
                 .filter(|k| !self.assets.contains_key(k))
                 .collect()
@@ -624,7 +623,7 @@ impl From<State> for StableState {
         Self {
             authorized: state.authorized,
             stable_assets: state.assets,
-            redirect_enabled: state.redirect_enabled,
+            aliasing_enabled: state.aliasing_enabled,
         }
     }
 }
@@ -634,7 +633,7 @@ impl From<StableState> for State {
         let mut state = Self {
             authorized: stable_state.authorized,
             assets: stable_state.stable_assets,
-            redirect_enabled: stable_state.redirect_enabled,
+            aliasing_enabled: stable_state.aliasing_enabled,
             ..Self::default()
         };
 
@@ -644,7 +643,7 @@ impl From<StableState> for State {
             }
             on_asset_change(&mut state.asset_hashes, asset_name, asset, Vec::new());
         }
-        state.enable_redirect(state.redirect_enabled);
+        state.enable_aliasing(state.aliasing_enabled);
         state
     }
 }
@@ -835,7 +834,7 @@ fn build_404(certificate_header: HeaderField) -> HttpResponse {
 }
 
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
-fn redirect(key: &Key) -> Vec<Key> {
+fn alias_of(key: &Key) -> Vec<Key> {
     if key.ends_with("/") {
         vec![format!("{}index.html", key)]
     } else if !key.ends_with(".html") {
@@ -845,9 +844,9 @@ fn redirect(key: &Key) -> Vec<Key> {
     }
 }
 
-// Determines possible original keys in case the supplied key is being redirected to.
-// Sort-of a reverse operation of `redirect`
-fn reverse_redirect(key: &Key) -> Vec<Key> {
+// Determines possible original keys in case the supplied key is being aliaseded to.
+// Sort-of a reverse operation of `alias_of`
+fn aliased_by(key: &Key) -> Vec<Key> {
     if key.ends_with("/index.html") {
         vec![
             key[..(key.len() - 5)].into(),

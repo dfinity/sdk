@@ -478,7 +478,7 @@ fn supports_custom_http_headers() {
 }
 
 #[test]
-fn support_redirects() {
+fn support_aliases() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>index</html>";
@@ -505,51 +505,44 @@ fn support_redirects() {
     );
     assert_eq!(normal_request.body.as_ref(), FILE_BODY);
 
-    let redirect_add_html = state.http_request(
+    let alias_add_html = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(redirect_add_html.body.as_ref(), FILE_BODY);
+    assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
-    let root_redirect =
-        state.http_request(RequestBuilder::get("/").build(), &[], unused_callback());
-    assert_eq!(root_redirect.body.as_ref(), INDEX_BODY);
+    let root_alias = state.http_request(RequestBuilder::get("/").build(), &[], unused_callback());
+    assert_eq!(root_alias.body.as_ref(), INDEX_BODY);
 
-    let empty_path_redirect =
+    let empty_path_alias =
         state.http_request(RequestBuilder::get("").build(), &[], unused_callback());
-    assert_eq!(empty_path_redirect.body.as_ref(), INDEX_BODY);
+    assert_eq!(empty_path_alias.body.as_ref(), INDEX_BODY);
 
-    let subdirectory_index_redirect = state.http_request(
+    let subdirectory_index_alias = state.http_request(
         RequestBuilder::get("/subdirectory/index").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(subdirectory_index_redirect.body.as_ref(), SUBDIR_INDEX_BODY);
+    assert_eq!(subdirectory_index_alias.body.as_ref(), SUBDIR_INDEX_BODY);
 
-    let subdirectory_index_redirect_2 = state.http_request(
+    let subdirectory_index_alias_2 = state.http_request(
         RequestBuilder::get("/subdirectory/").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(
-        subdirectory_index_redirect_2.body.as_ref(),
-        SUBDIR_INDEX_BODY
-    );
+    assert_eq!(subdirectory_index_alias_2.body.as_ref(), SUBDIR_INDEX_BODY);
 
-    let subdirectory_index_redirect_3 = state.http_request(
+    let subdirectory_index_alias_3 = state.http_request(
         RequestBuilder::get("/subdirectory").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(
-        subdirectory_index_redirect_3.body.as_ref(),
-        SUBDIR_INDEX_BODY
-    );
+    assert_eq!(subdirectory_index_alias_3.body.as_ref(), SUBDIR_INDEX_BODY);
 }
 
 #[test]
-fn redirect_enable_and_disable() {
+fn alias_enable_and_disable() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
@@ -567,28 +560,28 @@ fn redirect_enable_and_disable() {
         ],
     );
 
-    let redirect_add_html = state.http_request(
+    let alias_add_html = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(redirect_add_html.body.as_ref(), FILE_BODY);
+    assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
-    state.enable_redirect(false);
+    state.enable_aliasing(false);
 
-    let no_more_redirect = state.http_request(
+    let no_more_alias = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_ne!(no_more_redirect.body.as_ref(), FILE_BODY);
+    assert_ne!(no_more_alias.body.as_ref(), FILE_BODY);
 
-    let no_more_redirect_2 = state.http_request(
+    let no_more_alias_2 = state.http_request(
         RequestBuilder::get("/subdirectory/index").build(),
         &[],
         unused_callback(),
     );
-    assert_ne!(no_more_redirect_2.body.as_ref(), SUBDIR_INDEX_BODY);
+    assert_ne!(no_more_alias_2.body.as_ref(), SUBDIR_INDEX_BODY);
 
     create_assets(
         &mut state,
@@ -597,32 +590,32 @@ fn redirect_enable_and_disable() {
             .with_encoding("identity", vec![FILE_BODY_2])],
     );
 
-    let new_file_no_redirect = state.http_request(
+    let new_file_no_alias = state.http_request(
         RequestBuilder::get("/file2").build(),
         &[],
         unused_callback(),
     );
-    assert_ne!(new_file_no_redirect.body.as_ref(), FILE_BODY_2);
+    assert_ne!(new_file_no_alias.body.as_ref(), FILE_BODY_2);
 
-    state.enable_redirect(true);
+    state.enable_aliasing(true);
 
-    let new_file_gets_redirected = state.http_request(
+    let new_file_gets_aliased = state.http_request(
         RequestBuilder::get("/file2").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(new_file_gets_redirected.body.as_ref(), FILE_BODY_2);
+    assert_eq!(new_file_gets_aliased.body.as_ref(), FILE_BODY_2);
 
-    let redirect_add_html_again = state.http_request(
+    let alias_add_html_again = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(redirect_add_html_again.body.as_ref(), FILE_BODY);
+    assert_eq!(alias_add_html_again.body.as_ref(), FILE_BODY);
 }
 
 #[test]
-fn redirect_behavior_persists_through_upgrade() {
+fn alias_behavior_persists_through_upgrade() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
@@ -639,48 +632,48 @@ fn redirect_behavior_persists_through_upgrade() {
         ],
     );
 
-    let redirect_add_html = state.http_request(
+    let alias_add_html = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(redirect_add_html.body.as_ref(), FILE_BODY);
+    assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
     let stable_state: StableState = state.into();
     let mut state: State = stable_state.into();
 
-    let redirect_works_after_upgrade = state.http_request(
+    let alias_works_after_upgrade = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(redirect_works_after_upgrade.body.as_ref(), FILE_BODY);
+    assert_eq!(alias_works_after_upgrade.body.as_ref(), FILE_BODY);
 
-    state.enable_redirect(false);
+    state.enable_aliasing(false);
 
-    let redirect_stops = state.http_request(
+    let alias_stops = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_ne!(redirect_stops.body.as_ref(), FILE_BODY);
+    assert_ne!(alias_stops.body.as_ref(), FILE_BODY);
 
     let stable_state: StableState = state.into();
     let mut state: State = stable_state.into();
 
-    let redirect_stays_turned_off = state.http_request(
+    let alias_stays_turned_off = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_ne!(redirect_stays_turned_off.body.as_ref(), FILE_BODY);
+    assert_ne!(alias_stays_turned_off.body.as_ref(), FILE_BODY);
 
-    state.enable_redirect(true);
+    state.enable_aliasing(true);
 
-    let redirect_works_again = state.http_request(
+    let alias_works_again = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(redirect_works_again.body.as_ref(), FILE_BODY);
+    assert_eq!(alias_works_again.body.as_ref(), FILE_BODY);
 }
