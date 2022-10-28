@@ -539,3 +539,79 @@ CHERRIES" "$stdout"
     assert_not_match "etag: my-etag"
     assert_match "etag: \"[a-z0-9]{64}\""
 }
+
+@test "asset configuration via .ic-assets.json5 - detect unused config" {
+    install_asset assetscanister
+
+    dfx_start
+
+    mkdir src/e2e_project_frontend/assets/somedir
+    touch src/e2e_project_frontend/assets/somedir/upload-me.txt
+    echo '[
+      {
+        "match": "nevermatchme",
+        "cache": { "max_age": 2000 }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+    echo '[
+      {
+        "match": "upload-me.txt",
+        "headers": { "key": "value" }
+      },
+      {
+        "match": "nevermatchme",
+        "headers": {},
+        "ignore": false
+      },
+      {
+        "match": "nevermatchmetoo",
+        "headers": null,
+        "ignore": false
+      },
+      {
+        "match": "non-matcher",
+        "headers": {"x-header": "x-value"},
+        "ignore": false
+      },
+      {
+        "match": "/thanks-for-not-stripping-forward-slash",
+        "headers": {"x-header": "x-value"},
+        "ignore": false
+      }
+    ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
+
+    assert_command dfx deploy
+    assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
+    assert_contains '{
+  "match": "nevermatchme",
+  "cache": {
+    "max_age": 2000
+  }
+}'
+    assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
+    assert_contains '{
+  "match": "nevermatchme",
+  "headers": {},
+  "ignore": false
+}
+{
+  "match": "nevermatchmetoo",
+  "headers": {},
+  "ignore": false
+}
+{
+  "match": "non-matcher",
+  "headers": {
+    "x-header": "x-value"
+  },
+  "ignore": false
+}'
+    # splitting this up into two checks, because the order is different on macos vs ubuntu
+    assert_contains '{
+  "match": "/thanks-for-not-stripping-forward-slash",
+  "headers": {
+    "x-header": "x-value"
+  },
+  "ignore": false
+}'
+}

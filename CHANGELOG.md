@@ -4,6 +4,8 @@
 
 ## DFX
 
+### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
+
 ### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
 
 Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
