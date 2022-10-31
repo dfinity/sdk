@@ -102,6 +102,7 @@ check_help_for() {
             10.15*) ;;
             11.*) ;;
             12.*) ;;
+            13.*) ;;
             *)
                 warn "Detected OS X platform older than 10.15 (Catalina)"
                 _ok="n"
@@ -160,7 +161,7 @@ DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
 DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
 DFX_VERSION="${DFX_VERSION:-}"
-SCRIPT_COMMIT_DESC="ba029a50351502ac9afc864f42ba1a9b3b7f7c9b"
+SCRIPT_COMMIT_DESC="8e1e7b617a2495dc3d7f817cb24739cf6e6f5e70"
 get_tag_from_manifest_json() {
     cat \
         | tr -d '\n' \
