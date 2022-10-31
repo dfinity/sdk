@@ -53,3 +53,15 @@ teardown() {
         assert_eq "$ID"
     )
 }
+
+@test "id subcommand uses default network for remotes only" {
+    install_asset id
+    dfx_start
+    dfx canister create --all
+    dfx build
+    jq '.canisters.e2e_project_backend.remote.id.__default = "rkp4c-7iaaa-aaaaa-aaaca-cai"' dfx.json | sponge dfx.json
+    assert_command dfx canister id e2e_project_backend
+    assert_match "$(jq -r .e2e_project_backend.local < .dfx/local/canister_ids.json)"
+    assert_command dfx canister --network somethingelse id e2e_project_backend
+    assert_match "rkp4c-7iaaa-aaaaa-aaaca-cai"
+}
