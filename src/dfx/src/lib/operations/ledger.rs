@@ -1,6 +1,9 @@
 use anyhow::{bail, ensure, Context};
 use candid::{Encode, Principal};
-use ic_agent::{hash_tree::LookupResult, ic_types::HashTree, lookup_value, Agent};
+use ic_agent::{
+    hash_tree::{HashTree, LookupResult},
+    lookup_value, Agent,
+};
 use ic_utils::{call::SyncCall, Canister};
 
 use crate::lib::{

@@ -175,18 +175,54 @@ pub const SNS_LEDGER_ARCHIVE: SnsCanisterInstallation = SnsCanisterInstallation 
     upload_name: "archive",
     wasm_name: "ic-icrc1-archive.wasm",
 };
+/// Indexes ledger data.
+pub const SNS_INDEX: SnsCanisterInstallation = SnsCanisterInstallation {
+    canister_name: "sns-index",
+    upload_name: "index",
+    wasm_name: "ic-icrc1-index.wasm",
+};
 /// SNS wasm files hosted by the nns-sns-wasms canister.
 ///
 /// Note:  Sets of these canisters are deployed on request, so one network will
 /// typically have many sets of these canisters, one per project decentralized
 /// with the SNS toolchain.
-pub const SNS_CANISTERS: [&SnsCanisterInstallation; 5] = [
+pub const SNS_CANISTERS: [&SnsCanisterInstallation; 6] = [
     &SNS_ROOT,
     &SNS_GOVERNANCE,
     &SNS_SWAP,
     &SNS_LEDGER,
     &SNS_LEDGER_ARCHIVE,
+    &SNS_INDEX,
 ];
 
 /// Test account with well known public & private keys, used in NNS_LEDGER, NNS_DAPP and third party projects.
-pub const TEST_ACCOUNT: &str = "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
+/// The keys use the ED25519 curve, used for BasicIdentity on th eInternet Computer.
+/// The keys are as follows, in the tweetnacl format used by agent-js:
+/// ```
+/// const publicKey = "Uu8wv55BKmk9ZErr6OIt5XR1kpEGXcOSOC1OYzrAwuk=";
+/// const privateKey =
+///    "N3HB8Hh2PrWqhWH2Qqgr1vbU9T3gb1zgdBD8ZOdlQnVS7zC/nkEqaT1kSuvo4i3ldHWSkQZdw5I4LU5jOsDC6Q==";
+/// const identity = Ed25519KeyIdentity.fromKeyPair(
+///  base64ToUInt8Array(publicKey),
+///  base64ToUInt8Array(privateKey)
+/// );
+/// ```
+pub const ED25519_TEST_ACCOUNT: &str =
+    "5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087";
+
+/// Test account for command line usage.  The test account is typically called ident-1
+/// The keys use the secp256k1 curve.  To use:
+/// ```
+/// $ cat ~/.config/dfx/identity/ident-1/identity.pem
+/// -----BEGIN EC PRIVATE KEY-----
+/// MHQCAQEEICJxApEbuZznKFpV+VKACRK30i6+7u5Z13/DOl18cIC+oAcGBSuBBAAK
+/// oUQDQgAEPas6Iag4TUx+Uop+3NhE6s3FlayFtbwdhRVjvOar0kPTfE/N8N6btRnd
+/// 74ly5xXEBNSXiENyxhEuzOZrIWMCNQ==
+/// -----END EC PRIVATE KEY-----
+/// ```
+/// The test account should match the output of:
+/// ```
+/// $ dfx --identity ident-1 ledger account-id
+/// ```
+pub const SECP256K1_TEST_ACCOUNT: &str =
+    "2b8fbde99de881f695f279d2a892b1137bfe81a42d7694e064b1be58701e1138";

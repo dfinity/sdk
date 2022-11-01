@@ -116,7 +116,8 @@ assert_nns_canister_id_matches() {
     dfx_start_for_nns_install
     dfx nns install
 
-    echo Checking that the install worked...
+    echo "Checking that the install worked..."
+    echo "   The expected wasms should be installed..."
     # Note:  The installation is quite expensive, so we test extensively on one installation
     #        rather than doing a separate installation for every test.  The tests are read-only
     #        so no test should affect the output of another.
@@ -124,7 +125,7 @@ assert_nns_canister_id_matches() {
         dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
     }
     downloaded_wasm_hash() {
-        sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')/$1" | awk '{print "0x" $1}'
+        sha256sum "$DFX_CACHE_ROOT/.cache/dfinity/versions/$(dfx --version | awk '{printf "%s", $2}')/wasms/$1" | awk '{print "0x" $1}'
     }
     wasm_matches() {
         echo "Comparing $* ..."
@@ -144,6 +145,22 @@ assert_nns_canister_id_matches() {
     wasm_matches nns-sns-wasm sns-wasm-canister.wasm
     wasm_matches internet_identity internet_identity_dev.wasm
     wasm_matches nns-dapp nns-dapp_local.wasm
+
+    echo "   Accounts should have funds..."
+    account_has_funds() {
+        assert_command dfx ledger balance "$1"
+        assert_eq "1000000000.00000000 ICP"
+    }
+    SECP256K1_ACCOUNT_ID="2b8fbde99de881f695f279d2a892b1137bfe81a42d7694e064b1be58701e1138"
+    ED25519_ACCOUNT_ID="5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087"
+    account_has_funds "$SECP256K1_ACCOUNT_ID"
+    account_has_funds "$ED25519_ACCOUNT_ID"
+
+    echo "    The secp256k1 account can be controlled from the command line"
+    install_asset nns
+    dfx identity import --force --disable-encryption ident-1 ident-1/identity.pem
+    assert_command dfx ledger account-id --identity ident-1
+    assert_eq "$SECP256K1_ACCOUNT_ID"
 
     echo Stopping dfx...
     dfx stop

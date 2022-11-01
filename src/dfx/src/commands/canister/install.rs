@@ -51,6 +51,11 @@ pub struct CanisterInstallOpts {
     /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
     #[clap(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
+
+    /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
+    /// so this is not recommended outside of CI.
+    #[clap(long, short)]
+    yes: bool,
 }
 
 pub async fn exec(
@@ -113,6 +118,7 @@ pub async fn exec(
                 call_sender,
                 fs::read(&wasm_path)
                     .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
+                opts.yes,
             )
             .await
         } else {
@@ -132,6 +138,7 @@ pub async fn exec(
                 call_sender,
                 opts.upgrade_unchanged,
                 None,
+                opts.yes,
             )
             .await
         }
@@ -170,6 +177,7 @@ pub async fn exec(
                     call_sender,
                     opts.upgrade_unchanged,
                     None,
+                    opts.yes,
                 )
                 .await?;
             }

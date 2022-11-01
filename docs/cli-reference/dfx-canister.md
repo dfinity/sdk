@@ -555,7 +555,7 @@ Use the `dfx canister request-status` command to request the status of a specifi
 ### Basic usage
 
 ``` bash
-dfx canister request-status request_id [option]
+dfx canister request-status request_id canister [option]
 ```
 
 ### Flags
@@ -587,7 +587,7 @@ You can specify the following argument for the `dfx canister request-status` com
 You can use the `dfx canister request-status` command to check on the status of a canister state change or to verify that a call was not rejected by running a command similar to the following:
 
 ``` bash
-dfx canister request-status 0x58d08e785445dcab4ff090463b9e8b12565a67bf436251d13e308b32b5058608
+dfx canister request-status 0x58d08e785445dcab4ff090463b9e8b12565a67bf436251d13e308b32b5058608 backend
 ```
 
 This command displays an error message if the request identifier is invalid or refused by the canister.
