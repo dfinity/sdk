@@ -115,6 +115,50 @@
         }
       }
     },
+    "CanisterMetadataSection": {
+      "title": "Canister Metadata Configuration",
+      "description": "Configures a custom metadata section for the canister wasm. dfx uses the first definition of a given name matching the current network, ignoring any of the same name that follow.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "title": "Name",
+          "description": "The name of the wasm section",
+          "type": "string"
+        },
+        "networks": {
+          "title": "Networks",
+          "description": "Networks this section applies to. If this field is absent, then it applies to all networks. An empty array means this element will not apply to any network.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "path": {
+          "title": "Path",
+          "description": "Path to file containing section contents. For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use the canister's candid definition. If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's actual candid service definition.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "title": "Visibility",
+          "default": "public",
+          "allOf": [
+            {
+              "$ref": "#/definitions/MetadataVisibility"
+            }
+          ]
+        }
+      }
+    },
     "ConfigCanistersCanister": {
       "title": "Canister Configuration",
       "description": "Configurations for a single canister.",
@@ -183,7 +227,7 @@
           "properties": {
             "build": {
               "title": "Build Commands",
-              "description": "Commands that are executed in order to produce this canister's WASM module. Expected to produce the WASM in the path specified by the 'wasm' field.",
+              "description": "Commands that are executed in order to produce this canister's WASM module. Expected to produce the WASM in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
               "allOf": [
                 {
                   "$ref": "#/definitions/SerdeVec_for_String"
@@ -192,7 +236,7 @@
             },
             "candid": {
               "title": "Candid File",
-              "description": "Path to this canister's candid interface declaration.",
+              "description": "Path to this canister's candid interface declaration.  A URL to a candid file is also acceptable.",
               "type": "string"
             },
             "type": {
@@ -203,7 +247,7 @@
             },
             "wasm": {
               "title": "WASM Path",
-              "description": "Path to WASM to be installed.",
+              "description": "Path to WASM to be installed. URLs to a WASM module are also acceptable. A canister that has a URL to a WASM module can not also have `build` steps.",
               "type": "string"
             }
           }
@@ -290,6 +334,15 @@
             "null"
           ]
         },
+        "metadata": {
+          "title": "Metadata",
+          "description": "Defines metadata sections to set in the canister .wasm",
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CanisterMetadataSection"
+          }
+        },
         "post_install": {
           "title": "Post-Install Commands",
           "description": "One or more commands to run post canister installation.",
@@ -312,6 +365,12 @@
               "type": "null"
             }
           ]
+        },
+        "shrink": {
+          "title": "Shrink Canister WASM",
+          "description": "Whether run `ic-wasm shrink` after building the Canister. Default is true.",
+          "default": true,
+          "type": "boolean"
         }
       }
     },
@@ -482,8 +541,18 @@
       "properties": {
         "enabled": {
           "title": "Enable HTTP Adapter",
-          "default": false,
+          "default": true,
           "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "error",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
         }
       }
     },
@@ -491,6 +560,17 @@
       "title": "Local Replica Configuration",
       "type": "object",
       "properties": {
+        "log_level": {
+          "description": "Run replica with the provided log level. Default is 'error'. Debug prints still get displayed",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaLogLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "port": {
           "description": "Port the replica listens on.",
           "type": [
@@ -611,6 +691,18 @@
         }
       }
     },
+    "HttpAdapterLogLevel": {
+      "description": "Represents the log level of the HTTP adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
     "InitializationValues": {
       "title": "Initial Resource Allocations",
       "type": "object",
@@ -650,6 +742,13 @@
         }
       }
     },
+    "MetadataVisibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private"
+      ]
+    },
     "NetworkType": {
       "title": "Network Type",
       "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
@@ -669,6 +768,17 @@
       "enum": [
         "Debug",
         "Release"
+      ]
+    },
+    "ReplicaLogLevel": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
       ]
     },
     "ReplicaSubnetType": {

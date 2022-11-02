@@ -12,14 +12,14 @@ keywords = ["internet-computer", "agent", "icp", "dfinity", "asset"]
 
 [dependencies]
 anyhow = "1.0.34"
-candid = "0.7.15"
+candid = "0.8.2"
 clap = { version = "3.0.14", features = ["derive", "cargo"] }
 delay = "0.3.1"
 garcon = "0.2.2"
 humantime = "2.0.1"
-ic-agent = "0.20"
+ic-agent = "0.21.0"
 ic-asset = { path = "../ic-asset" }
-ic-utils = "0.20"
+ic-utils = "0.21.0"
 libflate = "1.2.0"
 num-traits = "0.2"
 pem = "1.0.1"

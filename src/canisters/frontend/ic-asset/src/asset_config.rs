@@ -1,21 +1,28 @@
 use anyhow::{bail, Context};
 use candid::CandidType;
 use derivative::Derivative;
-use globset::{Glob, GlobMatcher};
+use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::{
     collections::HashMap,
     fs,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
+/// A final piece of metadata assigned to the asset
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Clone)]
+pub struct AssetConfig {
+    pub(crate) cache: Option<CacheConfig>,
+    pub(crate) headers: Option<HeadersConfig>,
+    pub(crate) ignore: Option<bool>,
+    pub(crate) redirect: Option<RedirectConfig>,
+}
+
 pub(crate) type HeadersConfig = HashMap<String, String>;
-type ConfigMap = HashMap<PathBuf, Arc<AssetConfigTreeNode>>;
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct CacheConfig {
@@ -28,6 +35,395 @@ pub struct RedirectUrl {
     pub(crate) path: Option<String>,
 }
 
+
+#[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
+pub struct RedirectConfig {
+    from: Option<RedirectUrl>,
+    to: RedirectUrl,
+    user_agent: Option<Vec<String>>,
+    #[serde(default = "default_response_code")]
+    response_code: u16,
+}
+
+fn default_response_code() -> u16 {
+    308
+}
+
+/// A single configuration object, from `.ic-assets.json` config file
+#[derive(Derivative, Clone, Serialize)]
+#[derivative(Debug, PartialEq)]
+pub struct AssetConfigRule {
+    #[derivative(
+        Debug(format_with = "rule_utils::glob_fmt"),
+        PartialEq(compare_with = "rule_utils::glob_cmp")
+    )]
+    #[serde(serialize_with = "rule_utils::glob_serialize")]
+    r#match: GlobMatcher,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cache: Option<CacheConfig>,
+    #[serde(
+        serialize_with = "rule_utils::headers_serialize",
+        skip_serializing_if = "Maybe::is_absent"
+    )]
+    headers: Maybe<HeadersConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ignore: Option<bool>,
+    redirect: Option<RedirectConfig>, // TODO: consider this to be Vec<Option<RedirectConfig>>
+    #[serde(skip_serializing)]
+    used: bool,
+}
+
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+enum Maybe<T> {
+    Null,
+    Absent,
+    Value(T),
+}
+
+impl<T> Default for Maybe<T> {
+    fn default() -> Self {
+        Self::Absent
+    }
+}
+
+impl AssetConfigRule {
+    fn applies(&self, canonical_path: &Path) -> bool {
+        // TODO: better dot files/dirs handling, awaiting upstream changes:
+        // https://github.com/BurntSushi/ripgrep/issues/2229
+        self.r#match.is_match(canonical_path)
+    }
+}
+
+type ConfigNode = Arc<Mutex<AssetConfigTreeNode>>;
+type ConfigMap = HashMap<PathBuf, ConfigNode>;
+
+/// The main public interface for aggregating `.ic-assets.json` files
+/// nested in directories. Each sub/directory will be represented
+/// as `AssetConfigTreeNode`.
+#[derive(Debug)]
+pub struct AssetSourceDirectoryConfiguration {
+    config_map: ConfigMap,
+}
+
+impl std::fmt::Display for AssetConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s = String::new();
+
+        if self.cache.is_some() || self.headers.is_some() || self.redirect.is_some() {
+            s.push_str(", with config:\n");
+        }
+        if let Some(ref redirect) = self.redirect {
+            s.push_str(&format!("    - redirect: {:?}\n", redirect));
+        }
+        if let Some(ref cache) = self.cache {
+            s.push_str(&format!("    - cache: {:?}\n", cache));
+        }
+        if let Some(ref headers) = self.headers {
+            for (key, value) in headers {
+                s.push_str(&format!(
+                    "    - header: {key}: {value}\n",
+                    key = key,
+                    value = value
+                ));
+            }
+        }
+
+        write!(f, "{}", s)
+    }
+}
+
+/// A directory or subdirectory with assets.
+#[derive(Debug, Default)]
+struct AssetConfigTreeNode {
+    pub parent: Option<ConfigNode>,
+    pub rules: Vec<AssetConfigRule>,
+    pub origin: PathBuf,
+}
+
+impl AssetSourceDirectoryConfiguration {
+    /// Constructs config tree for assets directory.
+    pub fn load(root_dir: &Path) -> anyhow::Result<Self> {
+        if !root_dir.has_root() {
+            bail!("root_dir paramenter is expected to be canonical path")
+        }
+        let mut config_map = HashMap::new();
+        AssetConfigTreeNode::load(None, root_dir, &mut config_map)?;
+
+        Ok(Self { config_map })
+    }
+
+    /// Fetches the configuration for the asset.
+    pub fn get_asset_config(&mut self, canonical_path: &Path) -> anyhow::Result<AssetConfig> {
+        let parent_dir = canonical_path.parent().with_context(|| {
+            format!(
+                "unable to get the parent directory for asset path: {:?}",
+                canonical_path
+            )
+        })?;
+        Ok(self
+            .config_map
+            .get(parent_dir)
+            .with_context(|| {
+                format!(
+                    "unable to find asset config for following path: {:?}",
+                    parent_dir
+                )
+            })?
+            .lock()
+            .unwrap()
+            .get_config(canonical_path))
+    }
+
+    /// Returns a collection of unused configuration objects from all `.ic-assets.json` files
+    pub fn get_unused_configs(&self) -> HashMap<PathBuf, Vec<AssetConfigRule>> {
+        let mut hm = HashMap::new();
+        // aggregate
+        for node in self.config_map.values() {
+            let config_node = &node.lock().unwrap();
+
+            let origin = config_node.origin.clone();
+
+            for rule in config_node.rules.clone() {
+                if !rule.used {
+                    hm.entry(origin.clone())
+                        .and_modify(|v: &mut Vec<AssetConfigRule>| v.push(rule.clone()))
+                        .or_insert_with(|| vec![rule.clone()]);
+                }
+            }
+        }
+        // dedup and remove full path from "match" field
+        for (path, rules) in hm.iter_mut() {
+            rules.sort_by_key(|v| v.r#match.glob().to_string());
+            rules.dedup();
+            for mut rule in rules {
+                let prefix_path = format!("{}/", path.display());
+                let modified_glob = rule.r#match.glob().to_string();
+                let original_glob = &modified_glob.strip_prefix(&prefix_path);
+                if let Some(og) = original_glob {
+                    let original_glob = globset::Glob::new(og).unwrap().compile_matcher();
+                    rule.r#match = original_glob;
+                }
+            }
+        }
+        hm
+    }
+}
+
+impl AssetConfigTreeNode {
+    /// Constructs config tree for assets directory in a recursive fashion.
+    fn load(parent: Option<ConfigNode>, dir: &Path, configs: &mut ConfigMap) -> anyhow::Result<()> {
+        let config_path: Option<PathBuf>;
+        match (
+            dir.join(ASSETS_CONFIG_FILENAME_JSON).exists(),
+            dir.join(ASSETS_CONFIG_FILENAME_JSON5).exists(),
+        ) {
+            (true, true) => {
+                return Err(anyhow::anyhow!(
+                    "both {} and {} files exist in the same directory (dir = {:?})",
+                    ASSETS_CONFIG_FILENAME_JSON,
+                    ASSETS_CONFIG_FILENAME_JSON5,
+                    dir
+                ))
+            }
+            (true, false) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON)),
+            (false, true) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON5)),
+            (false, false) => config_path = None,
+        }
+        let mut rules = vec![];
+        if let Some(config_path) = config_path {
+            let content = fs::read_to_string(&config_path).with_context(|| {
+                format!("unable to read config file: {}", config_path.display())
+            })?;
+            let interim_rules: Vec<rule_utils::InterimAssetConfigRule> = json5::from_str(&content)
+                .with_context(|| {
+                    format!(
+                        "malformed JSON asset config file: {}",
+                        config_path.display()
+                    )
+                })?;
+            for interim_rule in interim_rules {
+                rules.push(AssetConfigRule::from_interim(interim_rule, dir)?);
+            }
+        }
+
+        let parent_ref = match parent {
+            Some(p) if rules.is_empty() => p,
+            _ => Arc::new(Mutex::new(Self {
+                parent,
+                rules,
+                origin: dir.to_path_buf(),
+            })),
+        };
+
+        configs.insert(dir.to_path_buf(), parent_ref.clone());
+        for f in std::fs::read_dir(&dir)
+            .with_context(|| format!("Unable to read directory {}", &dir.display()))?
+            .filter_map(|x| x.ok())
+            .filter(|x| x.file_type().map_or_else(|_e| false, |ft| ft.is_dir()))
+        {
+            Self::load(Some(parent_ref.clone()), &f.path(), configs)?;
+        }
+        Ok(())
+    }
+
+    /// Fetches asset config in a recursive fashion.
+    /// Marks config rules as *used*, whenever the rule' glob patter matched querried file.
+    fn get_config(&mut self, canonical_path: &Path) -> AssetConfig {
+        let base_config = match &self.parent {
+            Some(parent) => parent.clone().lock().unwrap().get_config(canonical_path),
+            None => AssetConfig::default(),
+        };
+        self.rules
+            .iter_mut()
+            .filter(|rule| rule.applies(canonical_path))
+            .fold(base_config, |acc, x| {
+                x.used = true;
+                acc.merge(x)
+            })
+    }
+}
+
+impl AssetConfig {
+    fn merge(mut self, other: &AssetConfigRule) -> Self {
+        if let Some(c) = &other.cache {
+            self.cache = Some(c.to_owned());
+        };
+        if let Some(c) = &other.redirect {
+            self.redirect = Some(c.to_owned());
+        };
+        match (self.headers.as_mut(), &other.headers) {
+            (Some(sh), Maybe::Value(oh)) => sh.extend(oh.to_owned()),
+            (None, Maybe::Value(oh)) => self.headers = Some(oh.to_owned()),
+            (_, Maybe::Null) => self.headers = None,
+            (_, Maybe::Absent) => (),
+        };
+
+        if other.ignore.is_some() {
+            self.ignore = other.ignore;
+        }
+        self
+    }
+}
+
+/// This module contains various utilities needed for serialization/deserialization
+/// and pretty-printing of the `AssetConfigRule` data structure.
+mod rule_utils {
+    use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe, RedirectUrl, RedirectConfig};
+    use anyhow::Context;
+    use globset::{Glob, GlobMatcher};
+    use serde::{Deserialize, Serializer};
+    use serde_json::Value;
+    use std::collections::HashMap;
+    use std::fmt;
+    use std::path::Path;
+
+    pub(super) fn glob_cmp(a: &GlobMatcher, b: &GlobMatcher) -> bool {
+        a.glob() == b.glob()
+    }
+
+    pub(super) fn glob_fmt(
+        field: &GlobMatcher,
+        formatter: &mut fmt::Formatter,
+    ) -> Result<(), fmt::Error> {
+        formatter.write_str(field.glob().glob())?;
+        Ok(())
+    }
+
+    pub(super) fn glob_serialize<S>(bytes: &GlobMatcher, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&bytes.glob().to_string())
+    }
+
+    pub(super) fn headers_serialize<S>(
+        headers: &super::Maybe<HeadersConfig>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeMap;
+        match headers {
+            super::Maybe::Null => serializer.serialize_map(Some(0))?.end(),
+            super::Maybe::Value(hm) => {
+                let mut map = serializer.serialize_map(Some(hm.len()))?;
+                for (k, v) in hm {
+                    map.serialize_entry(k, &v)?;
+                }
+                map.end()
+            }
+            super::Maybe::Absent => unreachable!(), // this option is already skipped via `skip_serialization_with`
+        }
+    }
+
+    fn headers_deserialize<'de, D>(deserializer: D) -> Result<Maybe<HeadersConfig>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        match serde_json::value::Value::deserialize(deserializer)? {
+            Value::Object(v) => Ok(Maybe::Value(
+                v.into_iter()
+                    .map(|(k, v)| (k, v.to_string().trim_matches('"').to_string()))
+                    .collect::<HashMap<String, String>>(),
+            )),
+            Value::Null => Ok(Maybe::Null),
+            _ => Err(serde::de::Error::custom(
+                "wrong data format for field `headers` (only map or null are allowed)",
+            )),
+        }
+    }
+
+    impl<T> Maybe<T> {
+        pub(super) fn is_absent(&self) -> bool {
+            matches!(*self, Self::Absent)
+        }
+    }
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InterimAssetConfigRule {
+    r#match: String,
+    cache: Option<CacheConfig>,
+    #[serde(default, deserialize_with = "headers_deserialize")]
+    headers: Maybe<HeadersConfig>,
+    ignore: Option<bool>,
+    redirect: Option<RedirectConfig>,
+}
+
+    impl AssetConfigRule {
+        pub(super) fn from_interim(
+            InterimAssetConfigRule {
+                r#match,
+                cache,
+                headers,
+                ignore,
+            }: InterimAssetConfigRule,
+            config_file_parent_dir: &Path,
+        ) -> anyhow::Result<Self> {
+            let glob = Glob::new(
+            config_file_parent_dir
+                .join(&r#match)
+                .to_str()
+                .with_context(|| {
+                    format!(
+                        "cannot combine {} and {} into a string (to be later used as a glob pattern)",
+                        config_file_parent_dir.display(),
+                        r#match
+                    )
+                })?,
+        )
+        .with_context(|| format!("{} is not a valid glob pattern", r#match))?.compile_matcher();
+
+            Ok(Self {
+                r#match: glob,
+                cache,
+                headers,
+                ignore,
+                used: false,
+            })
+        }
+    }
 impl<'de> Deserialize<'de> for RedirectUrl {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -63,290 +459,6 @@ impl<'de> Deserialize<'de> for RedirectUrl {
         }
     }
 }
-
-#[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
-pub struct RedirectConfig {
-    from: Option<RedirectUrl>,
-    to: RedirectUrl,
-    user_agent: Option<Vec<String>>,
-    #[serde(default = "default_response_code")]
-    response_code: u16,
-}
-
-fn default_response_code() -> u16 {
-    308
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
-struct AssetConfigRule {
-    #[derivative(Debug(format_with = "fmt_glob_field"))]
-    r#match: GlobMatcher,
-    cache: Option<CacheConfig>,
-    headers: Maybe<HeadersConfig>,
-    ignore: Option<bool>,
-    redirect: Option<RedirectConfig>, // TODO: consider this to be Vec<Option<RedirectConfig>>
-}
-
-#[derive(Deserialize, Debug)]
-enum Maybe<T> {
-    Null,
-    Absent,
-    Value(T),
-}
-
-fn fmt_glob_field(
-    field: &GlobMatcher,
-    formatter: &mut std::fmt::Formatter,
-) -> Result<(), std::fmt::Error> {
-    formatter.write_str(field.glob().glob())?;
-    Ok(())
-}
-
-impl AssetConfigRule {
-    fn applies(&self, canonical_path: &Path) -> bool {
-        // TODO: better dot files/dirs handling, awaiting upstream changes:
-        // https://github.com/BurntSushi/ripgrep/issues/2229
-        self.r#match.is_match(canonical_path)
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct AssetSourceDirectoryConfiguration {
-    config_map: ConfigMap,
-}
-
-#[derive(Debug, Default, PartialEq, Eq, Serialize, Clone)]
-pub(crate) struct AssetConfig {
-    pub(crate) cache: Option<CacheConfig>,
-    pub(crate) headers: Option<HeadersConfig>,
-    pub(crate) ignore: Option<bool>,
-    pub(crate) redirect: Option<RedirectConfig>,
-}
-
-impl std::fmt::Display for AssetConfig {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut s = String::new();
-
-        if self.cache.is_some() || self.headers.is_some() || self.redirect.is_some() {
-            s.push_str(", with config:\n");
-        }
-        if let Some(ref redirect) = self.redirect {
-            s.push_str(&format!("    - redirect: {:?}\n", redirect));
-        }
-        if let Some(ref cache) = self.cache {
-            s.push_str(&format!("    - cache: {:?}\n", cache));
-        }
-        if let Some(ref headers) = self.headers {
-            for (key, value) in headers {
-                s.push_str(&format!(
-                    "    - header: {key}: {value}\n",
-                    key = key,
-                    value = value
-                ));
-            }
-        }
-
-        write!(f, "{}", s)
-    }
-}
-
-#[derive(Debug, Default)]
-struct AssetConfigTreeNode {
-    pub parent: Option<Arc<AssetConfigTreeNode>>,
-    pub rules: Vec<AssetConfigRule>,
-}
-
-impl AssetSourceDirectoryConfiguration {
-    /// Constructs config tree for assets directory.
-    pub(crate) fn load(root_dir: &Path) -> anyhow::Result<Self> {
-        if !root_dir.has_root() {
-            bail!("root_dir paramenter is expected to be canonical path")
-        }
-        let mut config_map = HashMap::new();
-        AssetConfigTreeNode::load(None, root_dir, &mut config_map)?;
-
-        Ok(Self { config_map })
-    }
-
-    pub(crate) fn get_asset_config(&self, canonical_path: &Path) -> anyhow::Result<AssetConfig> {
-        let parent_dir = canonical_path.parent().with_context(|| {
-            format!(
-                "unable to get the parent directory for asset path: {:?}",
-                canonical_path
-            )
-        })?;
-        Ok(self
-            .config_map
-            .get(parent_dir)
-            .with_context(|| {
-                format!(
-                    "unable to find asset config for following path: {:?}",
-                    parent_dir
-                )
-            })?
-            .get_config(canonical_path))
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct InterimAssetConfigRule {
-    r#match: String,
-    cache: Option<CacheConfig>,
-    #[serde(default, deserialize_with = "deser_headers")]
-    headers: Maybe<HeadersConfig>,
-    ignore: Option<bool>,
-    redirect: Option<RedirectConfig>,
-}
-
-impl<T> Default for Maybe<T> {
-    fn default() -> Self {
-        Self::Absent
-    }
-}
-
-fn deser_headers<'de, D>(deserializer: D) -> Result<Maybe<HeadersConfig>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    match serde_json::value::Value::deserialize(deserializer)? {
-        Value::Object(v) => Ok(Maybe::Value(
-            v.into_iter()
-                .map(|(k, v)| (k, v.to_string().trim_matches('"').to_string()))
-                .collect::<HashMap<String, String>>(),
-        )),
-        Value::Null => Ok(Maybe::Null),
-        _ => Err(serde::de::Error::custom(
-            "wrong data format for field `headers` (only map or null are allowed)",
-        )),
-    }
-}
-
-impl AssetConfigRule {
-    fn from_interim(
-        InterimAssetConfigRule {
-            r#match,
-            cache,
-            headers,
-            ignore,
-            redirect,
-        }: InterimAssetConfigRule,
-        config_file_parent_dir: &Path,
-    ) -> anyhow::Result<Self> {
-        let glob = Glob::new(
-            config_file_parent_dir
-                .join(&r#match)
-                .to_str()
-                .with_context(|| {
-                    format!(
-                        "cannot combine {} and {} into a string (to be later used as a glob pattern)",
-                        config_file_parent_dir.display(),
-                        r#match
-                    )
-                })?,
-        )
-        .with_context(|| format!("{} is not a valid glob pattern", r#match))?.compile_matcher();
-
-        Ok(Self {
-            r#match: glob,
-            cache,
-            headers,
-            ignore,
-            redirect,
-        })
-    }
-}
-
-impl AssetConfigTreeNode {
-    fn load(
-        parent: Option<Arc<AssetConfigTreeNode>>,
-        dir: &Path,
-        configs: &mut HashMap<PathBuf, Arc<AssetConfigTreeNode>>,
-    ) -> anyhow::Result<()> {
-        let config_path: Option<PathBuf>;
-        match (
-            dir.join(ASSETS_CONFIG_FILENAME_JSON).exists(),
-            dir.join(ASSETS_CONFIG_FILENAME_JSON5).exists(),
-        ) {
-            (true, true) => {
-                return Err(anyhow::anyhow!(
-                    "both {} and {} files exist in the same directory (dir = {:?})",
-                    ASSETS_CONFIG_FILENAME_JSON,
-                    ASSETS_CONFIG_FILENAME_JSON5,
-                    dir
-                ))
-            }
-            (true, false) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON)),
-
-            (false, true) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON5)),
-            (false, false) => config_path = None,
-        }
-        let mut rules = vec![];
-        if let Some(config_path) = config_path {
-            let content = fs::read_to_string(&config_path).with_context(|| {
-                format!("unable to read config file: {}", config_path.display())
-            })?;
-            let interim_rules: Vec<InterimAssetConfigRule> = json5::from_str(&content)
-                .with_context(|| {
-                    format!(
-                        "malformed JSON asset config file: {}",
-                        config_path.display()
-                    )
-                })?;
-            for interim_rule in interim_rules {
-                rules.push(AssetConfigRule::from_interim(interim_rule, dir)?);
-            }
-        }
-
-        let parent_ref = match parent {
-            Some(p) if rules.is_empty() => p,
-            _ => Arc::new(Self { parent, rules }),
-        };
-
-        configs.insert(dir.to_path_buf(), parent_ref.clone());
-        for f in std::fs::read_dir(&dir)
-            .with_context(|| format!("Unable to read directory {}", &dir.display()))?
-            .filter_map(|x| x.ok())
-            .filter(|x| x.file_type().map_or_else(|_e| false, |ft| ft.is_dir()))
-        {
-            Self::load(Some(parent_ref.clone()), &f.path(), configs)?;
-        }
-        Ok(())
-    }
-
-    fn get_config(&self, canonical_path: &Path) -> AssetConfig {
-        let base_config = match &self.parent {
-            Some(parent) => parent.get_config(canonical_path),
-            None => AssetConfig::default(),
-        };
-        self.rules
-            .iter()
-            .filter(|rule| rule.applies(canonical_path))
-            .fold(base_config, |acc, x| acc.merge(x))
-    }
-}
-
-impl AssetConfig {
-    fn merge(mut self, other: &AssetConfigRule) -> Self {
-        if let Some(c) = &other.cache {
-            self.cache = Some(c.to_owned());
-        };
-        if let Some(c) = &other.redirect {
-            self.redirect = Some(c.to_owned());
-        };
-        match (self.headers.as_mut(), &other.headers) {
-            (Some(sh), Maybe::Value(oh)) => sh.extend(oh.to_owned()),
-            (None, Maybe::Value(oh)) => self.headers = Some(oh.to_owned()),
-            (_, Maybe::Null) => self.headers = None,
-            (_, Maybe::Absent) => (),
-        };
-
-        if other.ignore.is_some() {
-            self.ignore = other.ignore;
-        }
-        self
-    }
 }
 
 #[cfg(test)]
@@ -417,7 +529,7 @@ mod with_tempdir {
         let assets_temp_dir = create_temporary_assets_directory(Some(cfg), 7).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
 
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         for f in ["nested/the-thing.txt", "nested/deep/the-next-thing.toml"] {
             assert_eq!(
                 assets_config.get_asset_config(assets_dir.join(f).as_path())?,
@@ -509,7 +621,7 @@ mod with_tempdir {
         let assets_temp_dir = create_temporary_assets_directory(cfg, 7).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
 
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         for f in ["nested/the-thing.txt", "nested/deep/the-next-thing.toml"] {
             assert_eq!(
                 assets_config.get_asset_config(assets_dir.join(f).as_path())?,
@@ -584,7 +696,7 @@ mod with_tempdir {
         )]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 1).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         let parsed_asset_config =
             assets_config.get_asset_config(assets_dir.join("index.html").as_path())?;
         let expected_asset_config = AssetConfig {
@@ -657,7 +769,7 @@ mod with_tempdir {
         let assets_temp_dir = create_temporary_assets_directory(cfg, 7).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
 
-        let assets_config = dbg!(AssetSourceDirectoryConfiguration::load(&assets_dir))?;
+        let mut assets_config = dbg!(AssetSourceDirectoryConfiguration::load(&assets_dir))?;
         for f in [
             "index.html",
             "js/index.js",
@@ -709,7 +821,7 @@ mod with_tempdir {
         )]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         assert_eq!(
             assets_config.get_asset_config(assets_dir.join("index.html").as_path())?,
             AssetConfig {
@@ -819,7 +931,7 @@ mod with_tempdir {
         let cfg = Some(HashMap::new());
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         assert_eq!(
             assets_config.get_asset_config(assets_dir.join("doesnt.exists").as_path())?,
             AssetConfig::default()

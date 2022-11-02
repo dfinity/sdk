@@ -34,16 +34,50 @@ SNS_CONFIG_FILE_NAME="sns.yml"
 
 @test "sns config validate approves a valid configuration" {
     dfx_new
-    cp "${BATS_TEST_DIRNAME}/../assets/sns/valid_sns_init_config.yaml" "$SNS_CONFIG_FILE_NAME"
-    cp "${BATS_TEST_DIRNAME}/../assets/sns/logo.svg" .
+    install_asset sns/valid
     assert_command dfx sns config validate
     assert_match 'SNS config file is valid'
 }
 
 @test "sns config validate identifies a missing key" {
     dfx_new
-    grep -v token_name "${BATS_TEST_DIRNAME}/../assets/sns/valid_sns_init_config.yaml" > "$SNS_CONFIG_FILE_NAME"
-    cp "${BATS_TEST_DIRNAME}/../assets/sns/logo.svg" .
+    install_asset sns/valid
+    grep -v token_name "${SNS_CONFIG_FILE_NAME}" | sponge "$SNS_CONFIG_FILE_NAME"
     assert_command_fail dfx sns config validate
     assert_match token.name
+}
+
+@test "sns deploy exists" {
+    dfx sns deploy --help
+}
+
+@test "sns deploy fails without config file" {
+    dfx_new
+    dfx nns import
+    rm -f sns.yml # Is not expected to be present anyway
+    assert_command_fail dfx sns deploy
+    assert_match "Error encountered when generating the SnsInitPayload: Couldn't open initial parameters file"
+}
+
+@test "sns deploy succeeds" {
+    dfx_new
+    install_shared_asset subnet_type/shared_network_settings/system
+    dfx start --clean --background --host 127.0.0.1:8080
+    sleep 1
+    dfx nns install
+    dfx nns import
+    dfx sns import
+    ls candid
+    cat dfx.json
+    # Deploy the SNS
+    install_asset sns/valid
+    dfx sns config validate
+    # The remaining steps don't work any more as a pre-launch whitelist has been added.
+    #dfx sns deploy
+    # SNS canister IDs should be saved
+    #dfx canister id sns_governance
+    #dfx canister id sns_index
+    #dfx canister id sns_ledger
+    #dfx canister id sns_root
+    #dfx canister id sns_swap
 }

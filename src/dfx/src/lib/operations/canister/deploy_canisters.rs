@@ -32,6 +32,7 @@ pub async fn deploy_canisters(
     with_cycles: Option<&str>,
     call_sender: &CallSender,
     create_call_sender: &CallSender,
+    skip_consent: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -42,7 +43,7 @@ pub async fn deploy_canisters(
 
     let network = env.get_network_descriptor();
 
-    let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
+    let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
@@ -57,19 +58,17 @@ pub async fn deploy_canisters(
             None => bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."),
         }
     } else {
-        canisters_to_build.clone()
-    };
-    let canisters_to_deploy: Vec<String> = canisters_to_deploy
-        .into_iter()
-        .filter(|canister_name| {
-            !matches!(
-                config
+        canisters_to_load
+            .clone()
+            .into_iter()
+            .filter(|canister_name| {
+                !config
                     .get_config()
-                    .get_remote_canister_id(canister_name, &network.name),
-                Ok(Some(_))
-            )
-        })
-        .collect();
+                    .is_remote_canister(canister_name, &env.get_network_descriptor().name)
+                    .unwrap_or(false)
+            })
+            .collect()
+    };
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
@@ -79,7 +78,7 @@ pub async fn deploy_canisters(
 
     register_canisters(
         env,
-        &canisters_to_build,
+        &canisters_to_deploy,
         &initial_canister_id_store,
         timeout,
         with_cycles,
@@ -88,7 +87,7 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    let pool = build_canisters(env, &canisters_to_build, &config).await?;
+    let pool = build_canisters(env, &canisters_to_load, &canisters_to_deploy, &config).await?;
 
     install_canisters(
         env,
@@ -102,6 +101,7 @@ pub async fn deploy_canisters(
         timeout,
         call_sender,
         pool,
+        skip_consent,
     )
     .await?;
 
@@ -122,6 +122,7 @@ fn canister_with_dependencies(
     Ok(canister_names)
 }
 
+/// Creates canisters that have not been created yet.
 #[context("Failed while trying to register all canisters.")]
 async fn register_canisters(
     env: &dyn Environment,
@@ -191,16 +192,18 @@ async fn register_canisters(
 #[context("Failed to build call canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
-    canister_names: &[String],
+    referenced_canisters: &[String],
+    canisters_to_build: &[String],
     config: &Config,
 ) -> DfxResult<CanisterPool> {
-    info!(env.get_logger(), "Building canisters...");
+    let log = env.get_logger();
+    info!(log, "Building canisters...");
     let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
+    let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
 
-    canister_pool
-        .build_or_fail(&BuildConfig::from_config(config)?)
-        .await?;
+    let build_config =
+        BuildConfig::from_config(config)?.with_canisters_to_build(canisters_to_build.into());
+    canister_pool.build_or_fail(log, &build_config).await?;
     Ok(canister_pool)
 }
 
@@ -217,6 +220,7 @@ async fn install_canisters(
     timeout: Duration,
     call_sender: &CallSender,
     pool: CanisterPool,
+    skip_consent: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -254,6 +258,7 @@ async fn install_canisters(
             call_sender,
             upgrade_unchanged,
             Some(&pool),
+            skip_consent,
         )
         .await?;
     }

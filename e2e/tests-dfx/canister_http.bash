@@ -284,12 +284,12 @@ set_shared_local_network_canister_http_empty() {
     jq '.defaults.canister_http.log_level="warning"' dfx.json | sponge dfx.json
     define_project_network
 
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.defaults.canister_http.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Critical"
 }
 
@@ -298,12 +298,12 @@ set_shared_local_network_canister_http_empty() {
     jq '.networks.local.canister_http.log_level="warning"' dfx.json | sponge dfx.json
     define_project_network
 
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.networks.local.canister_http.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Critical"
 }
 
@@ -312,11 +312,25 @@ set_shared_local_network_canister_http_empty() {
     create_networks_json
     jq '.local.canister_http.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Warning"
     assert_command dfx stop
 
     jq '.local.canister_http.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-    assert_command dfx start --background
+    assert_command dfx start --background --verbose
     assert_match "log level: Critical"
+}
+
+@test "can query a website" {
+    dfx_start
+
+    dfx_new
+    install_asset canister_http
+
+    dfx deploy
+
+    assert_command dfx canister call e2e_project_backend get_url '("smartcontracts.org:443","https://smartcontracts.org:443")'
+    assert_contains "Internet Computer"
+    assert_contains "smart contracts"
+    assert_contains "dapps"
 }

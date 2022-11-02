@@ -38,6 +38,8 @@ When you have the SDK installed, you can use the following commands to specify t
 
 -   [dfx ping](./dfx-ping.md)
 
+-   [dfx quickstart](./dfx-quickstart.md)
+
 -   [dfx replica](./dfx-replica.md)
 
 -   [dfx schema](./dfx-schema.md)

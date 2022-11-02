@@ -59,9 +59,9 @@ teardown() {
 dfx_start_for_nns_install() {
     # TODO: When nns-dapp supports dynamic ports, this wait can be removed.
     assert_command timeout 300 sh -c \
-        "until dfx start --clean --background --host 127.0.0.1:8080; do echo waiting for port 8080 to become free; sleep 3; done" \
+        "until dfx start --clean --background --host 127.0.0.1:8080 --verbose; do echo waiting for port 8080 to become free; sleep 3; done" \
         || (echo "could not connect to replica on port 8080" && exit 1)
-    assert_match "subnet_type: System"
+    assert_match "subnet type: System"
     assert_match "127.0.0.1:8080"
 }
 
@@ -76,6 +76,8 @@ nns_canister_id() {
     nns-cycles-minting)    echo "rkp4c-7iaaa-aaaaa-aaaca-cai" ;;
     nns-lifeline)          echo "rno2w-sqaaa-aaaaa-aaacq-cai" ;;
     nns-genesis-token)     echo "renrk-eyaaa-aaaaa-aaada-cai" ;;
+    # Coming soon:
+    #nns-ic-ckbtc-minter)   echo "qjdve-lqaaa-aaaaa-aaaeq-cai" ;;
     nns-sns-wasm)          echo "qaa6y-5yaaa-aaaaa-aaafa-cai" ;;
     internet_identity)     echo "qhbym-qaaaa-aaaaa-aaafq-cai" ;;
     nns-dapp)              echo "qsgjb-riaaa-aaaaa-aaaga-cai" ;;
@@ -92,10 +94,7 @@ assert_nns_canister_id_matches() {
 }
 
 @test "dfx nns import ids are as expected" {
-    # TODO: The IC commit currently used by the sdk doesn't have all the canister IDs yet.
-    #       When it does, remove this DFX_IC_SRC override.
-    export DFX_IC_SRC="https://raw.githubusercontent.com/dfinity/ic/master"
-    dfx nns import --network-mapping local
+    dfx nns import
     assert_nns_canister_id_matches nns-registry
     assert_nns_canister_id_matches nns-governance
     assert_nns_canister_id_matches nns-ledger
@@ -103,6 +102,8 @@ assert_nns_canister_id_matches() {
     assert_nns_canister_id_matches nns-cycles-minting
     assert_nns_canister_id_matches nns-lifeline
     assert_nns_canister_id_matches nns-genesis-token
+    # Coming soon:
+    # assert_nns_canister_id_matches nns-ic-ckbtc-minter
     assert_nns_canister_id_matches nns-sns-wasm
     # TODO: No source provides these canister IDs - yet.
     #assert_nns_canister_id_matches internet_identity
@@ -115,7 +116,8 @@ assert_nns_canister_id_matches() {
     dfx_start_for_nns_install
     dfx nns install
 
-    echo Checking that the install worked...
+    echo "Checking that the install worked..."
+    echo "   The expected wasms should be installed..."
     # Note:  The installation is quite expensive, so we test extensively on one installation
     #        rather than doing a separate installation for every test.  The tests are read-only
     #        so no test should affect the output of another.
@@ -123,7 +125,7 @@ assert_nns_canister_id_matches() {
         dfx canister info "$(nns_canister_id "$1")" | awk '/Module hash/{print $3; exit 0}END{exit 1}'
     }
     downloaded_wasm_hash() {
-        sha256sum ".dfx/wasms/nns/$(dfx --version | awk '{printf "%s-%s", $1, $2}')/$1" | awk '{print "0x" $1}'
+        sha256sum "$DFX_CACHE_ROOT/.cache/dfinity/versions/$(dfx --version | awk '{printf "%s", $2}')/wasms/$1" | awk '{print "0x" $1}'
     }
     wasm_matches() {
         echo "Comparing $* ..."
@@ -143,6 +145,22 @@ assert_nns_canister_id_matches() {
     wasm_matches nns-sns-wasm sns-wasm-canister.wasm
     wasm_matches internet_identity internet_identity_dev.wasm
     wasm_matches nns-dapp nns-dapp_local.wasm
+
+    echo "   Accounts should have funds..."
+    account_has_funds() {
+        assert_command dfx ledger balance "$1"
+        assert_eq "1000000000.00000000 ICP"
+    }
+    SECP256K1_ACCOUNT_ID="2b8fbde99de881f695f279d2a892b1137bfe81a42d7694e064b1be58701e1138"
+    ED25519_ACCOUNT_ID="5b315d2f6702cb3a27d826161797d7b2c2e131cd312aece51d4d5574d1247087"
+    account_has_funds "$SECP256K1_ACCOUNT_ID"
+    account_has_funds "$ED25519_ACCOUNT_ID"
+
+    echo "    The secp256k1 account can be controlled from the command line"
+    install_asset nns
+    dfx identity import --force --disable-encryption ident-1 ident-1/identity.pem
+    assert_command dfx ledger account-id --identity ident-1
+    assert_eq "$SECP256K1_ACCOUNT_ID"
 
     echo Stopping dfx...
     dfx stop

@@ -15,6 +15,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   build_dfx:
     runs-on: ${{ matrix.os }}
@@ -41,7 +47,6 @@ jobs:
 
       - name: Setup environment variables
         run: |
-          echo "OPENSSL_STATIC=yes" >> $GITHUB_ENV
           echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
 
       # GITHUB_REF_NAME will be something link 2353/merge for branch builds, which isn't great as a dfx version
@@ -53,7 +58,7 @@ jobs:
           echo "SHA256_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
 
       - name: Cache Cargo
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
@@ -68,18 +73,6 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
         if: contains(matrix.os, 'macos')
-
-      - name: Build static-linked openssl
-        run: |
-          # https://github.com/rust-lang/cargo/issues/713#issuecomment-59597433
-          git clone git://git.openssl.org/openssl.git
-          cd openssl
-          ./config -fPIC --prefix=/usr/local --openssldir=/usr/local/ssl
-          make
-          sudo make install
-          echo "OPENSSL_LIB_DIR=/usr/local/lib64" >> $GITHUB_ENV
-          echo "OPENSSL_INCLUDE_DIR=/usr/local/include" >> $GITHUB_ENV
-        if: contains(matrix.target, 'linux-gnu')
 
       - name: Build
         run: |
@@ -126,7 +119,7 @@ jobs:
 
       - name: Upload Artifacts
         if: github.ref_type == 'tag'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
           path: |
@@ -157,7 +150,7 @@ jobs:
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
 

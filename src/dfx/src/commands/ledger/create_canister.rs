@@ -46,6 +46,12 @@ pub struct CreateCanisterOpts {
     /// Max fee, default is 10000 e8s.
     #[clap(long, validator(icpts_amount_validator))]
     max_fee: Option<String>,
+
+    /// Specify the optional subnet type to create the canister on. If no
+    /// subnet type is provided, the canister will be created on a random
+    /// default application subnet.
+    #[clap(long)]
+    subnet_type: Option<String>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult {
@@ -73,9 +79,10 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
+
     let height = transfer_cmc(agent, memo, amount, fee, opts.from_subaccount, controller).await?;
     println!("Transfer sent at block height {height}");
-    let result = notify_create(agent, controller, height).await?;
+    let result = notify_create(agent, controller, height, opts.subnet_type).await?;
 
     match result {
         Ok(principal) => {

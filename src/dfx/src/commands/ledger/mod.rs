@@ -33,6 +33,7 @@ mod balance;
 pub mod create_canister;
 mod fabricate_cycles;
 mod notify;
+pub mod show_subnet_types;
 mod top_up;
 mod transfer;
 
@@ -54,6 +55,7 @@ enum SubCommand {
     CreateCanister(create_canister::CreateCanisterOpts),
     FabricateCycles(fabricate_cycles::FabricateCyclesOpts),
     Notify(notify::NotifyOpts),
+    ShowSubnetTypes(show_subnet_types::ShowSubnetTypesOpts),
     TopUp(top_up::TopUpOpts),
     Transfer(transfer::TransferOpts),
 }
@@ -68,6 +70,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
             SubCommand::CreateCanister(v) => create_canister::exec(&agent_env, v).await,
             SubCommand::FabricateCycles(v) => fabricate_cycles::exec(&agent_env, v).await,
             SubCommand::Notify(v) => notify::exec(&agent_env, v).await,
+            SubCommand::ShowSubnetTypes(v) => show_subnet_types::exec(&agent_env, v).await,
             SubCommand::TopUp(v) => top_up::exec(&agent_env, v).await,
             SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
         }
@@ -199,6 +202,7 @@ pub async fn notify_create(
     agent: &Agent,
     controller: Principal,
     block_height: BlockHeight,
+    subnet_type: Option<String>,
 ) -> DfxResult<NotifyCreateCanisterResult> {
     let result = agent
         .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_CREATE_METHOD)
@@ -206,6 +210,7 @@ pub async fn notify_create(
             Encode!(&NotifyCreateCanisterArg {
                 block_index: block_height,
                 controller,
+                subnet_type,
             })
             .context("Failed to encode notify arguments.")?,
         )
