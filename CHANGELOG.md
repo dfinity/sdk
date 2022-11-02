@@ -4,6 +4,8 @@
 
 ## DFX
 
+### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
+
 ### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
 
 Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
@@ -19,6 +21,8 @@ Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP
 ]
 ```
 This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+
+### feat: warn if an unencrypted identity is used on mainnet
 
 ### fix: Save SNS canister IDs
 
@@ -84,6 +88,29 @@ If you want to disable this behavior, you can config it in dfx.json:
             "shrink" : false,
         }
     }
+
+### feat: configurable custom wasm sections
+
+It's now possible to define custom wasm metadata sections and their visibility in dfx.json.
+
+At present, dfx can only add wasm metadata sections to canisters that are in wasm format.  It cannot add metadata sections to compressed canisters.  Since the frontend canister is now compressed, this means that at present it is not possible to add custom metadata sections to the frontend canister.
+
+dfx no longer adds `candid:service` metadata to canisters of type `"custom"` by default.  If you want dfx to add your canister's candid definition to your custom canister, you can do so like this:
+
+```
+    "my_canister_name": {
+      "type": "custom",
+      "candid": "main.did",
+      "wasm": "main.wasm",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    },
+```
+
+This changelog entry doesn't go into all of the details of the possible configuration.  For that, please see [concepts/canister-metadata](docs/concepts/canister-metadata.md) and the docs in the JSON schema.
 
 ### fix: Valid canister-based env vars
 
@@ -462,6 +489,8 @@ It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pi
 
 ### fix: print links to cdk-rs docs in dfx new
 
+### fix: broken link in new .mo project README
+
 ### fix: Small grammar change to identity password decryption prompt
 
 The prompt for entering your passphrase in order to decrypt an identity password read:
@@ -480,9 +509,10 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit f7e3c96a2be92186718f6a1e67eea37bf3252c00.
+Updated replica to elected commit 3e1be1316341811db5c9300935c4236bfab8fa2a.
 This incorporates the following executed proposals:
 
+- [87631](https://dashboard.internetcomputer.org/proposal/87631)
 - [86738](https://dashboard.internetcomputer.org/proposal/86738)
 - [86279](https://dashboard.internetcomputer.org/proposal/86279)
 * [85007](https://dashboard.internetcomputer.org/proposal/85007)
@@ -510,7 +540,10 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko to 0.7.0
+### Updated Motoko from 0.6.29 to 0.7.3
+
+- See https://github.com/dfinity/motoko/blob/master/Changelog.md#073-2022-11-01
+
 
 ### Cycles wallet
 

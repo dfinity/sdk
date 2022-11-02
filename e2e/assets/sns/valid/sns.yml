@@ -1,4 +1,7 @@
 description: 'We''ve been making video game games since 2006, we''re based in Toronto'
+reward_rate_transition_duration_seconds: 315576000
+initial_reward_rate_percentage: 10.0
+final_reward_rate_percentage: 5.0
 fallback_controller_principal_ids:
 - hpikg-6exdt-jn33w-ndty3-fc7jc-tl2lr-buih3-cs3y7-tftkp-sfp62-gqe
 initial_token_distribution:

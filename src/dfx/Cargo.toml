@@ -10,10 +10,15 @@ name = "dfx"
 path = "src/main.rs"
 
 [build-dependencies]
+bytes = "1"
 flate2 = "1.0.11"
-hex = "0.4.2"
+hex = "0.4.3"
+reqwest = "0.11.9"
+serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.6"
 tar = "0.4.26"
+tokio = { version = "1.17.0", features = ["full"] }
+toml = "0.5.9"
 walkdir = "2.3.2"
 
 [dependencies]

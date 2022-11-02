@@ -36,5 +36,4 @@ jobs:
         run: $HOME/bin/shellcheck-v0.7.1/shellcheck e2e/**/*.*sh
       - name: Check release script
         run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/release.sh
-      - name: Check asset prep script
-        run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/prepare-dfx-assets.sh
+
