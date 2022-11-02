@@ -56,19 +56,36 @@ teardown() {
 
 @test "id subcommand uses default network for remotes only" {
     install_asset id
-    dfx_start
+    install_shared_asset subnet_type/shared_network_settings/application
+    # Add a remote canister with a specific ID for one network and a different default for other networks.
+    jq '.canisers.external_canister = {
+      "build": "",
+      "candid": "candid/external_canister.did",
+      "remote": {
+        "id": {
+          "namedremote": "va76m-bqaaa-aaaaa-aaayq-cai",
+          "__default": "rkp4c-7iaaa-aaaaa-aaaca-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": ""
+    }' dfx.json | sponge dfx.json
+    # We need to define the networks we are going to use:
+    jq '.namedremote= {"type": "persistent", "providers": ["http://namedremote"]}' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+    jq '.somethingelse= {"type": "persistent", "providers": ["http://somethingelse"]}' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+    cat dfx.json
+    cat "$E2E_NETWORKS_JSON"
+    # Ok, start:
+    dfx_start || true
     dfx canister create --all
     dfx build
-    jq '.canisters.e2e_project_backend.remote.id.__default = "rkp4c-7iaaa-aaaaa-aaaca-cai"' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project_backend.remote.id.namedremote = "va76m-bqaaa-aaaaa-aaayq-cai"' dfx.json | sponge dfx.json
-    jq '.somethingelse= {"type": "persistent", "providers": ["http://somethingelse"]}' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
     # The local dfx canister ID should not be affected:
     assert_command dfx canister id e2e_project_backend
     assert_match "$(jq -r .e2e_project_backend.local < .dfx/local/canister_ids.json)"
     # Named remotes should be unaffected:
-    assert_command dfx canister --network namedremote id e2e_project_backend
+    assert_command dfx canister --network namedremote id external_canister
     assert_match "va76m-bqaaa-aaaaa-aaayq-cai"
     # Other remotes should use the default entry:
-    assert_command dfx canister --network somethingelse id e2e_project_backend
+    assert_command dfx canister --network somethingelse id external_canister
     assert_match "rkp4c-7iaaa-aaaaa-aaaca-cai"
 }
