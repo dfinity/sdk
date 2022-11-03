@@ -4,6 +4,8 @@
 
 ## DFX
 
+### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
+
 ### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
 
 Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
@@ -19,6 +21,8 @@ Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP
 ]
 ```
 This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+
+### feat: warn if an unencrypted identity is used on mainnet
 
 ### fix: Save SNS canister IDs
 
@@ -505,9 +509,12 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 3e1be1316341811db5c9300935c4236bfab8fa2a.
+Updated replica to elected commit 669673d380de01c08b7b52b08f57a02367d9096d.
 This incorporates the following executed proposals:
 
+- [88831](https://dashboard.internetcomputer.org/proposal/88831)
+- [88629](https://dashboard.internetcomputer.org/proposal/88629)
+- [88109](https://dashboard.internetcomputer.org/proposal/88109)
 - [87631](https://dashboard.internetcomputer.org/proposal/87631)
 - [86738](https://dashboard.internetcomputer.org/proposal/86738)
 - [86279](https://dashboard.internetcomputer.org/proposal/86279)
@@ -536,9 +543,9 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko from 0.6.29 to 0.7.1
+### Updated Motoko from 0.6.29 to 0.7.3
 
-- See https://github.com/dfinity/motoko/blob/master/Changelog.md#071-2022-10-24
+- See https://github.com/dfinity/motoko/blob/master/Changelog.md#073-2022-11-01
 
 
 ### Cycles wallet
