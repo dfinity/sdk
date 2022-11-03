@@ -78,7 +78,6 @@ teardown() {
     # Ok, start:
     dfx_start || true
     dfx canister create --all
-    dfx build
     # The local dfx canister ID should not be affected:
     assert_command dfx canister id e2e_project_backend
     assert_match "$(jq -r .e2e_project_backend.local < .dfx/local/canister_ids.json)"
