@@ -58,7 +58,7 @@ teardown() {
     install_asset id
     install_shared_asset subnet_type/shared_network_settings/application
     # Add a remote canister with a specific ID for one network and a different default for other networks.
-    jq '.canisers.external_canister = {
+    jq '.canisters.external_canister = {
       "build": "",
       "candid": "candid/external_canister.did",
       "remote": {
