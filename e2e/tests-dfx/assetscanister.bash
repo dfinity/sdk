@@ -507,83 +507,6 @@ CHERRIES" "$stdout"
 
 }
 
-@test "asset configuration via .ic-assets.json5 - HTTP redirects" {
-    install_asset assetscanister
-
-    dfx_start
-
-    echo "glyph" > src/e2e_project_frontend/assets/logo.svg
-    echo "picture" > src/e2e_project_frontend/assets/picture.png
-    echo "content" > src/e2e_project_frontend/assets/fail.txt
-
-    echo '[
-        {
-            "match": "*.svg",
-            "redirect": {
-                "to": {
-                    "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
-                    "path": "/img/IC_logo_horizontal.svg"
-                },
-                "response_code": 301,
-            }
-        },
-        {
-            "match": "*.png",
-            "redirect": {
-                "to": {
-                    "host": "hwvjt-wowow-aaaam-qadra-cai.ic0.app",
-                    "path": "/img/IC_logo_horizontal.png"
-                },
-                "response_code": 308,
-            }
-        },
-        {
-            "match": "**/*.txt",
-            "redirect": {
-                "to": {
-                    "host": "hwvjt-wowow-aaaam-qadra-cai.ic0.app",
-                    "path": "/img/IC_logo_horizontal.png"
-                },
-                "response_code": 999,
-            }
-        }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-
-    dfx deploy
-
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
-
-    assert_command curl -vv "http://localhost:$PORT/logo.svg?canisterId=$ID"
-    assert_match "301"
-    assert_match "< location: https://hwvjt-wqaaa-aaaam-qadra-cai.ic0.app/img/IC_logo_horizontal.svg"
-
-    assert_command curl -vv "http://localhost:$PORT/picture.png?canisterId=$ID"
-    assert_match "308"
-    assert_match "< location: https://hwvjt-wowow-aaaam-qadra-cai.ic0.app/img/IC_logo_horizontal.png"
-
-    assert_command curl -vv "http://localhost:$PORT/fail.txt?canisterId=$ID"
-    assert_match "400"
-    assert_match "incorrect asset redirect configuration: response_code \"999\" is not valid HTTP respone code"
-}
-
-@test "asset configuration via .ic-assets.json5 - HTTP redirects, malformed config" {
-    install_asset assetscanister
-
-    dfx_start
-
-    echo '[
-        {
-            "match": "**/*",
-            "redirect": {
-                "to": {}
-            }
-        }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-
-    assert_command_fail dfx deploy
-}
-
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
     install_asset assetscanister
 
@@ -691,4 +614,81 @@ CHERRIES" "$stdout"
   },
   "ignore": false
 }'
+}
+
+@test "asset configuration via .ic-assets.json5 - HTTP redirects" {
+    install_asset assetscanister
+
+    dfx_start
+
+    echo "glyph" > src/e2e_project_frontend/assets/logo.svg
+    echo "picture" > src/e2e_project_frontend/assets/picture.png
+    echo "content" > src/e2e_project_frontend/assets/fail.txt
+
+    echo '[
+        {
+            "match": "*.svg",
+            "redirect": {
+                "to": {
+                    "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
+                    "path": "/img/IC_logo_horizontal.svg"
+                },
+                "response_code": 301,
+            }
+        },
+        {
+            "match": "*.png",
+            "redirect": {
+                "to": {
+                    "host": "hwvjt-wowow-aaaam-qadra-cai.ic0.app",
+                    "path": "/img/IC_logo_horizontal.png"
+                },
+                "response_code": 308,
+            }
+        },
+        {
+            "match": "**/*.txt",
+            "redirect": {
+                "to": {
+                    "host": "hwvjt-wowow-aaaam-qadra-cai.ic0.app",
+                    "path": "/img/IC_logo_horizontal.png"
+                },
+                "response_code": 999,
+            }
+        }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl -vv "http://localhost:$PORT/logo.svg?canisterId=$ID"
+    assert_match "301"
+    assert_match "< location: https://hwvjt-wqaaa-aaaam-qadra-cai.ic0.app/img/IC_logo_horizontal.svg"
+
+    assert_command curl -vv "http://localhost:$PORT/picture.png?canisterId=$ID"
+    assert_match "308"
+    assert_match "< location: https://hwvjt-wowow-aaaam-qadra-cai.ic0.app/img/IC_logo_horizontal.png"
+
+    assert_command curl -vv "http://localhost:$PORT/fail.txt?canisterId=$ID"
+    assert_match "400"
+    assert_match "incorrect asset redirect configuration: response_code \"999\" is not valid HTTP respone code"
+}
+
+@test "asset configuration via .ic-assets.json5 - HTTP redirects, malformed config" {
+    install_asset assetscanister
+
+    dfx_start
+
+    echo '[
+        {
+            "match": "**/*",
+            "redirect": {
+                "to": {}
+            }
+        }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+    assert_command_fail dfx deploy
 }

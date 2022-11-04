@@ -426,6 +426,7 @@ mod rule_utils {
             })
         }
     }
+
     impl<'de> Deserialize<'de> for RedirectUrl {
         fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where

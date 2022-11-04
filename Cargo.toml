@@ -13,9 +13,6 @@ version = "0.21.0"
 git = "https://github.com/dfinity/agent-rs.git"
 rev = "0edc96addbc65d422de71fc119a3de3154eac5c3"
 
-[patch.crates-io.ic-asset]
-path = "src/canisters/frontend/ic-asset"
-
 [patch.crates-io.ic-identity-hsm]
 version = "0.21.0"
 git = "https://github.com/dfinity/agent-rs.git"
