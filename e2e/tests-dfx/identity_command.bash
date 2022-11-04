@@ -120,6 +120,11 @@ frank'
     assert_match "Key id must consist of an even number of hex digits"
 }
 
+@test "identity new: key is compatible with openssl" {
+    assert_command dfx identity new --disable-encryption bob
+    assert_command openssl ec -in "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
+}
+
 ##
 ## dfx identity remove
 ##
