@@ -512,13 +512,13 @@ CHERRIES" "$stdout"
 
     dfx_start
 
-    touch src/e2e_project_frontend/assets/logo.svg
-    touch src/e2e_project_frontend/assets/picture.png
-    touch src/e2e_project_frontend/assets/fail.txt
+    echo "glyph" > src/e2e_project_frontend/assets/logo.svg
+    echo "picture" > src/e2e_project_frontend/assets/picture.png
+    echo "content" > src/e2e_project_frontend/assets/fail.txt
 
     echo '[
         {
-            "match": "**/*.svg",
+            "match": "*.svg",
             "redirect": {
                 "to": {
                     "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
@@ -528,7 +528,7 @@ CHERRIES" "$stdout"
             }
         },
         {
-            "match": "**/*.png",
+            "match": "*.png",
             "redirect": {
                 "to": {
                     "host": "hwvjt-wowow-aaaam-qadra-cai.ic0.app",

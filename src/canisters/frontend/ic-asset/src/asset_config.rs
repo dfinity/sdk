@@ -35,7 +35,6 @@ pub struct RedirectUrl {
     pub(crate) path: Option<String>,
 }
 
-
 #[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct RedirectConfig {
     from: Option<RedirectUrl>,
@@ -68,6 +67,7 @@ pub struct AssetConfigRule {
     headers: Maybe<HeadersConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     ignore: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     redirect: Option<RedirectConfig>, // TODO: consider this to be Vec<Option<RedirectConfig>>
     #[serde(skip_serializing)]
     used: bool,
@@ -308,7 +308,7 @@ impl AssetConfig {
 /// This module contains various utilities needed for serialization/deserialization
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
-    use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe, RedirectUrl, RedirectConfig};
+    use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe, RedirectConfig, RedirectUrl};
     use anyhow::Context;
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
@@ -380,16 +380,16 @@ mod rule_utils {
         }
     }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct InterimAssetConfigRule {
-    r#match: String,
-    cache: Option<CacheConfig>,
-    #[serde(default, deserialize_with = "headers_deserialize")]
-    headers: Maybe<HeadersConfig>,
-    ignore: Option<bool>,
-    redirect: Option<RedirectConfig>,
-}
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    pub(super) struct InterimAssetConfigRule {
+        r#match: String,
+        cache: Option<CacheConfig>,
+        #[serde(default, deserialize_with = "headers_deserialize")]
+        headers: Maybe<HeadersConfig>,
+        ignore: Option<bool>,
+        redirect: Option<RedirectConfig>,
+    }
 
     impl AssetConfigRule {
         pub(super) fn from_interim(
@@ -398,6 +398,7 @@ struct InterimAssetConfigRule {
                 cache,
                 headers,
                 ignore,
+                redirect,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> anyhow::Result<Self> {
@@ -420,45 +421,46 @@ struct InterimAssetConfigRule {
                 cache,
                 headers,
                 ignore,
+                redirect,
                 used: false,
             })
         }
     }
-impl<'de> Deserialize<'de> for RedirectUrl {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = Value::deserialize(deserializer)?;
-        if value.is_object() {
-            let mut host = None;
-            let mut path = None;
-            for (key, value) in value.as_object().unwrap() {
-                match key.as_str() {
-                    "host" => host = Some(value.as_str().unwrap().to_string()),
-                    "path" => path = Some(value.as_str().unwrap().to_string()),
-                    _ => {
-                        return Err(serde::de::Error::custom(format!(
-                            "Unexpected key: {:?}",
-                            key
-                        )))
+    impl<'de> Deserialize<'de> for RedirectUrl {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            let value = Value::deserialize(deserializer)?;
+            if value.is_object() {
+                let mut host = None;
+                let mut path = None;
+                for (key, value) in value.as_object().unwrap() {
+                    match key.as_str() {
+                        "host" => host = Some(value.as_str().unwrap().to_string()),
+                        "path" => path = Some(value.as_str().unwrap().to_string()),
+                        _ => {
+                            return Err(serde::de::Error::custom(format!(
+                                "Unexpected key: {:?}",
+                                key
+                            )))
+                        }
                     }
                 }
+                if host.is_none() && path.is_none() {
+                    return Err(serde::de::Error::custom(
+                        "Expected at least one of host or path".to_string(),
+                    ));
+                }
+                Ok(RedirectUrl { host, path })
+            } else {
+                Err(serde::de::Error::custom(format!(
+                    "Expected object, found: {:?}",
+                    value
+                )))
             }
-            if host.is_none() && path.is_none() {
-                return Err(serde::de::Error::custom(
-                    "Expected at least one of host or path".to_string(),
-                ));
-            }
-            Ok(RedirectUrl { host, path })
-        } else {
-            Err(serde::de::Error::custom(format!(
-                "Expected object, found: {:?}",
-                value
-            )))
         }
     }
-}
 }
 
 #[cfg(test)]
@@ -573,7 +575,7 @@ mod with_tempdir {
         let assets_temp_dir = create_temporary_assets_directory(Some(cfg), 7).unwrap();
         let assets_dir = assets_temp_dir.path().canonicalize()?;
 
-        let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
         for f in [
             "index.html",
             "js/index.js",

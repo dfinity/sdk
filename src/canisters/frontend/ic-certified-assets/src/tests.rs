@@ -513,11 +513,18 @@ mod test_http_redirects {
     impl State {
         fn fake_http_request(&self, host: &str, path: &str) -> HttpResponse {
             let fake_cert = [0xca, 0xfe];
-            self.http_request(
+            let resp = self.http_request(
                 RequestBuilder::get(path).with_header("Host", host).build(),
                 &fake_cert,
                 unused_callback(),
-            )
+            );
+            if resp.upgrade.map_or(false, |v| v) {
+                self.http_request_update(
+                    RequestBuilder::get(path).with_header("Host", host).build(),
+                )
+            } else {
+                resp
+            }
         }
         fn fake_http_request_with_headers(
             &self,
@@ -530,7 +537,14 @@ mod test_http_redirects {
             for header in headers {
                 request = request.with_header(header.0, header.1);
             }
-            self.http_request(request.build(), &fake_cert, unused_callback())
+            let resp = self.http_request(request.build(), &fake_cert, unused_callback());
+            if resp.upgrade.map_or(false, |v| v) {
+                self.http_request_update(
+                    RequestBuilder::get(path).with_header("Host", host).build(),
+                )
+            } else {
+                resp
+            }
         }
         fn create_test_asset(&mut self, asset: AssetBuilder) {
             create_assets(self, 100_000_000_000, vec![asset]);

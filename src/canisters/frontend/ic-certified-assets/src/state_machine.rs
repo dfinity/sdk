@@ -167,17 +167,7 @@ impl AssetRedirect {
         Some(location)
     }
 
-    fn redirect(&self, req: &HttpRequest) -> Option<HttpResponse> {
-        let r = Some(HttpResponse {
-            status_code: 200,
-            headers: vec![],
-            body: RcBytes::from(ByteBuf::from(
-                "<html><head><title>hello</title></head><body><h1>hello</h1></body></html>",
-            )),
-            streaming_strategy: None,
-            upgrade: Some(true),
-        });
-
+    fn redirect(&self, req: &HttpRequest, upgraded: bool) -> Option<HttpResponse> {
         if let Err(e) = self.is_valid() {
             return Some(HttpResponse::build_400(&e));
         }
@@ -201,12 +191,19 @@ impl AssetRedirect {
             {
                 return None;
             }
-            let upgrade =
-                req_host.and_then(|v| Some(v.contains(&".ic0.app") && !v.contains(".raw.")));
+            let upgrade = req_host.and_then(|host| {
+                let is_non_local_deployment = host.contains("ic0.app")
+                    || host.contains("ic1.app")
+                    || host.contains("ic0.local")
+                    || host.contains("ic1.local");
+                let is_certified = !host.contains(".raw.ic");
+                Some(is_non_local_deployment && is_certified)
+            });
             Some(HttpResponse::build_redirect(
                 self.response_code,
                 location.get_location_url(),
                 upgrade,
+                upgraded,
             ))
         } else {
             None
@@ -631,9 +628,9 @@ impl State {
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
-                // dbg!(&asset);
                 if let Some(redirect_config) = &asset.properties.redirect {
-                    if let Some(resp) = redirect_config.redirect(&req) {
+                    let upgraded = false;
+                    if let Some(resp) = redirect_config.redirect(&req, upgraded) {
                         return resp;
                     }
                 }
@@ -661,11 +658,11 @@ impl State {
 
         if let Some(asset) = self.assets.get(path) {
             if let Some(redirect_config) = &asset.properties.redirect {
-                if let Some(resp) = redirect_config.redirect(&req) {
+                let upgraded = false;
+                if let Some(resp) = redirect_config.redirect(&req, upgraded) {
                     return resp;
                 }
             }
-            // dbg!(&asset, path);
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
@@ -721,10 +718,7 @@ impl State {
         }
         encodings.push("identity".to_string());
 
-        let path = match req.url.find('?') {
-            Some(i) => &req.url[..i],
-            None => &req.url[..],
-        };
+        let path = req.get_path();
 
         match url_decode(path) {
             Ok(path) => {
@@ -734,6 +728,22 @@ impl State {
                 HttpResponse::build_400(&format!("failed to decode path '{}': {}", path, err))
             }
         }
+    }
+
+    pub fn http_request_update(&self, req: HttpRequest) -> HttpResponse {
+        let path = req.get_path();
+        let path = if path == "/" { INDEX_FILE } else { path };
+
+        let asset = self
+            .assets
+            .get(path)
+            .ok_or_else(|| "asset not found".to_string())
+            .unwrap();
+
+        let upgraded = true;
+
+        AssetRedirect::redirect(asset.properties.redirect.as_ref().unwrap(), &req, upgraded)
+            .unwrap()
     }
 
     pub fn http_request_streaming_callback(
@@ -912,6 +922,13 @@ fn create_token(
 }
 
 impl HttpRequest {
+    fn get_path(&self) -> &str {
+        match self.url.find('?') {
+            Some(i) => &self.url[..i],
+            None => &self.url[..],
+        }
+    }
+
     fn get_header_value(&self, header_key: &str) -> Option<&String> {
         self.headers
             .iter()
@@ -939,14 +956,18 @@ impl HttpResponse {
         if let Some(head) = certificate_header {
             headers.insert(head.0, head.1);
         }
-        if let Some(max_age) = asset.max_age {
+        if let Some(max_age) = asset.properties.max_age {
             headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
         }
-        if let Some(arg_headers) = asset.headers.as_ref() {
+        if let Some(arg_headers) = asset.properties.headers.as_ref() {
             for (k, v) in arg_headers {
                 headers.insert(k.to_owned().to_lowercase(), v.to_owned());
             }
         }
+
+        let streaming_strategy = create_token(asset, enc_name, enc, key, chunk_index)
+            .map(|token| StreamingStrategy::Callback { callback, token });
+
         let (status_code, body) = if etags.contains(&enc.sha256) {
             (304, RcBytes::default())
         } else {
@@ -962,6 +983,7 @@ impl HttpResponse {
             headers: headers.into_iter().collect::<_>(),
             body,
             streaming_strategy,
+            upgrade: None,
         }
     }
 
@@ -969,6 +991,7 @@ impl HttpResponse {
         status_code: u16,
         location: String,
         upgrade: Option<bool>,
+        upgraded: bool,
     ) -> HttpResponse {
         if ![300, 301, 302, 303, 304, 307, 308].contains(&status_code) {
             return HttpResponse::build_400(&format!(
@@ -976,24 +999,23 @@ impl HttpResponse {
                 status_code
             ));
         }
-        // if let Some(up) = upgrade {
-        return HttpResponse {
-            status_code: 200,
-            headers: vec![],
-            body: RcBytes::from(ByteBuf::from(
-                "<html><head><title>hello</title></head><body><h1>hello</h1></body></html>",
-            )),
-            streaming_strategy: None,
-            upgrade: Some(true),
-        };
-        // }
-        // HttpResponse {
-        //     status_code,
-        //     headers: vec![("Location".to_string(), location)],
-        //     body: RcBytes::from(ByteBuf::default()),
-        //     streaming_strategy: None,
-        //     upgrade,
-        // }
+        if upgrade.map_or(false, |v| v) && !upgraded {
+            HttpResponse {
+                status_code: 200,
+                headers: vec![],
+                body: RcBytes::from(ByteBuf::new()),
+                streaming_strategy: None,
+                upgrade,
+            }
+        } else {
+            HttpResponse {
+                status_code,
+                headers: vec![("Location".to_string(), location)],
+                body: RcBytes::from(ByteBuf::default()),
+                streaming_strategy: None,
+                upgrade,
+            }
+        }
     }
 
     fn build_400(err_msg: &str) -> Self {
