@@ -509,9 +509,13 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 3e1be1316341811db5c9300935c4236bfab8fa2a.
-This incorporates the following executed proposals:
+Updated replica to release candidate 93dcf2a2026c34330c76149dd713d89e37daa533.
 
+This also incorporates the following executed proposals:
+
+- [88831](https://dashboard.internetcomputer.org/proposal/88831)
+- [88629](https://dashboard.internetcomputer.org/proposal/88629)
+- [88109](https://dashboard.internetcomputer.org/proposal/88109)
 - [87631](https://dashboard.internetcomputer.org/proposal/87631)
 - [86738](https://dashboard.internetcomputer.org/proposal/86738)
 - [86279](https://dashboard.internetcomputer.org/proposal/86279)
