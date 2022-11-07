@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.12.0-beta.7"
+version = "0.12.0"
 authors = ["DFINITY Team"]
 edition = "2021"
 build = "assets/build.rs"
