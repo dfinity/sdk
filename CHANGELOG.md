@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.12.0
+
 ## DFX
 
 ### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
