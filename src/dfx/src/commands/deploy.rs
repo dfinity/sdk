@@ -6,6 +6,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, identity::Identity, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::expiry_duration;
+use crate::NetworkOpt;
 use std::collections::BTreeMap;
 
 use crate::lib::canister_info::CanisterInfo;
@@ -52,12 +53,8 @@ pub struct DeployOpts {
     #[clap(long)]
     upgrade_unchanged: bool,
 
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[clap(long)]
-    network: Option<String>,
+    #[clap(flatten)]
+    network: NetworkOpt,
 
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
@@ -74,10 +71,15 @@ pub struct DeployOpts {
     /// Bypasses the Wallet canister.
     #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
+
+    /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
+    /// so this is not recommended outside of CI.
+    #[clap(long, short)]
+    yes: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network)?;
+    let env = create_agent_environment(env, opts.network.network)?;
 
     let timeout = expiry_duration();
     let canister_name = opts.canister_name.as_deref();
@@ -113,7 +115,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
             &env,
             env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
-            false,
         ))?;
         proxy_sender = CallSender::Wallet(*wallet.canister_id_());
         &proxy_sender
@@ -133,6 +134,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         with_cycles,
         &call_sender,
         create_call_sender,
+        opts.yes,
     ))?;
 
     display_urls(&env)

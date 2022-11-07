@@ -12,7 +12,6 @@ use crate::util::{blob_from_arguments, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
-use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
@@ -21,7 +20,6 @@ use slog::info;
 use std::convert::TryFrom;
 use std::time::Duration;
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
     env: &dyn Environment,
@@ -34,6 +32,7 @@ pub async fn deploy_canisters(
     with_cycles: Option<&str>,
     call_sender: &CallSender,
     create_call_sender: &CallSender,
+    skip_consent: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -44,7 +43,7 @@ pub async fn deploy_canisters(
 
     let network = env.get_network_descriptor();
 
-    let canisters_to_build = canister_with_dependencies(&config, some_canister)?;
+    let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
@@ -59,19 +58,17 @@ pub async fn deploy_canisters(
             None => bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."),
         }
     } else {
-        canisters_to_build.clone()
-    };
-    let canisters_to_deploy: Vec<String> = canisters_to_deploy
-        .into_iter()
-        .filter(|canister_name| {
-            !matches!(
-                config
+        canisters_to_load
+            .clone()
+            .into_iter()
+            .filter(|canister_name| {
+                !config
                     .get_config()
-                    .get_remote_canister_id(canister_name, &network.name),
-                Ok(Some(_))
-            )
-        })
-        .collect();
+                    .is_remote_canister(canister_name, &env.get_network_descriptor().name)
+                    .unwrap_or(false)
+            })
+            .collect()
+    };
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
@@ -81,7 +78,7 @@ pub async fn deploy_canisters(
 
     register_canisters(
         env,
-        &canisters_to_build,
+        &canisters_to_deploy,
         &initial_canister_id_store,
         timeout,
         with_cycles,
@@ -90,7 +87,7 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    let pool = build_canisters(env, &canisters_to_build, &config)?;
+    let pool = build_canisters(env, &canisters_to_load, &canisters_to_deploy, &config).await?;
 
     install_canisters(
         env,
@@ -104,6 +101,7 @@ pub async fn deploy_canisters(
         timeout,
         call_sender,
         pool,
+        skip_consent,
     )
     .await?;
 
@@ -124,6 +122,7 @@ fn canister_with_dependencies(
     Ok(canister_names)
 }
 
+/// Creates canisters that have not been created yet.
 #[context("Failed while trying to register all canisters.")]
 async fn register_canisters(
     env: &dyn Environment,
@@ -191,20 +190,23 @@ async fn register_canisters(
 }
 
 #[context("Failed to build call canisters.")]
-fn build_canisters(
+async fn build_canisters(
     env: &dyn Environment,
-    canister_names: &[String],
+    referenced_canisters: &[String],
+    canisters_to_build: &[String],
     config: &Config,
 ) -> DfxResult<CanisterPool> {
-    info!(env.get_logger(), "Building canisters...");
+    let log = env.get_logger();
+    info!(log, "Building canisters...");
     let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, canister_names)?;
+    let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
 
-    canister_pool.build_or_fail(&BuildConfig::from_config(config)?)?;
+    let build_config =
+        BuildConfig::from_config(config)?.with_canisters_to_build(canisters_to_build.into());
+    canister_pool.build_or_fail(log, &build_config).await?;
     Ok(canister_pool)
 }
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed while trying to install all canisters.")]
 async fn install_canisters(
     env: &dyn Environment,
@@ -218,6 +220,7 @@ async fn install_canisters(
     timeout: Duration,
     call_sender: &CallSender,
     pool: CanisterPool,
+    skip_consent: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -228,35 +231,20 @@ async fn install_canisters(
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
 
     for canister_name in canister_names {
-        let (install_mode, installed_module_hash) = if force_reinstall {
-            (InstallMode::Reinstall, None)
+        let install_mode = if force_reinstall {
+            Some(InstallMode::Reinstall)
         } else {
             match initial_canister_id_store.find(canister_name) {
-                Some(canister_id) => {
-                    match agent
-                        .read_state_canister_info(canister_id, "module_hash", false)
-                        .await
-                    {
-                        Ok(installed_module_hash) => {
-                            (InstallMode::Upgrade, Some(installed_module_hash))
-                        }
-                        // If the canister is empty, this path does not exist.
-                        // The replica doesn't support negative lookups, therefore if the canister
-                        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-                        Err(AgentError::LookupPathUnknown(_))
-                        | Err(AgentError::LookupPathAbsent(_)) => (InstallMode::Install, None),
-                        Err(x) => bail!(x),
-                    }
-                }
-                None => (InstallMode::Install, None),
+                Some(_) => None,
+                None => Some(InstallMode::Install),
             }
         };
 
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
-        let maybe_path = canister_info.get_output_idl_path();
-        let init_type = maybe_path.and_then(|path| get_candid_init_type(&path));
+        let idl_path = canister_info.get_build_idl_path();
+        let init_type = get_candid_init_type(&idl_path);
         let install_args = || blob_from_arguments(argument, None, argument_type, &init_type);
 
         install_canister(
@@ -268,9 +256,9 @@ async fn install_canisters(
             install_mode,
             timeout,
             call_sender,
-            installed_module_hash,
             upgrade_unchanged,
             Some(&pool),
+            skip_consent,
         )
         .await?;
     }

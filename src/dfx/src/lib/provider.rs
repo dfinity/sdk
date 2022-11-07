@@ -1,6 +1,6 @@
 use crate::config::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
-    DEFAULT_LOCAL_BIND,
+    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
@@ -13,10 +13,14 @@ use crate::util::{self, expiry_duration};
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
+use garcon::{Delay, Waiter};
+use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
+use ic_agent::Agent;
 use lazy_static::lazy_static;
-use slog::{info, warn, Logger};
+use slog::{debug, info, warn, Logger};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 use url::Url;
 
 lazy_static! {
@@ -56,6 +60,8 @@ fn config_network_to_network_descriptor(
     local_scope: LocalNetworkScopeDescriptor,
     ephemeral_wallet_config_path: &Path,
     local_bind_determination: &LocalBindDetermination,
+    default_local_bind: &str,
+    legacy_pid_path: Option<PathBuf>,
 ) -> DfxResult<NetworkDescriptor> {
     match config_network {
         ConfigNetwork::ConfigNetworkProvider(network_provider) => {
@@ -107,8 +113,12 @@ fn config_network_to_network_descriptor(
 
             let network_type =
                 NetworkTypeDescriptor::new(local_provider.r#type, ephemeral_wallet_config_path);
-            let bind_address =
-                get_local_bind_address(local_provider, local_bind_determination, &data_directory)?;
+            let bind_address = get_local_bind_address(
+                local_provider,
+                local_bind_determination,
+                &data_directory,
+                default_local_bind,
+            )?;
             let provider_url = format!("http://{}", bind_address);
             let providers = vec![parse_provider_url(&provider_url)?];
             let local_server_descriptor = LocalServerDescriptor::new(
@@ -119,6 +129,7 @@ fn config_network_to_network_descriptor(
                 canister_http,
                 replica,
                 local_scope,
+                legacy_pid_path,
             )?;
             Ok(NetworkDescriptor {
                 name: network_name.to_string(),
@@ -219,7 +230,7 @@ fn create_shared_network_descriptor(
             }
 
             Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
-                bind: String::from(DEFAULT_LOCAL_BIND),
+                bind: Some(String::from(DEFAULT_SHARED_LOCAL_BIND)),
                 r#type: NetworkType::Ephemeral,
                 bitcoin: None,
                 bootstrap: None,
@@ -229,14 +240,14 @@ fn create_shared_network_descriptor(
         }
         (network_name, None) => {
             if shared_config_file_exists {
-                info!(
+                debug!(
                     logger,
                     "There is no shared network '{}' defined in {}",
                     &shared_config_display_path,
                     network_name
                 );
             } else {
-                info!(
+                debug!(
                     logger,
                     "There is no shared network '{}' because {} does not exist.",
                     network_name,
@@ -248,7 +259,7 @@ fn create_shared_network_descriptor(
         (network_name, Some(network)) => {
             info!(
                 logger,
-                "Found shared network '{}' in {}",
+                "Using shared network '{}' defined in {}",
                 network_name,
                 shared_config.get_path().display()
             );
@@ -270,6 +281,8 @@ fn create_shared_network_descriptor(
             local_scope,
             &ephemeral_wallet_config_path,
             local_bind_determination,
+            DEFAULT_SHARED_LOCAL_BIND,
+            None,
         )
     })
 }
@@ -284,7 +297,7 @@ fn create_project_network_descriptor(
         if let Some(config_network) = config.get_config().get_network(network_name) {
             info!(
                 logger,
-                "Found project-specific network '{}' in {}",
+                "Using project-specific network '{}' defined in {}",
                 network_name,
                 config.get_path().display(),
             );
@@ -294,6 +307,7 @@ fn create_project_network_descriptor(
             );
 
             let data_directory = config.get_temp_path().join("network").join(network_name);
+            let legacy_pid_path = Some(config.get_temp_path().join("pid"));
             let ephemeral_wallet_config_path = config
                 .get_temp_path()
                 .join("local")
@@ -306,18 +320,20 @@ fn create_project_network_descriptor(
                 LocalNetworkScopeDescriptor::Project,
                 &ephemeral_wallet_config_path,
                 local_bind_determination,
+                DEFAULT_PROJECT_LOCAL_BIND,
+                legacy_pid_path,
             ))
         } else {
-            info!(
+            debug!(
                 logger,
-                "There is no project-specific network '{}' defined in {}.",
+                "There is no project-specific network '{}' defined in {}",
                 network_name,
                 config.get_path().display()
             );
             None
         }
     } else {
-        info!(
+        debug!(
             logger,
             "There is no project-specific network '{}' because there is no project (no dfx.json).",
             network_name
@@ -330,11 +346,15 @@ fn get_local_bind_address(
     local_provider: &ConfigLocalProvider,
     local_bind_determination: &LocalBindDetermination,
     data_directory: &Path,
+    default_local_bind: &str,
 ) -> DfxResult<String> {
     match local_bind_determination {
-        LocalBindDetermination::AsConfigured => Ok(local_provider.bind.clone()),
+        LocalBindDetermination::AsConfigured => Ok(local_provider
+            .bind
+            .clone()
+            .unwrap_or_else(|| default_local_bind.to_string())),
         LocalBindDetermination::ApplyRunningWebserverPort => {
-            get_running_webserver_bind_address(data_directory, local_provider)
+            get_running_webserver_bind_address(data_directory, local_provider, default_local_bind)
         }
     }
 }
@@ -342,7 +362,12 @@ fn get_local_bind_address(
 fn get_running_webserver_bind_address(
     data_directory: &Path,
     local_provider: &ConfigLocalProvider,
+    default_local_bind: &str,
 ) -> DfxResult<String> {
+    let local_bind = local_provider
+        .bind
+        .clone()
+        .unwrap_or_else(|| default_local_bind.to_string());
     let path = data_directory.join("webserver-port");
     if path.exists() {
         let s = std::fs::read_to_string(&path).with_context(|| {
@@ -353,7 +378,7 @@ fn get_running_webserver_bind_address(
         })?;
         let s = s.trim();
         if s.is_empty() {
-            Ok(local_provider.bind.clone())
+            Ok(local_bind)
         } else {
             let port = s.parse::<u16>().with_context(|| {
                 format!(
@@ -364,14 +389,14 @@ fn get_running_webserver_bind_address(
             // converting to a socket address, and then setting the port,
             // will unfortunately transform "localhost:port" to "[::1]:{port}",
             // which the agent fails to connect with.
-            let host = match local_provider.bind.rfind(':') {
-                None => local_provider.bind.clone(),
-                Some(index) => local_provider.bind[0..index].to_string(),
+            let host = match local_bind.rfind(':') {
+                None => local_bind.clone(),
+                Some(index) => local_bind[0..index].to_string(),
             };
             Ok(format!("{}:{}", host, port))
         }
     } else {
-        Ok(local_provider.bind.clone())
+        Ok(local_bind)
     }
 }
 
@@ -408,13 +433,43 @@ pub fn parse_provider_url(url: &str) -> DfxResult<String> {
         .with_context(|| format!("Cannot parse provider URL {}.", url))
 }
 
+pub async fn ping_and_wait(url: &str) -> DfxResult {
+    let agent = Agent::builder()
+        .with_transport(
+            ReqwestHttpReplicaV2Transport::create(url)
+                .with_context(|| format!("Failed to create replica transport from url {url}.",))?,
+        )
+        .build()
+        .with_context(|| format!("Failed to build agent with url {url}."))?;
+    let mut waiter = Delay::builder()
+        .timeout(Duration::from_secs(60))
+        .throttle(Duration::from_secs(1))
+        .build();
+    waiter.start();
+    loop {
+        let status = agent.status().await;
+        if let Ok(status) = &status {
+            let healthy = match &status.replica_health_status {
+                Some(status) if status == "healthy" => true,
+                None => true, // emulator doesn't report replica_health_status
+                _ => false,
+            };
+            if healthy {
+                break;
+            }
+        }
+        waiter.wait().map_err(|_| status.unwrap_err())?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
     use crate::config::dfinity::{
         to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
-        ConfigDefaultsReplica,
+        ConfigDefaultsReplica, ReplicaLogLevel,
     };
     use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
     use std::fs;
@@ -628,7 +683,7 @@ mod tests {
                 .local_server_descriptor()
                 .unwrap()
                 .bind_address,
-            to_socket_addr("127.0.0.1:8000").unwrap()
+            to_socket_addr("127.0.0.1:4943").unwrap()
         );
     }
 
@@ -653,7 +708,7 @@ mod tests {
                 .local_server_descriptor()
                 .unwrap()
                 .bind_address,
-            to_socket_addr("127.0.0.1:8000").unwrap()
+            to_socket_addr("127.0.0.1:4943").unwrap()
         );
     }
 
@@ -834,7 +889,8 @@ mod tests {
                   "bind": "127.0.0.1:8000",
                   "replica": {
                     "subnet_type": "verifiedapplication",
-                    "port": 17001
+                    "port": 17001,
+                    "log_level": "trace"
                   }
                 }
               }
@@ -859,7 +915,8 @@ mod tests {
             replica_config,
             &ConfigDefaultsReplica {
                 subnet_type: Some(VerifiedApplication),
-                port: Some(17001)
+                port: Some(17001),
+                log_level: Some(ReplicaLogLevel::Trace)
             }
         );
     }
@@ -905,7 +962,8 @@ mod tests {
             replica_config,
             &ConfigDefaultsReplica {
                 subnet_type: Some(System),
-                port: None
+                port: None,
+                log_level: None
             }
         );
     }
@@ -918,7 +976,8 @@ mod tests {
                 "local": {
                   "bind": "127.0.0.1:8000",
                   "canister_http": {
-                    "enabled": true
+                    "enabled": true,
+                    "log_level": "debug"
                   }
                 }
               }
@@ -941,7 +1000,10 @@ mod tests {
 
         assert_eq!(
             canister_http_config,
-            &ConfigDefaultsCanisterHttp { enabled: true }
+            &ConfigDefaultsCanisterHttp {
+                enabled: true,
+                log_level: crate::lib::canister_http::adapter::config::HttpAdapterLogLevel::Debug
+            }
         );
     }
 

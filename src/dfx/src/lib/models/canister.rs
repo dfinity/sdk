@@ -1,22 +1,26 @@
-use crate::config::dfinity::Config;
+use crate::config::dfinity::{Config, MetadataVisibility};
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
+    WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::metadata::names::CANDID_SERVICE;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
 
-use crate::lib::wasm::metadata::add_candid_service_metadata;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
+use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
+use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
 use std::io::Read;
 use std::path::Path;
@@ -96,6 +100,82 @@ impl Canister {
     pub fn generate(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
         self.builder.generate(pool, &self.info, build_config)
     }
+
+    #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
+    pub(crate) fn apply_metadata(&self, logger: &Logger) -> DfxResult {
+        let metadata = self.info.metadata();
+        if metadata.sections.is_empty() {
+            return Ok(());
+        }
+
+        let wasm_path = self.info.get_build_wasm_path();
+        let idl_path = self.info.get_build_idl_path();
+
+        if !is_wasm_format(&wasm_path)? {
+            warn!(
+                logger,
+                "Canister '{}': cannot apply metadata because the canister is not wasm format",
+                self.info.get_name()
+            );
+            return Ok(());
+        }
+
+        let mut m = std::fs::read(&wasm_path)
+            .with_context(|| format!("Failed to read wasm at {}", wasm_path.display()))?;
+
+        for (name, section) in &metadata.sections {
+            if section.name == CANDID_SERVICE && self.info.is_motoko() {
+                if let Some(specified_path) = &section.path {
+                    check_valid_subtype(&idl_path, specified_path)?
+                } else {
+                    // Motoko compiler handles this
+                    continue;
+                }
+            }
+
+            let metadata_path = match section.path.as_ref() {
+                Some(path) => path,
+                None if section.name == CANDID_SERVICE => &idl_path,
+                _ => bail!(
+                    "Metadata section must specify a path.  section: {:?}",
+                    &section
+                ),
+            };
+
+            let data = std::fs::read(&metadata_path)
+                .with_context(|| format!("Failed to read {}", metadata_path.to_string_lossy()))?;
+
+            let visibility = match section.visibility {
+                MetadataVisibility::Public => Kind::Public,
+                MetadataVisibility::Private => Kind::Private,
+            };
+
+            // if the metadata already exists in the wasm with a different visibility,
+            // then we have to remove it
+            m = remove_metadata(&m, name)?;
+
+            m = add_metadata(&m, visibility, name, data)?;
+        }
+
+        std::fs::write(&wasm_path, &m)
+            .with_context(|| format!("Could not write WASM to {:?}", wasm_path))
+    }
+}
+
+#[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
+fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
+    let (mut env, opt_specified) =
+        check_candid_file(specified_idl_path).context("Checking specified candid file.")?;
+    let specified_type =
+        opt_specified.expect("Specified did file should contain some service interface");
+    let (env2, opt_compiled) =
+        check_candid_file(compiled_idl_path).context("Checking compiled candid file.")?;
+    let compiled_type =
+        opt_compiled.expect("Compiled did file should contain some service interface");
+    let mut gamma = HashSet::new();
+    let specified_type = env.merge_type(env2, specified_type);
+    candid::types::subtype::subtype(&mut gamma, &env, &compiled_type, &specified_type)?;
+    Ok(())
 }
 
 /// A canister pool is a list of canisters.
@@ -237,8 +317,43 @@ impl CanisterPool {
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, _build_config: &BuildConfig) -> DfxResult<()> {
-        if self.canisters.iter().any(|can| can.info.is_rust()) {
+    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+        // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
+        // Because remote canisters don't get built (and the did file not output in the right place) the .did files have to be copied over manually.
+        for canister in self.canisters.iter().filter(|c| c.info.is_remote()) {
+            let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
+                Some(remote_candid)
+            } else {
+                canister.info.get_output_idl_path()
+            };
+            if let Some(from) = maybe_from.as_ref() {
+                if from.exists() {
+                    let to = build_config.idl_root.join(format!(
+                        "{}.did",
+                        canister.info.get_canister_id()?.to_text()
+                    ));
+                    if std::fs::copy(&from, &to).is_err() {
+                        warn!(
+                                    log,
+                                    "Failed to copy canister candid from {} to {}. This may produce errors during the build.",
+                                    from.to_string_lossy(),
+                                    to.to_string_lossy()
+                                );
+                    }
+                } else {
+                    warn!(log, ".did file for canister '{}' does not exist at {}. This may result in errors during the build.", canister.get_name(), from.to_string_lossy());
+                }
+            } else {
+                warn!(log, "Failed to find a configured .did file for canister '{}'. Not specifying that field may result in errors during the build.", canister.get_name());
+            }
+        }
+
+        // cargo audit
+        if self
+            .canisters_to_build(build_config)
+            .iter()
+            .any(|can| can.info.is_rust())
+        {
             self.run_cargo_audit()?;
         } else {
             trace!(
@@ -246,6 +361,7 @@ impl CanisterPool {
                 "No canister of type 'rust' found. Not trying to run 'cargo audit'."
             )
         }
+
         Ok(())
     }
 
@@ -279,7 +395,14 @@ impl CanisterPool {
             })?;
             std::fs::copy(&build_idl_path, &idl_file_path)
                 .map(|_| {})
-                .map_err(DfxError::from)?;
+                .map_err(DfxError::from)
+                .with_context(|| {
+                    format!(
+                        "Failed to copy {} to {}",
+                        build_idl_path.display(),
+                        idl_file_path.display()
+                    )
+                })?;
 
             let mut perms = std::fs::metadata(&idl_file_path)
                 .with_context(|| {
@@ -327,9 +450,8 @@ impl CanisterPool {
                 )
             })?;
         }
-        if build_output.add_candid_service_metadata {
-            add_candid_service_metadata(&wasm_file_path, &idl_file_path)?;
-        }
+
+        canister.apply_metadata(self.get_logger())?;
 
         let canister_id = canister.canister_id();
 
@@ -360,7 +482,7 @@ impl CanisterPool {
     ) -> DfxResult<()> {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
-        for canister in &self.canisters {
+        for canister in self.canisters_to_build(build_config) {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id();
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
@@ -376,9 +498,10 @@ impl CanisterPool {
     #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
+        log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(build_config)
+        self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let graph = self.build_dependencies_graph()?;
@@ -398,9 +521,20 @@ impl CanisterPool {
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
 
+        let canisters_to_build = self.canisters_to_build(build_config);
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
+                if canisters_to_build
+                    .iter()
+                    .map(|c| c.get_name())
+                    .contains(&canister.get_name())
+                {
+                    trace!(log, "Building canister '{}'.", canister.get_name());
+                } else {
+                    trace!(log, "Not building canister '{}'.", canister.get_name());
+                    continue;
+                }
                 result.push(
                     self.step_prebuild(build_config, canister)
                         .map_err(|e| {
@@ -443,13 +577,25 @@ impl CanisterPool {
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
     #[context("Failed while trying to build all canisters.")]
-    pub fn build_or_fail(&self, build_config: &BuildConfig) -> DfxResult<()> {
-        let outputs = self.build(build_config)?;
+    pub async fn build_or_fail(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+        self.download(build_config).await?;
+        let outputs = self.build(log, build_config)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
         }
 
+        Ok(())
+    }
+
+    async fn download(&self, build_config: &BuildConfig) -> DfxResult {
+        for canister in self.canisters_to_build(build_config) {
+            let info = canister.get_info();
+
+            if info.is_custom() {
+                custom_download(info, self).await?;
+            }
+        }
         Ok(())
     }
 
@@ -504,6 +650,17 @@ impl CanisterPool {
             warn!(self.logger, "Cannot check for vulnerabilities in rust canisters because cargo-audit is not installed. Please run 'cargo install cargo-audit' so that vulnerabilities can be detected.");
         }
         Ok(())
+    }
+
+    pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
+        if let Some(canister_names) = &build_config.canisters_to_build {
+            self.canisters
+                .iter()
+                .filter(|can| canister_names.contains(&can.info.get_name().to_string()))
+                .collect()
+        } else {
+            self.canisters.iter().collect()
+        }
     }
 }
 
@@ -576,6 +733,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
             }
             // skip
             "index.js.hbs" => {}
+            "index.d.ts.hbs" => {}
             _ => unreachable!(),
         }
     }

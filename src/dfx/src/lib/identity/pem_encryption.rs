@@ -3,9 +3,9 @@ use std::path::Path;
 use crate::lib::error::DfxResult;
 
 use super::identity_manager::EncryptionConfiguration;
-use super::identity_utils;
 use super::IdentityConfiguration;
 
+use crate::lib::identity::pem_encryption::PromptMode::{DecryptingToUse, EncryptingToCreate};
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use anyhow::{anyhow, Context};
@@ -13,15 +13,18 @@ use argon2::{password_hash::PasswordHasher, Argon2};
 use fn_error_context::context;
 
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
+/// Returns the pem and whether the original was encrypted.
 ///
 /// Try to only load the pem file once, as the user may be prompted for the password every single time you call this function.
 #[context("Failed to load pem file {}.", path.to_string_lossy())]
-pub fn load_pem_file(path: &Path, config: Option<&IdentityConfiguration>) -> DfxResult<Vec<u8>> {
+pub fn load_pem_file(
+    path: &Path,
+    config: Option<&IdentityConfiguration>,
+) -> DfxResult<(Vec<u8>, bool)> {
     let content = std::fs::read(path)
         .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
-    let content = maybe_decrypt_pem(content.as_slice(), config)?;
-    identity_utils::validate_pem_file(&content)?;
-    Ok(content)
+    let (content, was_encrypted) = maybe_decrypt_pem(content.as_slice(), config)?;
+    Ok((content, was_encrypted))
 }
 
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
@@ -50,6 +53,7 @@ pub fn write_pem_file(
         .with_context(|| format!("Failed to read permissions of {}.", path.to_string_lossy()))?
         .permissions();
     permissions.set_readonly(true);
+    // On *nix, set the read permission to owner-only.
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -74,7 +78,7 @@ fn maybe_encrypt_pem(
     config: Option<&IdentityConfiguration>,
 ) -> DfxResult<Vec<u8>> {
     if let Some(encryption_config) = config.and_then(|c| c.encryption.as_ref()) {
-        let password = password_prompt()?;
+        let password = password_prompt(EncryptingToCreate)?;
         let result = encrypt(pem_content, encryption_config, &password);
         println!("Encryption complete.");
         result
@@ -89,29 +93,38 @@ fn maybe_encrypt_pem(
 ///
 /// If the pem file should not be encrypted, then the content is returned as is.
 ///
+/// Additionally returns whether or not it was necessary to decrypt the file.
+///
 /// `maybe_encrypt_pem` does the opposite.
 #[context("Failed to decrypt pem file.")]
 fn maybe_decrypt_pem(
     pem_content: &[u8],
     config: Option<&IdentityConfiguration>,
-) -> DfxResult<Vec<u8>> {
+) -> DfxResult<(Vec<u8>, bool)> {
     if let Some(decryption_config) = config.and_then(|c| c.encryption.as_ref()) {
-        let password = password_prompt()?;
-        let result = decrypt(pem_content, decryption_config, &password);
-        if result.is_ok() {
-            // print to stderr so that output redirection works for the identity export command
-            eprintln!("Decryption complete.");
-        };
-        result
+        let password = password_prompt(DecryptingToUse)?;
+        let pem = decrypt(pem_content, decryption_config, &password)?;
+        // print to stderr so that output redirection works for the identity export command
+        eprintln!("Decryption complete.");
+        Ok((pem, true))
     } else {
-        Ok(Vec::from(pem_content))
+        Ok((Vec::from(pem_content), false))
     }
 }
 
+enum PromptMode {
+    EncryptingToCreate,
+    DecryptingToUse,
+}
+
 #[context("Failed to prompt user for password.")]
-fn password_prompt() -> DfxResult<String> {
+fn password_prompt(mode: PromptMode) -> DfxResult<String> {
+    let prompt = match mode {
+        PromptMode::EncryptingToCreate => "Please enter a passphrase for your identity",
+        PromptMode::DecryptingToUse => "Please enter the passphrase for your identity",
+    };
     let pw = dialoguer::Password::new()
-        .with_prompt("Please enter a passphrase for your identity")
+        .with_prompt(prompt)
         .interact()
         .context("Failed to read user input.")?;
     Ok(pw)

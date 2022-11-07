@@ -12,6 +12,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
+use bip39::{Language, Mnemonic};
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
@@ -60,6 +61,10 @@ struct WalletGlobalConfig {
 pub struct Identity {
     /// The name of this Identity.
     name: String,
+
+    /// Whether this identity is stored in unencrypted form.
+    /// False for identities that are not stored at all.
+    pub insecure: bool,
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
@@ -132,20 +137,22 @@ impl Identity {
         match parameters {
             IdentityCreationParameters::Pem { disable_encryption } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
-                let pem_content = identity_manager::generate_key()?;
+                let (pem_content, mnemonic) = identity_manager::generate_key()?;
                 let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 pem_encryption::write_pem_file(
                     &pem_file,
                     Some(&identity_config),
                     pem_content.as_slice(),
                 )?;
+                eprintln!("Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
             }
             IdentityCreationParameters::PemFile {
                 src_pem_file,
                 disable_encryption,
             } => {
                 identity_config.encryption = create_encryption_config(disable_encryption)?;
-                let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
+                let (src_pem_content, _) = pem_encryption::load_pem_file(&src_pem_file, None)?;
+                identity_utils::validate_pem_file(&src_pem_content)?;
                 let dst_pem_file =
                     manager.get_identity_pem_path(&temp_identity_name, &identity_config);
                 pem_encryption::write_pem_file(
@@ -157,6 +164,20 @@ impl Identity {
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config.hsm = Some(hsm);
                 create(&temp_identity_dir)?;
+            }
+            IdentityCreationParameters::SeedPhrase {
+                mnemonic,
+                disable_encryption,
+            } => {
+                identity_config.encryption = create_encryption_config(disable_encryption)?;
+                let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
+                let key = identity_manager::mnemonic_to_key(&mnemonic)?;
+                let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
+                pem_encryption::write_pem_file(
+                    &pem_file,
+                    Some(&identity_config),
+                    key.to_pem(k256::pkcs8::LineEnding::CRLF)?.as_bytes(),
+                )?;
             }
         }
         identity_manager::write_identity_configuration(
@@ -185,6 +206,7 @@ impl Identity {
         Self {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
+            insecure: false,
             dir: PathBuf::new(),
         }
     }
@@ -193,6 +215,7 @@ impl Identity {
         manager: &IdentityManager,
         name: &str,
         pem_content: &[u8],
+        was_encrypted: bool,
     ) -> DfxResult<Self> {
         let inner = Box::new(BasicIdentity::from_pem(pem_content).map_err(|e| {
             DfxError::new(IdentityError::CannotReadIdentityFile(
@@ -205,6 +228,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: !was_encrypted,
         })
     }
 
@@ -212,6 +236,7 @@ impl Identity {
         manager: &IdentityManager,
         name: &str,
         pem_content: &[u8],
+        was_encrypted: bool,
     ) -> DfxResult<Self> {
         let inner = Box::new(Secp256k1Identity::from_pem(pem_content).map_err(|e| {
             DfxError::new(IdentityError::CannotReadIdentityFile(
@@ -224,6 +249,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: !was_encrypted,
         })
     }
 
@@ -245,6 +271,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: false,
         })
     }
 
@@ -263,10 +290,15 @@ impl Identity {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
             let pem_path = manager.load_identity_pem_path(name)?;
-            let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+            let (pem_content, was_encrypted) =
+                pem_encryption::load_pem_file(&pem_path, Some(&config))?;
 
-            Identity::load_secp256k1_identity(manager, name, &pem_content)
-                .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))
+            Identity::load_secp256k1_identity(manager, name, &pem_content, was_encrypted).or_else(
+                |e| {
+                    Identity::load_basic_identity(manager, name, &pem_content, was_encrypted)
+                        .map_err(|_| e)
+                },
+            )
         }
     }
 
@@ -548,17 +580,17 @@ impl Identity {
     /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
+    /// This can be inhibited by setting the DFX_DISABLE_AUTO_WALLET env var.
     #[context("Failed to get wallet for identity '{}' on network '{}'.", name, network.name)]
     pub async fn get_or_create_wallet(
         env: &dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
-        create: bool,
     ) -> DfxResult<Principal> {
         match Identity::wallet_canister_id(network, name)? {
             None => {
                 // If the network is not the IC, we ignore the error and create a new wallet for the identity.
-                if !network.is_ic || create {
+                if !network.is_ic && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err() {
                     Identity::create_wallet(env, network, name, None).await
                 } else {
                     Err(DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
@@ -612,15 +644,15 @@ impl Identity {
     /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
     ///
     /// While developing locally, this always creates a new wallet, even if `create` is false.
+    /// This can be inhibited by setting the DFX_DISABLE_AUTO_WALLET env var.
     #[allow(clippy::needless_lifetimes)]
     #[context("Failed to get wallet canister caller for identity '{}' on network '{}'.", name, network.name)]
     pub async fn get_or_create_wallet_canister<'env>(
         env: &'env dyn Environment,
         network: &NetworkDescriptor,
         name: &str,
-        create: bool,
     ) -> DfxResult<WalletCanister<'env>> {
-        let wallet_canister_id = Identity::get_or_create_wallet(env, network, name, create).await?;
+        let wallet_canister_id = Identity::get_or_create_wallet(env, network, name).await?;
         Identity::build_wallet_canister(wallet_canister_id, env).await
     }
 }

@@ -76,7 +76,7 @@ frank'
     assert_command dfx identity new --disable-encryption alice
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
 
     # does not change the default identity
     assert_command dfx identity whoami
@@ -120,6 +120,11 @@ frank'
     assert_match "Key id must consist of an even number of hex digits"
 }
 
+@test "identity new: key is compatible with openssl" {
+    assert_command dfx identity new --disable-encryption bob
+    assert_command openssl ec -in "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
+}
+
 ##
 ## dfx identity remove
 ##
@@ -129,7 +134,7 @@ frank'
     assert_command dfx identity new --disable-encryption alice
 
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     assert_command dfx identity list
     assert_match \
 'alice
@@ -168,7 +173,7 @@ default'
     assert_command_fail dfx identity remove alice
 
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     assert_command dfx identity list
     assert_match \
 'alice
@@ -211,7 +216,7 @@ default'
 anonymous
 default'
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     x=$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem")
     local key="$x"
 
@@ -225,7 +230,7 @@ bob
 default'
     assert_command cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_eq "$key" "$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem")"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 }
 
@@ -236,7 +241,7 @@ default'
     assert_command dfx identity list
     assert_match 'bob'
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
 
     assert_command dfx identity whoami
     assert_eq 'bob'
@@ -262,7 +267,7 @@ default'
     assert_eq 'charlie'
 
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/charlie/identity.pem"
-    assert_match "BEGIN PRIVATE KEY"
+    assert_match "BEGIN EC PRIVATE KEY"
     assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 }
 
@@ -427,7 +432,7 @@ default'
     echo -n 1 >> bob.pem
     tail -n 3 alice.pem > bob.pem
     assert_command_fail dfx identity import --disable-encryption bob bob.pem
-    assert_match 'Invalid Ed25519 private key in PEM file' "$stderr"
+    assert_match 'Failed to validate PEM content' "$stderr"
 }
 
 @test "identity: can import an EC key without an EC PARAMETERS section (as quill generate makes)" {
@@ -451,4 +456,22 @@ XXX
     dfx identity export alice > export.pem
     assert_file_exists export.pem
     assert_command dfx identity import --disable-encryption bob export.pem
+}
+
+@test "identity: can import a seed phrase" {
+    reg="seed phrase for identity 'alice': ([a-z ]+)"
+    assert_command dfx identity new --disable-encryption alice
+    [[ $stderr =~ $reg ]]
+    echo "${BASH_REMATCH[1]}" >seed.txt
+    principal=$(dfx identity get-principal --identity alice)
+    assert_command dfx identity import alice2 --seed-file seed.txt --disable-encryption
+    assert_command dfx identity get-principal --identity alice2
+    assert_eq "$principal"
+}
+
+@test "identity: consistently imports a known seed phrase" {
+    echo "display dawn estate night naive stomach receive lock expose boring square boy deposit mistake volume soldier coil rocket match diamond repair opinion action paddle">seed.txt
+    assert_command dfx identity import alice --seed-file seed.txt --disable-encryption
+    assert_command dfx identity get-principal --identity alice
+    assert_eq "qimd7-lqrvx-kdvsm-7zeqn-bgoix-ukjfi-hgmfg-ur2he-odgb2-joms4-nae"
 }

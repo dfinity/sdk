@@ -1,20 +1,21 @@
 #![allow(dead_code)]
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
+use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::util::{PossiblyStr, SerdeVec};
+use crate::util::{project_dirs, PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
+use crate::config::dfinity::MetadataVisibility::Public;
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use candid::Principal;
-use directories_next::ProjectDirs;
 use fn_error_context::context;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::default::Default;
 use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
@@ -53,7 +54,61 @@ pub struct ConfigCanistersCanisterRemote {
     pub id: BTreeMap<String, Principal>,
 }
 
-pub const DEFAULT_LOCAL_BIND: &str = "127.0.0.1:8000";
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum MetadataVisibility {
+    /// Anyone can query the metadata
+    Public,
+
+    /// Only the controllers of the canister can query the metadata.
+    Private,
+}
+
+impl Default for MetadataVisibility {
+    fn default() -> Self {
+        Public
+    }
+}
+
+/// # Canister Metadata Configuration
+/// Configures a custom metadata section for the canister wasm.
+/// dfx uses the first definition of a given name matching the current network, ignoring any of the same name that follow.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct CanisterMetadataSection {
+    /// # Name
+    /// The name of the wasm section
+    pub name: String,
+
+    /// # Visibility
+    #[serde(default)]
+    pub visibility: MetadataVisibility,
+
+    /// # Networks
+    /// Networks this section applies to.
+    /// If this field is absent, then it applies to all networks.
+    /// An empty array means this element will not apply to any network.
+    pub networks: Option<BTreeSet<String>>,
+
+    /// # Path
+    /// Path to file containing section contents.
+    /// For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use
+    /// the canister's candid definition.
+    /// If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's
+    /// actual candid service definition.
+    pub path: Option<PathBuf>,
+}
+
+impl CanisterMetadataSection {
+    pub fn applies_to_network(&self, network: &str) -> bool {
+        self.networks
+            .as_ref()
+            .map(|networks| networks.contains(network))
+            .unwrap_or(true)
+    }
+}
+
+pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
+pub const DEFAULT_PROJECT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 pub const DEFAULT_IC_GATEWAY_TRAILING_SLASH: &str = "https://ic0.app/";
 pub const DEFAULT_REPLICA_PORT: u16 = 8080;
@@ -106,6 +161,17 @@ pub struct ConfigCanistersCanister {
     /// # Path to Canister Entry Point
     /// Entry point for e.g. Motoko Compiler.
     pub main: Option<PathBuf>,
+
+    /// # Shrink Canister WASM
+    /// Whether run `ic-wasm shrink` after building the Canister.
+    /// Default is true.
+    #[serde(default = "default_as_true")]
+    pub shrink: bool,
+
+    /// # Metadata
+    /// Defines metadata sections to set in the canister .wasm
+    #[serde(default)]
+    pub metadata: Vec<CanisterMetadataSection>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -130,16 +196,18 @@ pub enum CanisterTypeProperties {
     /// # Custom-Specific Properties
     Custom {
         /// # WASM Path
-        /// Path to WASM to be installed.
-        wasm: PathBuf,
+        /// Path to WASM to be installed. URLs to a WASM module are also acceptable.
+        /// A canister that has a URL to a WASM module can not also have `build` steps.
+        wasm: String,
 
         /// # Candid File
-        /// Path to this canister's candid interface declaration.
-        candid: PathBuf,
+        /// Path to this canister's candid interface declaration.  A URL to a candid file is also acceptable.
+        candid: String,
 
         /// # Build Commands
         /// Commands that are executed in order to produce this canister's WASM module.
         /// Expected to produce the WASM in the path specified by the 'wasm' field.
+        /// No build commands are allowed if the `wasm` field is a URL.
         build: SerdeVec<String>,
     },
     /// # Motoko-Specific Properties
@@ -236,16 +304,30 @@ impl Default for ConfigDefaultsBitcoin {
 }
 
 /// # HTTP Adapter Configuration
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsCanisterHttp {
     /// # Enable HTTP Adapter
-    #[serde(default)]
+    #[serde(default = "default_as_true")]
     pub enabled: bool,
+
+    /// # Logging Level
+    /// The logging level of the adapter.
+    #[serde(default)]
+    pub log_level: HttpAdapterLogLevel,
 }
 
-fn default_as_false() -> bool {
+impl Default for ConfigDefaultsCanisterHttp {
+    fn default() -> Self {
+        ConfigDefaultsCanisterHttp {
+            enabled: true,
+            log_level: HttpAdapterLogLevel::default(),
+        }
+    }
+}
+
+fn default_as_true() -> bool {
     // sigh https://github.com/serde-rs/serde/issues/368
-    false
+    true
 }
 
 /// # Bootstrap Server Configuration
@@ -295,6 +377,36 @@ pub struct ConfigDefaultsBuild {
     pub args: Option<String>,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ReplicaLogLevel {
+    Critical,
+    Error,
+    Warning,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl Default for ReplicaLogLevel {
+    fn default() -> Self {
+        Self::Error
+    }
+}
+
+impl ReplicaLogLevel {
+    pub fn as_ic_starter_string(&self) -> String {
+        match self {
+            Self::Critical => "critical".to_string(),
+            Self::Error => "error".to_string(),
+            Self::Warning => "warning".to_string(),
+            Self::Info => "info".to_string(),
+            Self::Debug => "debug".to_string(),
+            Self::Trace => "trace".to_string(),
+        }
+    }
+}
+
 /// # Local Replica Configuration
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsReplica {
@@ -306,12 +418,15 @@ pub struct ConfigDefaultsReplica {
     /// Affects things like cycles accounting, message size limits, cycle limits.
     /// Defaults to 'application'.
     pub subnet_type: Option<ReplicaSubnetType>,
+
+    /// Run replica with the provided log level. Default is 'error'. Debug prints still get displayed
+    pub log_level: Option<ReplicaLogLevel>,
 }
 
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
-/// Type 'perstistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
+/// Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
@@ -379,8 +494,9 @@ pub struct ConfigNetworkProvider {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigLocalProvider {
     /// Bind address for the webserver.
-    #[serde(default = "default_local_bind")]
-    pub bind: String,
+    /// For the shared local network, the default is 127.0.0.1:4943.
+    /// For project-specific local networks, the default is 127.0.0.1:8000.
+    pub bind: Option<String>,
 
     /// Persistence type of this network.
     #[serde(default = "NetworkType::ephemeral")]
@@ -392,9 +508,6 @@ pub struct ConfigLocalProvider {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
-fn default_local_bind() -> String {
-    String::from(DEFAULT_LOCAL_BIND)
-}
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ConfigNetwork {
@@ -774,8 +887,9 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        let (mut package, mut source, mut candid, mut build, mut wasm, mut r#type) =
-            (None, None, None, None, None, None);
+        let mut wasm: Option<String> = None;
+        let mut candid: Option<String> = None;
+        let (mut package, mut source, mut build, mut r#type) = (None, None, None, None);
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -790,7 +904,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         let props = match r#type.as_deref() {
             Some("motoko") | None => CanisterTypeProperties::Motoko,
             Some("rust") => CanisterTypeProperties::Rust {
-                candid: candid.ok_or_else(|| missing_field("candid"))?,
+                candid: PathBuf::from(candid.ok_or_else(|| missing_field("candid"))?),
                 package: package.ok_or_else(|| missing_field("package"))?,
             },
             Some("assets") => CanisterTypeProperties::Assets {
@@ -829,10 +943,10 @@ impl NetworksConfig {
     }
     #[context("Failed to determine shared network data directory.")]
     pub fn get_network_data_directory(network: &str) -> DfxResult<PathBuf> {
-        let project_dirs = ProjectDirs::from("org", "dfinity", "dfx").ok_or_else(|| {
-            anyhow!("Unable to retrieve a valid home directory path from the operating system")
-        })?;
-        Ok(project_dirs.data_local_dir().join("network").join(network))
+        Ok(project_dirs()?
+            .data_local_dir()
+            .join("network")
+            .join(network))
     }
 
     #[context("Failed to read shared networks configuration.")]

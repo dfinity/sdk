@@ -20,8 +20,9 @@ use crossbeam::channel::{unbounded, Receiver, Sender};
 use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
-use std::thread::JoinHandle;
+use std::thread::{self, JoinHandle};
 use std::time::Duration;
+use tokio::runtime::Builder;
 
 pub mod signals {
     use actix::prelude::*;
@@ -124,7 +125,6 @@ impl Replica {
 
     fn start_replica(&mut self, addr: Addr<Self>) -> DfxResult {
         let logger = self.logger.clone();
-        debug!(logger, "starting replica");
 
         // Create a replica config.
         let config = &self.config.replica_config;
@@ -268,7 +268,6 @@ impl Handler<Shutdown> for Replica {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn replica_start_thread(
     logger: Logger,
     config: ReplicaConfig,
@@ -306,6 +305,8 @@ fn replica_start_thread(
             &config.subnet_type.as_ic_starter_string(),
             "--ecdsa-keyid",
             "Secp256k1:dfx_test_key",
+            "--log-level",
+            &config.log_level.as_ic_starter_string(),
         ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);
@@ -375,6 +376,19 @@ fn replica_start_thread(
                 Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
             });
             addr.do_send(signals::ReplicaRestarted { port });
+            let log_clone = logger.clone();
+            thread::spawn(move || {
+                Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap()
+                    .block_on(async move {
+                        crate::lib::provider::ping_and_wait(&format!("http://localhost:{port}"))
+                            .await
+                            .unwrap();
+                        info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
+                    })
+            });
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.

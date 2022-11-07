@@ -7,16 +7,21 @@ use crate::lib::identity::{
 };
 
 use anyhow::{anyhow, bail, Context};
+use bip32::XPrv;
+use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
 use fn_error_context::context;
-use pem::{encode, Pem};
-use ring::{rand, rand::SecureRandom, signature};
+use k256::pkcs8::LineEnding;
+use k256::SecretKey;
+use ring::{rand, rand::SecureRandom};
+use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::identity_utils::validate_pem_file;
 use super::WALLET_CONFIG_FILENAME;
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
@@ -71,7 +76,14 @@ impl EncryptionConfiguration {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HardwareIdentityConfiguration {
-    /// The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"
+    #[cfg_attr(
+        not(windows),
+        doc = r#"The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so""#
+    )]
+    #[cfg_attr(
+        windows,
+        doc = r#"The file path to the opensc-pkcs11 library e.g. "C:\Program Files (x86)\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll"#
+    )]
     pub pkcs11_lib_path: String,
 
     /// A sequence of pairs of hex digits
@@ -84,6 +96,10 @@ pub enum IdentityCreationParameters {
     },
     PemFile {
         src_pem_file: PathBuf,
+        disable_encryption: bool,
+    },
+    SeedPhrase {
+        mnemonic: String,
         disable_encryption: bool,
     },
     Hardware {
@@ -229,7 +245,8 @@ impl IdentityManager {
 
         let config = self.get_identity_config_or_default(name)?;
         let pem_path = self.get_identity_pem_path(name, &config);
-        let pem = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+        let (pem, _) = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+        validate_pem_file(&pem)?;
         String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
 
@@ -448,28 +465,32 @@ To create a more secure identity, create and use an identity that is protected b
         }
 
         let creds_pem_path = get_legacy_creds_pem_path()?;
-        if creds_pem_path.exists() {
-            slog::info!(
-                logger,
-                "  - migrating key from {} to {}",
-                creds_pem_path.display(),
-                identity_pem_path.display()
-            );
-            fs::copy(&creds_pem_path, &identity_pem_path).with_context(|| {
-                format!(
-                    "Failed to migrate legacy identity from {} to {}.",
-                    creds_pem_path.to_string_lossy(),
-                    identity_pem_path.to_string_lossy()
-                )
-            })?;
-        } else {
-            slog::info!(
-                logger,
-                "  - generating new key at {}",
-                identity_pem_path.display()
-            );
-            let key = generate_key()?;
-            pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())?;
+        match creds_pem_path {
+            Some(creds_pem_path) if creds_pem_path.exists() => {
+                slog::info!(
+                    logger,
+                    "  - migrating key from {} to {}",
+                    creds_pem_path.display(),
+                    identity_pem_path.display()
+                );
+                fs::copy(&creds_pem_path, &identity_pem_path).with_context(|| {
+                    format!(
+                        "Failed to migrate legacy identity from {} to {}.",
+                        creds_pem_path.to_string_lossy(),
+                        identity_pem_path.to_string_lossy()
+                    )
+                })?;
+            }
+            _ => {
+                slog::info!(
+                    logger,
+                    "  - generating new key at {}",
+                    identity_pem_path.display()
+                );
+                let (key, mnemonic) = generate_key()?;
+                pem_encryption::write_pem_file(&identity_pem_path, None, key.as_slice())?;
+                eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
+            }
         }
     } else {
         slog::info!(
@@ -489,16 +510,23 @@ To create a more secure identity, create and use an identity that is protected b
 }
 
 #[context("Failed to get legacy pem path.")]
-fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
-    let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
-    let home = std::env::var("HOME")
-        .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
-    let root = config_root.unwrap_or(home);
+fn get_legacy_creds_pem_path() -> DfxResult<Option<PathBuf>> {
+    if cfg!(windows) {
+        // No legacy path on Windows - there was no Windows support when paths were changed
+        Ok(None)
+    } else {
+        let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
+        let home = std::env::var("HOME")
+            .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
+        let root = config_root.unwrap_or(home);
 
-    Ok(PathBuf::from(root)
-        .join(".dfinity")
-        .join("identity")
-        .join("creds.pem"))
+        Ok(Some(
+            PathBuf::from(root)
+                .join(".dfinity")
+                .join("identity")
+                .join("creds.pem"),
+        ))
+    }
 }
 
 #[context("Failed to load identity manager config from {}.", path.to_string_lossy())]
@@ -560,21 +588,18 @@ fn remove_identity_file(file: &Path) -> DfxResult {
     Ok(())
 }
 
-/// Generates a new Ed25519 key.
-#[context("Failed to generate a fresh ed25519 key.")]
-pub(super) fn generate_key() -> DfxResult<Vec<u8>> {
-    let rng = rand::SystemRandom::new();
-    let pkcs8_bytes = signature::Ed25519KeyPair::generate_pkcs8(&rng)
-        .map_err(|x| DfxError::new(IdentityError::CannotGenerateKeyPair(x)))?;
-
-    let encoded_pem = encode_pem_private_key(&(*pkcs8_bytes.as_ref()));
-    Ok(Vec::from(encoded_pem))
+/// Generates a new secp256k1 key.
+#[context("Failed to generate a fresh secp256k1 key.")]
+pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
+    let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256)?, Language::English);
+    let secret = mnemonic_to_key(&mnemonic)?;
+    let pem = secret.to_sec1_pem(LineEnding::CRLF)?;
+    Ok((pem.as_bytes().to_vec(), mnemonic))
 }
 
-fn encode_pem_private_key(key: &[u8]) -> String {
-    let pem = Pem {
-        tag: "PRIVATE KEY".to_owned(),
-        contents: key.to_vec(),
-    };
-    encode(&pem)
+pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> DfxResult<SecretKey> {
+    const DEFAULT_DERIVATION_PATH: &str = "m/44'/223'/0'/0/0";
+    let seed = Seed::new(mnemonic, "");
+    let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
+    Ok(SecretKey::from(pk.private_key()))
 }

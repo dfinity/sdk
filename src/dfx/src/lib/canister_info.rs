@@ -1,5 +1,7 @@
 #![allow(dead_code)]
-use crate::config::dfinity::{CanisterDeclarationsConfig, CanisterTypeProperties, Config};
+use crate::config::dfinity::{
+    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
+};
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
@@ -7,6 +9,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::provider::get_network_context;
 use crate::util;
 
+use crate::lib::metadata::config::CanisterMetadataConfig;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
@@ -37,9 +40,7 @@ pub struct CanisterInfo {
     remote_candid: Option<PathBuf>, // always exists if the field is configured
 
     workspace_root: PathBuf,
-    build_root: PathBuf,
-    output_root: PathBuf,
-    canister_root: PathBuf,
+    output_root: PathBuf, // <project dir>/.dfx/<network>/canisters/<canister>
 
     canister_id: Option<CanisterId>,
 
@@ -50,6 +51,8 @@ pub struct CanisterInfo {
     dependencies: Vec<String>,
     post_install: Vec<String>,
     main: Option<PathBuf>,
+    shrink: bool,
+    metadata: CanisterMetadataConfig,
 }
 
 impl CanisterInfo {
@@ -64,8 +67,8 @@ impl CanisterInfo {
         let network_name = get_network_context()?;
         let build_root = config
             .get_temp_path()
-            .join(util::network_to_pathcompat(&network_name));
-        let build_root = build_root.join("canisters");
+            .join(util::network_to_pathcompat(&network_name))
+            .join("canisters");
         std::fs::create_dir_all(&build_root)
             .with_context(|| format!("Failed to create {}.", build_root.to_string_lossy()))?;
 
@@ -77,7 +80,6 @@ impl CanisterInfo {
             .get(name)
             .ok_or_else(|| anyhow!("Cannot find canister '{}',", name.to_string()))?;
 
-        let canister_root = workspace_root.to_path_buf();
         let declarations_config_pre = canister_config.declarations.clone();
 
         let remote_id = canister_config
@@ -113,6 +115,8 @@ impl CanisterInfo {
         };
 
         let post_install = canister_config.post_install.clone().into_vec();
+        let metadata =
+            CanisterMetadataConfig::new(&type_specific, &canister_config.metadata, &network_name);
 
         let canister_info = CanisterInfo {
             name: name.to_string(),
@@ -120,9 +124,7 @@ impl CanisterInfo {
             remote_id,
             remote_candid,
             workspace_root: workspace_root.to_path_buf(),
-            build_root,
             output_root,
-            canister_root,
             canister_id,
             packtool: build_defaults.get_packtool(),
             args,
@@ -130,6 +132,8 @@ impl CanisterInfo {
             dependencies: canister_config.dependencies.clone(),
             post_install,
             main: canister_config.main.clone(),
+            shrink: canister_config.shrink,
+            metadata,
         };
 
         Ok(canister_info)
@@ -159,9 +163,6 @@ impl CanisterInfo {
     }
     pub fn get_workspace_root(&self) -> &Path {
         &self.workspace_root
-    }
-    pub fn get_build_root(&self) -> &Path {
-        &self.build_root
     }
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
@@ -201,39 +202,20 @@ impl CanisterInfo {
         &self.args
     }
 
+    pub fn get_shrink(&self) -> bool {
+        self.shrink
+    }
+
     pub fn get_build_wasm_path(&self) -> PathBuf {
-        self.build_root
-            .join(PathBuf::from(&self.name))
-            .join(&self.name)
-            .with_extension("wasm")
+        self.output_root.join(&self.name).with_extension("wasm")
     }
 
     pub fn get_build_idl_path(&self) -> PathBuf {
-        self.build_root
-            .join(PathBuf::from(&self.name))
-            .join(&self.name)
-            .with_extension("did")
+        self.output_root.join(&self.name).with_extension("did")
     }
 
     pub fn get_index_js_path(&self) -> PathBuf {
-        self.build_root
-            .join(PathBuf::from(&self.name))
-            .join("index")
-            .with_extension("js")
-    }
-
-    pub fn get_output_wasm_path(&self) -> Option<PathBuf> {
-        if let Ok(info) = self.as_info::<MotokoCanisterInfo>() {
-            Some(info.get_output_wasm_path().to_path_buf())
-        } else if let Ok(info) = self.as_info::<CustomCanisterInfo>() {
-            Some(info.get_output_wasm_path().to_path_buf())
-        } else if let Ok(info) = self.as_info::<AssetsCanisterInfo>() {
-            Some(info.get_output_wasm_path().to_path_buf())
-        } else if let Ok(info) = self.as_info::<RustCanisterInfo>() {
-            Some(info.get_output_wasm_path().to_path_buf())
-        } else {
-            None
-        }
+        self.output_root.join("index").with_extension("js")
     }
 
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
@@ -278,5 +260,12 @@ impl CanisterInfo {
 
     pub fn is_assets(&self) -> bool {
         matches!(self.type_specific, CanisterTypeProperties::Assets { .. })
+    }
+
+    pub fn get_metadata(&self, name: &str) -> Option<&CanisterMetadataSection> {
+        self.metadata.get(name)
+    }
+    pub fn metadata(&self) -> &CanisterMetadataConfig {
+        &self.metadata
     }
 }

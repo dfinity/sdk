@@ -1,25 +1,27 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 
 // Imports and re-exports candid interface
-import { idlFactory } from './{{canister_name}}.did.js';
-export { idlFactory } from './{{canister_name}}.did.js';
-// CANISTER_ID is replaced by webpack based on node environment
-export const canisterId = {{canister_name_process_env}};
+import { idlFactory } from "./{{canister_name}}.did.js";
+export { idlFactory } from "./{{canister_name}}.did.js";
 
-{{{{raw}}}}
-/**
- * 
- * @param {string | import("@dfinity/principal").Principal} canisterId Canister ID of Agent
- * @param {{agentOptions?: import(\"@dfinity/agent\").HttpAgentOptions; actorOptions?: import(\"@dfinity/agent\").ActorConfig}} [options]
- * @return {import("@dfinity/agent").ActorSubclass<import("{{{{/raw}}}}./{{canister_name}}.did.js")._SERVICE>}
- */
-export const createActor = (canisterId, options) => {
-  const agent = new HttpAgent(options ? { ...options.agentOptions } : {});
-  
+// CANISTER_ID is replaced by webpack based on node environment
+export const canisterId = {{{canister_name_process_env}}};
+
+export const createActor = (canisterId, options = {}) => {
+  const agent = options.agent || new HttpAgent({ ...options.agentOptions });
+
+  if (options.agent && options.agentOptions) {
+    console.warn(
+      "Detected both agent and agentOptions passed to createActor. Ignoring agentOptions and proceeding with the provided agent."
+    );
+  }
+
   // Fetch root key for certificate validation during development
   if (process.env.DFX_NETWORK !== "ic") {
-    agent.fetchRootKey().catch(err => {
-      console.warn("Unable to fetch root key. Check to ensure that your local replica is running");
+    agent.fetchRootKey().catch((err) => {
+      console.warn(
+        "Unable to fetch root key. Check to ensure that your local replica is running"
+      );
       console.error(err);
     });
   }
@@ -28,6 +30,6 @@ export const createActor = (canisterId, options) => {
   return Actor.createActor(idlFactory, {
     agent,
     canisterId,
-    ...(options ? options.actorOptions : {}),
+    ...options.actorOptions,
   });
 };{{{actor_export}}}

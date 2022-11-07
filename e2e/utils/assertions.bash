@@ -73,6 +73,24 @@ assert_match() {
     fi
 }
 
+# Asserts that a string contains another string
+# Arguments:
+#    $1 - The string to search for.
+#    $2 - The string to search in.
+assert_contains() {
+    search_for="$1"
+    if [[ $# -lt 2 ]]; then
+        search_in="$output"
+    else
+        search_in="$2"
+    fi
+    if [[ ! "$search_in" == *"$search_for"* ]]; then
+        batslib_print_kv_single_or_multi 10 "search phrase" "$search_for" "actual output" "$search_in" \
+            | batslib_decorate "output does not match" \
+            | fail
+    fi
+}
+
 # Asserts that a string does not contain another string, using regexp.
 # Arguments:
 #    $1 - The regex to use to match.
@@ -185,6 +203,18 @@ assert_file_not_empty() {
     fi
 }
 
+assert_file_empty() {
+    filename="$1"
+
+    assert_file_exists "$filename"
+
+    if [[ -s $filename ]]; then
+        echo "$filename is not empty" \
+        | batslib_decorate "File not empty" \
+        | fail
+    fi
+}
+
 assert_file_not_exists() {
     filename="$1"
 
@@ -210,5 +240,20 @@ assert_directory_not_exists() {
         ( echo "Contents of $directory:" ; ls -AlR "$directory" ) \
         | batslib_decorate "Expected directory '$directory' to not exist." \
         | fail
+    fi
+}
+
+# Asserts that the contents of two files are equal.
+# Arguments:
+#    $1 - The name of the file containing the expected value.
+#    $2 - The name of the file containing the actual value.
+assert_files_eq() {
+    expected="$(cat "$1")"
+    actual="$(cat "$2")"
+
+    if [[ ! "$actual" == "$expected" ]]; then
+        diff "$1" "$2" \
+            | batslib_decorate "contents of $1 do not match contents of $2" \
+            | fail
     fi
 }

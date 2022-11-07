@@ -2,6 +2,8 @@
 
 load ../utils/_
 
+# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
+
 setup() {
     standard_setup
 

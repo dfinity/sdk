@@ -1,6 +1,7 @@
 set -e
 load "${BATSLIB}/load.bash"
 load ../utils/assertions
+load ../utils/webserver
 
 # Takes a name of the asset folder, and copy those files to the current project.
 install_asset() {
@@ -8,8 +9,8 @@ install_asset() {
     cp -R "$ASSET_ROOT"/* .
 
     # shellcheck source=/dev/null
-    [ -f ./patch.bash ] && source ./patch.bash
-    [ ! -f ./Cargo.toml ] || cargo update
+    if [ -f ./patch.bash ]; then source ./patch.bash; fi
+    if [ -f ./Cargo.toml ]; then cargo update; fi
 }
 
 install_shared_asset() {
@@ -24,7 +25,7 @@ standard_setup() {
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export E2E_TEMP_DIR="$x"
 
-    cache_root="${E2E_CACHE_ROOT:-$x/cache-root}"
+    cache_root="${E2E_CACHE_ROOT:-"$HOME/.e2e-cache-root"}"
 
     mkdir "$x/working-dir"
     mkdir -p "$cache_root"
@@ -322,7 +323,7 @@ use_default_wallet_wasm() {
 }
 
 get_webserver_port() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port"
+  dfx info webserver-port
 }
 overwrite_webserver_port() {
   echo "$1" >"$E2E_NETWORK_DATA_DIRECTORY/webserver-port"

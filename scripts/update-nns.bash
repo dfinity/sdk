@@ -13,7 +13,7 @@ export NNS_ARTIFACTS
 get_binary() {
   local FILENAME
   FILENAME="$1"
-  if [ -e "$NNS_ARTIFACTS/${FILENAME}_linux" ] && [ -e "$NNS_ARTIFACTS/${FILENAME}_macos" ]; then
+  if [ -e "$NNS_ARTIFACTS/${FILENAME}_linux" ] && [ -e "$NNS_ARTIFACTS/${FILENAME}_macos" ] && [ -n "${NO_CLOBBER:-}" ]; then
     return
   fi
   local TMP_FILE
@@ -43,6 +43,7 @@ get_binary ic-nns-init
 get_wasm registry-canister.wasm
 get_wasm governance-canister.wasm
 get_wasm governance-canister_test.wasm
+get_wasm ic-ckbtc-minter.wasm
 get_wasm ledger-canister_notify-method.wasm
 get_wasm root-canister.wasm
 get_wasm cycles-minting-canister.wasm
@@ -51,6 +52,7 @@ get_wasm genesis-token-canister.wasm
 get_wasm identity-canister.wasm
 get_wasm nns-ui-canister.wasm
 get_wasm sns-wasm-canister.wasm
+get_wasm ic-icrc1-ledger.wasm
 
 # Patch NNS canisters so the conversion rate can be set in the CMC
 

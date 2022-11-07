@@ -23,14 +23,13 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Insta
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
-use openssl::sha::sha256;
+use sha2::{Digest, Sha256};
 use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
 pub async fn install_canister(
     env: &dyn Environment,
@@ -38,75 +37,66 @@ pub async fn install_canister(
     canister_id_store: &mut CanisterIdStore,
     canister_info: &CanisterInfo,
     args: impl FnOnce() -> DfxResult<Vec<u8>>,
-    mode: InstallMode,
+    mode: Option<InstallMode>,
     timeout: Duration,
     call_sender: &CallSender,
-    installed_module_hash: Option<Vec<u8>>,
     upgrade_unchanged: bool,
     pool: Option<&CanisterPool>,
+    skip_consent: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
     if !network.is_ic && named_canister::get_ui_canister_id(canister_id_store).is_none() {
         named_canister::install_ui_canister(env, canister_id_store, None).await?;
     }
-
     let canister_id = canister_info.get_canister_id()?;
-    if matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
+    let installed_module_hash = match agent
+        .read_state_canister_info(canister_id, "module_hash", false)
+        .await
+    {
+        Ok(installed_module_hash) => Some(installed_module_hash),
+        // If the canister is empty, this path does not exist.
+        // The replica doesn't support negative lookups, therefore if the canister
+        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
+        Err(AgentError::LookupPathUnknown(_) | AgentError::LookupPathAbsent(_)) => None,
+        Err(x) => bail!(x),
+    };
+    let mode = mode.unwrap_or_else(|| {
+        if installed_module_hash.is_some() {
+            InstallMode::Upgrade
+        } else {
+            InstallMode::Install
+        }
+    });
+    if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
-        if let Some(candid) = candid {
-            use crate::util::check_candid_file;
-            let candid_path = canister_info
-                .get_output_idl_path()
-                .expect("Generated did file not found");
-            let deployed_path = canister_info.get_build_idl_path().with_extension("old.did");
-            std::fs::write(&deployed_path, candid).with_context(|| {
-                format!(
-                    "Failed to write candid to {}.",
-                    deployed_path.to_string_lossy()
-                )
-            })?;
-            let (mut env, opt_new) =
-                check_candid_file(&candid_path).context("Checking generated did file.")?;
-            let new_type =
-                opt_new.expect("Generated did file should contain some service interface");
-            let (env2, opt_old) =
-                check_candid_file(&deployed_path).context("Checking old candid file.")?;
-            let old_type =
-                opt_old.expect("Deployed did file should contain some service interface");
-            let mut gamma = HashSet::new();
-            let old_type = env.merge_type(env2, old_type);
-            let result = candid::types::subtype::subtype(&mut gamma, &env, &new_type, &old_type);
-            if let Err(err) = result {
-                let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err.to_string();
-                ask_for_consent(&msg)?;
+        if let Some(candid) = &candid {
+            match check_candid_compatibility(canister_info, candid) {
+                Ok(None) => (),
+                Ok(Some(err)) => {
+                    let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err;
+                    ask_for_consent(&msg)?;
+                }
+                Err(e) => {
+                    let msg = format!("An error occurred during Candid interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
+                    ask_for_consent(&msg)?;
+                }
             }
         }
     }
-    if canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade) {
-        use crate::lib::canister_info::motoko::MotokoCanisterInfo;
-        let info = canister_info.as_info::<MotokoCanisterInfo>()?;
-        let stable_path = info.get_output_stable_path();
-        let deployed_stable_path = stable_path.with_extension("old.most");
+    if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade) {
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
-        if let Some(stable_types) = stable_types {
-            std::fs::write(&deployed_stable_path, stable_types).with_context(|| {
-                format!(
-                    "Failed to write stable types to {}.",
-                    deployed_stable_path.to_string_lossy()
-                )
-            })?;
-            let cache = env.get_cache();
-            let output = cache
-                .get_binary_command("moc")?
-                .arg("--stable-compatible")
-                .arg(&deployed_stable_path)
-                .arg(&stable_path)
-                .output()
-                .context("Failed to run 'moc'.")?;
-            if !output.status.success() {
-                let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &String::from_utf8_lossy(&output.stderr);
-                ask_for_consent(&msg)?;
+        if let Some(stable_types) = &stable_types {
+            match check_stable_compatibility(canister_info, env, stable_types) {
+                Ok(None) => (),
+                Ok(Some(err)) => {
+                    let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &err;
+                    ask_for_consent(&msg)?;
+                }
+                Err(e) => {
+                    let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
+                    ask_for_consent(&msg)?;
+                }
             }
         }
     }
@@ -114,10 +104,10 @@ pub async fn install_canister(
     let wasm_path = canister_info.get_build_wasm_path();
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
-    let new_hash = sha256(&wasm_module);
+    let new_hash = Sha256::digest(&wasm_module);
 
     if mode == InstallMode::Upgrade
-        && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash)
+        && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
         println!(
@@ -135,6 +125,7 @@ pub async fn install_canister(
             timeout,
             call_sender,
             wasm_module,
+            skip_consent,
         )
         .await?;
     }
@@ -150,7 +141,7 @@ pub async fn install_canister(
             .await
         {
             Ok(reported_hash) => {
-                if reported_hash == new_hash {
+                if reported_hash[..] == new_hash[..] {
                     break;
                 } else if installed_module_hash
                     .as_deref()
@@ -229,6 +220,65 @@ pub async fn install_canister(
     Ok(())
 }
 
+fn check_candid_compatibility(
+    canister_info: &CanisterInfo,
+    candid: &str,
+) -> anyhow::Result<Option<String>> {
+    use crate::util::check_candid_file;
+    let candid_path = canister_info.get_build_idl_path();
+    let deployed_path = canister_info.get_build_idl_path().with_extension("old.did");
+    std::fs::write(&deployed_path, candid).with_context(|| {
+        format!(
+            "Failed to write candid to {}.",
+            deployed_path.to_string_lossy()
+        )
+    })?;
+    let (mut env, opt_new) =
+        check_candid_file(&candid_path).context("Checking generated did file.")?;
+    let new_type = opt_new
+        .ok_or_else(|| anyhow!("Generated did file should contain some service interface"))?;
+    let (env2, opt_old) = check_candid_file(&deployed_path).context("Checking old candid file.")?;
+    let old_type = opt_old
+        .ok_or_else(|| anyhow!("Deployed did file should contain some service interface"))?;
+    let mut gamma = HashSet::new();
+    let old_type = env.merge_type(env2, old_type);
+    let result = candid::types::subtype::subtype(&mut gamma, &env, &new_type, &old_type);
+    Ok(match result {
+        Ok(_) => None,
+        Err(e) => Some(e.to_string()),
+    })
+}
+
+fn check_stable_compatibility(
+    canister_info: &CanisterInfo,
+    env: &dyn Environment,
+    stable_types: &str,
+) -> anyhow::Result<Option<String>> {
+    use crate::lib::canister_info::motoko::MotokoCanisterInfo;
+    let info = canister_info.as_info::<MotokoCanisterInfo>()?;
+    let stable_path = info.get_output_stable_path();
+    let deployed_stable_path = stable_path.with_extension("old.most");
+    std::fs::write(&deployed_stable_path, stable_types).with_context(|| {
+        format!(
+            "Failed to write stable types to {}.",
+            deployed_stable_path.to_string_lossy()
+        )
+    })?;
+    let cache = env.get_cache();
+    let output = cache
+        .get_binary_command("moc")?
+        .arg("--stable-compatible")
+        .arg(&deployed_stable_path)
+        .arg(&stable_path)
+        .output()
+        .context("Failed to run 'moc'.")?;
+    Ok(if !output.status.success() {
+        Some(String::from_utf8_lossy(&output.stderr).to_string())
+    } else {
+        None
+    })
+}
+
 #[context("Failed to run post-install tasks")]
 fn run_post_install_tasks(
     env: &dyn Environment,
@@ -298,7 +348,6 @@ fn run_post_install_task(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 #[context("Failed to install wasm in canister '{}'.", canister_id)]
 pub async fn install_canister_wasm(
     env: &dyn Environment,
@@ -310,10 +359,11 @@ pub async fn install_canister_wasm(
     timeout: Duration,
     call_sender: &CallSender,
     wasm_module: Vec<u8>,
+    skip_consent: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let mgr = ManagementCanister::create(agent);
-    if mode == InstallMode::Reinstall {
+    if !skip_consent && mode == InstallMode::Reinstall {
         let msg = if let Some(name) = canister_name {
             format!("You are about to reinstall the {name} canister")
         } else {

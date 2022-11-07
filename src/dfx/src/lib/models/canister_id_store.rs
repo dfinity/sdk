@@ -12,12 +12,12 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-type CanisterName = String;
-type NetworkName = String;
-type CanisterIdString = String;
+pub type CanisterName = String;
+pub type NetworkName = String;
+pub type CanisterIdString = String;
 
-type NetworkNametoCanisterId = BTreeMap<NetworkName, CanisterIdString>;
-type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
+pub type NetworkNametoCanisterId = BTreeMap<NetworkName, CanisterIdString>;
+pub type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 
 #[derive(Clone, Debug)]
 pub struct CanisterIdStore {

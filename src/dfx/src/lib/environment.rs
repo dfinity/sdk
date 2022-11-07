@@ -11,7 +11,7 @@ use candid::Principal;
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
-use slog::{Logger, Record};
+use slog::{warn, Logger, Record};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fs::create_dir_all;
@@ -44,6 +44,7 @@ pub trait Environment {
     fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
 
     fn get_logger(&self) -> &slog::Logger;
+    fn get_verbose_level(&self) -> i64;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
 
@@ -67,7 +68,7 @@ pub struct EnvironmentImpl {
     version: Version,
 
     logger: Option<slog::Logger>,
-    progress: bool,
+    verbose_level: i64,
 
     identity_override: Option<String>,
 }
@@ -116,7 +117,7 @@ impl EnvironmentImpl {
             shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
             logger: None,
-            progress: true,
+            verbose_level: 0,
             identity_override: None,
         })
     }
@@ -126,13 +127,13 @@ impl EnvironmentImpl {
         self
     }
 
-    pub fn with_progress_bar(mut self, progress: bool) -> Self {
-        self.progress = progress;
+    pub fn with_identity_override(mut self, identity: Option<String>) -> Self {
+        self.identity_override = identity;
         self
     }
 
-    pub fn with_identity_override(mut self, identity: Option<String>) -> Self {
-        self.identity_override = identity;
+    pub fn with_verbose_level(mut self, verbose_level: i64) -> Self {
+        self.verbose_level = verbose_level;
         self
     }
 }
@@ -190,8 +191,13 @@ impl Environment for EnvironmentImpl {
             .expect("Log was not setup, but is being used.")
     }
 
+    fn get_verbose_level(&self) -> i64 {
+        self.verbose_level
+    }
+
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
-        if self.progress {
+        // Only show the progress bar if the level is INFO or more.
+        if self.verbose_level >= 0 {
             ProgressBar::new_spinner(message)
         } else {
             ProgressBar::discard()
@@ -228,6 +234,10 @@ impl<'a> AgentEnvironment<'a> {
         let logger = backend.get_logger().clone();
         let mut identity_manager = IdentityManager::new(backend)?;
         let identity = identity_manager.instantiate_selected_identity()?;
+        if network_descriptor.is_ic && identity.insecure {
+            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity create` \
+                and use it in mainnet-facing commands with the `--identity` flag", identity.name());
+        }
         let url = network_descriptor.first_provider()?;
 
         Ok(AgentEnvironment {
@@ -284,6 +294,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_logger(&self) -> &slog::Logger {
         self.backend.get_logger()
+    }
+
+    fn get_verbose_level(&self) -> i64 {
+        self.backend.get_verbose_level()
     }
 
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {

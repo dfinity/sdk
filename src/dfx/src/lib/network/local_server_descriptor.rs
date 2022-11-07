@@ -1,12 +1,17 @@
-use crate::config::dfinity::{to_socket_addr, ReplicaSubnetType, DEFAULT_LOCAL_BIND};
+use crate::config::dfinity::{
+    to_socket_addr, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
+    DEFAULT_SHARED_LOCAL_BIND,
+};
 use crate::config::dfinity::{
     ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
     ConfigDefaultsReplica,
 };
+use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::error::DfxResult;
 
 use anyhow::Context;
 use fn_error_context::context;
+use slog::{debug, Logger};
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 
@@ -22,6 +27,7 @@ pub struct LocalServerDescriptor {
     ///     <project directory>/.dfx/network/local
     ///     $HOME/Library/Application Support/org.dfinity.dfx/network/local
     ///     $HOME/.local/share/dfx/network/local
+    ///     $APPDATA/dfx/network/local
     pub data_directory: PathBuf,
 
     pub bind_address: SocketAddr,
@@ -32,6 +38,8 @@ pub struct LocalServerDescriptor {
     pub replica: ConfigDefaultsReplica,
 
     pub scope: LocalNetworkScopeDescriptor,
+
+    legacy_pid_path: Option<PathBuf>,
 }
 
 impl LocalNetworkScopeDescriptor {
@@ -52,6 +60,7 @@ impl LocalServerDescriptor {
         canister_http: ConfigDefaultsCanisterHttp,
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
+        legacy_pid_path: Option<PathBuf>,
     ) -> DfxResult<Self> {
         let bind_address =
             to_socket_addr(&bind).context("Failed to convert 'bind' field to a SocketAddress")?;
@@ -63,6 +72,7 @@ impl LocalServerDescriptor {
             canister_http,
             replica,
             scope,
+            legacy_pid_path,
         })
     }
 
@@ -75,6 +85,16 @@ impl LocalServerDescriptor {
     /// This file contains the pid of the process started with `dfx start`
     pub fn dfx_pid_path(&self) -> PathBuf {
         self.data_directory.join("pid")
+    }
+
+    /// The path of the pid file, as well as one that dfx <= 0.11.x would have created
+    pub fn dfx_pid_paths(&self) -> Vec<PathBuf> {
+        let mut pid_paths: Vec<PathBuf> = vec![];
+        if let Some(legacy_pid_path) = &self.legacy_pid_path {
+            pid_paths.push(legacy_pid_path.clone());
+        }
+        pid_paths.push(self.dfx_pid_path());
+        pid_paths
     }
 
     /// This file contains the pid of the icx-proxy process
@@ -184,14 +204,6 @@ impl LocalServerDescriptor {
         Self { bitcoin, ..self }
     }
 
-    pub(crate) fn with_canister_http_enabled(self) -> LocalServerDescriptor {
-        let canister_http = ConfigDefaultsCanisterHttp { enabled: true };
-        Self {
-            canister_http,
-            ..self
-        }
-    }
-
     pub(crate) fn with_bootstrap_ip(self, ip: IpAddr) -> LocalServerDescriptor {
         let bootstrap = ConfigDefaultsBootstrap {
             ip,
@@ -218,18 +230,24 @@ impl LocalServerDescriptor {
 }
 
 impl LocalServerDescriptor {
-    pub fn describe(&self, include_replica: bool, include_replica_port: bool) {
-        println!("Local server configuration:");
-        let default_bind: SocketAddr = DEFAULT_LOCAL_BIND.parse().unwrap();
+    pub fn describe(&self, log: &Logger, include_replica: bool, include_replica_port: bool) {
+        debug!(log, "Local server configuration:");
+        let default_bind: SocketAddr = match self.scope {
+            LocalNetworkScopeDescriptor::Project => DEFAULT_PROJECT_LOCAL_BIND,
+            LocalNetworkScopeDescriptor::Shared { .. } => DEFAULT_SHARED_LOCAL_BIND,
+        }
+        .parse()
+        .unwrap();
+
         let diffs = if self.bind_address != default_bind {
             format!(" (default: {:?})", default_bind)
         } else {
             "".to_string()
         };
-        println!("  bind address: {:?}{}", self.bind_address, diffs);
+        debug!(log, "  bind address: {:?}{}", self.bind_address, diffs);
         if self.bitcoin.enabled {
             let default_nodes = crate::lib::bitcoin::adapter::config::default_nodes();
-            println!("  bitcoin: enabled (default: disabled)");
+            debug!(log, "  bitcoin: enabled (default: disabled)");
             let nodes: Vec<SocketAddr> = if let Some(ref nodes) = self.bitcoin.nodes {
                 nodes.clone()
             } else {
@@ -240,21 +258,30 @@ impl LocalServerDescriptor {
             } else {
                 "".to_string()
             };
-            println!("    nodes: {:?}{}", nodes, diffs);
+            debug!(log, "    nodes: {:?}{}", nodes, diffs);
         } else {
-            println!("  bitcoin: disabled");
+            debug!(log, "  bitcoin: disabled");
         }
 
         if self.canister_http.enabled {
-            println!("  canister http: enabled (default: disabled)");
+            debug!(log, "  canister http: enabled");
+            let diffs: String = if self.canister_http.log_level != HttpAdapterLogLevel::default() {
+                format!(" (default: {:?})", HttpAdapterLogLevel::default())
+            } else {
+                "".to_string()
+            };
+            debug!(
+                log,
+                "    log level: {:?}{}", self.canister_http.log_level, diffs
+            );
         } else {
-            println!("  canister http: disabled");
+            debug!(log, "  canister http: disabled (default: enabled)");
         }
 
         if include_replica {
-            println!("  replica:");
+            debug!(log, "  replica:");
             if include_replica_port {
-                println!("    port: ");
+                debug!(log, "    port: ");
             }
             let subnet_type = self
                 .replica
@@ -265,41 +292,48 @@ impl LocalServerDescriptor {
             } else {
                 "".to_string()
             };
+            debug!(log, "    subnet type: {:?}{}", subnet_type, diffs);
 
-            println!("    subnet type: {:?}{}", subnet_type, diffs);
+            let log_level = self.replica.log_level.unwrap_or_default();
+            let diffs: String = if log_level != ReplicaLogLevel::default() {
+                format!(" (default: {:?})", ReplicaLogLevel::default())
+            } else {
+                "".to_string()
+            };
+            debug!(log, "    log level: {:?}{}", log_level, diffs);
         }
-        println!("  data directory: {}", self.data_directory.display());
+        debug!(log, "  data directory: {}", self.data_directory.display());
         let scope = match self.scope {
             LocalNetworkScopeDescriptor::Project => "project",
             LocalNetworkScopeDescriptor::Shared { .. } => "shared",
         };
-        println!("  scope: {}", scope);
-        println!();
+        debug!(log, "  scope: {}", scope);
+        debug!(log, "");
     }
 
-    pub fn describe_bootstrap(&self) {
-        println!("Bootstrap configuration:");
+    pub fn describe_bootstrap(&self, log: &Logger) {
+        debug!(log, "Bootstrap configuration:");
         let default: ConfigDefaultsBootstrap = Default::default();
         let diffs = if self.bootstrap.ip != default.ip {
             format!("  (default: {:?})", default.ip)
         } else {
             "".to_string()
         };
-        println!("  ip: {:?}{}", self.bootstrap.ip, diffs);
+        debug!(log, "  ip: {:?}{}", self.bootstrap.ip, diffs);
 
         let diffs = if self.bootstrap.port != default.port {
             format!("  (default: {})", default.port)
         } else {
             "".to_string()
         };
-        println!("  port: {}{}", self.bootstrap.port, diffs);
+        debug!(log, "  port: {}{}", self.bootstrap.port, diffs);
 
         let diffs = if self.bootstrap.timeout != default.timeout {
             format!("  (default: {})", default.timeout)
         } else {
             "".to_string()
         };
-        println!("  timeout: {}{}", self.bootstrap.timeout, diffs);
-        println!();
+        debug!(log, "  timeout: {}{}", self.bootstrap.timeout, diffs);
+        debug!(log, "");
     }
 }

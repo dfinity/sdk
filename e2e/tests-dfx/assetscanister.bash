@@ -334,7 +334,7 @@ CHERRIES" "$stdout"
     assert_not_match '"/will-delete-this.txt"'
 }
 
-@test "asset configuration via .ic-assets.json" {
+@test "asset configuration via .ic-assets.json5" {
     install_asset assetscanister
 
     dfx_start
@@ -375,7 +375,7 @@ CHERRIES" "$stdout"
         "match": "ignored.txt",
         "ignore": true
       }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
     echo '[
       {
         "match": "*",
@@ -393,7 +393,7 @@ CHERRIES" "$stdout"
         "match": "file.txt",
         "headers": null
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json5
 
     dfx deploy
 
@@ -435,7 +435,7 @@ CHERRIES" "$stdout"
     #   /.well-known/thing.json 1/1 (0 bytes)
 }
 
-@test "asset configuration via .ic-assets.json - nested dot directories" {
+@test "asset configuration via .ic-assets.json5 - nested dot directories" {
     install_asset assetscanister
 
     dfx_start
@@ -461,7 +461,7 @@ CHERRIES" "$stdout"
         "match": "**/*",
         "cache": { "max_age": 2000 }
       }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
     echo '[
       {
         "match": "*",
@@ -473,19 +473,19 @@ CHERRIES" "$stdout"
         "match": ".hidden",
         "ignore": true
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json5
     echo '[
       {
         "match": "*",
         "ignore": false
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.hidden/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.well-known/.hidden/.ic-assets.json5
     echo '[
       {
         "match": "*",
         "ignore": false
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.another-hidden/.ic-assets.json
+    ]' > src/e2e_project_frontend/assets/.well-known/.another-hidden/.ic-assets.json5
 
     dfx deploy
 
@@ -505,4 +505,113 @@ CHERRIES" "$stdout"
     assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
     assert_match "HTTP/1.1 404 Not Found"
 
+}
+
+@test "asset configuration via .ic-assets.json5 - overwriting default headers" {
+    install_asset assetscanister
+
+    dfx_start
+
+    touch src/e2e_project_frontend/assets/thing.json
+
+    echo '[
+      {
+        "match": "thing.json",
+        "cache": { "max_age": 2000 },
+        "headers": {
+          "Content-Encoding": "my-encoding",
+          "Content-Type": "x-type",
+          "Cache-Control": "custom",
+          "etag": "my-etag"
+        }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+    assert_match "cache-control: custom"
+    assert_match "content-encoding: my-encoding"
+    assert_match "content-type: x-type"
+    assert_not_match "etag: my-etag"
+    assert_match "etag: \"[a-z0-9]{64}\""
+}
+
+@test "asset configuration via .ic-assets.json5 - detect unused config" {
+    install_asset assetscanister
+
+    dfx_start
+
+    mkdir src/e2e_project_frontend/assets/somedir
+    touch src/e2e_project_frontend/assets/somedir/upload-me.txt
+    echo '[
+      {
+        "match": "nevermatchme",
+        "cache": { "max_age": 2000 }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+    echo '[
+      {
+        "match": "upload-me.txt",
+        "headers": { "key": "value" }
+      },
+      {
+        "match": "nevermatchme",
+        "headers": {},
+        "ignore": false
+      },
+      {
+        "match": "nevermatchmetoo",
+        "headers": null,
+        "ignore": false
+      },
+      {
+        "match": "non-matcher",
+        "headers": {"x-header": "x-value"},
+        "ignore": false
+      },
+      {
+        "match": "/thanks-for-not-stripping-forward-slash",
+        "headers": {"x-header": "x-value"},
+        "ignore": false
+      }
+    ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
+
+    assert_command dfx deploy
+    assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
+    assert_contains '{
+  "match": "nevermatchme",
+  "cache": {
+    "max_age": 2000
+  }
+}'
+    assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
+    assert_contains '{
+  "match": "nevermatchme",
+  "headers": {},
+  "ignore": false
+}
+{
+  "match": "nevermatchmetoo",
+  "headers": {},
+  "ignore": false
+}
+{
+  "match": "non-matcher",
+  "headers": {
+    "x-header": "x-value"
+  },
+  "ignore": false
+}'
+    # splitting this up into two checks, because the order is different on macos vs ubuntu
+    assert_contains '{
+  "match": "/thanks-for-not-stripping-forward-slash",
+  "headers": {
+    "x-header": "x-value"
+  },
+  "ignore": false
+}'
 }
