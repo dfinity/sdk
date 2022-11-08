@@ -30,9 +30,6 @@ lto = true
 [profile.dev.package.argon2]
 opt-level = 3
 
-[profile.dev.package.miniz_oxide]
-opt-level = 3
-
 [profile.release.package.ic-frontend-canister]
 opt-level = 'z'
 
