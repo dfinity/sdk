@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+## DFX
+
+### fix: default not shrink for custom canisters
+
 # 0.12.0
 
 ## DFX
