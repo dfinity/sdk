@@ -165,8 +165,7 @@ pub struct ConfigCanistersCanister {
     /// # Shrink Canister WASM
     /// Whether run `ic-wasm shrink` after building the Canister.
     /// Default is true.
-    #[serde(default = "default_as_true")]
-    pub shrink: bool,
+    pub shrink: Option<bool>,
 
     /// # Metadata
     /// Defines metadata sections to set in the canister .wasm

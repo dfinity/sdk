@@ -92,7 +92,12 @@ impl CanisterBuilder for RustBuilder {
         );
         let output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")?;
 
-        if canister_info.get_shrink() {
+        // Default to shrink Rust canister unless explicitly disable
+        let shrink = match canister_info.get_shrink() {
+            Some(false) => false,
+            _ => true,
+        };
+        if shrink {
             info!(self.logger, "Shrink WASM module size.");
             super::shrink_wasm(rust_info.get_output_wasm_path())?;
         }
