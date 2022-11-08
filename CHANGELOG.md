@@ -6,6 +6,16 @@
 
 ### fix: default not shrink for custom canisters
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit dcbf401f27d9b48354e68389c6d8293c4233b055.
+This incorporates the following executed proposals:
+
+- [90485](https://dashboard.internetcomputer.org/proposal/90485)
+- [90008](https://dashboard.internetcomputer.org/proposal/90008)
+
 # 0.12.0
 
 ## DFX
