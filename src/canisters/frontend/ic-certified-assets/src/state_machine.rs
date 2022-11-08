@@ -149,9 +149,13 @@ impl State {
     }
 
     pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
-        if let Some(asset) = self.assets.get(&arg.key) {
+        if let Some(asset) = self.assets.get_mut(&arg.key) {
             if asset.content_type != arg.content_type {
                 return Err("create_asset: content type mismatch".to_string());
+            } else {
+                asset.max_age = arg.max_age;
+                asset.headers = arg.headers;
+                asset.is_aliased = arg.aliased;
             }
         } else {
             self.assets.insert(

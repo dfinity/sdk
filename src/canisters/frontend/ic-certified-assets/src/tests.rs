@@ -555,7 +555,6 @@ fn alias_enable_and_disable() {
     let time_now = 100_000_000_000;
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
-    const FILE_BODY_2: &[u8] = b"<!DOCTYPE html><html>file body 2</html>";
 
     create_assets(
         &mut state,
@@ -590,35 +589,20 @@ fn alias_enable_and_disable() {
     );
     assert_ne!(no_more_alias.body.as_ref(), FILE_BODY);
 
-    let no_more_alias_2 = state.http_request(
+    let other_alias_still_works = state.http_request(
         RequestBuilder::get("/subdirectory/index").build(),
         &[],
         unused_callback(),
     );
-    assert_ne!(no_more_alias_2.body.as_ref(), SUBDIR_INDEX_BODY);
+    assert_eq!(other_alias_still_works.body.as_ref(), SUBDIR_INDEX_BODY);
 
     create_assets(
         &mut state,
         time_now,
-        vec![AssetBuilder::new("/file2.html", "text/html")
-            .with_encoding("identity", vec![FILE_BODY_2])],
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])
+            .with_aliasing(true)],
     );
-
-    let new_file_no_alias = state.http_request(
-        RequestBuilder::get("/file2").build(),
-        &[],
-        unused_callback(),
-    );
-    assert_ne!(new_file_no_alias.body.as_ref(), FILE_BODY_2);
-
-    // state.enable_aliasing(true);
-
-    let new_file_gets_aliased = state.http_request(
-        RequestBuilder::get("/file2").build(),
-        &[],
-        unused_callback(),
-    );
-    assert_eq!(new_file_gets_aliased.body.as_ref(), FILE_BODY_2);
 
     let alias_add_html_again = state.http_request(
         RequestBuilder::get("/contents").build(),
@@ -663,7 +647,13 @@ fn alias_behavior_persists_through_upgrade() {
     );
     assert_eq!(alias_works_after_upgrade.body.as_ref(), FILE_BODY);
 
-    // state.enable_aliasing(false);
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])
+            .with_aliasing(false)],
+    );
 
     let alias_stops = state.http_request(
         RequestBuilder::get("/contents").build(),
@@ -672,8 +662,18 @@ fn alias_behavior_persists_through_upgrade() {
     );
     assert_ne!(alias_stops.body.as_ref(), FILE_BODY);
 
+    let alias_for_other_asset_still_works = state.http_request(
+        RequestBuilder::get("/subdirectory").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(
+        alias_for_other_asset_still_works.body.as_ref(),
+        SUBDIR_INDEX_BODY
+    );
+
     let stable_state: StableState = state.into();
-    let mut state: State = stable_state.into();
+    let state: State = stable_state.into();
 
     let alias_stays_turned_off = state.http_request(
         RequestBuilder::get("/contents").build(),
@@ -682,12 +682,13 @@ fn alias_behavior_persists_through_upgrade() {
     );
     assert_ne!(alias_stays_turned_off.body.as_ref(), FILE_BODY);
 
-    // state.enable_aliasing(true);
-
-    let alias_works_again = state.http_request(
-        RequestBuilder::get("/contents").build(),
+    let alias_for_other_asset_still_works = state.http_request(
+        RequestBuilder::get("/subdirectory").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(alias_works_again.body.as_ref(), FILE_BODY);
+    assert_eq!(
+        alias_for_other_asset_still_works.body.as_ref(),
+        SUBDIR_INDEX_BODY
+    );
 }
