@@ -164,7 +164,8 @@ pub struct ConfigCanistersCanister {
 
     /// # Shrink Canister WASM
     /// Whether run `ic-wasm shrink` after building the Canister.
-    /// Default is true.
+    /// Enabled by default for Rust/Motoko canisters.
+    /// Disabled by default for custom canisters.
     pub shrink: Option<bool>,
 
     /// # Metadata
