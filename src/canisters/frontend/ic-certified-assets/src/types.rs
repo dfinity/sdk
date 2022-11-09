@@ -18,7 +18,7 @@ pub struct CreateAssetArguments {
     pub content_type: String,
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
-    pub aliased: Option<bool>,
+    pub enable_aliasing: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]

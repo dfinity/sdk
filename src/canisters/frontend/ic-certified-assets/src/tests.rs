@@ -113,7 +113,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             content_type: asset.content_type,
             max_age: asset.max_age,
             headers: asset.headers,
-            aliased: asset.aliasing,
+            enable_aliasing: asset.aliasing,
         }));
 
         for (enc, chunks) in asset.encodings {
@@ -549,6 +549,7 @@ fn support_aliases() {
     assert_eq!(subdirectory_index_alias_3.body.as_ref(), SUBDIR_INDEX_BODY);
 }
 
+#[ignore = "SDK-817 will enable this"]
 #[test]
 fn alias_enable_and_disable() {
     let mut state = State::default();
@@ -624,43 +625,19 @@ fn alias_behavior_persists_through_upgrade() {
         time_now,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
-                .with_encoding("identity", vec![FILE_BODY]),
+                .with_encoding("identity", vec![FILE_BODY])
+                .with_aliasing(false),
             AssetBuilder::new("/subdirectory/index.html", "text/html")
                 .with_encoding("identity", vec![SUBDIR_INDEX_BODY]),
         ],
     );
 
-    let alias_add_html = state.http_request(
+    let alias_disabled = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
         unused_callback(),
     );
-    assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
-
-    let stable_state: StableState = state.into();
-    let mut state: State = stable_state.into();
-
-    let alias_works_after_upgrade = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
-    assert_eq!(alias_works_after_upgrade.body.as_ref(), FILE_BODY);
-
-    create_assets(
-        &mut state,
-        time_now,
-        vec![AssetBuilder::new("/contents.html", "text/html")
-            .with_encoding("identity", vec![FILE_BODY])
-            .with_aliasing(false)],
-    );
-
-    let alias_stops = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
-    assert_ne!(alias_stops.body.as_ref(), FILE_BODY);
+    assert_ne!(alias_disabled.body.as_ref(), FILE_BODY);
 
     let alias_for_other_asset_still_works = state.http_request(
         RequestBuilder::get("/subdirectory").build(),

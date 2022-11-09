@@ -44,9 +44,11 @@ pub async fn sync(
     )
     .await?;
 
-    panic!("project assets: {:?}", project_assets.keys());
+    println!("project assets: {:?}", project_assets.keys());
 
     let operations = assemble_synchronization_operations(project_assets, container_assets);
+
+    println!("operations: {:?}", operations);
 
     println!("Committing batch.");
     commit_batch(&canister_call_params, &batch_id, operations).await?;

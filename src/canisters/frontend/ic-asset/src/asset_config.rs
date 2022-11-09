@@ -259,6 +259,10 @@ impl AssetConfig {
         if other.ignore.is_some() {
             self.ignore = other.ignore;
         }
+
+        if other.enable_aliasing.is_some() {
+            self.enable_aliasing = other.enable_aliasing;
+        }
         self
     }
 }

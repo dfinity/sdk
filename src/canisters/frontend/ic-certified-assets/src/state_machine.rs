@@ -152,10 +152,6 @@ impl State {
         if let Some(asset) = self.assets.get_mut(&arg.key) {
             if asset.content_type != arg.content_type {
                 return Err("create_asset: content type mismatch".to_string());
-            } else {
-                asset.max_age = arg.max_age;
-                asset.headers = arg.headers;
-                asset.is_aliased = arg.aliased;
             }
         } else {
             self.assets.insert(
@@ -165,7 +161,7 @@ impl State {
                     encodings: HashMap::new(),
                     max_age: arg.max_age,
                     headers: arg.headers,
-                    is_aliased: arg.aliased,
+                    is_aliased: arg.enable_aliasing,
                 },
             );
         }
