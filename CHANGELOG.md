@@ -16,6 +16,11 @@ This incorporates the following executed proposals:
 - [90485](https://dashboard.internetcomputer.org/proposal/90485)
 - [90008](https://dashboard.internetcomputer.org/proposal/90008)
 
+### Frontend canister
+
+- Module hash: db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+- https://github.com/dfinity/sdk/pull/2753
+
 # 0.12.0
 
 ## DFX
