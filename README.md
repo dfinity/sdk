@@ -115,10 +115,5 @@ dfx stop && dfx start --clean --background
 ```
 
 ### Using Internet Identity Locally
-You can deploy the Internet Identity canister into your replica alongside your project by cloning https://github.com/dfinity/internet-identity. From the `internet-identity` directory, run the following command:
-
-``` bash
-II_ENV=development dfx deploy --no-wallet --argument '(null)'
-```
-
-There are more notes at https://github.com/dfinity/internet-identity#running-locally that may be helpful.
+You can deploy the Internet Identity canister into your replica alongside your project.
+To do so, either run `dfx nns install` or follow the instructions in the example project here: https://github.com/dfinity/internet-identity/tree/main/demos/using-dev-build

@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+## DFX
+
+### chore: Update II wasm url to always fetch the latest release.
+
 ## Dependencies
 
 ### Replica

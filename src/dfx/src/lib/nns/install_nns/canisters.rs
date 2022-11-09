@@ -106,7 +106,7 @@ pub const INTERNET_IDENTITY: StandardCanister = StandardCanister {
     canister_name: "internet_identity",
     canister_id: "qhbym-qaaaa-aaaaa-aaafq-cai",
     wasm_name: "internet_identity_dev.wasm",
-    wasm_url: "https://github.com/dfinity/internet-identity/releases/download/release-2022-07-11/internet_identity_dev.wasm"
+    wasm_url: "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm"
 };
 /// Frontend dapp for voting and managing neurons.
 pub const NNS_DAPP: StandardCanister = StandardCanister {
