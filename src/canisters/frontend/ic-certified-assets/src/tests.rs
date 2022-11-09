@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments, CreateChunkArg,
-    HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
+    DeleteAssetArguments, HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -668,4 +668,54 @@ fn alias_behavior_persists_through_upgrade() {
         alias_for_other_asset_still_works.body.as_ref(),
         SUBDIR_INDEX_BODY
     );
+}
+
+#[test]
+fn aliasing_name_clash() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+    const FILE_BODY_2: &[u8] = b"<!DOCTYPE html><html>second body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])],
+    );
+
+    let alias_add_html = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents", "text/html")
+            .with_encoding("identity", vec![FILE_BODY_2])],
+    );
+
+    let alias_doesnt_overwrite_actual_file = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(
+        alias_doesnt_overwrite_actual_file.body.as_ref(),
+        FILE_BODY_2
+    );
+
+    state.delete_asset(DeleteAssetArguments {
+        key: "/contents".to_string(),
+    });
+
+    let alias_accessible_again = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(alias_accessible_again.body.as_ref(), FILE_BODY);
 }
