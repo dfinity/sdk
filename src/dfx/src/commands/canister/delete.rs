@@ -34,7 +34,9 @@ use std::time::Duration;
 #[allow(deprecated)]
 const DANK_PRINCIPAL: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
-const WITHDRAWAL_COST: u128 = 10_000_000_000; // Emperically estimated.
+
+// "Couldn't send message" when deleting a canister: increase WITHDRAWAL_COST
+const WITHDRAWAL_COST: u128 = 10_303_000_000; // 2% higher than a value observed ok locally
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a currently stopped canister.

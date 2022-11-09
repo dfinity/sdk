@@ -2,7 +2,26 @@
 
 # UNRELEASED
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit dcbf401f27d9b48354e68389c6d8293c4233b055.
+This incorporates the following executed proposals:
+
+- [90485](https://dashboard.internetcomputer.org/proposal/90485)
+- [90008](https://dashboard.internetcomputer.org/proposal/90008)
+
+### Frontend canister
+
+- Module hash: db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+- https://github.com/dfinity/sdk/pull/2753
+
+# 0.12.0
+
 ## DFX
+
+### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
 
 ### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
 
@@ -19,6 +38,8 @@ Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP
 ]
 ```
 This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+
+### feat: warn if an unencrypted identity is used on mainnet
 
 ### fix: Save SNS canister IDs
 
@@ -510,9 +531,13 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 3e1be1316341811db5c9300935c4236bfab8fa2a.
-This incorporates the following executed proposals:
+Updated replica to release candidate 93dcf2a2026c34330c76149dd713d89e37daa533.
 
+This also incorporates the following executed proposals:
+
+- [88831](https://dashboard.internetcomputer.org/proposal/88831)
+- [88629](https://dashboard.internetcomputer.org/proposal/88629)
+- [88109](https://dashboard.internetcomputer.org/proposal/88109)
 - [87631](https://dashboard.internetcomputer.org/proposal/87631)
 - [86738](https://dashboard.internetcomputer.org/proposal/86738)
 - [86279](https://dashboard.internetcomputer.org/proposal/86279)
@@ -541,9 +566,9 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko from 0.6.29 to 0.7.1
+### Updated Motoko from 0.6.29 to 0.7.3
 
-- See https://github.com/dfinity/motoko/blob/master/Changelog.md#071-2022-10-24
+- See https://github.com/dfinity/motoko/blob/master/Changelog.md#073-2022-11-01
 
 
 ### Cycles wallet

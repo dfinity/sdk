@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.11.2"
+version = "0.12.0"
 authors = ["DFINITY Team"]
 edition = "2021"
 build = "assets/build.rs"
@@ -11,7 +11,7 @@ path = "src/main.rs"
 
 [build-dependencies]
 bytes = "1"
-flate2 = "1.0.11"
+flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] }
 hex = "0.4.3"
 reqwest = "0.11.9"
 serde = { version = "1.0", features = ["derive"] }
@@ -39,7 +39,7 @@ crossbeam = "0.8.1"
 ctrlc = { version = "3.2.1", features = [ "termination" ] }
 dialoguer = "0.10.0"
 directories-next = "2.0.0"
-flate2 = "1.0.11"
+flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] }
 fn-error-context = "0.2.0"
 futures = "0.3.21"
 futures-util = "0.3.21"
@@ -72,6 +72,7 @@ reqwest = { version = "0.11.9", default-features = false, features = [ "blocking
 rustls = "0.20.4"
 rust_decimal = "1.22.0"
 schemars = "0.8"
+sec1 = { version = "0.3.0", features = ["std"] }
 semver = "1.0.6"
 serde = "1.0"
 serde_bytes = "0.11.2"

@@ -14,6 +14,7 @@ use fn_error_context::context;
 use k256::pkcs8::LineEnding;
 use k256::SecretKey;
 use ring::{rand, rand::SecureRandom};
+use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
 use slog::Logger;
 use std::boxed::Box;
@@ -244,7 +245,7 @@ impl IdentityManager {
 
         let config = self.get_identity_config_or_default(name)?;
         let pem_path = self.get_identity_pem_path(name, &config);
-        let pem = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
+        let (pem, _) = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
         validate_pem_file(&pem)?;
         String::from_utf8(pem).map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
     }
@@ -592,7 +593,7 @@ fn remove_identity_file(file: &Path) -> DfxResult {
 pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
     let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256)?, Language::English);
     let secret = mnemonic_to_key(&mnemonic)?;
-    let pem = secret.to_pem(LineEnding::CRLF)?;
+    let pem = secret.to_sec1_pem(LineEnding::CRLF)?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }
 
