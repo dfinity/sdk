@@ -539,7 +539,7 @@ CHERRIES" "$stdout"
     assert_match "etag: \"[a-z0-9]{64}\""
 }
 
-@test "default aliases <filename> to <filename>.html or <filename>/index.html" {
+@test "aliasing rules: <filename> to <filename>.html or <filename>/index.html" {
     echo "test alias file" >'src/e2e_project_frontend/assets/test_alias_file.html'
     mkdir 'src/e2e_project_frontend/assets/index_test'
     echo "test index file" >'src/e2e_project_frontend/assets/index_test/index.html'

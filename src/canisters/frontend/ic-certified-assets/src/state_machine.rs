@@ -149,7 +149,7 @@ impl State {
     }
 
     pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
-        if let Some(asset) = self.assets.get_mut(&arg.key) {
+        if let Some(asset) = self.assets.get(&arg.key) {
             if asset.content_type != arg.content_type {
                 return Err("create_asset: content type mismatch".to_string());
             }

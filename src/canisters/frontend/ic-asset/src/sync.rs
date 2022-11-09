@@ -24,17 +24,12 @@ pub async fn sync(
     timeout: Duration,
 ) -> anyhow::Result<()> {
     let asset_descriptors = gather_asset_descriptors(dirs)?;
-    println!("asset descriptors: {:?}", asset_descriptors);
 
     let canister_call_params = CanisterCallParams { canister, timeout };
 
     let container_assets = list_assets(&canister_call_params).await?;
 
-    println!("Starting batch.");
-
     let batch_id = create_batch(&canister_call_params).await?;
-
-    println!("Staging contents of new and changed assets:");
 
     let project_assets = make_project_assets(
         &canister_call_params,
@@ -44,13 +39,8 @@ pub async fn sync(
     )
     .await?;
 
-    println!("project assets: {:?}", project_assets.keys());
-
     let operations = assemble_synchronization_operations(project_assets, container_assets);
 
-    println!("operations: {:?}", operations);
-
-    println!("Committing batch.");
     commit_batch(&canister_call_params, &batch_id, operations).await?;
 
     Ok(())
@@ -71,7 +61,6 @@ fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
 
 fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescriptor>> {
     let mut asset_descriptors: HashMap<String, AssetDescriptor> = HashMap::new();
-    eprintln!("dirs: {:?}", dirs);
     for dir in dirs {
         let dir = dir.canonicalize().with_context(|| {
             format!(
@@ -80,7 +69,6 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
             )
         })?;
         let configuration = AssetSourceDirectoryConfiguration::load(&dir)?;
-        eprintln!("dir {:?} config: {:?}", dir, configuration);
         let mut asset_descriptors_interim = vec![];
         for e in WalkDir::new(&dir)
             .into_iter()
