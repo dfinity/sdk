@@ -33,3 +33,6 @@ opt-level = 3
 [profile.release.package.ic-frontend-canister]
 opt-level = 'z'
 
+[profile.release.package.libz-ng-sys]
+opt-level = 'z'
+
