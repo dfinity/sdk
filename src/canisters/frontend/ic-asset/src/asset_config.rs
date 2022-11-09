@@ -255,7 +255,7 @@ impl AssetConfig {
 /// This module contains various utilities needed for serialization/deserialization
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
-    use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
+    use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
     use anyhow::Context;
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
@@ -368,6 +368,30 @@ mod rule_utils {
                 ignore,
                 used: false,
             })
+        }
+    }
+
+    impl std::fmt::Display for AssetConfig {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let mut s = String::new();
+
+            if self.cache.is_some() || self.headers.is_some() {
+                s.push_str(", with config:\n");
+            }
+            if let Some(ref cache) = self.cache {
+                s.push_str(&format!("    - cache: {:?}\n", cache));
+            }
+            if let Some(ref headers) = self.headers {
+                for (key, value) in headers {
+                    s.push_str(&format!(
+                        "    - header: {key}: {value}\n",
+                        key = key,
+                        value = value
+                    ));
+                }
+            }
+
+            write!(f, "{}", s)
         }
     }
 }

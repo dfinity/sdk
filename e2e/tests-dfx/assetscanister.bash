@@ -615,3 +615,26 @@ CHERRIES" "$stdout"
   "ignore": false
 }'
 }
+
+@test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
+    install_asset assetscanister
+
+    dfx_start
+
+    mkdir src/e2e_project_frontend/assets/somedir
+    echo "content" > src/e2e_project_frontend/assets/somedir/upload-me.txt
+    echo '[
+      {
+        "match": "**/*",
+        "cache": { "max_age": 2000 },
+        "headers": {
+          "x-header": "x-value"
+        }
+      },
+    ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
+
+    assert_command dfx deploy
+    assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]*, with config:'
+    assert_contains '- cache: CacheConfig { max_age: Some(2000) }'
+    assert_contains '- header: x-header: x-value'
+}

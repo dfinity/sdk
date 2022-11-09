@@ -280,13 +280,14 @@ async fn upload_content_chunks(
             create_chunk(canister_call_params, batch_id, data_chunk, semaphores).map_ok(
                 move |chunk_id| {
                     println!(
-                        "  {}{} {}/{} ({} bytes) sha {}",
+                        "  {}{} {}/{} ({} bytes) sha {}{}",
                         &asset_descriptor.key,
                         content_encoding_descriptive_suffix(content_encoding),
                         i + 1,
                         count,
                         data_chunk.len(),
-                        hex::encode(&sha256)
+                        hex::encode(&sha256),
+                        &asset_descriptor.config
                     );
                     chunk_id
                 },
