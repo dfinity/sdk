@@ -140,8 +140,7 @@ impl CanisterBuilder for CustomBuilder {
             }
         }
 
-        // Default **NOT** to shrink custom canister unless explicitly enable
-        let shrink = info.get_shrink() == Some(true);
+        let shrink = info.get_shrink().unwrap_or(false);
         // Custom canister may have WASM gzipped
         if shrink && is_wasm_format(&wasm)? {
             info!(self.logger, "Shrink WASM module size.");
