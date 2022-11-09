@@ -37,11 +37,16 @@ pub struct AssetEncoding {
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
+pub struct AssetProperties {
+    pub max_age: Option<u64>,
+    pub headers: Option<HashMap<String, String>>,
+}
+
+#[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
-    pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
+    pub properties: AssetProperties,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -135,8 +140,10 @@ impl State {
                 Asset {
                     content_type: arg.content_type,
                     encodings: HashMap::new(),
-                    max_age: arg.max_age,
-                    headers: arg.headers,
+                    properties: AssetProperties {
+                        max_age: arg.properties.max_age,
+                        headers: arg.properties.headers,
+                    },
                 },
             );
         }
@@ -716,10 +723,10 @@ fn build_ok(
     if let Some(head) = certificate_header {
         headers.insert(head.0, head.1);
     }
-    if let Some(max_age) = asset.max_age {
+    if let Some(max_age) = asset.properties.max_age {
         headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
     }
-    if let Some(arg_headers) = asset.headers.as_ref() {
+    if let Some(arg_headers) = asset.properties.headers.as_ref() {
         for (k, v) in arg_headers {
             headers.insert(k.to_owned().to_lowercase(), v.to_owned());
         }

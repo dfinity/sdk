@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
+use crate::state_machine::{AssetProperties, StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments, CreateChunkArg,
     HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
@@ -23,9 +23,8 @@ fn unused_callback() -> candid::Func {
 struct AssetBuilder {
     name: String,
     content_type: String,
-    max_age: Option<u64>,
     encodings: Vec<(String, Vec<ByteBuf>)>,
-    headers: Option<HashMap<String, String>>,
+    properties: AssetProperties,
 }
 
 impl AssetBuilder {
@@ -33,14 +32,13 @@ impl AssetBuilder {
         Self {
             name: name.as_ref().to_string(),
             content_type: content_type.as_ref().to_string(),
-            max_age: None,
             encodings: vec![],
-            headers: None,
+            properties: AssetProperties::default(),
         }
     }
 
     fn with_max_age(mut self, max_age: u64) -> Self {
-        self.max_age = Some(max_age);
+        self.properties.max_age = Some(max_age);
         self
     }
 
@@ -56,7 +54,7 @@ impl AssetBuilder {
     }
 
     fn with_header(mut self, header_key: &str, header_value: &str) -> Self {
-        let hm = self.headers.get_or_insert(HashMap::new());
+        let hm = self.properties.headers.get_or_insert(HashMap::new());
         hm.insert(header_key.to_string(), header_value.to_string());
         self
     }
@@ -104,8 +102,10 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
         operations.push(BatchOperation::CreateAsset(CreateAssetArguments {
             key: asset.name.clone(),
             content_type: asset.content_type,
-            max_age: asset.max_age,
-            headers: asset.headers,
+            properties: AssetProperties {
+                max_age: asset.properties.max_age,
+                headers: asset.properties.headers,
+            },
         }));
 
         for (enc, chunks) in asset.encodings {
