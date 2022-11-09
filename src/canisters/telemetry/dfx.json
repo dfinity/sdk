@@ -1,0 +1,9 @@
+{
+  "canisters": {
+    "telemetry_backend": {
+      "main": "src/telemetry_backend/main.mo",
+      "type": "motoko"
+    }
+  },
+  "version": 1
+}

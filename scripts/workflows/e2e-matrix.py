@@ -11,7 +11,10 @@ def test_scripts(prefix):
     return tests
 
 
-test = sorted(test_scripts("dfx") + test_scripts("replica") + test_scripts("icx-asset"))
+test = sorted(test_scripts("dfx")
+              + test_scripts("replica")
+              + test_scripts("icx-asset")
+              + test_scripts("telemetry"))
 
 matrix = {
     "test": test,
