@@ -167,7 +167,7 @@ impl CanisterBuilder for MotokoBuilder {
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
         // Default to shrink Motoko canister unless explicitly disable
-        let shrink = !matches!(canister_info.get_shrink(), Some(false));
+        let shrink = canister_info.get_shrink() != Some(false);
         if shrink {
             info!(self.logger, "Shrink WASM module size.");
             super::shrink_wasm(motoko_info.get_output_wasm_path())?;
