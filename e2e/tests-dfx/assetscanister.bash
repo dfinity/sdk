@@ -68,27 +68,27 @@ teardown() {
 
     assert_command curl --fail -vv http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
     # shellcheck disable=SC2154
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "contents of file with space in filename"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/has%2bplus.txt?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "contents of file with plus in filename"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/has%%percent.txt?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "contents of file with percent in filename"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "filename is an ae symbol"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/%%?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "filename is percent symbol"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/filename%3fwithqmark.txt?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "filename contains question mark"
 
     assert_command curl --fail -vv --output lws-curl-output.bin "http://localhost:$PORT/large%20with%20spaces.bin?canisterId=$ID"
@@ -423,7 +423,7 @@ CHERRIES" "$stdout"
     assert_match "x-extra-header: x-extra-value"
 
     # assert_command curl -vv "http://localhost:$PORT/ignored.txt?canisterId=$ID"
-    # assert_match "HTTP/1.1 404 Not Found"
+    # assert_match "404 Not Found"
     # from logs:
     # Staging contents of new and changed assets:
     #   /sample-asset.txt 1/1 (24 bytes)
@@ -499,11 +499,11 @@ CHERRIES" "$stdout"
     assert_match "x-header: x-value"
 
     assert_command curl -vv "http://localhost:$PORT/.ignored-by-defualt.txt?canisterId=$ID"
-    assert_match "HTTP/1.1 404 Not Found"
+    assert_match "404 Not Found"
     assert_command curl -vv "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
-    assert_match "HTTP/1.1 404 Not Found"
+    assert_match "404 Not Found"
     assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
-    assert_match "HTTP/1.1 404 Not Found"
+    assert_match "404 Not Found"
 
 }
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
@@ -566,16 +566,16 @@ CHERRIES" "$stdout"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
     # shellcheck disable=SC2154
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test alias file"
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test alias file"
     assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test index file"
     assert_command curl --fail -vv http://localhost:"$PORT"/index_test/index?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
     # redirect survives upgrade
@@ -584,13 +584,13 @@ CHERRIES" "$stdout"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
     # shellcheck disable=SC2154
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test alias file"
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test alias file"
     assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
@@ -613,12 +613,12 @@ CHERRIES" "$stdout"
     
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
     # shellcheck disable=SC2154
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test alias file"
     assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "HTTP/1.1 404 Not Found" "$stderr"
+    assert_match "404 Not Found" "$stderr"
     assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
@@ -634,12 +634,12 @@ CHERRIES" "$stdout"
     
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
     # shellcheck disable=SC2154
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test alias file"
     assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "HTTP/1.1 404 Not Found" "$stderr"
+    assert_match "404 Not Found" "$stderr"
     assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
@@ -693,36 +693,10 @@ CHERRIES" "$stdout"
 
     assert_command dfx deploy
     assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
-    assert_contains '{
-  "match": "nevermatchme",
-  "cache": {
-    "max_age": 2000
-  }
-}'
+    assert_contains '"match": "nevermatchme"'
     assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
-    assert_contains '{
-  "match": "nevermatchme",
-  "headers": {},
-  "ignore": false
-}
-{
-  "match": "nevermatchmetoo",
-  "headers": {},
-  "ignore": false
-}
-{
-  "match": "non-matcher",
-  "headers": {
-    "x-header": "x-value"
-  },
-  "ignore": false
-}'
-    # splitting this up into two checks, because the order is different on macos vs ubuntu
-    assert_contains '{
-  "match": "/thanks-for-not-stripping-forward-slash",
-  "headers": {
-    "x-header": "x-value"
-  },
-  "ignore": false
-}'
+    assert_contains '"match": "nevermatchme",'
+    assert_contains '"match": "nevermatchmetoo"'
+    assert_contains '"match": "non-matcher"'
+    assert_contains '"match": "/thanks-for-not-stripping-forward-slash"'
 }
