@@ -119,6 +119,20 @@ teardown() {
     assert_command dfx build
 }
 
+@test "build custom canister default no shrink" {
+    install_asset custom_canister
+    install_asset wasm/identity
+
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build custom
+    assert_not_match "Shrink"
+
+    jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
+    assert_command dfx build custom
+    assert_match "Shrink"
+}
+
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
 # Currently due to new canister ids, the wasm binary will be different for inter-canister calls.
 @test "build twice produces the same wasm binary" {
