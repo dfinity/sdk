@@ -555,6 +555,33 @@ impl State {
             token: create_token(asset, &content_encoding, enc, &key, chunk_index),
         })
     }
+
+    pub fn get_asset_properties(&self, key: Key) -> Result<AssetProperties, String> {
+        let asset = self
+            .assets
+            .get(&key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        Ok(AssetProperties {
+            max_age: asset.max_age,
+            headers: asset.headers.clone(),
+        })
+    }
+
+    pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
+        let asset = self
+            .assets
+            .get_mut(&arg.key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        if let Some(headers) = arg.headers {
+            asset.headers = Some(headers)
+        }
+        if let Some(max_age) = arg.max_age {
+            asset.max_age = Some(max_age)
+        }
+        Ok(())
+    }
 }
 
 impl From<State> for StableState {
