@@ -4,6 +4,8 @@
 
 ## DFX
 
+### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
+
 ### fix: default not shrink for custom canisters
 
 ## Dependencies
