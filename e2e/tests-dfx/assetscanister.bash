@@ -615,3 +615,52 @@ CHERRIES" "$stdout"
   "ignore": false
 }'
 }
+
+@test "asset configuration via .ic-assets.json5 - get and set asset properties" {
+    install_asset assetscanister
+
+    dfx_start
+
+    mkdir src/e2e_project_frontend/assets/somedir
+    touch src/e2e_project_frontend/assets/somedir/upload-me.txt
+    echo '[
+      {
+        "match": "**/*",
+        "cache": { "max_age": 2000 },
+        "headers": { "x-key": "x-value" }
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+    dfx deploy
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(
+  record {
+    1_661_489_734 = opt vec { record { "x-key"; "x-value" } };
+    3_563_873_892 = opt (2_000 : nat64);
+  },
+)'
+
+    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(5:nat64)  })'
+    assert_contains '()'
+    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(
+  record {
+    1_661_489_734 = opt vec { record { "x-key"; "x-value" } };
+    3_563_873_892 = opt (5 : nat64);
+  },
+)'
+
+    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(vec{record {"new-key"; "new-value"}})})'
+    assert_contains '()'
+    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(
+  record {
+    1_661_489_734 = opt vec { record { "new-key"; "new-value" } };
+    3_563_873_892 = opt (5 : nat64);
+  },
+)'
+
+}
