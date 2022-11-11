@@ -613,7 +613,8 @@ impl From<StableState> for State {
             ..Self::default()
         };
 
-        state.assets.keys().for_each(|key| {
+        let assets_keys: Vec<_> = state.assets.keys().map(|key| key.clone()).collect();
+        for key in assets_keys {
             let dependent_keys = state.dependent_keys(&key);
             if let Some(asset) = state.assets.get_mut(&key) {
                 for enc in asset.encodings.values_mut() {
@@ -623,7 +624,7 @@ impl From<StableState> for State {
             } else {
                 // shouldn't reach this
             }
-        });
+        }
         state
     }
 }
