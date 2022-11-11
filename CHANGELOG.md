@@ -79,10 +79,10 @@ The function for calling sns can now call any bundled binary.
 - Ledger for financial integration testing
 - Internet Identity for user registration and authenttication
 
-### feat(frontend-canister): Add simple redirects from `<asset>` to `<asset>.html` and `<asset>/index.html`
+### feat(frontend-canister): Add simple aliases from `<asset>` to `<asset>.html` and `<asset>/index.html`
 
-The asset canister now by default redirects any request to `<asset>` to `<asset>.html`.
-This can be disabled by setting the field `"redirect"` to `false` in the canister settings in dfx.json.
+The asset canister now by default aliases any request to `<asset>` to `<asset>.html`.
+This can be disabled by setting the field `"enable_aliasing"` to `false` in the canister settings in dfx.json.
 
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
