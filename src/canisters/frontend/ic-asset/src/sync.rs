@@ -28,7 +28,11 @@ pub async fn sync(
 
     let container_assets = list_assets(&canister_call_params).await?;
 
+    println!("Starting batch.");
+
     let batch_id = create_batch(&canister_call_params).await?;
+
+    println!("Staging contents of new and changed assets:");
 
     let project_assets = make_project_assets(
         &canister_call_params,
