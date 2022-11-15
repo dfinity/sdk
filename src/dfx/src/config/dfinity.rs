@@ -212,6 +212,13 @@ pub enum CanisterTypeProperties {
     },
     /// # Motoko-Specific Properties
     Motoko,
+    /// # Pull-Specific Properties
+    Pull {
+        /// # Canister ID
+        /// Principle of the canister on the network.
+        #[schemars(with = "String")]
+        id: candid::Principal,
+    },
 }
 
 impl CanisterTypeProperties {
@@ -221,6 +228,7 @@ impl CanisterTypeProperties {
             Self::Motoko { .. } => "motoko",
             Self::Assets { .. } => "assets",
             Self::Custom { .. } => "custom",
+            Self::Pull { .. } => "pull",
         }
     }
 }

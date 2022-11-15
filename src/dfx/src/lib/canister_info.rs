@@ -232,6 +232,9 @@ impl CanisterInfo {
             CanisterTypeProperties::Rust { .. } => self
                 .as_info::<RustCanisterInfo>()
                 .map(|x| x.get_output_idl_path().to_path_buf()),
+            CanisterTypeProperties::Pull { .. } => {
+                unreachable!("Should not get output idl from pull type canister")
+            }
         }
         .ok()
         .or_else(|| self.remote_candid.clone())
