@@ -693,10 +693,36 @@ CHERRIES" "$stdout"
 
     assert_command dfx deploy
     assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
-    assert_contains '"match": "nevermatchme"'
+    assert_contains '{
+  "match": "nevermatchme",
+  "cache": {
+    "max_age": 2000
+  }
+}'
     assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
-    assert_contains '"match": "nevermatchme",'
-    assert_contains '"match": "nevermatchmetoo"'
-    assert_contains '"match": "non-matcher"'
-    assert_contains '"match": "/thanks-for-not-stripping-forward-slash"'
+    assert_contains '{
+  "match": "nevermatchme",
+  "headers": {},
+  "ignore": false
+}
+{
+  "match": "nevermatchmetoo",
+  "headers": {},
+  "ignore": false
+}
+{
+  "match": "non-matcher",
+  "headers": {
+    "x-header": "x-value"
+  },
+  "ignore": false
+}'
+    # splitting this up into two checks, because the order is different on macos vs ubuntu
+    assert_contains '{
+  "match": "/thanks-for-not-stripping-forward-slash",
+  "headers": {
+    "x-header": "x-value"
+  },
+  "ignore": false
+}'
 }
