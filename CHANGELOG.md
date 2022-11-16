@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: Add support for a default network key
+
+A remote canister ID can now be specified for the `__default` network.  If specified, `dfx` will assume that the canister is remote at the specified canister ID for all networks that don't have a dedicated entry.
+
 ### fix: default not shrink for custom canisters
 
 ## Dependencies
