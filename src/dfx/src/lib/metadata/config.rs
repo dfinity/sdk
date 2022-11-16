@@ -32,8 +32,7 @@ impl CanisterMetadataConfig {
                 CanisterMetadataSection {
                     name: CANDID_SERVICE.to_string(),
                     visibility: Public,
-                    networks: None,
-                    path: None,
+                    ..Default::default()
                 },
             );
         }

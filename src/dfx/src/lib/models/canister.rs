@@ -104,6 +104,7 @@ impl Canister {
     #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
     pub(crate) fn apply_metadata(&self, logger: &Logger) -> DfxResult {
         let metadata = self.info.metadata();
+        // TODO: also write canister metadata for dfx pull
         if metadata.sections.is_empty() {
             return Ok(());
         }

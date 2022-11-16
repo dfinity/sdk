@@ -91,11 +91,17 @@ pub struct CanisterMetadataSection {
 
     /// # Path
     /// Path to file containing section contents.
+    /// Conflits with `content`.
     /// For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use
     /// the canister's candid definition.
     /// If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's
     /// actual candid service definition.
     pub path: Option<PathBuf>,
+
+    /// # Content
+    /// Content of this metadata section.
+    /// Conflits with `path`.
+    pub content: Option<String>,
 }
 
 impl CanisterMetadataSection {
@@ -172,6 +178,13 @@ pub struct ConfigCanistersCanister {
     /// Defines metadata sections to set in the canister .wasm
     #[serde(default)]
     pub metadata: Vec<CanisterMetadataSection>,
+
+    /// # Ready for dfx Pull
+    /// Whether make this canister ready for dfx pull.
+    /// If true, serveral required metadata must be also set with correct format.
+    // TODO: Add a link to `dfx pull` document.
+    #[serde(default)]
+    pub pull_ready: bool,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
