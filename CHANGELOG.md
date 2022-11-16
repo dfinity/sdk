@@ -4,6 +4,27 @@
 
 ## DFX
 
+### fix: default not shrink for custom canisters
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit dcbf401f27d9b48354e68389c6d8293c4233b055.
+This incorporates the following executed proposals:
+
+- [90485](https://dashboard.internetcomputer.org/proposal/90485)
+- [90008](https://dashboard.internetcomputer.org/proposal/90008)
+
+### Frontend canister
+
+- Module hash: db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+- https://github.com/dfinity/sdk/pull/2753
+
+# 0.12.0
+
+## DFX
+
 ### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
 
 ### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
@@ -57,6 +78,12 @@ The function for calling sns can now call any bundled binary.
 - Governance for integration with the Internet Computer voting system
 - Ledger for financial integration testing
 - Internet Identity for user registration and authenttication
+
+### feat(frontend-canister): Add simple aliases from `<asset>` to `<asset>.html` and `<asset>/index.html`
+
+The asset canister now by default aliases any request to `<asset>` to `<asset>.html` or `<asset>/index.html`.
+This can be disabled by setting the field `"enable_aliasing"` to `false` in a rule for that asset in .ic-assets.json.
+This change will trigger frontend canister upgrades upon redeploying any asset canister.
 
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
@@ -509,8 +536,9 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit 669673d380de01c08b7b52b08f57a02367d9096d.
-This incorporates the following executed proposals:
+Updated replica to release candidate 93dcf2a2026c34330c76149dd713d89e37daa533.
+
+This also incorporates the following executed proposals:
 
 - [88831](https://dashboard.internetcomputer.org/proposal/88831)
 - [88629](https://dashboard.internetcomputer.org/proposal/88629)
@@ -554,8 +582,8 @@ Updated ic-ref to 0.0.1-1fba03ee
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
 
 ### Frontend canister:
-- Module hash: 2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759
-- https://github.com/dfinity/sdk/pull/2689
+- Module hash: 6c8f7a094060b096c35e4c4499551e7a8a29ee0f86c456e521c09480ebbaa8ab
+- https://github.com/dfinity/sdk/pull/2720
 
 # 0.11.2
 

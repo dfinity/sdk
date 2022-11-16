@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments, CreateChunkArg,
-    HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
+    DeleteAssetArguments, HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -26,6 +26,7 @@ struct AssetBuilder {
     max_age: Option<u64>,
     encodings: Vec<(String, Vec<ByteBuf>)>,
     headers: Option<HashMap<String, String>>,
+    aliasing: Option<bool>,
 }
 
 impl AssetBuilder {
@@ -36,6 +37,7 @@ impl AssetBuilder {
             max_age: None,
             encodings: vec![],
             headers: None,
+            aliasing: None,
         }
     }
 
@@ -58,6 +60,11 @@ impl AssetBuilder {
     fn with_header(mut self, header_key: &str, header_value: &str) -> Self {
         let hm = self.headers.get_or_insert(HashMap::new());
         hm.insert(header_key.to_string(), header_value.to_string());
+        self
+    }
+
+    fn with_aliasing(mut self, aliasing: bool) -> Self {
+        self.aliasing = Some(aliasing);
         self
     }
 }
@@ -106,6 +113,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             content_type: asset.content_type,
             max_age: asset.max_age,
             headers: asset.headers,
+            enable_aliasing: asset.aliasing,
         }));
 
         for (enc, chunks) in asset.encodings {
@@ -475,4 +483,239 @@ fn supports_custom_http_headers() {
         "Incorrect value for X-Content-Type-Options header in response: {:#?}",
         response,
     );
+}
+
+#[test]
+fn support_aliases() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>index</html>";
+    const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY]),
+            AssetBuilder::new("/index.html", "text/html")
+                .with_encoding("identity", vec![INDEX_BODY]),
+            AssetBuilder::new("/subdirectory/index.html", "text/html")
+                .with_encoding("identity", vec![SUBDIR_INDEX_BODY]),
+        ],
+    );
+
+    let normal_request = state.http_request(
+        RequestBuilder::get("/contents.html").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(normal_request.body.as_ref(), FILE_BODY);
+
+    let alias_add_html = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
+
+    let root_alias = state.http_request(RequestBuilder::get("/").build(), &[], unused_callback());
+    assert_eq!(root_alias.body.as_ref(), INDEX_BODY);
+
+    let empty_path_alias =
+        state.http_request(RequestBuilder::get("").build(), &[], unused_callback());
+    assert_eq!(empty_path_alias.body.as_ref(), INDEX_BODY);
+
+    let subdirectory_index_alias = state.http_request(
+        RequestBuilder::get("/subdirectory/index").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(subdirectory_index_alias.body.as_ref(), SUBDIR_INDEX_BODY);
+
+    let subdirectory_index_alias_2 = state.http_request(
+        RequestBuilder::get("/subdirectory/").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(subdirectory_index_alias_2.body.as_ref(), SUBDIR_INDEX_BODY);
+
+    let subdirectory_index_alias_3 = state.http_request(
+        RequestBuilder::get("/subdirectory").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(subdirectory_index_alias_3.body.as_ref(), SUBDIR_INDEX_BODY);
+}
+
+#[ignore = "SDK-817 will enable this"]
+#[test]
+fn alias_enable_and_disable() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY]),
+            AssetBuilder::new("/subdirectory/index.html", "text/html")
+                .with_encoding("identity", vec![SUBDIR_INDEX_BODY]),
+        ],
+    );
+
+    let alias_add_html = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])
+            .with_aliasing(false)],
+    );
+
+    let no_more_alias = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_ne!(no_more_alias.body.as_ref(), FILE_BODY);
+
+    let other_alias_still_works = state.http_request(
+        RequestBuilder::get("/subdirectory/index").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(other_alias_still_works.body.as_ref(), SUBDIR_INDEX_BODY);
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])
+            .with_aliasing(true)],
+    );
+
+    let alias_add_html_again = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(alias_add_html_again.body.as_ref(), FILE_BODY);
+}
+
+#[test]
+fn alias_behavior_persists_through_upgrade() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY])
+                .with_aliasing(false),
+            AssetBuilder::new("/subdirectory/index.html", "text/html")
+                .with_encoding("identity", vec![SUBDIR_INDEX_BODY]),
+        ],
+    );
+
+    let alias_disabled = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_ne!(alias_disabled.body.as_ref(), FILE_BODY);
+
+    let alias_for_other_asset_still_works = state.http_request(
+        RequestBuilder::get("/subdirectory").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(
+        alias_for_other_asset_still_works.body.as_ref(),
+        SUBDIR_INDEX_BODY
+    );
+
+    let stable_state: StableState = state.into();
+    let state: State = stable_state.into();
+
+    let alias_stays_turned_off = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_ne!(alias_stays_turned_off.body.as_ref(), FILE_BODY);
+
+    let alias_for_other_asset_still_works = state.http_request(
+        RequestBuilder::get("/subdirectory").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(
+        alias_for_other_asset_still_works.body.as_ref(),
+        SUBDIR_INDEX_BODY
+    );
+}
+
+#[test]
+fn aliasing_name_clash() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+    const FILE_BODY_2: &[u8] = b"<!DOCTYPE html><html>second body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])],
+    );
+
+    let alias_add_html = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents", "text/html")
+            .with_encoding("identity", vec![FILE_BODY_2])],
+    );
+
+    let alias_doesnt_overwrite_actual_file = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(
+        alias_doesnt_overwrite_actual_file.body.as_ref(),
+        FILE_BODY_2
+    );
+
+    state.delete_asset(DeleteAssetArguments {
+        key: "/contents".to_string(),
+    });
+
+    let alias_accessible_again = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(alias_accessible_again.body.as_ref(), FILE_BODY);
 }

@@ -51,7 +51,7 @@ pub struct CanisterInfo {
     dependencies: Vec<String>,
     post_install: Vec<String>,
     main: Option<PathBuf>,
-    shrink: bool,
+    shrink: Option<bool>,
     metadata: CanisterMetadataConfig,
 }
 
@@ -202,7 +202,7 @@ impl CanisterInfo {
         &self.args
     }
 
-    pub fn get_shrink(&self) -> bool {
+    pub fn get_shrink(&self) -> Option<bool> {
         self.shrink
     }
 

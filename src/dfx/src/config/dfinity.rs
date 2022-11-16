@@ -128,8 +128,8 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
 
-    /// # Canister Argument
-    /// This field defines a static argument to use when deploying the canister.
+    /// # Canister-Specific Build Argument
+    /// This field defines an additional argument to pass to the Motoko compiler when building the canister.
     pub args: Option<String>,
 
     /// # Resource Allocation Settings
@@ -164,9 +164,9 @@ pub struct ConfigCanistersCanister {
 
     /// # Shrink Canister WASM
     /// Whether run `ic-wasm shrink` after building the Canister.
-    /// Default is true.
-    #[serde(default = "default_as_true")]
-    pub shrink: bool,
+    /// Enabled by default for Rust/Motoko canisters.
+    /// Disabled by default for custom canisters.
+    pub shrink: Option<bool>,
 
     /// # Metadata
     /// Defines metadata sections to set in the canister .wasm
