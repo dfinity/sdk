@@ -643,7 +643,7 @@ CHERRIES" "$stdout"
   },
 )'
 
-    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(5:nat64)  })'
+    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
     assert_contains '()'
     assert_command dfx canister --network "http://localhost:$PORT" call "$ID" get_asset_properties '("/somedir/upload-me.txt")'
     assert_contains '(
@@ -653,7 +653,7 @@ CHERRIES" "$stdout"
   },
 )'
 
-    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(vec{record {"new-key"; "new-value"}})})'
+    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(opt(vec{record {"new-key"; "new-value"}}))})'
     assert_contains '()'
     assert_command dfx canister --network "http://localhost:$PORT" call "$ID" get_asset_properties '("/somedir/upload-me.txt")'
     assert_contains '(

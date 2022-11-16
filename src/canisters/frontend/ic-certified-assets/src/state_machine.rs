@@ -575,10 +575,10 @@ impl State {
             .ok_or_else(|| "asset not found".to_string())?;
 
         if let Some(headers) = arg.headers {
-            asset.headers = Some(headers)
+            asset.headers = headers
         }
         if let Some(max_age) = arg.max_age {
-            asset.max_age = Some(max_age)
+            asset.max_age = max_age
         }
         Ok(())
     }

@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
-    BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments, CreateChunkArg,
-    HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
+    AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
+    CreateChunkArg, HttpRequest, HttpResponse, SetAssetContentArguments,
+    SetAssetPropertiesArguments, StreamingStrategy,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -474,5 +475,150 @@ fn supports_custom_http_headers() {
         lookup_header(&response, "X-Content-Type-Options") == Some("nosniff"),
         "Incorrect value for X-Content-Type-Options header in response: {:#?}",
         response,
+    );
+}
+
+#[test]
+fn supports_getting_and_setting_asset_properties() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_header("Access-Control-Allow-Origin", "*"),
+            AssetBuilder::new("/max-age.html", "text/html")
+                .with_max_age(604800)
+                .with_encoding("identity", vec![BODY])
+                .with_header("X-Content-Type-Options", "nosniff"),
+        ],
+    );
+
+    assert_eq!(
+        state.get_asset_properties("/contents.html".into()),
+        Ok(AssetProperties {
+            max_age: None,
+            headers: Some(HashMap::from([(
+                "Access-Control-Allow-Origin".into(),
+                "*".into()
+            )]))
+        })
+    );
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(604800),
+            headers: Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )]))
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: Some(Some(1)),
+            headers: Some(Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )])))
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(1),
+            headers: Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )]))
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: Some(None),
+            headers: Some(None)
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: None,
+            headers: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: Some(Some(1)),
+            headers: Some(Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )])))
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(1),
+            headers: Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )]))
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: None,
+            headers: Some(Some(HashMap::from([("new-header".into(), "value".into())])))
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(1),
+            headers: Some(HashMap::from([("new-header".into(), "value".into())]))
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: Some(Some(2)),
+            headers: None
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(2),
+            headers: Some(HashMap::from([("new-header".into(), "value".into())]))
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: None,
+            headers: Some(None)
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(2),
+            headers: None
+        })
     );
 }
