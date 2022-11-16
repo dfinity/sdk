@@ -115,8 +115,7 @@ impl CanisterInfo {
         };
 
         let post_install = canister_config.post_install.clone().into_vec();
-        let metadata =
-            CanisterMetadataConfig::new(&type_specific, &canister_config.metadata, &network_name);
+        let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
 
         let canister_info = CanisterInfo {
             name: name.to_string(),

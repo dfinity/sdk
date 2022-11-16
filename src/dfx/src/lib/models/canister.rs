@@ -1,4 +1,4 @@
-use crate::config::dfinity::{Config, MetadataVisibility};
+use crate::config::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 use crate::lib::builders::{
     custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
     WasmBuildOutput,
@@ -103,9 +103,22 @@ impl Canister {
 
     #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
     pub(crate) fn apply_metadata(&self, logger: &Logger) -> DfxResult {
-        let metadata = self.info.metadata();
+        let mut metadata_sections = self.info.metadata().sections.clone();
         // TODO: also write canister metadata for dfx pull
-        if metadata.sections.is_empty() {
+        if (self.info.is_rust() || self.info.is_motoko())
+            && !metadata_sections.contains_key(CANDID_SERVICE)
+        {
+            metadata_sections.insert(
+                CANDID_SERVICE.to_string(),
+                CanisterMetadataSection {
+                    name: CANDID_SERVICE.to_string(),
+                    visibility: MetadataVisibility::Public,
+                    ..Default::default()
+                },
+            );
+        }
+
+        if metadata_sections.is_empty() {
             return Ok(());
         }
 
@@ -124,7 +137,7 @@ impl Canister {
         let mut m = std::fs::read(&wasm_path)
             .with_context(|| format!("Failed to read wasm at {}", wasm_path.display()))?;
 
-        for (name, section) in &metadata.sections {
+        for (name, section) in &metadata_sections {
             if section.name == CANDID_SERVICE && self.info.is_motoko() {
                 if let Some(specified_path) = &section.path {
                     check_valid_subtype(&idl_path, specified_path)?
