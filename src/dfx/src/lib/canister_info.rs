@@ -53,6 +53,7 @@ pub struct CanisterInfo {
     main: Option<PathBuf>,
     shrink: Option<bool>,
     metadata: CanisterMetadataConfig,
+    pull_ready: bool,
 }
 
 impl CanisterInfo {
@@ -133,6 +134,7 @@ impl CanisterInfo {
             main: canister_config.main.clone(),
             shrink: canister_config.shrink,
             metadata,
+            pull_ready: canister_config.pull_ready,
         };
 
         Ok(canister_info)
@@ -267,7 +269,12 @@ impl CanisterInfo {
     pub fn get_metadata(&self, name: &str) -> Option<&CanisterMetadataSection> {
         self.metadata.get(name)
     }
+
     pub fn metadata(&self) -> &CanisterMetadataConfig {
         &self.metadata
+    }
+
+    pub fn is_pull_ready(&self) -> bool {
+        self.pull_ready
     }
 }

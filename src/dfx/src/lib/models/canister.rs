@@ -6,7 +6,7 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::metadata::names::CANDID_SERVICE;
+use crate::lib::metadata::names::{CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_URL};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
@@ -104,7 +104,7 @@ impl Canister {
     #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
     pub(crate) fn apply_metadata(&self, logger: &Logger) -> DfxResult {
         let mut metadata_sections = self.info.metadata().sections.clone();
-        // TODO: also write canister metadata for dfx pull
+        // Default to write public candid:service unless overwrited
         if (self.info.is_rust() || self.info.is_motoko())
             && !metadata_sections.contains_key(CANDID_SERVICE)
         {
@@ -116,6 +116,49 @@ impl Canister {
                     ..Default::default()
                 },
             );
+        }
+
+        if self.info.is_pull_ready() {
+            // Check DFX_WASM_URL
+            match metadata_sections.get(DFX_WASM_URL) {
+                Some(s) => {
+                    if s.visibility != MetadataVisibility::Public {
+                        warn!(
+                            logger,
+                            "`{}` metadata should be public. section: {:?}", DFX_WASM_URL, s
+                        );
+                    }
+                }
+                None => bail!("pull_ready canister must set `{}` metadata.", DFX_WASM_URL),
+            }
+            // Check DFX_INIT
+            match metadata_sections.get(DFX_INIT) {
+                Some(s) => {
+                    if s.visibility != MetadataVisibility::Public {
+                        warn!(
+                            logger,
+                            "`{}` metadata should be public. section: {:?}", DFX_INIT, s
+                        );
+                    }
+                }
+                None => warn!(
+                    logger,
+                    "pull_ready canister should better set `{}` metadata as a initialization guide.",
+                    DFX_INIT
+                ),
+            }
+            // Check DFX_DEPS
+            match metadata_sections.get(DFX_DEPS) {
+                Some(s) => warn!(
+                    logger,
+                    "Overwriting `{}` metadata which should be set by dfx. section: {:?}",
+                    DFX_DEPS,
+                    s
+                ),
+                None => {
+                    // TODO: set dfx:deps
+                }
+            }
         }
 
         if metadata_sections.is_empty() {
@@ -151,7 +194,7 @@ impl Canister {
                 Some(path) => path,
                 None if section.name == CANDID_SERVICE => &idl_path,
                 _ => bail!(
-                    "Metadata section must specify a path.  section: {:?}",
+                    "Metadata section must specify a path. section: {:?}",
                     &section
                 ),
             };
