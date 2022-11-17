@@ -156,7 +156,16 @@ impl Canister {
                     s
                 ),
                 None => {
-                    // TODO: set dfx:deps
+                    metadata_sections.insert(
+                        DFX_DEPS.to_string(),
+                        CanisterMetadataSection {
+                            name: DFX_DEPS.to_string(),
+                            visibility: MetadataVisibility::Public,
+                            // TODO: set dfx:deps
+                            content: Some("".to_string()),
+                            ..Default::default()
+                        },
+                    );
                 }
             }
         }
@@ -190,17 +199,25 @@ impl Canister {
                 }
             }
 
-            let metadata_path = match section.path.as_ref() {
-                Some(path) => path,
-                None if section.name == CANDID_SERVICE => &idl_path,
-                _ => bail!(
+            let data = match (section.path.as_ref(), section.content.as_ref()) {
+                (None, None) if section.name == CANDID_SERVICE =>
+                    std::fs::read(&idl_path)
+                .with_context(|| format!("Failed to read {}", idl_path.to_string_lossy()))?
+                ,
+
+                (Some(path), None)=> std::fs::read(path)
+                .with_context(|| format!("Failed to read {}", path.to_string_lossy()))?,
+                (None, Some(s)) => s.clone().into_bytes(),
+
+                (Some(_), Some(_)) => bail!(
+                    "Metadata section could not specify path and content at the same time. section: {:?}",
+                    &section
+                ),
+                (None, None) => bail!(
                     "Metadata section must specify a path. section: {:?}",
                     &section
                 ),
             };
-
-            let data = std::fs::read(&metadata_path)
-                .with_context(|| format!("Failed to read {}", metadata_path.to_string_lossy()))?;
 
             let visibility = match section.visibility {
                 MetadataVisibility::Public => Kind::Public,
@@ -440,6 +457,10 @@ impl CanisterPool {
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
+        // No need to run for Pull canister
+        if canister.get_info().is_pull() {
+            return Ok(());
+        }
         // Copy the WASM and IDL files to canisters/NAME/...
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
         let idl_file_path = canister.info.get_build_idl_path();

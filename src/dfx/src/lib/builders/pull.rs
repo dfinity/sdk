@@ -13,14 +13,14 @@ use slog::o;
 use std::path::PathBuf;
 
 pub struct PullBuilder {
-    logger: slog::Logger,
+    _logger: slog::Logger,
 }
 
 impl PullBuilder {
     #[context("Failed to create PullBuilder.")]
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(Self {
-            logger: env.get_logger().new(o! {
+            _logger: env.get_logger().new(o! {
                 "module" => "pull"
             }),
         })
