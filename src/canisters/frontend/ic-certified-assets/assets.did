@@ -79,8 +79,8 @@ type StreamingStrategy = variant {
 
 type SetAssetPropertiesArguments = record {
   key: Key;
-  max_age: opt nat;
-  headers: opt vec HeaderField;
+  max_age: opt opt nat;
+  headers: opt opt vec HeaderField;
 };
 
 service: {
