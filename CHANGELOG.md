@@ -8,6 +8,11 @@ Updated candid to 0.8.4
 - Bug fix in TS bindings
 - Pretty print numbers
 
+### Frontend canister
+
+- Module hash: c0e514bc63122b161b18e7882d624b56f9c9529d422db774a423ac0f32ac59b2
+- https://github.com/dfinity/sdk/pull/2772
+
 # 0.12.1
 
 ## DFX
