@@ -908,9 +908,13 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        let mut wasm: Option<String> = None;
-        let mut candid: Option<String> = None;
-        let (mut package, mut source, mut build, mut r#type) = (None, None, None, None);
+        let mut wasm = None;
+        let mut candid = None;
+        let mut package = None;
+        let mut source = None;
+        let mut build = None;
+        let mut r#type = None;
+        let mut id = None;
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -919,6 +923,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 "build" => build = Some(map.next_value()?),
                 "wasm" => wasm = Some(map.next_value()?),
                 "type" => r#type = Some(map.next_value::<String>()?),
+                "id" => id = Some(map.next_value()?),
                 _ => continue,
             }
         }
@@ -935,6 +940,9 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 build: build.unwrap_or_default(),
                 candid: candid.ok_or_else(|| missing_field("candid"))?,
                 wasm: wasm.ok_or_else(|| missing_field("wasm"))?,
+            },
+            Some("pull") => CanisterTypeProperties::Pull {
+                id: id.ok_or_else(|| missing_field("id"))?,
             },
             Some(x) => {
                 return Err(A::Error::unknown_variant(

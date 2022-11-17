@@ -266,6 +266,10 @@ impl CanisterInfo {
         matches!(self.type_specific, CanisterTypeProperties::Assets { .. })
     }
 
+    pub fn is_pull(&self) -> bool {
+        matches!(self.type_specific, CanisterTypeProperties::Pull { .. })
+    }
+
     pub fn get_metadata(&self, name: &str) -> Option<&CanisterMetadataSection> {
         self.metadata.get(name)
     }
