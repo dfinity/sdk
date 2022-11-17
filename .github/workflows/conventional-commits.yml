@@ -1,4 +1,4 @@
-name: Check PR title
+name: PR title format
 on:
   pull_request:
     types:
