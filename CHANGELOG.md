@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+## Dependenies
+
+Updated candid to 0.8.4
+- Bug fix in TS bindings
+- Pretty print numbers
+
 # 0.12.1
 
 ## DFX
