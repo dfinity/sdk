@@ -19,9 +19,9 @@ env:
 
 jobs:
   check:
+    name: conventional-pr-title:required
     runs-on: ubuntu-latest
     steps:
-      - name: conventional-pr-title:required
         # Conventional commit patterns:
         #   verb: description
         #   verb!: description of breaking change
