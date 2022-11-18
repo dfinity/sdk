@@ -33,5 +33,5 @@ teardown() {
     assert_match "NA"
 
     assert_command ic-wasm .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm metadata dfx:wasm_url
-    assert_match "example.com/e2e_project.wasm"
+    assert_match "https://example.com/e2e_project.wasm"
 }

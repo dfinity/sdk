@@ -11,7 +11,7 @@
             "metadata": [
                 {
                     "name": "dfx:wasm_url",
-                    "content": "example.com/e2e_project.wasm"
+                    "content": "https://example.com/e2e_project.wasm"
                 },
                 {
                     "name": "dfx:init",
