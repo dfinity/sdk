@@ -156,13 +156,19 @@ impl Canister {
                     s
                 ),
                 None => {
+                    let mut s = String::new();
+                    for (name, id) in self.info.get_pull_dependencies() {
+                        s.push_str(name);
+                        s.push(':');
+                        s.push_str(&id.to_text());
+                        s.push(';');
+                    }
                     metadata_sections.insert(
                         DFX_DEPS.to_string(),
                         CanisterMetadataSection {
                             name: DFX_DEPS.to_string(),
                             visibility: MetadataVisibility::Public,
-                            // TODO: set dfx:deps
-                            content: Some("".to_string()),
+                            content: Some(s),
                             ..Default::default()
                         },
                     );
