@@ -141,26 +141,6 @@ frank'
 ## dfx identity remove
 ##
 
-@test "identity remove --storage-mode plaintext: can remove an identity that exists" {
-    assert_command_fail head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_command dfx identity new alice --storage-mode plaintext
-
-    assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_match "BEGIN EC PRIVATE KEY"
-    assert_command dfx identity list
-    assert_match \
-'alice
-anonymous
-default'
-
-    assert_command dfx identity remove alice
-    assert_match 'Removed identity "alice".' "$stderr"
-    assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-
-    assert_command dfx identity list
-    assert_match 'default'
-}
-
 @test "identity remove: can remove an identity that exists" {
     assert_command_fail cat "$MOCK_KEYRING_LOCATION"
     assert_command dfx identity new alice
@@ -177,6 +157,26 @@ default'
     assert_match 'Removed identity "alice".' "$stderr"
     assert_command cat "$MOCK_KEYRING_LOCATION"
     assert_not_match "internet_computer_identity_alice"
+
+    assert_command dfx identity list
+    assert_match 'default'
+}
+
+@test "identity remove --storage-mode plaintext: can remove an identity that exists" {
+    assert_command_fail head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
+    assert_command dfx identity new alice --storage-mode plaintext
+
+    assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
+    assert_match "BEGIN EC PRIVATE KEY"
+    assert_command dfx identity list
+    assert_match \
+'alice
+anonymous
+default'
+
+    assert_command dfx identity remove alice
+    assert_match 'Removed identity "alice".' "$stderr"
+    assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 
     assert_command dfx identity list
     assert_match 'default'
@@ -485,6 +485,15 @@ default'
 }
 
 @test "identity: import default" {
+    assert_command dfx identity new alice --storage-mode plaintext
+    assert_command dfx identity import bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
+    assert_match 'Imported identity: "bob".' "$stderr"
+    assert_command bash -c "dfx identity export bob > bob.pem"
+    assert_command diff "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" "bob.pem"
+    assert_eq ""
+}
+
+@test "identity: import --storage-mode plaintext" {
     assert_command dfx identity new alice --storage-mode plaintext
     assert_command dfx identity import bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" --storage-mode plaintext
     assert_match 'Imported identity: "bob".' "$stderr"
