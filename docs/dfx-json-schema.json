@@ -125,7 +125,7 @@
       "properties": {
         "content": {
           "title": "Content",
-          "description": "Content of this metadata section. Conflits with `path`.",
+          "description": "Content of this metadata section. Conflicts with `path`.",
           "type": [
             "string",
             "null"
@@ -150,7 +150,7 @@
         },
         "path": {
           "title": "Path",
-          "description": "Path to file containing section contents. Conflits with `content`. For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use the canister's candid definition. If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's actual candid service definition.",
+          "description": "Path to file containing section contents. Conflicts with `content`. For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use the canister's candid definition. If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's actual candid service definition.",
           "type": [
             "string",
             "null"
@@ -285,7 +285,7 @@
           "properties": {
             "id": {
               "title": "Canister ID",
-              "description": "Principle of the canister on the network.",
+              "description": "Principal of the canister on the ic network.",
               "type": "string"
             },
             "type": {
@@ -384,7 +384,7 @@
         },
         "pull_ready": {
           "title": "Ready for dfx Pull",
-          "description": "Whether make this canister ready for dfx pull. If true, serveral required metadata must be also set with correct format.",
+          "description": "Whether or not to make this canister ready for dfx pull by other project. If true, several required metadata fields must be also set with the correct format.",
           "default": false,
           "type": "boolean"
         },

@@ -220,7 +220,7 @@ impl Canister {
                     &section
                 ),
                 (None, None) => bail!(
-                    "Metadata section must specify a path. section: {:?}",
+                    "Metadata section must specify a path or content. section: {:?}",
                     &section
                 ),
             };

@@ -91,7 +91,7 @@ pub struct CanisterMetadataSection {
 
     /// # Path
     /// Path to file containing section contents.
-    /// Conflits with `content`.
+    /// Conflicts with `content`.
     /// For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use
     /// the canister's candid definition.
     /// If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's
@@ -100,7 +100,7 @@ pub struct CanisterMetadataSection {
 
     /// # Content
     /// Content of this metadata section.
-    /// Conflits with `path`.
+    /// Conflicts with `path`.
     pub content: Option<String>,
 }
 
@@ -180,8 +180,8 @@ pub struct ConfigCanistersCanister {
     pub metadata: Vec<CanisterMetadataSection>,
 
     /// # Ready for dfx Pull
-    /// Whether make this canister ready for dfx pull.
-    /// If true, serveral required metadata must be also set with correct format.
+    /// Whether or not to make this canister ready for dfx pull by other project.
+    /// If true, several required metadata fields must be also set with the correct format.
     // TODO: Add a link to `dfx pull` document.
     #[serde(default)]
     pub pull_ready: bool,
@@ -228,7 +228,7 @@ pub enum CanisterTypeProperties {
     /// # Pull-Specific Properties
     Pull {
         /// # Canister ID
-        /// Principle of the canister on the network.
+        /// Principal of the canister on the ic network.
         #[schemars(with = "String")]
         id: candid::Principal,
     },
