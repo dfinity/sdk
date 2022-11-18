@@ -55,7 +55,8 @@ XXX
 
 @test "creating/removing identity with --storage-mode password-protected does not attempt to touch keyring" {
     # if any of dfx identity new --storage-mode password-protected or dfx identity remove attempt to touch keyring,
-    # then the test will time out
+    # then the test will time out because it's waiting for the user to accept/deny access to keyring
+    unset DFX_CI_USE_PROXY_KEYRING
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/init_alice_with_storage_mode_pwprotected.exp"
     assert_command dfx identity remove alice
 }
