@@ -45,6 +45,7 @@ pub async fn sync(
     let operations = assemble_synchronization_operations(project_assets, container_assets);
 
     println!("Committing batch.");
+
     commit_batch(&canister_call_params, &batch_id, operations).await?;
 
     Ok(())

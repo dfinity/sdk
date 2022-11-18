@@ -8,6 +8,7 @@ type CreateAssetArguments = record {
   content_type: text;
   max_age: opt nat64;
   headers: opt vec HeaderField;
+  enable_aliasing: opt bool;
 };
 
 // Add or change content for an asset, by content encoding
@@ -78,7 +79,6 @@ type StreamingStrategy = variant {
 };
 
 service: {
-
   get: (record {
     key: Key;
     accept_encodings: vec text;

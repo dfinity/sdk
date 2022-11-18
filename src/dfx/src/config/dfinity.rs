@@ -134,8 +134,8 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
 
-    /// # Canister Argument
-    /// This field defines a static argument to use when deploying the canister.
+    /// # Canister-Specific Build Argument
+    /// This field defines an additional argument to pass to the Motoko compiler when building the canister.
     pub args: Option<String>,
 
     /// # Resource Allocation Settings
