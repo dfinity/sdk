@@ -43,13 +43,13 @@ struct KeyringProxy {
 }
 
 impl KeyringProxy {
-    fn get_location() -> PathBuf {
-        PathBuf::from(std::env::var("HOME").unwrap_or_default()).join("mock_keyring.json")
+    fn get_location() -> DfxResult<PathBuf> {
+        Ok(PathBuf::from(std::env::var("HOME")?).join("mock_keyring.json"))
     }
 
     #[context("Failed to load proxy keyring.")]
     pub fn load() -> DfxResult<Self> {
-        let location = Self::get_location();
+        let location = Self::get_location()?;
         if location.exists() {
             let serialized_proxy = std::fs::read(&location).with_context(|| {
                 format!(
@@ -67,7 +67,7 @@ impl KeyringProxy {
 
     #[context("Failed to load proxy keyring.")]
     pub fn save(&self) -> DfxResult {
-        let location = Self::get_location();
+        let location = Self::get_location()?;
         let content =
             serde_json::to_string_pretty(self).context("Failed to serialize proxy keyring")?;
         std::fs::write(&location, content).with_context(|| {
@@ -135,7 +135,7 @@ pub fn keyring_available(log: &Logger) -> bool {
     match KeyringProxyMode::current_mode() {
         KeyringProxyMode::NoProxy => {
             trace!(log, "Checking for keyring availability.");
-            // by using the temp identity prefix this will not clash with real identities
+            // by using the temp identity prefix this will not clash with real identities since that would be an invalid identity name
             let dummy_entry_name = format!(
                 "{}{}{}",
                 KEYRING_IDENTITY_PREFIX, TEMP_IDENTITY_PREFIX, "dummy"

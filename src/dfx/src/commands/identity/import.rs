@@ -57,7 +57,7 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     };
     let name = opts.new_identity.as_str();
     let params = if let Some(src_pem_file) = opts.pem_file {
-        IdentityCreationParameters::PemFile { mode, src_pem_file }
+        IdentityCreationParameters::PemFile { src_pem_file, mode }
     } else {
         let mnemonic =
             fs::read_to_string(opts.seed_file.unwrap()).context("Failed to read seed file")?;

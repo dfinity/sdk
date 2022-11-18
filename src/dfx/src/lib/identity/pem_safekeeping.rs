@@ -60,7 +60,7 @@ pub fn save_pem(
     }
 }
 
-/// Loads a pem file, no matter if it is a legacy plaintext pem file or if it is encrypted with a password.
+/// Loads a pem file, no matter if it is a plaintext pem file or if it is encrypted with a password.
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
 /// Returns the pem and whether the original was encrypted.
 ///

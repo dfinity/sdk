@@ -95,7 +95,6 @@ pub struct HardwareIdentityConfiguration {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
 pub enum IdentityStorageMode {
     Keyring,
     PasswordProtected,
