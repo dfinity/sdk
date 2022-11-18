@@ -250,7 +250,7 @@ anonymous
 default'
     assert_command cat "$MOCK_KEYRING_LOCATION"
     assert_match "internet_computer_identity_alice"
-    local key="$(dfx identity export alice)"
+    KEY="$(dfx identity export alice)"
 
     assert_command dfx identity rename alice bob
     assert_match 'Renamed identity "alice" to "bob".' "$stderr"
@@ -262,7 +262,7 @@ bob
 default'
     assert_command cat "$MOCK_KEYRING_LOCATION"
     assert_match "internet_computer_identity_bob"
-    assert_eq "$key" "$(dfx identity export bob)"
+    assert_eq "$KEY" "$(dfx identity export bob)"
     assert_command cat "$MOCK_KEYRING_LOCATION"
     assert_not_match "internet_computer_identity_alice"
 }
@@ -277,7 +277,7 @@ default'
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN EC PRIVATE KEY"
     x=$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem")
-    local key="$x"
+    KEY="$x"
 
     assert_command dfx identity rename alice bob
     assert_match 'Renamed identity "alice" to "bob".' "$stderr"
@@ -288,7 +288,7 @@ default'
 bob
 default'
     assert_command cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
-    assert_eq "$key" "$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem")"
+    assert_eq "$KEY" "$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem")"
     assert_match "BEGIN EC PRIVATE KEY"
     assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
 }
