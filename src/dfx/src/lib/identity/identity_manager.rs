@@ -444,7 +444,7 @@ impl IdentityManager {
         identity_name: &str,
         identity_config: &IdentityConfiguration,
     ) -> PathBuf {
-        if let Some(_) = identity_config.encryption {
+        if identity_config.encryption.is_some() {
             self.get_encrypted_identity_pem_path(identity_name)
         } else {
             self.get_plaintext_identity_pem_path(identity_name)
