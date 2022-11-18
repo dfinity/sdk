@@ -2,6 +2,19 @@
 
 # UNRELEASED
 
+## DFX
+
+### feat: use OS-native keyring for pem file storage
+
+If keyring integration is available, PEM files are now by default stored in the OS-provided keyring.
+If it is not available, it will fall back on the already existing password-encrypted PEM files.
+Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk.
+
+To force the use of one specific storage mode, use the `--storage-mode` flag with either `--storage-mode password-protected` or `--storage-mode plaintext`.
+This works for both `dfx identity new` and `dfx identity import`.
+
+The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
+
 ## Dependenies
 
 Updated candid to 0.8.4
