@@ -2,7 +2,122 @@
 
 # UNRELEASED
 
+## Dependenies
+
+Updated candid to 0.8.4
+- Bug fix in TS bindings
+- Pretty print numbers
+
+### Frontend canister
+
+- Module hash: 8b650f88708543d39bb4f10b73516cca2cc7705a56351b8d833b9c40ec8e7802
+- https://github.com/dfinity/sdk/pull/2772
+
+# 0.12.1
+
 ## DFX
+
+### fix: default not shrink for custom canisters
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit dcbf401f27d9b48354e68389c6d8293c4233b055.
+This incorporates the following executed proposals:
+
+- [90485](https://dashboard.internetcomputer.org/proposal/90485)
+- [90008](https://dashboard.internetcomputer.org/proposal/90008)
+
+### Frontend canister
+
+- Module hash: db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+- https://github.com/dfinity/sdk/pull/2753
+
+# 0.12.0
+
+## DFX
+
+### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
+
+### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
+
+Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
+```json5
+[
+    {
+        "match": "web-gz.data.gz",
+        "headers": {
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": "gzip"
+        }
+    }
+]
+```
+This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+
+### feat: warn if an unencrypted identity is used on mainnet
+
+### fix: Save SNS canister IDs
+
+SNS canister IDs were not being parsed reliably.  Now the candid file is being specified explicitly, which resolves the issue in at least some cases.
+
+### feat: NNS usability improvements
+
+The command line interface for nns commands has been updated to:
+
+- Give better help when the subnet type is incorrect
+- Not offer --network as a flag given that it is unused
+- List nns subcommands
+
+### feat: -y flag for canister installation
+
+`dfx canister install` and `dfx deploy` now have a `-y` flag that will automatically confirm any y/n checks made during canister installation.
+
+### fix: Compute Motoko dependencies in linear (not exponential) time by detecting visited imports.
+
+### fix(generate): add missing typescript types and fix issues with bindings array in dfx.json
+
+### chore: update Candid UI canister with commit 79d55e7f568aec00e16dd0329926cc7ea8e3a28b
+
+### refactor: Factor out code for calling arbitrary bundled binaries
+
+The function for calling sns can now call any bundled binary.
+
+### docs: Document dfx nns subcommands
+
+`dfx nns` commands are used to deploy and manage local NNS canisters, such as:
+
+- Governance for integration with the Internet Computer voting system
+- Ledger for financial integration testing
+- Internet Identity for user registration and authenttication
+
+### feat(frontend-canister): Add simple aliases from `<asset>` to `<asset>.html` and `<asset>/index.html`
+
+The asset canister now by default aliases any request to `<asset>` to `<asset>.html` or `<asset>/index.html`.
+This can be disabled by setting the field `"enable_aliasing"` to `false` in a rule for that asset in .ic-assets.json.
+This change will trigger frontend canister upgrades upon redeploying any asset canister.
+
+### fix: Only kill main process on `dfx stop`
+Removes misleading panics when running `dfx stop`.
+
+### feat: `dfx nns install` works offline if all assets have been cached.
+
+### feat: Initialise the nns with an account controlled by a secp256k1 key
+
+This enables easy access to toy ICP using command line tools and this key:
+```
+-----BEGIN EC PRIVATE KEY-----
+MHQCAQEEICJxApEbuZznKFpV+VKACRK30i6+7u5Z13/DOl18cIC+oAcGBSuBBAAK
+oUQDQgAEPas6Iag4TUx+Uop+3NhE6s3FlayFtbwdhRVjvOar0kPTfE/N8N6btRnd
+74ly5xXEBNSXiENyxhEuzOZrIWMCNQ==
+-----END EC PRIVATE KEY-----
+```
+For example, you can create an identity in dfx by putting this key in the file `ident-1.pem` and importing it:
+```
+dfx identity import ident-1 ident-1.pem
+dfx --identity ident-1 ledger balance
+```
 
 ### feat: default to run ic-wasm shrink when build canisters
 This behavior applies to Motoko, Rust and Custom canisters.
@@ -13,6 +128,29 @@ If you want to disable this behavior, you can config it in dfx.json:
             "shrink" : false,
         }
     }
+
+### feat: configurable custom wasm sections
+
+It's now possible to define custom wasm metadata sections and their visibility in dfx.json.
+
+At present, dfx can only add wasm metadata sections to canisters that are in wasm format.  It cannot add metadata sections to compressed canisters.  Since the frontend canister is now compressed, this means that at present it is not possible to add custom metadata sections to the frontend canister.
+
+dfx no longer adds `candid:service` metadata to canisters of type `"custom"` by default.  If you want dfx to add your canister's candid definition to your custom canister, you can do so like this:
+
+```
+    "my_canister_name": {
+      "type": "custom",
+      "candid": "main.did",
+      "wasm": "main.wasm",
+      "metadata": [
+        {
+          "name": "candid:service"
+        }
+      ]
+    },
+```
+
+This changelog entry doesn't go into all of the details of the possible configuration.  For that, please see [concepts/canister-metadata](docs/concepts/canister-metadata.md) and the docs in the JSON schema.
 
 ### fix: Valid canister-based env vars
 
@@ -64,6 +202,8 @@ You can still disable the canister http feature through configuration:
 
 ### feat: custom canister `wasm` field can now specify a URL from which to download
 
+- note that dfx will report an error if a custom canister's `wasm` field is a URL and the canister also has `build` steps.
+
 ### feat: custom canister `candid` field can now specify a URL from which to download
 
 ### feat: deploy NNS canisters
@@ -87,6 +227,10 @@ It is now possible to set the http adapter's log level in dfx.json or in network
     }
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
+
+### fix(typescript): add index.d.ts file for type safety when importing generated declarations
+
+Adds an index.d.ts file to the generated declarations, allowing for better type safety in TypeScript projects.
 
 ### chore: reduce verbosity of dfx start
 
@@ -120,6 +264,12 @@ The Replica returned an error: code 1, message: "Canister requested a compute al
 ### fix: For default node starter template: copy `ic-assets.json5` file from `src` to `dist`
 
 ### fix: For `dfx start --clean --background`, the background process no longer cleans a second time.
+
+### fix: do not build or generate remote canisters
+
+Canisters that specify a remote id for the network that's getting built falsely had their build steps run, blocking some normal use patterns of `dfx deploy`.
+Canisters with a remote id specified no longer get built.
+The same applies to `dfx generate`.
 
 ### refactor: Move replica URL functions into a module for reuse
 
@@ -209,6 +359,10 @@ There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its 
 #### feat: `dfx info webserver-port`
 
 This displays the port that the icx-proxy process listens on, meaning the port to connect to with curl or from a web browser.
+
+#### feat: `dfx info replica-port`
+
+This displays the listening port of the replica.
 
 #### feat: `dfx info replica-rev`
 
@@ -375,6 +529,8 @@ It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pi
 
 ### fix: print links to cdk-rs docs in dfx new
 
+### fix: broken link in new .mo project README
+
 ### fix: Small grammar change to identity password decryption prompt
 
 The prompt for entering your passphrase in order to decrypt an identity password read:
@@ -385,13 +541,28 @@ Changed the text in this case to read:
 
 ### chore: add retry logic to dfx download script
 
+### feat: Add subnet type argument when creating canisters
+
+`dfx ledger create-canister` gets a new option `--subnet-type` that allows users to choose a type of subnet that their canister can be created on. Additionally, a `dfx ledger show-subnet-types` is introduced which allows to list the available subnet types.
+
 ## Dependencies
 
 ### Replica
 
-Updated replica to elected commit 6de9963fdc752394475149a9659d42f01ab8b0d3.
-This incorporates the following executed proposals:
+Updated replica to release candidate 93dcf2a2026c34330c76149dd713d89e37daa533.
 
+This also incorporates the following executed proposals:
+
+- [88831](https://dashboard.internetcomputer.org/proposal/88831)
+- [88629](https://dashboard.internetcomputer.org/proposal/88629)
+- [88109](https://dashboard.internetcomputer.org/proposal/88109)
+- [87631](https://dashboard.internetcomputer.org/proposal/87631)
+- [86738](https://dashboard.internetcomputer.org/proposal/86738)
+- [86279](https://dashboard.internetcomputer.org/proposal/86279)
+* [85007](https://dashboard.internetcomputer.org/proposal/85007)
+* [84391](https://dashboard.internetcomputer.org/proposal/84391)
+* [83786](https://dashboard.internetcomputer.org/proposal/83786)
+* [82425](https://dashboard.internetcomputer.org/proposal/82425)
 * [81788](https://dashboard.internetcomputer.org/proposal/81788)
 * [81571](https://dashboard.internetcomputer.org/proposal/81571)
 * [80992](https://dashboard.internetcomputer.org/proposal/80992)
@@ -413,12 +584,19 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko to 0.7.0
+### Updated Motoko from 0.6.29 to 0.7.3
+
+- See https://github.com/dfinity/motoko/blob/master/Changelog.md#073-2022-11-01
+
 
 ### Cycles wallet
 
 - Module hash: b944b1e5533064d12e951621d5045d5291bcfd8cf9d60c28fef02c8fdb68e783
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
+
+### Frontend canister:
+- Module hash: 6c8f7a094060b096c35e4c4499551e7a8a29ee0f86c456e521c09480ebbaa8ab
+- https://github.com/dfinity/sdk/pull/2720
 
 # 0.11.2
 
@@ -666,6 +844,10 @@ Calls made to retrieve the help output for `canister update-settings` was missin
 
 `WARN` and `ERROR` messages are now clearly labelled as such, and the labels are colored accordingly.
 This is now included when running `dfx canister update-settings -h`.
+
+### fix: `dfx schema` does not require valid dfx.json
+
+There is no real reason for `dfx schema` to not work when a broken dfx.json is in the current folder - this is actually a very common scenario when `dfx schema` gets used.
 
 ### fix: canister call uses candid file if canister type cannot be determined
 

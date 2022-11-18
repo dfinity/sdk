@@ -53,6 +53,7 @@ SNS_CONFIG_FILE_NAME="sns.yml"
 
 @test "sns deploy fails without config file" {
     dfx_new
+    dfx nns import
     rm -f sns.yml # Is not expected to be present anyway
     assert_command_fail dfx sns deploy
     assert_match "Error encountered when generating the SnsInitPayload: Couldn't open initial parameters file"
@@ -64,16 +65,19 @@ SNS_CONFIG_FILE_NAME="sns.yml"
     dfx start --clean --background --host 127.0.0.1:8080
     sleep 1
     dfx nns install
-    # There are no entries for "local" upstream yet, so we need a network mapping.
-    dfx nns import --network-mapping local=mainnet
-    # This canister ID is not included upstream .. yet.
-    jq '.canisters["nns-sns-wasm"].remote.id.local="qaa6y-5yaaa-aaaaa-aaafa-cai"' dfx.json | sponge dfx.json
+    dfx nns import
+    dfx sns import
     ls candid
     cat dfx.json
-    dfx nns import --network-mapping local
-    ls candid
-    cat dfx.json
+    # Deploy the SNS
     install_asset sns/valid
     dfx sns config validate
-    dfx sns deploy
+    # The remaining steps don't work any more as a pre-launch whitelist has been added.
+    #dfx sns deploy
+    # SNS canister IDs should be saved
+    #dfx canister id sns_governance
+    #dfx canister id sns_index
+    #dfx canister id sns_ledger
+    #dfx canister id sns_root
+    #dfx canister id sns_swap
 }

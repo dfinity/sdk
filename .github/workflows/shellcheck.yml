@@ -14,6 +14,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   check_macos:
     # ubuntu-latest has shellcheck 0.4.6, while macos-latest has 0.7.1
@@ -30,5 +36,4 @@ jobs:
         run: $HOME/bin/shellcheck-v0.7.1/shellcheck e2e/**/*.*sh
       - name: Check release script
         run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/release.sh
-      - name: Check asset prep script
-        run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/prepare-dfx-assets.sh
+

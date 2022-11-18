@@ -3,8 +3,8 @@ use fn_error_context::context;
 use std::ffi::OsString;
 use std::path::Path;
 
+use crate::lib::call_bundled::call_bundled;
 use crate::lib::error::DfxResult;
-use crate::lib::sns::sns_cli::call_sns_cli;
 use crate::Environment;
 
 /// Ceates an SNS configuration template.
@@ -16,6 +16,6 @@ pub fn create_config(env: &dyn Environment, path: &Path) -> DfxResult {
         OsString::from(path),
         OsString::from("new"),
     ];
-    call_sns_cli(env, &args)?;
+    call_bundled(env, "sns", &args)?;
     Ok(())
 }

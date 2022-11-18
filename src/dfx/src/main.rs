@@ -201,7 +201,10 @@ fn main() {
                 Err(e) => Err(e),
             }
         }
-        Err(e) => Err(e),
+        Err(e) => match command {
+            commands::Command::Schema(_) => commands::exec_without_env(command),
+            _ => Err(e),
+        },
     };
     if let Err(err) = result {
         print_error_and_diagnosis(err, error_diagnosis);

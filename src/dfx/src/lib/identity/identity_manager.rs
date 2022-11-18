@@ -14,6 +14,7 @@ use fn_error_context::context;
 use k256::pkcs8::LineEnding;
 use k256::SecretKey;
 use ring::{rand, rand::SecureRandom};
+use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
 use slog::{debug, trace, Logger};
 use std::boxed::Box;
@@ -79,7 +80,14 @@ impl EncryptionConfiguration {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct HardwareIdentityConfiguration {
-    /// The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"
+    #[cfg_attr(
+        not(windows),
+        doc = r#"The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so""#
+    )]
+    #[cfg_attr(
+        windows,
+        doc = r#"The file path to the opensc-pkcs11 library e.g. "C:\Program Files (x86)\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll"#
+    )]
     pub pkcs11_lib_path: String,
 
     /// A sequence of pairs of hex digits
@@ -268,7 +276,7 @@ impl IdentityManager {
     pub fn export(&self, log: &Logger, name: &str) -> DfxResult<String> {
         self.require_identity_exists(log, name)?;
         let config = self.get_identity_config_or_default(name)?;
-        let pem_content = pem_safekeeping::load_pem(log, self, name, &config)?;
+        let (pem_content, _) = pem_safekeeping::load_pem(log, self, name, &config)?;
 
         validate_pem_file(&pem_content)?;
         String::from_utf8(pem_content)
@@ -362,7 +370,7 @@ impl IdentityManager {
         })?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
-            let pem = pem_safekeeping::load_pem(log, self, from, &identity_config)?;
+            let (pem, _) = pem_safekeeping::load_pem(log, self, from, &identity_config)?;
             let new_config = IdentityConfiguration {
                 keyring_identity_suffix: Some(to.to_string()),
                 ..identity_config
@@ -521,8 +529,14 @@ To create a more secure identity, create and use an identity that is protected b
             })?;
         }
 
-        let creds_pem_path = get_legacy_creds_pem_path()?;
-        if creds_pem_path.exists() {
+        let maybe_creds_pem_path = get_legacy_creds_pem_path()?;
+        if maybe_creds_pem_path
+            .as_ref()
+            .map(|p| p.exists())
+            .unwrap_or_default()
+        {
+            let creds_pem_path =
+                maybe_creds_pem_path.expect("Unreachable - Just checked for existence.");
             slog::info!(
                 logger,
                 "  - migrating key from {} to {}",
@@ -564,16 +578,23 @@ To create a more secure identity, create and use an identity that is protected b
 }
 
 #[context("Failed to get legacy pem path.")]
-fn get_legacy_creds_pem_path() -> DfxResult<PathBuf> {
-    let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
-    let home = std::env::var("HOME")
-        .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
-    let root = config_root.unwrap_or(home);
+fn get_legacy_creds_pem_path() -> DfxResult<Option<PathBuf>> {
+    if cfg!(windows) {
+        // No legacy path on Windows - there was no Windows support when paths were changed
+        Ok(None)
+    } else {
+        let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
+        let home = std::env::var("HOME")
+            .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
+        let root = config_root.unwrap_or(home);
 
-    Ok(PathBuf::from(root)
-        .join(".dfinity")
-        .join("identity")
-        .join("creds.pem"))
+        Ok(Some(
+            PathBuf::from(root)
+                .join(".dfinity")
+                .join("identity")
+                .join("creds.pem"),
+        ))
+    }
 }
 
 #[context("Failed to load identity manager config from {}.", path.to_string_lossy())]
@@ -655,12 +676,12 @@ fn remove_identity_file(file: &Path) -> DfxResult {
 pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
     let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256)?, Language::English);
     let secret = mnemonic_to_key(&mnemonic)?;
-    let pem = secret.to_pem(LineEnding::CRLF)?;
+    let pem = secret.to_sec1_pem(LineEnding::CRLF)?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }
 
 pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> DfxResult<SecretKey> {
-    const DEFAULT_DERIVATION_PATH: &str = "m/44'/60'/0'/0/0";
+    const DEFAULT_DERIVATION_PATH: &str = "m/44'/223'/0'/0/0";
     let seed = Seed::new(mnemonic, "");
     let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
     Ok(SecretKey::from(pk.private_key()))

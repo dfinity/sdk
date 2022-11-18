@@ -63,6 +63,10 @@ pub struct Identity {
     /// The name of this Identity.
     name: String,
 
+    /// Whether this identity is stored in unencrypted form.
+    /// False for identities that are not stored at all.
+    pub insecure: bool,
+
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
 
@@ -173,7 +177,8 @@ impl Identity {
             }
             IdentityCreationParameters::PemFile { src_pem_file, mode } => {
                 identity_config = create_identity_config(log, mode, name, None)?;
-                let src_pem_content = pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
+                let (src_pem_content, _) =
+                    pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
                 identity_utils::validate_pem_file(&src_pem_content)?;
                 pem_safekeeping::save_pem(
                     log,
@@ -231,6 +236,7 @@ impl Identity {
         Self {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
+            insecure: false,
             dir: PathBuf::new(),
         }
     }
@@ -239,6 +245,7 @@ impl Identity {
         manager: &IdentityManager,
         name: &str,
         pem_content: &[u8],
+        was_encrypted: bool,
     ) -> DfxResult<Self> {
         let inner = Box::new(BasicIdentity::from_pem(pem_content).map_err(|e| {
             DfxError::new(IdentityError::CannotReadIdentityFile(
@@ -251,6 +258,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: !was_encrypted,
         })
     }
 
@@ -258,6 +266,7 @@ impl Identity {
         manager: &IdentityManager,
         name: &str,
         pem_content: &[u8],
+        was_encrypted: bool,
     ) -> DfxResult<Self> {
         let inner = Box::new(Secp256k1Identity::from_pem(pem_content).map_err(|e| {
             DfxError::new(IdentityError::CannotReadIdentityFile(
@@ -270,6 +279,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: !was_encrypted,
         })
     }
 
@@ -291,6 +301,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: false,
         })
     }
 
@@ -306,10 +317,14 @@ impl Identity {
         if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            let pem_content = pem_safekeeping::load_pem(log, manager, name, &config)?;
-            let identity = Identity::load_secp256k1_identity(manager, name, &pem_content)
-                .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))?;
-            Ok(identity)
+            let (pem_content, was_encrypted) =
+                pem_safekeeping::load_pem(log, manager, name, &config)?;
+            Identity::load_secp256k1_identity(manager, name, &pem_content, was_encrypted).or_else(
+                |e| {
+                    Identity::load_basic_identity(manager, name, &pem_content, was_encrypted)
+                        .map_err(|_| e)
+                },
+            )
         }
     }
 

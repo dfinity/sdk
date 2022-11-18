@@ -134,3 +134,21 @@ tc_to_num() {
     
     (( balance_now - balance > 4000000000000 ))
 }
+
+@test "ledger create-canister" {
+    dfx identity use alice
+    assert_command dfx ledger create-canister --amount=100 --subnet-type "type1" "$(dfx identity get-principal)"
+    assert_match "Transfer sent at block height 6"
+    assert_match "Refunded at block height 7 with message: Provided subnet type type1 does not exist"
+}
+
+@test "ledger show-subnet-types" {
+    install_asset cmc
+
+    dfx deploy cmc
+
+    CANISTER_ID=$(dfx canister id cmc)
+
+    assert_command dfx ledger show-subnet-types --cycles-minting-canister-id "$CANISTER_ID"
+    assert_eq '["type1", "type2"]'
+}
