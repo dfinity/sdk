@@ -1,12 +1,14 @@
+use std::str::FromStr;
+
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::{
-    HardwareIdentityConfiguration, IdentityCreationParameters, IdentityManager,
+    HardwareIdentityConfiguration, IdentityCreationParameters, IdentityManager, IdentityStorageMode,
 };
 use crate::util::clap::validators::is_hsm_key_id;
 
 use clap::Parser;
-use slog::info;
+use slog::{info, warn};
 use IdentityCreationParameters::{Hardware, Pem};
 
 /// Creates a new identity.
@@ -23,11 +25,16 @@ pub struct NewIdentityOpts {
     #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_hsm_key_id))]
     hsm_key_id: Option<String>,
 
-    /// By default, PEM files are saved in the system's keyring.
-    /// If you do not want to use your system's keyring, use this flag to have the PEM file saved in encrypted format on disk.
-    /// This will require you to enter the password for almost every dfx command.
+    /// DEPRECATED: Please use --storage-mode=plaintext instead
     #[clap(long)]
-    skip_keyring: bool,
+    disable_encryption: bool,
+
+    /// How your private keys are stored. By default, if keyring/keychain is available, keys are stored there.
+    /// Otherwise, a password-protected file is used as fallback.
+    /// Mode 'plaintext' is not safe, but convenient for use in CI.
+    #[clap(long, conflicts_with("disable-encryption"),
+    possible_values(&["keyring", "password_protected", "plaintext"]))]
+    storage_mode: Option<String>,
 
     /// If the identity already exists, remove and re-create it.
     #[clap(long)]
@@ -35,9 +42,13 @@ pub struct NewIdentityOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
-    let name = opts.new_identity.as_str();
-
     let log = env.get_logger();
+
+    if opts.disable_encryption {
+        warn!(log, "The flag --disable-encryption has been deprecated. Please use --storage-mode=plaintext instead.");
+    }
+
+    let name = opts.new_identity.as_str();
 
     let creation_parameters = match (opts.hsm_pkcs11_lib_path, opts.hsm_key_id) {
         (Some(pkcs11_lib_path), Some(key_id)) => Hardware {
@@ -46,9 +57,17 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
                 key_id,
             },
         },
-        _ => Pem {
-            skip_keyring: opts.skip_keyring,
-        },
+        _ => {
+            let mode = if opts.disable_encryption {
+                IdentityStorageMode::Plaintext
+            } else if let Some(mode_str) = opts.storage_mode {
+                IdentityStorageMode::from_str(&mode_str)?
+            } else {
+                IdentityStorageMode::default()
+            };
+
+            Pem { mode }
+        }
     };
 
     IdentityManager::new(env)?.create_new_identity(log, name, creation_parameters, opts.force)?;

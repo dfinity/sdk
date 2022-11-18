@@ -19,9 +19,10 @@ use slog::{debug, trace, Logger};
 use std::boxed::Box;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use super::identity_utils::validate_pem_file;
-use super::WALLET_CONFIG_FILENAME;
+use super::{keyring_proxy, WALLET_CONFIG_FILENAME};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 
@@ -85,20 +86,44 @@ pub struct HardwareIdentityConfiguration {
     pub key_id: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum IdentityStorageMode {
+    Keyring,
+    PasswordProtected,
+    Plaintext,
+}
+
+impl FromStr for IdentityStorageMode {
+    type Err = anyhow::Error;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input {
+            "keyring" => Ok(IdentityStorageMode::Keyring),
+            "password" => Ok(IdentityStorageMode::PasswordProtected),
+            "plaintext" => Ok(IdentityStorageMode::Plaintext),
+            other => bail!("Unknown storage mode: {}", other),
+        }
+    }
+}
+
+impl Default for IdentityStorageMode {
+    fn default() -> Self {
+        Self::Keyring
+    }
+}
+
 pub enum IdentityCreationParameters {
     Pem {
-        /// use encrypted PEM file on disk instead of keyring
-        skip_keyring: bool,
+        mode: IdentityStorageMode,
     },
     PemFile {
         src_pem_file: PathBuf,
-        /// use encrypted PEM file on disk instead of keyring
-        skip_keyring: bool,
+        mode: IdentityStorageMode,
     },
     SeedPhrase {
         mnemonic: String,
-        /// use encrypted PEM file on disk instead of keyring
-        skip_keyring: bool,
+        mode: IdentityStorageMode,
     },
     Hardware {
         hsm: HardwareIdentityConfiguration,
@@ -243,7 +268,7 @@ impl IdentityManager {
     pub fn export(&self, log: &Logger, name: &str) -> DfxResult<String> {
         self.require_identity_exists(log, name)?;
         let config = self.get_identity_config_or_default(name)?;
-        let (_, pem_content) = pem_safekeeping::load_pem(log, self, name, &config)?;
+        let pem_content = pem_safekeeping::load_pem(log, self, name, &config)?;
 
         validate_pem_file(&pem_content)?;
         String::from_utf8(pem_content)
@@ -264,6 +289,10 @@ impl IdentityManager {
     ) -> DfxResult {
         self.require_identity_exists(log, name)?;
 
+        if name == ANONYMOUS_IDENTITY_NAME {
+            return Err(DfxError::new(IdentityError::CannotDeleteAnonymousIdentity()));
+        }
+
         if self.configuration.default == name {
             return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
         }
@@ -280,10 +309,10 @@ impl IdentityManager {
             }
         }
 
-        remove_identity_file(&self.get_identity_pem_path(name))?;
         remove_identity_file(&self.get_identity_json_path(name))?;
-        remove_identity_file(&self.get_legacy_identity_pem_path(name))?;
-        pem_safekeeping::delete_pem_from_keyring(name)?;
+        remove_identity_file(&self.get_plaintext_identity_pem_path(name))?;
+        remove_identity_file(&self.get_encrypted_identity_pem_path(name))?;
+        keyring_proxy::delete_pem_from_keyring(name)?;
 
         let dir = self.get_identity_dir_path(name);
         if dir.exists() {
@@ -329,7 +358,7 @@ impl IdentityManager {
         })?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
-            let (_, pem) = pem_safekeeping::load_pem(log, self, from, &identity_config)?;
+            let pem = pem_safekeeping::load_pem(log, self, from, &identity_config)?;
             let new_config = IdentityConfiguration {
                 keyring_identity_suffix: Some(to.to_string()),
                 ..identity_config
@@ -337,7 +366,7 @@ impl IdentityManager {
             pem_safekeeping::save_pem(log, self, to, &new_config, pem.as_ref())?;
             let config_path = self.get_identity_json_path(to);
             write_identity_configuration(log, &config_path, &new_config)?;
-            pem_safekeeping::delete_pem_from_keyring(keyring_identity_suffix)?;
+            keyring_proxy::delete_pem_from_keyring(keyring_identity_suffix)?;
         }
 
         if from == self.configuration.default {
@@ -381,10 +410,10 @@ impl IdentityManager {
         }
 
         let json_path = self.get_identity_json_path(name);
-        let identity_pem_path = self.get_identity_pem_path(name);
-        let legacy_pem_path = self.get_legacy_identity_pem_path(name);
+        let plaintext_pem_path = self.get_plaintext_identity_pem_path(name);
+        let encrypted_pem_path = self.get_encrypted_identity_pem_path(name);
 
-        if !identity_pem_path.exists() && !legacy_pem_path.exists() && !json_path.exists() {
+        if !plaintext_pem_path.exists() && !encrypted_pem_path.exists() && !json_path.exists() {
             Err(DfxError::new(IdentityError::IdentityDoesNotExist(
                 String::from(name),
                 json_path,
@@ -398,15 +427,28 @@ impl IdentityManager {
         self.identity_root_path.join(&identity)
     }
 
-    /// Determines the path of the encrypted PEM file.
-    pub fn get_identity_pem_path(&self, identity_name: &str) -> PathBuf {
-        self.get_identity_dir_path(identity_name)
-            .join(IDENTITY_PEM_ENCRYPTED)
+    /// Determines the path of the (potentially encrypted) PEM file.
+    pub fn get_identity_pem_path(
+        &self,
+        identity_name: &str,
+        identity_config: &IdentityConfiguration,
+    ) -> PathBuf {
+        if let Some(_) = identity_config.encryption {
+            self.get_encrypted_identity_pem_path(identity_name)
+        } else {
+            self.get_plaintext_identity_pem_path(identity_name)
+        }
     }
 
-    /// Determines the path of the deprecated clear-text PEM file.
-    pub fn get_legacy_identity_pem_path(&self, identity_name: &str) -> PathBuf {
+    /// Determines the path of the clear-text PEM file.
+    pub fn get_plaintext_identity_pem_path(&self, identity_name: &str) -> PathBuf {
         self.get_identity_dir_path(identity_name).join(IDENTITY_PEM)
+    }
+
+    /// Determines the path of the encrypted PEM file.
+    pub fn get_encrypted_identity_pem_path(&self, identity_name: &str) -> PathBuf {
+        self.get_identity_dir_path(identity_name)
+            .join(IDENTITY_PEM_ENCRYPTED)
     }
 
     /// Returns the path where wallets on persistent/non-ephemeral networks are stored.

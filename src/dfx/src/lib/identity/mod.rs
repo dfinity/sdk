@@ -6,6 +6,7 @@ use crate::config::dfinity::NetworksConfig;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
+use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
@@ -28,6 +29,7 @@ use std::path::{Path, PathBuf};
 
 pub mod identity_manager;
 pub mod identity_utils;
+pub mod keyring_proxy;
 pub mod pem_safekeeping;
 use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
@@ -108,7 +110,7 @@ impl Identity {
         }
         fn create_identity_config(
             log: &Logger,
-            skip_keyring: bool,
+            mode: IdentityStorageMode,
             name: &str,
             hardware_config: Option<HardwareIdentityConfiguration>,
         ) -> DfxResult<IdentityConfiguration> {
@@ -117,21 +119,27 @@ impl Identity {
                     hsm: Some(hsm),
                     ..Default::default()
                 })
-            } else if skip_keyring || !pem_safekeeping::keyring_available(log) {
-                trace!(log, "Keyring will be skipped.");
-                Ok(IdentityConfiguration {
-                    encryption: Some(identity_manager::EncryptionConfiguration::new()?),
-                    ..Default::default()
-                })
             } else {
-                trace!(
-                    log,
-                    "Not creating encryption configuration - will use keyring."
-                );
-                Ok(IdentityConfiguration {
-                    keyring_identity_suffix: Some(String::from(name)),
-                    ..Default::default()
-                })
+                match mode {
+                    IdentityStorageMode::Keyring => {
+                        if keyring_proxy::keyring_available(log) {
+                            Ok(IdentityConfiguration {
+                                keyring_identity_suffix: Some(String::from(name)),
+                                ..Default::default()
+                            })
+                        } else {
+                            Ok(IdentityConfiguration {
+                                encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                                ..Default::default()
+                            })
+                        }
+                    }
+                    IdentityStorageMode::PasswordProtected => Ok(IdentityConfiguration {
+                        encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                        ..Default::default()
+                    }),
+                    IdentityStorageMode::Plaintext => Ok(IdentityConfiguration::default()),
+                }
             }
         }
 
@@ -151,9 +159,9 @@ impl Identity {
 
         let identity_config;
         match parameters {
-            IdentityCreationParameters::Pem { skip_keyring } => {
+            IdentityCreationParameters::Pem { mode } => {
                 let (pem_content, mnemonic) = identity_manager::generate_key()?;
-                identity_config = create_identity_config(log, skip_keyring, name, None)?;
+                identity_config = create_identity_config(log, mode, name, None)?;
                 pem_safekeeping::save_pem(
                     log,
                     manager,
@@ -163,11 +171,8 @@ impl Identity {
                 )?;
                 eprintln!("Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
             }
-            IdentityCreationParameters::PemFile {
-                src_pem_file,
-                skip_keyring,
-            } => {
-                identity_config = create_identity_config(log, skip_keyring, name, None)?;
+            IdentityCreationParameters::PemFile { src_pem_file, mode } => {
+                identity_config = create_identity_config(log, mode, name, None)?;
                 let src_pem_content = pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
                 identity_utils::validate_pem_file(&src_pem_content)?;
                 pem_safekeeping::save_pem(
@@ -179,14 +184,12 @@ impl Identity {
                 )?;
             }
             IdentityCreationParameters::Hardware { hsm } => {
-                identity_config = create_identity_config(log, true, name, Some(hsm))?;
+                identity_config =
+                    create_identity_config(log, IdentityStorageMode::default(), name, Some(hsm))?;
                 create(&temp_identity_dir)?;
             }
-            IdentityCreationParameters::SeedPhrase {
-                mnemonic,
-                skip_keyring,
-            } => {
-                identity_config = create_identity_config(log, skip_keyring, name, None)?;
+            IdentityCreationParameters::SeedPhrase { mnemonic, mode } => {
+                identity_config = create_identity_config(log, mode, name, None)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
                 let key = identity_manager::mnemonic_to_key(&mnemonic)?;
                 let pem = key.to_pem(k256::pkcs8::LineEnding::CRLF)?;
@@ -303,26 +306,9 @@ impl Identity {
         if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            let (maybe_new_config, pem_content) =
-                pem_safekeeping::load_pem(log, manager, name, &config)?;
+            let pem_content = pem_safekeeping::load_pem(log, manager, name, &config)?;
             let identity = Identity::load_secp256k1_identity(manager, name, &pem_content)
                 .or_else(|_| Identity::load_basic_identity(manager, name, &pem_content))?;
-
-            if let Some(new_config) = maybe_new_config {
-                info!(log, "Trying to update the identity set up.");
-                let save_result =
-                    pem_safekeeping::save_pem(log, manager, name, &new_config, &pem_content);
-                match save_result {
-                    Err(_) => info!(log, "Failed to update identity set up."),
-                    Ok(_) => {
-                        identity_manager::write_identity_configuration(log, &json_path, &new_config)
-                            .unwrap_or_else(|_| {
-                                info!(log, "Failed to write new identity configuration.")
-                            })
-                    }
-                }
-            }
-
             Ok(identity)
         }
     }

@@ -4,18 +4,11 @@ load ../utils/_
 
 setup() {
     standard_setup
+    export DFX_CI_USE_PROXY_KEYRING=available
 }
 
 teardown() {
     standard_teardown
-}
-
-@test "testtesttest" {
-    dfx identity new jason # hangs indefinitely, no idea why
-    # how to set up an unlocked macos keychain: 
-    # https://stackoverflow.com/questions/68541016/github-actions-productsign-hangs
-    # https://stackoverflow.com/questions/58118395/github-action-macos-keychain-access
-    exit 1
 }
 
 ##
@@ -80,8 +73,19 @@ frank'
 ## dfx identity new
 ##
 
-@test "identity new: creates a new identity" {
+@test "identity new: creates a new keyring identity" {
     assert_command dfx identity new alice
+    assert_match 'Created identity: "alice".' "$stderr"
+    assert_command cat "$MOCK_KEYRING_LOCATION"
+    assert_match "internet_computer_identity_alice"
+
+    # does not change the default identity
+    assert_command dfx identity whoami
+    assert_eq 'default'
+}
+
+@test "identity new --storage-mode plaintext: creates a new identity" {
+    assert_command dfx identity new alice --storage-mode plaintext
     assert_match 'Created identity: "alice".' "$stderr"
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN EC PRIVATE KEY"
@@ -132,9 +136,9 @@ frank'
 ## dfx identity remove
 ##
 
-@test "identity remove: can remove an identity that exists" {
+@test "identity remove --storage-mode plaintext: can remove an identity that exists" {
     assert_command_fail head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
-    assert_command dfx identity new alice
+    assert_command dfx identity new alice --storage-mode plaintext
 
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN EC PRIVATE KEY"
@@ -147,6 +151,27 @@ default'
     assert_command dfx identity remove alice
     assert_match 'Removed identity "alice".' "$stderr"
     assert_command_fail cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
+
+    assert_command dfx identity list
+    assert_match 'default'
+}
+
+@test "identity remove: can remove an identity that exists" {
+    assert_command_fail cat "$MOCK_KEYRING_LOCATION"
+    assert_command dfx identity new alice
+
+    assert_command cat "$MOCK_KEYRING_LOCATION"
+    assert_match "internet_computer_identity_alice"
+    assert_command dfx identity list
+    assert_match \
+'alice
+anonymous
+default'
+
+    assert_command dfx identity remove alice
+    assert_match 'Removed identity "alice".' "$stderr"
+    assert_command cat "$MOCK_KEYRING_LOCATION"
+    assert_not_match "internet_computer_identity_alice"
 
     assert_command dfx identity list
     assert_match 'default'
@@ -171,7 +196,7 @@ default'
 }
 
 @test "identity remove: cannot remove the non-default active identity" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new alice --storage-mode plaintext
     assert_command dfx identity use alice
     assert_command_fail dfx identity remove alice
 
@@ -218,6 +243,32 @@ default'
 'alice
 anonymous
 default'
+    assert_command cat "$MOCK_KEYRING_LOCATION"
+    assert_match "internet_computer_identity_alice"
+    local key="$(dfx identity export alice)"
+
+    assert_command dfx identity rename alice bob
+    assert_match 'Renamed identity "alice" to "bob".' "$stderr"
+
+    assert_command dfx identity list
+    assert_match \
+'anonymous
+bob
+default'
+    assert_command cat "$MOCK_KEYRING_LOCATION"
+    assert_match "internet_computer_identity_bob"
+    assert_eq "$key" "$(dfx identity export bob)"
+    assert_command cat "$MOCK_KEYRING_LOCATION"
+    assert_not_match "internet_computer_identity_alice"
+}
+
+@test "identity rename --storage-mode plaintext: can rename an identity" {
+    assert_command dfx identity new alice --storage-mode plaintext
+    assert_command dfx identity list
+    assert_match \
+'alice
+anonymous
+default'
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_match "BEGIN EC PRIVATE KEY"
     x=$(cat "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem")
@@ -251,7 +302,7 @@ default'
 }
 
 @test "identity rename: can rename the selected identity, which also changes the default" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new alice --storage-mode plaintext
     assert_command dfx identity use alice
     assert_command dfx identity list
     assert_match \
@@ -398,6 +449,15 @@ default'
     openssl ecparam -name secp256k1 -genkey -out identity.pem
     assert_command dfx identity import alice identity.pem
     assert_match 'Imported identity: "alice".' "$stderr"
+    assert_command bash -c "dfx identity export alice > alice.pem"
+    assert_command diff identity.pem alice.pem
+    assert_eq ""
+}
+
+@test "identity: import --storage-mode plaintext" {
+    openssl ecparam -name secp256k1 -genkey -out identity.pem
+    assert_command dfx identity import alice identity.pem --storage-mode plaintext
+    assert_match 'Imported identity: "alice".' "$stderr"
     assert_command diff identity.pem "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
 }
@@ -420,15 +480,15 @@ default'
 }
 
 @test "identity: import default" {
-    assert_command dfx identity new alice
-    assert_command dfx identity import bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
+    assert_command dfx identity new alice --storage-mode plaintext
+    assert_command dfx identity import bob "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" --storage-mode plaintext
     assert_match 'Imported identity: "bob".' "$stderr"
     assert_command diff "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
     assert_eq ""
 }
 
 @test "identity: cannot import invalid PEM file" {
-    assert_command dfx identity new alice
+    assert_command dfx identity new alice --storage-mode plaintext
     assert_command cp "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem" ./alice.pem
     # Following 3 lines manipulate the pem file so that it will be invalid
     head -n 1 alice.pem > bob.pem
