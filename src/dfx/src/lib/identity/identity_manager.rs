@@ -100,7 +100,7 @@ impl FromStr for IdentityStorageMode {
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         match input {
             "keyring" => Ok(IdentityStorageMode::Keyring),
-            "password" => Ok(IdentityStorageMode::PasswordProtected),
+            "password-protected" => Ok(IdentityStorageMode::PasswordProtected),
             "plaintext" => Ok(IdentityStorageMode::Plaintext),
             other => bail!("Unknown storage mode: {}", other),
         }
@@ -309,10 +309,14 @@ impl IdentityManager {
             }
         }
 
+        if let Ok(config) = self.get_identity_config_or_default(name) {
+            if let Some(suffix) = config.keyring_identity_suffix {
+                keyring_proxy::delete_pem_from_keyring(&suffix)?;
+            }
+        }
         remove_identity_file(&self.get_identity_json_path(name))?;
         remove_identity_file(&self.get_plaintext_identity_pem_path(name))?;
         remove_identity_file(&self.get_encrypted_identity_pem_path(name))?;
-        keyring_proxy::delete_pem_from_keyring(name)?;
 
         let dir = self.get_identity_dir_path(name);
         if dir.exists() {

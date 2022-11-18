@@ -4,6 +4,7 @@ load ../utils/_
 
 setup() {
     standard_setup
+    export DFX_CI_USE_PROXY_KEYRING=unavailable
 }
 
 teardown() {
@@ -49,5 +50,12 @@ XXX
 
 @test "remove identity works on identity with a password" {
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/init_alice_with_pw.exp"
-    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/remove_identity_with_password.exp"
+    assert_command dfx identity remove alice
+}
+
+@test "creating/removing identity with --storage-mode password-protected does not attempt to touch keyring" {
+    # if any of dfx identity new --storage-mode password-protected or dfx identity remove attempt to touch keyring,
+    # then the test will time out
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/init_alice_with_storage_mode_pwprotected.exp"
+    assert_command dfx identity remove alice
 }
