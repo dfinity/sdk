@@ -91,11 +91,17 @@ pub struct CanisterMetadataSection {
 
     /// # Path
     /// Path to file containing section contents.
+    /// Conflicts with `content`.
     /// For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use
     /// the canister's candid definition.
     /// If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's
     /// actual candid service definition.
     pub path: Option<PathBuf>,
+
+    /// # Content
+    /// Content of this metadata section.
+    /// Conflicts with `path`.
+    pub content: Option<String>,
 }
 
 impl CanisterMetadataSection {
@@ -172,6 +178,13 @@ pub struct ConfigCanistersCanister {
     /// Defines metadata sections to set in the canister .wasm
     #[serde(default)]
     pub metadata: Vec<CanisterMetadataSection>,
+
+    /// # Ready for dfx Pull
+    /// Whether or not to make this canister ready for dfx pull by other project.
+    /// If true, several required metadata fields must be also set with the correct format.
+    // TODO: Add a link to `dfx pull` document.
+    #[serde(default)]
+    pub pull_ready: bool,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -212,6 +225,13 @@ pub enum CanisterTypeProperties {
     },
     /// # Motoko-Specific Properties
     Motoko,
+    /// # Pull-Specific Properties
+    Pull {
+        /// # Canister ID
+        /// Principal of the canister on the ic network.
+        #[schemars(with = "String")]
+        id: candid::Principal,
+    },
 }
 
 impl CanisterTypeProperties {
@@ -221,6 +241,7 @@ impl CanisterTypeProperties {
             Self::Motoko { .. } => "motoko",
             Self::Assets { .. } => "assets",
             Self::Custom { .. } => "custom",
+            Self::Pull { .. } => "pull",
         }
     }
 }
@@ -887,9 +908,13 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        let mut wasm: Option<String> = None;
-        let mut candid: Option<String> = None;
-        let (mut package, mut source, mut build, mut r#type) = (None, None, None, None);
+        let mut wasm = None;
+        let mut candid = None;
+        let mut package = None;
+        let mut source = None;
+        let mut build = None;
+        let mut r#type = None;
+        let mut id = None;
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -898,6 +923,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 "build" => build = Some(map.next_value()?),
                 "wasm" => wasm = Some(map.next_value()?),
                 "type" => r#type = Some(map.next_value::<String>()?),
+                "id" => id = Some(map.next_value()?),
                 _ => continue,
             }
         }
@@ -914,6 +940,9 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 build: build.unwrap_or_default(),
                 candid: candid.ok_or_else(|| missing_field("candid"))?,
                 wasm: wasm.ok_or_else(|| missing_field("wasm"))?,
+            },
+            Some("pull") => CanisterTypeProperties::Pull {
+                id: id.ok_or_else(|| missing_field("id"))?,
             },
             Some(x) => {
                 return Err(A::Error::unknown_variant(

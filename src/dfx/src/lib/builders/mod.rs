@@ -22,6 +22,7 @@ use std::sync::Arc;
 mod assets;
 mod custom;
 mod motoko;
+mod pull;
 mod rust;
 
 pub use custom::custom_download;
@@ -429,6 +430,7 @@ impl BuilderPool {
             ("custom", Arc::new(custom::CustomBuilder::new(env)?)),
             ("motoko", Arc::new(motoko::MotokoBuilder::new(env)?)),
             ("rust", Arc::new(rust::RustBuilder::new(env)?)),
+            ("pull", Arc::new(pull::PullBuilder::new(env)?)),
         ]);
 
         Ok(Self { builders })

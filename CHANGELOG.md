@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+## DFX
+
+### feat: write canister metadata sections for dfx pull
+
 ## Dependenies
 
 Updated candid to 0.8.4
