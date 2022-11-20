@@ -94,6 +94,11 @@ pub async fn create_canister(
                         .with_optional_freezing_threshold(settings.freezing_threshold)
                         .call_and_wait(waiter_with_timeout(timeout))
                         .await;
+                    if let Err(AgentError::HttpError(HttpErrorPayload { status: 403, .. })) = &res {
+                        bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
+                            To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
+                            using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.")
+                    }
                     if let Err(AgentError::HttpError(HttpErrorPayload { status: 404, .. })) = &res {
                         bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
                             To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
