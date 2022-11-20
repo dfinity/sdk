@@ -81,7 +81,8 @@ pub async fn create_canister(
                     let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
                     let mut builder = mgr
                         .create_canister()
-                        .as_provisional_create_with_amount(cycles);
+                        .as_provisional_create_with_amount(cycles)
+                        .with_effective_canister_id(env.get_effective_canister_id());
                     if let Some(controllers) = settings.controllers {
                         for controller in controllers {
                             builder = builder.with_controller(controller);

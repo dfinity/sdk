@@ -57,6 +57,8 @@ pub trait Environment {
     fn get_selected_identity(&self) -> Option<&String>;
 
     fn get_selected_identity_principal(&self) -> Option<Principal>;
+
+    fn get_effective_canister_id(&self) -> Principal;
 }
 
 pub struct EnvironmentImpl {
@@ -215,6 +217,10 @@ impl Environment for EnvironmentImpl {
     fn get_selected_identity_principal(&self) -> Option<Principal> {
         None
     }
+
+    fn get_effective_canister_id(&self) -> Principal {
+        Principal::from_text("rwlgt-iiaaa-aaaaa-aaaaa-cai").unwrap()
+    }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -314,6 +320,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_selected_identity_principal(&self) -> Option<Principal> {
         self.identity_manager.get_selected_identity_principal()
+    }
+
+    fn get_effective_canister_id(&self) -> Principal {
+        Principal::from_text("rwlgt-iiaaa-aaaaa-aaaaa-cai").unwrap()
     }
 }
 

@@ -64,6 +64,7 @@ pub async fn install_ui_canister(
         None => {
             mgr.create_canister()
                 .as_provisional_create_with_amount(None)
+                .with_effective_canister_id(env.get_effective_canister_id())
                 .call_and_wait(waiter_with_timeout(expiry_duration()))
                 .await
                 .context("Create canister call failed.")?
