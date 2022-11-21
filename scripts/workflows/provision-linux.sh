@@ -42,6 +42,9 @@ fi
 if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] || [ "$E2E_TEST" = "tests-dfx/identity.bash" ]; then
     sudo apt-get install --yes expect
 fi
+if [ "$E2E_TEST" = "tests-dfx/pull.bash" ]; then
+     cargo install ic-wasm
+fi
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"

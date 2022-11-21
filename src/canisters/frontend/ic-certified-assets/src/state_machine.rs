@@ -24,6 +24,9 @@ const ENCODING_CERTIFICATION_ORDER: &[&str] = &["identity", "gzip", "compress", 
 /// The file to serve if the requested file wasn't found.
 const INDEX_FILE: &str = "/index.html";
 
+/// Default aliasing behavior.
+const DEFAULT_ALIAS_ENABLED: bool = true;
+
 type AssetHashes = RbTree<Key, Hash>;
 type Timestamp = Int;
 
@@ -42,6 +45,7 @@ pub struct Asset {
     pub encodings: HashMap<String, AssetEncoding>,
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
+    pub is_aliased: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -105,6 +109,26 @@ pub struct StableState {
 }
 
 impl State {
+    fn get_asset(&self, key: &Key) -> Result<&Asset, String> {
+        self.assets
+            .get(key)
+            .or_else(|| {
+                let aliased = aliases_of(key)
+                    .into_iter()
+                    .find_map(|alias_key| self.assets.get(&alias_key));
+                if let Some(asset) = aliased {
+                    if asset.is_aliased.unwrap_or(DEFAULT_ALIAS_ENABLED) {
+                        aliased
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| "asset not found".to_string())
+    }
+
     pub fn authorize_unconditionally(&mut self, principal: Principal) {
         if !self.is_authorized(&principal) {
             self.authorized.push(principal);
@@ -137,6 +161,7 @@ impl State {
                     encodings: HashMap::new(),
                     max_age: arg.max_age,
                     headers: arg.headers,
+                    is_aliased: arg.enable_aliasing,
                 },
             );
         }
@@ -152,6 +177,7 @@ impl State {
             return Err("encoding must have at least one chunk".to_string());
         }
 
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -189,25 +215,29 @@ impl State {
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset);
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
 
         Ok(())
     }
 
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
             .ok_or_else(|| "asset not found".to_string())?;
 
         if asset.encodings.remove(&arg.content_encoding).is_some() {
-            on_asset_change(&mut self.asset_hashes, &arg.key, asset);
+            on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
         }
 
         Ok(())
     }
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
+        for dependent in self.dependent_keys(&arg.key) {
+            self.asset_hashes.delete(dependent.as_bytes());
+        }
         self.assets.remove(&arg.key);
         self.asset_hashes.delete(arg.key.as_bytes());
     }
@@ -225,10 +255,7 @@ impl State {
     }
 
     pub fn retrieve(&self, key: &Key) -> Result<RcBytes, String> {
-        let asset = self
-            .assets
-            .get(key)
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(key)?;
 
         let id_enc = asset
             .encodings
@@ -243,8 +270,10 @@ impl State {
     }
 
     pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
+        asset.is_aliased = arg.aliased;
 
         let hash = sha2::Sha256::digest(&arg.content).into();
         if let Some(provided_hash) = arg.sha256 {
@@ -259,7 +288,7 @@ impl State {
         encoding.modified = Int::from(time);
         encoding.sha256 = hash;
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset);
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
         Ok(())
     }
 
@@ -361,10 +390,7 @@ impl State {
     }
 
     pub fn get(&self, arg: GetArg) -> Result<EncodedAsset, String> {
-        let asset = self
-            .assets
-            .get(&arg.key)
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(&arg.key)?;
 
         for enc in arg.accept_encodings.iter() {
             if let Some(asset_enc) = asset.encodings.get(enc) {
@@ -381,10 +407,7 @@ impl State {
     }
 
     pub fn get_chunk(&self, arg: GetChunkArg) -> Result<RcBytes, String> {
-        let asset = self
-            .assets
-            .get(&arg.key)
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(&arg.key)?;
 
         let enc = asset
             .encodings
@@ -448,7 +471,7 @@ impl State {
         let certificate_header =
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
-        if let Some(asset) = self.assets.get(path) {
+        if let Ok(asset) = self.get_asset(&path.into()) {
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
@@ -533,9 +556,8 @@ impl State {
         }: StreamingCallbackToken,
     ) -> Result<StreamingCallbackHttpResponse, String> {
         let asset = self
-            .assets
-            .get(&key)
-            .ok_or_else(|| "Invalid token on streaming: key not found.".to_string())?;
+            .get_asset(&key)
+            .map_err(|_| "Invalid token on streaming: key not found.".to_string())?;
         let enc = asset
             .encodings
             .get(&content_encoding)
@@ -582,6 +604,23 @@ impl State {
         }
         Ok(())
     }
+
+    // Returns keys that needs to be updated if the supplied key is changed.
+    fn dependent_keys<'a>(&self, key: &Key) -> Vec<Key> {
+        if self
+            .assets
+            .get(key)
+            .and_then(|asset| asset.is_aliased)
+            .unwrap_or(DEFAULT_ALIAS_ENABLED)
+        {
+            aliased_by(key)
+                .into_iter()
+                .filter(|k| !self.assets.contains_key(k))
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
 }
 
 impl From<State> for StableState {
@@ -601,17 +640,28 @@ impl From<StableState> for State {
             ..Self::default()
         };
 
-        for (asset_name, asset) in state.assets.iter_mut() {
-            for enc in asset.encodings.values_mut() {
-                enc.certified = false;
+        let assets_keys: Vec<_> = state.assets.keys().cloned().collect();
+        for key in assets_keys {
+            let dependent_keys = state.dependent_keys(&key);
+            if let Some(asset) = state.assets.get_mut(&key) {
+                for enc in asset.encodings.values_mut() {
+                    enc.certified = false;
+                }
+                on_asset_change(&mut state.asset_hashes, &key, asset, dependent_keys);
+            } else {
+                // shouldn't reach this
             }
-            on_asset_change(&mut state.asset_hashes, asset_name, asset);
         }
         state
     }
 }
 
-fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset) {
+fn on_asset_change(
+    asset_hashes: &mut AssetHashes,
+    key: &str,
+    asset: &mut Asset,
+    dependent_keys: Vec<Key>,
+) {
     // If the most preferred encoding is present and certified,
     // there is nothing to do.
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
@@ -626,6 +676,9 @@ fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset)
 
     if asset.encodings.is_empty() {
         asset_hashes.delete(key.as_bytes());
+        for dependent in dependent_keys {
+            asset_hashes.delete(dependent.as_bytes());
+        }
         return;
     }
 
@@ -639,6 +692,9 @@ fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset)
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
         if let Some(enc) = asset.encodings.get_mut(*enc_name) {
             asset_hashes.insert(key.to_string(), enc.sha256);
+            for dependent in dependent_keys {
+                asset_hashes.insert(dependent, enc.sha256);
+            }
             enc.certified = true;
             return;
         }
@@ -649,6 +705,9 @@ fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset)
     // almost never happen anyway.
     if let Some(enc) = asset.encodings.values_mut().next() {
         asset_hashes.insert(key.to_string(), enc.sha256);
+        for dependent in dependent_keys {
+            asset_hashes.insert(dependent, enc.sha256);
+        }
         enc.certified = true;
     }
 }
@@ -779,5 +838,32 @@ fn build_404(certificate_header: HeaderField) -> HttpResponse {
         headers: vec![certificate_header],
         body: RcBytes::from(ByteBuf::from("not found")),
         streaming_strategy: None,
+    }
+}
+
+// path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
+fn aliases_of(key: &Key) -> Vec<Key> {
+    if key.ends_with('/') {
+        vec![format!("{}index.html", key)]
+    } else if !key.ends_with(".html") {
+        vec![format!("{}.html", key), format!("{}/index.html", key)]
+    } else {
+        Vec::new()
+    }
+}
+
+// Determines possible original keys in case the supplied key is being aliaseded to.
+// Sort-of a reverse operation of `alias_of`
+fn aliased_by(key: &Key) -> Vec<Key> {
+    if key.ends_with("/index.html") {
+        vec![
+            key[..(key.len() - 5)].into(),
+            key[..(key.len() - 10)].into(),
+            key[..(key.len() - 11)].to_string(),
+        ]
+    } else if key.ends_with(".html") {
+        vec![key[..(key.len() - 5)].to_string()]
+    } else {
+        Vec::new()
     }
 }

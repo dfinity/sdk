@@ -53,6 +53,8 @@ pub struct CanisterInfo {
     main: Option<PathBuf>,
     shrink: Option<bool>,
     metadata: CanisterMetadataConfig,
+    pull_ready: bool,
+    pull_dependencies: Vec<(String, CanisterId)>,
 }
 
 impl CanisterInfo {
@@ -79,6 +81,24 @@ impl CanisterInfo {
         let canister_config = canister_map
             .get(name)
             .ok_or_else(|| anyhow!("Cannot find canister '{}',", name.to_string()))?;
+
+        let dependencies = canister_config.dependencies.clone();
+
+        let mut pull_dependencies = vec![];
+
+        for dep in &dependencies {
+            let dep_config = canister_map.get(dep).ok_or_else(|| {
+                anyhow!(
+                    "Cannot find canister '{}' which is a dependency of '{}'",
+                    dep,
+                    name.to_string()
+                )
+            })?;
+
+            if let CanisterTypeProperties::Pull { id } = dep_config.type_specific {
+                pull_dependencies.push((dep.to_string(), id))
+            }
+        }
 
         let declarations_config_pre = canister_config.declarations.clone();
 
@@ -115,8 +135,7 @@ impl CanisterInfo {
         };
 
         let post_install = canister_config.post_install.clone().into_vec();
-        let metadata =
-            CanisterMetadataConfig::new(&type_specific, &canister_config.metadata, &network_name);
+        let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
 
         let canister_info = CanisterInfo {
             name: name.to_string(),
@@ -129,11 +148,13 @@ impl CanisterInfo {
             packtool: build_defaults.get_packtool(),
             args,
             type_specific,
-            dependencies: canister_config.dependencies.clone(),
+            dependencies,
             post_install,
             main: canister_config.main.clone(),
             shrink: canister_config.shrink,
             metadata,
+            pull_ready: canister_config.pull_ready,
+            pull_dependencies,
         };
 
         Ok(canister_info)
@@ -232,6 +253,9 @@ impl CanisterInfo {
             CanisterTypeProperties::Rust { .. } => self
                 .as_info::<RustCanisterInfo>()
                 .map(|x| x.get_output_idl_path().to_path_buf()),
+            CanisterTypeProperties::Pull { .. } => {
+                unreachable!("Should not get output idl from pull type canister")
+            }
         }
         .ok()
         .or_else(|| self.remote_candid.clone())
@@ -262,10 +286,23 @@ impl CanisterInfo {
         matches!(self.type_specific, CanisterTypeProperties::Assets { .. })
     }
 
+    pub fn is_pull(&self) -> bool {
+        matches!(self.type_specific, CanisterTypeProperties::Pull { .. })
+    }
+
     pub fn get_metadata(&self, name: &str) -> Option<&CanisterMetadataSection> {
         self.metadata.get(name)
     }
+
     pub fn metadata(&self) -> &CanisterMetadataConfig {
         &self.metadata
+    }
+
+    pub fn is_pull_ready(&self) -> bool {
+        self.pull_ready
+    }
+
+    pub fn get_pull_dependencies(&self) -> &[(String, CanisterId)] {
+        &self.pull_dependencies
     }
 }

@@ -68,27 +68,27 @@ teardown() {
 
     assert_command curl --fail -vv http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
     # shellcheck disable=SC2154
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "contents of file with space in filename"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/has%2bplus.txt?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "contents of file with plus in filename"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/has%%percent.txt?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "contents of file with percent in filename"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "filename is an ae symbol"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/%%?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "filename is percent symbol"
 
     assert_command curl --fail -vv http://localhost:"$PORT"/filename%3fwithqmark.txt?canisterId="$ID"
-    assert_match "HTTP/1.1 200 OK" "$stderr"
+    assert_match "200 OK" "$stderr"
     assert_match "filename contains question mark"
 
     assert_command curl --fail -vv --output lws-curl-output.bin "http://localhost:$PORT/large%20with%20spaces.bin?canisterId=$ID"
@@ -423,7 +423,7 @@ CHERRIES" "$stdout"
     assert_match "x-extra-header: x-extra-value"
 
     # assert_command curl -vv "http://localhost:$PORT/ignored.txt?canisterId=$ID"
-    # assert_match "HTTP/1.1 404 Not Found"
+    # assert_match "404 Not Found"
     # from logs:
     # Staging contents of new and changed assets:
     #   /sample-asset.txt 1/1 (24 bytes)
@@ -499,14 +499,13 @@ CHERRIES" "$stdout"
     assert_match "x-header: x-value"
 
     assert_command curl -vv "http://localhost:$PORT/.ignored-by-defualt.txt?canisterId=$ID"
-    assert_match "HTTP/1.1 404 Not Found"
+    assert_match "404 Not Found"
     assert_command curl -vv "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
-    assert_match "HTTP/1.1 404 Not Found"
+    assert_match "404 Not Found"
     assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
-    assert_match "HTTP/1.1 404 Not Found"
+    assert_match "404 Not Found"
 
 }
-
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
     install_asset assetscanister
 
@@ -538,6 +537,118 @@ CHERRIES" "$stdout"
     assert_match "content-type: x-type"
     assert_not_match "etag: my-etag"
     assert_match "etag: \"[a-z0-9]{64}\""
+}
+
+@test "aliasing rules: <filename> to <filename>.html or <filename>/index.html" {
+    echo "test alias file" >'src/e2e_project_frontend/assets/test_alias_file.html'
+    mkdir 'src/e2e_project_frontend/assets/index_test'
+    echo "test index file" >'src/e2e_project_frontend/assets/index_test/index.html'
+
+    dfx_start
+    dfx deploy
+
+    # decode as expected
+    assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/test_alias_file.html";headers=vec{};method="GET";body=vec{}})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/index_test";headers=vec{};method="GET";body=vec{}})'
+    assert_match "test index file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_match "test index file"
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "200 OK" "$stderr"
+    assert_match "test alias file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+    assert_match "test alias file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+    assert_match "test index file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test/index?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+    assert_match "test index file"
+
+    # redirect survives upgrade
+    assert_command dfx deploy --upgrade-unchanged
+    assert_match "is already installed"
+
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "200 OK" "$stderr"
+    assert_match "test alias file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+    assert_match "test alias file"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+    assert_match "test index file"
+
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_match "test index file"
+
+    # disabling redirect works
+    echo "DISABLING NOW"
+    echo '[
+      {
+        "match": "test_alias_file.html",
+        "enable_aliasing": false
+      }
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+    # '--mode reinstall --yes' can be removed once SDK-817 is implemented
+    dfx deploy e2e_project_frontend --mode reinstall --yes
+    
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "200 OK" "$stderr"
+    assert_match "test alias file"
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "404 Not Found" "$stderr"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+    assert_match "test index file"
+
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "key not found"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_match "test index file"
+
+    # disabled redirect survives canister upgrade
+    echo "UPGRADE"
+    assert_command dfx deploy --upgrade-unchanged
+    
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+    # shellcheck disable=SC2154
+    assert_match "200 OK" "$stderr"
+    assert_match "test alias file"
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "404 Not Found" "$stderr"
+    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+    assert_match "test index file"
+
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_match "test alias file"
+    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_match "key not found"
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_match "test index file"
+
 }
 
 @test "asset configuration via .ic-assets.json5 - detect unused config" {
