@@ -15,6 +15,8 @@ This works for both `dfx identity new` and `dfx identity import`.
 
 The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
 
+### feat: write canister metadata sections for dfx pull
+
 ## Dependenies
 
 Updated candid to 0.8.4
