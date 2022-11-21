@@ -199,7 +199,10 @@ pub trait CanisterBuilder {
                 format!("Failed to remove {}.", generated_idl_path.to_string_lossy())
             })?;
         } else {
-            eprintln!("  {}", &generated_idl_path.display());
+            let relative_idl_path = generated_idl_path
+                .strip_prefix(info.get_workspace_root())
+                .unwrap_or(&generated_idl_path);
+            eprintln!("  {}", &relative_idl_path.display());
         }
 
         Ok(())
