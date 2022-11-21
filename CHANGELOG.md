@@ -6,18 +6,29 @@
 
 ### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
 
+It's now possible to get and set AssetProperties for assets in frontend canister, like so:
+```
+dfx canister call e2e_project_frontend set_asset_properties '( record { key="asset.txt"; max_age=opt(opt(5:nat64)); headers=opt(opt(vec{record {"new-key"; "new-value"}})) })'
+dfx canister call e2e_project_frontend get_asset_properties '("/asset.txt")'
+```
+If you wish to set either of properties to `null`, do the following:
+```
+dfx canister call e2e_project_frontend set_asset_properties '( record { key="asset.txt"; max_age=opt(null); headers=opt(null) })'
+```
+This change will trigger the update process for frontend canister (new module hash: `0a064423e6d7b262f9c39a782135db4e6207829910e6f033077e72a2aaaee064`). 
+
 ### feat: write canister metadata sections for dfx pull
 
-## Dependenies
-
+## Dependencies
 Updated candid to 0.8.4
 - Bug fix in TS bindings
 - Pretty print numbers
 
 ### Frontend canister
 
-- Module hash: 8b650f88708543d39bb4f10b73516cca2cc7705a56351b8d833b9c40ec8e7802
+- Module hash: 0a064423e6d7b262f9c39a782135db4e6207829910e6f033077e72a2aaaee064
 - https://github.com/dfinity/sdk/pull/2772
+- https://github.com/dfinity/sdk/pull/2413
 
 # 0.12.1
 
