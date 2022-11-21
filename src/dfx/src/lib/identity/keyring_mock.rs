@@ -11,68 +11,74 @@ use slog::{trace, Logger};
 
 pub const KEYRING_SERVICE_NAME: &str = "internet_computer_identities";
 pub const KEYRING_IDENTITY_PREFIX: &str = "internet_computer_identity_";
-pub const USE_KEYRING_PROXY_ENV_VAR: &str = "DFX_CI_USE_PROXY_KEYRING";
+pub const USE_KEYRING_MOCK_ENV_VAR: &str = "DFX_CI_MOCK_KEYRING_LOCATION";
 fn keyring_identity_name_from_suffix(suffix: &str) -> String {
     format!("{}{}", KEYRING_IDENTITY_PREFIX, suffix)
 }
 
-enum KeyringProxyMode {
+enum KeyringMockMode {
     /// Use system keyring
-    NoProxy,
+    NoMock,
     /// Simulate keyring where access is granted
-    ProxyAvailable,
+    MockAvailable,
     /// Simulate keyring where access is rejected
-    ProxyReject,
+    MockReject,
 }
 
-impl KeyringProxyMode {
+impl KeyringMockMode {
     fn current_mode() -> Self {
-        match std::env::var(USE_KEYRING_PROXY_ENV_VAR) {
-            Err(_) => Self::NoProxy,
-            Ok(mode) => match mode.as_str() {
-                "available" => Self::ProxyAvailable,
-                _ => Self::ProxyReject,
+        match std::env::var(USE_KEYRING_MOCK_ENV_VAR) {
+            Err(_) => Self::NoMock,
+            Ok(location) => match location.as_str() {
+                "" => Self::MockReject,
+                _ => Self::MockAvailable,
             },
         }
     }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-struct KeyringProxy {
+struct KeyringMock {
     pub kv_store: HashMap<String, String>,
 }
 
-impl KeyringProxy {
+impl KeyringMock {
     fn get_location() -> DfxResult<PathBuf> {
-        Ok(PathBuf::from(std::env::var("HOME")?).join("mock_keyring.json"))
+        match std::env::var(USE_KEYRING_MOCK_ENV_VAR) {
+            Ok(filename) => match filename.as_str() {
+                "" => bail!("Mock keyring unavailable - access rejected."),
+                _ => Ok(PathBuf::from(filename)),
+            },
+            _ => bail!("Mock keyring unavailable."),
+        }
     }
 
-    #[context("Failed to load proxy keyring.")]
+    #[context("Failed to load mock keyring.")]
     pub fn load() -> DfxResult<Self> {
         let location = Self::get_location()?;
         if location.exists() {
-            let serialized_proxy = std::fs::read(&location).with_context(|| {
+            let serialized_mock = std::fs::read(&location).with_context(|| {
                 format!(
-                    "Failed to read existing keyring proxy at {}",
+                    "Failed to read existing keyring mock at {}",
                     location.to_string_lossy()
                 )
             })?;
-            let proxy = serde_json::from_slice(serialized_proxy.as_slice())
-                .context("Failed to deserialize proxy keyring.")?;
-            Ok(proxy)
+            let mock = serde_json::from_slice(serialized_mock.as_slice())
+                .context("Failed to deserialize mock keyring.")?;
+            Ok(mock)
         } else {
             Ok(Self::default())
         }
     }
 
-    #[context("Failed to load proxy keyring.")]
+    #[context("Failed to load mock keyring.")]
     pub fn save(&self) -> DfxResult {
         let location = Self::get_location()?;
         let content =
-            serde_json::to_string_pretty(self).context("Failed to serialize proxy keyring")?;
+            serde_json::to_string_pretty(self).context("Failed to serialize mock keyring")?;
         std::fs::write(&location, content).with_context(|| {
             format!(
-                "Failed to save proxy keyring to {}",
+                "Failed to save mock keyring to {}",
                 location.to_string_lossy()
             )
         })
@@ -85,25 +91,22 @@ impl KeyringProxy {
 )]
 pub fn load_pem_from_keyring(identity_name_suffix: &str) -> DfxResult<Vec<u8>> {
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
-    match KeyringProxyMode::current_mode() {
-        KeyringProxyMode::NoProxy => {
+    match KeyringMockMode::current_mode() {
+        KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
             let encoded_pem = entry.get_password()?;
             let pem = hex::decode(&encoded_pem)?;
             Ok(pem)
         }
-        KeyringProxyMode::ProxyAvailable => {
-            let proxy = KeyringProxy::load()?;
-            let encoded_pem = proxy
-                .kv_store
-                .get(&keyring_identity_name)
-                .with_context(|| {
-                    format!("Proxy Keyring: key {} not found", &keyring_identity_name)
-                })?;
+        KeyringMockMode::MockAvailable => {
+            let mock = KeyringMock::load()?;
+            let encoded_pem = mock.kv_store.get(&keyring_identity_name).with_context(|| {
+                format!("Mock Keyring: key {} not found", &keyring_identity_name)
+            })?;
             let pem = hex::decode(&encoded_pem)?;
             Ok(pem)
         }
-        KeyringProxyMode::ProxyReject => bail!("Proxy Keyring not available."),
+        KeyringMockMode::MockReject => bail!("Mock Keyring not available."),
     }
 }
 
@@ -114,26 +117,26 @@ pub fn load_pem_from_keyring(identity_name_suffix: &str) -> DfxResult<Vec<u8>> {
 pub fn write_pem_to_keyring(identity_name_suffix: &str, pem_content: &[u8]) -> DfxResult<()> {
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
     let encoded_pem = hex::encode(pem_content);
-    match KeyringProxyMode::current_mode() {
-        KeyringProxyMode::NoProxy => {
+    match KeyringMockMode::current_mode() {
+        KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
             entry.set_password(&encoded_pem)?;
             Ok(())
         }
-        KeyringProxyMode::ProxyAvailable => {
-            let mut proxy = KeyringProxy::load()?;
-            proxy.kv_store.insert(keyring_identity_name, encoded_pem);
-            proxy.save()?;
+        KeyringMockMode::MockAvailable => {
+            let mut mock = KeyringMock::load()?;
+            mock.kv_store.insert(keyring_identity_name, encoded_pem);
+            mock.save()?;
             Ok(())
         }
-        KeyringProxyMode::ProxyReject => bail!("Proxy Keyring not available."),
+        KeyringMockMode::MockReject => bail!("Mock Keyring not available."),
     }
 }
 
 /// Determines if keyring is available by trying to write a dummy entry.
 pub fn keyring_available(log: &Logger) -> bool {
-    match KeyringProxyMode::current_mode() {
-        KeyringProxyMode::NoProxy => {
+    match KeyringMockMode::current_mode() {
+        KeyringMockMode::NoMock => {
             trace!(log, "Checking for keyring availability.");
             // by using the temp identity prefix this will not clash with real identities since that would be an invalid identity name
             let dummy_entry_name = format!(
@@ -143,26 +146,26 @@ pub fn keyring_available(log: &Logger) -> bool {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &dummy_entry_name);
             entry.set_password("dummy entry").is_ok()
         }
-        KeyringProxyMode::ProxyReject => false,
-        KeyringProxyMode::ProxyAvailable => true,
+        KeyringMockMode::MockReject => false,
+        KeyringMockMode::MockAvailable => true,
     }
 }
 
 pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> DfxResult {
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
-    match KeyringProxyMode::current_mode() {
-        KeyringProxyMode::NoProxy => {
+    match KeyringMockMode::current_mode() {
+        KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
             if entry.get_password().is_ok() {
                 entry.delete_password()?;
             }
         }
-        KeyringProxyMode::ProxyAvailable => {
-            let mut proxy = KeyringProxy::load()?;
-            proxy.kv_store.remove(&keyring_identity_name);
-            proxy.save()?;
+        KeyringMockMode::MockAvailable => {
+            let mut mock = KeyringMock::load()?;
+            mock.kv_store.remove(&keyring_identity_name);
+            mock.save()?;
         }
-        KeyringProxyMode::ProxyReject => bail!("Proxy Keyring not available."),
+        KeyringMockMode::MockReject => bail!("Mock Keyring not available."),
     }
     Ok(())
 }

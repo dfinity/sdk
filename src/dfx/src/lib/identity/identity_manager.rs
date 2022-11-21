@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use super::identity_utils::validate_pem_file;
-use super::{keyring_proxy, WALLET_CONFIG_FILENAME};
+use super::{keyring_mock, WALLET_CONFIG_FILENAME};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 
@@ -318,7 +318,7 @@ impl IdentityManager {
 
         if let Ok(config) = self.get_identity_config_or_default(name) {
             if let Some(suffix) = config.keyring_identity_suffix {
-                keyring_proxy::delete_pem_from_keyring(&suffix)?;
+                keyring_mock::delete_pem_from_keyring(&suffix)?;
             }
         }
         remove_identity_file(&self.get_identity_json_path(name))?;
@@ -377,7 +377,7 @@ impl IdentityManager {
             pem_safekeeping::save_pem(log, self, to, &new_config, pem.as_ref())?;
             let config_path = self.get_identity_json_path(to);
             write_identity_configuration(log, &config_path, &new_config)?;
-            keyring_proxy::delete_pem_from_keyring(keyring_identity_suffix)?;
+            keyring_mock::delete_pem_from_keyring(keyring_identity_suffix)?;
         }
 
         if from == self.configuration.default {

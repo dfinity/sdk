@@ -4,7 +4,7 @@ load ../utils/_
 
 setup() {
     standard_setup
-    export DFX_CI_USE_PROXY_KEYRING=available
+    export DFX_CI_MOCK_KEYRING_LOCATION="$MOCK_KEYRING_LOCATION"
 }
 
 teardown() {
@@ -456,14 +456,6 @@ default'
     assert_match 'Imported identity: "alice".' "$stderr"
     assert_command bash -c "dfx identity export alice > alice.pem"
     assert_command diff identity.pem alice.pem
-    assert_eq ""
-}
-
-@test "identity: import --storage-mode plaintext" {
-    openssl ecparam -name secp256k1 -genkey -out identity.pem
-    assert_command dfx identity import alice identity.pem --storage-mode plaintext
-    assert_match 'Imported identity: "alice".' "$stderr"
-    assert_command diff identity.pem "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_eq ""
 }
 

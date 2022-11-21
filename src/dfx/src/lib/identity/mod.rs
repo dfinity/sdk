@@ -29,7 +29,7 @@ use std::path::{Path, PathBuf};
 
 pub mod identity_manager;
 pub mod identity_utils;
-pub mod keyring_proxy;
+pub mod keyring_mock;
 pub mod pem_safekeeping;
 use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
@@ -126,7 +126,7 @@ impl Identity {
             } else {
                 match mode {
                     IdentityStorageMode::Keyring => {
-                        if keyring_proxy::keyring_available(log) {
+                        if keyring_mock::keyring_available(log) {
                             Ok(IdentityConfiguration {
                                 keyring_identity_suffix: Some(String::from(name)),
                                 ..Default::default()

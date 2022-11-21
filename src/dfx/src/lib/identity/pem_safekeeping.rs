@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::lib::error::DfxResult;
-use crate::lib::identity::keyring_proxy;
+use crate::lib::identity::keyring_mock;
 
 use super::identity_manager::EncryptionConfiguration;
 use super::{IdentityConfiguration, IdentityManager};
@@ -29,7 +29,7 @@ pub fn load_pem(
             log,
             "Found keyring identity suffix - PEM file is stored in keyring."
         );
-        Ok((keyring_proxy::load_pem_from_keyring(identity_name)?, true))
+        Ok((keyring_mock::load_pem_from_keyring(identity_name)?, true))
     } else {
         let pem_path = manager.get_identity_pem_path(identity_name, identity_config);
         Ok(load_pem_from_file(&pem_path, Some(identity_config))?)
@@ -53,7 +53,7 @@ pub fn save_pem(
         bail!("Cannot save PEM content for an HSM.")
     } else if let Some(keyring_identity) = &identity_config.keyring_identity_suffix {
         debug!(log, "Saving keyring identity.");
-        keyring_proxy::write_pem_to_keyring(keyring_identity, pem_content)
+        keyring_mock::write_pem_to_keyring(keyring_identity, pem_content)
     } else {
         let path = manager.get_identity_pem_path(name, identity_config);
         write_pem_to_file(&path, Some(identity_config), pem_content)
