@@ -80,7 +80,7 @@ type StreamingStrategy = variant {
 
 type SetAssetPropertiesArguments = record {
   key: Key;
-  max_age: opt opt nat;
+  max_age: opt opt nat64;
   headers: opt opt vec HeaderField;
 };
 
@@ -151,6 +151,6 @@ service: {
 
   authorize: (principal) -> ();
 
-  get_asset_properties : (key: Key) -> (record { cache: opt nat; headers: opt vec HeaderField } ) query;
+  get_asset_properties : (key: Key) -> (record { max_age: opt nat64; headers: opt vec HeaderField } ) query;
   set_asset_properties: (SetAssetPropertiesArguments) -> ();
 }

@@ -743,34 +743,32 @@ CHERRIES" "$stdout"
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
     dfx deploy
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
 
-    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" get_asset_properties '("/somedir/upload-me.txt")'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
     assert_contains '(
   record {
-    1_661_489_734 = opt vec { record { "x-key"; "x-value" } };
-    3_563_873_892 = opt (2_000 : nat64);
+    headers = opt vec { record { "x-key"; "x-value" } };
+    max_age = opt (2_000 : nat64);
   },
 )'
 
-    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
     assert_contains '()'
-    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" get_asset_properties '("/somedir/upload-me.txt")'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
     assert_contains '(
   record {
-    1_661_489_734 = opt vec { record { "x-key"; "x-value" } };
-    3_563_873_892 = opt (5 : nat64);
+    headers = opt vec { record { "x-key"; "x-value" } };
+    max_age = opt (5 : nat64);
   },
 )'
 
-    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(opt(vec{record {"new-key"; "new-value"}}))})'
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(opt(vec{record {"new-key"; "new-value"}}))})'
     assert_contains '()'
-    assert_command dfx canister --network "http://localhost:$PORT" call "$ID" get_asset_properties '("/somedir/upload-me.txt")'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
     assert_contains '(
   record {
-    1_661_489_734 = opt vec { record { "new-key"; "new-value" } };
-    3_563_873_892 = opt (5 : nat64);
+    headers = opt vec { record { "new-key"; "new-value" } };
+    max_age = opt (5 : nat64);
   },
 )'
 
