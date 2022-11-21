@@ -744,6 +744,7 @@ CHERRIES" "$stdout"
 
     dfx deploy
 
+    # read properties
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
     assert_contains '(
   record {
@@ -752,6 +753,7 @@ CHERRIES" "$stdout"
   },
 )'
 
+    # set max_age property and read it back
     assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
     assert_contains '()'
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
@@ -762,6 +764,7 @@ CHERRIES" "$stdout"
   },
 )'
 
+    # set headers property and read it back
     assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(opt(vec{record {"new-key"; "new-value"}}))})'
     assert_contains '()'
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
@@ -772,4 +775,9 @@ CHERRIES" "$stdout"
   },
 )'
 
+    # set headers and max_age property to None and read it back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null)})'
+    assert_contains '()'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(record { headers = null; max_age = null })'
 }
