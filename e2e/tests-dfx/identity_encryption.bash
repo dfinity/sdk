@@ -4,7 +4,7 @@ load ../utils/_
 
 setup() {
     standard_setup
-    export DFX_CI_USE_PROXY_KEYRING=unavailable
+    export DFX_CI_USE_PROXY_KEYRING=""
 }
 
 teardown() {

@@ -6,7 +6,7 @@
 
 ### feat: use OS-native keyring for pem file storage
 
-If keyring integration is available, PEM files are now by default stored in the OS-provided keyring.
+If keyring integration is available, PEM files (except for the default identity) are now by default stored in the OS-provided keyring.
 If it is not available, it will fall back on the already existing password-encrypted PEM files.
 Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk.
 
