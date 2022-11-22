@@ -413,7 +413,7 @@ You can use the following optional flags with the `dfx wallet redeem-faucet-coup
 
 |Flag |Description|
 |-----|-----------|
-|`--faucet`|Alternative faucet address. If not set, this uses the DFINTITY faucet.|
+|`--faucet`|Alternative faucet address. If not set, this uses the DFINITY faucet.|
 |`-h`, `--help` |Displays usage information.|
 |`-V`, `--version` |Displays version information.|
 

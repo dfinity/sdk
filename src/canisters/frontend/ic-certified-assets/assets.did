@@ -6,7 +6,10 @@ type Time = int;
 type CreateAssetArguments = record {
   key: Key;
   content_type: text;
-  properties: AssetProperties;
+  max_age: opt nat64;
+  headers: opt vec HeaderField;
+  enable_aliasing: opt bool;
+  redirect: opt AssetRedirect;
 };
 
 // Add or change content for an asset, by content encoding
@@ -95,7 +98,6 @@ type AssetProperties = record {
 };
 
 service: {
-
   get: (record {
     key: Key;
     accept_encodings: vec text;

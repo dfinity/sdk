@@ -68,18 +68,14 @@ pub struct CreateAssetArguments {
     pub key: String,
     /// The MIME type of this asset
     pub content_type: String,
-    /// Properties
-    pub properties: AssetProperties,
-}
-
-#[derive(CandidType, Debug)]
-pub struct AssetProperties {
     /// The cache HTTP header Time To Live parameter
     pub max_age: Option<u64>,
     /// The HTTP headers
     pub headers: Option<HeadersConfig>,
     /// The HTTP redirect configuration
     pub redirect: Option<RedirectConfig>,
+    /// Aliasing enabled or not
+    pub enable_aliasing: Option<bool>,
 }
 
 /// Set the data for a particular content encoding for the given asset.

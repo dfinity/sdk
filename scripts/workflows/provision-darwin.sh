@@ -32,6 +32,9 @@ fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
      brew install mitmproxy
 fi
+if [ "$E2E_TEST" = "tests-dfx/pull.bash" ]; then
+     cargo install ic-wasm
+fi
 
 # Set environment variables.
 BATS_SUPPORT="/usr/local/lib/bats-support"

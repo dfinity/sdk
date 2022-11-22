@@ -20,6 +20,7 @@ pub struct AssetConfig {
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
     pub(crate) redirect: Option<RedirectConfig>,
+    pub(crate) enable_aliasing: Option<bool>,
 }
 
 pub(crate) type HeadersConfig = HashMap<String, String>;
@@ -68,7 +69,9 @@ pub struct AssetConfigRule {
     #[serde(skip_serializing_if = "Option::is_none")]
     ignore: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    redirect: Option<RedirectConfig>, // TODO: consider this to be Vec<Option<RedirectConfig>>
+    redirect: Option<RedirectConfig>, // TODO: consider this to be Option<Vec<RedirectConfig>>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enable_aliasing: Option<bool>,
     #[serde(skip_serializing)]
     used: bool,
 }
@@ -301,6 +304,10 @@ impl AssetConfig {
         if other.ignore.is_some() {
             self.ignore = other.ignore;
         }
+
+        if other.enable_aliasing.is_some() {
+            self.enable_aliasing = other.enable_aliasing;
+        }
         self
     }
 }
@@ -389,6 +396,7 @@ mod rule_utils {
         headers: Maybe<HeadersConfig>,
         ignore: Option<bool>,
         redirect: Option<RedirectConfig>,
+        enable_aliasing: Option<bool>,
     }
 
     impl AssetConfigRule {
@@ -399,6 +407,7 @@ mod rule_utils {
                 headers,
                 ignore,
                 redirect,
+                enable_aliasing,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> anyhow::Result<Self> {
@@ -423,6 +432,7 @@ mod rule_utils {
                 ignore,
                 redirect,
                 used: false,
+                enable_aliasing,
             })
         }
     }
@@ -590,6 +600,7 @@ mod with_tempdir {
                     cache: None,
                     headers: None,
                     ignore: None,
+                    enable_aliasing: None,
                     redirect: Some(RedirectConfig {
                         from: Some(RedirectUrl {
                             host: Some("raw.ic0.app".to_string()),
