@@ -434,13 +434,15 @@ impl CanisterPool {
                         )
                     })?;
                 } else {
-                    bail!(
-                            ".did file for canister '{0}' does not exist. 'dfx build {0}' would likely fix this problem.",
-                            canister.get_name(),
-                        );
+                    warn!(
+                        log,
+                        ".did file for canister '{0}' does not exist.",
+                        canister.get_name(),
+                    );
                 }
             } else {
-                bail!(
+                warn!(
+                    log,
                     "Canister '{}' has no .did file configured.",
                     canister.get_name()
                 );
