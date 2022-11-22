@@ -17,7 +17,7 @@ The flag `--disable-encryption` is deprecated in favour of `--storage-mode plain
 
 ### feat: write canister metadata sections for dfx pull
 
-## Dependenies
+## Dependencies
 
 Updated candid to 0.8.4
 - Bug fix in TS bindings
