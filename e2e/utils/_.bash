@@ -38,6 +38,7 @@ standard_setup() {
     export DFX_CACHE_ROOT="$cache_root"
     export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
+    export MOCK_KEYRING_LOCATION="$HOME/mock_keyring.json"
 
     if [ "$(uname)" == "Darwin" ]; then
         export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/Library/Application Support/org.dfinity.dfx/network/local"

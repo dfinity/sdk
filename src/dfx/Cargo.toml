@@ -57,6 +57,7 @@ ic-wasm = "0.2.1"
 indicatif = "0.16.0"
 itertools = "0.10.3"
 k256 = { version = "0.11.4", features = ["pem"] }
+keyring = "1.2.0"
 lazy_static = "1.4.0"
 mime = "0.3.16"
 mime_guess = "2.0.4"
