@@ -44,6 +44,7 @@ pub async fn deploy_canisters(
     let network = env.get_network_descriptor();
 
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
+    println!("Canisters to load: {:?}", canisters_to_load);
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
@@ -69,6 +70,7 @@ pub async fn deploy_canisters(
             })
             .collect()
     };
+    println!("Canisters to deploy: {:?}", canisters_to_deploy);
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
@@ -203,6 +205,7 @@ async fn build_canisters(
 
     let build_config =
         BuildConfig::from_config(config)?.with_canisters_to_build(canisters_to_build.into());
+    println!("Build config: {:#?}", build_config);
     canister_pool.build_or_fail(log, &build_config).await?;
     Ok(canister_pool)
 }

@@ -280,7 +280,17 @@ impl CanisterPool {
             None if pool_helper.generate_cid => Some(Canister::generate_random_canister_id()?),
             _ => None,
         };
+        if canister_id.is_none() {
+            bail!(
+                "Canister {} has no CID yet, can't load into pool.",
+                canister_name
+            );
+        }
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
+        println!(
+            "Pool insert: canister {} has info {:#?}",
+            canister_name, info
+        );
         let builder = pool_helper.builder_pool.get(&info);
         pool_helper
             .canisters_map
@@ -400,7 +410,7 @@ impl CanisterPool {
     fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because remote canisters don't get built (and the did file not output in the right place) the .did files have to be copied over manually.
-        for canister in self.canisters.iter().filter(|c| c.info.is_remote()) {
+        for canister in self.canisters.iter() {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
@@ -412,10 +422,17 @@ impl CanisterPool {
                         "{}.did",
                         canister.info.get_canister_id()?.to_text()
                     ));
+                    println!(
+                        "Copying .did for canister {} from {} to {}.",
+                        canister.info.get_name(),
+                        from.to_string_lossy(),
+                        to.to_string_lossy()
+                    );
                     if std::fs::copy(&from, &to).is_err() {
                         warn!(
                                     log,
-                                    "Failed to copy canister candid from {} to {}. This may produce errors during the build.",
+                                    "Failed to copy canister '{}' candid from {} to {}. This may produce errors during the build.",
+                                    canister.get_name(),
                                     from.to_string_lossy(),
                                     to.to_string_lossy()
                                 );
