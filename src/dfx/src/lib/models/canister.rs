@@ -280,12 +280,6 @@ impl CanisterPool {
             None if pool_helper.generate_cid => Some(Canister::generate_random_canister_id()?),
             _ => None,
         };
-        if canister_id.is_none() {
-            bail!(
-                "Canister {} has no CID yet, can't load into pool.",
-                canister_name
-            );
-        }
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
         println!(
             "Pool insert: canister {} has info {:#?}",
@@ -409,8 +403,14 @@ impl CanisterPool {
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
-        // Because remote canisters don't get built (and the did file not output in the right place) the .did files have to be copied over manually.
-        for canister in self.canisters.iter() {
+        // Because some canisters don't get built (and the did file not output in the right place) these .did files have to be copied over manually.
+        for canister in self.canisters.iter().filter(|c| {
+            build_config
+                .canisters_to_build
+                .as_ref()
+                .map(|cans| !cans.iter().contains(&c.get_name().to_string()))
+                .unwrap_or(false)
+        }) {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
@@ -422,28 +422,49 @@ impl CanisterPool {
                         "{}.did",
                         canister.info.get_canister_id()?.to_text()
                     ));
-                    println!(
+                    trace!(
+                        log,
                         "Copying .did for canister {} from {} to {}.",
                         canister.info.get_name(),
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
-                    if std::fs::copy(&from, &to).is_err() {
-                        warn!(
-                                    log,
+                    std::fs::copy(&from, &to).with_context( || format!(
                                     "Failed to copy canister '{}' candid from {} to {}. This may produce errors during the build.",
                                     canister.get_name(),
                                     from.to_string_lossy(),
                                     to.to_string_lossy()
-                                );
-                    }
+                                ))?;
                 } else {
-                    warn!(log, ".did file for canister '{}' does not exist at {}. This may result in errors during the build.", canister.get_name(), from.to_string_lossy());
+                    bail!(
+                        ".did file for canister '{}' does not exist at {}.",
+                        canister.get_name(),
+                        from.to_string_lossy()
+                    );
                 }
             } else {
-                warn!(log, "Failed to find a configured .did file for canister '{}'. Not specifying that field may result in errors during the build.", canister.get_name());
+                bail!(
+                    "Canister '{}' has no .did file configured.",
+                    canister.get_name()
+                );
             }
         }
+
+        // if let Some(canisters_to_build) = build_config.canisters_to_build.as_ref() {
+        //     for canister in self
+        //         .canisters
+        //         .iter()
+        //         .filter(|c| !canisters_to_build.contains(&c.get_name().to_string()))
+        //     {
+        //         let expected_idl_file = build_config.idl_root.join(format!(
+        //             "{}.did",
+        //             canister.info.get_canister_id()?.to_text()
+        //         ));
+        //         if !expected_idl_file.exists() {
+        //             bail!("Cannot find .did file for canister '{0}'. Most likely solution: dfx build {0}", canister.get_name());
+        //         }
+        //     }
+        // }
 
         // cargo audit
         if self
