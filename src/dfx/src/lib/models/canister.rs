@@ -281,10 +281,6 @@ impl CanisterPool {
             _ => None,
         };
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
-        println!(
-            "Pool insert: canister {} has info {:#?}",
-            canister_name, info
-        );
         let builder = pool_helper.builder_pool.get(&info);
         pool_helper
             .canisters_map
@@ -429,18 +425,19 @@ impl CanisterPool {
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
-                    std::fs::copy(&from, &to).with_context( || format!(
-                                    "Failed to copy canister '{}' candid from {} to {}. This may produce errors during the build.",
-                                    canister.get_name(),
-                                    from.to_string_lossy(),
-                                    to.to_string_lossy()
-                                ))?;
+                    std::fs::copy(&from, &to).with_context(|| {
+                        format!(
+                            "Failed to copy canister '{}' candid from {} to {}.",
+                            canister.get_name(),
+                            from.to_string_lossy(),
+                            to.to_string_lossy()
+                        )
+                    })?;
                 } else {
                     bail!(
-                        ".did file for canister '{}' does not exist at {}.",
-                        canister.get_name(),
-                        from.to_string_lossy()
-                    );
+                            ".did file for canister '{0}' does not exist. 'dfx build {0}' would likely fix this problem.",
+                            canister.get_name(),
+                        );
                 }
             } else {
                 bail!(
@@ -449,22 +446,6 @@ impl CanisterPool {
                 );
             }
         }
-
-        // if let Some(canisters_to_build) = build_config.canisters_to_build.as_ref() {
-        //     for canister in self
-        //         .canisters
-        //         .iter()
-        //         .filter(|c| !canisters_to_build.contains(&c.get_name().to_string()))
-        //     {
-        //         let expected_idl_file = build_config.idl_root.join(format!(
-        //             "{}.did",
-        //             canister.info.get_canister_id()?.to_text()
-        //         ));
-        //         if !expected_idl_file.exists() {
-        //             bail!("Cannot find .did file for canister '{0}'. Most likely solution: dfx build {0}", canister.get_name());
-        //         }
-        //     }
-        // }
 
         // cargo audit
         if self
