@@ -399,8 +399,14 @@ impl CanisterPool {
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
-        // Because remote canisters don't get built (and the did file not output in the right place) the .did files have to be copied over manually.
-        for canister in self.canisters.iter().filter(|c| c.info.is_remote()) {
+        // Because some canisters don't get built these .did files have to be copied over manually.
+        for canister in self.canisters.iter().filter(|c| {
+            build_config
+                .canisters_to_build
+                .as_ref()
+                .map(|cans| !cans.iter().contains(&c.get_name().to_string()))
+                .unwrap_or(false)
+        }) {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
@@ -412,19 +418,34 @@ impl CanisterPool {
                         "{}.did",
                         canister.info.get_canister_id()?.to_text()
                     ));
-                    if std::fs::copy(&from, &to).is_err() {
-                        warn!(
-                                    log,
-                                    "Failed to copy canister candid from {} to {}. This may produce errors during the build.",
-                                    from.to_string_lossy(),
-                                    to.to_string_lossy()
-                                );
-                    }
+                    trace!(
+                        log,
+                        "Copying .did for canister {} from {} to {}.",
+                        canister.info.get_name(),
+                        from.to_string_lossy(),
+                        to.to_string_lossy()
+                    );
+                    std::fs::copy(&from, &to).with_context(|| {
+                        format!(
+                            "Failed to copy canister '{}' candid from {} to {}.",
+                            canister.get_name(),
+                            from.to_string_lossy(),
+                            to.to_string_lossy()
+                        )
+                    })?;
                 } else {
-                    warn!(log, ".did file for canister '{}' does not exist at {}. This may result in errors during the build.", canister.get_name(), from.to_string_lossy());
+                    warn!(
+                        log,
+                        ".did file for canister '{}' does not exist.",
+                        canister.get_name(),
+                    );
                 }
             } else {
-                warn!(log, "Failed to find a configured .did file for canister '{}'. Not specifying that field may result in errors during the build.", canister.get_name());
+                warn!(
+                    log,
+                    "Canister '{}' has no .did file configured.",
+                    canister.get_name()
+                );
             }
         }
 

@@ -356,7 +356,7 @@ pub fn environment_variables<'a>(
     vars
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
