@@ -10,7 +10,7 @@ use crate::{commands::wallet::get_wallet, lib::waiter::waiter_with_exponential_b
 use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, Decode, Principal};
 use clap::Parser;
-use slog::info;
+use slog::{info, warn};
 
 const DEFAULT_FAUCET_PRINCIPAL: &str = "fg7gi-vyaaa-aaaal-qadca-cai";
 
@@ -26,6 +26,8 @@ pub struct RedeemFaucetCouponOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxResult {
+    let log = env.get_logger();
+
     let faucet_principal = if let Some(alternative_faucet) = opts.faucet {
         let canister_id_store = CanisterIdStore::for_env(env)?;
         Principal::from_text(&alternative_faucet)
@@ -37,9 +39,10 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     if fetch_root_key_if_needed(env).await.is_err() {
-        bail!("Failed to connect to the local replica. Did you forget to use `--network ic`?");
+        bail!("Failed to connect to the local replica. Did you forget to use '--network ic'?");
+    } else if !env.get_network_descriptor().is_ic {
+        warn!(log, "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?");
     }
-    let log = env.get_logger();
 
     let wallet = get_wallet(env).await;
     match wallet {
