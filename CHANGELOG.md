@@ -17,6 +17,11 @@ The flag `--disable-encryption` is deprecated in favour of `--storage-mode plain
 
 ### feat: write canister metadata sections for dfx pull
 
+### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
+
+The Motoko compiler expects all imported canisters' .did files to be in one folder when it compiles a canister.
+`dfx` failed to organize the .did files correctly when running `dfx deploy <single Motoko canister>` in combintaion with the `--mode reinstall` flag.
+
 ## Dependencies
 
 Updated candid to 0.8.4
