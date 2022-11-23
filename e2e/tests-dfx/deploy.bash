@@ -72,3 +72,9 @@ teardown() {
     assert_command dfx canister call dependency greet
     assert_match "Hello, dfx!"
 }
+
+@test "reinstalling a single canister with dependencies works" {
+    dfx_start
+    assert_command dfx deploy hello_frontend
+    assert_command_fail dfx canister call hello_backend greet '()'
+}
