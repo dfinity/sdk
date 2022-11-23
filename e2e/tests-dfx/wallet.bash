@@ -217,7 +217,7 @@ teardown() {
     unset DFX_DISABLE_AUTO_WALLET
 
     assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
-    assert_eq "Redeemed coupon code another-valid-coupon for 10.000 TC (trillion cycles)."
+    assert_match "Redeemed coupon code another-valid-coupon for 10.000 TC"
 
     assert_command dfx wallet balance
     # checking only balance before the dot, rest may fluctuate
