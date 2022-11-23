@@ -57,6 +57,7 @@ pub struct NewOpts {
     #[clap(long)]
     frontend: bool,
 
+    /// Skip installing the frontend code example.
     #[clap(long, conflicts_with = "frontend")]
     no_frontend: bool,
 
