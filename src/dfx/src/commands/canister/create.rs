@@ -104,7 +104,7 @@ pub async fn exec(
                             } else {
                                 let identity_name = controller;
                                 IdentityManager::new(env)?
-                                    .instantiate_identity_from_name(identity_name)
+                                    .instantiate_identity_from_name(identity_name, env.get_logger())
                                     .and_then(|identity| {
                                         identity.sender().map_err(|err| anyhow!(err))
                                     })
