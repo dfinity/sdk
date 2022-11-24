@@ -22,6 +22,12 @@ The flag `--disable-encryption` is deprecated in favour of `--storage-mode plain
 The Motoko compiler expects all imported canisters' .did files to be in one folder when it compiles a canister.
 `dfx` failed to organize the .did files correctly when running `dfx deploy <single Motoko canister>` in combintaion with the `--mode reinstall` flag.
 
+### fix: give more cycles margin when deleting canisters
+
+There have been a few reports of people not being able to delete canisters.
+The error happens if the temporary wallet tries to transfer out too many cycles.
+The number of cycles left in the canister is bumped a little bit so that people can again reliably delete their canisters.
+
 ## Dependencies
 
 Updated candid to 0.8.4
