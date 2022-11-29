@@ -87,13 +87,13 @@ pub struct Config {
 impl Config {
     pub fn new(
         nodes: Vec<SocketAddr>,
-        uds_path: PathBuf,
+        uds_path: String,
         log_level: BitcoinAdapterLogLevel,
     ) -> Config {
         Config {
             network: String::from("regtest"),
             nodes,
-            incoming_source: IncomingSource::Path(uds_path),
+            incoming_source: IncomingSource::Path(uds_path.into()),
             logger: LoggerConfig { level: log_level },
         }
     }

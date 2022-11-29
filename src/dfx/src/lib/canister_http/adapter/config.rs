@@ -69,9 +69,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(uds_path: PathBuf, log_level: HttpAdapterLogLevel) -> Config {
+    pub fn new(uds_path: String, log_level: HttpAdapterLogLevel) -> Config {
         Config {
-            incoming_source: IncomingSource::Path(uds_path),
+            incoming_source: IncomingSource::Path(uds_path.into()),
             logger: LoggerConfig { level: log_level },
         }
     }

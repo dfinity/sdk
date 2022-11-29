@@ -21,7 +21,6 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use garcon::{Delay, Waiter};
-use os_str_bytes::{OsStrBytes, OsStringBytes};
 use slog::{info, warn, Logger};
 use std::fs;
 use std::fs::create_dir_all;
@@ -515,8 +514,9 @@ pub fn configure_btc_adapter_if_enabled(
     Ok(Some(config))
 }
 
+/// This is a Linux path even on Windows; do not manipulate via std::path.
 #[context("Failed to create persistent socket path for {} at {}.", prefix, uds_holder_path.to_string_lossy())]
-fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<PathBuf> {
+fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<String> {
     let pid = sysinfo::get_current_pid()
         .map_err(|s| anyhow!("Unable to obtain pid of current process: {}", s))?;
     let timestamp_seconds = SystemTime::now()
@@ -527,8 +527,10 @@ fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> Df
     // Unix domain socket names can only be so long.
     // An attempt to use a path under .dfx/ resulted in this error:
     //    path must be shorter than libc::sockaddr_un.sun_path
-    let uds_path = std::env::temp_dir().join(format!("{}.{}.{}", prefix, pid, timestamp_seconds));
-    std::fs::write(uds_holder_path, &uds_path.to_raw_bytes()).with_context(|| {
+
+    // This is /tmp/ even under Windows, as a Unix socket must be bound under the Linux FS to work on WSL.
+    let uds_path = format!("/tmp/{}.{}.{}", prefix, pid, timestamp_seconds);
+    std::fs::write(uds_holder_path, &uds_path).with_context(|| {
         format!(
             "unable to write unix domain socket path to {}",
             uds_holder_path.to_string_lossy()
@@ -538,9 +540,9 @@ fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> Df
 }
 
 #[context("Failed to get persistent socket path for {} at {}.", prefix, uds_holder_path.to_string_lossy())]
-fn get_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<PathBuf> {
+fn get_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<String> {
     if let Ok(uds_path) = std::fs::read(uds_holder_path) {
-        Ok(PathBuf::assert_from_raw_vec(uds_path))
+        Ok(String::from_utf8(uds_path)?)
     } else {
         create_new_persistent_socket_path(uds_holder_path, prefix)
     }
