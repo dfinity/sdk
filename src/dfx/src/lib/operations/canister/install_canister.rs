@@ -265,8 +265,7 @@ fn check_stable_compatibility(
         )
     })?;
     let cache = env.get_cache();
-    let output = cache
-        .get_binary_command("moc")?
+    let output = Command::new(cache.get_binary_command_path("moc")?)
         .arg("--stable-compatible")
         .arg(&deployed_stable_path)
         .arg(&stable_path)

@@ -11,6 +11,7 @@ use crate::actors::canister_http_adapter::signals::{
     CanisterHttpAdapterReady, CanisterHttpAdapterReadySubscribe,
 };
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
+use crate::util::{wsl_cmd, wsl_path};
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -291,23 +292,23 @@ fn replica_start_thread(
         let ic_starter_path = ic_starter_path.as_os_str();
 
         // form the ic-start command here similar to replica command
-        let mut cmd = std::process::Command::new(ic_starter_path);
-        cmd.args(&[
-            "--replica-path",
-            replica_path.to_str().unwrap_or_default(),
-            "--state-dir",
-            config.state_manager.state_root.to_str().unwrap_or_default(),
-            "--create-funds-whitelist",
-            "*",
-            "--consensus-pool-backend",
-            "rocksdb",
-            "--subnet-type",
-            &config.subnet_type.as_ic_starter_string(),
-            "--ecdsa-keyid",
-            "Secp256k1:dfx_test_key",
-            "--log-level",
-            &config.log_level.as_ic_starter_string(),
-        ]);
+        let mut cmd = wsl_cmd(ic_starter_path);
+        cmd.arg("--replica-path")
+            .arg(wsl_path(replica_path).unwrap())
+            .arg("--state-dir")
+            .arg(wsl_path(&config.state_manager.state_root).unwrap())
+            .args([
+                "--create-funds-whitelist",
+                "*",
+                "--consensus-pool-backend",
+                "rocksdb",
+                "--subnet-type",
+                &config.subnet_type.as_ic_starter_string(),
+                "--ecdsa-keyid",
+                "Secp256k1:dfx_test_key",
+                "--log-level",
+                &config.log_level.as_ic_starter_string(),
+            ]);
         if let Some(port) = port {
             cmd.args(&["--http-port", &port.to_string()]);
         }
@@ -318,10 +319,8 @@ fn replica_start_thread(
         if config.btc_adapter.enabled {
             cmd.args(&["--subnet-features", "bitcoin_regtest"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
-                cmd.args(&[
-                    "--bitcoin-testnet-uds-path",
-                    socket_path.to_str().unwrap_or_default(),
-                ]);
+                cmd.arg("--bitcoin-testnet-uds-path")
+                    .arg(wsl_path(socket_path).unwrap());
             }
 
             // Show debug logs from the bitcoin canister.
@@ -331,18 +330,14 @@ fn replica_start_thread(
         if config.canister_http_adapter.enabled {
             cmd.args(&["--subnet-features", "http_requests"]);
             if let Some(socket_path) = config.canister_http_adapter.socket_path {
-                cmd.args(&[
-                    "--canister-http-uds-path",
-                    socket_path.to_str().unwrap_or_default(),
-                ]);
+                cmd.arg("--canister-http-uds-path")
+                    .arg(wsl_path(socket_path).unwrap());
             }
         }
 
         if let Some(write_port_to) = &write_port_to {
-            cmd.args(&[
-                "--http-port-file",
-                &write_port_to.to_string_lossy().to_string(),
-            ]);
+            cmd.arg("--http-port-file")
+                .arg(wsl_path(write_port_to).unwrap());
         }
         cmd.args(&[
             "--initial-notary-delay-millis",

@@ -12,7 +12,7 @@ use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use std::path::PathBuf;
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 
 const CANISTER_ARG: &str = "canister";
 
@@ -133,9 +133,7 @@ fn run_ide(
     main_path: PathBuf,
     package_arguments: PackageArguments,
 ) -> DfxResult {
-    let output = env
-        .get_cache()
-        .get_binary_command("mo-ide")?
+    let output = Command::new(env.get_cache().get_binary_command_path("mo-ide")?)
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         // Point at the right canister

@@ -26,7 +26,6 @@ pub trait Cache {
     fn force_install(&self) -> DfxResult;
     fn delete(&self) -> DfxResult;
     fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf>;
-    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command>;
 }
 pub struct DiskBasedCache {
     version: Version,
@@ -63,10 +62,6 @@ impl Cache for DiskBasedCache {
 
     fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf> {
         get_binary_path_from_version(&self.version_str(), binary_name)
-    }
-
-    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command> {
-        binary_command_from_version(&self.version_str(), binary_name)
     }
 }
 
@@ -287,14 +282,6 @@ pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> DfxResu
     }
 
     Ok(get_bin_cache(version)?.join(binary_name))
-}
-
-#[context("Failed to get binary '{}' for version '{}'.", name, version)]
-pub fn binary_command_from_version(version: &str, name: &str) -> DfxResult<std::process::Command> {
-    let path = get_binary_path_from_version(version, name)?;
-    let cmd = std::process::Command::new(path);
-
-    Ok(cmd)
 }
 
 #[context("Failed to list cache versions.")]

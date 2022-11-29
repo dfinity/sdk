@@ -16,6 +16,9 @@ use crate::lib::waiter::waiter_with_timeout;
 use crate::util::blob_from_arguments;
 use crate::util::expiry_duration;
 use crate::util::network::get_replica_urls;
+use crate::util::wsl_cmd;
+use crate::util::wsl_path;
+use crate::util::wsl_url;
 
 use anyhow::{anyhow, bail, Context};
 use flate2::bufread::GzDecoder;
@@ -501,11 +504,11 @@ pub struct IcNnsInitOpts {
 ///   - The provider_url is what the agent connects to, and forwards to the replica.
 #[context("Failed to install NNS components.")]
 pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyhow::Result<()> {
-    let mut cmd = std::process::Command::new(ic_nns_init_path);
+    let mut cmd = wsl_cmd(ic_nns_init_path);
     cmd.arg("--url");
-    cmd.arg(&opts.nns_url);
+    cmd.arg(wsl_url(&opts.nns_url));
     cmd.arg("--wasm-dir");
-    cmd.arg(&opts.wasm_dir);
+    cmd.arg(wsl_path(&opts.wasm_dir)?);
     opts.test_accounts.iter().for_each(|account| {
         cmd.arg("--initialize-ledger-with-test-accounts");
         cmd.arg(account);
@@ -540,9 +543,9 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
 /// the only neuron and has absolute majority.
 #[context("Failed to set an initial exchange rate between ICP and cycles.  It may not be possible to create canisters or purchase cycles.")]
 pub fn set_xdr_rate(rate: u64, nns_url: &Url, ic_admin: &PathBuf) -> anyhow::Result<()> {
-    std::process::Command::new(ic_admin)
+    wsl_cmd(ic_admin)
         .arg("--nns-url")
-        .arg(nns_url.as_str())
+        .arg(wsl_url(nns_url.as_str()))
         .arg("propose-xdr-icp-conversion-rate")
         .arg("--test-neuron-proposer")
         .arg("--summary")
@@ -568,9 +571,9 @@ pub fn set_cmc_authorized_subnets(
     subnet: &str,
     ic_admin: &PathBuf,
 ) -> anyhow::Result<()> {
-    std::process::Command::new(ic_admin)
+    wsl_cmd(ic_admin)
         .arg("--nns-url")
-        .arg(nns_url.as_str())
+        .arg(wsl_url(nns_url.as_str()))
         .arg("propose-to-set-authorized-subnetworks")
         .arg("--test-neuron-proposer")
         .arg("--proposal-title")

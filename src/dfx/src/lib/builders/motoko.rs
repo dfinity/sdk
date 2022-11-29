@@ -19,7 +19,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::process::Output;
+use std::process::{Command, Output};
 use std::sync::Arc;
 
 pub struct MotokoBuilder {
@@ -61,7 +61,7 @@ impl CanisterBuilder for MotokoBuilder {
 
             result.insert(MotokoImport::Relative(file.to_path_buf()));
 
-            let mut command = cache.get_binary_command("moc")?;
+            let mut command = Command::new(cache.get_binary_command_path("moc")?);
             let command = command.arg("--print-deps").arg(&file);
             let output = command
                 .output()
@@ -263,7 +263,7 @@ impl MotokoParams<'_> {
 /// Compile a motoko file.
 #[context("Failed to compile Motoko.")]
 fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
-    let mut cmd = cache.get_binary_command("moc")?;
+    let mut cmd = Command::new(cache.get_binary_command_path("moc")?);
     params.to_args(&mut cmd);
     run_command(logger, &mut cmd, params.suppress_warning).context("Failed to run 'moc'.")?;
     Ok(())

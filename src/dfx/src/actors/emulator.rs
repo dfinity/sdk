@@ -5,6 +5,7 @@ use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
 
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
+use crate::util::{wsl_cmd, wsl_path};
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -206,12 +207,10 @@ fn emulator_start_thread(
         let ic_ref_path = config.ic_ref_path.as_os_str();
 
         // form the ic-start command here similar to emulator command
-        let mut cmd = std::process::Command::new(ic_ref_path);
-        cmd.args(&["--pick-port"]);
-        cmd.args(&[
-            "--write-port-to",
-            &config.write_port_to.to_string_lossy().to_string(),
-        ]);
+        let mut cmd = wsl_cmd(ic_ref_path);
+        cmd.arg("--pick-port")
+            .arg("--write-port-to")
+            .arg(wsl_path(&config.write_port_to).unwrap());
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 

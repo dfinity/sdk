@@ -4,6 +4,7 @@ use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::util::{wsl_cmd, wsl_path};
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -186,8 +187,8 @@ fn btc_adapter_start_thread(
         waiter.start();
 
         let btc_adapter_path = config.btc_adapter_path.as_os_str();
-        let mut cmd = std::process::Command::new(btc_adapter_path);
-        cmd.arg(&config.config_path.to_string_lossy().to_string());
+        let mut cmd = wsl_cmd(btc_adapter_path);
+        cmd.arg(wsl_path(&config.config_path).unwrap());
 
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());

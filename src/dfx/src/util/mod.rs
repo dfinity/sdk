@@ -1,6 +1,8 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 
+#[cfg(windows)]
+use anyhow::bail;
 use anyhow::Context;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
@@ -16,10 +18,19 @@ use rust_decimal::Decimal;
 use schemars::JsonSchema;
 use serde::Serialize;
 use std::convert::TryFrom;
+use std::ffi::OsString;
 use std::fmt::Display;
 use std::net::{IpAddr, SocketAddr};
+#[cfg(windows)]
+use std::path::{Component, Prefix};
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::str::FromStr;
 use std::time::Duration;
+#[cfg(windows)]
+use sysinfo::{System, SystemExt};
+#[cfg(windows)]
+use url::Url;
 
 pub mod assets;
 pub mod clap;
@@ -354,6 +365,93 @@ pub fn project_dirs() -> DfxResult<&'static ProjectDirs> {
         static ref DIRS: Option<ProjectDirs> = ProjectDirs::from("org", "dfinity", "dfx");
     }
     DIRS.as_ref().context("Failed to resolve 'HOME' env var.")
+}
+
+/// Wraps a Linux-only command in a WSL invocation, if on Windows.
+///
+/// Make sure to wrap any path arguments in [`wsl_path`] and URL arguments in [`wsl_url`].
+pub fn wsl_cmd(path: impl AsRef<Path>) -> Command {
+    #[cfg(windows)]
+    {
+        let mut cmd = Command::new("wsl");
+        cmd.arg(path.as_ref());
+        cmd
+    }
+    #[cfg(not(windows))]
+    {
+        Command::new(path.as_ref())
+    }
+}
+
+/// Turns a Windows path like C:\Foo into a WSL path like /mnt/c/Foo, if on Windows.
+pub fn wsl_path(path: impl AsRef<Path> + Into<PathBuf>) -> DfxResult<OsString> {
+    #[cfg(windows)]
+    {
+        let path = path.as_ref();
+        let mut res = OsString::new();
+        let mut components = path.components().peekable();
+        while let Some(component) = components.next() {
+            match component {
+                Component::Prefix(prefix) => match prefix.kind() {
+                    Prefix::Verbatim(_) => {}
+                    Prefix::VerbatimDisk(drive) | Prefix::Disk(drive) => {
+                        res.push("/mnt/");
+                        res.push((drive as char).to_ascii_lowercase().to_string());
+                    }
+                    Prefix::UNC(_, _) | Prefix::VerbatimUNC(_, _) | Prefix::DeviceNS(_) => {
+                        bail!("Cannot convert {} to a WSL path", path.display())
+                    }
+                },
+                Component::CurDir => res.push("."),
+                Component::ParentDir => res.push(".."),
+                Component::RootDir => {
+                    res.push("/");
+                    continue;
+                }
+                Component::Normal(filename) => res.push(filename.to_str().with_context(|| {
+                    format!(
+                        "Cannot convert {} to a WSL path (broken unicode)",
+                        path.display()
+                    )
+                })?),
+            }
+            if components.peek().is_some() {
+                res.push("/");
+            }
+        }
+        Ok(res)
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(path.into().into_os_string())
+    }
+}
+
+pub fn wsl_url(url: &str) -> String {
+    #[cfg(windows)]
+    {
+        let mut parsed_url = if let Ok(url) = Url::from_str(url) {
+            url
+        } else {
+            return url.into();
+        };
+        let domain = parsed_url.host_str().expect("url has no host");
+        if domain == "localhost" || domain == "127.0.0.1" {
+            let hostname = System::new()
+                .host_name()
+                .expect("Could not find WSL hostname");
+            parsed_url
+                .set_host(Some(&format!("{hostname}.local")))
+                .unwrap();
+            parsed_url.into()
+        } else {
+            url.into()
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        url.into()
+    }
 }
 
 #[cfg(test)]
