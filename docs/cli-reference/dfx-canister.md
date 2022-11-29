@@ -652,12 +652,13 @@ You can use the following optional flags with the `dfx canister sign` command.
 
 You can specify the following options for the `dfx canister sign` command.
 
-| Option                       | Description  |
-|------------------------------|--------------|
-| `--expire-after <seconds>`   | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m).  |
-| `--file <output>`            | Specifies the output file name. The default is `message.json`.  |
-| `--random <random>`          | Specifies the configuration for generating random arguments.  |
-| `--type <type>`              | Specifies the data type for the argument when making a call using an argument. Possible values are `idl` and `raw`.  |
+| Option                     | Description                                                                                                                                      |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--argument-file`          | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                      |
+| `--expire-after <seconds>` | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m). |
+| `--file <output>`          | Specifies the output file name. The default is `message.json`.                                                                                   |
+| `--random <random>`        | Specifies the configuration for generating random arguments.                                                                                     |
+| `--type <type>`            | Specifies the data type for the argument when making a call using an argument. Possible values are `idl` and `raw`.                              |
 
 ### Arguments
 

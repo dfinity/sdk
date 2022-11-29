@@ -49,3 +49,29 @@ Signed request_status append to update message in [message-inc.json]"
     assert_command dfx canister sign --query rwlgt-iiaaa-aaaaa-aaaaa-cai read --network ic
     assert_match "Query message generated at \[message.json\]"
 }
+
+@test "call subcommand accepts argument from a file" {
+    install_asset greet
+    dfx_start
+    dfx_deploy
+    TMP_NAME_FILE="$(mktemp)"
+    printf '("Names can be very long")' > "$TMP_NAME_FILE"
+
+    assert_command dfx canister sign --argument-file "$TMP_NAME_FILE" --query hello_backend
+    assert_eq "Query message generated at [message.json]"
+
+    rm "$TMP_NAME_FILE"
+}
+
+@test "call subcommand accepts argument from stdin" {
+    install_asset greet
+    dfx_start
+    dfx_deploy
+    TMP_NAME_FILE="$(mktemp)"
+    printf '("stdin")' > "$TMP_NAME_FILE"
+
+    assert_command dfx canister sign --argument-file - --query hello_backend greet < "$TMP_NAME_FILE"
+    assert_eq "Query message generated at [message.json]"
+
+    rm "$TMP_NAME_FILE"
+}

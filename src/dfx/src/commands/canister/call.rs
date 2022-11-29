@@ -8,7 +8,9 @@ use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
-use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
+use crate::util::{
+    arguments_from_file, blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob,
+};
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
@@ -20,8 +22,6 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Canis
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
-use std::fs;
-use std::io::{stdin, Read};
 use std::option::Option;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -237,17 +237,10 @@ pub async fn exec(
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
-    let arguments_from_file: Option<String> = opts.argument_file.map(|filename| {
-        if filename == "-" {
-            let mut content = String::new();
-            stdin()
-                .read_to_string(&mut content)
-                .expect("Could not read arguments from stdin to string.");
-            content
-        } else {
-            fs::read_to_string(filename).expect("Could not read arguments file to string.")
-        }
-    });
+    let arguments_from_file = opts
+        .argument_file
+        .map(|v| arguments_from_file(&v))
+        .transpose()?;
     let arguments = opts.argument.as_deref();
     let arguments = arguments_from_file.as_deref().or(arguments);
 
