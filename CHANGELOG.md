@@ -6,7 +6,7 @@
 
 ### feat: add `--argument-file` argument to the `dfx canister sign` command
 
-Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the requst from a file.
+Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
 
 ### feat: use OS-native keyring for pem file storage
 
