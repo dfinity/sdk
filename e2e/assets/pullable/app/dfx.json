@@ -1,0 +1,17 @@
+{
+    "canisters": {
+        "app": {
+            "type": "custom",
+            "wasm": "",
+            "candid": "",
+            "build": "",
+            "dependencies": [
+                "dep"
+            ]
+        },
+        "dep": {
+            "type": "pull",
+            "id": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+        }
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "canisters": {
+    "onchain_a": {
+      "type": "custom",
+      "candid": "src/onchain_a/main.did",
+      "wasm": "src/onchain_a/main.wasm",
+      "build": ""
+    },
+    "onchain_b": {
+      "type": "custom",
+      "candid": "src/onchain_b/main.did",
+      "wasm": "src/onchain_b/main.wasm",
+      "build": ""
+    }
+  }
+}
