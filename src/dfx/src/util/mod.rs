@@ -395,11 +395,17 @@ pub fn wsl_path(path: impl AsRef<Path> + Into<PathBuf>) -> DfxResult<OsString> {
             match component {
                 Component::Prefix(prefix) => match prefix.kind() {
                     Prefix::Verbatim(_) => {}
+                    // C:\Foo translates to /mnt/c/Foo
                     Prefix::VerbatimDisk(drive) | Prefix::Disk(drive) => {
                         res.push("/mnt/");
                         res.push((drive as char).to_ascii_lowercase().to_string());
                     }
-                    Prefix::UNC(_, _) | Prefix::VerbatimUNC(_, _) | Prefix::DeviceNS(_) => {
+                    // \\wsl$\Ubuntu\foo translates to /foo
+                    Prefix::UNC(host, _) | Prefix::VerbatimUNC(host, _) if host == "wsl$" => {
+                        res.push("/");
+                        continue;
+                    }
+                    _ => {
                         bail!("Cannot convert {} to a WSL path", path.display())
                     }
                 },
@@ -434,6 +440,21 @@ pub fn de_wsl_path(path: impl AsRef<Path> + Into<PathBuf>) -> PathBuf {
     {
         let path = path.as_ref();
         if let Ok(path) = path.strip_prefix(Component::RootDir) {
+            // /mnt/c/Foo translates to C:\Foo
+            if let Ok(path) = path.strip_prefix("mnt") {
+                let mut components = path.components();
+                if let Some(Component::Normal(drive_letter)) = components.next() {
+                    if drive_letter.len() == 1 {
+                        let mut drive_letter = drive_letter.to_owned();
+                        drive_letter.push(":");
+                        let mut rooted = PathBuf::from(drive_letter);
+                        rooted.push(components);
+                        return rooted;
+                    }
+                }
+            }
+
+            // /foo translates to \\wsl$\Ubuntu\foo (or whatever distro is configured)
             let mut unc = PathBuf::from(format!(r"\\wsl$\{}\", wsl_distro()));
             unc.push(path);
             unc
