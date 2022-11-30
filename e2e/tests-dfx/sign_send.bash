@@ -53,7 +53,7 @@ Signed request_status append to update message in [message-inc.json]"
 @test "sign subcommand accepts argument from a file" {
     install_asset greet
     dfx_start
-    dfx_deploy
+    dfx deploy
     TMP_NAME_FILE="$(mktemp)"
     printf '("Names can be very long")' > "$TMP_NAME_FILE"
 
@@ -70,7 +70,7 @@ Signed request_status append to update message in [message-inc.json]"
 @test "sign subcommand accepts argument from stdin" {
     install_asset greet
     dfx_start
-    dfx_deploy
+    dfx deploy
     TMP_NAME_FILE="$(mktemp)"
     printf '("stdin")' > "$TMP_NAME_FILE"
 
