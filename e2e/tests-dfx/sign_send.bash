@@ -81,7 +81,7 @@ Signed request_status append to update message in [message-inc.json]"
     echo y | dfx canister send message.json > out.txt
     assert_command cat out.txt
     # cbor-encoded response that says "Hello, stdin!"
-    assert_match "d9d9f7a266737461747573677265706c696564657265706c79a163617267554449444c0001710d48656c6c6f2c20737464696e21"
+    assert_match "d9d9f7a2657265706c79a163617267554449444c0001710d48656c6c6f2c20737464696e2166737461747573677265706c696564"
 
     rm "$TMP_NAME_FILE"
 }
