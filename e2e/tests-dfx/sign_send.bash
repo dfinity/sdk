@@ -57,10 +57,11 @@ Signed request_status append to update message in [message-inc.json]"
     TMP_NAME_FILE="$(mktemp)"
     printf '("Names can be very long")' > "$TMP_NAME_FILE"
 
-    assert_command dfx canister sign --argument-file "$TMP_NAME_FILE" --query hello_backend
+    assert_command dfx canister sign --argument-file "$TMP_NAME_FILE" --query hello_backend greet
     assert_eq "Query message generated at [message.json]"
 
-    echo y | assert_command dfx canister send message.json
+    echo y | dfx canister send message.json > out.txt
+    assert_command cat out.txt
     # cbor-encoded response that says "Hello, Names can be very long!"
     assert_match "d9d9f7a266737461747573677265706c696564657265706c79a16361726758264449444c0001711e48656c6c6f2c204e616d65732063616e2062652076657279206c6f6e6721"
 
