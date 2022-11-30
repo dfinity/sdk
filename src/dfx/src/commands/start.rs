@@ -14,7 +14,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::ReplicaConfig;
 use crate::lib::{bitcoin, canister_http};
-use crate::util::get_reusable_socket_addr;
+use crate::util::{de_wsl_path, get_reusable_socket_addr};
 
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
@@ -286,7 +286,9 @@ pub fn exec(
                 };
             let (canister_http_adapter_ready_subscribe, canister_http_socket_path) =
                 if let Some(ref canister_http_adapter_config) = canister_http_adapter_config {
-                    let socket_path = canister_http_adapter_config.get_socket_path();
+                    let socket_path = canister_http_adapter_config
+                        .get_socket_path()
+                        .map(de_wsl_path);
                     let ready_subscribe = start_canister_http_adapter_actor(
                         env,
                         canister_http_adapter_config_path,
