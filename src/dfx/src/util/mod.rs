@@ -374,7 +374,7 @@ pub fn wsl_cmd(path: impl AsRef<Path>) -> Command {
     #[cfg(windows)]
     {
         let mut cmd = Command::new("wsl");
-        cmd.arg("--exec");
+        cmd.arg("--");
         cmd.arg(wsl_path(path.as_ref()).expect("not a valid command path"));
         cmd
     }

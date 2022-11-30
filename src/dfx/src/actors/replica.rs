@@ -299,7 +299,7 @@ fn replica_start_thread(
             .arg(wsl_path(&config.state_manager.state_root).unwrap())
             .args([
                 "--create-funds-whitelist",
-                "*",
+                r"\*",
                 "--consensus-pool-backend",
                 "rocksdb",
                 "--subnet-type",
