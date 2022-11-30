@@ -434,7 +434,7 @@ pub fn de_wsl_path(path: impl AsRef<Path> + Into<PathBuf>) -> PathBuf {
     {
         let path = path.as_ref();
         if let Ok(path) = path.strip_prefix(Component::RootDir) {
-            let mut unc = PathBuf::from(format!(r"\\wsl$\{}\"));
+            let mut unc = PathBuf::from(format!(r"\\wsl$\{}\", wsl_distro()));
             unc.push(path);
             unc
         } else {
