@@ -78,7 +78,8 @@ Signed request_status append to update message in [message-inc.json]"
     assert_command dfx canister sign --argument-file - --query hello_backend greet < "$TMP_NAME_FILE"
     assert_eq "Query message generated at [message.json]"
 
-    echo y | assert_command dfx canister send message.json
+    echo y | dfx canister send message.json > out.txt
+    assert_command cat out.txt
     # cbor-encoded response that says "Hello, stdin!"
     assert_match "d9d9f7a266737461747573677265706c696564657265706c79a163617267554449444c0001710d48656c6c6f2c20737464696e21"
 
