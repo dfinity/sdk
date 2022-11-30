@@ -21,6 +21,13 @@ jobs:
         rust: ["1.60.0"]
         os: [ ubuntu-20.04 ]
     steps:
+      - name: Check Branch Source Repo
+        run: |
+          echo "Repo full name: ${{github.event.pull_request.head.repo.full_name}}"
+          echo "Repo: ${{github.repository}}"
+          if [[ ${{ github.event.pull_request.head.repo.full_name != github.repository }} ]]; then
+            exit 0
+          fi
       - uses: actions/checkout@v3.0.2
         with:
           fetch-depth: 0
