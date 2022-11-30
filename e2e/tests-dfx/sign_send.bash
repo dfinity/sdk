@@ -50,7 +50,7 @@ Signed request_status append to update message in [message-inc.json]"
     assert_match "Query message generated at \[message.json\]"
 }
 
-@test "call subcommand accepts argument from a file" {
+@test "sign subcommand accepts argument from a file" {
     install_asset greet
     dfx_start
     dfx_deploy
@@ -60,10 +60,14 @@ Signed request_status append to update message in [message-inc.json]"
     assert_command dfx canister sign --argument-file "$TMP_NAME_FILE" --query hello_backend
     assert_eq "Query message generated at [message.json]"
 
+    echo y | assert_command dfx canister send message.json
+    # cbor-encoded response that says "Hello, Names can be very long!"
+    assert_match "d9d9f7a266737461747573677265706c696564657265706c79a16361726758264449444c0001711e48656c6c6f2c204e616d65732063616e2062652076657279206c6f6e6721"
+
     rm "$TMP_NAME_FILE"
 }
 
-@test "call subcommand accepts argument from stdin" {
+@test "sign subcommand accepts argument from stdin" {
     install_asset greet
     dfx_start
     dfx_deploy
@@ -72,6 +76,10 @@ Signed request_status append to update message in [message-inc.json]"
 
     assert_command dfx canister sign --argument-file - --query hello_backend greet < "$TMP_NAME_FILE"
     assert_eq "Query message generated at [message.json]"
+
+    echo y | assert_command dfx canister send message.json
+    # cbor-encoded response that says "Hello, stdin!"
+    assert_match "d9d9f7a266737461747573677265706c696564657265706c79a163617267554449444c0001710d48656c6c6f2c20737464696e21"
 
     rm "$TMP_NAME_FILE"
 }

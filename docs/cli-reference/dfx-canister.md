@@ -654,7 +654,7 @@ You can specify the following options for the `dfx canister sign` command.
 
 | Option                     | Description                                                                                                                                      |
 |----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--argument-file`          | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                      |
+| `--argument-file <file>`   | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                      |
 | `--expire-after <seconds>` | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m). |
 | `--file <output>`          | Specifies the output file name. The default is `message.json`.                                                                                   |
 | `--random <random>`        | Specifies the configuration for generating random arguments.                                                                                     |
