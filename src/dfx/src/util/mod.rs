@@ -374,6 +374,7 @@ pub fn wsl_cmd(path: impl AsRef<Path>) -> Command {
     #[cfg(windows)]
     {
         let mut cmd = Command::new("wsl");
+        cmd.arg("--");
         cmd.arg(wsl_path(path.as_ref()).expect("not a valid command path"));
         cmd
     }
@@ -425,6 +426,30 @@ pub fn wsl_path(path: impl AsRef<Path> + Into<PathBuf>) -> DfxResult<OsString> {
     {
         Ok(path.into().into_os_string())
     }
+}
+
+#[allow(unused)]
+pub fn de_wsl_path(path: impl AsRef<Path> + Into<PathBuf>) -> PathBuf {
+    #[cfg(windows)]
+    {
+        let path = path.as_ref();
+        if let Some(path) = path.strip_prefix(Component::RootDir) {
+            let mut unc = PathBuf::from(format!(r"\\wsl$\{}\"));
+            unc.push(path);
+            unc
+        } else {
+            path.into()
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        path.into()
+    }
+}
+
+#[cfg(windows)]
+pub fn wsl_distro() -> String {
+    std::env::var("DFX_WSL_DISTRO").unwrap_or("Ubuntu".to_string())
 }
 
 pub fn wsl_url(url: &str) -> String {
