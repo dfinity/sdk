@@ -18,5 +18,5 @@ pub fn exec(env: &dyn Environment, opts: UseOpts) -> DfxResult {
     let log = env.get_logger();
     info!(log, r#"Using identity: "{}"."#, identity);
 
-    IdentityManager::new(env)?.use_identity_named(identity)
+    IdentityManager::new(env)?.use_identity_named(log, identity)
 }

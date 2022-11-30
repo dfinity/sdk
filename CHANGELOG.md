@@ -8,6 +8,45 @@
 
 A remote canister ID can now be specified for the `__default` network.  If specified, `dfx` will assume that the canister is remote at the specified canister ID for all networks that don't have a dedicated entry.
 
+### feat: use OS-native keyring for pem file storage
+
+If keyring integration is available, PEM files (except for the default identity) are now by default stored in the OS-provided keyring.
+If it is not available, it will fall back on the already existing password-encrypted PEM files.
+Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk.
+
+To force the use of one specific storage mode, use the `--storage-mode` flag with either `--storage-mode password-protected` or `--storage-mode plaintext`.
+This works for both `dfx identity new` and `dfx identity import`.
+
+The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
+
+### feat: write canister metadata sections for dfx pull
+
+### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
+
+The Motoko compiler expects all imported canisters' .did files to be in one folder when it compiles a canister.
+`dfx` failed to organize the .did files correctly when running `dfx deploy <single Motoko canister>` in combintaion with the `--mode reinstall` flag.
+
+### fix: give more cycles margin when deleting canisters
+
+There have been a few reports of people not being able to delete canisters.
+The error happens if the temporary wallet tries to transfer out too many cycles.
+The number of cycles left in the canister is bumped a little bit so that people can again reliably delete their canisters.
+
+## Dependencies
+
+Updated candid to 0.8.4
+- Bug fix in TS bindings
+- Pretty print numbers
+
+### Frontend canister
+
+- Module hash: 8b650f88708543d39bb4f10b73516cca2cc7705a56351b8d833b9c40ec8e7802
+- https://github.com/dfinity/sdk/pull/2772
+
+# 0.12.1
+
+## D
+
 ### fix: default not shrink for custom canisters
 
 ## Dependencies
