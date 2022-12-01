@@ -12,7 +12,7 @@ fi
 
 rust_version=$(rustc --version | cut -f 2 -d ' ') # fetches from rust-toolchain.toml
 
-if [ -d "${CARGO_HOME:-"$HOME/.cargo"}" ]; then
+if [ -d "${CARGO_HOME:-"$HOME/.cargo"}/registry/index" ]; then
     registry_flag="--build-context=registry=${CARGO_HOME:-"$HOME/.cargo"}/registry/index"
 fi
 
