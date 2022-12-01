@@ -1,11 +1,16 @@
-use crate::lib::environment::Environment;
+use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::error::DfxResult;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::{environment::Environment, provider::create_agent_environment};
 use crate::NetworkOpt;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use clap::Parser;
+use fn_error_context::context;
+use ic_agent::Agent;
+use slog::Logger;
 use tokio::runtime::Runtime;
 
 /// Pings an Internet Computer network and returns its status.
@@ -20,32 +25,84 @@ pub struct PullOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
+    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let logger = env.get_logger();
+
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
-        fetch_root_key_if_needed(env).await?;
+        fetch_root_key_if_needed(&agent_env).await?;
 
-        let agent = env
+        let agent = agent_env
             .get_agent()
             .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-        let callee_canister = match opts.canister_name {
-            Some(s) => s,
-            None => unimplemented!(),
+        let config = agent_env.get_config_or_anyhow()?;
+        let mut pull_canisters = BTreeMap::new();
+
+        if let Some(map) = &config.get_config().canisters {
+            for (k, v) in map {
+                if let CanisterTypeProperties::Pull { id } = v.type_specific {
+                    pull_canisters.insert(k, id);
+                }
+            }
         };
 
-        let canister_id_store = CanisterIdStore::for_env(env)?;
+        let mut canisters_to_pull: VecDeque<Principal> = match opts.canister_name {
+            Some(s) => match pull_canisters.get(&s) {
+                Some(v) => VecDeque::from([*v]),
+                None => bail!("There is no pull type canister \"{s}\" defined in dfx.json"),
+            },
+            None => pull_canisters.values().cloned().collect(),
+        };
 
-        let canister_id = canister_id_store.get(&callee_canister)?;
+        let mut pulled_canisters: BTreeSet<Principal> = BTreeSet::new();
 
-        agent
-            .read_state_canister_metadata(canister_id, "dfx:deps", false)
-            .await
-            .with_context(|| {
-                format!(
-                    "Failed to read `dfx:deps` metadata of canister {}.",
-                    canister_id
-                )
-            })?;
+        while let Some(callee_canister) = canisters_to_pull.pop_front() {
+            if !pulled_canisters.contains(&callee_canister) {
+                pulled_canisters.insert(callee_canister);
+                fetch_deps_to_pull(agent, logger, callee_canister, &mut canisters_to_pull).await?;
+            }
+        }
+
         Ok(())
     })
+}
+
+#[context("Failed while fetch and parse `dfx:deps` metadata from canister {canister_id}.")]
+async fn fetch_deps_to_pull(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: Principal,
+    canisters_to_pull: &mut VecDeque<Principal>,
+) -> DfxResult {
+    slog::info!(logger, "Pulling canister {canister_id}...");
+
+    match agent
+        .read_state_canister_metadata(canister_id, "dfx:deps", false)
+        .await
+    {
+        Ok(data) => {
+            let data = String::from_utf8(data)?;
+            for entry in data.split(';') {
+                match entry.split_once(':') {
+                    Some((_, p)) => {
+                        let canister_id = Principal::from_text(p)
+                            .with_context(|| format!("`{p}` is not a valid Principal."))?;
+                        canisters_to_pull.push_back(canister_id);
+                    }
+                    None => bail!(
+                        "Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "
+                    ),
+                }
+            }
+        }
+        Err(_) => {
+            slog::info!(
+                logger,
+                "Canister {canister_id} doesn't have `dfx:deps` metadata."
+            );
+        }
+    }
+
+    Ok(())
 }
