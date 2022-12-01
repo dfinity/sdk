@@ -429,7 +429,7 @@
         },
         "id": {
           "title": "Network to Remote ID Mapping",
-          "description": "This field contains mappings from network names to remote canister IDs (Principals). For all networks listed here, this canister is considered 'remote'.",
+          "description": "This field contains mappings from network names to remote canister IDs (Principals). For all networks listed here, this canister is considered 'remote'.  If the '__default' network is set, the canister is considered remote for all networks.",
           "type": "object",
           "additionalProperties": {
             "type": "string"

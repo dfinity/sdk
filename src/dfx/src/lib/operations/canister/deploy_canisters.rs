@@ -78,7 +78,7 @@ pub async fn deploy_canisters(
 
     register_canisters(
         env,
-        &canisters_to_deploy,
+        &canisters_to_load,
         &initial_canister_id_store,
         timeout,
         with_cycles,

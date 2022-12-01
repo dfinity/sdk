@@ -11,6 +11,14 @@ This change will trigger the update process for frontend canister (new module ha
 
 ### feat: write canister metadata sections for dfx pull
 
+### feat: add `--argument-file` argument to the `dfx canister sign` command
+
+Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
+
+### feat: Add support for a default network key
+
+A remote canister ID can now be specified for the `__default` network.  If specified, `dfx` will assume that the canister is remote at the specified canister ID for all networks that don't have a dedicated entry.
+
 ### feat: use OS-native keyring for pem file storage
 
 If keyring integration is available, PEM files (except for the default identity) are now by default stored in the OS-provided keyring.
@@ -23,6 +31,17 @@ This works for both `dfx identity new` and `dfx identity import`.
 The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
 
 ### feat: write canister metadata sections for dfx pull
+
+### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
+
+The Motoko compiler expects all imported canisters' .did files to be in one folder when it compiles a canister.
+`dfx` failed to organize the .did files correctly when running `dfx deploy <single Motoko canister>` in combintaion with the `--mode reinstall` flag.
+
+### fix: give more cycles margin when deleting canisters
+
+There have been a few reports of people not being able to delete canisters.
+The error happens if the temporary wallet tries to transfer out too many cycles.
+The number of cycles left in the canister is bumped a little bit so that people can again reliably delete their canisters.
 
 ## Dependencies
 
@@ -38,7 +57,7 @@ Updated candid to 0.8.4
 
 # 0.12.1
 
-## DFX
+## D
 
 ### fix: default not shrink for custom canisters
 

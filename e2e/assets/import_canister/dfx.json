@@ -1,0 +1,15 @@
+{
+    "canisters": {
+        "origin": {
+            "main": "origin.mo",
+            "type": "motoko"
+        },
+        "importer": {
+            "dependencies": [
+                "origin"
+            ],
+            "main": "importer.mo",
+            "type": "motoko"
+        }
+    }
+}
