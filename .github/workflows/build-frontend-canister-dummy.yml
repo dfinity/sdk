@@ -4,12 +4,12 @@ on:
   push:
     branches:
       - master
-    paths:
+    paths-ignore:
       - src/distributed/assetstorage.wasm.gz
       - src/canisters/frontend/ic-certified-assets/**
       - src/canisters/frontend/ic-frontend-canister/**
   pull_request:
-    paths:
+    paths-ignore:
       - src/distributed/assetstorage.wasm.gz
       - src/canisters/frontend/ic-certified-assets/**
       - src/canisters/frontend/ic-frontend-canister/**
