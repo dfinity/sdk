@@ -6,7 +6,7 @@ use crate::config::dfinity::NetworksConfig;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
-use crate::lib::identity::identity_manager::EncryptionConfiguration;
+use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
@@ -22,14 +22,15 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use serde::{Deserialize, Serialize};
-use slog::{info, Logger};
+use slog::{debug, info, trace, Logger};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
 pub mod identity_manager;
 pub mod identity_utils;
-pub mod pem_encryption;
+pub mod keyring_mock;
+pub mod pem_safekeeping;
 use crate::util::assets::wallet_wasm;
 use crate::util::expiry_duration;
 pub use identity_manager::{
@@ -62,6 +63,10 @@ pub struct Identity {
     /// The name of this Identity.
     name: String,
 
+    /// Whether this identity is stored in unencrypted form.
+    /// False for identities that are not stored at all.
+    pub insecure: bool,
+
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
 
@@ -74,23 +79,26 @@ impl Identity {
     ///
     /// `force`: If the identity already exists, remove it and re-create.
     pub fn create(
+        log: &Logger,
         manager: &mut IdentityManager,
         name: &str,
         parameters: IdentityCreationParameters,
         force: bool,
     ) -> DfxResult {
+        trace!(log, "Creating identity '{name}'.");
         let identity_in_use = name;
         // cannot delete an identity in use. Use anonymous identity temporarily if we force-overwrite the identity currently in use
         let temporarily_use_anonymous_identity = identity_in_use == name && force;
 
-        if manager.require_identity_exists(name).is_ok() {
+        if manager.require_identity_exists(log, name).is_ok() {
+            trace!(log, "Identity already exists.");
             if force {
                 if temporarily_use_anonymous_identity {
                     manager
-                        .use_identity_named(ANONYMOUS_IDENTITY_NAME)
+                        .use_identity_named(log, ANONYMOUS_IDENTITY_NAME)
                         .context("Failed to temporarily switch over to anonymous identity.")?;
                 }
-                manager.remove(name, true, None)?;
+                manager.remove(log, name, true, None)?;
             } else {
                 bail!("Identity already exists.");
             }
@@ -104,13 +112,38 @@ impl Identity {
                 )
             })
         }
-        fn create_encryption_config(
-            disable_encryption: bool,
-        ) -> DfxResult<Option<EncryptionConfiguration>> {
-            if disable_encryption {
-                Ok(None)
+        fn create_identity_config(
+            log: &Logger,
+            mode: IdentityStorageMode,
+            name: &str,
+            hardware_config: Option<HardwareIdentityConfiguration>,
+        ) -> DfxResult<IdentityConfiguration> {
+            if let Some(hsm) = hardware_config {
+                Ok(IdentityConfiguration {
+                    hsm: Some(hsm),
+                    ..Default::default()
+                })
             } else {
-                Ok(Some(identity_manager::EncryptionConfiguration::new()?))
+                match mode {
+                    IdentityStorageMode::Keyring => {
+                        if keyring_mock::keyring_available(log) {
+                            Ok(IdentityConfiguration {
+                                keyring_identity_suffix: Some(String::from(name)),
+                                ..Default::default()
+                            })
+                        } else {
+                            Ok(IdentityConfiguration {
+                                encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                                ..Default::default()
+                            })
+                        }
+                    }
+                    IdentityStorageMode::PasswordProtected => Ok(IdentityConfiguration {
+                        encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                        ..Default::default()
+                    }),
+                    IdentityStorageMode::Plaintext => Ok(IdentityConfiguration::default()),
+                }
             }
         }
 
@@ -128,55 +161,56 @@ impl Identity {
             })?;
         }
 
-        let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
-        let mut identity_config = IdentityConfiguration::default();
+        let identity_config;
         match parameters {
-            IdentityCreationParameters::Pem { disable_encryption } => {
-                identity_config.encryption = create_encryption_config(disable_encryption)?;
+            IdentityCreationParameters::Pem { mode } => {
                 let (pem_content, mnemonic) = identity_manager::generate_key()?;
-                let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
-                pem_encryption::write_pem_file(
-                    &pem_file,
-                    Some(&identity_config),
+                identity_config = create_identity_config(log, mode, name, None)?;
+                pem_safekeeping::save_pem(
+                    log,
+                    manager,
+                    &temp_identity_name,
+                    &identity_config,
                     pem_content.as_slice(),
                 )?;
                 eprintln!("Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
             }
-            IdentityCreationParameters::PemFile {
-                src_pem_file,
-                disable_encryption,
-            } => {
-                identity_config.encryption = create_encryption_config(disable_encryption)?;
-                let src_pem_content = pem_encryption::load_pem_file(&src_pem_file, None)?;
+            IdentityCreationParameters::PemFile { src_pem_file, mode } => {
+                identity_config = create_identity_config(log, mode, name, None)?;
+                let (src_pem_content, _) =
+                    pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
                 identity_utils::validate_pem_file(&src_pem_content)?;
-                let dst_pem_file =
-                    manager.get_identity_pem_path(&temp_identity_name, &identity_config);
-                pem_encryption::write_pem_file(
-                    &dst_pem_file,
-                    Some(&identity_config),
+                pem_safekeeping::save_pem(
+                    log,
+                    manager,
+                    &temp_identity_name,
+                    &identity_config,
                     src_pem_content.as_slice(),
                 )?;
             }
             IdentityCreationParameters::Hardware { hsm } => {
-                identity_config.hsm = Some(hsm);
+                identity_config =
+                    create_identity_config(log, IdentityStorageMode::default(), name, Some(hsm))?;
                 create(&temp_identity_dir)?;
             }
-            IdentityCreationParameters::SeedPhrase {
-                mnemonic,
-                disable_encryption,
-            } => {
-                identity_config.encryption = create_encryption_config(disable_encryption)?;
+            IdentityCreationParameters::SeedPhrase { mnemonic, mode } => {
+                identity_config = create_identity_config(log, mode, name, None)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
                 let key = identity_manager::mnemonic_to_key(&mnemonic)?;
-                let pem_file = manager.get_identity_pem_path(&temp_identity_name, &identity_config);
-                pem_encryption::write_pem_file(
-                    &pem_file,
-                    Some(&identity_config),
-                    key.to_pem(k256::pkcs8::LineEnding::CRLF)?.as_bytes(),
+                let pem = key.to_pem(k256::pkcs8::LineEnding::CRLF)?;
+                let pem_content = pem.as_bytes();
+                pem_safekeeping::save_pem(
+                    log,
+                    manager,
+                    &temp_identity_name,
+                    &identity_config,
+                    pem_content,
                 )?;
             }
         }
+        let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
         identity_manager::write_identity_configuration(
+            log,
             &identity_config_location,
             &identity_config,
         )?;
@@ -192,7 +226,7 @@ impl Identity {
         })?;
 
         if temporarily_use_anonymous_identity {
-            manager.use_identity_named(identity_in_use)
+            manager.use_identity_named(log, identity_in_use)
                 .with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
         }
         Ok(())
@@ -202,6 +236,7 @@ impl Identity {
         Self {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
+            insecure: false,
             dir: PathBuf::new(),
         }
     }
@@ -210,6 +245,7 @@ impl Identity {
         manager: &IdentityManager,
         name: &str,
         pem_content: &[u8],
+        was_encrypted: bool,
     ) -> DfxResult<Self> {
         let inner = Box::new(BasicIdentity::from_pem(pem_content).map_err(|e| {
             DfxError::new(IdentityError::CannotReadIdentityFile(
@@ -222,6 +258,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: !was_encrypted,
         })
     }
 
@@ -229,6 +266,7 @@ impl Identity {
         manager: &IdentityManager,
         name: &str,
         pem_content: &[u8],
+        was_encrypted: bool,
     ) -> DfxResult<Self> {
         let inner = Box::new(Secp256k1Identity::from_pem(pem_content).map_err(|e| {
             DfxError::new(IdentityError::CannotReadIdentityFile(
@@ -241,6 +279,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: !was_encrypted,
         })
     }
 
@@ -262,29 +301,30 @@ impl Identity {
             name: name.to_string(),
             inner,
             dir: manager.get_identity_dir_path(name),
+            insecure: false,
         })
     }
 
     #[context("Failed to load identity '{}'.", name)]
-    pub fn load(manager: &IdentityManager, name: &str) -> DfxResult<Self> {
+    pub fn load(manager: &IdentityManager, name: &str, log: &Logger) -> DfxResult<Self> {
         let json_path = manager.get_identity_json_path(name);
         let config = if json_path.exists() {
             identity_manager::read_identity_configuration(&json_path)?
         } else {
-            IdentityConfiguration {
-                hsm: None,
-                encryption: None,
-            }
+            debug!(log, "Found no identity configuration. Using default.");
+            IdentityConfiguration::default()
         };
         if let Some(hsm) = config.hsm {
             Identity::load_hardware_identity(manager, name, hsm)
         } else {
-            let pem_path = manager.load_identity_pem_path(name)?;
-            let pem_content = pem_encryption::load_pem_file(&pem_path, Some(&config))?;
-
-            Identity::load_secp256k1_identity(manager, name, &pem_content).or_else(|e| {
-                Identity::load_basic_identity(manager, name, &pem_content).map_err(|_| e)
-            })
+            let (pem_content, was_encrypted) =
+                pem_safekeeping::load_pem(log, manager, name, &config)?;
+            Identity::load_secp256k1_identity(manager, name, &pem_content, was_encrypted).or_else(
+                |e| {
+                    Identity::load_basic_identity(manager, name, &pem_content, was_encrypted)
+                        .map_err(|_| e)
+                },
+            )
         }
     }
 

@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.11.2"
+version = "0.12.1"
 authors = ["DFINITY Team"]
 edition = "2021"
 build = "assets/build.rs"
@@ -10,10 +10,15 @@ name = "dfx"
 path = "src/main.rs"
 
 [build-dependencies]
-flate2 = "1.0.11"
-hex = "0.4.2"
+bytes = "1"
+flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] }
+hex = "0.4.3"
+reqwest = "0.11.9"
+serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.6"
 tar = "0.4.26"
+tokio = { version = "1.17.0", features = ["full"] }
+toml = "0.5.9"
 walkdir = "2.3.2"
 
 [dependencies]
@@ -34,7 +39,7 @@ crossbeam = "0.8.1"
 ctrlc = { version = "3.2.1", features = [ "termination" ] }
 dialoguer = "0.10.0"
 directories-next = "2.0.0"
-flate2 = "1.0.11"
+flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] }
 fn-error-context = "0.2.0"
 futures = "0.3.21"
 futures-util = "0.3.21"
@@ -52,6 +57,7 @@ ic-wasm = "0.2.1"
 indicatif = "0.16.0"
 itertools = "0.10.3"
 k256 = { version = "0.11.4", features = ["pem"] }
+keyring = "1.2.0"
 lazy_static = "1.4.0"
 mime = "0.3.16"
 mime_guess = "2.0.4"
@@ -67,6 +73,7 @@ reqwest = { version = "0.11.9", default-features = false, features = [ "blocking
 rustls = "0.20.4"
 rust_decimal = "1.22.0"
 schemars = "0.8"
+sec1 = { version = "0.3.0", features = ["std"] }
 semver = "1.0.6"
 serde = "1.0"
 serde_bytes = "0.11.2"

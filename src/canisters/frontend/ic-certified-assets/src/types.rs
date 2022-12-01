@@ -18,6 +18,7 @@ pub struct CreateAssetArguments {
     pub content_type: String,
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
+    pub enable_aliasing: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -64,6 +65,7 @@ pub struct StoreArg {
     pub content_encoding: String,
     pub content: ByteBuf,
     pub sha256: Option<ByteBuf>,
+    pub aliased: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]

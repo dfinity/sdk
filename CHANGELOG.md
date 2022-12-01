@@ -4,6 +4,76 @@
 
 ## DFX
 
+### feat: add `--argument-file` argument to the `dfx canister sign` command
+
+Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
+
+### feat: Add support for a default network key
+
+A remote canister ID can now be specified for the `__default` network.  If specified, `dfx` will assume that the canister is remote at the specified canister ID for all networks that don't have a dedicated entry.
+
+### feat: use OS-native keyring for pem file storage
+
+If keyring integration is available, PEM files (except for the default identity) are now by default stored in the OS-provided keyring.
+If it is not available, it will fall back on the already existing password-encrypted PEM files.
+Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk.
+
+To force the use of one specific storage mode, use the `--storage-mode` flag with either `--storage-mode password-protected` or `--storage-mode plaintext`.
+This works for both `dfx identity new` and `dfx identity import`.
+
+The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
+
+### feat: write canister metadata sections for dfx pull
+
+### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
+
+The Motoko compiler expects all imported canisters' .did files to be in one folder when it compiles a canister.
+`dfx` failed to organize the .did files correctly when running `dfx deploy <single Motoko canister>` in combintaion with the `--mode reinstall` flag.
+
+### fix: give more cycles margin when deleting canisters
+
+There have been a few reports of people not being able to delete canisters.
+The error happens if the temporary wallet tries to transfer out too many cycles.
+The number of cycles left in the canister is bumped a little bit so that people can again reliably delete their canisters.
+
+## Dependencies
+
+Updated candid to 0.8.4
+- Bug fix in TS bindings
+- Pretty print numbers
+
+### Frontend canister
+
+- Module hash: 8b650f88708543d39bb4f10b73516cca2cc7705a56351b8d833b9c40ec8e7802
+- https://github.com/dfinity/sdk/pull/2772
+
+# 0.12.1
+
+## D
+
+### fix: default not shrink for custom canisters
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit dcbf401f27d9b48354e68389c6d8293c4233b055.
+This incorporates the following executed proposals:
+
+- [90485](https://dashboard.internetcomputer.org/proposal/90485)
+- [90008](https://dashboard.internetcomputer.org/proposal/90008)
+
+### Frontend canister
+
+- Module hash: db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+- https://github.com/dfinity/sdk/pull/2753
+
+# 0.12.0
+
+## DFX
+
+### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
+
 ### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
 
 Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
@@ -19,6 +89,8 @@ Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP
 ]
 ```
 This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+
+### feat: warn if an unencrypted identity is used on mainnet
 
 ### fix: Save SNS canister IDs
 
@@ -53,6 +125,12 @@ The function for calling sns can now call any bundled binary.
 - Governance for integration with the Internet Computer voting system
 - Ledger for financial integration testing
 - Internet Identity for user registration and authenttication
+
+### feat(frontend-canister): Add simple aliases from `<asset>` to `<asset>.html` and `<asset>/index.html`
+
+The asset canister now by default aliases any request to `<asset>` to `<asset>.html` or `<asset>/index.html`.
+This can be disabled by setting the field `"enable_aliasing"` to `false` in a rule for that asset in .ic-assets.json.
+This change will trigger frontend canister upgrades upon redeploying any asset canister.
 
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
@@ -485,6 +563,8 @@ It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pi
 
 ### fix: print links to cdk-rs docs in dfx new
 
+### fix: broken link in new .mo project README
+
 ### fix: Small grammar change to identity password decryption prompt
 
 The prompt for entering your passphrase in order to decrypt an identity password read:
@@ -503,9 +583,14 @@ Changed the text in this case to read:
 
 ### Replica
 
-Updated replica to elected commit f7e3c96a2be92186718f6a1e67eea37bf3252c00.
-This incorporates the following executed proposals:
+Updated replica to release candidate 93dcf2a2026c34330c76149dd713d89e37daa533.
 
+This also incorporates the following executed proposals:
+
+- [88831](https://dashboard.internetcomputer.org/proposal/88831)
+- [88629](https://dashboard.internetcomputer.org/proposal/88629)
+- [88109](https://dashboard.internetcomputer.org/proposal/88109)
+- [87631](https://dashboard.internetcomputer.org/proposal/87631)
 - [86738](https://dashboard.internetcomputer.org/proposal/86738)
 - [86279](https://dashboard.internetcomputer.org/proposal/86279)
 * [85007](https://dashboard.internetcomputer.org/proposal/85007)
@@ -533,7 +618,10 @@ Updated ic-ref to 0.0.1-1fba03ee
 - introduce awaitKnown
 - trivial implementation of idle_cycles_burned_per_day
 
-### Updated Motoko to 0.7.0
+### Updated Motoko from 0.6.29 to 0.7.3
+
+- See https://github.com/dfinity/motoko/blob/master/Changelog.md#073-2022-11-01
+
 
 ### Cycles wallet
 
@@ -541,8 +629,8 @@ Updated ic-ref to 0.0.1-1fba03ee
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
 
 ### Frontend canister:
-- Module hash: 2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759
-- https://github.com/dfinity/sdk/pull/2689
+- Module hash: 6c8f7a094060b096c35e4c4499551e7a8a29ee0f86c456e521c09480ebbaa8ab
+- https://github.com/dfinity/sdk/pull/2720
 
 # 0.11.2
 

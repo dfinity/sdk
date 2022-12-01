@@ -123,6 +123,14 @@
         "name"
       ],
       "properties": {
+        "content": {
+          "title": "Content",
+          "description": "Content of this metadata section. Conflicts with `path`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "title": "Name",
           "description": "The name of the wasm section",
@@ -142,7 +150,7 @@
         },
         "path": {
           "title": "Path",
-          "description": "Path to file containing section contents. For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use the canister's candid definition. If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's actual candid service definition.",
+          "description": "Path to file containing section contents. Conflicts with `content`. For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use the canister's candid definition. If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's actual candid service definition.",
           "type": [
             "string",
             "null"
@@ -266,12 +274,33 @@
               ]
             }
           }
+        },
+        {
+          "title": "Pull-Specific Properties",
+          "type": "object",
+          "required": [
+            "id",
+            "type"
+          ],
+          "properties": {
+            "id": {
+              "title": "Canister ID",
+              "description": "Principal of the canister on the ic network.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "pull"
+              ]
+            }
+          }
         }
       ],
       "properties": {
         "args": {
-          "title": "Canister Argument",
-          "description": "This field defines a static argument to use when deploying the canister.",
+          "title": "Canister-Specific Build Argument",
+          "description": "This field defines an additional argument to pass to the Motoko compiler when building the canister.",
           "type": [
             "string",
             "null"
@@ -353,6 +382,12 @@
             }
           ]
         },
+        "pull_ready": {
+          "title": "Ready for dfx Pull",
+          "description": "Whether or not to make this canister ready for dfx pull by other project. If true, several required metadata fields must be also set with the correct format.",
+          "default": false,
+          "type": "boolean"
+        },
         "remote": {
           "title": "Remote Configuration",
           "description": "Used to mark the canister as 'remote' on certain networks.",
@@ -368,9 +403,11 @@
         },
         "shrink": {
           "title": "Shrink Canister WASM",
-          "description": "Whether run `ic-wasm shrink` after building the Canister. Default is true.",
-          "default": true,
-          "type": "boolean"
+          "description": "Whether run `ic-wasm shrink` after building the Canister. Enabled by default for Rust/Motoko canisters. Disabled by default for custom canisters.",
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },
@@ -392,7 +429,7 @@
         },
         "id": {
           "title": "Network to Remote ID Mapping",
-          "description": "This field contains mappings from network names to remote canister IDs (Principals). For all networks listed here, this canister is considered 'remote'.",
+          "description": "This field contains mappings from network names to remote canister IDs (Principals). For all networks listed here, this canister is considered 'remote'.  If the '__default' network is set, the canister is considered remote for all networks.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -743,10 +780,21 @@
       }
     },
     "MetadataVisibility": {
-      "type": "string",
-      "enum": [
-        "public",
-        "private"
+      "oneOf": [
+        {
+          "description": "Anyone can query the metadata",
+          "type": "string",
+          "enum": [
+            "public"
+          ]
+        },
+        {
+          "description": "Only the controllers of the canister can query the metadata.",
+          "type": "string",
+          "enum": [
+            "private"
+          ]
+        }
       ]
     },
     "NetworkType": {

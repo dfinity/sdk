@@ -11,7 +11,7 @@ use candid::Principal;
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
-use slog::{Logger, Record};
+use slog::{warn, Logger, Record};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fs::create_dir_all;
@@ -233,7 +233,11 @@ impl<'a> AgentEnvironment<'a> {
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
         let mut identity_manager = IdentityManager::new(backend)?;
-        let identity = identity_manager.instantiate_selected_identity()?;
+        let identity = identity_manager.instantiate_selected_identity(backend.get_logger())?;
+        if network_descriptor.is_ic && identity.insecure {
+            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity create` \
+                and use it in mainnet-facing commands with the `--identity` flag", identity.name());
+        }
         let url = network_descriptor.first_provider()?;
 
         Ok(AgentEnvironment {
