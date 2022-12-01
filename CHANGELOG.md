@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: Add support for a default network key
+
+A remote canister ID can now be specified for the `__default` network.  If specified, `dfx` will assume that the canister is remote at the specified canister ID for all networks that don't have a dedicated entry.
+
 ### feat: use OS-native keyring for pem file storage
 
 If keyring integration is available, PEM files (except for the default identity) are now by default stored in the OS-provided keyring.
@@ -41,7 +45,7 @@ Updated candid to 0.8.4
 
 # 0.12.1
 
-## DFX
+## D
 
 ### fix: default not shrink for custom canisters
 
