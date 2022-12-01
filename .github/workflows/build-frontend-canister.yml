@@ -39,5 +39,6 @@ jobs:
         run: |
           if [ "$(git diff src/distributed/assetstorage.wasm.gz)" != "" ]
           then
+            echo "src/distributed/assetstorage.wasm.gz needs to be updated; run ./scripts/update-frontend-canister.sh"
             exit 1
           fi
