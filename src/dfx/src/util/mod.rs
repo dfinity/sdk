@@ -17,6 +17,7 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use std::convert::TryFrom;
 use std::fmt::Display;
+use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use std::time::Duration;
@@ -155,6 +156,19 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
             idl_path.to_string_lossy()
         )
     })
+}
+
+pub fn arguments_from_file(file_name: &str) -> DfxResult<String> {
+    if file_name == "-" {
+        let mut content = String::new();
+        stdin().read_to_string(&mut content).map_err(|e| {
+            error_invalid_argument!("Could not read arguments from stdin to string: {}", e)
+        })?;
+        Ok(content)
+    } else {
+        std::fs::read_to_string(file_name)
+            .map_err(|e| error_invalid_argument!("Could not read arguments file to string: {}", e))
+    }
 }
 
 #[context("Failed to create argument blob.")]

@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: add `--argument-file` argument to the `dfx canister sign` command
+
+Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
+
 ### feat: Add support for a default network key
 
 A remote canister ID can now be specified for the `__default` network.  If specified, `dfx` will assume that the canister is remote at the specified canister ID for all networks that don't have a dedicated entry.
