@@ -60,10 +60,8 @@ Signed request_status append to update message in [message-inc.json]"
     assert_command dfx canister sign --argument-file "$TMP_NAME_FILE" --query hello_backend greet
     assert_eq "Query message generated at [message.json]"
 
-    echo y | dfx canister send message.json > out.txt
-    assert_command cat out.txt
-    # cbor-encoded response that says "Hello, Names can be very long!"
-    assert_match "d9d9f7a266737461747573677265706c696564657265706c79a16361726758264449444c0001711e48656c6c6f2c204e616d65732063616e2062652076657279206c6f6e6721"
+    assert_command jq -rc .arg message.json
+    assert_match "[68,73,68,76,0,1,113,21,78,97,109,101,115,32,99,97,110,32,98,101,32,118,114,121,32,108,111,110,103]"
 
     rm "$TMP_NAME_FILE"
 }
@@ -78,10 +76,8 @@ Signed request_status append to update message in [message-inc.json]"
     assert_command dfx canister sign --argument-file - --query hello_backend greet < "$TMP_NAME_FILE"
     assert_eq "Query message generated at [message.json]"
 
-    echo y | dfx canister send message.json > out.txt
-    assert_command cat out.txt
-    # cbor-encoded response that says "Hello, stdin!"
-    assert_match "d9d9f7a2657265706c79a163617267554449444c0001710d48656c6c6f2c20737464696e2166737461747573677265706c696564"
+    assert_command jq -rc .arg message.json
+    assert_match "[68,73,68,76,0,1,113,5,115,116,100,105,110]"
 
     rm "$TMP_NAME_FILE"
 }
