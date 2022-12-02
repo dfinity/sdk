@@ -19,4 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     name: frontend-canister-up-to-date:required
     steps:
-      - run: echo "Running dummy job."
+      - name: skip
+        run: |
+          echo skipped
