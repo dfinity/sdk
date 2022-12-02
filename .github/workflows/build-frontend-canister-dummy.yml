@@ -1,6 +1,6 @@
 name: Check frontend canister build (skipped)
 
-on: 
+on:
   push:
     branches:
       - master
@@ -18,3 +18,5 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     name: frontend-canister-up-to-date:required
+    steps:
+      - run: echo "Running dummy job."
