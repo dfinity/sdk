@@ -40,7 +40,6 @@ pub struct RedirectUrl {
 pub struct RedirectConfig {
     from: Option<RedirectUrl>,
     to: RedirectUrl,
-    user_agent: Option<Vec<String>>,
     #[serde(default = "default_response_code")]
     response_code: u16,
 }
@@ -578,8 +577,7 @@ mod with_tempdir {
                   "redirect": {
                     "from": {"host": "raw.ic0.app"},
                     "to": {"host": "ic0.app" },
-                    "response_code": 301,
-                    "user_agent": ["CrawlerBot"]
+                    "response_code": 301
             }}]"#
                 .to_string(),
         )]);
@@ -610,7 +608,6 @@ mod with_tempdir {
                             host: Some("ic0.app".to_string()),
                             path: None
                         },
-                        user_agent: Some(vec!["CrawlerBot".to_string()]),
                         response_code: 301
                     })
                 }

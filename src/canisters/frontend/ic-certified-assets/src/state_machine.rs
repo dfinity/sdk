@@ -168,14 +168,6 @@ impl AssetRedirect {
             return Some(HttpResponse::build_400(&e));
         }
 
-        if self.user_agent.is_some() {
-            if let Some(req_user_agent) = req.get_header_value("user-agent") {
-                if !self.matches_user_agent(&req_user_agent) {
-                    return None;
-                }
-            }
-        }
-
         if let Some(location) = self.get_location_url(req) {
             let req_host = req.get_header_value("Host");
             if req_host.is_none() {
@@ -218,16 +210,6 @@ impl AssetRedirect {
             return Err("AssetRedirect.to must have a host or path".to_string());
         }
         Ok(())
-    }
-
-    fn matches_user_agent(&self, user_agent: &str) -> bool {
-        // if user-agent coming in HTTP Request is not found in list of user-agents from redirect config
-        // then skip redirection by returning false, otherwise proceed.
-        self.user_agent.as_ref().map_or(true, |cfg_user_agents| {
-            cfg_user_agents.is_empty()
-                || regex::RegexSet::new(cfg_user_agents)
-                    .map_or(false, |regex_set| regex_set.is_match(user_agent))
-        })
     }
 }
 
