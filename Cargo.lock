@@ -1626,8 +1626,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee53ec42421e7bfedcba07de8f27a295b822f0db69c596dc5edef5d3f979fa18"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
 dependencies = [
  "async-trait",
  "backoff",
@@ -1722,8 +1721,7 @@ dependencies = [
 [[package]]
 name = "ic-certification"
 version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b201d11ba96f09548ec09409beb50cf845828f058f5c6a17c285729eab3a77d3"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
 dependencies = [
  "hex",
  "serde",
@@ -1771,8 +1769,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ccae540e894ca4a897102c96d5837cde204402fc80d2eb01c6b864c1f344a84"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1786,8 +1783,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b2cbf03564a28c2712fff08c3b2252da47cd95d0f42e97d08e8692cbd72536b"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
 dependencies = [
  "async-trait",
  "candid",
@@ -4493,18 +4489,3 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[patch.unused]]
-name = "ic-agent"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
-
-[[patch.unused]]
-name = "ic-identity-hsm"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
-
-[[patch.unused]]
-name = "ic-utils"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
