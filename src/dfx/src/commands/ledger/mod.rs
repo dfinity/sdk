@@ -8,8 +8,6 @@ use crate::lib::ledger_types::{
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::provider::create_agent_environment;
-use crate::lib::waiter::waiter_with_timeout;
-use crate::util::expiry_duration;
 use crate::NetworkOpt;
 
 use anyhow::{anyhow, bail, Context};
@@ -148,7 +146,7 @@ pub async fn transfer(
                 })
                 .context("Failed to encode arguments.")?,
             )
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .call_and_wait()
             .await
         {
             Ok(data) => {
@@ -214,7 +212,7 @@ pub async fn notify_create(
             })
             .context("Failed to encode notify arguments.")?,
         )
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await
         .context("Notify call failed.")?;
     let result =
@@ -236,7 +234,7 @@ pub async fn notify_top_up(
             })
             .context("Failed to encode notify arguments.")?,
         )
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await
         .context("Notify call failed.")?;
     let result = Decode!(&result, NotifyTopUpResult).context("Failed to decode notify response")?;

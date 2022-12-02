@@ -57,7 +57,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         let mut request_accepted = false;
         loop {
             match agent
-                .request_status_raw(&request_id, canister_id, false)
+                .request_status_raw(&request_id, canister_id)
                 .await
                 .context("Failed to fetch request status.")?
             {
@@ -81,7 +81,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                     if !request_accepted {
                         waiter
                             .restart()
-                            .map_err(|_| DfxError::new(AgentError::WaiterRestartError()))?;
+                            .map_err(|_| DfxError::new(AgentError::TimeoutWaitingForResponse()))?;
                         request_accepted = true;
                     }
                 }

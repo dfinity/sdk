@@ -851,10 +851,10 @@ dependencies = [
  "humantime",
  "humantime-serde",
  "hyper-rustls",
- "ic-agent 0.21.0",
+ "ic-agent",
  "ic-asset",
  "ic-identity-hsm",
- "ic-utils 0.21.0",
+ "ic-utils",
  "ic-wasm",
  "indicatif",
  "itertools 0.10.5",
@@ -1625,42 +1625,6 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
-dependencies = [
- "async-trait",
- "base32",
- "base64",
- "byteorder",
- "candid",
- "futures-util",
- "garcon",
- "hex",
- "http",
- "http-body",
- "hyper-rustls",
- "ic-verify-bls-signature",
- "k256",
- "leb128",
- "mime",
- "pem",
- "pkcs8",
- "rand",
- "reqwest",
- "ring",
- "rustls",
- "sec1",
- "serde",
- "serde_bytes",
- "serde_cbor",
- "sha2 0.10.6",
- "simple_asn1",
- "thiserror",
- "url",
-]
-
-[[package]]
-name = "ic-agent"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee53ec42421e7bfedcba07de8f27a295b822f0db69c596dc5edef5d3f979fa18"
@@ -1711,8 +1675,8 @@ dependencies = [
  "futures-intrusive",
  "globset",
  "hex",
- "ic-agent 0.23.0",
- "ic-utils 0.23.0",
+ "ic-agent",
+ "ic-utils",
  "json5",
  "mime",
  "mime_guess",
@@ -1806,36 +1770,16 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ccae540e894ca4a897102c96d5837cde204402fc80d2eb01c6b864c1f344a84"
 dependencies = [
  "hex",
- "ic-agent 0.21.0",
+ "ic-agent",
  "num-bigint 0.4.3",
  "pkcs11",
  "sha2 0.10.6",
  "simple_asn1",
- "thiserror",
-]
-
-[[package]]
-name = "ic-utils"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
-dependencies = [
- "async-trait",
- "candid",
- "garcon",
- "ic-agent 0.21.0",
- "leb128",
- "num-bigint 0.4.3",
- "once_cell",
- "paste",
- "semver",
- "serde",
- "serde_bytes",
- "strum",
- "strum_macros",
  "thiserror",
 ]
 
@@ -1847,7 +1791,7 @@ checksum = "3b2cbf03564a28c2712fff08c3b2252da47cd95d0f42e97d08e8692cbd72536b"
 dependencies = [
  "async-trait",
  "candid",
- "ic-agent 0.23.0",
+ "ic-agent",
  "leb128",
  "num-bigint 0.4.3",
  "once_cell",
@@ -1900,9 +1844,9 @@ dependencies = [
  "clap",
  "delay",
  "humantime",
- "ic-agent 0.23.0",
+ "ic-agent",
  "ic-asset",
- "ic-utils 0.23.0",
+ "ic-utils",
  "libflate",
  "num-traits",
  "pem",
@@ -4549,3 +4493,18 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[patch.unused]]
+name = "ic-agent"
+version = "0.21.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
+
+[[patch.unused]]
+name = "ic-identity-hsm"
+version = "0.21.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
+
+[[patch.unused]]
+name = "ic-utils"
+version = "0.21.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"

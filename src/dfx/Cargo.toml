@@ -49,10 +49,10 @@ hex = {version = "0.4.2", features = ["serde"] }
 humantime = "2.1.0"
 humantime-serde = "1.1.1"
 hyper-rustls = { version = "0.23.0", features = [ "webpki-roots", "http2" ] }
-ic-agent = { version = "0.21.0", features = ["reqwest"] }
+ic-agent = { version = "0.23.0", features = ["reqwest"] }
 ic-asset = { version = "0.20.0", path = "../canisters/frontend/ic-asset" }
-ic-identity-hsm = "0.21.0"
-ic-utils = "0.21.0"
+ic-identity-hsm = "0.23.0"
+ic-utils = "0.23.0"
 ic-wasm = "0.2.1"
 indicatif = "0.16.0"
 itertools = "0.10.3"

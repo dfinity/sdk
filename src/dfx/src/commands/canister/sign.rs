@@ -227,7 +227,7 @@ pub async fn exec(
         let request_id = RequestId::from_str(&message.request_id.unwrap())
             .context("Failed to parse request id.")?;
         let res = sign_agent
-            .request_status_raw(&request_id, canister_id, false)
+            .request_status_raw(&request_id, canister_id)
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {

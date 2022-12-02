@@ -5,7 +5,6 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
-use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -14,7 +13,6 @@ use ic_agent::AgentError;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
-use std::time::Duration;
 
 // The cycle fee for create request is 0.1T cycles.
 const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
@@ -26,7 +24,6 @@ const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
 pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
-    timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
     settings: CanisterSettings,
@@ -91,7 +88,7 @@ pub async fn create_canister(
                         .with_optional_compute_allocation(settings.compute_allocation)
                         .with_optional_memory_allocation(settings.memory_allocation)
                         .with_optional_freezing_threshold(settings.freezing_threshold)
-                        .call_and_wait(waiter_with_timeout(timeout))
+                        .call_and_wait()
                         .await;
                     if let Err(AgentError::HttpError(HttpErrorPayload { status: 404, .. })) = &res {
                         bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
@@ -114,7 +111,6 @@ pub async fn create_canister(
                             settings.compute_allocation,
                             settings.memory_allocation,
                             settings.freezing_threshold,
-                            waiter_with_timeout(timeout),
                         )
                         .await
                     {

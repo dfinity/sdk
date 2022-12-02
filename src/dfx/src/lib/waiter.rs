@@ -9,7 +9,3 @@ pub fn waiter_with_exponential_backoff() -> Delay {
         .exponential_backoff_capped(RETRY_PAUSE, 1.4, MAX_RETRY_PAUSE)
         .build()
 }
-
-pub fn waiter_with_timeout(duration: Duration) -> Delay {
-    Delay::builder().timeout(duration).build()
-}

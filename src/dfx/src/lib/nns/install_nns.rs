@@ -12,9 +12,7 @@ use crate::lib::environment::Environment;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::blob_from_arguments;
-use crate::util::expiry_duration;
 use crate::util::network::get_replica_urls;
 
 use anyhow::{anyhow, bail, Context};
@@ -196,7 +194,7 @@ async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<
             format!("Internal error: {canister_name} has an invalid canister ID: {canister_id}")
         })?;
         if agent
-            .read_state_canister_info(canister_principal, "module_hash", false)
+            .read_state_canister_info(canister_principal, "module_hash")
             .await
             .is_ok()
         {
@@ -659,15 +657,12 @@ pub async fn install_canister(
         .create_canister()
         .as_provisional_create_with_amount(None);
 
-    let res = builder
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await;
+    let res = builder.call_and_wait().await;
     let canister_id: Principal = res.context("Canister creation call failed.")?.0;
     let canister_id_str = canister_id.to_text();
 
     let install_args = blob_from_arguments(None, None, None, &None)?;
     let install_mode = InstallMode::Install;
-    let timeout = expiry_duration();
     let call_sender = CallSender::SelectedId;
 
     install_canister_wasm(
@@ -677,7 +672,6 @@ pub async fn install_canister(
         Some(canister_name),
         &install_args,
         install_mode,
-        timeout,
         &call_sender,
         fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
         true,
