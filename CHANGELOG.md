@@ -51,7 +51,7 @@ Updated candid to 0.8.4
 ### Frontend canister
 
 - Module hash: 5e543f65b1c0f133f7f64044ff120af512dd08099a5fc97105dbf5aa80f589c8
-- https://github.com/dfinity/sdk/pull/2699
+- https://github.com/dfinity/sdk/pull/2413
 
 # 0.12.1
 
