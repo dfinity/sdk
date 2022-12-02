@@ -16,10 +16,11 @@ use crate::util::blob_from_arguments;
 use crate::util::network::get_replica_urls;
 
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use flate2::bufread::GzDecoder;
 use fn_error_context::context;
 use futures_util::future::try_join_all;
-use garcon::{Delay, Waiter};
 use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -31,7 +32,6 @@ use std::io::Write;
 use std::path::Component;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use std::time::Duration;
 
 use self::canisters::{
     IcNnsInitCanister, SnsCanisterInstallation, StandardCanister, NNS_CORE, NNS_FRONTEND,
@@ -265,21 +265,17 @@ Frontend canisters:
 /// Gets a URL, trying repeatedly until it is available.
 #[context("Failed to download after multiple tries: {}", url)]
 pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
-    /// The time between the first try and the second.
-    const RETRY_PAUSE: Duration = Duration::from_millis(200);
-    /// Intervals will increase exponentially until they reach this.
-    const MAX_RETRY_PAUSE: Duration = Duration::from_secs(5);
-
-    let mut waiter = Delay::builder()
-        .exponential_backoff_capped(RETRY_PAUSE, 1.4, MAX_RETRY_PAUSE)
-        .build();
+    let mut retry_policy = ExponentialBackoff::default();
 
     loop {
         match reqwest::get(url.clone()).await {
             Ok(response) => {
                 return Ok(response);
             }
-            Err(err) => waiter.wait().map_err(|_| err)?,
+            Err(err) => match retry_policy.next_backoff() {
+                Some(duration) => tokio::time::sleep(duration).await,
+                None => bail!(err),
+            },
         }
     }
 }

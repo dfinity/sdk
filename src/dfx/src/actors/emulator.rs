@@ -9,9 +9,10 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::anyhow;
+use anyhow::bail;
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoffBuilder;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -78,22 +79,18 @@ impl Emulator {
     }
 
     fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(100))
-            .timeout(Duration::from_secs(30))
-            .build();
-
-        waiter.start();
+        let mut retries = 0;
         loop {
             if let Ok(content) = std::fs::read_to_string(file_path) {
                 if let Ok(port) = content.parse::<u16>() {
                     return Ok(port);
                 }
             }
-            waiter
-                .wait()
-                .map_err(|err| anyhow!("Cannot start ic-ref: {:?}", err))?;
+            if retries >= 3000 {
+                bail!("Cannot start ic-ref: timed out");
+            }
+            std::thread::sleep(Duration::from_millis(100));
+            retries += 1;
         }
     }
 
@@ -196,11 +193,9 @@ fn emulator_start_thread(
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), 1.2)
+        let mut retry_policy = ExponentialBackoffBuilder::new()
+            .with_max_elapsed_time(None)
             .build();
-        waiter.start();
 
         // Start the process, then wait for the file.
         let ic_ref_path = config.ic_ref_path.as_os_str();
@@ -244,10 +239,10 @@ fn emulator_start_thread(
                             logger,
                             "Last emulator seemed to have been healthy, not waiting..."
                         );
-                        waiter.start();
+                        retry_policy.reset();
                     } else {
                         // Wait before we start it again.
-                        let _ = waiter.wait();
+                        std::thread::sleep(retry_policy.next_backoff().unwrap());
                     }
                 }
             }

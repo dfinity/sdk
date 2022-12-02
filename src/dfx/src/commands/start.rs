@@ -20,7 +20,6 @@ use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
 use os_str_bytes::{OsStrBytes, OsStringBytes};
 use slog::{info, warn, Logger};
 use std::fs;
@@ -29,7 +28,7 @@ use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -78,14 +77,10 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
 fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxResult {
-    let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .throttle(std::time::Duration::from_secs(1))
-        .build();
     let runtime = Runtime::new().expect("Unable to create a runtime");
     let port = runtime
         .block_on(async {
-            waiter.start();
+            let mut retries = 30;
             let mut contents = String::new();
             loop {
                 let tokio_file = tokio::fs::File::open(&webserver_port_path)
@@ -100,7 +95,11 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
                 if !contents.is_empty() {
                     break;
                 }
-                waiter.wait().map_err(|err| anyhow!("{:?}", err))?;
+                if retries >= 30 {
+                    bail!("Timed out waiting for replica to become healthy");
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                retries += 1;
             }
             Ok::<String, DfxError>(contents.clone())
         })

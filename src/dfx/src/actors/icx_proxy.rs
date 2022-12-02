@@ -9,8 +9,9 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoffBuilder;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -194,11 +195,9 @@ fn icx_proxy_start_thread(
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), 1.2)
+        let mut retry_policy = ExponentialBackoffBuilder::new()
+            .with_max_elapsed_time(None)
             .build();
-        waiter.start();
 
         // Start the process, then wait for the file.
         let icx_proxy_path = icx_proxy_path.as_os_str();
@@ -250,10 +249,10 @@ fn icx_proxy_start_thread(
                             logger,
                             "Last icx-proxy seemed to have been healthy, not waiting..."
                         );
-                        waiter.start();
+                        retry_policy.reset();
                     } else {
                         // Wait before we start it again.
-                        let _ = waiter.wait();
+                        std::thread::sleep(retry_policy.next_backoff().unwrap());
                     }
                 }
             }

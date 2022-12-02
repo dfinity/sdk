@@ -8,9 +8,10 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::anyhow;
+use anyhow::bail;
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoffBuilder;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -69,20 +70,15 @@ impl BtcAdapter {
     }
 
     fn wait_for_socket(socket_path: &Path) -> DfxResult {
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(100))
-            .timeout(Duration::from_secs(30))
-            .build();
-
-        waiter.start();
-        loop {
-            if socket_path.exists() {
-                return Ok(());
+        let mut retries = 0;
+        while !socket_path.exists() {
+            if retries >= 3000 {
+                bail!("Cannot start btc-adapter: timed out");
             }
-            waiter
-                .wait()
-                .map_err(|err| anyhow!("Cannot start btc-adapter: {:?}", err))?;
+            std::thread::sleep(Duration::from_millis(100));
+            retries += 1;
         }
+        Ok(())
     }
 
     fn start_btc_adapter(&mut self, addr: Addr<Self>) -> DfxResult {
@@ -178,13 +174,9 @@ fn btc_adapter_start_thread(
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), 1.2)
+        let mut retry_policy = ExponentialBackoffBuilder::new()
+            .with_max_elapsed_time(None)
             .build();
-        waiter.start();
-
         let btc_adapter_path = config.btc_adapter_path.as_os_str();
         let mut cmd = std::process::Command::new(btc_adapter_path);
         cmd.arg(&config.config_path.to_string_lossy().to_string());
@@ -233,10 +225,10 @@ fn btc_adapter_start_thread(
                             logger,
                             "Last ic-btc-adapter seemed to have been healthy, not waiting..."
                         );
-                        waiter.start();
+                        retry_policy.reset()
                     } else {
                         // Wait before we start it again.
-                        let _ = waiter.wait();
+                        std::thread::sleep(retry_policy.next_backoff().unwrap());
                     }
                 }
             }

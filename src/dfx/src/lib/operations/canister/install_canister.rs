@@ -13,9 +13,10 @@ use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
 
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use candid::Principal;
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
 use ic_agent::{Agent, AgentError};
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
@@ -27,7 +28,6 @@ use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
 use std::process::{Command, Stdio};
-use std::time::Duration;
 
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
 pub async fn install_canister(
@@ -126,11 +126,7 @@ pub async fn install_canister(
         )
         .await?;
     }
-    let mut waiter = Delay::builder()
-        .with(Delay::count_timeout(30))
-        .exponential_backoff_capped(Duration::from_millis(500), 1.4, Duration::from_secs(5))
-        .build();
-    waiter.start();
+    let mut retry_policy = ExponentialBackoff::default();
     let mut times = 0;
     loop {
         match agent
@@ -151,10 +147,11 @@ pub async fn install_canister(
                             "Waiting for module change to be reflected in system state tree..."
                         )
                     }
-                    waiter.async_wait().await
-                        .map_err(|_| anyhow!("Timed out waiting for the module to update to the new hash in the state tree. \
+                    let interval = retry_policy.next_backoff()
+                        .context("Timed out waiting for the module to update to the new hash in the state tree. \
                             Something may have gone wrong with the upload. \
-                            No post-installation tasks have been run, including asset uploads."))?;
+                            No post-installation tasks have been run, including asset uploads.")?;
+                    tokio::time::sleep(interval).await;
                 } else {
                     bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
                         It has likely been modified while this command is running. \
@@ -174,10 +171,11 @@ pub async fn install_canister(
                         "Waiting for module change to be reflected in system state tree..."
                     )
                 }
-                waiter.async_wait().await
-                    .map_err(|_| anyhow!("Timed out waiting for the module to update to the new hash in the state tree. \
+                let interval = retry_policy.next_backoff()
+                    .context("Timed out waiting for the module to update to the new hash in the state tree. \
                         Something may have gone wrong with the upload. \
-                        No post-installation tasks have been run, including asset uploads."))?;
+                        No post-installation tasks have been run, including asset uploads.")?;
+                tokio::time::sleep(interval).await;
             }
             Err(e) => bail!(e),
         }

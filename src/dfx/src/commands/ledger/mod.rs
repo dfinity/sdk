@@ -11,11 +11,12 @@ use crate::lib::provider::create_agent_environment;
 use crate::NetworkOpt;
 
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use candid::Principal;
 use candid::{Decode, Encode};
 use clap::Parser;
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
 use std::str::FromStr;
@@ -122,15 +123,7 @@ pub async fn transfer(
         .unwrap()
         .as_nanos() as u64;
 
-    let mut waiter = Delay::builder()
-        .with(Delay::count_timeout(30))
-        .exponential_backoff_capped(
-            std::time::Duration::from_secs(1),
-            2.0,
-            std::time::Duration::from_secs(16),
-        )
-        .build();
-    waiter.start();
+    let mut retry_policy = ExponentialBackoff::default();
 
     let block_height: BlockHeight = loop {
         match agent
@@ -163,8 +156,9 @@ pub async fn transfer(
             }
             Err(agent_err) => {
                 eprintln!("Waiting to retry after error: {:?}", &agent_err);
-                if let Err(_waiter_err) = waiter.async_wait().await {
-                    bail!(agent_err);
+                match retry_policy.next_backoff() {
+                    Some(duration) => tokio::time::sleep(duration).await,
+                    None => bail!(agent_err),
                 }
             }
         }
