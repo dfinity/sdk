@@ -5,6 +5,7 @@ use crate::asset_canister::protocol::{CreateChunkRequest, CreateChunkResponse};
 use crate::params::CanisterCallParams;
 use crate::retryable::retryable;
 use crate::semaphores::Semaphores;
+use anyhow::bail;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{Decode, Nat};
@@ -29,39 +30,35 @@ pub(crate) async fn create_chunk(
     loop {
         let builder = canister_call_params.canister.update_(CREATE_CHUNK);
         let builder = builder.with_arg(&args);
-        let request_id_result = {
+        let request_id = {
             let _releaser = semaphores.create_chunk_call.acquire(1).await;
             builder
                 .build()
                 .map(|result: (CreateChunkResponse,)| (result.0.chunk_id,))
                 .call()
-                .await
+                .await?
         };
-        let wait_result = match request_id_result {
-            Ok(request_id) => {
-                let _releaser = semaphores.create_chunk_wait.acquire(1).await;
-                tokio::time::timeout(
-                    canister_call_params.timeout,
-                    canister_call_params.canister.wait(request_id),
-                )
-                .await
-                .unwrap_or(Err(AgentError::TimeoutWaitingForResponse()))
-            }
-            Err(err) => Err(err),
+        let wait_result = {
+            let _releaser = semaphores.create_chunk_wait.acquire(1).await;
+            tokio::time::timeout(
+                canister_call_params.timeout,
+                canister_call_params.canister.wait(request_id),
+            )
+            .await
+            .unwrap_or(Err(AgentError::TimeoutWaitingForResponse()))
         };
+
         match wait_result {
             Ok(response) => {
                 // failure to decode the response is not retryable
-                break Decode!(&response, CreateChunkResponse)
-                    .map_err(|e| anyhow::anyhow!("{}", e))
-                    .map(|x| x.chunk_id);
+                return Ok(Decode!(&response, CreateChunkResponse)?.chunk_id);
             }
             Err(agent_err) if !retryable(&agent_err) => {
-                break Err(anyhow::anyhow!("{}", agent_err));
+                bail!(agent_err);
             }
             Err(agent_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => break Err(anyhow::anyhow!("{}", agent_err)),
+                None => bail!(agent_err),
             },
         }
     }
