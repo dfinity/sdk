@@ -37,6 +37,9 @@ teardown() {
 }
 
 @test "dfx pull can resolve dependencies from on-chain canister metadata" {
+    # When ran with ic-ref, got following error:
+    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     # system-wide local replica
     dfx_start
 
