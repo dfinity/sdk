@@ -52,7 +52,7 @@ Updated candid to 0.8.4
 
 # 0.12.1
 
-## D
+## DFX
 
 ### fix: default not shrink for custom canisters
 
