@@ -324,6 +324,12 @@ Use the `dfx canister id` command to output the canister identifier/principal fo
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
+If the canister has been deployed by the local user, the locally stored canister ID will be provided.
+
+If a canister has been deployed by a third party, the user may set the `.canisters[$CANISTER_NAME].remote[$NETWORK]` entry in `dfx.json` to the canister ID.  In this case, the third party is responsible for maintaining the canister and the local user must ensure that they have the correct canister ID.  `dfx` will return the provided canister ID with no further checks.
+
+If a canister is typically deployed to the same canister ID on mainnet and all testnets, the user may set a remote canister ID for the `__default` network.  In this case, `dfx canister id $CANISTER_NAME` will return the default canister ID for all networks that don't have a dedicated entry.
+
 ### Basic usage
 
 ``` bash
@@ -652,12 +658,13 @@ You can use the following optional flags with the `dfx canister sign` command.
 
 You can specify the following options for the `dfx canister sign` command.
 
-| Option                       | Description  |
-|------------------------------|--------------|
-| `--expire-after <seconds>`   | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m).  |
-| `--file <output>`            | Specifies the output file name. The default is `message.json`.  |
-| `--random <random>`          | Specifies the configuration for generating random arguments.  |
-| `--type <type>`              | Specifies the data type for the argument when making a call using an argument. Possible values are `idl` and `raw`.  |
+| Option                     | Description                                                                                                                                      |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--argument-file <file>`   | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                      |
+| `--expire-after <seconds>` | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m). |
+| `--file <output>`          | Specifies the output file name. The default is `message.json`.                                                                                   |
+| `--random <random>`        | Specifies the configuration for generating random arguments.                                                                                     |
+| `--type <type>`            | Specifies the data type for the argument when making a call using an argument. Possible values are `idl` and `raw`.                              |
 
 ### Arguments
 

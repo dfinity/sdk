@@ -4,6 +4,14 @@
 
 ## DFX
 
+### feat: add `--argument-file` argument to the `dfx canister sign` command
+
+Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
+
+### feat: Add support for a default network key
+
+A remote canister ID can now be specified for the `__default` network.  If specified, `dfx` will assume that the canister is remote at the specified canister ID for all networks that don't have a dedicated entry.
+
 ### feat: use OS-native keyring for pem file storage
 
 If keyring integration is available, PEM files (except for the default identity) are now by default stored in the OS-provided keyring.
@@ -36,12 +44,12 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 8b650f88708543d39bb4f10b73516cca2cc7705a56351b8d833b9c40ec8e7802
-- https://github.com/dfinity/sdk/pull/2772
+- Module hash: c7adf5480aa1add0fe1811e29786b0c45a38281a5f57e149aa7f0d67a5836f44
+- https://github.com/dfinity/sdk/pull/2699
 
 # 0.12.1
 
-## DFX
+## D
 
 ### fix: default not shrink for custom canisters
 
