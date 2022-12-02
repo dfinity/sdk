@@ -42,7 +42,8 @@ teardown() {
 
     install_asset pullable
 
-    # prepare onchain canisters
+    # 1. success path
+    ## 1.1. prepare "onchain" canisters
     cd onchain
 
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_a/main.wasm
@@ -50,12 +51,51 @@ teardown() {
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_b/empty.wasm
     cd src/onchain_b
     ic-wasm empty.wasm -o main.wasm metadata "dfx:deps" -d "onchain_a:rrkah-fqaaa-aaaaa-aaaaq-cai;" -v public
-    cd ../../ # back to root of onchain project
+    cd ../../ # go back to root of "onchain" project
     dfx deploy
 
     assert_command dfx canister metadata ryjl3-tyaaa-aaaaa-aaaba-cai dfx:deps
     assert_match "onchain_a:rrkah-fqaaa-aaaaa-aaaaq-cai;"
 
-    # app project to pull onchain canisters
+    ## 1.2. pull onchain canisters in "app" project
     cd ../app
+    assert_command dfx pull dep
+    assert_match "Pulling canister ryjl3-tyaaa-aaaaa-aaaba-cai...
+Pulling canister rrkah-fqaaa-aaaaa-aaaaq-cai...
+WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+
+    assert_command dfx pull # if not specify canister name, all pull type canisters will be pulled
+    assert_match "Pulling canister ryjl3-tyaaa-aaaaa-aaaba-cai...
+Pulling canister rrkah-fqaaa-aaaaa-aaaaq-cai...
+WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+
+    # 2. sad path: if the canister is not present on-chain
+    cd ../onchain
+    dfx canister uninstall-code onchain_a
+
+    cd ../app
+    assert_command_fail dfx pull
+    assert_contains "Failed while fetch and parse \`dfx:deps\` metadata from canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "Canister rrkah-fqaaa-aaaaa-aaaaq-cai has no module."
+
+    cd ../onchain
+    dfx canister stop onchain_a
+    dfx canister delete onchain_a
+
+    cd ../app
+    assert_command_fail dfx pull
+    assert_contains "Failed while fetch and parse \`dfx:deps\` metadata from canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "Canister rrkah-fqaaa-aaaaa-aaaaq-cai not found."
+
+    # 3. sad path: if dependency metadata cannot be read (wrong format)
+    cd ../onchain
+    cd src/onchain_b
+    ic-wasm empty.wasm -o main.wasm metadata "dfx:deps" -d "rrkah-fqaaa-aaaaa-aaaaq-cai;onchain_a" -v public
+    cd ../../ # go back to root of "onchain" project
+    dfx deploy
+
+    cd ../app
+    assert_command_fail dfx pull
+    assert_contains "Failed while fetch and parse \`dfx:deps\` metadata from canister ryjl3-tyaaa-aaaaa-aaaba-cai."
+    assert_contains "Failed to parse \`dfx:deps\` entry: rrkah-fqaaa-aaaaa-aaaaq-cai. Expected \`name:Principal\`."
 }

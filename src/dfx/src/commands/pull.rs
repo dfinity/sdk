@@ -9,7 +9,7 @@ use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
-use ic_agent::Agent;
+use ic_agent::{Agent, AgentError};
 use slog::Logger;
 use tokio::runtime::Runtime;
 
@@ -83,7 +83,7 @@ async fn fetch_deps_to_pull(
     {
         Ok(data) => {
             let data = String::from_utf8(data)?;
-            for entry in data.split(';') {
+            for entry in data.split_terminator(';') {
                 match entry.split_once(':') {
                     Some((_, p)) => {
                         let canister_id = Principal::from_text(p)
@@ -95,14 +95,22 @@ async fn fetch_deps_to_pull(
                     ),
                 }
             }
+            Ok(())
         }
-        Err(_) => {
-            slog::info!(
-                logger,
-                "Canister {canister_id} doesn't have `dfx:deps` metadata."
-            );
-        }
+        Err(agent_error) => match agent_error {
+            AgentError::HttpError(ref e) => {
+                let content = String::from_utf8(e.content.clone())?;
+                if content.starts_with("Custom section") {
+                    slog::warn!(
+                        logger,
+                        "`dfx:deps` metadata not found in canister {canister_id}."
+                    );
+                    Ok(())
+                } else {
+                    Err(anyhow!(agent_error))
+                }
+            }
+            _ => Err(anyhow!(agent_error)),
+        },
     }
-
-    Ok(())
 }
