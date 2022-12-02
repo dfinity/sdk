@@ -7,7 +7,6 @@
 ### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
 
 As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
-This change will trigger the update process for frontend canister (new module hash: `0a064423e6d7b262f9c39a782135db4e6207829910e6f033077e72a2aaaee064`). 
 
 ### feat: write canister metadata sections for dfx pull
 
@@ -51,7 +50,7 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: c7adf5480aa1add0fe1811e29786b0c45a38281a5f57e149aa7f0d67a5836f44
+- Module hash: 5e543f65b1c0f133f7f64044ff120af512dd08099a5fc97105dbf5aa80f589c8
 - https://github.com/dfinity/sdk/pull/2699
 
 # 0.12.1
