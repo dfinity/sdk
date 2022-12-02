@@ -24,22 +24,22 @@ pub async fn upload(
         })
         .collect();
 
-    let container_assets = list_assets(&canister).await?;
+    let container_assets = list_assets(canister).await?;
 
     println!("Starting batch.");
 
-    let batch_id = create_batch(&canister).await?;
+    let batch_id = create_batch(canister).await?;
 
     println!("Staging contents of new and changed assets:");
 
     let project_assets =
-        make_project_assets(&canister, &batch_id, asset_descriptors, &container_assets).await?;
+        make_project_assets(canister, &batch_id, asset_descriptors, &container_assets).await?;
 
     let operations = assemble_upload_operations(project_assets, container_assets);
 
     println!("Committing batch.");
 
-    commit_batch(&canister, &batch_id, operations).await?;
+    commit_batch(canister, &batch_id, operations).await?;
 
     Ok(())
 }
