@@ -1,7 +1,6 @@
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::util::expiry_duration;
 use std::path::Path;
 
 use anyhow::Context;
@@ -24,7 +23,7 @@ pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> Df
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    ic_asset::sync(&canister, &source_paths, expiry_duration())
+    ic_asset::sync(&canister, &source_paths)
         .await
         .with_context(|| {
             format!(

@@ -35,7 +35,6 @@ mod asset_config;
 mod content;
 mod content_encoder;
 mod operations;
-mod params;
 mod plumbing;
 mod retryable;
 mod semaphores;

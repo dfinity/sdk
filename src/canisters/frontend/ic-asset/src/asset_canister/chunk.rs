@@ -2,17 +2,16 @@ use std::time::Duration;
 
 use crate::asset_canister::method_names::CREATE_CHUNK;
 use crate::asset_canister::protocol::{CreateChunkRequest, CreateChunkResponse};
-use crate::params::CanisterCallParams;
 use crate::retryable::retryable;
 use crate::semaphores::Semaphores;
 use anyhow::bail;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{Decode, Nat};
-use ic_agent::AgentError;
+use ic_utils::Canister;
 
 pub(crate) async fn create_chunk(
-    canister_call_params: &CanisterCallParams<'_>,
+    canister: &Canister<'_>,
     batch_id: &Nat,
     content: &[u8],
     semaphores: &Semaphores,
@@ -28,7 +27,7 @@ pub(crate) async fn create_chunk(
         .build();
 
     loop {
-        let builder = canister_call_params.canister.update_(CREATE_CHUNK);
+        let builder = canister.update_(CREATE_CHUNK);
         let builder = builder.with_arg(&args);
         let request_id = {
             let _releaser = semaphores.create_chunk_call.acquire(1).await;
@@ -40,12 +39,7 @@ pub(crate) async fn create_chunk(
         };
         let wait_result = {
             let _releaser = semaphores.create_chunk_wait.acquire(1).await;
-            tokio::time::timeout(
-                canister_call_params.timeout,
-                canister_call_params.canister.wait(request_id),
-            )
-            .await
-            .unwrap_or(Err(AgentError::TimeoutWaitingForResponse()))
+            canister.wait(request_id).await
         };
 
         match wait_result {

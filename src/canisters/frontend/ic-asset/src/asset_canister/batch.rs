@@ -4,15 +4,14 @@ use crate::asset_canister::method_names::{COMMIT_BATCH, CREATE_BATCH};
 use crate::asset_canister::protocol::{
     BatchOperationKind, CommitBatchArguments, CreateBatchRequest, CreateBatchResponse,
 };
-use crate::params::CanisterCallParams;
 use crate::retryable::retryable;
+use anyhow::bail;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::Nat;
+use ic_utils::Canister;
 
-pub(crate) async fn create_batch(
-    canister_call_params: &CanisterCallParams<'_>,
-) -> anyhow::Result<Nat> {
+pub(crate) async fn create_batch(canister: &Canister<'_>) -> anyhow::Result<Nat> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
         .with_max_interval(Duration::from_secs(16))
@@ -22,8 +21,7 @@ pub(crate) async fn create_batch(
 
     let result = loop {
         let create_batch_args = CreateBatchRequest {};
-        let response = canister_call_params
-            .canister
+        let response = canister
             .update_(CREATE_BATCH)
             .with_arg(&create_batch_args)
             .build()
@@ -45,7 +43,7 @@ pub(crate) async fn create_batch(
 }
 
 pub(crate) async fn commit_batch(
-    canister_call_params: &CanisterCallParams<'_>,
+    canister: &Canister<'_>,
     batch_id: &Nat,
     operations: Vec<BatchOperationKind>,
 ) -> anyhow::Result<()> {
@@ -60,24 +58,22 @@ pub(crate) async fn commit_batch(
         batch_id,
         operations,
     };
-    let result = loop {
-        match canister_call_params
-            .canister
+    loop {
+        match canister
             .update_(COMMIT_BATCH)
             .with_arg(&arg)
             .build()
             .call_and_wait()
             .await
         {
-            Ok(()) => break Ok(()),
+            Ok(()) => return Ok(()),
             Err(agent_err) if !retryable(&agent_err) => {
-                break Err(agent_err);
+                bail!(agent_err);
             }
             Err(agent_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => break Err(agent_err),
+                None => bail!(agent_err),
             },
         }
-    }?;
-    Ok(result)
+    }
 }
