@@ -19,7 +19,7 @@
 //!     .with_canister_id(canister_id)
 //!     .with_agent(&agent)
 //!     .build()?;
-//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], Duration::from_secs(60)).await?;
+//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()]).await?;
 //! # Ok(())
 //! # }
 
