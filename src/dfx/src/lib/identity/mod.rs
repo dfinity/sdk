@@ -676,8 +676,12 @@ impl Identity {
         network: &NetworkDescriptor,
         name: &str,
     ) -> DfxResult<WalletCanister<'env>> {
-        let wallet_canister_id = Identity::get_or_create_wallet(env, network, name).await?;
-        Identity::build_wallet_canister(wallet_canister_id, env).await
+        // without this async block, #[context] gives a spurious error
+        async {
+            let wallet_canister_id = Identity::get_or_create_wallet(env, network, name).await?;
+            Identity::build_wallet_canister(wallet_canister_id, env).await
+        }
+        .await
     }
 }
 
