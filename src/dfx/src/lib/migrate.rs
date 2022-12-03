@@ -32,7 +32,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         .get_agent()
         .expect("Could not get agent from environment");
     let mut mgr = IdentityManager::new(env)?;
-    let ident = mgr.instantiate_selected_identity()?;
+    let ident = mgr.instantiate_selected_identity(env.get_logger())?;
     let mut did_migrate = false;
     let wallet = if let Some(principal) = Identity::wallet_canister_id(network, ident.name())? {
         principal
