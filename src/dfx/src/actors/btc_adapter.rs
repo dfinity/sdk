@@ -9,8 +9,6 @@ use actix::{
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::bail;
-use backoff::backoff::Backoff;
-use backoff::ExponentialBackoffBuilder;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
@@ -174,9 +172,6 @@ fn btc_adapter_start_thread(
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        let mut retry_policy = ExponentialBackoffBuilder::new()
-            .with_max_elapsed_time(None)
-            .build();
         let btc_adapter_path = config.btc_adapter_path.as_os_str();
         let mut cmd = std::process::Command::new(btc_adapter_path);
         cmd.arg(&config.config_path.to_string_lossy().to_string());
@@ -217,18 +212,15 @@ fn btc_adapter_start_thread(
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "ic-btc-adapter process failed.");
-                    // Reset waiter if last start was over 2 seconds ago, and do not wait.
-                    if std::time::Instant::now().duration_since(last_start)
-                        >= Duration::from_secs(2)
+                    // If it took less than two seconds to exit, wait a bit before trying again.
+                    if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
+                        std::thread::sleep(Duration::from_secs(2));
+                    } else {
                         debug!(
                             logger,
                             "Last ic-btc-adapter seemed to have been healthy, not waiting..."
                         );
-                        retry_policy.reset()
-                    } else {
-                        // Wait before we start it again.
-                        std::thread::sleep(retry_policy.next_backoff().unwrap());
                     }
                 }
             }

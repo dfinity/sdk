@@ -10,8 +10,6 @@ use actix::{
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::bail;
-use backoff::backoff::Backoff;
-use backoff::ExponentialBackoffBuilder;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
@@ -192,11 +190,6 @@ fn emulator_start_thread(
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Use a Waiter for waiting for the file to be created.
-        let mut retry_policy = ExponentialBackoffBuilder::new()
-            .with_max_elapsed_time(None)
-            .build();
-
         // Start the process, then wait for the file.
         let ic_ref_path = config.ic_ref_path.as_os_str();
 
@@ -231,18 +224,15 @@ fn emulator_start_thread(
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "Emulator process failed.");
-                    // Reset waiter if last start was over 2 seconds ago, and do not wait.
-                    if std::time::Instant::now().duration_since(last_start)
-                        >= Duration::from_secs(2)
+                    // If it took less than two seconds to exit, wait a bit before trying again.
+                    if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
+                        std::thread::sleep(Duration::from_secs(2));
+                    } else {
                         debug!(
                             logger,
                             "Last emulator seemed to have been healthy, not waiting..."
                         );
-                        retry_policy.reset();
-                    } else {
-                        // Wait before we start it again.
-                        std::thread::sleep(retry_policy.next_backoff().unwrap());
                     }
                 }
             }

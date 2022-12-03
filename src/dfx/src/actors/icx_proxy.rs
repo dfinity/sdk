@@ -9,8 +9,6 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use backoff::backoff::Backoff;
-use backoff::ExponentialBackoffBuilder;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
@@ -194,11 +192,6 @@ fn icx_proxy_start_thread(
     verbose: bool,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Use a Waiter for waiting for the file to be created.
-        let mut retry_policy = ExponentialBackoffBuilder::new()
-            .with_max_elapsed_time(None)
-            .build();
-
         // Start the process, then wait for the file.
         let icx_proxy_path = icx_proxy_path.as_os_str();
 
@@ -241,18 +234,15 @@ fn icx_proxy_start_thread(
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "icx-proxy process failed.");
-                    // Reset waiter if last start was over 2 seconds ago, and do not wait.
-                    if std::time::Instant::now().duration_since(last_start)
-                        >= Duration::from_secs(2)
+                    // If it took less than two seconds to exit, wait a bit before trying again.
+                    if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
+                        std::thread::sleep(Duration::from_secs(2));
+                    } else {
                         debug!(
                             logger,
                             "Last icx-proxy seemed to have been healthy, not waiting..."
                         );
-                        retry_policy.reset();
-                    } else {
-                        // Wait before we start it again.
-                        std::thread::sleep(retry_policy.next_backoff().unwrap());
                     }
                 }
             }
