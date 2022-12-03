@@ -80,7 +80,7 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
     let runtime = Runtime::new().expect("Unable to create a runtime");
     let port = runtime
         .block_on(async {
-            let mut retries = 30;
+            let mut retries = 0;
             let mut contents = String::new();
             loop {
                 let tokio_file = tokio::fs::File::open(&webserver_port_path)
