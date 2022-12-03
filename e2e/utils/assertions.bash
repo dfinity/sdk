@@ -124,7 +124,7 @@ assert_occurs() {
         search_in="$3"
     fi
 
-    actual="$( echo $search_in | grep -o "$search_for" | wc -l | xargs )"
+    actual="$( echo "$search_in" | grep -o "$search_for" | wc -l | xargs )"
 
     if [[ "$expect" -ne "$actual" ]]; then
         batslib_print_kv_single_or_multi 6 "Expect" "$expect" "Actual" "$actual" \
