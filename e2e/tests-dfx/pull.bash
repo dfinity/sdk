@@ -47,14 +47,20 @@ teardown() {
 
     # 1. success path
     ## 1.1. prepare "onchain" canisters
+    # a -> []
+    # b -> [a]
+    # c -> [a]
+    # app -> [a, b]
     cd onchain
 
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_a/main.wasm
 
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_b/empty.wasm
-    cd src/onchain_b
-    ic-wasm empty.wasm -o main.wasm metadata "dfx:deps" -d "onchain_a:rrkah-fqaaa-aaaaa-aaaaq-cai;" -v public
-    cd ../../ # go back to root of "onchain" project
+    ic-wasm src/onchain_b/empty.wasm -o src/onchain_b/main.wasm metadata "dfx:deps" -d "onchain_a:rrkah-fqaaa-aaaaa-aaaaq-cai;" -v public
+
+    echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_c/empty.wasm
+    ic-wasm src/onchain_c/empty.wasm -o src/onchain_c/main.wasm metadata "dfx:deps" -d "onchain_a:rrkah-fqaaa-aaaaa-aaaaq-cai;" -v public
+
     dfx deploy
 
     assert_command dfx canister metadata ryjl3-tyaaa-aaaaa-aaaba-cai dfx:deps
@@ -62,16 +68,17 @@ teardown() {
 
     ## 1.2. pull onchain canisters in "app" project
     cd ../app
-    assert_command dfx pull dep
+    assert_command dfx pull dep1
     assert_match "Pulling canister ryjl3-tyaaa-aaaaa-aaaba-cai...
 Pulling canister rrkah-fqaaa-aaaaa-aaaaq-cai...
 WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
-    assert_occurs 1 "Pulling canister ryjl3-tyaaa-aaaaa-aaaba-cai..."
 
-    assert_command dfx pull # if not specify canister name, all pull type canisters will be pulled
+    assert_command dfx pull # if not specify canister name, all pull type canisters (dep1, dep2) will be pulled
     assert_match "Pulling canister ryjl3-tyaaa-aaaaa-aaaba-cai...
+Pulling canister r7inp-6aaaa-aaaaa-aaabq-cai...
 Pulling canister rrkah-fqaaa-aaaaa-aaaaq-cai...
 WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_occurs 1 "Pulling canister rrkah-fqaaa-aaaaa-aaaaq-cai..." # common dependency onchain_a is pulled only once
 
     # 2. sad path: if the canister is not present on-chain
     cd ../onchain

@@ -11,6 +11,12 @@
       "candid": "src/onchain_b/main.did",
       "wasm": "src/onchain_b/main.wasm",
       "build": ""
+    },
+    "onchain_c": {
+      "type": "custom",
+      "candid": "src/onchain_c/main.did",
+      "wasm": "src/onchain_c/main.wasm",
+      "build": ""
     }
   }
 }
