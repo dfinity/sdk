@@ -56,16 +56,16 @@ url = 'https://github.com/dfinity/motoko/releases/download/0.7.3/motoko-base-lib
 sha256 = 'c46bcb797b841d753f7709005ce803af0fcd671a8e93177b1a3f2dcc6ca55030'
 
 [x86_64-linux.ic-ref]
-url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-1fba03ee-x86_64-linux.tar.gz'
-sha256 = 'd6f66f45b3fc904bea7810d3795b7761115b4635c3846991c4516ecaa42e2d36'
+url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-6d585bee-x86_64-linux.tar.gz'
+sha256 = 'a7134b552fd8987dc811147e843b5b457167747baa781a5f1dfff8bcf874fc61'
 
 [x86_64-linux.icx-proxy]
 url = 'https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-linux.tar.gz'
 sha256 = '7a5612a1fb7512d22dcd37627a9d626fbc282b172665a832fe2cc2b243789fa1'
 
 [x86_64-linux.ic-admin]
-url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/release/ic-admin.gz'
-sha256 = 'a0f2f58bd0a2e3af6689169b8542acb1391b853b727e7d3d6b80dd21d1cf7c1f'
+url = 'https://download.dfinity.systems/ic/805c5a52ab72344f7fcc4146115359b601a25708/release/ic-admin.gz'
+sha256 = '8106011dfaddf7bcc29162895836099363df1e98f0dbcfaeed359dc58b3815f7'
 
 [x86_64-linux.ic-btc-adapter]
 url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/ic-btc-adapter.gz'
@@ -76,8 +76,8 @@ url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e6070
 sha256 = '0ede81175a25c9df5c93cf4ac99b588fcca9e9067052284ad2d5a875f7a892cc'
 
 [x86_64-linux.ic-nns-init]
-url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/release/ic-nns-init.gz'
-sha256 = 'b3a1242feb54cb29b2647663f78f2908ea987c635e4cf4338eefaa5be38a87ce'
+url = 'https://download.dfinity.systems/ic/805c5a52ab72344f7fcc4146115359b601a25708/release/ic-nns-init.gz'
+sha256 = 'b3f3535dd17be2781b869be9c133cc28a3c14b23162d9047883b7da0ee523187'
 
 [x86_64-linux.ic-starter]
 url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/ic-starter.gz'
