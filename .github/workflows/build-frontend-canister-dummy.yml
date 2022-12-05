@@ -18,3 +18,7 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     name: frontend-canister-up-to-date:required
+    steps:
+      - name: skip
+        run: |
+          echo skipped
