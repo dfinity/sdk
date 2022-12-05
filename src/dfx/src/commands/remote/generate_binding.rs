@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::create_agent_environment;
 use crate::util::check_candid_file;
+use crate::NetworkOpt;
 
 use anyhow::Context;
 use clap::Parser;
@@ -29,7 +30,7 @@ pub struct GenerateBindingOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
-    let env = create_agent_environment(env, None)?;
+    let env = create_agent_environment(env, NetworkOpt::default())?;
     let config = env.get_config_or_anyhow()?;
     let log = env.get_logger();
 

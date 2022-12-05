@@ -13,6 +13,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
 use crate::util::{blob_from_arguments, expiry_duration};
+use crate::NetworkOpt;
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -109,7 +110,13 @@ async fn delete_canister(
                 CallSender::Wallet(wallet_id) => Some(*wallet_id),
                 CallSender::SelectedId => {
                     let network = env.get_network_descriptor();
-                    let agent_env = create_agent_environment(env, Some(network.name.clone()))?;
+                    let agent_env = create_agent_environment(
+                        env,
+                        NetworkOpt {
+                            network: Some(network.name.clone()),
+                            playground: false,
+                        },
+                    )?;
                     let identity_name = agent_env
                         .get_selected_identity()
                         .expect("No selected identity.")

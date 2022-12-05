@@ -22,7 +22,7 @@ pub struct GenerateOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.network)?;
+    let env = create_agent_environment(env, opts.network)?;
     let log = env.get_logger();
 
     // Read the config.

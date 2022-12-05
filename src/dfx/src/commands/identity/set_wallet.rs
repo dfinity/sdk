@@ -4,6 +4,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
+use crate::NetworkOpt;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -23,7 +24,7 @@ pub struct SetWalletOpts {
     force: bool,
 }
 
-pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: NetworkOpt) -> DfxResult {
     let agent_env = create_agent_environment(env, network)?;
     let env = &agent_env;
     let log = env.get_logger();

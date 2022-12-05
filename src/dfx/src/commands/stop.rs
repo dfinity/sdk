@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
+use crate::NetworkOpt;
 
 use anyhow::bail;
 use clap::Parser;
@@ -62,7 +63,7 @@ pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
     let network_descriptor = create_network_descriptor(
         env.get_config(),
         env.get_networks_config(),
-        None,
+        NetworkOpt::default(),
         Some(env.get_logger().clone()),
         LocalBindDetermination::AsConfigured,
     )?;

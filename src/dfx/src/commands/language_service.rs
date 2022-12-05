@@ -1,11 +1,11 @@
 use crate::config::dfinity::{ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME};
-use crate::error_invalid_data;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
+use crate::{error_invalid_data, NetworkOpt};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -54,7 +54,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         let network_descriptor = create_network_descriptor(
             env.get_config(),
             env.get_networks_config(),
-            None, /* opts.network */
+            NetworkOpt::default(), /* opts.network */
             None,
             LocalBindDetermination::ApplyRunningWebserverPort,
         )?;

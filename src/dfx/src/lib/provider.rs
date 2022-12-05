@@ -10,6 +10,7 @@ use crate::lib::network::local_server_descriptor::{
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
+use crate::NetworkOpt;
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
@@ -146,11 +147,17 @@ fn config_network_to_network_descriptor(
 pub fn create_network_descriptor(
     project_config: Option<Arc<Config>>,
     shared_config: Arc<NetworksConfig>,
-    network: Option<String>,
+    network_opt: NetworkOpt,
     logger: Option<Logger>,
     local_bind_determination: LocalBindDetermination,
 ) -> DfxResult<NetworkDescriptor> {
     let logger = (logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
+
+    let network = if network_opt.playground {
+        Some("playground".to_string())
+    } else {
+        network_opt.network
+    };
 
     set_network_context(network);
     let network_name = get_network_context()?;
@@ -186,6 +193,12 @@ fn create_mainnet_network_descriptor(
             "Using built-in definition for network 'ic' (mainnet)"
         );
         Some(Ok(NetworkDescriptor::ic()))
+    } else if network_name == "playground" {
+        info!(
+            logger,
+            "Using built-in definition for network 'playground' (mainnet)"
+        );
+        Some(Ok(NetworkDescriptor::playground()))
     } else {
         None
     }
@@ -403,7 +416,7 @@ fn get_running_webserver_bind_address(
 #[context("Failed to create AgentEnvironment.")]
 pub fn create_agent_environment<'a>(
     env: &'a (dyn Environment + 'a),
-    network: Option<String>,
+    network: NetworkOpt,
 ) -> DfxResult<AgentEnvironment<'a>> {
     let network_descriptor = create_network_descriptor(
         env.get_config(),
@@ -591,7 +604,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             local_bind_determination,
         )
@@ -622,7 +635,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -653,7 +666,7 @@ mod tests {
         let result = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         );
@@ -672,7 +685,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -697,7 +710,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -735,7 +748,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -777,7 +790,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -819,7 +832,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -860,7 +873,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -901,7 +914,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -948,7 +961,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -988,7 +1001,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )
@@ -1028,7 +1041,7 @@ mod tests {
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
-            None,
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::AsConfigured,
         )

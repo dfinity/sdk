@@ -29,10 +29,17 @@ use crate::{
         waiter::waiter_with_timeout,
     },
     util::{assets::wallet_wasm, expiry_duration},
+    NetworkOpt,
 };
 
 pub fn exec(env: &dyn Environment) -> DfxResult {
-    let env = create_agent_environment(env, Some("ic".to_string()))?;
+    let env = create_agent_environment(
+        env,
+        NetworkOpt {
+            playground: false,
+            network: Some("ic".to_string()),
+        },
+    )?;
     let agent = env.get_agent().expect("Unable to create agent");
     let ident = env.get_selected_identity().unwrap();
     let principal = env.get_selected_identity_principal().unwrap();

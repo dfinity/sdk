@@ -13,6 +13,7 @@ use crate::lib::network::id::write_network_id;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
+use crate::NetworkOpt;
 
 use anyhow::Context;
 use clap::Parser;
@@ -91,7 +92,7 @@ pub fn exec(
     let network_descriptor = create_network_descriptor(
         env.get_config(),
         env.get_networks_config(),
-        None,
+        NetworkOpt::default(),
         Some(env.get_logger().clone()),
         LocalBindDetermination::AsConfigured,
     )?;

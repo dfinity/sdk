@@ -5,7 +5,6 @@ use crate::actors::{
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
-use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::id::write_network_id;
@@ -15,6 +14,7 @@ use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::ReplicaConfig;
 use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
+use crate::{error_invalid_argument, NetworkOpt};
 
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
@@ -146,7 +146,7 @@ pub fn exec(
     let network_descriptor = create_network_descriptor(
         project_config,
         env.get_networks_config(),
-        None,
+        NetworkOpt::default(),
         network_descriptor_logger,
         LocalBindDetermination::AsConfigured,
     )?;

@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::NetworkOpt;
 
 use clap::Parser;
 use tokio::runtime::Runtime;
@@ -11,7 +12,7 @@ use tokio::runtime::Runtime;
 #[derive(Parser)]
 pub struct GetWalletOpts {}
 
-pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>) -> DfxResult {
+pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: NetworkOpt) -> DfxResult {
     let agent_env = create_agent_environment(env, network)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 

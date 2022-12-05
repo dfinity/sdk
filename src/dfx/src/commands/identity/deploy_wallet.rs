@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::NetworkOpt;
 
 use anyhow::bail;
 use candid::Principal as CanisterId;
@@ -16,7 +17,7 @@ pub struct DeployWalletOpts {
     canister_id: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<String>) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: NetworkOpt) -> DfxResult {
     let agent_env = create_agent_environment(env, network)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 

@@ -47,7 +47,7 @@ pub fn exec(
     let network_descriptor = create_network_descriptor(
         env.get_config(),
         env.get_networks_config(),
-        network.network,
+        network,
         Some(env.get_logger().clone()),
         LocalBindDetermination::AsConfigured,
     )?;

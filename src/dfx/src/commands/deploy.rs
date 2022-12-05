@@ -79,7 +79,7 @@ pub struct DeployOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.network)?;
+    let env = create_agent_environment(env, opts.network)?;
 
     let timeout = expiry_duration();
     let canister_name = opts.canister_name.as_deref();

@@ -78,6 +78,16 @@ impl NetworkDescriptor {
             None => bail!("The '{}' network must be a local network", self.name),
         }
     }
+
+    pub(crate) fn playground() -> Self {
+        Self {
+            name: "playround".to_string(),
+            providers: vec![DEFAULT_IC_GATEWAY.to_string()],
+            r#type: NetworkTypeDescriptor::Persistent, //todo!("really?")
+            is_ic: true,
+            local_server_descriptor: None,
+        }
+    }
 }
 
 #[cfg(test)]

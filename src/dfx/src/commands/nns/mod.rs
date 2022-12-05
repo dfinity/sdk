@@ -3,6 +3,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::provider::create_agent_environment;
+use crate::NetworkOpt;
 
 use clap::Parser;
 use tokio::runtime::Runtime;
@@ -30,7 +31,7 @@ enum SubCommand {
 
 /// Executes `dfx nns` and its subcommands.
 pub fn exec(env: &dyn Environment, opts: NnsOpts) -> DfxResult {
-    let env = create_agent_environment(env, None)?;
+    let env = create_agent_environment(env, NetworkOpt::default())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {
