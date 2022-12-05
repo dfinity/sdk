@@ -100,7 +100,7 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
             std::fs::create_dir_all(p)
                 .with_context(|| format!("Failed to create directory {}.", p.to_string_lossy()))?;
         }
-        std::fs::write(&path, content)
+        std::fs::write(path, content)
             .with_context(|| format!("Failed to write to {}.", path.to_string_lossy()))?;
     }
 
@@ -116,7 +116,7 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
     }
 
     if !dry_run {
-        std::fs::create_dir_all(&path)
+        std::fs::create_dir_all(path)
             .with_context(|| format!("Failed to create directory {}.", path.to_string_lossy()))?;
     }
 

@@ -5,6 +5,7 @@ use crate::asset_canister::protocol::{
 use crate::convenience::waiter_with_timeout;
 use crate::params::CanisterCallParams;
 use crate::retryable::retryable;
+use anyhow::bail;
 use candid::Nat;
 use garcon::{Delay, Waiter};
 
@@ -65,7 +66,7 @@ pub(crate) async fn commit_batch(
         batch_id,
         operations,
     };
-    let result = loop {
+    loop {
         match canister_call_params
             .canister
             .update_(COMMIT_BATCH)
@@ -74,16 +75,16 @@ pub(crate) async fn commit_batch(
             .call_and_wait(waiter_with_timeout(canister_call_params.timeout))
             .await
         {
-            Ok(()) => break Ok(()),
+            Ok(()) => break,
             Err(agent_err) if !retryable(&agent_err) => {
-                break Err(agent_err);
+                bail!(agent_err);
             }
             Err(agent_err) => {
                 if let Err(_waiter_err) = waiter.async_wait().await {
-                    break Err(agent_err);
+                    bail!(agent_err);
                 }
             }
         }
-    }?;
-    Ok(result)
+    }
+    Ok(())
 }
