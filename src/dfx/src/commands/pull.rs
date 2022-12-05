@@ -78,7 +78,7 @@ async fn fetch_deps_to_pull(
     slog::info!(logger, "Pulling canister {canister_id}...");
 
     match agent
-        .read_state_canister_metadata(canister_id, "dfx:deps", false)
+        .read_state_canister_metadata(canister_id, "dfx:deps")
         .await
     {
         Ok(data) => {
