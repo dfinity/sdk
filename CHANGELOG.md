@@ -53,6 +53,18 @@ Updated candid to 0.8.4
 - Module hash: 5e543f65b1c0f133f7f64044ff120af512dd08099a5fc97105dbf5aa80f589c8
 - https://github.com/dfinity/sdk/pull/2413
 
+### Replica
+
+Updated replica to elected commit 997ab2e9cc49189302fe54c1e60709abfbeb1d42.
+This incorporates the following executed proposals:
+
+- [93761](https://dashboard.internetcomputer.org/proposal/93761)
+- [93507](https://dashboard.internetcomputer.org/proposal/93507)
+- [92573](https://dashboard.internetcomputer.org/proposal/92573)
+- [92338](https://dashboard.internetcomputer.org/proposal/92338)
+- [91732](https://dashboard.internetcomputer.org/proposal/91732)
+- [91257](https://dashboard.internetcomputer.org/proposal/91257)
+
 # 0.12.1
 
 ## DFX
