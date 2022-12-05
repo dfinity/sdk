@@ -181,7 +181,7 @@ pub fn blob_from_arguments(
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
         "raw" => {
-            let bytes = hex::decode(&arguments.unwrap_or("")).map_err(|e| {
+            let bytes = hex::decode(arguments.unwrap_or("")).map_err(|e| {
                 error_invalid_argument!("Argument is not a valid hex string: {}", e)
             })?;
             Ok(bytes)

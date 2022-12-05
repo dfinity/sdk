@@ -264,7 +264,7 @@ fn check_stable_compatibility(
         .get_binary_command("moc")?
         .arg("--stable-compatible")
         .arg(&deployed_stable_path)
-        .arg(&stable_path)
+        .arg(stable_path)
         .output()
         .context("Failed to run 'moc'.")?;
     Ok(if !output.status.success() {

@@ -110,7 +110,7 @@ pub async fn start_canister(
         canister_id: Principal,
     }
 
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::StartCanister.as_ref(),
@@ -133,7 +133,7 @@ pub async fn stop_canister(
         canister_id: Principal,
     }
 
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::StopCanister.as_ref(),
@@ -157,7 +157,7 @@ pub async fn update_settings(
         canister_id: Principal,
         settings: CanisterSettings,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::UpdateSettings.as_ref(),
@@ -196,7 +196,7 @@ pub async fn uninstall_code(
     struct In {
         canister_id: Principal,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::UninstallCode.as_ref(),
@@ -219,7 +219,7 @@ pub async fn delete_canister(
     struct In {
         canister_id: Principal,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::DeleteCanister.as_ref(),
@@ -243,7 +243,7 @@ pub async fn deposit_cycles(
     struct In {
         canister_id: Principal,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::DepositCycles.as_ref(),
@@ -274,7 +274,7 @@ pub async fn provisional_deposit_cycles(
         canister_id: Principal,
         amount: u128,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::ProvisionalTopUpCanister.as_ref(),

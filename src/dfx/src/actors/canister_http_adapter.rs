@@ -97,7 +97,7 @@ impl CanisterHttpAdapter {
 
     fn send_ready_signal(&self) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(CanisterHttpAdapterReady {});
+            sub.do_send(CanisterHttpAdapterReady {});
         }
     }
 }
@@ -148,7 +148,7 @@ impl Handler<CanisterHttpAdapterReadySubscribe> for CanisterHttpAdapter {
     fn handle(&mut self, msg: CanisterHttpAdapterReadySubscribe, _: &mut Self::Context) {
         // If the adapter is already ready, let the new subscriber know! Yeah!
         if self.ready {
-            let _ = msg.0.do_send(CanisterHttpAdapterReady {});
+            msg.0.do_send(CanisterHttpAdapterReady {});
         }
 
         self.ready_subscribers.push(msg.0);

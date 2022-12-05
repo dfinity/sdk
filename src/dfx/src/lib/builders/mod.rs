@@ -135,7 +135,7 @@ pub trait CanisterBuilder {
             );
         }
 
-        std::fs::create_dir_all(&generate_output_dir).with_context(|| {
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
             format!(
                 "Failed to create dir: {}",
                 generate_output_dir.to_string_lossy()

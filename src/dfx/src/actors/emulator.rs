@@ -109,7 +109,7 @@ impl Emulator {
 
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(PortReadySignal { port });
+            sub.do_send(PortReadySignal { port });
         }
     }
 }
@@ -147,7 +147,7 @@ impl Handler<PortReadySubscribe> for Emulator {
     fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
-            let _ = msg.0.do_send(PortReadySignal { port });
+            msg.0.do_send(PortReadySignal { port });
         }
 
         self.ready_subscribers.push(msg.0);
@@ -195,11 +195,8 @@ fn emulator_start_thread(
 
         // form the ic-start command here similar to emulator command
         let mut cmd = std::process::Command::new(ic_ref_path);
-        cmd.args(&["--pick-port"]);
-        cmd.args(&[
-            "--write-port-to",
-            &config.write_port_to.to_string_lossy().to_string(),
-        ]);
+        cmd.args(["--pick-port"]);
+        cmd.args(["--write-port-to", &config.write_port_to.to_string_lossy()]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 

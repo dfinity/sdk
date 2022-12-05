@@ -156,14 +156,14 @@ pub fn get_effective_canister_id(
         })?;
         match method_name {
             MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
-                return Err(DiagnosedError::new(
+                Err(DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",
                         method_name.as_ref()
                     ),
                     format!("The easiest way to call {} externally is to proxy this call through a wallet. Try calling this with 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
                     To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.", method_name.as_ref())
-                )).context("Method only callable by a canister.");
+                )).context("Method only callable by a canister.")
             }
             MgmtMethod::InstallCode => {
                 let install_args = candid::Decode!(arg_value, CanisterInstall)

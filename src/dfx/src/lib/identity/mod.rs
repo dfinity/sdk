@@ -388,7 +388,7 @@ impl Identity {
     #[context("Failed to load wallet config {}.", path.to_string_lossy())]
     fn load_wallet_config(path: &Path) -> DfxResult<WalletGlobalConfig> {
         let mut buffer = Vec::new();
-        std::fs::File::open(&path)
+        std::fs::File::open(path)
             .with_context(|| format!("Unable to open {}", path.to_string_lossy()))?
             .read_to_end(&mut buffer)
             .with_context(|| format!("Unable to read {}", path.to_string_lossy()))?;
@@ -415,7 +415,7 @@ impl Identity {
                 parent_path.to_string_lossy()
             )
         })?;
-        std::fs::write(&path, &serde_json::to_string_pretty(&config)?)
+        std::fs::write(path, &serde_json::to_string_pretty(&config)?)
             .with_context(|| format!("Unable to write {}", path.to_string_lossy()))
     }
 

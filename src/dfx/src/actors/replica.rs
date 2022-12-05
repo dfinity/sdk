@@ -168,7 +168,7 @@ impl Replica {
 
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(PortReadySignal { port });
+            sub.do_send(PortReadySignal { port });
         }
     }
 }
@@ -178,12 +178,12 @@ impl Actor for Replica {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         if let Some(btc_adapter_ready_subscribe) = &self.config.btc_adapter_ready_subscribe {
-            let _ = btc_adapter_ready_subscribe
+            btc_adapter_ready_subscribe
                 .do_send(BtcAdapterReadySubscribe(ctx.address().recipient()));
             self.awaiting_btc_adapter_ready = true;
         }
         if let Some(subscribe) = &self.config.canister_http_adapter_ready_subscribe {
-            let _ = subscribe.do_send(CanisterHttpAdapterReadySubscribe(ctx.address().recipient()));
+            subscribe.do_send(CanisterHttpAdapterReadySubscribe(ctx.address().recipient()));
             self.awaiting_canister_http_adapter_ready = true;
         }
 
@@ -209,7 +209,7 @@ impl Handler<PortReadySubscribe> for Replica {
     fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
-            let _ = msg.0.do_send(PortReadySignal { port });
+            msg.0.do_send(PortReadySignal { port });
         }
 
         self.ready_subscribers.push(msg.0);
@@ -280,7 +280,7 @@ fn replica_start_thread(
 
         // form the ic-start command here similar to replica command
         let mut cmd = std::process::Command::new(ic_starter_path);
-        cmd.args(&[
+        cmd.args([
             "--replica-path",
             replica_path.to_str().unwrap_or_default(),
             "--state-dir",
@@ -297,16 +297,16 @@ fn replica_start_thread(
             &config.log_level.as_ic_starter_string(),
         ]);
         if let Some(port) = port {
-            cmd.args(&["--http-port", &port.to_string()]);
+            cmd.args(["--http-port", &port.to_string()]);
         }
         // Enable canister sandboxing to be consistent with the mainnet.
         // The flag will be removed on the `ic-starter` side once this
         // change is rolled out without any issues.
-        cmd.args(&["--subnet-features", "canister_sandboxing"]);
+        cmd.args(["--subnet-features", "canister_sandboxing"]);
         if config.btc_adapter.enabled {
-            cmd.args(&["--subnet-features", "bitcoin_regtest"]);
+            cmd.args(["--subnet-features", "bitcoin_regtest"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
-                cmd.args(&[
+                cmd.args([
                     "--bitcoin-testnet-uds-path",
                     socket_path.to_str().unwrap_or_default(),
                 ]);
@@ -314,12 +314,12 @@ fn replica_start_thread(
 
             // Show debug logs from the bitcoin canister.
             // This helps developers see, for example, the current tip height.
-            cmd.args(&["--debug-overrides", "ic_btc_canister::heartbeat"]);
+            cmd.args(["--debug-overrides", "ic_btc_canister::heartbeat"]);
         }
         if config.canister_http_adapter.enabled {
-            cmd.args(&["--subnet-features", "http_requests"]);
+            cmd.args(["--subnet-features", "http_requests"]);
             if let Some(socket_path) = config.canister_http_adapter.socket_path {
-                cmd.args(&[
+                cmd.args([
                     "--canister-http-uds-path",
                     socket_path.to_str().unwrap_or_default(),
                 ]);
@@ -327,12 +327,9 @@ fn replica_start_thread(
         }
 
         if let Some(write_port_to) = &write_port_to {
-            cmd.args(&[
-                "--http-port-file",
-                &write_port_to.to_string_lossy().to_string(),
-            ]);
+            cmd.args(["--http-port-file", &write_port_to.to_string_lossy()]);
         }
-        cmd.args(&[
+        cmd.args([
             "--initial-notary-delay-millis",
             // The intial notary delay is set to 2500ms in the replica's
             // default subnet configuration to help running tests.

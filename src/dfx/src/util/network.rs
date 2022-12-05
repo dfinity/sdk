@@ -47,7 +47,7 @@ pub fn get_running_replica_port(
 #[context("Failed to read port value from {}", path.to_string_lossy())]
 fn read_port_from(path: &Path) -> DfxResult<Option<u16>> {
     if path.exists() {
-        let s = std::fs::read_to_string(&path)?;
+        let s = std::fs::read_to_string(path)?;
         let s = s.trim();
         if s.is_empty() {
             Ok(None)

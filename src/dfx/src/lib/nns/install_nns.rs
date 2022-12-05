@@ -438,7 +438,7 @@ pub async fn download_ic_repo_wasm(
 ) -> anyhow::Result<()> {
     fs::create_dir_all(wasm_dir)
         .with_context(|| format!("Failed to create wasm directory: '{}'", wasm_dir.display()))?;
-    let final_path = wasm_dir.join(&wasm_name);
+    let final_path = wasm_dir.join(wasm_name);
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
@@ -669,7 +669,7 @@ pub async fn install_canister(
         &install_args,
         install_mode,
         &call_sender,
-        fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
+        fs::read(wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
         true,
     )
     .await?;
