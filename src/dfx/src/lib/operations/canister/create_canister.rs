@@ -5,6 +5,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::get_network_context;
+use crate::util::PROVISIONAL_EFFECTIVE_CANISTER_ID;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -78,7 +79,8 @@ pub async fn create_canister(
                     let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
                     let mut builder = mgr
                         .create_canister()
-                        .as_provisional_create_with_amount(cycles);
+                        .as_provisional_create_with_amount(cycles)
+                        .with_effective_canister_id(PROVISIONAL_EFFECTIVE_CANISTER_ID);
                     if let Some(controllers) = settings.controllers {
                         for controller in controllers {
                             builder = builder.with_controller(controller);

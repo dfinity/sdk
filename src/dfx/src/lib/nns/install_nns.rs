@@ -12,8 +12,8 @@ use crate::lib::environment::Environment;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
-use crate::util::blob_from_arguments;
 use crate::util::network::get_replica_urls;
+use crate::util::{blob_from_arguments, PROVISIONAL_EFFECTIVE_CANISTER_ID};
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -651,7 +651,8 @@ pub async fn install_canister(
     let mgr = ManagementCanister::create(agent);
     let builder = mgr
         .create_canister()
-        .as_provisional_create_with_amount(None);
+        .as_provisional_create_with_amount(None)
+        .with_effective_canister_id(PROVISIONAL_EFFECTIVE_CANISTER_ID);
 
     let res = builder.call_and_wait().await;
     let canister_id: Principal = res.context("Canister creation call failed.")?.0;

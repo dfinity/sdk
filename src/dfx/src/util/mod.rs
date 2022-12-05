@@ -4,8 +4,8 @@ use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 use anyhow::Context;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
-use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
+use candid::{Deserialize, Principal};
 use directories_next::ProjectDirs;
 use fn_error_context::context;
 #[cfg(unix)]
@@ -27,6 +27,10 @@ pub mod clap;
 pub mod currency_conversion;
 pub mod network;
 pub mod stderr_wrapper;
+
+// A canister ID on ic-ref's default subnet. Must be set as the effective canister for calls to ic00/provisional_create_with_cycles.
+pub const PROVISIONAL_EFFECTIVE_CANISTER_ID: Principal = // sehci-oaaaa-aaaaa-aaaaa-c
+    Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1]);
 
 const DECIMAL_POINT: char = '.';
 
