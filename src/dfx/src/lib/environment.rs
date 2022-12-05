@@ -241,7 +241,7 @@ impl<'a> AgentEnvironment<'a> {
         let mut identity_manager = IdentityManager::new(backend)?;
         let identity = identity_manager.instantiate_selected_identity(backend.get_logger())?;
         if network_descriptor.is_ic && identity.insecure {
-            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity create` \
+            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
         let url = network_descriptor.first_provider()?;
