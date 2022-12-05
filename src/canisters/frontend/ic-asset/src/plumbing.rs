@@ -266,7 +266,7 @@ async fn upload_content_chunks(
             "  {}{} 1/1 (0 bytes) sha {}",
             &asset_descriptor.key,
             content_encoding_descriptive_suffix(content_encoding),
-            hex::encode(&sha256)
+            hex::encode(sha256)
         );
         return Ok(vec![chunk_id]);
     }
@@ -286,7 +286,7 @@ async fn upload_content_chunks(
                         i + 1,
                         count,
                         data_chunk.len(),
-                        hex::encode(&sha256)
+                        hex::encode(sha256)
                     );
                     chunk_id
                 },

@@ -146,7 +146,7 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
     let current_exe_dir = current_exe_path.parent().unwrap(); // This should not fail
     b.set_message("Unpacking");
     archive
-        .unpack(&current_exe_dir)
+        .unpack(current_exe_dir)
         .with_context(|| format!("Failed to unpack to {}.", current_exe_dir.to_string_lossy()))?;
     // On *nix we need to set the execute permission as the tgz doesn't include it
     #[cfg(unix)]

@@ -245,7 +245,7 @@ pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxRes
 #[context("Failed to download {} to {}.", from, to.display())]
 async fn download_file(from: &Url, to: &Path) -> DfxResult {
     let parent_dir = to.parent().unwrap();
-    create_dir_all(&parent_dir).with_context(|| {
+    create_dir_all(parent_dir).with_context(|| {
         format!(
             "Failed to create output directory {}.",
             parent_dir.display()
