@@ -10,10 +10,7 @@ use ic_utils::{
 };
 use itertools::Itertools;
 
-use crate::{
-    lib::{operations::canister::install_wallet, waiter::waiter_with_timeout},
-    util::expiry_duration,
-};
+use crate::lib::operations::canister::install_wallet;
 
 use super::{
     environment::Environment,
@@ -43,7 +40,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         wallet
     } else {
         let cbor = agent
-            .read_state_canister_info(wallet, "controllers", false)
+            .read_state_canister_info(wallet, "controllers")
             .await?;
         let controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
         bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
@@ -95,7 +92,7 @@ async fn migrate_canister(
     fix: bool,
 ) -> DfxResult<bool> {
     let cbor = agent
-        .read_state_canister_info(canister_id, "controllers", false)
+        .read_state_canister_info(canister_id, "controllers")
         .await?;
     let mut controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
     if controllers.contains(wallet.canister_id_())
@@ -127,7 +124,7 @@ async fn migrate_canister(
                     },)),
                     0,
                 )
-                .call_and_wait(waiter_with_timeout(expiry_duration()))
+                .call_and_wait()
                 .await
                 .context("Could not update canister settings")?;
         } else {

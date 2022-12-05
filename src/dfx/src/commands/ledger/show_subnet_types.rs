@@ -1,8 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{GetSubnetTypesToSubnetsResult, MAINNET_CYCLE_MINTER_CANISTER_ID};
-use crate::lib::waiter::waiter_with_timeout;
-use crate::util::expiry_duration;
 
 use crate::lib::root_key::fetch_root_key_if_needed;
 
@@ -37,7 +35,7 @@ pub async fn exec(env: &dyn Environment, opts: ShowSubnetTypesOpts) -> DfxResult
             GET_SUBNET_TYPES_TO_SUBNETS_METHOD,
         )
         .with_arg(Encode!(&()).context("Failed to encode get_subnet_types_to_subnets arguments.")?)
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await
         .context("get_subnet_types_to_subnets call failed.")?;
     let result = Decode!(&result, GetSubnetTypesToSubnetsResult)

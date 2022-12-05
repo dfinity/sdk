@@ -5,7 +5,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{install_canister, install_canister_wasm};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
+use crate::util::{blob_from_arguments, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -66,7 +66,6 @@ pub async fn exec(
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let timeout = expiry_duration();
 
     fetch_root_key_if_needed(env).await?;
 
@@ -114,7 +113,6 @@ pub async fn exec(
                 canister_info.as_ref().map(|info| info.get_name()).ok(),
                 &install_args,
                 mode,
-                timeout,
                 call_sender,
                 fs::read(&wasm_path)
                     .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
@@ -134,7 +132,6 @@ pub async fn exec(
                 &canister_info,
                 &install_args,
                 mode,
-                timeout,
                 call_sender,
                 opts.upgrade_unchanged,
                 None,
@@ -173,7 +170,6 @@ pub async fn exec(
                     &canister_info,
                     &install_args,
                     mode,
-                    timeout,
                     call_sender,
                     opts.upgrade_unchanged,
                     None,

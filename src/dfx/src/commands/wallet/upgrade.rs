@@ -38,7 +38,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
     match agent
-        .read_state_canister_info(canister_id, "module_hash", false)
+        .read_state_canister_info(canister_id, "module_hash")
         .await
     {
         // If the canister is empty, this path does not exist.

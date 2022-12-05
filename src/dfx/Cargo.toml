@@ -43,16 +43,15 @@ flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] 
 fn-error-context = "0.2.0"
 futures = "0.3.21"
 futures-util = "0.3.21"
-garcon = { version = "0.2", features = ["async"] }
 handlebars = "4.3.3"
 hex = {version = "0.4.2", features = ["serde"] }
 humantime = "2.1.0"
 humantime-serde = "1.1.1"
 hyper-rustls = { version = "0.23.0", features = [ "webpki-roots", "http2" ] }
-ic-agent = { version = "0.21.0", features = ["reqwest"] }
+ic-agent = { version = "0.23.0", features = ["reqwest"] }
 ic-asset = { version = "0.20.0", path = "../canisters/frontend/ic-asset" }
-ic-identity-hsm = "0.21.0"
-ic-utils = "0.21.0"
+ic-identity-hsm = "0.23.0"
+ic-utils = "0.23.0"
 ic-wasm = "0.2.1"
 indicatif = "0.16.0"
 itertools = "0.10.3"
@@ -97,6 +96,7 @@ url = "2.1.0"
 walkdir = "2.2.9"
 wasmparser = "0.87.0"
 which = "4.2.5"
+backoff = "0.4.0"
 
 [target.'cfg(windows)'.dependencies]
 junction = "0.2.0"

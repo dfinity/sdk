@@ -9,19 +9,19 @@ members = [
 default-members = ["src/dfx"]
 
 [patch.crates-io.ic-agent]
-version = "0.21.0"
+version = "0.23.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "0edc96addbc65d422de71fc119a3de3154eac5c3"
+rev = "4245c49575a74db680ec5707f23892046101afee"
 
 [patch.crates-io.ic-identity-hsm]
-version = "0.21.0"
+version = "0.23.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "0edc96addbc65d422de71fc119a3de3154eac5c3"
+rev = "4245c49575a74db680ec5707f23892046101afee"
 
 [patch.crates-io.ic-utils]
-version = "0.21.0"
+version = "0.23.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "0edc96addbc65d422de71fc119a3de3154eac5c3"
+rev = "4245c49575a74db680ec5707f23892046101afee"
 
 [profile.release]
 panic = 'abort'

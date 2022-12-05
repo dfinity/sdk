@@ -15,9 +15,8 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::anyhow;
+use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::{self, JoinHandle};
@@ -94,22 +93,18 @@ impl Replica {
     }
 
     fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(100))
-            .timeout(Duration::from_secs(120))
-            .build();
-
-        waiter.start();
+        let mut retries = 0;
         loop {
             if let Ok(content) = std::fs::read_to_string(file_path) {
                 if let Ok(port) = content.parse::<u16>() {
                     return Ok(port);
                 }
             }
-            waiter
-                .wait()
-                .map_err(|err| anyhow!("Cannot start the replica: {:?}", err))?;
+            if retries >= 1200 {
+                bail!("Cannot start the replica: timed out");
+            }
+            std::thread::sleep(Duration::from_millis(100));
+            retries += 1;
         }
     }
 
@@ -280,13 +275,6 @@ fn replica_start_thread(
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), 1.2)
-            .build();
-        waiter.start();
-
         // Start the process, then wait for the file.
         let ic_starter_path = ic_starter_path.as_os_str();
 
@@ -398,18 +386,15 @@ fn replica_start_thread(
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "Replica process failed.");
-                    // Reset waiter if last start was over 2 seconds ago, and do not wait.
-                    if std::time::Instant::now().duration_since(last_start)
-                        >= Duration::from_secs(2)
+                    // If it took less than two seconds to exit, wait a bit before trying again.
+                    if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
+                        std::thread::sleep(Duration::from_secs(2));
+                    } else {
                         debug!(
                             logger,
-                            "Last replica seemed to have been healthy, not waiting..."
+                            "Last ic-btc-adapter seemed to have been healthy, not waiting..."
                         );
-                        waiter.start();
-                    } else {
-                        // Wait before we start it again.
-                        let _ = waiter.wait();
                     }
                 }
             }
