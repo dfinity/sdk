@@ -435,7 +435,7 @@ impl IdentityManager {
     }
 
     pub fn get_identity_dir_path(&self, identity: &str) -> PathBuf {
-        self.identity_root_path.join(&identity)
+        self.identity_root_path.join(identity)
     }
 
     /// Determines the path of the (potentially encrypted) PEM file.
@@ -598,7 +598,7 @@ fn get_legacy_creds_pem_path() -> DfxResult<Option<PathBuf>> {
 
 #[context("Failed to load identity manager config from {}.", path.to_string_lossy())]
 fn read_configuration(path: &Path) -> DfxResult<Configuration> {
-    let content = std::fs::read_to_string(&path).with_context(|| {
+    let content = std::fs::read_to_string(path).with_context(|| {
         format!(
             "Cannot read configuration file at '{}'.",
             PathBuf::from(path).display()
@@ -611,7 +611,7 @@ fn read_configuration(path: &Path) -> DfxResult<Configuration> {
 fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
     let content =
         serde_json::to_string_pretty(&config).context("Failed to serialize configuration.")?;
-    std::fs::write(&path, content).with_context(|| {
+    std::fs::write(path, content).with_context(|| {
         format!(
             "Cannot write configuration file at '{}'.",
             PathBuf::from(path).display()
@@ -622,7 +622,7 @@ fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
 
 #[context("Failed to read identity configuration at {}.", path.to_string_lossy())]
 pub(super) fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConfiguration> {
-    let content = std::fs::read_to_string(&path).with_context(|| {
+    let content = std::fs::read_to_string(path).with_context(|| {
         format!(
             "Cannot read identity configuration file at '{}'.",
             PathBuf::from(path).display()
@@ -652,7 +652,7 @@ pub(super) fn write_identity_configuration(
             PathBuf::from(path).display()
         )
     })?;
-    std::fs::write(&path, content).with_context(|| {
+    std::fs::write(path, content).with_context(|| {
         format!(
             "Cannot write identity configuration file at '{}'.",
             PathBuf::from(path).display()
@@ -664,7 +664,7 @@ pub(super) fn write_identity_configuration(
 /// Removes the file if it exists.
 fn remove_identity_file(file: &Path) -> DfxResult {
     if file.exists() {
-        std::fs::remove_file(&file)
+        std::fs::remove_file(file)
             .with_context(|| format!("Cannot remove identity file at '{}'.", file.display()))?;
     }
     Ok(())

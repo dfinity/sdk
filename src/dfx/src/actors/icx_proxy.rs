@@ -127,7 +127,7 @@ impl Actor for IcxProxy {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         if let Some(port_ready_subscribe) = &self.config.port_ready_subscribe {
-            let _ = port_ready_subscribe.do_send(PortReadySubscribe(ctx.address().recipient()));
+            port_ready_subscribe.do_send(PortReadySubscribe(ctx.address().recipient()));
         }
 
         self.config
@@ -209,10 +209,10 @@ fn icx_proxy_start_thread(
             cmd.arg("--fetch-root-key");
         }
         let address = format!("{}", &address);
-        cmd.args(&["--address", &address]);
+        cmd.args(["--address", &address]);
         for url in &replica_urls {
             let s = format!("{}", url);
-            cmd.args(&["--replica", &s]);
+            cmd.args(["--replica", &s]);
         }
         if !verbose {
             cmd.arg("-q");

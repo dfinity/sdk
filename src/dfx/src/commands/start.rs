@@ -489,7 +489,7 @@ fn check_previous_process_running(
 
 fn write_pid(pid_file_path: &Path) {
     if let Ok(pid) = sysinfo::get_current_pid() {
-        let _ = std::fs::write(&pid_file_path, pid.to_string());
+        let _ = std::fs::write(pid_file_path, pid.to_string());
     }
 }
 

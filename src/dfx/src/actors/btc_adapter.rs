@@ -102,7 +102,7 @@ impl BtcAdapter {
 
     fn send_ready_signal(&self) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(BtcAdapterReady {});
+            sub.do_send(BtcAdapterReady {});
         }
     }
 }
@@ -149,7 +149,7 @@ impl Handler<BtcAdapterReadySubscribe> for BtcAdapter {
     fn handle(&mut self, msg: BtcAdapterReadySubscribe, _: &mut Self::Context) {
         // If the adapter is already ready, let the new subscriber know! Yeah!
         if self.ready {
-            let _ = msg.0.do_send(BtcAdapterReady {});
+            msg.0.do_send(BtcAdapterReady {});
         }
 
         self.ready_subscribers.push(msg.0);
