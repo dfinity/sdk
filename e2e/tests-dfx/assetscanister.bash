@@ -19,7 +19,7 @@ teardown() {
   install_asset assetscanister
   dfx_start
   assert_command dfx deploy
-  [ "$USE_IC_REF" ] && dfx canister update-settings --add-controller "$(dfx canister id e2e_project_frontend)" # Dec. 2022: ic-ref has not received the change yet that a canister is always allowed to check it's status
+  [ "$USE_IC_REF" ] && dfx canister update-settings --add-controller "$(dfx canister id e2e_project_frontend)" --all # Dec. 2022: ic-ref has not received the change yet that a canister is always allowed to check it's status
 
   # deployer is automatically authorized
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
