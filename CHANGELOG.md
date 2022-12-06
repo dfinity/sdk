@@ -44,8 +44,17 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: c7adf5480aa1add0fe1811e29786b0c45a38281a5f57e149aa7f0d67a5836f44
-- https://github.com/dfinity/sdk/pull/2699
+- Module hash: f026cf375970b9b0bd6b3e81ca15cc1d735e6a87932615659fd896b26f0e0d99
+- https://github.com/dfinity/sdk/pull/????
+
+#### feat: better control and overview for asset canister authorized principals
+
+The asset canister now has two new functions:
+- Query function `list_authorized` displays a list of all principals that are currently authorized to change assets and the list of authorized principals.
+- Update function `deauthorize` that removes a principal from the list of authorized principals.
+
+In addition, the update function `authorize` has new behavior:
+Now, controllers of the asset canister are always allowed to authorize new principals (including themselves).
 
 ### Replica
 

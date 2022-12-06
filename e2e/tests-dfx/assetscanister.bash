@@ -14,6 +14,33 @@ teardown() {
     standard_teardown
 }
 
+@test "authorize and deauthorize work as expected" {
+  PRINCIPAL=$(dfx identity get-principal)
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+
+  # deployer is automatically authorized
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$PRINCIPAL"
+
+  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$PRINCIPAL\")"
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$PRINCIPAL"
+
+  # while not authorized, dfx deploy fails
+  echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
+  assert_command_fail dfx deploy
+
+  # canister controllers may always authorize principals, even if they're not authorized themselves
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$PRINCIPAL\")"
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$PRINCIPAL"
+
+  # after authorizing, deploy works again
+  assert_command dfx deploy
+}
+
 @test "http_request percent-decodes urls" {
     install_asset assetscanister
 

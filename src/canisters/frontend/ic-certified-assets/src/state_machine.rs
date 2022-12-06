@@ -143,6 +143,23 @@ impl State {
         Ok(())
     }
 
+    pub fn deauthorize(&mut self, caller: &Principal, principal: Principal) -> Result<(), String> {
+        if self.authorized.contains(caller) {
+            if let Some(pos) = self.authorized.iter().position(|x| *x == principal) {
+                self.authorized.remove(pos);
+                Ok(())
+            } else {
+                Err("Principal not in list of authorized principals.".to_string())
+            }
+        } else {
+            Err("the caller is not authorized".to_string())
+        }
+    }
+
+    pub fn list_authorized(&self) -> &Vec<Principal> {
+        &self.authorized
+    }
+
     pub fn root_hash(&self) -> Hash {
         use ic_certified_map::labeled_hash;
         labeled_hash(b"http_assets", &self.asset_hashes.root_hash())

@@ -14,7 +14,12 @@ use crate::{
     types::*,
 };
 use candid::{candid_method, Principal};
-use ic_cdk::api::{caller, data_certificate, set_certified_data, time, trap};
+use ic_cdk::api::{
+    call::ManualReply,
+    caller, data_certificate,
+    management_canister::{main::canister_status, provisional::CanisterIdRecord},
+    set_certified_data, time, trap,
+};
 use ic_cdk_macros::{query, update};
 use std::cell::RefCell;
 
@@ -24,13 +29,53 @@ thread_local! {
 
 #[update]
 #[candid_method(update)]
-fn authorize(other: Principal) {
+async fn authorize(other: Principal) {
+    let caller = caller();
+    let is_authorized = STATE.with(|s| s.borrow().is_authorized(&caller));
+    if is_authorized {
+        STATE.with(|s| {
+            if let Err(msg) = s.borrow_mut().authorize(&caller, other) {
+                trap(&msg);
+            }
+        })
+    } else {
+        match canister_status(CanisterIdRecord {
+            canister_id: ic_cdk::api::id(),
+        })
+        .await
+        {
+            Err((code, msg)) => trap(&format!(
+                "Caller is not authorized. Failed to determine if caller is canister controller with code {:?} and message '{}'",
+                code, msg
+            )),
+            Ok((a,)) => {
+                if a.settings.controllers.contains(&caller) {
+                    STATE.with(|s| s.borrow_mut().authorize_unconditionally(other))
+                } else {
+                    trap(
+                        "The caller is not authorized and not part of the canister's controllers.",
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[update(guard = "is_authorized")]
+#[candid_method(update)]
+fn deauthorize(other: Principal) {
     let caller = caller();
     STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().authorize(&caller, other) {
+        if let Err(msg) = s.borrow_mut().deauthorize(&caller, other) {
             trap(&msg);
         }
     })
+}
+
+#[query(manual_reply = true)]
+#[candid_method(query)]
+fn list_authorized() -> ManualReply<Vec<Principal>> {
+    STATE.with(|s| ManualReply::one(s.borrow().list_authorized()))
 }
 
 #[query]
