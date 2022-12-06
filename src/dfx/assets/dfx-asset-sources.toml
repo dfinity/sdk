@@ -2,8 +2,8 @@
 replica-rev = '997ab2e9cc49189302fe54c1e60709abfbeb1d42'
 
 [x86_64-darwin.ic-ref]
-url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-1fba03ee-x86_64-darwin.tar.gz'
-sha256 = '07fb2cf2a570d6d90259ce165e6d5b9bbc408508743291be7890d8cb01c8a178'
+url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-4d2cfb42-x86_64-darwin.tar.gz'
+sha256 = 'd5425a34bb38eb3a44dd1222706ac1ef438d9aca981f97d0db0f62f5769beeff'
 
 [x86_64-darwin.icx-proxy]
 url = 'https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-macos.tar.gz'
