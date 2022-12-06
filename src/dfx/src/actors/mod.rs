@@ -130,7 +130,7 @@ fn setup_replica_env(
         // handing it over to the replica. If we read the file and it has
         // contents we shall assume it is due to our spawned replica
         // process.
-        std::fs::write(&replica_port_path, "").with_context(|| {
+        std::fs::write(replica_port_path, "").with_context(|| {
             format!(
                 "Failed to write/clear replica port file {}.",
                 replica_port_path.to_string_lossy()

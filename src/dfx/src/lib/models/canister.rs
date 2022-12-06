@@ -93,7 +93,7 @@ impl Canister {
     /// Get the build output of a build process. If the output isn't known at this time,
     /// will return [None].
     pub fn get_build_output(&self) -> Option<&BuildOutput> {
-        unsafe { (&*self.output.as_ptr()).as_ref() }
+        unsafe { (*self.output.as_ptr()).as_ref() }
     }
 
     #[context("Failed while trying to generate type declarations for '{}'.", self.info.get_name())]
@@ -425,7 +425,7 @@ impl CanisterPool {
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
-                    std::fs::copy(&from, &to).with_context(|| {
+                    std::fs::copy(from, &to).with_context(|| {
                         format!(
                             "Failed to copy canister '{}' candid from {} to {}.",
                             canister.get_name(),
@@ -498,7 +498,7 @@ impl CanisterPool {
                     idl_file_path.parent().unwrap().to_string_lossy()
                 )
             })?;
-            std::fs::copy(&build_idl_path, &idl_file_path)
+            std::fs::copy(build_idl_path, &idl_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)
                 .with_context(|| {
@@ -535,7 +535,7 @@ impl CanisterPool {
                     wasm_file_path.parent().unwrap().to_string_lossy()
                 )
             })?;
-            std::fs::copy(&build_wasm_path, &wasm_file_path)
+            std::fs::copy(build_wasm_path, &wasm_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)?;
 
@@ -570,7 +570,7 @@ impl CanisterPool {
                     idl_file_path.parent().unwrap().to_string_lossy()
                 )
             })?;
-            std::fs::copy(&build_idl_path, &idl_file_path)
+            std::fs::copy(build_idl_path, &idl_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)?;
         }

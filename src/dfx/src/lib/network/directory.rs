@@ -30,13 +30,13 @@ pub fn ensure_cohesive_network_directory(
                     || std::fs::read_to_string(&project_network_id_path)? != network_id);
 
             if reset {
-                std::fs::remove_dir_all(&directory).with_context(|| {
+                std::fs::remove_dir_all(directory).with_context(|| {
                     format!("Cannot remove directory at '{}'", directory.display())
                 })?;
             };
 
             if !directory.exists() {
-                std::fs::create_dir_all(&directory).with_context(|| {
+                std::fs::create_dir_all(directory).with_context(|| {
                     format!(
                         "Failed to create directory {}.",
                         directory.to_string_lossy()

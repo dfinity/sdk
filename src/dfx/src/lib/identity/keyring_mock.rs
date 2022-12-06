@@ -103,7 +103,7 @@ pub fn load_pem_from_keyring(identity_name_suffix: &str) -> DfxResult<Vec<u8>> {
             let encoded_pem = mock.kv_store.get(&keyring_identity_name).with_context(|| {
                 format!("Mock Keyring: key {} not found", &keyring_identity_name)
             })?;
-            let pem = hex::decode(&encoded_pem)?;
+            let pem = hex::decode(encoded_pem)?;
             Ok(pem)
         }
         KeyringMockMode::MockReject => bail!("Mock Keyring not available."),

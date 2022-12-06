@@ -166,7 +166,7 @@ impl CanisterBuilder for AssetsBuilder {
                 continue;
             }
             // See https://github.com/alexcrichton/tar-rs/issues/261
-            fs::create_dir_all(&generate_output_dir).with_context(|| {
+            fs::create_dir_all(generate_output_dir).with_context(|| {
                 format!(
                     "Failed to create {}.",
                     generate_output_dir.to_string_lossy()

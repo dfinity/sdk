@@ -9,7 +9,7 @@ use ic_agent::identity::BasicIdentity;
 use ic_agent::identity::PemError;
 use ic_agent::identity::Secp256k1Identity;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CallSender {
     SelectedId,
     Wallet(Principal),
@@ -21,7 +21,7 @@ pub enum CallSender {
 pub async fn call_sender(_env: &dyn Environment, wallet: &Option<String>) -> DfxResult<CallSender> {
     let sender = if let Some(id) = wallet {
         CallSender::Wallet(
-            Principal::from_text(&id)
+            Principal::from_text(id)
                 .with_context(|| format!("Failed to read principal from {:?}.", id))?,
         )
     } else {

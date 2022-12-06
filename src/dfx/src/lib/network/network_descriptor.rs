@@ -6,14 +6,14 @@ use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use anyhow::bail;
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NetworkTypeDescriptor {
     Ephemeral { wallet_config_path: PathBuf },
 
     Persistent,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NetworkDescriptor {
     pub name: String,
     pub providers: Vec<String>,
