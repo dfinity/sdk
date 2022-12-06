@@ -5,7 +5,6 @@ use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, identity::Identity, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
-use crate::util::expiry_duration;
 use crate::NetworkOpt;
 use std::collections::BTreeMap;
 
@@ -81,7 +80,6 @@ pub struct DeployOpts {
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let env = create_agent_environment(env, opts.network.network)?;
 
-    let timeout = expiry_duration();
     let canister_name = opts.canister_name.as_deref();
     let argument = opts.argument.as_deref();
     let argument_type = opts.argument_type.as_deref();
@@ -130,7 +128,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument_type,
         force_reinstall,
         opts.upgrade_unchanged,
-        timeout,
         with_cycles,
         &call_sender,
         create_call_sender,

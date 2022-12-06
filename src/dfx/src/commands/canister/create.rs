@@ -12,7 +12,6 @@ use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::clap::validators::{
     compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
 };
-use crate::util::expiry_duration;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
@@ -67,7 +66,6 @@ pub async fn exec(
     mut call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let timeout = expiry_duration();
 
     fetch_root_key_if_needed(env).await?;
 
@@ -145,7 +143,6 @@ pub async fn exec(
         create_canister(
             env,
             canister_name,
-            timeout,
             with_cycles,
             call_sender,
             CanisterSettings {
@@ -201,7 +198,6 @@ pub async fn exec(
                 create_canister(
                     env,
                     canister_name,
-                    timeout,
                     with_cycles,
                     call_sender,
                     CanisterSettings {

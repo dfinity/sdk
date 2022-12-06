@@ -246,6 +246,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "backoff"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b62ddb9cb1ec0a098ad4bbf9344d0713fa193ae1a80af55febcff2627b6a00c1"
+dependencies = [
+ "getrandom",
+ "instant",
+ "rand",
+]
+
+[[package]]
 name = "base16ct"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -817,6 +828,7 @@ dependencies = [
  "anyhow",
  "argon2",
  "atty",
+ "backoff",
  "base64",
  "bip32",
  "byte-unit",
@@ -834,7 +846,6 @@ dependencies = [
  "fn-error-context",
  "futures",
  "futures-util",
- "garcon",
  "handlebars",
  "hex",
  "humantime",
@@ -1330,15 +1341,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "garcon"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e83fb8961dcd3c26123863998521ae4d07e5e5aa8fb50b503380448f2e0ea069"
-dependencies = [
- "futures-util",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1614,20 +1616,21 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
+version = "0.23.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
 dependencies = [
  "async-trait",
+ "backoff",
  "base32",
  "base64",
  "byteorder",
  "candid",
  "futures-util",
- "garcon",
  "hex",
  "http",
  "http-body",
  "hyper-rustls",
+ "ic-certification",
  "ic-verify-bls-signature",
  "k256",
  "leb128",
@@ -1645,6 +1648,7 @@ dependencies = [
  "sha2 0.10.6",
  "simple_asn1",
  "thiserror",
+ "tokio",
  "url",
 ]
 
@@ -1653,12 +1657,12 @@ name = "ic-asset"
 version = "0.20.0"
 dependencies = [
  "anyhow",
+ "backoff",
  "candid",
  "derivative",
  "flate2",
  "futures",
  "futures-intrusive",
- "garcon",
  "globset",
  "hex",
  "ic-agent",
@@ -1673,6 +1677,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.6",
  "tempfile",
+ "tokio",
  "walkdir",
 ]
 
@@ -1702,6 +1707,17 @@ dependencies = [
  "serde",
  "serde_tokenstream",
  "syn",
+]
+
+[[package]]
+name = "ic-certification"
+version = "0.23.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
+dependencies = [
+ "hex",
+ "serde",
+ "serde_bytes",
+ "sha2 0.10.6",
 ]
 
 [[package]]
@@ -1743,8 +1759,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
+version = "0.23.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1757,12 +1773,11 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.21.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=0edc96addbc65d422de71fc119a3de3154eac5c3#0edc96addbc65d422de71fc119a3de3154eac5c3"
+version = "0.23.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
 dependencies = [
  "async-trait",
  "candid",
- "garcon",
  "ic-agent",
  "leb128",
  "num-bigint 0.4.3",
@@ -1815,7 +1830,6 @@ dependencies = [
  "candid",
  "clap",
  "delay",
- "garcon",
  "humantime",
  "ic-agent",
  "ic-asset",
@@ -3822,9 +3836,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.21.2"
+version = "1.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9e03c497dc955702ba729190dc4aac6f2a0ce97f913e5b1b5912fc5039d9099"
+checksum = "d76ce4a75fb488c605c54bf610f221cea8b0dafb53333c1a67e8ee199dcd2ae3"
 dependencies = [
  "autocfg",
  "bytes",

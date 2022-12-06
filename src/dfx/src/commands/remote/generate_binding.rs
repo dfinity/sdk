@@ -92,7 +92,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 };
 
                 if let Some(bindings_string) = bindings {
-                    std::fs::write(&main, &bindings_string).with_context(|| {
+                    std::fs::write(main, &bindings_string).with_context(|| {
                         format!("Failed to write bindings to {}.", main.display())
                     })?;
                     info!(

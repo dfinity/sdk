@@ -1,3 +1,4 @@
+use crate::commands::wallet::get_wallet;
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -5,7 +6,6 @@ use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
-use crate::{commands::wallet::get_wallet, lib::waiter::waiter_with_exponential_backoff};
 
 use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, Decode, Principal};
@@ -55,7 +55,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                     encode_args((opts.coupon_code.clone(), wallet_principal))
                         .context("Failed to serialize redeem_to_wallet arguments.")?,
                 )
-                .call_and_wait(waiter_with_exponential_backoff())
+                .call_and_wait()
                 .await
                 .context("Failed redeem_to_wallet call.")?;
             let redeemed_cycles =
@@ -80,7 +80,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                     encode_args((opts.coupon_code.clone(),))
                         .context("Failed to serialize 'redeem' arguments.")?,
                 )
-                .call_and_wait(waiter_with_exponential_backoff())
+                .call_and_wait()
                 .await
                 .context("Failed 'redeem' call.")?;
             let new_wallet_address =
