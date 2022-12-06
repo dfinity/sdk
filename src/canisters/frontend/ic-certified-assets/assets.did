@@ -144,4 +144,6 @@ service: {
   http_request_streaming_callback: (token: StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
 
   authorize: (principal) -> ();
+  deauthorize: (principal) -> ();
+  list_authorized: () -> (vec principal) query;
 }
