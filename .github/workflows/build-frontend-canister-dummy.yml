@@ -1,6 +1,6 @@
 name: Check frontend canister build (skipped)
 
-on: 
+on:
   push:
     branches:
       - master

@@ -23,7 +23,10 @@ This works for both `dfx identity new` and `dfx identity import`.
 
 The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
 
-### feat: write canister metadata sections for dfx pull
+### feat: dfx pull
+
+- write canister metadata for dfx pull.
+- `dfx pull` can fetch `dfx:deps` metadata and resolve dependencies recursively.
 
 ### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
 
