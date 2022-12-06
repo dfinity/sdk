@@ -8,13 +8,11 @@ use crate::util::clap::validators::{
     cycle_amount_validator, e8s_validator, icpts_amount_validator, trillion_cycle_amount_validator,
 };
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
-use crate::util::expiry_duration;
 
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use slog::info;
-use std::time::Duration;
 
 use super::get_icpts_from_args;
 
@@ -91,7 +89,6 @@ pub struct FabricateCyclesOpts {
 async fn deposit_minted_cycles(
     env: &dyn Environment,
     canister: &str,
-    timeout: Duration,
     call_sender: &CallSender,
     cycles: u128,
 ) -> DfxResult {
@@ -102,9 +99,9 @@ async fn deposit_minted_cycles(
 
     info!(log, "Fabricating {} cycles onto {}", cycles, canister,);
 
-    canister::provisional_deposit_cycles(env, canister_id, timeout, call_sender, cycles).await?;
+    canister::provisional_deposit_cycles(env, canister_id, call_sender, cycles).await?;
 
-    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await;
+    let status = canister::get_canister_status(env, canister_id, call_sender).await;
     if status.is_ok() {
         info!(
             log,
@@ -124,16 +121,13 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
 
     fetch_root_key_or_anyhow(env).await?;
 
-    let timeout = expiry_duration();
-
     if let Some(canister) = opts.canister.as_deref() {
-        deposit_minted_cycles(env, canister, timeout, &CallSender::SelectedId, cycles).await
+        deposit_minted_cycles(env, canister, &CallSender::SelectedId, cycles).await
     } else if opts.all {
         let config = env.get_config_or_anyhow()?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                deposit_minted_cycles(env, canister, timeout, &CallSender::SelectedId, cycles)
-                    .await?;
+                deposit_minted_cycles(env, canister, &CallSender::SelectedId, cycles).await?;
             }
         }
         Ok(())

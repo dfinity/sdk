@@ -12,16 +12,15 @@ use crate::lib::environment::Environment;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
-use crate::lib::waiter::waiter_with_timeout;
-use crate::util::blob_from_arguments;
-use crate::util::expiry_duration;
 use crate::util::network::get_replica_urls;
+use crate::util::{blob_from_arguments, PROVISIONAL_EFFECTIVE_CANISTER_ID};
 
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use flate2::bufread::GzDecoder;
 use fn_error_context::context;
 use futures_util::future::try_join_all;
-use garcon::{Delay, Waiter};
 use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -33,7 +32,6 @@ use std::io::Write;
 use std::path::Component;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use std::time::Duration;
 
 use self::canisters::{
     IcNnsInitCanister, SnsCanisterInstallation, StandardCanister, NNS_CORE, NNS_FRONTEND,
@@ -196,7 +194,7 @@ async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<
             format!("Internal error: {canister_name} has an invalid canister ID: {canister_id}")
         })?;
         if agent
-            .read_state_canister_info(canister_principal, "module_hash", false)
+            .read_state_canister_info(canister_principal, "module_hash")
             .await
             .is_ok()
         {
@@ -267,21 +265,17 @@ Frontend canisters:
 /// Gets a URL, trying repeatedly until it is available.
 #[context("Failed to download after multiple tries: {}", url)]
 pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
-    /// The time between the first try and the second.
-    const RETRY_PAUSE: Duration = Duration::from_millis(200);
-    /// Intervals will increase exponentially until they reach this.
-    const MAX_RETRY_PAUSE: Duration = Duration::from_secs(5);
-
-    let mut waiter = Delay::builder()
-        .exponential_backoff_capped(RETRY_PAUSE, 1.4, MAX_RETRY_PAUSE)
-        .build();
+    let mut retry_policy = ExponentialBackoff::default();
 
     loop {
         match reqwest::get(url.clone()).await {
             Ok(response) => {
                 return Ok(response);
             }
-            Err(err) => waiter.wait().map_err(|_| err)?,
+            Err(err) => match retry_policy.next_backoff() {
+                Some(duration) => tokio::time::sleep(duration).await,
+                None => bail!(err),
+            },
         }
     }
 }
@@ -444,7 +438,7 @@ pub async fn download_ic_repo_wasm(
 ) -> anyhow::Result<()> {
     fs::create_dir_all(wasm_dir)
         .with_context(|| format!("Failed to create wasm directory: '{}'", wasm_dir.display()))?;
-    let final_path = wasm_dir.join(&wasm_name);
+    let final_path = wasm_dir.join(wasm_name);
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
@@ -657,17 +651,15 @@ pub async fn install_canister(
     let mgr = ManagementCanister::create(agent);
     let builder = mgr
         .create_canister()
-        .as_provisional_create_with_amount(None);
+        .as_provisional_create_with_amount(None)
+        .with_effective_canister_id(PROVISIONAL_EFFECTIVE_CANISTER_ID);
 
-    let res = builder
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await;
+    let res = builder.call_and_wait().await;
     let canister_id: Principal = res.context("Canister creation call failed.")?.0;
     let canister_id_str = canister_id.to_text();
 
     let install_args = blob_from_arguments(None, None, None, &None)?;
     let install_mode = InstallMode::Install;
-    let timeout = expiry_duration();
     let call_sender = CallSender::SelectedId;
 
     install_canister_wasm(
@@ -677,9 +669,8 @@ pub async fn install_canister(
         Some(canister_name),
         &install_args,
         install_mode,
-        timeout,
         &call_sender,
-        fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
+        fs::read(wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
         true,
     )
     .await?;

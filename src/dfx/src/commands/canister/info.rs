@@ -30,7 +30,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
     let controller_blob = match agent
-        .read_state_canister_info(canister_id, "controllers", false)
+        .read_state_canister_info(canister_id, "controllers")
         .await
     {
         Err(AgentError::LookupPathUnknown(_) | AgentError::LookupPathAbsent(_)) => {
@@ -66,7 +66,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     .context("Failed to determine controllers.")?;
 
     let module_hash_hex = match agent
-        .read_state_canister_info(canister_id, "module_hash", false)
+        .read_state_canister_info(canister_id, "module_hash")
         .await
     {
         Ok(blob) => format!("0x{}", hex::encode(&blob)),

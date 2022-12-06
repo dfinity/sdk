@@ -26,9 +26,8 @@ use crate::{
             ledger::{balance, xdr_permyriad_per_icp},
         },
         provider::create_agent_environment,
-        waiter::waiter_with_timeout,
     },
-    util::{assets::wallet_wasm, expiry_duration},
+    util::assets::wallet_wasm,
 };
 
 pub fn exec(env: &dyn Environment) -> DfxResult {
@@ -96,7 +95,7 @@ async fn step_import_wallet(env: &dyn Environment, agent: &Agent, ident: &str) -
         let wasm = wallet_wasm(env.get_logger())?;
         mgmt.install_code(&id, &wasm)
             .with_mode(InstallMode::Install)
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .call_and_wait()
             .await?;
         WalletCanister::create(agent, id).await?
     };

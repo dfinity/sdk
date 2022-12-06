@@ -74,7 +74,9 @@ impl CanisterInfo {
         std::fs::create_dir_all(&build_root)
             .with_context(|| format!("Failed to create {}.", build_root.to_string_lossy()))?;
 
-        let canister_map = (&config.get_config().canisters)
+        let canister_map = config
+            .get_config()
+            .canisters
             .as_ref()
             .ok_or_else(|| anyhow!("No canisters in the configuration file."))?;
 
