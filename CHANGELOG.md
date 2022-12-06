@@ -45,7 +45,7 @@ Updated candid to 0.8.4
 ### Frontend canister
 
 - Module hash: f026cf375970b9b0bd6b3e81ca15cc1d735e6a87932615659fd896b26f0e0d99
-- https://github.com/dfinity/sdk/pull/????
+- https://github.com/dfinity/sdk/pull/2805
 
 #### feat: better control and overview for asset canister authorized principals
 
