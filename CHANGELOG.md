@@ -50,7 +50,7 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 5e543f65b1c0f133f7f64044ff120af512dd08099a5fc97105dbf5aa80f589c8
+- Module hash: 34bc423d372efa4d699d1781c3bf304c5a1410f5932c84d32009e813c926c071
 - https://github.com/dfinity/sdk/pull/2413
 
 ### Replica
