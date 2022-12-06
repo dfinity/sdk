@@ -2,10 +2,10 @@
 ARG RUST_VERSION
 FROM scratch AS registry
 FROM rust:${RUST_VERSION} AS builder
+COPY --from=registry . ${CARGO_HOME}/registry/index
 RUN cargo install ic-wasm --version 0.2.0
 COPY . /build
 # defined in update-frontend-canister.sh
-COPY --from=registry . ${CARGO_HOME}/registry/index
 WORKDIR /build
 RUN export RUSTFLAGS="--remap-path-prefix $CARGO_HOME=/cargo" && \
     cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown --locked
