@@ -191,6 +191,26 @@ fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCa
     })
 }
 
+#[query]
+#[candid_method(query)]
+fn get_asset_properties(key: Key) -> AssetProperties {
+    STATE.with(|s| {
+        s.borrow()
+            .get_asset_properties(key)
+            .unwrap_or_else(|msg| trap(&msg))
+    })
+}
+
+#[update]
+#[candid_method(update)]
+fn set_asset_properties(arg: SetAssetPropertiesArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().set_asset_properties(arg) {
+            trap(&msg);
+        }
+    })
+}
+
 fn is_authorized() -> Result<(), String> {
     STATE.with(|s| {
         s.borrow()

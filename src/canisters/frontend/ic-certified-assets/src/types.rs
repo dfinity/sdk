@@ -144,3 +144,16 @@ pub struct StreamingCallbackHttpResponse {
     pub body: RcBytes,
     pub token: Option<StreamingCallbackToken>,
 }
+
+#[derive(Clone, Debug, CandidType, Deserialize, PartialEq)]
+pub struct AssetProperties {
+    pub max_age: Option<u64>,
+    pub headers: Option<HashMap<String, String>>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct SetAssetPropertiesArguments {
+    pub key: Key,
+    pub max_age: Option<Option<u64>>,
+    pub headers: Option<Option<HashMap<String, String>>>,
+}

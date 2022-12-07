@@ -4,6 +4,12 @@
 
 ## DFX
 
+### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
+
+As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
+
+### feat: write canister metadata sections for dfx pull
+
 ### feat: add `--argument-file` argument to the `dfx canister sign` command
 
 Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
@@ -47,8 +53,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: c7adf5480aa1add0fe1811e29786b0c45a38281a5f57e149aa7f0d67a5836f44
-- https://github.com/dfinity/sdk/pull/2699
+- Module hash: 34bc423d372efa4d699d1781c3bf304c5a1410f5932c84d32009e813c926c071
+- https://github.com/dfinity/sdk/pull/2413
 
 ### Replica
 
