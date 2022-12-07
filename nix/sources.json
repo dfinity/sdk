@@ -100,21 +100,21 @@
     },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
-        "rev": "380cbd9b",
-        "sha256": "51ca91b012ccfc26acf1cbbda7bcad9a2ff91c987961d9f67b496e21d3710798",
+        "rev": "9168fae6",
+        "sha256": "cceb9d4ebcb98e4c071e4902840e3c2b903a404233fddd13f79b6913faf40110",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-380cbd9b-x86_64-darwin.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-9168fae6-x86_64-darwin.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-darwin.tar.gz",
-        "version": "0.0.1-380cbd9b"
+        "version": "0.0.1-9168fae6"
     },
     "ic-ref-x86_64-linux": {
         "builtin": false,
-        "rev": "380cbd9b",
+        "rev": "9168fae6",
         "sha256": "0baa6d0b514769332aa9934bde09350b4785d174829601b7950097a31a69938b",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-380cbd9b-x86_64-linux.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-9168fae6-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
-        "version": "0.0.1-380cbd9b"
+        "version": "0.0.1-9168fae6"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
