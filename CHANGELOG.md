@@ -34,6 +34,15 @@ The flag `--disable-encryption` is deprecated in favour of `--storage-mode plain
 - write canister metadata for dfx pull.
 - `dfx pull` can fetch `dfx:deps` metadata and resolve dependencies recursively.
 
+### feat(frontend-canister): better control and overview for asset canister authorized principals
+
+The asset canister now has two new functions:
+- Query function `list_authorized` displays a list of all principals that are currently authorized to change assets and the list of authorized principals.
+- Update function `deauthorize` that removes a principal from the list of authorized principals. It can be called by authorized principals and cotrollers of the canister.
+
+In addition, the update function `authorize` has new behavior:
+Now, controllers of the asset canister are always allowed to authorize new principals (including themselves).
+
 ### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
 
 The Motoko compiler expects all imported canisters' .did files to be in one folder when it compiles a canister.
@@ -53,8 +62,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 34bc423d372efa4d699d1781c3bf304c5a1410f5932c84d32009e813c926c071
-- https://github.com/dfinity/sdk/pull/2413
+- Module hash: 14257a610c0b468ec002ccb4b606770565c1d4a89c5385934667c5ef46dbabd8
+- https://github.com/dfinity/sdk/pull/2805
 
 ### Replica
 

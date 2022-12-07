@@ -135,12 +135,14 @@ impl State {
         }
     }
 
-    pub fn authorize(&mut self, caller: &Principal, other: Principal) -> Result<(), String> {
-        if !self.is_authorized(caller) {
-            return Err("the caller is not authorized".to_string());
+    pub fn deauthorize_unconditionally(&mut self, principal: Principal) {
+        if let Some(pos) = self.authorized.iter().position(|x| *x == principal) {
+            self.authorized.remove(pos);
         }
-        self.authorize_unconditionally(other);
-        Ok(())
+    }
+
+    pub fn list_authorized(&self) -> &Vec<Principal> {
+        &self.authorized
     }
 
     pub fn root_hash(&self) -> Hash {

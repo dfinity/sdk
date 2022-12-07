@@ -150,6 +150,8 @@ service: {
   http_request_streaming_callback: (token: StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
 
   authorize: (principal) -> ();
+  deauthorize: (principal) -> ();
+  list_authorized: () -> (vec principal) query;
 
   get_asset_properties : (key: Key) -> (record { max_age: opt nat64; headers: opt vec HeaderField } ) query;
   set_asset_properties: (SetAssetPropertiesArguments) -> ();
