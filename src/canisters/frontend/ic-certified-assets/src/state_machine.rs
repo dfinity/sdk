@@ -135,24 +135,9 @@ impl State {
         }
     }
 
-    pub fn authorize(&mut self, caller: &Principal, other: Principal) -> Result<(), String> {
-        if !self.is_authorized(caller) {
-            return Err("the caller is not authorized".to_string());
-        }
-        self.authorize_unconditionally(other);
-        Ok(())
-    }
-
-    pub fn deauthorize(&mut self, caller: &Principal, principal: Principal) -> Result<(), String> {
-        if self.authorized.contains(caller) {
-            if let Some(pos) = self.authorized.iter().position(|x| *x == principal) {
-                self.authorized.remove(pos);
-                Ok(())
-            } else {
-                Err("Principal not in list of authorized principals.".to_string())
-            }
-        } else {
-            Err("the caller is not authorized".to_string())
+    pub fn deauthorize_unconditionally(&mut self, principal: Principal) {
+        if let Some(pos) = self.authorized.iter().position(|x| *x == principal) {
+            self.authorized.remove(pos);
         }
     }
 

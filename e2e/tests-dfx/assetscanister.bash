@@ -15,7 +15,14 @@ teardown() {
 }
 
 @test "authorize and deauthorize work as expected" {
-  PRINCIPAL=$(dfx identity get-principal)
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity use controller
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+  assert_command dfx identity new stranger --storage-mode plaintext
+  assert_command dfx identity use stranger
+  STRANGER_PRINCIPAL=$(dfx identity get-principal)
+  assert_command dfx identity use controller
+
   install_asset assetscanister
   dfx_start
   assert_command dfx deploy
@@ -23,22 +30,35 @@ teardown() {
 
   # deployer is automatically authorized
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_contains "$PRINCIPAL"
+  assert_contains "$CONTROLLER_PRINCIPAL"
 
-  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$PRINCIPAL\")"
+  # non-controller is not allowed to deauthorize principals
+  assert_command dfx identity use stranger
+  assert_command_fail dfx canister call e2e_project_frontend deauthorize "(principal \"$CONTROLLER_PRINCIPAL\")"
+
+  # authorized user can deauthorize
+  assert_command dfx identity use controller
+  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$CONTROLLER_PRINCIPAL\")"
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_not_contains "$PRINCIPAL"
+  assert_not_contains "$CONTROLLER_PRINCIPAL"
 
-  # while not authorized, dfx deploy fails
+  # while not authorized, dfx deploy fails, even as controller
   echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
   assert_command_fail dfx deploy
 
   # canister controllers may always authorize principals, even if they're not authorized themselves
-  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$PRINCIPAL\")"
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$STRANGER_PRINCIPAL\")"
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_contains "$PRINCIPAL"
+  assert_contains "$STRANGER_PRINCIPAL"
 
-  # after authorizing, deploy works again
+  # canister controller may always deauthorize, even if they're not authorized themselves
+  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$STRANGER_PRINCIPAL\")"
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$STRANGER_PRINCIPAL"
+
+  # after authorizing, deploy works again, even for non-controller
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$STRANGER_PRINCIPAL\")"
+  assert_command dfx identity use stranger
   assert_command dfx deploy
 }
 

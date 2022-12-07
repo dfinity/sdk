@@ -30,46 +30,19 @@ thread_local! {
 #[update]
 #[candid_method(update)]
 async fn authorize(other: Principal) {
-    let caller = caller();
-    let is_authorized = STATE.with(|s| s.borrow().is_authorized(&caller));
-    if is_authorized {
-        STATE.with(|s| {
-            if let Err(msg) = s.borrow_mut().authorize(&caller, other) {
-                trap(&msg);
-            }
-        })
-    } else {
-        match canister_status(CanisterIdRecord {
-            canister_id: ic_cdk::api::id(),
-        })
-        .await
-        {
-            Err((code, msg)) => trap(&format!(
-                "Caller is not authorized. Failed to determine if caller is canister controller with code {:?} and message '{}'",
-                code, msg
-            )),
-            Ok((a,)) => {
-                if a.settings.controllers.contains(&caller) {
-                    STATE.with(|s| s.borrow_mut().authorize_unconditionally(other))
-                } else {
-                    trap(
-                        "The caller is not authorized and not part of the canister's controllers.",
-                    );
-                }
-            }
-        }
+    match is_authorized_or_controller().await {
+        Err(e) => trap(&e),
+        Ok(_) => STATE.with(|s| s.borrow_mut().authorize_unconditionally(other)),
     }
 }
 
-#[update(guard = "is_authorized")]
+#[update]
 #[candid_method(update)]
-fn deauthorize(other: Principal) {
-    let caller = caller();
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().deauthorize(&caller, other) {
-            trap(&msg);
-        }
-    })
+async fn deauthorize(other: Principal) {
+    match is_authorized_or_controller().await {
+        Err(e) => trap(&e),
+        Ok(_) => STATE.with(|s| s.borrow_mut().deauthorize_unconditionally(other)),
+    }
 }
 
 #[query(manual_reply = true)]
@@ -243,6 +216,32 @@ fn is_authorized() -> Result<(), String> {
             .then(|| ())
             .ok_or_else(|| "Caller is not authorized".to_string())
     })
+}
+
+async fn is_authorized_or_controller() -> Result<(), String> {
+    let caller = caller();
+    let is_authorized = STATE.with(|s| s.borrow().is_authorized(&caller));
+    if is_authorized {
+        Ok(())
+    } else {
+        match canister_status(CanisterIdRecord {
+            canister_id: ic_cdk::api::id(),
+        })
+        .await
+        {
+            Err((code, msg)) => trap(&format!(
+                "Caller is not authorized. Failed to determine if caller is canister controller with code {:?} and message '{}'",
+                code, msg
+            )),
+            Ok((a,)) => {
+                if a.settings.controllers.contains(&caller) {
+                    Ok(())
+                } else {
+                    Err("Caller is not authorized and not a controller.".to_string())
+                }
+            }
+        }
+    }
 }
 
 pub fn init() {
