@@ -4,6 +4,12 @@
 
 ## DFX
 
+### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
+
+As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
+
+### feat: write canister metadata sections for dfx pull
+
 ### feat: add `--argument-file` argument to the `dfx canister sign` command
 
 Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
@@ -32,7 +38,7 @@ The flag `--disable-encryption` is deprecated in favour of `--storage-mode plain
 
 The asset canister now has two new functions:
 - Query function `list_authorized` displays a list of all principals that are currently authorized to change assets and the list of authorized principals.
-- Update function `deauthorize` that removes a principal from the list of authorized principals.
+- Update function `deauthorize` that removes a principal from the list of authorized principals. It can be called by authorized principals and cotrollers of the canister.
 
 In addition, the update function `authorize` has new behavior:
 Now, controllers of the asset canister are always allowed to authorize new principals (including themselves).
@@ -56,7 +62,7 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 8a0ccc3a665085048d0e3e03a76c82ed99c65d9feaa1e95f292dcde9b2714e46
+- Module hash: 14257a610c0b468ec002ccb4b606770565c1d4a89c5385934667c5ef46dbabd8
 - https://github.com/dfinity/sdk/pull/2805
 
 ### Replica
