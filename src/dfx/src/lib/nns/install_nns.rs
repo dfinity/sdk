@@ -12,8 +12,8 @@ use crate::lib::environment::Environment;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
+use crate::util::blob_from_arguments;
 use crate::util::network::get_replica_urls;
-use crate::util::{blob_from_arguments, PROVISIONAL_EFFECTIVE_CANISTER_ID};
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;

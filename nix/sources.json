@@ -42,10 +42,10 @@
     "ic-admin-x86_64-linux": {
         "builtin": false,
         "description": "The ic-admin binary.",
-        "rev": "805c5a52ab72344f7fcc4146115359b601a25708",
-        "sha256": "8106011dfaddf7bcc29162895836099363df1e98f0dbcfaeed359dc58b3815f7",
+        "rev": "997ab2e9cc49189302fe54c1e60709abfbeb1d42",
+        "sha256": "07vwrz8j3pc0dcypszkj7f2infdimi18b6qni5kazqx2s25zbwm0",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/805c5a52ab72344f7fcc4146115359b601a25708/release/ic-admin.gz",
+        "url": "https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/release/ic-admin.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/release/ic-admin.gz"
     },
     "ic-btc-adapter-x86_64-darwin": {
@@ -92,10 +92,10 @@
     "ic-nns-init-x86_64-linux": {
         "builtin": false,
         "description": "The ic-nns-init binary.",
-        "rev": "805c5a52ab72344f7fcc4146115359b601a25708",
-        "sha256": "b3f3535dd17be2781b869be9c133cc28a3c14b23162d9047883b7da0ee523187",
+        "rev": "997ab2e9cc49189302fe54c1e60709abfbeb1d42",
+        "sha256": "1kl7ibimpapgiqrz8k2ycdy9ish8567zfqvncjr2kjslxcpj98dk",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/805c5a52ab72344f7fcc4146115359b601a25708/release/ic-nns-init.gz",
+        "url": "https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/release/ic-nns-init.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/release/ic-nns-init.gz"
     },
     "ic-ref-x86_64-darwin": {
