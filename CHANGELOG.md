@@ -4,6 +4,12 @@
 
 ## DFX
 
+### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
+
+As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
+
+### feat: write canister metadata sections for dfx pull
+
 ### feat: add `--argument-file` argument to the `dfx canister sign` command
 
 Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
@@ -23,7 +29,19 @@ This works for both `dfx identity new` and `dfx identity import`.
 
 The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
 
-### feat: write canister metadata sections for dfx pull
+### feat: dfx pull
+
+- write canister metadata for dfx pull.
+- `dfx pull` can fetch `dfx:deps` metadata and resolve dependencies recursively.
+
+### feat(frontend-canister): better control and overview for asset canister authorized principals
+
+The asset canister now has two new functions:
+- Query function `list_authorized` displays a list of all principals that are currently authorized to change assets and the list of authorized principals.
+- Update function `deauthorize` that removes a principal from the list of authorized principals. It can be called by authorized principals and cotrollers of the canister.
+
+In addition, the update function `authorize` has new behavior:
+Now, controllers of the asset canister are always allowed to authorize new principals (including themselves).
 
 ### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
 
@@ -44,8 +62,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: c7adf5480aa1add0fe1811e29786b0c45a38281a5f57e149aa7f0d67a5836f44
-- https://github.com/dfinity/sdk/pull/2699
+- Module hash: 14257a610c0b468ec002ccb4b606770565c1d4a89c5385934667c5ef46dbabd8
+- https://github.com/dfinity/sdk/pull/2805
 
 ### Replica
 

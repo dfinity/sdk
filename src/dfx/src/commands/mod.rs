@@ -20,6 +20,7 @@ mod ledger;
 mod new;
 mod nns;
 mod ping;
+mod pull;
 mod quickstart;
 mod remote;
 mod replica;
@@ -51,6 +52,7 @@ pub enum Command {
     New(new::NewOpts),
     Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
+    Pull(pull::PullOpts),
     Quickstart,
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
@@ -82,6 +84,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::New(v) => new::exec(env, v),
         Command::Nns(v) => nns::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
+        Command::Pull(v) => pull::exec(env, v),
         Command::Quickstart => quickstart::exec(env),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),

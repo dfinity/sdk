@@ -16,5 +16,5 @@ if [ -d "${CARGO_HOME:-"$HOME/.cargo"}/registry/index" ]; then
     registry_flag="--build-context=registry=${CARGO_HOME:-"$HOME/.cargo"}/registry/index"
 fi
 
-docker buildx build . -f "$SCRIPT_DIR/update-frontend-canister.Dockerfile" -o src/distributed \
+docker buildx build --platform linux/amd64 --progress plain . -f "$SCRIPT_DIR/update-frontend-canister.Dockerfile" -o src/distributed \
     --build-arg=RUST_VERSION="$rust_version" ${registry_flag:+"$registry_flag"}
