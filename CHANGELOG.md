@@ -23,7 +23,10 @@ This works for both `dfx identity new` and `dfx identity import`.
 
 The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
 
-### feat: write canister metadata sections for dfx pull
+### feat: dfx pull
+
+- write canister metadata for dfx pull.
+- `dfx pull` can fetch `dfx:deps` metadata and resolve dependencies recursively.
 
 ### feat(frontend-canister): better control and overview for asset canister authorized principals
 
@@ -53,7 +56,7 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 9d78d7ad59f322378ff895525ef511b28a89bf9936959ea1daba9618f6269b34
+- Module hash: 8a0ccc3a665085048d0e3e03a76c82ed99c65d9feaa1e95f292dcde9b2714e46
 - https://github.com/dfinity/sdk/pull/2805
 
 ### Replica
