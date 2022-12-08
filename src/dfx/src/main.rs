@@ -40,9 +40,9 @@ pub struct CliOpts {
     #[clap(long, global(true))]
     identity: Option<String>,
 
-    /// The effective canister id must be a canister id in the canister ranges of the subnet on which new canisters should be created.
+    /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
     #[clap(long, global(true))]
-    effective_canister_id: Option<String>,
+    provisional_create_canister_effective_canister_id: Option<String>,
 
     #[clap(subcommand)]
     command: commands::Command,
@@ -181,7 +181,7 @@ fn main() {
     let cli_opts = CliOpts::parse();
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
-    let effective_canister_id = cli_opts.effective_canister_id;
+    let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
     let command = cli_opts.command;
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
