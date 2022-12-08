@@ -5,7 +5,6 @@
 ## DFX
 
 ### feat(ic-ref):
-- `ic-hs` is upgraded to master commit `3cc51be5`
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
 
 ### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
@@ -68,6 +67,14 @@ Updated candid to 0.8.4
 
 - Module hash: 14257a610c0b468ec002ccb4b606770565c1d4a89c5385934667c5ef46dbabd8
 - https://github.com/dfinity/sdk/pull/2805
+
+### ic-ref
+
+Updated ic-ref to master commit `3cc51be5`
+
+### Motoko
+
+Updated Motoko to 0.7.4
 
 ### Replica
 
