@@ -839,6 +839,7 @@ dependencies = [
  "crc32fast",
  "crossbeam",
  "ctrlc",
+ "dfx-core",
  "dialoguer",
  "directories-next",
  "env_logger",
@@ -904,6 +905,10 @@ dependencies = [
  "wasmparser 0.87.0",
  "which",
 ]
+
+[[package]]
+name = "dfx-core"
+version = "0.0.1"
 
 [[package]]
 name = "dhall"
