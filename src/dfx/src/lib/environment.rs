@@ -57,6 +57,8 @@ pub trait Environment {
     fn get_selected_identity(&self) -> Option<&String>;
 
     fn get_selected_identity_principal(&self) -> Option<Principal>;
+
+    fn get_effective_canister_id(&self) -> Principal;
 }
 
 pub struct EnvironmentImpl {
@@ -71,6 +73,8 @@ pub struct EnvironmentImpl {
     verbose_level: i64,
 
     identity_override: Option<String>,
+
+    effective_canister_id: Principal,
 }
 
 impl EnvironmentImpl {
@@ -119,6 +123,7 @@ impl EnvironmentImpl {
             logger: None,
             verbose_level: 0,
             identity_override: None,
+            effective_canister_id: Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
         })
     }
 
@@ -135,6 +140,19 @@ impl EnvironmentImpl {
     pub fn with_verbose_level(mut self, verbose_level: i64) -> Self {
         self.verbose_level = verbose_level;
         self
+    }
+
+    pub fn with_effective_canister_id(mut self, effective_canister_id: Option<String>) -> Self {
+        match effective_canister_id {
+            None => self,
+            Some(canister_id) => match Principal::from_text(canister_id) {
+                Ok(principal) => {
+                    self.effective_canister_id = principal;
+                    self
+                }
+                Err(_) => self,
+            },
+        }
     }
 }
 
@@ -214,6 +232,10 @@ impl Environment for EnvironmentImpl {
 
     fn get_selected_identity_principal(&self) -> Option<Principal> {
         None
+    }
+
+    fn get_effective_canister_id(&self) -> Principal {
+        self.effective_canister_id
     }
 }
 
@@ -314,6 +336,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_selected_identity_principal(&self) -> Option<Principal> {
         self.identity_manager.get_selected_identity_principal()
+    }
+
+    fn get_effective_canister_id(&self) -> Principal {
+        self.backend.get_effective_canister_id()
     }
 }
 

@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat(ic-ref):
+- `ic-hs` is upgraded to master commit `3cc51be5`
+- `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
+
 ### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
 
 As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 

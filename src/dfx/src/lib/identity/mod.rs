@@ -9,7 +9,6 @@ use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::PROVISIONAL_EFFECTIVE_CANISTER_ID;
 
 use anyhow::{anyhow, bail, Context};
 use bip39::{Language, Mnemonic};
@@ -556,7 +555,7 @@ impl Identity {
             None => {
                 mgr.create_canister()
                     .as_provisional_create_with_amount(None)
-                    .with_effective_canister_id(PROVISIONAL_EFFECTIVE_CANISTER_ID)
+                    .with_effective_canister_id(env.get_effective_canister_id())
                     .call_and_wait()
                     .await
                     .context("Failed create canister call.")?

@@ -5,7 +5,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::{self, PROVISIONAL_EFFECTIVE_CANISTER_ID};
+use crate::util::{self};
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -62,7 +62,7 @@ pub async fn install_ui_canister(
         None => {
             mgr.create_canister()
                 .as_provisional_create_with_amount(None)
-                .with_effective_canister_id(PROVISIONAL_EFFECTIVE_CANISTER_ID)
+                .with_effective_canister_id(env.get_effective_canister_id())
                 .call_and_wait()
                 .await
                 .context("Create canister call failed.")?
