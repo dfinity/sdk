@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+      - fix-install-shellcheck
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,7 +26,7 @@ jobs:
         run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
       - name: Generate
         run: |
-          shellcheck --shell=sh public/install/*.sh --exclude SC2039,SC2154,SC2034
+          shellcheck --shell=sh public/install/*.sh --exclude SC2154,SC2034,SC3003,SC3014
           ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install/*.sh
           sed -i "s/@revision@/${GITHUB_SHA}/" public/install/999_footer.sh
           mkdir _out
@@ -37,9 +39,14 @@ jobs:
             s/ *#.*//
           " _out/install.sh
           cp public/manifest.json _out/manifest.json
-      - name: Upload Artifacts
-        uses: JamesIves/github-pages-deploy-action@releases/v3
-        with:
-          single_commit: yes
-          branch: public-manifest
-          folder: _out/
+      - name: stop
+        if: github.branch == 'fix-install-shellcheck'
+        run: |
+          echo forced exit
+          exit 1
+#      - name: Upload Artifacts
+#        uses: JamesIves/github-pages-deploy-action@releases/v3
+##        with:
+#          single_commit: yes
+#          branch: public-manifest
+#          folder: _out/
