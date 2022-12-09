@@ -6,9 +6,11 @@ use crate::lib::identity::{
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
 use dfx_core::error::identity::IdentityError::{
-    CreateIdentityDirectoryFailed, GetLegacyPemPathFailed, LoadIdentityConfigurationFailed,
-    LoadIdentityManagerConfigurationFailed, RenameIdentityDirectoryFailed,
-    SaveIdentityManagerConfigurationFailed,
+    CreateIdentityDirectoryFailed, DisplayLinkedWalletsFailed,
+    DropWalletsFlagRequiredToRemoveIdentityWithWallets, GetLegacyPemPathFailed,
+    LoadIdentityConfigurationFailed, LoadIdentityManagerConfigurationFailed,
+    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
+    RenameIdentityDirectoryFailed, SaveIdentityManagerConfigurationFailed,
 };
 use dfx_core::foundation::get_user_home;
 use dfx_core::json::{load_json_file, save_json_file};
@@ -292,39 +294,40 @@ impl IdentityManager {
     /// Removing the selected identity is not allowed.
     /// Removing an identity that is connected to non-ephemeral wallets is only allowed if drop_wallets is true.
     /// If display_linked_wallets_to contains a logger, this will log all the wallets the identity is connected to.
-    #[context("Failed to remove identity '{}'.", name)]
     pub fn remove(
         &self,
         log: &Logger,
         name: &str,
         drop_wallets: bool,
         display_linked_wallets_to: Option<&Logger>,
-    ) -> DfxResult {
+    ) -> Result<(), IdentityError> {
         self.require_identity_exists(log, name)?;
 
         if name == ANONYMOUS_IDENTITY_NAME {
-            return Err(DfxError::new(IdentityError::CannotDeleteAnonymousIdentity()));
+            return Err(IdentityError::CannotDeleteAnonymousIdentity());
         }
 
         if self.configuration.default == name {
-            return Err(DfxError::new(IdentityError::CannotDeleteDefaultIdentity()));
+            return Err(IdentityError::CannotDeleteDefaultIdentity());
         }
 
         let wallet_config_file = self.get_persistent_wallet_config_file(name);
         if wallet_config_file.exists() {
             if let Some(logger) = display_linked_wallets_to {
-                DfxIdentity::display_linked_wallets(logger, &wallet_config_file)?;
+                DfxIdentity::display_linked_wallets(logger, &wallet_config_file)
+                    .map_err(DisplayLinkedWalletsFailed)?;
             }
             if drop_wallets {
                 remove_identity_file(&wallet_config_file)?;
             } else {
-                bail!("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")
+                return Err(DropWalletsFlagRequiredToRemoveIdentityWithWallets());
             }
         }
 
         if let Ok(config) = self.get_identity_config_or_default(name) {
             if let Some(suffix) = config.keyring_identity_suffix {
-                keyring_mock::delete_pem_from_keyring(&suffix)?;
+                keyring_mock::delete_pem_from_keyring(&suffix)
+                    .map_err(RemoveIdentityFromKeyringFailed)?;
             }
         }
         remove_identity_file(&self.get_identity_json_path(name))?;
@@ -333,9 +336,7 @@ impl IdentityManager {
 
         let dir = self.get_identity_dir_path(name);
         if dir.exists() {
-            std::fs::remove_dir(&dir).with_context(|| {
-                format!("Cannot remove identity directory at '{}'.", dir.display())
-            })?;
+            dfx_core::fs::remove_dir(&dir).map_err(RemoveIdentityDirectoryFailed)?;
         }
 
         Ok(())
@@ -622,10 +623,9 @@ pub(super) fn write_identity_configuration(
 }
 
 /// Removes the file if it exists.
-fn remove_identity_file(file: &Path) -> DfxResult {
+fn remove_identity_file(file: &Path) -> Result<(), IdentityError> {
     if file.exists() {
-        std::fs::remove_file(file)
-            .with_context(|| format!("Cannot remove identity file at '{}'.", file.display()))?;
+        dfx_core::fs::remove_file(file).map_err(RemoveIdentityFileFailed)?;
     }
     Ok(())
 }
