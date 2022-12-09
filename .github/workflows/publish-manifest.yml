@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-      - fix-install-shellcheck
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -39,14 +37,9 @@ jobs:
             s/ *#.*//
           " _out/install.sh
           cp public/manifest.json _out/manifest.json
-      - name: stop
-        if: github.branch == 'fix-install-shellcheck'
-        run: |
-          echo forced exit
-          exit 1
-#      - name: Upload Artifacts
-#        uses: JamesIves/github-pages-deploy-action@releases/v3
-##        with:
-#          single_commit: yes
-#          branch: public-manifest
-#          folder: _out/
+      - name: Upload Artifacts
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          single_commit: yes
+          branch: public-manifest
+          folder: _out/
