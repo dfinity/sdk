@@ -33,7 +33,7 @@ get_var_name() {
 }
 read_flags() {
     while [ -n "$*" ]; do
-        local ARG=$1
+        local ARG="$1"
         shift
         OLD_IFS="$IFS"
         IFS=$'\n'
@@ -161,7 +161,7 @@ DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
 DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
 DFX_VERSION="${DFX_VERSION:-}"
-SCRIPT_COMMIT_DESC="1895e1f1ae09cccf25c47725793f1e8b5c9254cd"
+SCRIPT_COMMIT_DESC="86fb981f204ba172692e227fc60c5f7437aaeef7"
 get_tag_from_manifest_json() {
     cat \
         | tr -d '\n' \
