@@ -5,7 +5,7 @@ help()
 {
    # display help
    echo "Build frontend canister wasm. Copies the wasm build artifact"
-   echo "and corespontind candid file (src/canisters/frontend/ic-certified-assets/assets.did)"
+   echo "and corresponding candid file (src/canisters/frontend/ic-certified-assets/assets.did)"
    echo "to src/distributed/assetstorage.did."
    echo
    echo "Options:"
