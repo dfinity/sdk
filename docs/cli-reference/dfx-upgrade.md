@@ -37,6 +37,6 @@ This command checks the version of `dfx` you have currently installed and the la
 
 ``` bash
 Current version: 0.6.8
-Fetching manifest \https://smartcontracts.org/manifest.json
+Fetching manifest \https://sdk.dfinity.org/manifest.json
 Already up to date
 ```
