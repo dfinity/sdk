@@ -1,10 +1,11 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 
-use crate::state_machine::{AssetRedirect, StableState, State, BATCH_EXPIRY_NANOS};
+use crate::http::{HttpRedirect, HttpRequest, HttpResponse, StreamingStrategy};
+use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments, CreateChunkArg,
-    DeleteAssetArguments, HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
+    DeleteAssetArguments, SetAssetContentArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -28,7 +29,8 @@ struct AssetBuilder {
     max_age: Option<u64>,
     headers: Option<HashMap<String, String>>,
     aliasing: Option<bool>,
-    redirect: Option<AssetRedirect>,
+    redirect: Option<HttpRedirect>,
+    allow_raw_access: Option<bool>,
 }
 
 impl AssetBuilder {
@@ -41,6 +43,7 @@ impl AssetBuilder {
             headers: None,
             aliasing: None,
             redirect: None,
+            allow_raw_access: None,
         }
     }
 
@@ -66,13 +69,18 @@ impl AssetBuilder {
         self
     }
 
-    fn with_redirect(mut self, redirect: AssetRedirect) -> Self {
+    fn with_aliasing(mut self, aliasing: bool) -> Self {
+        self.aliasing = Some(aliasing);
+        self
+    }
+
+    fn with_redirect(mut self, redirect: HttpRedirect) -> Self {
         self.redirect = Some(redirect);
         self
     }
 
-    fn with_aliasing(mut self, aliasing: bool) -> Self {
-        self.aliasing = Some(aliasing);
+    fn with_allow_raw_access(mut self, allow_raw_access: Option<bool>) -> Self {
+        self.allow_raw_access = allow_raw_access;
         self
     }
 }
@@ -123,6 +131,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             headers: asset.headers,
             enable_aliasing: asset.aliasing,
             redirect: asset.redirect,
+            allow_raw_access: asset.allow_raw_access,
         }));
 
         for (enc, chunks) in asset.encodings {
@@ -494,534 +503,6 @@ fn supports_custom_http_headers() {
     );
 }
 
-#[cfg(test)]
-mod test_http_redirects {
-    use super::{create_assets, AssetBuilder};
-    use crate::{
-        state_machine::{AssetRedirect, RedirectUrl, State},
-        tests::{unused_callback, RequestBuilder},
-        types::HttpResponse,
-    };
-
-    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
-
-    macro_rules! assert_redirect_location {
-        ($resp:expr, $expected:expr) => {
-            let location = $resp.headers.iter().find(|(key, _)| key == "Location");
-            assert!(
-                location.is_some(),
-                "Expected redirect to location {:?}, but got headers: {:#?}",
-                $expected,
-                $resp.headers
-            );
-            assert_eq!(location.unwrap().1, $expected);
-        };
-    }
-
-    impl State {
-        fn fake_http_request(&self, host: &str, path: &str) -> HttpResponse {
-            let fake_cert = [0xca, 0xfe];
-            let resp = self.http_request(
-                RequestBuilder::get(path).with_header("Host", host).build(),
-                &fake_cert,
-                unused_callback(),
-            );
-            if resp.upgrade.map_or(false, |v| v) {
-                self.http_request_update(
-                    RequestBuilder::get(path).with_header("Host", host).build(),
-                )
-            } else {
-                resp
-            }
-        }
-        fn fake_http_request_with_headers(
-            &self,
-            host: &str,
-            path: &str,
-            headers: Vec<(&str, &str)>,
-        ) -> HttpResponse {
-            let fake_cert = [0xca, 0xfe];
-            let mut request = RequestBuilder::get(path).with_header("Host", host);
-            for header in headers {
-                request = request.with_header(header.0, header.1);
-            }
-            let resp = self.http_request(request.build(), &fake_cert, unused_callback());
-            if resp.upgrade.map_or(false, |v| v) {
-                self.http_request_update(
-                    RequestBuilder::get(path).with_header("Host", host).build(),
-                )
-            } else {
-                resp
-            }
-        }
-        fn create_test_asset(&mut self, asset: AssetBuilder) {
-            create_assets(self, 100_000_000_000, vec![asset]);
-        }
-    }
-
-    #[test]
-    fn correct_redirect_codes() {
-        for response_code in vec![300, 301, 302, 303, 304, 307, 308] {
-            let mut state = State::default();
-            state.create_test_asset(
-                AssetBuilder::new("/redirect.html", "text/html").with_redirect(AssetRedirect {
-                    to: RedirectUrl::new(Some("www.example.com"), Some("/redirected.html")),
-                    response_code,
-                    ..Default::default()
-                }),
-            );
-            let response = state.fake_http_request("www.example.com", "/redirect.html");
-            assert_eq!(response.status_code, response_code);
-        }
-    }
-
-    #[test]
-    fn incorrect_redirect_codes() {
-        for response_code in vec![200, 305, 306, 309, 310, 311, 400, 404, 405, 500] {
-            let mut state = State::default();
-            state.create_test_asset(
-                AssetBuilder::new("/redirect.html", "text/html").with_redirect(AssetRedirect {
-                    to: RedirectUrl::new(Some("www.example.com"), Some("/redirected.html")),
-                    response_code,
-                    ..Default::default()
-                }),
-            );
-            let response = state.fake_http_request("www.example.com", "/redirect.html");
-            assert_eq!(response.status_code, 400);
-        }
-    }
-
-    #[test]
-    fn basic_absolute_redirects_to_hostpath() {
-        let mut state = State::default();
-
-        // Redirect to absolute URL (host + path)
-        state.create_test_asset(AssetBuilder::new("/A.html", "text/html").with_redirect(
-            AssetRedirect {
-                to: RedirectUrl::new(Some("www.example.com"), Some("/new-contents.html")),
-                response_code: 308,
-                ..Default::default()
-            },
-        ));
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/A.html");
-        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/A.html");
-        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/A.html");
-        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("ic0.app", "/A.html");
-        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("straw.ic0.app", "/A.html");
-        assert_redirect_location!(&resp, "https://www.example.com/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn basic_absolute_redirects_to_host() {
-        let mut state = State::default();
-        // Redirect to absolute URL (only host)
-        state.create_test_asset(AssetBuilder::new("/B.html", "text/html").with_redirect(
-            AssetRedirect {
-                to: RedirectUrl::new(Some("www.example.com"), None),
-                response_code: 308,
-                ..Default::default()
-            },
-        ));
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/B.html");
-        assert_redirect_location!(&resp, "https://www.example.com/B.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/B.html");
-        assert_redirect_location!(&resp, "https://www.example.com/B.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/B.html");
-        assert_redirect_location!(&resp, "https://www.example.com/B.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("ic0.app", "/B.html");
-        assert_redirect_location!(&resp, "https://www.example.com/B.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("straw.ic0.app", "/B.html");
-        assert_redirect_location!(&resp, "https://www.example.com/B.html");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn basic_absolute_redirects_to_path() {
-        let mut state = State::default();
-        // Redirect to absolute URL (only path)
-        state.create_test_asset(AssetBuilder::new("/C.html", "text/html").with_redirect(
-            AssetRedirect {
-                to: RedirectUrl::new(None, Some("/redirected.html")),
-                response_code: 308,
-                ..Default::default()
-            },
-        ));
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/C.html");
-        assert_redirect_location!(&resp, "/redirected.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/C.html");
-        assert_redirect_location!(&resp, "/redirected.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/C.html");
-        assert_redirect_location!(&resp, "/redirected.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("ic0.app", "/C.html");
-        assert_redirect_location!(&resp, "/redirected.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("straw.ic0.app", "/C.html");
-        assert_redirect_location!(&resp, "/redirected.html");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn basic_relative_redirects_from_hostpath_to_hostpath() {
-        // Redirect to absolute URL (from: host + path, to: host + path)
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
-                from: Some(RedirectUrl::new(
-                    Some("\\.raw.ic0.app"),
-                    Some("/contents.html"),
-                )),
-                to: RedirectUrl::new(Some(".ic0.app"), Some("/new-contents.html")),
-                response_code: 308,
-                ..Default::default()
-            }),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://my.http.files.ic0.app/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://raw.ic0.app.ic0.app/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn basic_relative_redirects_from_hostpath_to_host() {
-        let mut state = State::default();
-        // Redirect to absolute URL (from: host + path, to: host)
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_redirect(AssetRedirect {
-                    from: Some(RedirectUrl::new(
-                        Some("\\.raw.ic0.app"),
-                        Some("/contents.html"),
-                    )),
-                    to: RedirectUrl::new(Some(".ic0.app"), None),
-                    response_code: 308,
-                    ..Default::default()
-                })
-                .with_encoding("identity", vec![BODY]),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://my.http.files.ic0.app/contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://raw.ic0.app.ic0.app/contents.html");
-        assert_eq!(resp.status_code, 308);
-        // does not loop redirect
-        let resp = state.fake_http_request("ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-    }
-
-    #[test]
-    fn basic_relative_redirects_from_hostpath_to_path() {
-        let mut state = State::default();
-        // Redirect to absolute URL (from: host + path, to: path)
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
-                from: Some(RedirectUrl::new(
-                    Some("\\.raw.ic0.app"),
-                    Some("/contents.html"),
-                )),
-                to: RedirectUrl::new(None, Some("/new-contents.html")),
-                response_code: 308,
-                ..Default::default()
-            }),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    // Redirect to absolute URL (from: host, to: host + path)
-    fn basic_relative_redirects_from_host_to_hostpath() {
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
-                from: Some(RedirectUrl::new(Some("\\.raw.ic0.app"), None)),
-                to: RedirectUrl::new(Some(".ic0.app"), Some("/new-contents.html")),
-                response_code: 308,
-                ..Default::default()
-            }),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://my.http.files.ic0.app/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://raw.ic0.app.ic0.app/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn basic_relative_redirects_from_host_to_host() {
-        let mut state = State::default();
-        // Redirect to absolute URL (from: host, to: host)
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_redirect(AssetRedirect {
-                    from: Some(RedirectUrl::new(Some("\\.raw.ic0.app"), None)),
-                    to: RedirectUrl::new(Some(".ic0.app"), None),
-                    response_code: 308,
-                    ..Default::default()
-                })
-                .with_encoding("identity", vec![BODY]),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("my.http.files.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://my.http.files.ic0.app/contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("raw.ic0.app.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://raw.ic0.app.ic0.app/contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-        let resp = state.fake_http_request("straw.ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-    }
-
-    #[test]
-    fn regex_redirects_from_host_to_hostpath() {
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
-                from: Some(RedirectUrl::new(Some("([-a-z0-9]*)\\.raw.ic0.app"), None)),
-                to: RedirectUrl::new(Some("$1.ic0.app"), Some("/new-contents.html")),
-                response_code: 308,
-                ..Default::default()
-            }),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/new-contents.html");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn regex_redirects_from_hostpath_to_hostpath() {
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
-                from: Some(RedirectUrl::new(
-                    Some("([-a-z0-9]*)\\.raw.ic0.app"),
-                    Some("(?P<start>.*)(contents)(?P<end>.*)"),
-                )),
-                to: RedirectUrl::new(Some("$1.ic0.app"), Some("${start}contemplating${end}")),
-                response_code: 308,
-                ..Default::default()
-            }),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://aaaaa-aa.ic0.app/contemplating.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/contemplating.html");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn regex_redirects_from_path_to_hostpath() {
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
-                from: Some(RedirectUrl::new(None, Some("/(.*)(.html)"))),
-                to: RedirectUrl::new(Some("duckduckgo.com"), Some("/q=${1}.png")),
-                response_code: 308,
-                ..Default::default()
-            }),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://duckduckgo.com/q=contents.png");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://duckduckgo.com/q=contents.png");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn regex_redirects_from_hostpath_to_path() {
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html").with_redirect(AssetRedirect {
-                from: Some(RedirectUrl::new(
-                    Some("([-a-z0-9]*)\\.raw.ic0.app"),
-                    Some("/(.*)(.html)"),
-                )),
-                to: RedirectUrl::new(None, Some("/q=${1}.png")),
-                response_code: 308,
-                ..Default::default()
-            }),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/q=contents.png");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "/q=contents.png");
-        assert_eq!(resp.status_code, 308);
-    }
-
-    #[test]
-    fn regex_redirects_from_hostpath_to_host() {
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_redirect(AssetRedirect {
-                    from: Some(RedirectUrl::new(
-                        Some("([-a-z0-9]*)\\.raw.ic0.app"),
-                        Some("/(.*)(.html)"),
-                    )),
-                    to: RedirectUrl::new(Some("internetcomputer.org"), None),
-                    response_code: 308,
-                    ..Default::default()
-                })
-                .with_encoding("identity", vec![BODY]),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.raw.ic0.app", "/contents.html");
-        assert_redirect_location!(&resp, "https://internetcomputer.org/contents.html");
-        assert_eq!(resp.status_code, 308);
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-    }
-
-    #[test]
-    fn validity_checks() {
-        let a = AssetRedirect {
-            from: Some(RedirectUrl::new(None, None)),
-            to: RedirectUrl::new(None, None),
-            response_code: 11111,
-        };
-        assert!(a.is_valid().is_err());
-
-        let a = AssetRedirect {
-            to: RedirectUrl::new(Some(""), None),
-            ..Default::default()
-        };
-        assert!(a.is_valid().is_ok());
-
-        let a = AssetRedirect {
-            to: RedirectUrl::new(Some("x"), None),
-            ..Default::default()
-        };
-        assert!(a.is_valid().is_ok());
-
-        let a = AssetRedirect {
-            to: RedirectUrl::new(Some("x"), None),
-            ..Default::default()
-        };
-        assert!(a.is_valid().is_ok());
-    }
-
-    #[test]
-    fn cyclic_requests() {
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_redirect(AssetRedirect {
-                    from: Some(RedirectUrl::new(None, Some("/contents.html"))),
-                    to: RedirectUrl::new(None, Some("/contents.html")),
-                    response_code: 308,
-                    ..Default::default()
-                })
-                .with_encoding("identity", vec![BODY]),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_redirect(AssetRedirect {
-                    from: Some(RedirectUrl::new(None, Some("/contents.html"))),
-                    to: RedirectUrl::new(None, Some("/contents.html")),
-                    response_code: 308,
-                    ..Default::default()
-                })
-                .with_encoding("identity", vec![BODY]),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_redirect(AssetRedirect {
-                    to: RedirectUrl::new(None, Some("/contents.html")),
-                    response_code: 308,
-                    ..Default::default()
-                })
-                .with_encoding("identity", vec![BODY]),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-
-        let mut state = State::default();
-        state.create_test_asset(
-            AssetBuilder::new("/contents.html", "text/html")
-                .with_redirect(AssetRedirect {
-                    to: RedirectUrl::new(Some("https://aaaaa-aa.ic0.app"), Some("/contents.html")),
-                    response_code: 308,
-                    ..Default::default()
-                })
-                .with_encoding("identity", vec![BODY]),
-        );
-        let resp = state.fake_http_request("https://aaaaa-aa.ic0.app", "/contents.html");
-        assert_eq!(resp.status_code, 200);
-    }
-}
-
 #[test]
 fn support_aliases() {
     let mut state = State::default();
@@ -1255,4 +736,487 @@ fn aliasing_name_clash() {
         unused_callback(),
     );
     assert_eq!(alias_accessible_again.body.as_ref(), FILE_BODY);
+}
+
+#[cfg(test)]
+mod test_http_redirects {
+    use super::{create_assets, unused_callback, AssetBuilder, RequestBuilder};
+    use crate::{
+        http::{HttpRedirect, HttpResponse, RedirectUrl},
+        state_machine::State,
+    };
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    impl State {
+        fn fake_http_request(&self, host: &str, path: &str) -> (HttpResponse, bool) {
+            let fake_cert = [0xca, 0xfe];
+            let mut upgraded = false;
+            let mut resp = self.http_request(
+                RequestBuilder::get(path).with_header("Host", host).build(),
+                &fake_cert,
+                unused_callback(),
+            );
+            // emulate service worker behaviour
+            if resp.upgrade.map_or(false, |v| v) {
+                upgraded = true;
+                resp = self.http_request_update(
+                    RequestBuilder::get(path).with_header("Host", host).build(),
+                );
+            }
+            (resp, upgraded)
+        }
+
+        fn create_test_asset(&mut self, asset: AssetBuilder) {
+            create_assets(self, 100_000_000_000, vec![asset]);
+        }
+    }
+
+    #[test]
+    fn correct_redirect_codes() {
+        for response_code in vec![300, 301, 302, 303, 304, 307, 308] {
+            let mut state = State::default();
+            state.create_test_asset(
+                AssetBuilder::new("/redirect.html", "text/html").with_redirect(HttpRedirect {
+                    to: RedirectUrl::new(
+                        Some("www.example.com".to_string()),
+                        Some("/redirected.html".to_string()),
+                    ),
+                    response_code,
+                    ..Default::default()
+                }),
+            );
+            let (response, _) = state.fake_http_request("www.example.com", "/redirect.html");
+            assert_eq!(response.status_code, response_code);
+        }
+    }
+
+    #[test]
+    fn incorrect_redirect_codes() {
+        for response_code in vec![200, 305, 306, 309, 310, 311, 400, 404, 405, 500] {
+            let mut state = State::default();
+            state.create_test_asset(
+                AssetBuilder::new("/redirect.html", "text/html").with_redirect(HttpRedirect {
+                    to: RedirectUrl::new(
+                        Some("www.example.com".to_string()),
+                        Some("/redirected.html".to_string()),
+                    ),
+                    response_code,
+                    ..Default::default()
+                }),
+            );
+            let (response, _) = state.fake_http_request("www.example.com", "/redirect.html");
+            assert_eq!(response.status_code, 400);
+        }
+    }
+
+    #[test]
+    fn redirect_struct_validity_checks() {
+        let a = HttpRedirect {
+            from: Some(RedirectUrl::new(None, None)),
+            to: RedirectUrl::new(None, None),
+            response_code: 11111,
+        };
+        assert!(a.is_valid().is_err());
+
+        let a = HttpRedirect {
+            to: RedirectUrl::new(Some("".to_string()), None),
+            ..Default::default()
+        };
+        assert!(a.is_valid().is_ok());
+
+        let a = HttpRedirect {
+            to: RedirectUrl::new(Some("x".to_string()), None),
+            ..Default::default()
+        };
+        assert!(a.is_valid().is_ok());
+
+        let a = HttpRedirect {
+            to: RedirectUrl::new(Some("x".to_string()), None),
+            ..Default::default()
+        };
+        assert!(a.is_valid().is_ok());
+    }
+
+    #[test]
+    fn redirects() {
+        type RoutingTestCase<'a> = (
+            Option<&'a str>,
+            Option<&'a str>,
+            Option<&'a str>,
+            Option<&'a str>,
+            &'a str,
+            &'a str,
+            Option<bool>,
+            Option<&'a str>,
+            bool,
+        );
+
+        impl HttpRedirect {
+            fn from_test_case(t: RoutingTestCase) -> Self {
+                Self {
+                    from: if t.0.is_none() && t.1.is_none() {
+                        None
+                    } else {
+                        Some(RedirectUrl {
+                            host: t.0.map(|v| v.into()),
+                            path: t.1.map(|v| v.into()),
+                        })
+                    },
+                    to: RedirectUrl {
+                        host: t.2.map(|v| v.into()),
+                        path: t.3.map(|v| v.into()),
+                    },
+                    response_code: 308,
+                }
+            }
+        }
+
+        #[rustfmt::skip]
+        let basic_test_routing_table: Vec<RoutingTestCase> = vec![
+            // Inputs ----------------------------------------------------------------------------------------------------------------- | Outputs ------------------------------------------------------
+/* index */ // from_host  | from_path   | to_host                     | to_path      | request_host   | request_path | allow_raw_access | Location header value              | via http_request_upgrade?
+/* 0 */     (Some("a-b-c"), Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , Some("https://a-b-c.xyz.app/home"),  true),
+/* 1 */     (Some("a-b-c"), Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , Some("https://a-b-c.xyz.app/blog"),  true),
+/* 2 */     (Some("a-b-c"), Some("blog"), None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , Some("/home"),                       true),
+/* 3 */     (Some("a-b-c"), Some("blog"), None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 4 */     (Some("a-b-c"), None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , Some("https://a-b-c.xyz.app/home"),  true),
+/* 5 */     (Some("a-b-c"), None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , Some("https://a-b-c.xyz.app/blog"),  true),
+/* 6 */     (Some("a-b-c"), None        , None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , Some("/home"),                       true),
+/* 7 */     (Some("a-b-c"), None        , None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 8 */     (None         , Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , Some("https://a-b-c.xyz.app/home"),  true),
+/* 9 */     (None         , Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , Some("https://a-b-c.xyz.app/blog"),  true),
+/* 10 */    (None         , Some("blog"), None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , Some("/home"),                       true),
+/* 11 */    (None         , Some("blog"), None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 12 */    (None         , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , Some("https://a-b-c.xyz.app/home"),  true),
+/* 13 */    (None         , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , Some("https://a-b-c.xyz.app/blog"),  true),
+/* 14 */    (None         , None        , None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , Some("/home"),                       true),
+/* 15 */    (None         , None        , None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 16 */    (Some("inv")  , Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 17 */    (Some("inv")  , Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 18 */    (Some("inv")  , Some("blog"), None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 19 */    (Some("inv")  , Some("blog"), None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 20 */    (Some("inv")  , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 21 */    (Some("inv")  , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 22 */    (Some("inv")  , None        , None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 23 */    (Some("inv")  , None        , None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 24 */    (Some("a-b-c"), Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 25 */    (Some("a-b-c"), Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 26 */    (Some("a-b-c"), Some("inv") , None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 27 */    (Some("a-b-c"), Some("inv") , None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 28 */    (None         , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 29 */    (None         , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 30 */    (None         , Some("inv") , None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 31 */    (None         , Some("inv") , None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 32 */    (Some("inv")  , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 33 */    (Some("inv")  , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 34 */    (Some("inv")  , Some("inv") , None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 35 */    (Some("inv")  , Some("inv") , None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 36 */    (Some("inv")  , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 37 */    (Some("inv")  , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 38 */    (Some("inv")  , None        , None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 39 */    (Some("inv")  , None        , None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 40 */    (None         , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 41 */    (None         , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 42 */    (None         , Some("inv") , None                        , Some("/home"), "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+/* 43 */    (None         , Some("inv") , None                        , None         , "a-b-c.ic0.app", "/blog",       Some(true)       , None,                                false),
+        ];
+
+        #[rustfmt::skip]
+        let forbid_raw_access_test_routing_table: Vec<RoutingTestCase> = vec![
+            // Inputs --------------------------------------------------------------------------------------------------------------------- | Outputs ------------------------------------------------------
+/* index */ // from_host  | from_path   | to_host                     | to_path      | request_host       | request_path | allow_raw_access | Location header value              | via http_request_upgrade?
+/* 44 */    (Some("a-b-c"), Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("https://a-b-c.xyz.app/home"),  false),
+/* 45 */    (Some("a-b-c"), Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("https://a-b-c.xyz.app/blog"),  false),
+/* 46 */    (Some("a-b-c"), Some("blog"), None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("/home"),                       false),
+/* 47 */    (Some("a-b-c"), Some("blog"), None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 48 */    (Some("a-b-c"), None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("https://a-b-c.xyz.app/home"),  false),
+/* 49 */    (Some("a-b-c"), None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("https://a-b-c.xyz.app/blog"),  false),
+/* 50 */    (Some("a-b-c"), None        , None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("/home"),                       false),
+/* 51 */    (Some("a-b-c"), None        , None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 52 */    (None         , Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("https://a-b-c.xyz.app/home"),  false),
+/* 53 */    (None         , Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("https://a-b-c.xyz.app/blog"),  false),
+/* 54 */    (None         , Some("blog"), None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("/home"),                       false),
+/* 55 */    (None         , Some("blog"), None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 56 */    (None         , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("https://a-b-c.xyz.app/home"),  false),
+/* 57 */    (None         , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("https://a-b-c.xyz.app/blog"),  false),
+/* 58 */    (None         , None        , None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , Some("/home"),                       false),
+/* 59 */    (None         , None        , None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 60 */    (Some("inv")  , Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 61 */    (Some("inv")  , Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 62 */    (Some("inv")  , Some("blog"), None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 63 */    (Some("inv")  , Some("blog"), None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 64 */    (Some("inv")  , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 65 */    (Some("inv")  , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 66 */    (Some("inv")  , None        , None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 67 */    (Some("inv")  , None        , None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 68 */    (Some("a-b-c"), Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 69 */    (Some("a-b-c"), Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 70 */    (Some("a-b-c"), Some("inv") , None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 71 */    (Some("a-b-c"), Some("inv") , None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 72 */    (None         , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 73 */    (None         , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 74 */    (None         , Some("inv") , None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 75 */    (None         , Some("inv") , None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 76 */    (Some("inv")  , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 77 */    (Some("inv")  , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 78 */    (Some("inv")  , Some("inv") , None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 79 */    (Some("inv")  , Some("inv") , None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 80 */    (Some("inv")  , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 81 */    (Some("inv")  , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 82 */    (Some("inv")  , None        , None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 83 */    (Some("inv")  , None        , None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 84 */    (None         , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 85 */    (None         , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 86 */    (None         , Some("inv") , None                        , Some("/home"), "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+/* 87 */    (None         , Some("inv") , None                        , None         , "a-b-c.raw.ic0.app", "/blog",       Some(false)      , None,                                false),
+        ];
+
+        #[rustfmt::skip]
+        let localhost_test_routing_table: Vec<RoutingTestCase> = vec![
+            // Inputs ----------------------------------------------------------------------------------------------------------------------------------- | Outputs ----------------------------------------------------------
+/* index */ // from_host  | from_path   | to_host                     | to_path      | request_host          | request_path            | allow_raw_access | Location header value                              | via http_request_upgrade?
+/* 88 */    (Some("a-b-c"), Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4349", "/blog"                 , Some(false)      , Some("https://a-b-c.xyz.app/home")                 ,  false),
+/* 89 */    (Some("a-b-c"), Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("https://a-b-c.xyz.app/blog")                 ,  false),
+/* 90 */    (Some("a-b-c"), Some("blog"), None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("/home")                                      ,  false),
+/* 91 */    (Some("a-b-c"), Some("blog"), None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 92 */    (Some("a-b-c"), None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("https://a-b-c.xyz.app/home")                 ,  false),
+/* 93 */    (Some("a-b-c"), None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("https://a-b-c.xyz.app/blog")                 ,  false),
+/* 94 */    (Some("a-b-c"), None        , None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("/home")                                      ,  false),
+/* 95 */    (Some("a-b-c"), None        , None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 96 */    (None         , Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("https://a-b-c.xyz.app/home")                 ,  false),
+/* 97 */    (None         , Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("https://a-b-c.xyz.app/blog")                 ,  false),
+/* 98 */    (None         , Some("blog"), None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("/home")                                      ,  false),
+/* 99 */    (None         , Some("blog"), None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 100 */   (None         , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("https://a-b-c.xyz.app/home")                 ,  false),
+/* 101 */   (None         , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("https://a-b-c.xyz.app/blog")                 ,  false),
+/* 102 */   (None         , None        , None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , Some("/home")                                      ,  false),
+/* 103 */   (None         , None        , None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 104 */   (Some("inv")  , Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 105 */   (Some("inv")  , Some("blog"), Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 106 */   (Some("inv")  , Some("blog"), None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 107 */   (Some("inv")  , Some("blog"), None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 108 */   (Some("inv")  , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 109 */   (Some("inv")  , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 110 */   (Some("inv")  , None        , None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 111 */   (Some("inv")  , None        , None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 112 */   (Some("a-b-c"), Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 113 */   (Some("a-b-c"), Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 114 */   (Some("a-b-c"), Some("inv") , None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 115 */   (Some("a-b-c"), Some("inv") , None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 116 */   (None         , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 117 */   (None         , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 118 */   (None         , Some("inv") , None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 119 */   (None         , Some("inv") , None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 120 */   (Some("inv")  , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 121 */   (Some("inv")  , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 122 */   (Some("inv")  , Some("inv") , None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 123 */   (Some("inv")  , Some("inv") , None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 124 */   (Some("inv")  , None        , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 125 */   (Some("inv")  , None        , Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 126 */   (Some("inv")  , None        , None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 127 */   (Some("inv")  , None        , None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 128 */   (None         , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 129 */   (None         , Some("inv") , Some("{canisterId}.xyz.app"), None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 130 */   (None         , Some("inv") , None                        , Some("/home"), "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 131 */   (None         , Some("inv") , None                        , None         , "a-b-c.localhost:4348", "/blog"                 , Some(false)      , None                                               ,  false),
+/* 132 */   (Some("a-b-c"), Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 133 */   (Some("a-b-c"), Some("blog"), Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 134 */   (Some("a-b-c"), Some("blog"), None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 135 */   (Some("a-b-c"), Some("blog"), None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 136 */   (Some("a-b-c"), None        , Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 137 */   (Some("a-b-c"), None        , Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 138 */   (Some("a-b-c"), None        , None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 139 */   (Some("a-b-c"), None        , None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 140 */   (None         , Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , Some("https://a-b-c.xyz.app/home")                 ,  false),
+/* 141 */   (None         , Some("blog"), Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , Some("https://a-b-c.xyz.app/blog?canisterId=a-b-c"),  false),
+/* 142 */   (None         , Some("blog"), None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , Some("/home")                                      ,  false),
+/* 143 */   (None         , Some("blog"), None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 144 */   (None         , None        , Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , Some("https://a-b-c.xyz.app/home")                 ,  false),
+/* 145 */   (None         , None        , Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , Some("https://a-b-c.xyz.app/blog?canisterId=a-b-c"),  false),
+/* 146 */   (None         , None        , None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , Some("/home")                                      ,  false),
+/* 147 */   (None         , None        , None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 148 */   (Some("inv")  , Some("blog"), Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 149 */   (Some("inv")  , Some("blog"), Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 150 */   (Some("inv")  , Some("blog"), None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 151 */   (Some("inv")  , Some("blog"), None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 152 */   (Some("inv")  , None        , Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 153 */   (Some("inv")  , None        , Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 154 */   (Some("inv")  , None        , None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 155 */   (Some("inv")  , None        , None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 156 */   (Some("a-b-c"), Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 157 */   (Some("a-b-c"), Some("inv") , Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 158 */   (Some("a-b-c"), Some("inv") , None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 159 */   (Some("a-b-c"), Some("inv") , None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 160 */   (None         , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 161 */   (None         , Some("inv") , Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 162 */   (None         , Some("inv") , None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 163 */   (None         , Some("inv") , None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 164 */   (Some("inv")  , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 165 */   (Some("inv")  , Some("inv") , Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 166 */   (Some("inv")  , Some("inv") , None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 167 */   (Some("inv")  , Some("inv") , None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 168 */   (Some("inv")  , None        , Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 169 */   (Some("inv")  , None        , Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 170 */   (Some("inv")  , None        , None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 171 */   (Some("inv")  , None        , None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 172 */   (None         , Some("inv") , Some("{canisterId}.xyz.app"), Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 173 */   (None         , Some("inv") , Some("{canisterId}.xyz.app"), None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 174 */   (None         , Some("inv") , None                        , Some("/home"), "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+/* 175 */   (None         , Some("inv") , None                        , None         , "localhost:4348"      , "/blog?canisterId=a-b-c", Some(false)      , None                                               ,  false),
+        ];
+
+        #[rustfmt::skip]
+        let cyclic_redirects_test_routing_table: Vec<RoutingTestCase> = vec![
+            // Inputs ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | Outputs ----------------------------------------
+/* index */ // from_host      | from_path   | to_host                            | to_path                              | request_host          | request_path            | allow_raw_access | Location header value | via http_request_upgrade?
+/* 176 */   (Some("a-b-c")    , Some("blog"), Some("{canisterId}.ic0.app")       , Some("/blog")                        , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 177 */   (Some("a-b-c")    , Some("blog"), Some("{canisterId}.ic0.app")       , None                                 , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 178 */   (Some("a-b-c")    , Some("blog"), None                               , Some("/blog")                        , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 179 */   (Some("a-b-c")    , Some("blog"), None                               , None                                 , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 180 */   (Some("a-b-c")    , None        , Some("{canisterId}.ic0.app")       , Some("/blog")                        , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 181 */   (Some("a-b-c")    , None        , Some("{canisterId}.ic0.app")       , None                                 , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 182 */   (Some("a-b-c")    , None        , None                               , Some("/blog")                        , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 183 */   (Some("a-b-c")    , None        , None                               , None                                 , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 184 */   (None             , Some("blog"), Some("{canisterId}.ic0.app")       , Some("/blog")                        , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 185 */   (None             , Some("blog"), Some("{canisterId}.ic0.app")       , None                                 , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 186 */   (None             , Some("blog"), None                               , Some("/blog")                        , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 187 */   (None             , Some("blog"), None                               , None                                 , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 188 */   (None             , None        , Some("{canisterId}.ic0.app")       , Some("/blog")                        , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 189 */   (None             , None        , Some("{canisterId}.ic0.app")       , None                                 , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 190 */   (None             , None        , None                               , Some("/blog")                        , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 191 */   (None             , None        , None                               , None                                 , "a-b-c.ic0.app"       , "/blog"                 , Some(false)      , None                  , false),
+/* 192 */   (Some("a-b-c")    , Some("blog"), Some("{canisterId}.raw.ic0.app")   , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 193 */   (Some("a-b-c")    , Some("blog"), Some("{canisterId}.raw.ic0.app")   , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 194 */   (Some("a-b-c")    , Some("blog"), None                               , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 195 */   (Some("a-b-c")    , Some("blog"), None                               , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 196 */   (Some("a-b-c")    , None        , Some("{canisterId}.raw.ic0.app")   , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 197 */   (Some("a-b-c")    , None        , Some("{canisterId}.raw.ic0.app")   , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 198 */   (Some("a-b-c")    , None        , None                               , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 199 */   (Some("a-b-c")    , None        , None                               , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 200 */   (None             , Some("blog"), Some("{canisterId}.raw.ic0.app")   , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 201 */   (None             , Some("blog"), Some("{canisterId}.raw.ic0.app")   , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 202 */   (None             , Some("blog"), None                               , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 203 */   (None             , Some("blog"), None                               , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 204 */   (None             , None        , Some("{canisterId}.raw.ic0.app")   , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 205 */   (None             , None        , Some("{canisterId}.raw.ic0.app")   , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 206 */   (None             , None        , None                               , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 207 */   (None             , None        , None                               , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(false)      , None                  , false),
+/* 208 */   (Some("a-b-c")    , Some("blog"), Some("{canisterId}.raw.ic0.app")   , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 209 */   (Some("a-b-c")    , Some("blog"), Some("{canisterId}.raw.ic0.app")   , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 210 */   (Some("a-b-c")    , Some("blog"), None                               , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 211 */   (Some("a-b-c")    , Some("blog"), None                               , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 212 */   (Some("a-b-c")    , None        , Some("{canisterId}.raw.ic0.app")   , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 213 */   (Some("a-b-c")    , None        , Some("{canisterId}.raw.ic0.app")   , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 214 */   (Some("a-b-c")    , None        , None                               , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 215 */   (Some("a-b-c")    , None        , None                               , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 216 */   (None             , Some("blog"), Some("{canisterId}.raw.ic0.app")   , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 217 */   (None             , Some("blog"), Some("{canisterId}.raw.ic0.app")   , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 218 */   (None             , Some("blog"), None                               , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 219 */   (None             , Some("blog"), None                               , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 220 */   (None             , None        , Some("{canisterId}.raw.ic0.app")   , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 221 */   (None             , None        , Some("{canisterId}.raw.ic0.app")   , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 222 */   (None             , None        , None                               , Some("/blog")                        , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 223 */   (None             , None        , None                               , None                                 , "a-b-c.raw.ic0.app"   , "/blog"                 , Some(true)       , None                  , false),
+/* 224 */   (Some("a-b-c")    , Some("blog"), Some("{canisterId}.localhost:4349"), Some("/blog")                        , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 225 */   (Some("a-b-c")    , Some("blog"), Some("{canisterId}.localhost:4349"), None                                 , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 226 */   (Some("a-b-c")    , Some("blog"), None                               , Some("/blog")                        , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 227 */   (Some("a-b-c")    , Some("blog"), None                               , None                                 , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 228 */   (Some("a-b-c")    , None        , Some("{canisterId}.localhost:4349"), Some("/blog")                        , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 229 */   (Some("a-b-c")    , None        , Some("{canisterId}.localhost:4349"), None                                 , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 230 */   (Some("a-b-c")    , None        , None                               , Some("/blog")                        , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 231 */   (Some("a-b-c")    , None        , None                               , None                                 , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 232 */   (None             , Some("blog"), Some("{canisterId}.localhost:4349"), Some("/blog")                        , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 233 */   (None             , Some("blog"), Some("{canisterId}.localhost:4349"), None                                 , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 234 */   (None             , Some("blog"), None                               , Some("/blog")                        , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 235 */   (None             , Some("blog"), None                               , None                                 , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 236 */   (None             , None        , Some("{canisterId}.localhost:4349"), Some("/blog")                        , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 237 */   (None             , None        , Some("{canisterId}.localhost:4349"), None                                 , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 238 */   (None             , None        , None                               , Some("/blog")                        , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 239 */   (None             , None        , None                               , None                                 , "a-b-c.localhost:4349", "/blog"                 , Some(false)      , None                  , false),
+/* 240 */   (Some("localhost"), Some("blog"), Some("localhost:4349")             , Some("/blog?canisterId={canisterId}"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 241 */   (Some("localhost"), Some("blog"), Some("localhost:4349")             , None                                 , "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 242 */   (Some("localhost"), Some("blog"), None                               , Some("/blog?canisterId={canisterId}"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 243 */   (Some("localhost"), Some("blog"), None                               , None                                 , "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 244 */   (Some("localhost"), None        , Some("localhost:4349")             , Some("/blog?canisterId={canisterId}"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 245 */   (Some("localhost"), None        , Some("localhost:4349")             , None                                 , "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 246 */   (Some("localhost"), None        , None                               , Some("/blog?canisterId={canisterId}"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 247 */   (Some("localhost"), None        , None                               , None                                 , "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 248 */   (None             , Some("blog"), Some("localhost:4349")             , Some("/blog?canisterId={canisterId}"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 249 */   (None             , Some("blog"), Some("localhost:4349")             , None                                 , "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 250 */   (None             , Some("blog"), None                               , Some("/blog?canisterId={canisterId}"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 251 */   (None             , Some("blog"), None                               , None                                 , "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 252 */   (None             , None        , Some("localhost:4349")             , Some("/blog?canisterId={canisterId}"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 253 */   (None             , None        , Some("localhost:4349")             , None                                 , "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 254 */   (None             , None        , None                               , Some("/blog?canisterId={canisterId}"), "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+/* 255 */   (None             , None        , None                               , None                                 , "localhost:4349"      , "/blog?canisterId=a-b-c", Some(false)      , None                  , false),
+        ];
+
+        #[rustfmt::skip]
+        let query_params_test_routing_table: Vec<RoutingTestCase> = vec![
+            // Inputs ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | Outputs ---------------------------------------------------------------------------------------------------------
+/* index */ // from_host  | from_path   | to_host                                | to_path                                | request_host    | request_path                                        | allow_raw_access | Location header value                                                                 | via http_request_upgrade?
+/* 256 */   (None         , None        , None                                   , Some("/{param1}?{param2}={canisterId}"), "localhost:4349", "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("/value1?value2=a-b-c")                                                          , false),
+/* 257 */   (None         , None        , Some("/{param1}?{param2}={canisterId}"), Some("/{param1}?{param2}={canisterId}"), "localhost:4349", "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/value1?value2=a-b-c")                              , false),
+/* 258 */   (None         , None        , Some("/{param1}?{param2}={canisterId}"), None                                   , "localhost:4349", "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/blog?canisterId=a-b-c&param1=value1&param2=value2"), false),
+/* 259 */   (None         , None        , None                                   , Some("/{param1}?{param2}={canisterId}"), "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("/value1?value2=a-b-c")                                                          , true),
+/* 260 */   (None         , None        , Some("/{param1}?{param2}={canisterId}"), Some("/{param1}?{param2}={canisterId}"), "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/value1?value2=a-b-c")                              , true),
+/* 261 */   (None         , None        , Some("/{param1}?{param2}={canisterId}"), None                                   , "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/blog?canisterId=a-b-c&param1=value1&param2=value2"), true),
+/* 262 */   (Some("a-b-c"), None        , None                                   , Some("/{param1}?{param2}={canisterId}"), "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("/value1?value2=a-b-c")                                                          , true),
+/* 263 */   (Some("a-b-c"), None        , Some("/{param1}?{param2}={canisterId}"), Some("/{param1}?{param2}={canisterId}"), "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/value1?value2=a-b-c")                              , true),
+/* 264 */   (Some("a-b-c"), None        , Some("/{param1}?{param2}={canisterId}"), None                                   , "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/blog?canisterId=a-b-c&param1=value1&param2=value2"), true),
+/* 265 */   (None         , Some("blog"), None                                   , Some("/{param1}?{param2}={canisterId}"), "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("/value1?value2=a-b-c")                                                          , true),
+/* 266 */   (None         , Some("blog"), Some("/{param1}?{param2}={canisterId}"), Some("/{param1}?{param2}={canisterId}"), "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/value1?value2=a-b-c")                              , true),
+/* 267 */   (None         , Some("blog"), Some("/{param1}?{param2}={canisterId}"), None                                   , "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/blog?canisterId=a-b-c&param1=value1&param2=value2"), true),
+/* 268 */   (Some("a-b-c"), Some("blog"), None                                   , Some("/{param1}?{param2}={canisterId}"), "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("/value1?value2=a-b-c")                                                          , true),
+/* 269 */   (Some("a-b-c"), Some("blog"), Some("/{param1}?{param2}={canisterId}"), Some("/{param1}?{param2}={canisterId}"), "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/value1?value2=a-b-c")                              , true),
+/* 270 */   (Some("a-b-c"), Some("blog"), Some("/{param1}?{param2}={canisterId}"), None                                   , "a-b-c.ic0.app" , "/blog?canisterId=a-b-c&param1=value1&param2=value2", Some(false)      , Some("https:///value1?value2=a-b-c/blog?canisterId=a-b-c&param1=value1&param2=value2"), true),
+        ];
+
+        let time_now = 100_000_000_000;
+
+        for (idx, test_case) in [
+            &basic_test_routing_table[..],
+            &forbid_raw_access_test_routing_table[..],
+            &localhost_test_routing_table[..],
+            &cyclic_redirects_test_routing_table[..],
+            &query_params_test_routing_table[..],
+        ]
+        .concat()
+        .iter()
+        .enumerate()
+        {
+            let asset_path = match test_case.5.find('?') {
+                Some(i) => &test_case.5[..i],
+                None => &test_case.5[..],
+            };
+            let mut state = State::default();
+            create_assets(
+                &mut state,
+                time_now,
+                vec![AssetBuilder::new(asset_path, "text/html")
+                    .with_encoding("identity", vec![BODY])
+                    .with_allow_raw_access(test_case.6)
+                    .with_redirect(HttpRedirect::from_test_case(*test_case))],
+            );
+            let (resp, was_upgraded) = state.fake_http_request(test_case.4, test_case.5);
+            let location_header = resp
+                .headers
+                .iter()
+                .find(|x| x.0.contains("Location"))
+                .map(|v| v.1.as_str());
+            assert_eq!(
+                location_header, test_case.7,
+                "test case #{} doesn't redirect correctly",
+                idx
+            );
+            assert_eq!(
+                was_upgraded,
+                test_case.8,
+                "test case #{idx} was{verb_negation} supposed to redirect via http_request_update method",
+                idx = idx,
+                verb_negation = if test_case.8 { "" } else { "n't" }
+            );
+        }
+    }
 }

@@ -4,11 +4,14 @@
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
+use crate::http::{
+    HeaderField, HttpRedirect, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+    StreamingCallbackToken,
+};
 use crate::{rc_bytes::RcBytes, types::*, url_decode::url_decode};
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
 use num_traits::ToPrimitive;
-use regex::Regex;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
@@ -40,179 +43,6 @@ pub struct AssetEncoding {
     pub sha256: [u8; 32],
 }
 
-#[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
-pub struct RedirectUrl {
-    pub(crate) host: Option<String>,
-    pub(crate) path: Option<String>,
-}
-
-impl RedirectUrl {
-    pub fn check_cyclic_redirection(&self, req_host: &str, req_url: &str) -> Result<(), String> {
-        if let Some(host) = self.host.as_ref() {
-            if host == req_host && self.path.as_ref().map(|p| p == req_url).unwrap_or(false) {
-                return Err(format!("redirect loop: {:?} -> {}", &self, req_url));
-            }
-        } else {
-            if self.path.as_ref().map(|p| p == req_url).unwrap_or(false) {
-                return Err(format!("redirect loop: {:?} -> {}", &self, req_url));
-            }
-        }
-        Ok(())
-    }
-
-    pub fn new(host: Option<&str>, path: Option<&str>) -> Self {
-        RedirectUrl {
-            host: host.map(|s| s.to_string()),
-            path: path.map(|s| s.to_string()),
-        }
-    }
-
-    pub fn get_location_url(&self) -> String {
-        let mut location_url = String::new();
-        if let Some(host) = &self.host {
-            if host.starts_with("http") {
-                location_url.push_str(host);
-            } else {
-                location_url.push_str(&format!("https://{}", host))
-            };
-        }
-        if let Some(path) = &self.path {
-            location_url.push_str(path);
-        }
-        location_url
-    }
-}
-
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
-pub struct AssetRedirect {
-    pub from: Option<RedirectUrl>,
-    pub to: RedirectUrl,
-    pub user_agent: Option<Vec<String>>,
-    pub response_code: u16,
-}
-
-impl AssetRedirect {
-    fn get_location_url(&self, req: &HttpRequest) -> Option<RedirectUrl> {
-        fn match_and_replace_segment(
-            replace_from: &Option<String>,
-            replace_with: &Option<String>,
-            replace_in: &str,
-        ) -> Option<String> {
-            if let Some(with) = replace_with {
-                if replace_from.is_none() {
-                    return Some(with.to_owned());
-                }
-                if let Ok(re) = Regex::new(replace_from.as_ref().unwrap()) {
-                    return re
-                        .find(replace_in)
-                        .map(|_| re.replace(replace_in, with).into());
-                }
-            }
-            None
-        }
-
-        let mut location = RedirectUrl::new(None, None);
-
-        if let Some(RedirectUrl {
-            host: from_host,
-            path: from_path,
-        }) = &self.from
-        {
-            let (mut host_same_as_original, mut path_same_as_original) = (true, true);
-            if let Some(req_host) = req.get_header_value("Host") {
-                if let Some(redirect_host) =
-                    match_and_replace_segment(&from_host, &self.to.host, req_host)
-                {
-                    host_same_as_original = &redirect_host == req_host;
-                    location.host = Some(redirect_host);
-                }
-            }
-
-            if let Some(redirect_path) =
-                match_and_replace_segment(&from_path, &self.to.path, &req.url)
-            {
-                path_same_as_original = redirect_path == req.url;
-                location.path = Some(redirect_path);
-            } else {
-                location.path = Some(req.url.clone());
-            }
-
-            if host_same_as_original && path_same_as_original {
-                #[cfg(feature = "local_debugging")]
-                ic_cdk::print(format!(
-                    "redirect loop detected: req:{:?} => from:{:?} -> to:{:?}",
-                    req, self.from, self.to
-                ));
-                return None;
-            }
-        } else {
-            if let Some(host) = &self.to.host {
-                if host.contains("http") {
-                    location.host = Some(host.to_string());
-                } else {
-                    location.host = Some(format!("https://{}", host));
-                }
-            }
-            if let Some(path) = &self.to.path {
-                location.path = Some(path.to_string());
-            } else {
-                location.path = Some(req.url.clone());
-            }
-        }
-
-        Some(location)
-    }
-
-    fn redirect(&self, req: &HttpRequest, upgraded: bool) -> Option<HttpResponse> {
-        if let Err(e) = self.is_valid() {
-            return Some(HttpResponse::build_400(&e));
-        }
-
-        if let Some(location) = self.get_location_url(req) {
-            let req_host = req.get_header_value("Host");
-            if req_host.is_none() {
-                return Some(HttpResponse::build_400("Host header is missing"));
-            }
-            if location
-                .check_cyclic_redirection(req_host.unwrap(), &req.url)
-                .is_err()
-            {
-                return None;
-            }
-            let upgrade = req_host.and_then(|host| {
-                let is_non_local_deployment = host.contains("ic0.app")
-                    || host.contains("ic1.app")
-                    || host.contains("ic0.local")
-                    || host.contains("ic1.local");
-                let is_certified = !host.contains(".raw.ic");
-                Some(is_non_local_deployment && is_certified)
-            });
-            Some(HttpResponse::build_redirect(
-                self.response_code,
-                location.get_location_url(),
-                upgrade,
-                upgraded,
-            ))
-        } else {
-            None
-        }
-    }
-
-    pub fn is_valid(&self) -> Result<(), String> {
-        if self.from.is_some() {
-            if self.from.as_ref().unwrap().host.is_none()
-                && self.from.as_ref().unwrap().path.is_none()
-            {
-                return Err("AssetRedirect.from must have a host or path".to_string());
-            }
-        }
-        if self.to.host.is_none() && self.to.path.is_none() {
-            return Err("AssetRedirect.to must have a host or path".to_string());
-        }
-        Ok(())
-    }
-}
-
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct Asset {
     pub content_type: String,
@@ -220,7 +50,8 @@ pub struct Asset {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
     pub is_aliased: Option<bool>,
-    pub redirect: Option<AssetRedirect>,
+    pub redirect: Option<HttpRedirect>,
+    pub allow_raw_access: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -338,6 +169,7 @@ impl State {
                     headers: arg.headers,
                     is_aliased: arg.enable_aliasing,
                     redirect: arg.redirect,
+                    allow_raw_access: arg.allow_raw_access,
                 },
             );
         }
@@ -626,11 +458,10 @@ impl State {
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
-                if let Some(redirect_config) = &asset.redirect {
-                    let upgraded = false;
-                    if let Some(resp) = redirect_config.redirect(&req, upgraded) {
-                        return resp;
-                    }
+                if let Some(resp) =
+                    HttpRedirect::redirect(&asset.redirect, asset.allow_raw_access, &req, false)
+                {
+                    return resp;
                 }
                 for enc_name in encodings.iter() {
                     if let Some(enc) = asset.encodings.get(enc_name) {
@@ -655,11 +486,10 @@ impl State {
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
         if let Ok(asset) = self.get_asset(&path.into()) {
-            if let Some(redirect_config) = &asset.redirect {
-                let upgraded = false;
-                if let Some(resp) = redirect_config.redirect(&req, upgraded) {
-                    return resp;
-                }
+            if let Some(redirect_response) =
+                HttpRedirect::redirect(&asset.redirect, asset.allow_raw_access, &req, false)
+            {
+                return redirect_response;
             }
 
             for enc_name in encodings.iter() {
@@ -741,7 +571,7 @@ impl State {
 
         let upgraded = true;
 
-        AssetRedirect::redirect(asset.redirect.as_ref().unwrap(), &req, upgraded).unwrap()
+        HttpRedirect::redirect(&asset.redirect, asset.allow_raw_access, &req, upgraded).unwrap()
     }
 
     pub fn http_request_streaming_callback(
@@ -772,7 +602,13 @@ impl State {
 
         Ok(StreamingCallbackHttpResponse {
             body: enc.content_chunks[chunk_index].clone(),
-            token: create_token(asset, &content_encoding, enc, &key, chunk_index),
+            token: StreamingCallbackToken::create_token(
+                &content_encoding,
+                enc.content_chunks.len(),
+                enc.sha256,
+                &key,
+                chunk_index,
+            ),
         })
     }
 
@@ -932,143 +768,6 @@ fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a> {
         }
         (_l, _r) => {
             panic!("merge_hash_trees: inconsistent tree structure");
-        }
-    }
-}
-
-fn create_token(
-    _asset: &Asset,
-    enc_name: &str,
-    enc: &AssetEncoding,
-    key: &str,
-    chunk_index: usize,
-) -> Option<StreamingCallbackToken> {
-    if chunk_index + 1 >= enc.content_chunks.len() {
-        None
-    } else {
-        Some(StreamingCallbackToken {
-            key: key.to_string(),
-            content_encoding: enc_name.to_string(),
-            index: Nat::from(chunk_index + 1),
-            sha256: Some(ByteBuf::from(enc.sha256)),
-        })
-    }
-}
-
-impl HttpRequest {
-    fn get_path(&self) -> &str {
-        match self.url.find('?') {
-            Some(i) => &self.url[..i],
-            None => &self.url[..],
-        }
-    }
-
-    fn get_header_value(&self, header_key: &str) -> Option<&String> {
-        self.headers
-            .iter()
-            .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then(|| v))
-    }
-}
-
-impl HttpResponse {
-    #[allow(clippy::too_many_arguments)]
-    fn build_ok(
-        asset: &Asset,
-        enc_name: &str,
-        enc: &AssetEncoding,
-        key: &str,
-        chunk_index: usize,
-        certificate_header: Option<HeaderField>,
-        callback: Func,
-        etags: Vec<Hash>,
-    ) -> HttpResponse {
-        let mut headers =
-            HashMap::from([("content-type".to_string(), asset.content_type.to_string())]);
-        if enc_name != "identity" {
-            headers.insert("content-encoding".to_string(), enc_name.to_string());
-        }
-        if let Some(head) = certificate_header {
-            headers.insert(head.0, head.1);
-        }
-        if let Some(max_age) = asset.max_age {
-            headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
-        }
-        if let Some(arg_headers) = asset.headers.as_ref() {
-            for (k, v) in arg_headers {
-                headers.insert(k.to_owned().to_lowercase(), v.to_owned());
-            }
-        }
-
-        let streaming_strategy = create_token(asset, enc_name, enc, key, chunk_index)
-            .map(|token| StreamingStrategy::Callback { callback, token });
-
-        let (status_code, body) = if etags.contains(&enc.sha256) {
-            (304, RcBytes::default())
-        } else {
-            headers.insert(
-                "etag".to_string(),
-                format!("\"{}\"", hex::encode(enc.sha256)),
-            );
-            (200, enc.content_chunks[chunk_index].clone())
-        };
-
-        HttpResponse {
-            status_code,
-            headers: headers.into_iter().collect::<_>(),
-            body,
-            streaming_strategy,
-            upgrade: None,
-        }
-    }
-
-    pub fn build_redirect(
-        status_code: u16,
-        location: String,
-        upgrade: Option<bool>,
-        upgraded: bool,
-    ) -> HttpResponse {
-        if ![300, 301, 302, 303, 304, 307, 308].contains(&status_code) {
-            return HttpResponse::build_400(&format!(
-                "incorrect asset redirect configuration: response_code \"{}\" is not valid HTTP respone code",
-                status_code
-            ));
-        }
-        if upgrade.map_or(false, |v| v) && !upgraded {
-            HttpResponse {
-                status_code: 200,
-                headers: vec![],
-                body: RcBytes::from(ByteBuf::new()),
-                streaming_strategy: None,
-                upgrade,
-            }
-        } else {
-            HttpResponse {
-                status_code,
-                headers: vec![("Location".to_string(), location)],
-                body: RcBytes::from(ByteBuf::default()),
-                streaming_strategy: None,
-                upgrade,
-            }
-        }
-    }
-
-    fn build_400(err_msg: &str) -> Self {
-        HttpResponse {
-            status_code: 400,
-            headers: vec![],
-            body: RcBytes::from(ByteBuf::from(err_msg)),
-            streaming_strategy: None,
-            upgrade: None,
-        }
-    }
-
-    fn build_404(certificate_header: HeaderField) -> HttpResponse {
-        HttpResponse {
-            status_code: 404,
-            headers: vec![certificate_header],
-            body: RcBytes::from(ByteBuf::from("not found")),
-            streaming_strategy: None,
-            upgrade: None,
         }
     }
 }

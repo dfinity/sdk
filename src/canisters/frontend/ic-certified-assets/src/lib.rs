@@ -1,4 +1,5 @@
 //! This module declares canister methods expected by the assets canister client.
+pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
 pub mod types;
@@ -7,6 +8,9 @@ mod url_decode;
 #[cfg(test)]
 mod tests;
 
+use crate::http::{
+    HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+};
 pub use crate::state_machine::StableState;
 use crate::{
     rc_bytes::RcBytes,

@@ -9,7 +9,8 @@ type CreateAssetArguments = record {
   max_age: opt nat64;
   headers: opt vec HeaderField;
   enable_aliasing: opt bool;
-  redirect: opt AssetRedirect;
+  redirect: opt HttpRedirect;
+  allow_raw_access: opt bool;
 };
 
 // Add or change content for an asset, by content encoding
@@ -26,10 +27,9 @@ type RedirectUrl = record {
 };
 
 // Configure traffic HTTP redirection
-type AssetRedirect = record {
+type HttpRedirect = record {
   from: opt RedirectUrl;
   to: RedirectUrl;
-  user_agents: opt vec text;
   response_code: nat;
 };
 
@@ -89,12 +89,6 @@ type StreamingStrategy = variant {
     callback: func (StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
     token: StreamingCallbackToken;
   };
-};
-
-type AssetProperties = record {
-  max_age: opt nat64;
-  headers: opt vec HeaderField;
-  redirect: opt AssetRedirect
 };
 
 service: {

@@ -1715,7 +1715,6 @@ dependencies = [
  "ic-cdk-macros",
  "ic-certified-map",
  "num-traits",
- "regex",
  "serde",
  "serde_bytes",
  "serde_cbor",

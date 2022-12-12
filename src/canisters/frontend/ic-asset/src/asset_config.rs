@@ -19,6 +19,7 @@ pub struct AssetConfig {
     pub(crate) cache: Option<CacheConfig>,
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
+    pub(crate) allow_raw_access: bool,
     pub(crate) redirect: Option<RedirectConfig>,
     pub(crate) enable_aliasing: Option<bool>,
 }
@@ -52,25 +53,36 @@ fn default_response_code() -> u16 {
 #[derive(Derivative, Clone, Serialize)]
 #[derivative(Debug, PartialEq)]
 pub struct AssetConfigRule {
+    /// Glob patter matcher to match the filenames of the assets
     #[derivative(
         Debug(format_with = "rule_utils::glob_fmt"),
         PartialEq(compare_with = "rule_utils::glob_cmp")
     )]
     #[serde(serialize_with = "rule_utils::glob_serialize")]
     r#match: GlobMatcher,
+    /// `Cache-Control: max-age` HTTP response header
     #[serde(skip_serializing_if = "Option::is_none")]
     cache: Option<CacheConfig>,
+    /// HTTP response headers
     #[serde(
         serialize_with = "rule_utils::headers_serialize",
         skip_serializing_if = "Maybe::is_absent"
     )]
     headers: Maybe<HeadersConfig>,
+    /// Helps to deal with hidden files (dotdirs/dotfiles)
     #[serde(skip_serializing_if = "Option::is_none")]
     ignore: Option<bool>,
+    /// Redirects the traffic from .raw.ic0.app domain to .ic0.app
     #[serde(skip_serializing_if = "Option::is_none")]
-    redirect: Option<RedirectConfig>, // TODO: consider this to be Option<Vec<RedirectConfig>>
+    allow_raw_access: Option<bool>,
+    /// Redirects the traffic via `Location: URL` HTTP header in the response
+    #[serde(skip_serializing_if = "Option::is_none")]
+    redirect: Option<RedirectConfig>,
+    /// Aliasing makes it possible to access `/file.html` asset via `/file` URL path
     #[serde(skip_serializing_if = "Option::is_none")]
     enable_aliasing: Option<bool>,
+    /// Indicates whether config has been used or not.
+    /// Used to display warning when deploying assets from CLI.
     #[serde(skip_serializing)]
     used: bool,
 }
@@ -394,6 +406,7 @@ mod rule_utils {
         #[serde(default, deserialize_with = "headers_deserialize")]
         headers: Maybe<HeadersConfig>,
         ignore: Option<bool>,
+        allow_raw_access: Option<bool>,
         redirect: Option<RedirectConfig>,
         enable_aliasing: Option<bool>,
     }
@@ -405,6 +418,7 @@ mod rule_utils {
                 cache,
                 headers,
                 ignore,
+                allow_raw_access,
                 redirect,
                 enable_aliasing,
             }: InterimAssetConfigRule,
@@ -429,6 +443,7 @@ mod rule_utils {
                 cache,
                 headers,
                 ignore,
+                allow_raw_access,
                 redirect,
                 used: false,
                 enable_aliasing,
@@ -599,6 +614,7 @@ mod with_tempdir {
                     headers: None,
                     ignore: None,
                     enable_aliasing: None,
+                    allow_raw_access: false,
                     redirect: Some(RedirectConfig {
                         from: Some(RedirectUrl {
                             host: Some("raw.ic0.app".to_string()),
