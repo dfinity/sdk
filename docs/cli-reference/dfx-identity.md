@@ -18,6 +18,7 @@ For reference information and examples that illustrate using `dfx identity` comm
 
 | Command                                         | Description                                                                                                               |
 |-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| [`deploy-wallet`](#dfx-identity-deploy-wallet) | Installs the wallet WASM to the provided canister id.                                                                     |
 | [`get-principal`](#dfx-identity-get-principal) | Shows the textual representation of the principal associated with the current identity.                                   |
 | [`get-wallet`](#dfx-identity-get-wallet)       | Shows the canister identifier for the wallet associated with your current identity principal.                             |
 | `help`                                          | Displays this usage message or the help of the given subcommand(s).                                                       |
@@ -39,6 +40,35 @@ You can then use `dfx identity new` to create new user identities and store cred
     dfx identity new ic_admin
 
 This command adds a private key for the `ic_admin` user identity in the `~/.config/dfx/identity/ic_admin/identity.pem` file.
+
+## dfx identity deploy-wallet
+
+Use the `dfx identity deploy-wallet` command to turn a canister into a wallet canister by installing the wallet WASM to it.
+
+Note that you must be connected to the IC or the local canister execution environment to run this command. In addition, you must be a controller of the canister you want to deploy the wallet to.
+
+### Basic usage
+
+``` bash
+dfx identity deploy-wallet [flag] <canister id>
+```
+
+### Arguments
+
+You must specify the following argument for the `dfx identity deploy-wallet` command.
+
+| Argument        | Description                                                    |
+|-----------------|----------------------------------------------------------------|
+| `<canister id>` | The ID of the canister where the wallet WASM will be deployed. |
+
+### Flags
+
+You can use the following optional flags with the `dfx identity get-wallet` command.
+
+| Flag              | Description                   |
+|-------------------|-------------------------------|
+| `-h`, `--help`    | Displays usage information.   |
+| `-V`, `--version` | Displays version information. |
 
 ## dfx identity get-principal
 
