@@ -1399,7 +1399,7 @@ Newly deployed Motoko canisters now embed the Candid interface and Motoko stable
 	1) the backward compatible of Candid interface in both upgrade and reinstall mode;
 	2) the type safety of Motoko stable variable type in upgrade mode to avoid accidentally lossing data;
 
-See [Upgrade compatibility](https://smartcontracts.org/docs/language-guide/compatibility.html) for more details.
+See [Upgrade compatibility](https://internetcomputer.org/docs/language-guide/compatibility) for more details.
 
 ### feat: Unified environment variables across build commands
 
