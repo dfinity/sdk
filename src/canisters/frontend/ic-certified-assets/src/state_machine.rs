@@ -50,8 +50,8 @@ pub struct Asset {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
     pub is_aliased: Option<bool>,
-    pub redirect: Option<HttpRedirect>,
     pub allow_raw_access: Option<bool>,
+    pub redirect: Option<HttpRedirect>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -624,8 +624,8 @@ impl State {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
             allow_raw_access: asset.allow_raw_access,
-            redirect: asset.redirect,
-
+            redirect: asset.redirect.clone(),
+            is_aliased: asset.is_aliased,
         })
     }
 
@@ -640,6 +640,9 @@ impl State {
         }
         if let Some(max_age) = arg.max_age {
             asset.max_age = max_age
+        }
+        if let Some(is_aliased) = arg.is_aliased {
+            asset.is_aliased = is_aliased
         }
         if let Some(allow_raw_access) = arg.allow_raw_access {
             asset.allow_raw_access = allow_raw_access

@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use crate::http::{HttpRedirect, HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
-    BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments, CreateChunkArg,
-    DeleteAssetArguments, SetAssetContentArguments,
+    AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
+    CreateChunkArg, DeleteAssetArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -531,7 +531,10 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "Access-Control-Allow-Origin".into(),
                 "*".into()
-            )]))
+            )])),
+            redirect: None,
+            allow_raw_access: None,
+            is_aliased: None,
         })
     );
     assert_eq!(
@@ -541,7 +544,10 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
+            redirect: None,
+            allow_raw_access: None,
+            is_aliased: None,
         })
     );
 
@@ -552,7 +558,10 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )])))
+            )]))),
+            redirect: None,
+            allow_raw_access: None,
+            is_aliased: None,
         })
         .is_ok());
     assert_eq!(
@@ -562,7 +571,10 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
+            redirect: None,
+            allow_raw_access: None,
+            is_aliased: None,
         })
     );
 
@@ -570,14 +582,20 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: Some(None),
-            headers: Some(None)
+            headers: Some(None),
+            redirect: None,
+            allow_raw_access: None,
+            is_aliased: None,
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: None,
-            headers: None
+            headers: None,
+            redirect: None,
+            allow_raw_access: None,
+            is_aliased: None,
         })
     );
 
@@ -588,7 +606,10 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )])))
+            )]))),
+            redirect: None,
+            allow_raw_access: None,
+            is_aliased: None,
         })
         .is_ok());
     assert_eq!(
@@ -598,7 +619,10 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
+            redirect: None,
+            allow_raw_access: None,
+            is_aliased: None,
         })
     );
 
@@ -606,14 +630,20 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: None,
-            headers: Some(Some(HashMap::from([("new-header".into(), "value".into())])))
+            headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
+            is_aliased: None,
+            redirect: None,
+            allow_raw_access: None,
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())]))
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            is_aliased: None,
+            redirect: None,
+            allow_raw_access: None,
         })
     );
 
@@ -621,14 +651,20 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: Some(Some(2)),
-            headers: None
+            headers: None,
+            is_aliased: None,
+            redirect: None,
+            allow_raw_access: None,
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())]))
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            is_aliased: None,
+            redirect: None,
+            allow_raw_access: None,
         })
     );
 
@@ -636,14 +672,20 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: None,
-            headers: Some(None)
+            headers: Some(None),
+            is_aliased: None,
+            redirect: None,
+            allow_raw_access: None,
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: None
+            headers: None,
+            is_aliased: None,
+            redirect: None,
+            allow_raw_access: None,
         })
     );
 }
@@ -891,6 +933,12 @@ mod test_http_redirects {
     };
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    impl RedirectUrl {
+        fn new(host: Option<String>, path: Option<String>) -> Self {
+            Self { host, path }
+        }
+    }
 
     impl State {
         fn fake_http_request(&self, host: &str, path: &str) -> (HttpResponse, bool) {

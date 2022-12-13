@@ -14,12 +14,14 @@ pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
 /// A final piece of metadata assigned to the asset
-#[derive(Debug, Default, PartialEq, Eq, Serialize, Clone)]
+#[derive(Debug, Derivative, PartialEq, Eq, Serialize, Clone)]
+#[derivative(Default)]
 pub struct AssetConfig {
     pub(crate) cache: Option<CacheConfig>,
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
-    pub(crate) allow_raw_access: bool,
+    #[derivative(Default(value="Some(false)"))]
+    pub(crate) allow_raw_access: Option<bool>,
     pub(crate) redirect: Option<RedirectConfig>,
     pub(crate) enable_aliasing: Option<bool>,
 }
@@ -47,6 +49,10 @@ pub struct RedirectConfig {
 
 fn default_response_code() -> u16 {
     308
+}
+
+fn default_raw_access() -> Option<bool> {
+    Some(false)
 }
 
 /// A single configuration object, from `.ic-assets.json` config file
@@ -77,6 +83,7 @@ pub struct AssetConfigRule {
     allow_raw_access: Option<bool>,
     /// Redirects the traffic via `Location: URL` HTTP header in the response
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default = "default_raw_access")]
     redirect: Option<RedirectConfig>,
     /// Aliasing makes it possible to access `/file.html` asset via `/file` URL path
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -128,6 +135,9 @@ impl std::fmt::Display for AssetConfig {
         }
         if let Some(ref redirect) = self.redirect {
             s.push_str(&format!("    - redirect: {:?}\n", redirect));
+        }
+        if let Some(ref allow_raw_access) = self.allow_raw_access {
+            s.push_str(&format!("    - allow_raw_access: {:?}\n", allow_raw_access));
         }
         if let Some(ref cache) = self.cache {
             s.push_str(&format!("    - cache: {:?}\n", cache));
@@ -319,6 +329,11 @@ impl AssetConfig {
         if other.enable_aliasing.is_some() {
             self.enable_aliasing = other.enable_aliasing;
         }
+
+        if other.allow_raw_access.is_some() {
+            self.allow_raw_access = other.allow_raw_access;
+        }
+
         self
     }
 }
@@ -326,7 +341,7 @@ impl AssetConfig {
 /// This module contains various utilities needed for serialization/deserialization
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
-    use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe, RedirectConfig, RedirectUrl};
+    use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe, RedirectConfig, RedirectUrl, default_raw_access};
     use anyhow::Context;
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
@@ -406,6 +421,7 @@ mod rule_utils {
         #[serde(default, deserialize_with = "headers_deserialize")]
         headers: Maybe<HeadersConfig>,
         ignore: Option<bool>,
+        #[serde(default = "default_raw_access")]
         allow_raw_access: Option<bool>,
         redirect: Option<RedirectConfig>,
         enable_aliasing: Option<bool>,
@@ -438,6 +454,7 @@ mod rule_utils {
         )
         .with_context(|| format!("{} is not a valid glob pattern", r#match))?.compile_matcher();
 
+            println!("{:?}", allow_raw_access);
             Ok(Self {
                 r#match: glob,
                 cache,
@@ -614,7 +631,7 @@ mod with_tempdir {
                     headers: None,
                     ignore: None,
                     enable_aliasing: None,
-                    allow_raw_access: false,
+                    allow_raw_access: Some(false),
                     redirect: Some(RedirectConfig {
                         from: Some(RedirectUrl {
                             host: Some("raw.ic0.app".to_string()),

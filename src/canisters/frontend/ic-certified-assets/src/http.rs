@@ -54,7 +54,7 @@ pub struct RedirectUrl {
     pub(crate) path: Option<String>,
 }
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[derive(Default, Clone, Debug, CandidType, Deserialize, PartialEq)]
 pub struct HttpRedirect {
     pub from: Option<RedirectUrl>,
     pub to: RedirectUrl,
@@ -245,70 +245,6 @@ impl HttpResponse {
 }
 
 impl RedirectUrl {
-    pub fn check_cyclic_redirection(&self, req_host: &str, req_url: &str) -> Result<(), String> {
-        if let Some(host) = self.host.as_ref() {
-            if host == req_host && self.path.as_ref().map(|p| p == req_url).unwrap_or(false) {
-                return Err(format!("redirect loop: {:?} -> {}", &self, req_url));
-            }
-        } else {
-            if self.path.as_ref().map(|p| p == req_url).unwrap_or(false) {
-                return Err(format!("redirect loop: {:?} -> {}", &self, req_url));
-            }
-        }
-        Ok(())
-    }
-    pub fn check_cyclic_redirection2(
-        location_url: &str,
-        request: &HttpRequest,
-        allow_raw_access: Option<bool>,
-    ) -> Result<(), String> {
-        if location_url.starts_with('/') {
-            if location_url == request.get_path() {
-                return Err(format!(
-                    "redirect loop: {:?} -> {}",
-                    &location_url,
-                    request.get_path()
-                ));
-            } else if location_url == request.url {
-                return Err(format!(
-                    "redirect loop: {:?} -> {}",
-                    &location_url, request.url
-                ));
-            }
-        } else {
-            let request_url = format!(
-                "{}{}",
-                request.get_header_value("Host").unwrap_or(&"".to_string()),
-                request.url
-            );
-            let request_url = request_url
-                .trim_start_matches("https://")
-                .trim_start_matches("http://")
-                .trim_end_matches('/');
-            let location_url = location_url
-                .trim_start_matches("https://")
-                .trim_start_matches("http://")
-                .trim_end_matches('/');
-            if request_url == location_url {
-                return Err(format!(
-                    "redirect loop: {:?} -> {}",
-                    &location_url, request_url
-                ));
-            } else if allow_raw_access.map_or(false, |v| v)
-                && location_url == request_url.replace(".raw.ic", ".ic")
-            {
-                return Err(
-                "deeply nested redirect loop: the request will be stuck redirecting from raw to certified, then from certified to raw".to_string(),
-            );
-            }
-        }
-        Ok(())
-    }
-
-    pub fn new(host: Option<String>, path: Option<String>) -> Self {
-        RedirectUrl { host, path }
-    }
-
     pub fn get_location_url(&self, query_params: HashMap<String, String>) -> String {
         let mut location_url = String::new();
         if let Some(host) = &self.host {
@@ -373,7 +309,7 @@ impl HttpRedirect {
                 }
             }
             let location_url = location.get_location_url(query_params);
-            if RedirectUrl::check_cyclic_redirection2(&location_url, req, allow_raw_access).is_err()
+            if Self::check_cyclic_redirection(&location_url, req, allow_raw_access).is_err()
             {
                 return None;
             }
@@ -405,20 +341,23 @@ impl HttpRedirect {
     pub fn determine_redirect_url(&self, req: &HttpRequest) -> Option<RedirectUrl> {
         macro_rules! get_redirect_url {
             ($to:expr, $req:expr) => {
-                let mut re = RedirectUrl::new(None, None);
+                let mut redirect_url = RedirectUrl {
+                    host: None,
+                    path: None
+                };
                 if let Some(host) = &$to.host {
                     if host.contains("http") {
-                        re.host = Some(host.clone());
+                        redirect_url.host = Some(host.clone());
                     } else {
-                        re.host = Some(format!("https://{}", host));
+                        redirect_url.host = Some(format!("https://{}", host));
                     }
                 }
                 if let Some(path) = &$to.path {
-                    re.path = Some(path.clone());
+                    redirect_url.path = Some(path.clone());
                 } else {
-                    re.path = Some($req.url.clone());
+                    redirect_url.path = Some($req.url.clone());
                 }
-                return Some(re);
+                return Some(redirect_url);
             };
         }
 
@@ -467,5 +406,47 @@ impl HttpRedirect {
             }
             Some(_) => None,
         }
+    }
+
+    pub fn check_cyclic_redirection(
+        location_url: &str,
+        request: &HttpRequest,
+        allow_raw_access: Option<bool>,
+    ) -> Result<(), String> {
+        if location_url.starts_with('/') && (location_url == request.get_path() || location_url == request.url) {
+                return Err(format!(
+                    "redirect loop: {:?} -> {}",
+                    &location_url,
+                    request.url
+                ));
+
+        } else {
+            let request_url = format!(
+                "{}{}",
+                request.get_header_value("Host").unwrap_or(&"".to_string()),
+                request.url
+            );
+            let request_url = request_url
+                .trim_start_matches("https://")
+                .trim_start_matches("http://")
+                .trim_end_matches('/');
+            let location_url = location_url
+                .trim_start_matches("https://")
+                .trim_start_matches("http://")
+                .trim_end_matches('/');
+            if request_url == location_url {
+                return Err(format!(
+                    "redirect loop: {:?} -> {}",
+                    &location_url, request_url
+                ));
+            } else if allow_raw_access.map_or(false, |v| v)
+                && location_url == request_url.replace(".raw.ic", ".ic")
+            {
+                return Err(
+                "redirect loop: the request will be continously redirecting from raw to certified domain, then from certified to raw domain".to_string(),
+            );
+            }
+        }
+        Ok(())
     }
 }

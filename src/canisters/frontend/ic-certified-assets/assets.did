@@ -30,7 +30,7 @@ type RedirectUrl = record {
 type HttpRedirect = record {
   from: opt RedirectUrl;
   to: RedirectUrl;
-  response_code: nat;
+  response_code: nat16;
 };
 
 // Remove content for an asset, by content encoding
@@ -95,6 +95,9 @@ type SetAssetPropertiesArguments = record {
   key: Key;
   max_age: opt opt nat64;
   headers: opt opt vec HeaderField;
+  is_aliased: opt opt bool;
+  allow_raw_access: opt opt bool;
+  redirect: opt opt HttpRedirect;
 };
 
 service: {
@@ -167,6 +170,11 @@ service: {
   deauthorize: (principal) -> ();
   list_authorized: () -> (vec principal) query;
 
-  get_asset_properties : (key: Key) -> (record { max_age: opt nat64; headers: opt vec HeaderField } ) query;
+  get_asset_properties : (key: Key) -> (record {
+    max_age: opt nat64;
+    headers: opt vec HeaderField;
+    is_aliased: opt bool;
+    allow_raw_access: opt bool;
+    redirect: opt HttpRedirect } ) query;
   set_asset_properties: (SetAssetPropertiesArguments) -> ();
 }

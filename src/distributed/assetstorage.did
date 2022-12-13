@@ -9,7 +9,8 @@ type CreateAssetArguments = record {
   max_age: opt nat64;
   headers: opt vec HeaderField;
   enable_aliasing: opt bool;
-  redirect: opt AssetRedirect;
+  redirect: opt HttpRedirect;
+  allow_raw_access: opt bool;
 };
 
 // Add or change content for an asset, by content encoding
@@ -26,11 +27,10 @@ type RedirectUrl = record {
 };
 
 // Configure traffic HTTP redirection
-type AssetRedirect = record {
+type HttpRedirect = record {
   from: opt RedirectUrl;
   to: RedirectUrl;
-  user_agents: opt vec text;
-  response_code: nat;
+  response_code: nat16;
 };
 
 // Remove content for an asset, by content encoding
@@ -91,10 +91,13 @@ type StreamingStrategy = variant {
   };
 };
 
-type AssetProperties = record {
-  max_age: opt nat64;
-  headers: opt vec HeaderField;
-  redirect: opt AssetRedirect
+type SetAssetPropertiesArguments = record {
+  key: Key;
+  max_age: opt opt nat64;
+  headers: opt opt vec HeaderField;
+  is_aliased: opt opt bool;
+  allow_raw_access: opt opt bool;
+  redirect: opt opt HttpRedirect;
 };
 
 service: {
@@ -164,4 +167,14 @@ service: {
   http_request_streaming_callback: (token: StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
 
   authorize: (principal) -> ();
+  deauthorize: (principal) -> ();
+  list_authorized: () -> (vec principal) query;
+
+  get_asset_properties : (key: Key) -> (record {
+    max_age: opt nat64;
+    headers: opt vec HeaderField;
+    is_aliased: opt bool;
+    allow_raw_access: opt bool;
+    redirect: opt HttpRedirect } ) query;
+  set_asset_properties: (SetAssetPropertiesArguments) -> ();
 }

@@ -785,7 +785,12 @@ CHERRIES" "$stdout"
       {
         "match": "**/*",
         "cache": { "max_age": 2000 },
-        "headers": { "x-key": "x-value" }
+        "headers": { "x-key": "x-value" },
+        "redirect": {
+          "from": {"path": "/upload-me.txt"},
+          "to": {"host": "smartcontracts.org", "path": "/docs"},
+          "response_code": 308
+        }
       }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
@@ -796,9 +801,17 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
+    is_aliased = null;
+    redirect = opt record {
+      to = record { host = opt "smartcontracts.org"; path = opt "/docs" };
+      response_code = 308 : nat16;
+      from = opt record { host = null; path = opt "/upload-me.txt" };
+    };
+    allow_raw_access = null;
     max_age = opt (2_000 : nat64);
   },
 )'
+    # TODO
 
     # set max_age property and read it back
     assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
@@ -807,6 +820,13 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
+    is_aliased = null;
+    redirect = opt record {
+      to = record { host = opt "smartcontracts.org"; path = opt "/docs" };
+      response_code = 308 : nat16;
+      from = opt record { host = null; path = opt "/upload-me.txt" };
+    };
+    allow_raw_access = null;
     max_age = opt (5 : nat64);
   },
 )'
@@ -818,15 +838,65 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = null;
+    redirect = opt record {
+      to = record { host = opt "smartcontracts.org"; path = opt "/docs" };
+      response_code = 308 : nat16;
+      from = opt record { host = null; path = opt "/upload-me.txt" };
+    };
+    allow_raw_access = null;
     max_age = opt (5 : nat64);
   },
 )'
 
-    # set headers and max_age property to None and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null)})'
+    # set allow_raw_access property and read it back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; allow_raw_access=opt(opt(true))})'
     assert_contains '()'
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(record { headers = null; max_age = null })'
+    assert_contains '(
+  record {
+    headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = null;
+    redirect = opt record {
+      to = record { host = opt "smartcontracts.org"; path = opt "/docs" };
+      response_code = 308 : nat16;
+      from = opt record { host = null; path = opt "/upload-me.txt" };
+    };
+    allow_raw_access = opt true;
+    max_age = opt (5 : nat64);
+  },
+)'
+    # set redirect property and read it back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; redirect=opt(opt(record {from=null; to=record {host=opt "internetcomputer.org"}; response_code=308 : nat16}))})'
+    assert_contains '()'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(
+  record {
+    headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = null;
+    redirect = opt record {
+      to = record { host = opt "internetcomputer.org"; path = null };
+      response_code = 308 : nat16;
+      from = null;
+    };
+    allow_raw_access = opt true;
+    max_age = opt (5 : nat64);
+  },
+)'
+
+    # set all properties to None and read it back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null); redirect=opt(null)})'
+    assert_contains '()'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(
+  record {
+    headers = null;
+    is_aliased = null;
+    redirect = null;
+    allow_raw_access = null;
+    max_age = null;
+  },
+)'
 }
 
 @test "asset configuration via .ic-assets.json5 - HTTP redirects" {
