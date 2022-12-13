@@ -27,6 +27,8 @@ use ic_utils::interfaces::ManagementCanister;
 use std::path::PathBuf;
 use std::time::Duration;
 
+pub mod motoko_playground;
+
 #[context(
     "Failed to call update function '{}' regarding canister '{}'.",
     method,

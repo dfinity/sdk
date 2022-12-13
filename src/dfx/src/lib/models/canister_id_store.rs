@@ -59,6 +59,7 @@ impl CanisterIdStore {
                 }
             },
         };
+        // todo!("check if ids are still valid");
         let remote_ids = get_remote_ids(config)?;
         let ids = match &path {
             Some(path) if path.is_file() => CanisterIdStore::load_ids(path)?,
@@ -100,6 +101,7 @@ impl CanisterIdStore {
     }
 
     pub fn save_ids(&self) -> DfxResult {
+        // todo!("save timeouts");
         let path = self
             .path
             .as_ref()
@@ -152,6 +154,7 @@ impl CanisterIdStore {
         canister_id
     )]
     pub fn add(&mut self, canister_name: &str, canister_id: &str) -> DfxResult<()> {
+        // todo!("save timeouts");
         let network_name = &self.network_descriptor.name;
         match self.ids.get_mut(canister_name) {
             Some(network_name_to_canister_id) => {
@@ -171,6 +174,7 @@ impl CanisterIdStore {
 
     #[context("Failed to remove canister {} from id store.", canister_name)]
     pub fn remove(&mut self, canister_name: &str) -> DfxResult<()> {
+        // todo!("remove timeout");
         let network_name = &self.network_descriptor.name;
         if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
             network_name_to_canister_id.remove(network_name);

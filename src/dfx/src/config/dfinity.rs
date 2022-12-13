@@ -500,6 +500,16 @@ impl ReplicaSubnetType {
     }
 }
 
+/// Playground config to borrow canister from instead of creating new canisters.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct PlaygroundConfig {
+    /// Canister ID of the playground canister
+    pub playground_cid: String,
+
+    /// How many seconds a canister can be borrowed for
+    pub timeout: Option<u32>,
+}
+
 /// # Custom Network Configuration
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigNetworkProvider {
@@ -509,6 +519,7 @@ pub struct ConfigNetworkProvider {
     /// Persistence type of this network.
     #[serde(default = "NetworkType::persistent")]
     pub r#type: NetworkType,
+    pub playground: Option<PlaygroundConfig>,
 }
 
 /// # Local Replica Configuration
@@ -527,6 +538,7 @@ pub struct ConfigLocalProvider {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
+    pub playground: Option<PlaygroundConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
@@ -1158,6 +1170,7 @@ mod tests {
             &ConfigNetwork::ConfigNetworkProvider(ConfigNetworkProvider {
                 providers: vec![String::from("https://1.2.3.4:5000")],
                 r#type: NetworkType::Ephemeral,
+                playground: None,
             })
         );
     }

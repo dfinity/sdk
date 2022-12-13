@@ -7,6 +7,7 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 
@@ -140,6 +141,11 @@ async fn register_canisters(
         .collect::<Vec<String>>();
     if canisters_to_create.is_empty() {
         info!(env.get_logger(), "All canisters have already been created.");
+    } else if env.get_network_descriptor().is_playground() {
+        info!(env.get_logger(), "Reserving canisters in playground...");
+        for canister_name in &canisters_to_create {
+            reserve_canister_with_playground(env, canister_name, call_sender).await?;
+        }
     } else {
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {

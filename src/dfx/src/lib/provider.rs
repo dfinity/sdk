@@ -24,6 +24,8 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use url::Url;
 
+use super::network::network_descriptor::PLAYGROUND_NETWORK_NAME;
+
 lazy_static! {
     static ref NETWORK_CONTEXT: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
 }
@@ -78,6 +80,7 @@ fn config_network_to_network_descriptor(
                     network_name
                 ))
             }?;
+            let playground = network_provider.playground.clone();
             let is_ic = NetworkDescriptor::is_ic(network_name, &providers);
             Ok(NetworkDescriptor {
                 name: network_name.to_string(),
@@ -85,7 +88,8 @@ fn config_network_to_network_descriptor(
                 r#type: NetworkTypeDescriptor::new(
                     network_provider.r#type,
                     ephemeral_wallet_config_path,
-                ),
+                    playground,
+                )?,
                 is_ic,
                 local_server_descriptor: None,
             })
@@ -111,9 +115,13 @@ fn config_network_to_network_descriptor(
                 .clone()
                 .or_else(|| project_defaults.and_then(|x| x.replica.clone()))
                 .unwrap_or_default();
+            let playground = local_provider.playground.clone();
 
-            let network_type =
-                NetworkTypeDescriptor::new(local_provider.r#type, ephemeral_wallet_config_path);
+            let network_type = NetworkTypeDescriptor::new(
+                local_provider.r#type,
+                ephemeral_wallet_config_path,
+                playground,
+            )?;
             let bind_address = get_local_bind_address(
                 local_provider,
                 local_bind_determination,
@@ -154,7 +162,7 @@ pub fn create_network_descriptor(
     let logger = (logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
 
     let network = if network_opt.playground {
-        Some("playground".to_string())
+        Some(PLAYGROUND_NETWORK_NAME.to_string())
     } else {
         network_opt.network
     };
@@ -179,6 +187,7 @@ pub fn create_network_descriptor(
                 &logger,
             )
         })
+        .or_else(|| create_default_network_from_name(&network_name, &logger))
         .or_else(|| create_url_based_network_descriptor(&network_name))
         .unwrap_or_else(|| Err(anyhow!("ComputeNetworkNotFound({})", network_name)))
 }
@@ -193,12 +202,6 @@ fn create_mainnet_network_descriptor(
             "Using built-in definition for network 'ic' (mainnet)"
         );
         Some(Ok(NetworkDescriptor::ic()))
-    } else if network_name == "playground" {
-        info!(
-            logger,
-            "Using built-in definition for network 'playground' (mainnet)"
-        );
-        Some(Ok(NetworkDescriptor::playground()))
     } else {
         None
     }
@@ -214,7 +217,8 @@ fn create_url_based_network_descriptor(network_name: &str) -> Option<DfxResult<N
         let network_type = NetworkTypeDescriptor::new(
             NetworkType::Ephemeral,
             &data_directory.join(WALLET_CONFIG_FILENAME),
-        );
+            None,
+        )?;
         Ok(NetworkDescriptor {
             name,
             providers: vec![url],
@@ -249,6 +253,7 @@ fn create_shared_network_descriptor(
                 bootstrap: None,
                 canister_http: None,
                 replica: None,
+                playground: None,
             }))
         }
         (network_name, None) => {
@@ -352,6 +357,19 @@ fn create_project_network_descriptor(
             network_name
         );
         None
+    }
+}
+
+fn create_default_network_from_name(
+    network_name: &str,
+    logger: &Logger,
+) -> Option<DfxResult<NetworkDescriptor>> {
+    match network_name {
+        PLAYGROUND_NETWORK_NAME => {
+            debug!(logger, "Using default definition for network 'playground'.");
+            Some(Ok(NetworkDescriptor::default_playground_network()))
+        }
+        _ => None,
     }
 }
 

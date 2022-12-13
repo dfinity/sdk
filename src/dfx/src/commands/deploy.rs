@@ -110,7 +110,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let call_sender = runtime.block_on(call_sender(&env, &opts.wallet))?;
     let proxy_sender;
-    let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
+    let create_call_sender = if !opts.no_wallet
+        && !matches!(call_sender, CallSender::Wallet(_))
+        && !env.get_network_descriptor().is_playground()
+    {
         let wallet = runtime.block_on(Identity::get_or_create_wallet_canister(
             &env,
             env.get_network_descriptor(),

@@ -344,6 +344,7 @@ impl Identity {
                     .join(name)
                     .join(WALLET_CONFIG_FILENAME)
             }
+            NetworkTypeDescriptor::Playground { .. } => todo!(),
             NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path.clone(),
         })
     }

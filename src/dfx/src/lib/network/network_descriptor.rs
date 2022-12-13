@@ -1,15 +1,29 @@
-use crate::config::dfinity::NetworkType;
+use crate::config::dfinity::{NetworkType, PlaygroundConfig};
 use crate::config::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
 use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 
 use anyhow::bail;
+use candid::Principal;
+use fn_error_context::context;
 use std::path::{Path, PathBuf};
+
+//"rrkah-fqaaa-aaaaa-aaaaq-cai"
+const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal = Principal::from_slice(&[
+    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+]);
+pub const PLAYGROUND_NETWORK_NAME: &str = "playground";
+const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u32 = 1200;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum NetworkTypeDescriptor {
-    Ephemeral { wallet_config_path: PathBuf },
-
+    Ephemeral {
+        wallet_config_path: PathBuf,
+    },
+    Playground {
+        playground_cid: Principal,
+        canister_timeout_seconds: u32,
+    },
     Persistent,
 }
 
@@ -23,12 +37,26 @@ pub struct NetworkDescriptor {
 }
 
 impl NetworkTypeDescriptor {
-    pub fn new(r#type: NetworkType, ephemeral_wallet_config_path: &Path) -> Self {
-        match r#type {
-            NetworkType::Ephemeral => NetworkTypeDescriptor::Ephemeral {
-                wallet_config_path: ephemeral_wallet_config_path.to_path_buf(),
-            },
-            NetworkType::Persistent => NetworkTypeDescriptor::Persistent,
+    #[context("Failed to create NetworkTypeDescriptor.")]
+    pub fn new(
+        r#type: NetworkType,
+        ephemeral_wallet_config_path: &Path,
+        playground: Option<PlaygroundConfig>,
+    ) -> DfxResult<Self> {
+        if let Some(playground_config) = playground {
+            Ok(NetworkTypeDescriptor::Playground {
+                playground_cid: Principal::from_text(playground_config.playground_cid)?,
+                canister_timeout_seconds: playground_config
+                    .timeout
+                    .unwrap_or(MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS),
+            })
+        } else {
+            match r#type {
+                NetworkType::Ephemeral => Ok(NetworkTypeDescriptor::Ephemeral {
+                    wallet_config_path: ephemeral_wallet_config_path.to_path_buf(),
+                }),
+                NetworkType::Persistent => Ok(NetworkTypeDescriptor::Persistent),
+            }
         }
     }
 }
@@ -61,6 +89,10 @@ impl NetworkDescriptor {
         name_match || provider_match
     }
 
+    pub fn is_playground(&self) -> bool {
+        matches!(self.r#type, NetworkTypeDescriptor::Playground { .. })
+    }
+
     /// Return the first provider in the list
     pub fn first_provider(&self) -> DfxResult<&str> {
         match self.providers.first() {
@@ -79,11 +111,15 @@ impl NetworkDescriptor {
         }
     }
 
-    pub(crate) fn playground() -> Self {
+    /// Playground on mainnet
+    pub(crate) fn default_playground_network() -> Self {
         Self {
-            name: "playround".to_string(),
+            name: PLAYGROUND_NETWORK_NAME.to_string(),
             providers: vec![DEFAULT_IC_GATEWAY.to_string()],
-            r#type: NetworkTypeDescriptor::Persistent, //todo!("really?")
+            r#type: NetworkTypeDescriptor::Playground {
+                playground_cid: MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+                canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS,
+            },
             is_ic: true,
             local_server_descriptor: None,
         }

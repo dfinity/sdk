@@ -84,3 +84,10 @@ teardown() {
     assert_command_fail dfx build --network actuallylocal
     assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend --network actuallylocal"
 }
+
+@test "network 'playground' has a default definition" {
+    assert_command_fail dfx canister id hello_backend --network this_network_does_not_exist
+    assert_contains "Failed to get network descriptor" "$stderr"
+    assert_command_fail dfx canister id hello_backend --network playground
+    assert_contains "Cannot find canister id" "$stderr"
+}
