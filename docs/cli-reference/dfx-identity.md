@@ -333,7 +333,7 @@ You can use the following optional flags with the `dfx identity set-wallet` comm
 
 | Flag              | Description                                                                                                                                                |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `force`           | Skips verification that the canister you specify is a valid wallet canister. This option is only useful if you are connecting to the IC running locally. |
+| `--force`           | Skips verification that the canister you specify is a valid wallet canister. This option is only useful if you are connecting to the IC running locally. |
 | `-h`, `--help`    | Displays usage information.                                                                                                                                |
 | `-V`, `--version` | Displays version information.                                                                                                                              |
 
