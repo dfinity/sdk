@@ -1,9 +1,7 @@
 use crate::commands::wallet::get_wallet;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::clap::validators::cycle_amount_validator;
-use crate::util::expiry_duration;
 
 use anyhow::{anyhow, Context};
 use candid::CandidType;
@@ -36,10 +34,7 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
     })?;
     // amount has been validated by cycle_amount_validator
     let amount = opts.amount.parse::<u128>().unwrap();
-    let res = get_wallet(env)
-        .await?
-        .wallet_send(canister, amount, waiter_with_timeout(expiry_duration()))
-        .await;
+    let res = get_wallet(env).await?.wallet_send(canister, amount).await;
     res.map_err(|err| {
         anyhow!(
             "Sending cycles to {} failed with: {}",

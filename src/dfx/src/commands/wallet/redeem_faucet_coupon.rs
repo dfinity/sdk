@@ -1,15 +1,16 @@
+use crate::commands::wallet::get_wallet;
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
-use crate::{commands::wallet::get_wallet, lib::waiter::waiter_with_exponential_backoff};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, Decode, Principal};
 use clap::Parser;
-use slog::info;
+use slog::{info, warn};
 
 const DEFAULT_FAUCET_PRINCIPAL: &str = "fg7gi-vyaaa-aaaal-qadca-cai";
 
@@ -25,6 +26,8 @@ pub struct RedeemFaucetCouponOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxResult {
+    let log = env.get_logger();
+
     let faucet_principal = if let Some(alternative_faucet) = opts.faucet {
         let canister_id_store = CanisterIdStore::for_env(env)?;
         Principal::from_text(&alternative_faucet)
@@ -35,7 +38,11 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let log = env.get_logger();
+    if fetch_root_key_if_needed(env).await.is_err() {
+        bail!("Failed to connect to the local replica. Did you forget to use '--network ic'?");
+    } else if !env.get_network_descriptor().is_ic {
+        warn!(log, "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?");
+    }
 
     let wallet = get_wallet(env).await;
     match wallet {
@@ -48,7 +55,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                     encode_args((opts.coupon_code.clone(), wallet_principal))
                         .context("Failed to serialize redeem_to_wallet arguments.")?,
                 )
-                .call_and_wait(waiter_with_exponential_backoff())
+                .call_and_wait()
                 .await
                 .context("Failed redeem_to_wallet call.")?;
             let redeemed_cycles =
@@ -73,7 +80,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                     encode_args((opts.coupon_code.clone(),))
                         .context("Failed to serialize 'redeem' arguments.")?,
                 )
-                .call_and_wait(waiter_with_exponential_backoff())
+                .call_and_wait()
                 .await
                 .context("Failed 'redeem' call.")?;
             let new_wallet_address =

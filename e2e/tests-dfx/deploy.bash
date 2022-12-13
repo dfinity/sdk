@@ -72,3 +72,10 @@ teardown() {
     assert_command dfx canister call dependency greet
     assert_match "Hello, dfx!"
 }
+
+@test "reinstalling a single Motoko canister with imported dependency works" {
+    install_asset import_canister
+    dfx_start
+    assert_command dfx deploy
+    assert_command dfx deploy importer --mode reinstall --yes
+}

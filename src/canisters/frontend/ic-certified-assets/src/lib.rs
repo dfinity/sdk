@@ -18,7 +18,12 @@ use crate::{
     types::*,
 };
 use candid::{candid_method, Principal};
-use ic_cdk::api::{caller, data_certificate, set_certified_data, time, trap};
+use ic_cdk::api::{
+    call::ManualReply,
+    caller, data_certificate,
+    management_canister::{main::canister_status, provisional::CanisterIdRecord},
+    set_certified_data, time, trap,
+};
 use ic_cdk_macros::{query, update};
 use std::cell::RefCell;
 
@@ -28,13 +33,26 @@ thread_local! {
 
 #[update]
 #[candid_method(update)]
-fn authorize(other: Principal) {
-    let caller = caller();
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().authorize(&caller, other) {
-            trap(&msg);
-        }
-    })
+async fn authorize(other: Principal) {
+    match is_authorized_or_controller().await {
+        Err(e) => trap(&e),
+        Ok(_) => STATE.with(|s| s.borrow_mut().authorize_unconditionally(other)),
+    }
+}
+
+#[update]
+#[candid_method(update)]
+async fn deauthorize(other: Principal) {
+    match is_authorized_or_controller().await {
+        Err(e) => trap(&e),
+        Ok(_) => STATE.with(|s| s.borrow_mut().deauthorize_unconditionally(other)),
+    }
+}
+
+#[query(manual_reply = true)]
+#[candid_method(query)]
+fn list_authorized() -> ManualReply<Vec<Principal>> {
+    STATE.with(|s| ManualReply::one(s.borrow().list_authorized()))
 }
 
 #[query]
@@ -201,6 +219,26 @@ fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCa
     })
 }
 
+#[query]
+#[candid_method(query)]
+fn get_asset_properties(key: Key) -> AssetProperties {
+    STATE.with(|s| {
+        s.borrow()
+            .get_asset_properties(key)
+            .unwrap_or_else(|msg| trap(&msg))
+    })
+}
+
+#[update]
+#[candid_method(update)]
+fn set_asset_properties(arg: SetAssetPropertiesArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().set_asset_properties(arg) {
+            trap(&msg);
+        }
+    })
+}
+
 fn is_authorized() -> Result<(), String> {
     STATE.with(|s| {
         s.borrow()
@@ -208,6 +246,32 @@ fn is_authorized() -> Result<(), String> {
             .then(|| ())
             .ok_or_else(|| "Caller is not authorized".to_string())
     })
+}
+
+async fn is_authorized_or_controller() -> Result<(), String> {
+    let caller = caller();
+    let is_authorized = STATE.with(|s| s.borrow().is_authorized(&caller));
+    if is_authorized {
+        Ok(())
+    } else {
+        match canister_status(CanisterIdRecord {
+            canister_id: ic_cdk::api::id(),
+        })
+        .await
+        {
+            Err((code, msg)) => trap(&format!(
+                "Caller is not authorized. Failed to determine if caller is canister controller with code {:?} and message '{}'",
+                code, msg
+            )),
+            Ok((a,)) => {
+                if a.settings.controllers.contains(&caller) {
+                    Ok(())
+                } else {
+                    Err("Caller is not authorized and not a controller.".to_string())
+                }
+            }
+        }
+    }
 }
 
 pub fn init() {

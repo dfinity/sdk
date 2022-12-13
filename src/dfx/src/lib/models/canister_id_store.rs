@@ -33,6 +33,8 @@ pub struct CanisterIdStore {
 }
 
 impl CanisterIdStore {
+    pub const DEFAULT: &'static str = "__default";
+
     #[context("Failed to load canister id store.")]
     pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
         CanisterIdStore::new(env.get_network_descriptor(), env.get_config())
@@ -114,7 +116,7 @@ impl CanisterIdStore {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("Failed to create {}.", parent.to_string_lossy()))?;
         }
-        std::fs::write(&path, content)
+        std::fs::write(path, content)
             .with_context(|| format!("Cannot write to file at '{}'.", path.display()))
     }
 
@@ -129,7 +131,9 @@ impl CanisterIdStore {
         canister_ids
             .get(canister_name)
             .and_then(|network_name_to_canister_id| {
-                network_name_to_canister_id.get(&self.network_descriptor.name)
+                network_name_to_canister_id
+                    .get(&self.network_descriptor.name)
+                    .or_else(|| network_name_to_canister_id.get(CanisterIdStore::DEFAULT))
             })
             .and_then(|s| CanisterId::from_text(s).ok())
     }

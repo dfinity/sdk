@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, str::FromStr};
 
 // These definitions come from https://gitlab.com/dfinity-lab/public/ic/-/blob/master/rs/canister_http/adapter/src/config.rs
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 /// The source of the unix domain socket to be used for inter-process
 /// communication.
 pub enum IncomingSource {

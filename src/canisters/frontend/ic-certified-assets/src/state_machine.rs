@@ -141,12 +141,14 @@ impl State {
         }
     }
 
-    pub fn authorize(&mut self, caller: &Principal, other: Principal) -> Result<(), String> {
-        if !self.is_authorized(caller) {
-            return Err("the caller is not authorized".to_string());
+    pub fn deauthorize_unconditionally(&mut self, principal: Principal) {
+        if let Some(pos) = self.authorized.iter().position(|x| *x == principal) {
+            self.authorized.remove(pos);
         }
-        self.authorize_unconditionally(other);
-        Ok(())
+    }
+
+    pub fn list_authorized(&self) -> &Vec<Principal> {
+        &self.authorized
     }
 
     pub fn root_hash(&self) -> Hash {
@@ -612,6 +614,42 @@ impl State {
         })
     }
 
+    pub fn get_asset_properties(&self, key: Key) -> Result<AssetProperties, String> {
+        let asset = self
+            .assets
+            .get(&key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        Ok(AssetProperties {
+            max_age: asset.max_age,
+            headers: asset.headers.clone(),
+            allow_raw_access: asset.allow_raw_access,
+            redirect: asset.redirect,
+
+        })
+    }
+
+    pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
+        let asset = self
+            .assets
+            .get_mut(&arg.key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        if let Some(headers) = arg.headers {
+            asset.headers = headers
+        }
+        if let Some(max_age) = arg.max_age {
+            asset.max_age = max_age
+        }
+        if let Some(allow_raw_access) = arg.allow_raw_access {
+            asset.allow_raw_access = allow_raw_access
+        }
+        if let Some(redirect) = arg.redirect {
+            asset.redirect = redirect
+        }
+        Ok(())
+    }
+
     // Returns keys that needs to be updated if the supplied key is changed.
     fn dependent_keys<'a>(&self, key: &Key) -> Vec<Key> {
         if self
@@ -647,7 +685,7 @@ impl From<StableState> for State {
             ..Self::default()
         };
 
-        let assets_keys: Vec<_> = state.assets.keys().map(|key| key.clone()).collect();
+        let assets_keys: Vec<_> = state.assets.keys().cloned().collect();
         for key in assets_keys {
             let dependent_keys = state.dependent_keys(&key);
             if let Some(asset) = state.assets.get_mut(&key) {
@@ -774,7 +812,7 @@ fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a> {
 
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
 fn aliases_of(key: &Key) -> Vec<Key> {
-    if key.ends_with("/") {
+    if key.ends_with('/') {
         vec![format!("{}index.html", key)]
     } else if !key.ends_with(".html") {
         vec![format!("{}.html", key), format!("{}/index.html", key)]

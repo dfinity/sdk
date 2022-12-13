@@ -135,7 +135,7 @@ pub trait CanisterBuilder {
             );
         }
 
-        std::fs::create_dir_all(&generate_output_dir).with_context(|| {
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
             format!(
                 "Failed to create dir: {}",
                 generate_output_dir.to_string_lossy()
@@ -356,7 +356,7 @@ pub fn environment_variables<'a>(
     vars
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,

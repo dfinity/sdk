@@ -3,8 +3,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::Identity;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
-use crate::util::expiry_duration;
 use crate::NetworkOpt;
 
 use anyhow::Context;
@@ -115,7 +113,7 @@ where
         .update_(method)
         .with_arg(arg)
         .build()
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await?;
     Ok(out)
 }

@@ -15,13 +15,13 @@ use slog::{debug, Logger};
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalNetworkScopeDescriptor {
     Project,
     Shared { network_id_path: PathBuf },
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalServerDescriptor {
     /// The data directory is one of the following:
     ///     <project directory>/.dfx/network/local
