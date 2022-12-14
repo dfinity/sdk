@@ -14,6 +14,7 @@ dfx replica [option] [flag]
 
 You can use the following optional flags with the `dfx replica` command.
 
+<<<<<<< HEAD
 | Flag              | Description                                                                                   |
 |-------------------|-----------------------------------------------------------------------------------------------|
 | `-h`, `--help`    | Displays usage information.                                                                   |
@@ -21,6 +22,12 @@ You can use the following optional flags with the `dfx replica` command.
 | `--emulator`      | Starts the [IC reference emulator](https://github.com/dfinity/ic-hs) rather than the replica. |
 | `--enable-bitcoin`| Enables bitcoin integration.                                                                  |
 | `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                   |
+=======
+| Flag              | Description                                                          |
+|-------------------|----------------------------------------------------------------------|
+| `--enable-bitcoin`| Enables bitcoin integration.                                         |
+| `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default) |
+>>>>>>> e61a932e (docs: remove -h, -v flag descriptions from CLI docs)
 
 ## Options
 
