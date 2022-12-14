@@ -50,8 +50,10 @@ type ClearArguments = record {};
 type BatchOperationKind = variant {
   CreateAsset: CreateAssetArguments;
   SetAssetContent: SetAssetContentArguments;
+
   UnsetAssetContent: UnsetAssetContentArguments;
   DeleteAsset: DeleteAssetArguments;
+
   Clear: ClearArguments;
 };
 
