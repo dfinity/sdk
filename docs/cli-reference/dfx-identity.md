@@ -282,7 +282,8 @@ You can use the following optional flags with the `dfx identity remove` command.
 | Flag              | Description                   |
 |-------------------|-------------------------------|
 | `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. || `--drop-wallets`  | Required if the identity has wallets configured so that users do not accidentally lose access to wallets.   |
+| `-V`, `--version` | Displays version information. |
+| `--drop-wallets`  | Required if the identity has wallets configured so that users do not accidentally lose access to wallets.   |
 
 ### Arguments
 
