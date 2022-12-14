@@ -52,6 +52,7 @@ pub enum Command {
     New(new::NewOpts),
     Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
+    #[clap(hide(true))]
     Pull(pull::PullOpts),
     Quickstart,
     Remote(remote::RemoteOpts),
