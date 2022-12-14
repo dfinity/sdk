@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
+use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
-    CreateChunkArg, DeleteAssetArguments, HttpRequest, HttpResponse, SetAssetContentArguments,
-    SetAssetPropertiesArguments, StreamingStrategy,
+    CreateChunkArg, DeleteAssetArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -161,7 +161,7 @@ fn lookup_header<'a>(response: &'a HttpResponse, header: &str) -> Option<&'a str
     response
         .headers
         .iter()
-        .find_map(|(h, v)| h.eq_ignore_ascii_case(header).then(|| v.as_str()))
+        .find_map(|(h, v)| h.eq_ignore_ascii_case(header).then_some(v.as_str()))
 }
 
 #[test]

@@ -21,7 +21,7 @@ impl CandidType for RcBytes {
     where
         S: Serializer,
     {
-        serializer.serialize_blob(&*self.0)
+        serializer.serialize_blob(&self.0)
     }
 }
 
@@ -42,13 +42,13 @@ impl From<ByteBuf> for RcBytes {
 
 impl AsRef<[u8]> for RcBytes {
     fn as_ref(&self) -> &[u8] {
-        &*self.0
+        &self.0
     }
 }
 
 impl Deref for RcBytes {
     type Target = [u8];
     fn deref(&self) -> &[u8] {
-        &*self.0
+        &self.0
     }
 }
