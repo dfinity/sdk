@@ -77,7 +77,8 @@ pub async fn exec(
     let network = env.get_network_descriptor();
 
     let proxy_sender;
-    if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
+    if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) && !network.is_playground()
+    {
         let wallet = Identity::get_or_create_wallet_canister(
             env,
             env.get_network_descriptor(),
@@ -87,6 +88,8 @@ pub async fn exec(
         proxy_sender = CallSender::Wallet(*wallet.canister_id_());
         call_sender = &proxy_sender;
     }
+
+    println!("checkpoint 1");
 
     let controllers: Option<Vec<_>> = opts
         .controller
@@ -116,6 +119,7 @@ pub async fn exec(
         })
         .transpose()
         .context("Failed to determine controllers.")?;
+    println!("checkpoint 2");
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
         let canister_is_remote = config

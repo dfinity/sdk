@@ -6,6 +6,7 @@ use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use anyhow::bail;
 use candid::Principal;
 use fn_error_context::context;
+use num_bigint::BigInt;
 use std::path::{Path, PathBuf};
 
 //"rrkah-fqaaa-aaaaa-aaaaq-cai"
@@ -13,7 +14,7 @@ const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal = Principal::from_slice(&
     0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ]);
 pub const PLAYGROUND_NETWORK_NAME: &str = "playground";
-const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u32 = 1200;
+const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u128 = 1200;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum NetworkTypeDescriptor {
@@ -22,7 +23,7 @@ pub enum NetworkTypeDescriptor {
     },
     Playground {
         playground_cid: Principal,
-        canister_timeout_seconds: u32,
+        canister_timeout_seconds: BigInt,
     },
     Persistent,
 }
@@ -48,7 +49,8 @@ impl NetworkTypeDescriptor {
                 playground_cid: Principal::from_text(playground_config.playground_cid)?,
                 canister_timeout_seconds: playground_config
                     .timeout
-                    .unwrap_or(MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS),
+                    .map(|t| t.into())
+                    .unwrap_or(MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS.into()),
             })
         } else {
             match r#type {
@@ -118,7 +120,7 @@ impl NetworkDescriptor {
             providers: vec![DEFAULT_IC_GATEWAY.to_string()],
             r#type: NetworkTypeDescriptor::Playground {
                 playground_cid: MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
-                canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS,
+                canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS.into(),
             },
             is_ic: true,
             local_server_descriptor: None,

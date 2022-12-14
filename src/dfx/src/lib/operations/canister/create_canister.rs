@@ -4,6 +4,7 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::provider::get_network_context;
 use crate::lib::waiter::waiter_with_timeout;
 
@@ -71,75 +72,82 @@ pub async fn create_canister(
             Ok(())
         }
         None => {
-            let agent = env
-                .get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-            let mgr = ManagementCanister::create(agent);
-            let cid = match call_sender {
-                CallSender::SelectedId => {
-                    // amount has been validated by cycle_amount_validator, which is u128
-                    let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
-                    let mut builder = mgr
-                        .create_canister()
-                        .as_provisional_create_with_amount(cycles);
-                    if let Some(controllers) = settings.controllers {
-                        for controller in controllers {
-                            builder = builder.with_controller(controller);
-                        }
-                    };
-                    let res = builder
-                        .with_optional_compute_allocation(settings.compute_allocation)
-                        .with_optional_memory_allocation(settings.memory_allocation)
-                        .with_optional_freezing_threshold(settings.freezing_threshold)
-                        .call_and_wait(waiter_with_timeout(timeout))
-                        .await;
-                    if let Err(AgentError::HttpError(HttpErrorPayload { status: 404, .. })) = &res {
-                        bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
+            if env.get_network_descriptor().is_playground() {
+                reserve_canister_with_playground(env, canister_name, call_sender).await?;
+                Ok(())
+            } else {
+                let agent = env
+                    .get_agent()
+                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+                let mgr = ManagementCanister::create(agent);
+                let cid = match call_sender {
+                    CallSender::SelectedId => {
+                        // amount has been validated by cycle_amount_validator, which is u128
+                        let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
+                        let mut builder = mgr
+                            .create_canister()
+                            .as_provisional_create_with_amount(cycles);
+                        if let Some(controllers) = settings.controllers {
+                            for controller in controllers {
+                                builder = builder.with_controller(controller);
+                            }
+                        };
+                        let res = builder
+                            .with_optional_compute_allocation(settings.compute_allocation)
+                            .with_optional_memory_allocation(settings.memory_allocation)
+                            .with_optional_freezing_threshold(settings.freezing_threshold)
+                            .call_and_wait(waiter_with_timeout(timeout))
+                            .await;
+                        if let Err(AgentError::HttpError(HttpErrorPayload {
+                            status: 404, ..
+                        })) = &res
+                        {
+                            bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
                             To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
                             using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.")
-                    }
-                    res.context("Canister creation call failed.")?.0
-                }
-                CallSender::Wallet(wallet_id) => {
-                    let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
-                    // amount has been validated by cycle_amount_validator
-                    let cycles = with_cycles.map_or(
-                        CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
-                        |amount| amount.parse::<u128>().unwrap(),
-                    );
-                    match wallet
-                        .wallet_create_canister(
-                            cycles,
-                            settings.controllers,
-                            settings.compute_allocation,
-                            settings.memory_allocation,
-                            settings.freezing_threshold,
-                            waiter_with_timeout(timeout),
-                        )
-                        .await
-                    {
-                        Ok(result) => Ok(result.canister_id),
-                        Err(AgentError::WalletUpgradeRequired(s)) => {
-                            bail!(format!(
-                                "{}\nTo upgrade, run dfx wallet upgrade.",
-                                AgentError::WalletUpgradeRequired(s)
-                            ));
                         }
-                        Err(other) => Err(other),
-                    }?
-                }
-            };
-            let canister_id = cid.to_text();
-            info!(
-                log,
-                "{} canister created {}with canister id: {}",
-                canister_name,
-                non_default_network,
-                canister_id
-            );
-            canister_id_store.add(canister_name, &canister_id)
+                        res.context("Canister creation call failed.")?.0
+                    }
+                    CallSender::Wallet(wallet_id) => {
+                        let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                        // amount has been validated by cycle_amount_validator
+                        let cycles = with_cycles.map_or(
+                            CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
+                            |amount| amount.parse::<u128>().unwrap(),
+                        );
+                        match wallet
+                            .wallet_create_canister(
+                                cycles,
+                                settings.controllers,
+                                settings.compute_allocation,
+                                settings.memory_allocation,
+                                settings.freezing_threshold,
+                                waiter_with_timeout(timeout),
+                            )
+                            .await
+                        {
+                            Ok(result) => Ok(result.canister_id),
+                            Err(AgentError::WalletUpgradeRequired(s)) => {
+                                bail!(format!(
+                                    "{}\nTo upgrade, run dfx wallet upgrade.",
+                                    AgentError::WalletUpgradeRequired(s)
+                                ));
+                            }
+                            Err(other) => Err(other),
+                        }?
+                    }
+                };
+                let canister_id = cid.to_text();
+                info!(
+                    log,
+                    "{} canister created {}with canister id: {}",
+                    canister_name,
+                    non_default_network,
+                    canister_id
+                );
+                canister_id_store.add(canister_name, &canister_id, None)?;
+                Ok(())
+            }
         }
-    }?;
-
-    Ok(())
+    }
 }

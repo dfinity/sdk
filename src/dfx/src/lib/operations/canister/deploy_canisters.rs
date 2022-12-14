@@ -90,6 +90,7 @@ pub async fn deploy_canisters(
 
     let pool = build_canisters(env, &canisters_to_load, &canisters_to_deploy, &config).await?;
 
+    //todo!(playground)
     install_canisters(
         env,
         &canisters_to_deploy,
@@ -228,7 +229,8 @@ async fn install_canisters(
     pool: CanisterPool,
     skip_consent: bool,
 ) -> DfxResult {
-    info!(env.get_logger(), "Installing canisters...");
+    let log = env.get_logger();
+    info!(log, "Installing canisters...");
 
     let agent = env
         .get_agent()

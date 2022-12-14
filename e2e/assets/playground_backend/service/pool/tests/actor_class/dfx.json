@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "Parent": {
+      "main": "Parent.mo",
+      "type": "motoko"
+    },
+    "Deleter": {
+      "main": "Deleter.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "vessel sources"
+    }
+  }
+}

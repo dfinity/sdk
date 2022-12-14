@@ -5,10 +5,12 @@ use candid::{encode_args, CandidType, Decode, Deserialize, Encode, Principal};
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use rand::Rng;
+use slog::info;
 
 use crate::{
     lib::{
         environment::Environment, error::DfxResult, identity::identity_utils::CallSender,
+        models::canister_id_store::CanisterIdStore,
         network::network_descriptor::NetworkTypeDescriptor, waiter::waiter_with_timeout,
     },
     util::expiry_duration,
@@ -49,6 +51,7 @@ pub async fn reserve_canister_with_playground(
     } else {
         bail!("This shouldn't happen")
     };
+    let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let (timestamp, nonce) = create_nonce();
     let get_can_arg = Encode!(&GetCanisterIdArgs {
         timestamp: timestamp,
@@ -59,11 +62,22 @@ pub async fn reserve_canister_with_playground(
         .with_arg(get_can_arg)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
-        .context("Notify call failed.")?;
-    let out = Decode!(&result, CanisterInfo)?;
-    println!("Return value: {:?}", out);
+        .context("Failed to reserve canister at the playground.")?;
+    let reserved_canister = Decode!(&result, CanisterInfo)?;
+    println!("Return value: {:?}", reserved_canister);
+    canister_id_store.add(
+        canister_name,
+        &reserved_canister.id.to_string(),
+        Some(reserved_canister.timestamp.into()),
+    )?;
 
-    //todo!(save canister id and timeout)
+    info!(
+        env.get_logger(),
+        "Reserved canister '{}' with id {} with the playground.",
+        canister_name,
+        reserved_canister.id.to_string()
+    );
+
     Ok(())
 }
 
@@ -74,7 +88,7 @@ pub async fn _playground_install_code(
     wasm_module: &[u8],
     mode: InstallMode,
 ) -> DfxResult {
-    //todo!()
+    //todo!(properly implement)
 
     println!("Trying to install a wasm:");
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
@@ -110,14 +124,14 @@ fn create_nonce() -> (candid::Int, candid::Nat) {
         .unwrap()
         .as_millis();
     let timestamp = candid::Int::from(now * 1_000_000);
-    let out = pow(timestamp);
+    let out = proof_of_work(timestamp);
     println!("nonce generated");
     out
 }
 
 const DOMAIN: &str = "motoko-playground";
 
-fn pow(timestamp: candid::Int) -> (candid::Int, candid::Nat) {
+fn proof_of_work(timestamp: candid::Int) -> (candid::Int, candid::Nat) {
     let mut rng = rand::thread_rng();
     let mut nonce = candid::Nat::from(rng.gen::<i32>());
     let prefix = format!("{}{}", DOMAIN, timestamp);

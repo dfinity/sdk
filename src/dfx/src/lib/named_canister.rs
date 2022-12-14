@@ -75,7 +75,7 @@ pub async fn install_ui_canister(
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
         .context("Install wasm call failed.")?;
-    id_store.add(UI_CANISTER, &canister_id.to_text())?;
+    id_store.add(UI_CANISTER, &canister_id.to_text(), None)?;
     info!(
         env.get_logger(),
         "The UI canister on the \"{}\" network is \"{}\"",

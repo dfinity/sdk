@@ -1,0 +1,25 @@
+{
+  "canisters": {
+    "wasm-utils": {
+      "type": "custom",
+      "candid": "service/wasm-utils/wasm-utils.did",
+      "wasm": "service/wasm-utils/target/wasm32-unknown-unknown/release/wasm_opt.wasm",
+      "build": [
+        "sh -c 'cd service/wasm-utils && ./build.sh'"
+      ]
+    },
+    "backend": {
+      "dependencies": [
+        "wasm-utils"
+      ],
+      "main": "service/pool/Main.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "output": "build",
+      "packtool": "vessel sources"
+    }
+  }
+}
