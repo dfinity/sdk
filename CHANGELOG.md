@@ -4,31 +4,57 @@
 
 ## DFX
 
-### feat: Added support for configurable, per-asset, regex-enabled HTTP redirects in `frontend` canister 
-
-Example of `.ic-assets.json` making use of this feature:
-```json
-[
-  {
-    "match": "**/*.svg",
-    "redirect": {
-      "from": {
-        "host": "127.0.0.1:8000",
-        "path": "/logo2.svg\\?canisterId=.*"
-      },
-      "to": {
-        "host": "hwvjt-wqaaa-aaaam-qadra-cai.ic0.app",
-        "path": "/img/IC_logo_horizontal.svg"
-      },
-      "response_code": 301,
-      "user_agent": [
-        "curl"
-      ]
+### feat(frontend-canister)!: Added per-asset configurable HTTP redirect support for `frontend` canister
+Introduces two new configuration fields in `.ic-assets.json`:
+- `allow_raw_access` - when set to `true`, will allow to access the asset in frontend canister on the mainnet
+via `.raw.ic0.app` domain, otherwise - when unset or set to `false` - will redirect the traffic from 
+`.raw.ic0.app` to `.ic0.app`. Below `.ic-assets.json` example shows how to restrict access for `raw` domain 
+for all assets
+  ```json
+  [
+    {
+      "match": "*/**",
+      "allow_raw_access": true
     }
-  }
-]
+  ]
+  ```
 
-```
+- `redirect` - allows to set conditional and unconditional HTTP redirects, and (optionally) the `response_code`
+  - unconditional redirect will always redirect when you're trying to access the asset, for example:
+  ```json
+  [
+    {
+      "match": "developer-documentation.html",
+      "redirect": {
+        "to": {
+          "host": "internetcomputer.org"
+          "path": "/docs"
+        }
+      }
+    }
+  ]
+  ```
+  - conditional redirects kick in when either `from.host` or `from.path` (or both if both fields are set)
+    and the request's URL 
+  ```json
+  [
+    {
+      "match": "developer-documentation.html",
+      "redirect": {
+        "from": {
+          "host": ".ic0.app",
+          "path": "?deprecated-query-param=xyz"
+        },
+        "to": {
+          "host": "internetcomputer.org"
+          "path": "/docs"
+        }
+      }
+    }
+  ]
+  ```
+  
+TODO: describe mechanism from substitiution of values from url query params and canister id (eg `{canisterId}`)  
 
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
