@@ -2,7 +2,6 @@ use crate::rc_bytes::RcBytes;
 use crate::state_machine::{Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
 use ic_certified_map::Hash;
-use serde::Serialize;
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
 
@@ -48,13 +47,15 @@ pub struct StreamingCallbackHttpResponse {
     pub token: Option<StreamingCallbackToken>,
 }
 
-#[derive(Deserialize, CandidType, Serialize, Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct RedirectUrl {
     pub(crate) host: Option<String>,
     pub(crate) path: Option<String>,
 }
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct HttpRedirect {
     pub from: Option<RedirectUrl>,
     pub to: RedirectUrl,
