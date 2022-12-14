@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::rc_bytes::RcBytes;
-use candid::{CandidType, Deserialize, Func, Nat};
+use candid::{CandidType, Deserialize, Nat};
 use serde_bytes::ByteBuf;
 
 pub type BatchId = Nat;
@@ -102,50 +102,8 @@ pub struct CreateChunkArg {
 pub struct CreateChunkResponse {
     pub chunk_id: ChunkId,
 }
-// HTTP interface
 
-pub type HeaderField = (String, String);
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct HttpRequest {
-    pub method: String,
-    pub url: String,
-    pub headers: Vec<(String, String)>,
-    pub body: ByteBuf,
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct HttpResponse {
-    pub status_code: u16,
-    pub headers: Vec<HeaderField>,
-    pub body: RcBytes,
-    pub streaming_strategy: Option<StreamingStrategy>,
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StreamingCallbackToken {
-    pub key: String,
-    pub content_encoding: String,
-    pub index: Nat,
-    // We don't care about the sha, we just want to be backward compatible.
-    pub sha256: Option<ByteBuf>,
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub enum StreamingStrategy {
-    Callback {
-        callback: Func,
-        token: StreamingCallbackToken,
-    },
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StreamingCallbackHttpResponse {
-    pub body: RcBytes,
-    pub token: Option<StreamingCallbackToken>,
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize, PartialEq)]
+#[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
 pub struct AssetProperties {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
