@@ -209,7 +209,7 @@ impl AssetConfigTreeNode {
         };
 
         configs.insert(dir.to_path_buf(), parent_ref.clone());
-        for f in std::fs::read_dir(&dir)
+        for f in std::fs::read_dir(dir)
             .with_context(|| format!("Unable to read directory {}", &dir.display()))?
             .filter_map(|x| x.ok())
             .filter(|x| x.file_type().map_or_else(|_e| false, |ft| ft.is_dir()))

@@ -6,12 +6,12 @@ To get started, you might want to explore the project directory structure and th
 
 To learn more before you start working with {project_name}, see the following documentation available online:
 
-- [Quick Start](https://smartcontracts.org/docs/quickstart/quickstart-intro.html)
-- [SDK Developer Tools](https://smartcontracts.org/docs/developers-guide/sdk-guide.html)
-- [Rust Canister Devlopment Guide](https://smartcontracts.org/docs/rust-guide/rust-intro.html)
+- [Quick Start](https://internetcomputer.org/docs/quickstart/quickstart-intro)
+- [SDK Developer Tools](https://internetcomputer.org/docs/developers-guide/sdk-guide)
+- [Rust Canister Devlopment Guide](https://internetcomputer.org/docs/rust-guide/rust-intro)
 - [ic-cdk](https://docs.rs/ic-cdk)
 - [ic-cdk-macros](https://docs.rs/ic-cdk-macros)
-- [Candid Introduction](https://smartcontracts.org/docs/candid-guide/candid-intro.html)
+- [Candid Introduction](https://internetcomputer.org/docs/candid-guide/candid-intro)
 - [JavaScript API Reference](https://erxue-5aaaa-aaaab-qaagq-cai.raw.ic0.app)
 
 If you want to start working on your project right away, you might want to try the following commands:

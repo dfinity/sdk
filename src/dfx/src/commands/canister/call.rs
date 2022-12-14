@@ -6,11 +6,8 @@ use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
-use crate::util::{
-    arguments_from_file, blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob,
-};
+use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
@@ -118,7 +115,7 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
     let (result,): (Result<CallResult, String>,) = builder
         .with_arg(args)
         .build()
-        .call_and_wait(waiter_with_exponential_backoff())
+        .call_and_wait()
         .await
         .context("Failed wallet call.")?;
     Ok(result.map_err(|err| anyhow!(err))?.r#return)
@@ -159,14 +156,14 @@ pub fn get_effective_canister_id(
         })?;
         match method_name {
             MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
-                return Err(DiagnosedError::new(
+                Err(DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",
                         method_name.as_ref()
                     ),
                     format!("The easiest way to call {} externally is to proxy this call through a wallet. Try calling this with 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
                     To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.", method_name.as_ref())
-                )).context("Method only callable by a canister.");
+                )).context("Method only callable by a canister.")
             }
             MgmtMethod::InstallCode => {
                 let install_args = candid::Decode!(arg_value, CanisterInstall)
@@ -275,8 +272,6 @@ pub async fn exec(
 
     fetch_root_key_if_needed(env).await?;
 
-    let timeout = expiry_duration();
-
     // amount has been validated by cycle_amount_validator
     let cycles = opts
         .with_cycles
@@ -363,8 +358,7 @@ pub async fn exec(
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
                     .with_arg(&arg_value)
-                    .expire_after(timeout)
-                    .call_and_wait(waiter_with_exponential_backoff())
+                    .call_and_wait()
                     .await
                     .context("Failed update call.")?
             }

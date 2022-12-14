@@ -217,7 +217,7 @@ pub async fn exec(
             Ok(_) => unreachable!(),
         }
         let path = Path::new(&file_name);
-        let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
+        let mut file = File::open(path).map_err(|_| anyhow!("Message file doesn't exist."))?;
         let mut json = String::new();
         file.read_to_string(&mut json)
             .map_err(|_| anyhow!("Cannot read the message file."))?;
@@ -227,7 +227,7 @@ pub async fn exec(
         let request_id = RequestId::from_str(&message.request_id.unwrap())
             .context("Failed to parse request id.")?;
         let res = sign_agent
-            .request_status_raw(&request_id, canister_id, false)
+            .request_status_raw(&request_id, canister_id)
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {

@@ -1,3 +1,5 @@
+#![allow(special_module_name)]
+
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
@@ -37,6 +39,10 @@ pub struct CliOpts {
     /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
     #[clap(long, global(true))]
     identity: Option<String>,
+
+    /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
+    #[clap(long, global(true))]
+    provisional_create_canister_effective_canister_id: Option<String>,
 
     #[clap(subcommand)]
     command: commands::Command,
@@ -175,6 +181,7 @@ fn main() {
     let cli_opts = CliOpts::parse();
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
+    let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
     let command = cli_opts.command;
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
@@ -184,6 +191,7 @@ fn main() {
                 env.with_logger(log)
                     .with_identity_override(identity)
                     .with_verbose_level(verbose_level)
+                    .with_effective_canister_id(effective_canister_id)
             }) {
                 Ok(env) => {
                     slog::trace!(

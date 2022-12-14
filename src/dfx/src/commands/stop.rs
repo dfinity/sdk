@@ -1,10 +1,11 @@
+use std::time::Duration;
+
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::bail;
 use clap::Parser;
-use garcon::{Delay, Waiter};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
 /// Stops the local network replica.
@@ -33,11 +34,7 @@ fn descendant_pids(system: &System, proc: &Process) -> Vec<Pid> {
 }
 
 fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
-    let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .throttle(std::time::Duration::from_secs(1))
-        .build();
-    waiter.start();
+    let mut retries = 0;
 
     loop {
         system.refresh_processes();
@@ -47,7 +44,7 @@ fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
         if pids.is_empty() {
             return Ok(());
         }
-        if waiter.wait().is_err() {
+        if retries >= 30 {
             let remaining = pids
                 .iter()
                 .map(|pid| format!("{pid}"))
@@ -55,6 +52,8 @@ fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
                 .join(" ");
             bail!("Failed to kill all processes.  Remaining: {remaining}");
         }
+        std::thread::sleep(Duration::from_secs(1));
+        retries += 1;
     }
 }
 

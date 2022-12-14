@@ -26,7 +26,7 @@ struct DfxJsonProject {
     pub canisters: BTreeMap<String, DfxJsonCanister>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImportNetworkMapping {
     pub network_name_in_this_project: String,
     pub network_name_in_project_being_imported: String,
@@ -279,7 +279,7 @@ impl Loader {
     #[context("Failed to get contents of file {}", path.display())]
     fn read_optional_file_contents(path: &Path) -> DfxResult<Option<Vec<u8>>> {
         if path.exists() {
-            let contents = fs::read(&path)?;
+            let contents = fs::read(path)?;
             Ok(Some(contents))
         } else {
             Ok(None)

@@ -9,7 +9,6 @@ use crate::lib::error::{DfxError, DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
 
 use anyhow::{anyhow, bail, Context};
 use bip39::{Language, Mnemonic};
@@ -32,7 +31,6 @@ pub mod identity_utils;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
 use crate::util::assets::wallet_wasm;
-use crate::util::expiry_duration;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
     IdentityManager,
@@ -390,7 +388,7 @@ impl Identity {
     #[context("Failed to load wallet config {}.", path.to_string_lossy())]
     fn load_wallet_config(path: &Path) -> DfxResult<WalletGlobalConfig> {
         let mut buffer = Vec::new();
-        std::fs::File::open(&path)
+        std::fs::File::open(path)
             .with_context(|| format!("Unable to open {}", path.to_string_lossy()))?
             .read_to_end(&mut buffer)
             .with_context(|| format!("Unable to read {}", path.to_string_lossy()))?;
@@ -417,7 +415,7 @@ impl Identity {
                 parent_path.to_string_lossy()
             )
         })?;
-        std::fs::write(&path, &serde_json::to_string_pretty(&config)?)
+        std::fs::write(path, &serde_json::to_string_pretty(&config)?)
             .with_context(|| format!("Unable to write {}", path.to_string_lossy()))
     }
 
@@ -557,7 +555,8 @@ impl Identity {
             None => {
                 mgr.create_canister()
                     .as_provisional_create_with_amount(None)
-                    .call_and_wait(waiter_with_timeout(expiry_duration()))
+                    .with_effective_canister_id(env.get_effective_canister_id())
+                    .call_and_wait()
                     .await
                     .context("Failed create canister call.")?
                     .0
@@ -567,7 +566,7 @@ impl Identity {
         match mgr
             .install_code(&canister_id, wasm.as_slice())
             .with_mode(InstallMode::Install)
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .call_and_wait()
             .await
         {
             Err(AgentError::ReplicaError {
@@ -586,7 +585,7 @@ impl Identity {
 
         wallet
             .wallet_store_wallet_wasm(wasm)
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .call_and_wait()
             .await
             .context("Failed to store wallet wasm.")?;
 
@@ -678,8 +677,12 @@ impl Identity {
         network: &NetworkDescriptor,
         name: &str,
     ) -> DfxResult<WalletCanister<'env>> {
-        let wallet_canister_id = Identity::get_or_create_wallet(env, network, name).await?;
-        Identity::build_wallet_canister(wallet_canister_id, env).await
+        // without this async block, #[context] gives a spurious error
+        async {
+            let wallet_canister_id = Identity::get_or_create_wallet(env, network, name).await?;
+            Identity::build_wallet_canister(wallet_canister_id, env).await
+        }
+        .await
     }
 }
 

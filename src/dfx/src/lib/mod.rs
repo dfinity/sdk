@@ -32,5 +32,4 @@ pub mod root_key;
 pub mod sign;
 pub mod sns;
 pub mod toolchain;
-pub mod waiter;
 pub mod wasm;

@@ -4,7 +4,15 @@
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
-use crate::{rc_bytes::RcBytes, types::*, url_decode::url_decode};
+use crate::{
+    http::{
+        HeaderField, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+        StreamingCallbackToken,
+    },
+    rc_bytes::RcBytes,
+    types::*,
+    url_decode::url_decode,
+};
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
 use num_traits::ToPrimitive;
@@ -135,12 +143,14 @@ impl State {
         }
     }
 
-    pub fn authorize(&mut self, caller: &Principal, other: Principal) -> Result<(), String> {
-        if !self.is_authorized(caller) {
-            return Err("the caller is not authorized".to_string());
+    pub fn deauthorize_unconditionally(&mut self, principal: Principal) {
+        if let Some(pos) = self.authorized.iter().position(|x| *x == principal) {
+            self.authorized.remove(pos);
         }
-        self.authorize_unconditionally(other);
-        Ok(())
+    }
+
+    pub fn list_authorized(&self) -> &Vec<Principal> {
+        &self.authorized
     }
 
     pub fn root_hash(&self) -> Hash {
@@ -452,7 +462,7 @@ impl State {
                 for enc_name in encodings.iter() {
                     if let Some(enc) = asset.encodings.get(enc_name) {
                         if enc.certified {
-                            return build_ok(
+                            return HttpResponse::build_ok(
                                 asset,
                                 enc_name,
                                 enc,
@@ -475,7 +485,7 @@ impl State {
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
-                        return build_ok(
+                        return HttpResponse::build_ok(
                             asset,
                             enc_name,
                             enc,
@@ -489,7 +499,7 @@ impl State {
                         // Find if identity is certified, if it's not.
                         if let Some(id_enc) = asset.encodings.get("identity") {
                             if id_enc.certified {
-                                return build_ok(
+                                return HttpResponse::build_ok(
                                     asset,
                                     enc_name,
                                     enc,
@@ -506,7 +516,7 @@ impl State {
             }
         }
 
-        build_404(certificate_header)
+        HttpResponse::build_404(certificate_header)
     }
 
     pub fn http_request(
@@ -574,8 +584,41 @@ impl State {
 
         Ok(StreamingCallbackHttpResponse {
             body: enc.content_chunks[chunk_index].clone(),
-            token: create_token(asset, &content_encoding, enc, &key, chunk_index),
+            token: StreamingCallbackToken::create_token(
+                &content_encoding,
+                enc.content_chunks.len(),
+                enc.sha256,
+                &key,
+                chunk_index,
+            ),
         })
+    }
+
+    pub fn get_asset_properties(&self, key: Key) -> Result<AssetProperties, String> {
+        let asset = self
+            .assets
+            .get(&key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        Ok(AssetProperties {
+            max_age: asset.max_age,
+            headers: asset.headers.clone(),
+        })
+    }
+
+    pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
+        let asset = self
+            .assets
+            .get_mut(&arg.key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        if let Some(headers) = arg.headers {
+            asset.headers = headers
+        }
+        if let Some(max_age) = arg.max_age {
+            asset.max_age = max_age
+        }
+        Ok(())
     }
 
     // Returns keys that needs to be updated if the supplied key is changed.
@@ -613,7 +656,7 @@ impl From<StableState> for State {
             ..Self::default()
         };
 
-        let assets_keys: Vec<_> = state.assets.keys().map(|key| key.clone()).collect();
+        let assets_keys: Vec<_> = state.assets.keys().cloned().collect();
         for key in assets_keys {
             let dependent_keys = state.dependent_keys(&key);
             if let Some(asset) = state.assets.get_mut(&key) {
@@ -738,85 +781,9 @@ fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a> {
     }
 }
 
-fn create_token(
-    _asset: &Asset,
-    enc_name: &str,
-    enc: &AssetEncoding,
-    key: &str,
-    chunk_index: usize,
-) -> Option<StreamingCallbackToken> {
-    if chunk_index + 1 >= enc.content_chunks.len() {
-        None
-    } else {
-        Some(StreamingCallbackToken {
-            key: key.to_string(),
-            content_encoding: enc_name.to_string(),
-            index: Nat::from(chunk_index + 1),
-            sha256: Some(ByteBuf::from(enc.sha256)),
-        })
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn build_ok(
-    asset: &Asset,
-    enc_name: &str,
-    enc: &AssetEncoding,
-    key: &str,
-    chunk_index: usize,
-    certificate_header: Option<HeaderField>,
-    callback: Func,
-    etags: Vec<Hash>,
-) -> HttpResponse {
-    let mut headers = HashMap::from([("content-type".to_string(), asset.content_type.to_string())]);
-    if enc_name != "identity" {
-        headers.insert("content-encoding".to_string(), enc_name.to_string());
-    }
-    if let Some(head) = certificate_header {
-        headers.insert(head.0, head.1);
-    }
-    if let Some(max_age) = asset.max_age {
-        headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
-    }
-    if let Some(arg_headers) = asset.headers.as_ref() {
-        for (k, v) in arg_headers {
-            headers.insert(k.to_owned().to_lowercase(), v.to_owned());
-        }
-    }
-
-    let streaming_strategy = create_token(asset, enc_name, enc, key, chunk_index)
-        .map(|token| StreamingStrategy::Callback { callback, token });
-
-    let (status_code, body) = if etags.contains(&enc.sha256) {
-        (304, RcBytes::default())
-    } else {
-        headers.insert(
-            "etag".to_string(),
-            format!("\"{}\"", hex::encode(enc.sha256)),
-        );
-        (200, enc.content_chunks[chunk_index].clone())
-    };
-
-    HttpResponse {
-        status_code,
-        headers: headers.into_iter().collect::<_>(),
-        body,
-        streaming_strategy,
-    }
-}
-
-fn build_404(certificate_header: HeaderField) -> HttpResponse {
-    HttpResponse {
-        status_code: 404,
-        headers: vec![certificate_header],
-        body: RcBytes::from(ByteBuf::from("not found")),
-        streaming_strategy: None,
-    }
-}
-
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
 fn aliases_of(key: &Key) -> Vec<Key> {
-    if key.ends_with("/") {
+    if key.ends_with('/') {
         vec![format!("{}index.html", key)]
     } else if !key.ends_with(".html") {
         vec![format!("{}.html", key), format!("{}/index.html", key)]

@@ -78,6 +78,12 @@ type StreamingStrategy = variant {
   };
 };
 
+type SetAssetPropertiesArguments = record {
+  key: Key;
+  max_age: opt opt nat64;
+  headers: opt opt vec HeaderField;
+};
+
 service: {
   get: (record {
     key: Key;
@@ -144,4 +150,9 @@ service: {
   http_request_streaming_callback: (token: StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
 
   authorize: (principal) -> ();
+  deauthorize: (principal) -> ();
+  list_authorized: () -> (vec principal) query;
+
+  get_asset_properties : (key: Key) -> (record { max_age: opt nat64; headers: opt vec HeaderField } ) query;
+  set_asset_properties: (SetAssetPropertiesArguments) -> ();
 }

@@ -31,9 +31,14 @@ pub async fn exec(env: &dyn Environment, opts: CanisterMetadataOpts) -> DfxResul
 
     fetch_root_key_if_needed(env).await?;
     let metadata = agent
-        .read_state_canister_metadata(canister_id, &opts.metadata_name, false)
+        .read_state_canister_metadata(canister_id, &opts.metadata_name)
         .await
-        .with_context(|| format!("Failed to read controllers of canister {}.", canister_id))?;
+        .with_context(|| {
+            format!(
+                "Failed to read `{}` metadata of canister {}.",
+                opts.metadata_name, canister_id
+            )
+        })?;
 
     stdout().write_all(&metadata)?;
 
