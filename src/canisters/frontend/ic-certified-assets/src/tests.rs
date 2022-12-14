@@ -178,7 +178,7 @@ fn lookup_header<'a>(response: &'a HttpResponse, header: &str) -> Option<&'a str
     response
         .headers
         .iter()
-        .find_map(|(h, v)| h.eq_ignore_ascii_case(header).then(|| v.as_str()))
+        .find_map(|(h, v)| h.eq_ignore_ascii_case(header).then_some(v.as_str()))
 }
 
 #[test]

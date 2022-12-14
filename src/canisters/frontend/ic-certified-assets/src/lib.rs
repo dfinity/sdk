@@ -8,11 +8,9 @@ mod url_decode;
 #[cfg(test)]
 mod tests;
 
-use crate::http::{
-    HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
-};
 pub use crate::state_machine::StableState;
 use crate::{
+    http::{HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken},
     rc_bytes::RcBytes,
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
@@ -243,7 +241,7 @@ fn is_authorized() -> Result<(), String> {
     STATE.with(|s| {
         s.borrow()
             .is_authorized(&caller())
-            .then(|| ())
+            .then_some(())
             .ok_or_else(|| "Caller is not authorized".to_string())
     })
 }

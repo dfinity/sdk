@@ -113,7 +113,7 @@ pub struct CreateChunkResponse {
     pub chunk_id: ChunkId,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize, PartialEq)]
+#[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
 pub struct AssetProperties {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,

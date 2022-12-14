@@ -4,11 +4,15 @@
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
-use crate::http::{
-    HeaderField, HttpRedirect, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
-    StreamingCallbackToken,
+use crate::{
+    http::{
+        HeaderField, HttpRedirect, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+        StreamingCallbackToken,
+    },
+    rc_bytes::RcBytes,
+    types::*,
+    url_decode::url_decode,
 };
-use crate::{rc_bytes::RcBytes, types::*, url_decode::url_decode};
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
 use num_traits::ToPrimitive;

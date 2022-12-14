@@ -54,7 +54,7 @@ pub struct RedirectUrl {
     pub(crate) path: Option<String>,
 }
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize, PartialEq)]
+#[derive(Default, Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
 pub struct HttpRedirect {
     pub from: Option<RedirectUrl>,
     pub to: RedirectUrl,
@@ -93,7 +93,7 @@ impl HttpRequest {
     pub fn get_header_value(&self, header_key: &str) -> Option<&String> {
         self.headers
             .iter()
-            .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then(|| v))
+            .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then_some(v))
     }
 
     pub fn get_canister_id(&self) -> &str {
@@ -258,7 +258,7 @@ impl RedirectUrl {
             location_url.push_str(path);
         }
         for (query_param_key, query_param_value) in query_params {
-            let replace_key =  format!("{{{}}}", &query_param_key);
+            let replace_key = format!("{{{}}}", &query_param_key);
             location_url = location_url.replace(&replace_key, &query_param_value)
         }
         location_url
@@ -309,8 +309,7 @@ impl HttpRedirect {
                 }
             }
             let location_url = location.get_location_url(query_params);
-            if Self::check_cyclic_redirection(&location_url, req, allow_raw_access).is_err()
-            {
+            if Self::check_cyclic_redirection(&location_url, req, allow_raw_access).is_err() {
                 return None;
             }
             Some(HttpResponse::build_redirect(
@@ -343,7 +342,7 @@ impl HttpRedirect {
             ($to:expr, $req:expr) => {
                 let mut redirect_url = RedirectUrl {
                     host: None,
-                    path: None
+                    path: None,
                 };
                 if let Some(host) = &$to.host {
                     if host.contains("http") {
@@ -413,13 +412,13 @@ impl HttpRedirect {
         request: &HttpRequest,
         allow_raw_access: Option<bool>,
     ) -> Result<(), String> {
-        if location_url.starts_with('/') && (location_url == request.get_path() || location_url == request.url) {
-                return Err(format!(
-                    "redirect loop: {:?} -> {}",
-                    &location_url,
-                    request.url
-                ));
-
+        if location_url.starts_with('/')
+            && (location_url == request.get_path() || location_url == request.url)
+        {
+            return Err(format!(
+                "redirect loop: {:?} -> {}",
+                &location_url, request.url
+            ));
         } else {
             let request_url = format!(
                 "{}{}",

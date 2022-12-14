@@ -5,7 +5,7 @@ help()
 {
    # display help
    echo "Build frontend canister wasm. Copies the wasm build artifact"
-   echo "and corespontind candid file (src/canisters/frontend/ic-certified-assets/assets.did)"
+   echo "and corresponding candid file (src/canisters/frontend/ic-certified-assets/assets.did)"
    echo "to src/distributed/assetstorage.did."
    echo
    echo "Options:"
@@ -32,9 +32,10 @@ case ${1---help} in
     cargo --version >/dev/null || die "Must have cargo installed."
     ic-wasm --version >/dev/null || die "Must have ic-wasm installed."
 
+    BUILD_DIR="target/wasm32-unknown-unknown/release"
+
     cargo build -p ic-frontend-canister --release --target wasm32-unknown-unknown
 
-    BUILD_DIR="target/wasm32-unknown-unknown/release"
     ic-wasm --output $BUILD_DIR/ic_frontend_canister.wasm $BUILD_DIR/ic_frontend_canister.wasm metadata --file src/canisters/frontend/ic-certified-assets/assets.did --visibility public candid:service
     ic-wasm --output $BUILD_DIR/ic_frontend_canister.wasm $BUILD_DIR/ic_frontend_canister.wasm shrink
     gzip --best --keep --force --no-name $BUILD_DIR/ic_frontend_canister.wasm
@@ -61,3 +62,4 @@ case ${1---help} in
     help
     ;;
 esac
+
