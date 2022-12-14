@@ -51,7 +51,7 @@ Now, controllers of the asset canister are always allowed to authorize new princ
 `dfx canister delete` tries to withdraw as many cycles as possible from a canister before deleting it.
 To do so, dfx has to manually send all cycles in the canister, minus some margin.
 The margin was previously hard-coded, meaning that withdrawals can fail if the margin is not generous enough.
-Now, upon failure with some margin, dfx will retry to withdrawing cycles with a continuously larger margin until withdrawing succeeds or the margin becomes larger than the cycles balance.
+Now, upon failure with some margin, dfx will retry withdrawing cycles with a continuously larger margin until withdrawing succeeds or the margin becomes larger than the cycles balance.
 
 ### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
 
