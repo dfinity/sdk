@@ -21,8 +21,6 @@ You can use the following optional flags with the `dfx start` command.
 | `--emulator`      | Starts the [IC reference emulator](https://github.com/dfinity/ic-hs) rather than the replica.                                                                                                                                                |
 | `--enable-bitcoin` | Enables bitcoin integration.                                                                                                                                                                                                                 |
 | `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                                                                                                                                                                         |
-| `-h`, `--help`           | Displays usage information.                                                                                                                                                                                                                  |
-| `-V`, `--version`        | Displays version information.                                                                                                                                                                                                                |
 
 ## Options
 

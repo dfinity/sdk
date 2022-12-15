@@ -17,9 +17,6 @@ You can use the following optional flags with the `dfx quickstart` command.
 
 | Flag              | Description                                                                                                                            |
 |-------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `-h`, `--help`    | Displays usage information.                                                                                                            |
-| `-q`, `--quiet`   | Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.                                                 |
-| `-v`, `--verbose` | Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.          |
 | `--identity`      | The user identity to run this command as. It contains your principal as well as some things DFX associates with it such as the wallet. |
 
 ## Options
