@@ -11,12 +11,6 @@ type CreateAssetArguments = record {
   enable_aliasing: opt bool;
 };
 
-type AssetProperties = record {
-  max_age: opt nat64;
-  headers: opt vec HeaderField;
-  enable_aliasing: opt bool;
-};
-
 // Add or change content for an asset, by content encoding
 type SetAssetContentArguments = record {
   key: Key;
@@ -88,7 +82,6 @@ type SetAssetPropertiesArguments = record {
   key: Key;
   max_age: opt opt nat64;
   headers: opt opt vec HeaderField;
-  enable_aliasing: opt opt bool;
 };
 
 service: {
@@ -162,7 +155,6 @@ service: {
 
   get_asset_properties : (key: Key) -> (record {
     max_age: opt nat64;
-    headers: opt vec HeaderField;
-    is_aliased: opt bool; } ) query;
+    headers: opt vec HeaderField; } ) query;
   set_asset_properties: (SetAssetPropertiesArguments) -> ();
 }

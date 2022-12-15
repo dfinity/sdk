@@ -6,10 +6,6 @@ type Time = int;
 type CreateAssetArguments = record {
   key: Key;
   content_type: text;
-  properties: AssetProperties;
-};
-
-type AssetProperties = record {
   max_age: opt nat64;
   headers: opt vec HeaderField;
   enable_aliasing: opt bool;
@@ -86,7 +82,6 @@ type SetAssetPropertiesArguments = record {
   key: Key;
   max_age: opt opt nat64;
   headers: opt opt vec HeaderField;
-  enable_aliasing: opt opt bool;
 };
 
 service: {
@@ -160,7 +155,6 @@ service: {
 
   get_asset_properties : (key: Key) -> (record {
     max_age: opt nat64;
-    headers: opt vec HeaderField;
-    is_aliased: opt bool; } ) query;
+    headers: opt vec HeaderField; } ) query;
   set_asset_properties: (SetAssetPropertiesArguments) -> ();
 }

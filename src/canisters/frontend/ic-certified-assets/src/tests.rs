@@ -515,7 +515,6 @@ fn supports_getting_and_setting_asset_properties() {
                 "Access-Control-Allow-Origin".into(),
                 "*".into()
             )])),
-            is_aliased: None
         })
     );
     assert_eq!(
@@ -526,7 +525,6 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            is_aliased: None
         })
     );
 
@@ -538,7 +536,6 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )]))),
-            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
@@ -549,7 +546,6 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            is_aliased: None
         })
     );
 
@@ -558,7 +554,6 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: Some(None),
             headers: Some(None),
-            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
@@ -566,7 +561,6 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: None,
             headers: None,
-            is_aliased: None
         })
     );
 
@@ -578,7 +572,6 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )]))),
-            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
@@ -589,7 +582,6 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            is_aliased: None
         })
     );
 
@@ -598,7 +590,6 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: None,
             headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
-            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
@@ -606,7 +597,6 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(1),
             headers: Some(HashMap::from([("new-header".into(), "value".into())])),
-            is_aliased: None
         })
     );
 
@@ -615,7 +605,6 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: Some(Some(2)),
             headers: None,
-            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
@@ -623,7 +612,6 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(2),
             headers: Some(HashMap::from([("new-header".into(), "value".into())])),
-            is_aliased: None
         })
     );
 
@@ -632,7 +620,6 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: None,
             headers: Some(None),
-            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
@@ -640,7 +627,6 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(2),
             headers: None,
-            is_aliased: None
         })
     );
 }

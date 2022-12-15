@@ -603,7 +603,6 @@ impl State {
         Ok(AssetProperties {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
-            is_aliased: asset.is_aliased,
         })
     }
 
@@ -618,9 +617,6 @@ impl State {
         }
         if let Some(max_age) = arg.max_age {
             asset.max_age = max_age
-        }
-        if let Some(aliasing) = arg.enable_aliasing {
-            asset.is_aliased = aliasing
         }
         Ok(())
     }
