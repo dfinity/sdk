@@ -192,7 +192,7 @@ impl HttpResponse {
     pub fn build_redirect(status_code: u16, location: String) -> HttpResponse {
         if ![300, 301, 302, 303, 304, 307, 308].contains(&status_code) {
             return HttpResponse::build_400(&format!(
-                "incorrect asset redirect configuration: response_code \"{}\" is not valid HTTP respone code",
+                "incorrect asset redirect configuration: response_code \"{}\" is not valid HTTP response code",
                 status_code
             ));
         }
