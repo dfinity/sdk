@@ -14,11 +14,11 @@ url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1
 sha256 = '665d1186576fc7b81bd827b9ccb58c3fd8ac86222ac791e0e0701435f8245518'
 
 [x86_64-darwin.ic-btc-adapter]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/ic-btc-adapter.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/ic-btc-adapter.gz'
 sha256 = '2ccc35bea62dcdfe4f8ba6fbb98a9dec3da5ae03d82bbb92888c9ae1fe0908ac'
 
 [x86_64-darwin.ic-canister-http-adapter]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/ic-canister-http-adapter.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/ic-canister-http-adapter.gz'
 sha256 = '60be7d1f9c516a76e031b3a2aaebbc9d8bea0a55f2d1e5578f3158e446674d72'
 
 [x86_64-darwin.ic-nns-init]
@@ -26,7 +26,7 @@ url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1
 sha256 = 'f58aba93c6e6b8490d784c1cb774f0615c2cdaed336bd7116fa6da53b9a8cebc'
 
 [x86_64-darwin.ic-starter]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/ic-starter.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/ic-starter.gz'
 sha256 = '306dcaeed5af3d3f056f080ce7600151d0e04bf04a78af8d12dc5ca7b04d3936'
 
 [x86_64-darwin.motoko]
@@ -35,16 +35,16 @@ sha256 = '27e79a3136bc20081527dd19af977be03e470db0aa3a48b7e1ee160a4db31c4a'
 # The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-darwin.replica]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/replica.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/replica.gz'
 sha256 = '23d007a788cb1f89051626e60b7d2a21f4a009f61799550ba1a7a49c89d28b80'
 # The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-darwin.canister_sandbox]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/canister_sandbox.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/canister_sandbox.gz'
 sha256 = '4a6e6fa6a4173baa21bf2d2364a53668143c4b30d6be030f2c9e497df67527a7'
 
 [x86_64-darwin.sandbox_launcher]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/sandbox_launcher.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-darwin/sandbox_launcher.gz'
 sha256 = '9dfb8aa7e0e86dc3818b7a1d2ef621ee3b957a63c1ea826f5c1009ddd16c6630'
 
 [x86_64-darwin.sns]
@@ -68,11 +68,11 @@ url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1
 sha256 = 'a0f2f58bd0a2e3af6689169b8542acb1391b853b727e7d3d6b80dd21d1cf7c1f'
 
 [x86_64-linux.ic-btc-adapter]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/ic-btc-adapter.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/ic-btc-adapter.gz'
 sha256 = 'c594f7ee8dcee484f324ed15186ac913e60d7fa17613d31b15430284b2369668'
 
 [x86_64-linux.ic-canister-http-adapter]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/ic-canister-http-adapter.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/ic-canister-http-adapter.gz'
 sha256 = '0ede81175a25c9df5c93cf4ac99b588fcca9e9067052284ad2d5a875f7a892cc'
 
 [x86_64-linux.ic-nns-init]
@@ -80,7 +80,7 @@ url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1
 sha256 = 'b3a1242feb54cb29b2647663f78f2908ea987c635e4cf4338eefaa5be38a87ce'
 
 [x86_64-linux.ic-starter]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/ic-starter.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/ic-starter.gz'
 sha256 = '509d09be5a38f1b6ac926b19136081f6228a0a61bcaef15d3b425dc955e01e92'
 
 [x86_64-linux.motoko]
@@ -89,16 +89,16 @@ sha256 = 'd0411eafb4a90c5919a7f9447ee38257926b8a74aedaf6e46bfa7bb9ce38194f'
 # The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-linux.replica]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/replica.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/replica.gz'
 sha256 = '7b9a67382dff7a3d60ceb3e117d25730bd83537ccdaf0782e67fadbdb2dea022'
 # The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-linux.canister_sandbox]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/canister_sandbox.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/canister_sandbox.gz'
 sha256 = '3b3ef2e38cb78fb5e315ee2ef501377029320851adc7c8d89fec284ee34437f0'
 
 [x86_64-linux.sandbox_launcher]
-url = 'https://download.dfinity.systems/blessed/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/sandbox_launcher.gz'
+url = 'https://download.dfinity.systems/ic/997ab2e9cc49189302fe54c1e60709abfbeb1d42/sdk-release/x86_64-linux/sandbox_launcher.gz'
 sha256 = 'c050dfbac7c6f8dbbe73c71364a80a71516df2b2aa19d18d1f7d867893b490ee'
 
 [x86_64-linux.sns]
