@@ -82,6 +82,13 @@ impl HttpRequest {
     }
 
     pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
+        #[cfg(not(test))]
+        let location = format!(
+            "https://{canister_id}.ic0.app{path}",
+            canister_id = ic_cdk::api::id().to_text(),
+            path = self.url
+        );
+        #[cfg(test)]
         let location = format!(
             "https://{canister_id}.ic0.app{path}",
             canister_id = self.get_canister_id(),
@@ -90,6 +97,7 @@ impl HttpRequest {
         HttpResponse::build_redirect(308, location)
     }
 
+    #[cfg(test)]
     pub fn get_canister_id(&self) -> &str {
         if let Some(host_header) = self.get_header_value("Host") {
             if host_header.contains(".localhost") || host_header.contains(".app") {
