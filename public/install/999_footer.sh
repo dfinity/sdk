@@ -5,7 +5,7 @@ SDK_WEBSITE="https://sdk.dfinity.org"
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
 DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
-DFX_VERSION="${DFX_VERSION:-}"
+DFX_VERSION="${DFX_VERSION-}"
 
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
@@ -60,7 +60,7 @@ validate_install_dir() {
 }
 
 sdk_install_dir() {
-    if [ "${DFX_INSTALL_ROOT:-}" ]; then
+    if [ "${DFX_INSTALL_ROOT-}" ]; then
         # If user specifies an actual dir, use that.
         validate_install_dir "${DFX_INSTALL_ROOT}"
         printf %s "${DFX_INSTALL_ROOT}"
