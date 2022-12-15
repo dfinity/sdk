@@ -121,7 +121,6 @@ impl Asset {
     fn allow_raw_access(&self) -> bool {
         self.allow_raw_access.unwrap_or(false)
     }
-
 }
 
 impl State {
