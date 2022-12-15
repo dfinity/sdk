@@ -4,6 +4,18 @@
 
 ## DFX
 
+### feat(frontend-canister)!: add `allow_raw_access` config option
+
+By default, the traffic to the frontend canister will now restrict the access from `canister-id.raw.ic0.app` domain, and will automatically redirect all requests to certified domain (`canister-id.ic0.app`), unless configured explicitly. Below is the example configuration to allow access to `robots.txt` file from "raw" domain:
+```json
+[
+  {
+    "match": "robots.txt",
+    "allow_raw_access": true
+  }
+]
+```
+
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
 
