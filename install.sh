@@ -160,8 +160,8 @@ SDK_WEBSITE="https://sdk.dfinity.org"
 DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
 DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
-DFX_VERSION="${DFX_VERSION:-}"
-SCRIPT_COMMIT_DESC="86fb981f204ba172692e227fc60c5f7437aaeef7"
+DFX_VERSION="${DFX_VERSION-}"
+SCRIPT_COMMIT_DESC="9f2c93de23e0cdadd371f854e86fa3118bfdb2cc"
 get_tag_from_manifest_json() {
     cat \
         | tr -d '\n' \
@@ -191,7 +191,7 @@ validate_install_dir() {
     return 0
 }
 sdk_install_dir() {
-    if [ "${DFX_INSTALL_ROOT:-}" ]; then
+    if [ "${DFX_INSTALL_ROOT-}" ]; then
         validate_install_dir "${DFX_INSTALL_ROOT}"
         printf %s "${DFX_INSTALL_ROOT}"
     elif validate_install_dir /usr/local/bin; then
