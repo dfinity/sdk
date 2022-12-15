@@ -434,7 +434,7 @@ mod with_tempdir {
             .map(|d| assets_dir.as_ref().join(d))
             .map(std::fs::create_dir_all);
 
-        let _asset_files = [
+        [
             "index.html",
             "js/index.js",
             "js/index.map.js",
