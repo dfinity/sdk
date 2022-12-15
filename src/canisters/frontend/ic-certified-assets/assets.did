@@ -6,7 +6,9 @@ type Time = int;
 type CreateAssetArguments = record {
   key: Key;
   content_type: text;
-  properties: AssetProperties;
+  max_age: opt nat64;
+  headers: opt vec HeaderField;
+  enable_aliasing: opt bool;
 };
 
 type AssetProperties = record {
