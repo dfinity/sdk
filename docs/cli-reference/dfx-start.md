@@ -18,10 +18,9 @@ You can use the following optional flags with the `dfx start` command.
 |-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--background`           | Starts the local canister execution environment and web server processes in the background and waits for a reply before returning to the shell.                                                                                              |
 | `--clean`                | Starts the local canister execution environment and web server processes in a clean state by removing checkpoints from your project cache. You can use this flag to set your project cache to a new state when troubleshooting or debugging. |
+| `--emulator`      | Starts the [IC reference emulator](https://github.com/dfinity/ic-hs) rather than the replica.                                                                                                                                                |
 | `--enable-bitcoin` | Enables bitcoin integration.                                                                                                                                                                                                                 |
-| `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                                                                                                                                                        |
-| `-h`, `--help`           | Displays usage information.                                                                                                                                                                                                                  |
-| `-V`, `--version`        | Displays version information.                                                                                                                                                                                                                |
+| `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                                                                                                                                                                         |
 
 ## Options
 

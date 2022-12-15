@@ -33,15 +33,6 @@ Use the `dfx sns create` command to create an SNS configuration file. The config
 dfx sns create
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx sns create` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Examples
 
 You can use the `dfx sns create` command to create and view a configuration file:
@@ -60,15 +51,6 @@ Use the `dfx sns validate` command to verify that an SNS configuration file is w
 ``` bash
 dfx sns validate
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx sns validate` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Examples
 
@@ -93,15 +75,6 @@ Note:  Deploying SNS canisters does not require a proposal, however there is a h
 ``` bash
 dfx sns deploy
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx sns deploy` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Examples
 

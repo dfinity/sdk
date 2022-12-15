@@ -8,15 +8,6 @@ The `dfx schema` command prints the schema for `dfx.json`.
 dfx schema [option] [flag]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx schema` command.
-
-| Flag              | Description |
-|-------------------|-------------|
-| `-h`, `--help`    | Displays usage information. |
-| `-V`, `--version` | Displays version information. |
-
 ## Options
 
 You can use the following option with the `dfx schema` command.

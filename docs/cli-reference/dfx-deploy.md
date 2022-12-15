@@ -16,15 +16,6 @@ Note that you can only run this command from within the project directory struct
 dfx deploy [flag] [option] [canister_name]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx deploy` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ## Options
 
 You can use the following options with the `dfx deploy` command.
