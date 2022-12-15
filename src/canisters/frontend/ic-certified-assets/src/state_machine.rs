@@ -117,6 +117,13 @@ pub struct StableState {
     stable_assets: HashMap<String, Asset>,
 }
 
+impl Asset {
+    fn allow_raw_access(&self) -> bool {
+        self.allow_raw_access.unwrap_or(false)
+    }
+
+}
+
 impl State {
     fn get_asset(&self, key: &Key) -> Result<&Asset, String> {
         self.assets
@@ -462,7 +469,7 @@ impl State {
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
-                if asset.allow_raw_access.map_or(true, |v| !v) && req.is_raw_domain() {
+                if !asset.allow_raw_access() && req.is_raw_domain() {
                     return req.redirect_from_raw_to_certified_domain();
                 }
                 for enc_name in encodings.iter() {
@@ -488,7 +495,7 @@ impl State {
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
         if let Ok(asset) = self.get_asset(&path.into()) {
-            if asset.allow_raw_access.map_or(true, |v| !v) && req.is_raw_domain() {
+            if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
             }
             for enc_name in encodings.iter() {
