@@ -80,6 +80,39 @@ impl HttpRequest {
             .iter()
             .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then_some(v))
     }
+
+    pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
+        let location = format!(
+            "https://{canister_id}.ic0.app{path}",
+            canister_id = self.get_canister_id(),
+            path = self.url
+        );
+        HttpResponse::build_redirect(308, location)
+    }
+
+    pub fn get_canister_id(&self) -> &str {
+        if let Some(host_header) = self.get_header_value("Host") {
+            if host_header.contains(".localhost") || host_header.contains(".app") {
+                return host_header.split('.').next().unwrap();
+            } else {
+                if let Some(t) = self.url.split("canisterId=").nth(1) {
+                    let x = t.split_once('&');
+                    if let Some(c) = x {
+                        return c.0;
+                    }
+                }
+            }
+        }
+        "canister-id-is-unreachable"
+    }
+
+    pub fn is_raw_domain(&self) -> bool {
+        if let Some(host_header) = self.get_header_value("Host") {
+            host_header.contains(".raw.ic")
+        } else {
+            false
+        }
+    }
 }
 
 impl HttpResponse {
@@ -152,6 +185,22 @@ impl HttpResponse {
             status_code: 404,
             headers: vec![certificate_header],
             body: RcBytes::from(ByteBuf::from("not found")),
+            streaming_strategy: None,
+        }
+    }
+
+    pub fn build_redirect(status_code: u16, location: String) -> HttpResponse {
+        if ![300, 301, 302, 303, 304, 307, 308].contains(&status_code) {
+            return HttpResponse::build_400(&format!(
+                "incorrect asset redirect configuration: response_code \"{}\" is not valid HTTP respone code",
+                status_code
+            ));
+        }
+
+        HttpResponse {
+            status_code,
+            headers: vec![("Location".to_string(), location)],
+            body: RcBytes::from(ByteBuf::default()),
             streaming_strategy: None,
         }
     }

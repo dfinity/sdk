@@ -13,12 +13,15 @@ pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
 /// A final piece of metadata assigned to the asset
-#[derive(Debug, Default, PartialEq, Eq, Serialize, Clone)]
+#[derive(Debug, Derivative, PartialEq, Eq, Serialize, Clone)]
+#[derivative(Default)]
 pub struct AssetConfig {
     pub(crate) cache: Option<CacheConfig>,
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
     pub(crate) enable_aliasing: Option<bool>,
+    #[derivative(Default(value = "Some(false)"))]
+    pub(crate) allow_raw_access: Option<bool>,
 }
 
 pub(crate) type HeadersConfig = HashMap<String, String>;
@@ -26,6 +29,10 @@ pub(crate) type HeadersConfig = HashMap<String, String>;
 #[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
+}
+
+fn default_raw_access() -> Option<bool> {
+    Some(false)
 }
 
 /// A single configuration object, from `.ic-assets.json` config file
@@ -51,6 +58,9 @@ pub struct AssetConfigRule {
     enable_aliasing: Option<bool>,
     #[serde(skip_serializing)]
     used: bool,
+    /// Redirects the traffic from .raw.ic0.app domain to .ic0.app
+    #[serde(skip_serializing_if = "Option::is_none")]
+    allow_raw_access: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -255,6 +265,10 @@ impl AssetConfig {
         if other.enable_aliasing.is_some() {
             self.enable_aliasing = other.enable_aliasing;
         }
+
+        if other.allow_raw_access.is_some() {
+            self.allow_raw_access = other.allow_raw_access;
+        }
         self
     }
 }
@@ -343,6 +357,8 @@ mod rule_utils {
         headers: Maybe<HeadersConfig>,
         ignore: Option<bool>,
         enable_aliasing: Option<bool>,
+        #[serde(default = "super::default_raw_access")]
+        allow_raw_access: Option<bool>,
     }
 
     impl AssetConfigRule {
@@ -353,6 +369,7 @@ mod rule_utils {
                 headers,
                 ignore,
                 enable_aliasing,
+                allow_raw_access,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> anyhow::Result<Self> {
@@ -377,6 +394,7 @@ mod rule_utils {
                 ignore,
                 used: false,
                 enable_aliasing,
+                allow_raw_access,
             })
         }
     }
@@ -815,6 +833,47 @@ mod with_tempdir {
             )
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn allow_raw_access_flag() -> anyhow::Result<()> {
+        let cfg = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+  {
+    "match": "*",
+    "allow_raw_access": true
+  }
+]"#
+            .to_string(),
+        )]));
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        assert_eq!(
+            assets_config.get_asset_config(assets_dir.join("index.html").as_path())?,
+            AssetConfig {
+                allow_raw_access: Some(true),
+                ..Default::default()
+            },
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn default_value_for_allow_raw_access_flag() -> anyhow::Result<()> {
+        let cfg = Some(HashMap::from([("".to_string(), "[]".to_string())]));
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        assert_eq!(
+            assets_config.get_asset_config(assets_dir.join("index.html").as_path())?,
+            AssetConfig {
+                allow_raw_access: Some(false),
+                ..Default::default()
+            },
+        );
         Ok(())
     }
 }
