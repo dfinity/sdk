@@ -1,5 +1,5 @@
 use crate::asset_canister::protocol::{
-    AssetDetails, AssetProperties, BatchOperationKind, CreateAssetArguments, DeleteAssetArguments,
+    AssetDetails, BatchOperationKind, CreateAssetArguments, DeleteAssetArguments,
     SetAssetContentArguments, UnsetAssetContentArguments,
 };
 use crate::plumbing::ProjectAsset;

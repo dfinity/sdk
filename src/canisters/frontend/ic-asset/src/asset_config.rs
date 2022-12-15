@@ -389,12 +389,20 @@ mod rule_utils {
                 s.push_str(", with config:\n");
             }
             if let Some(ref cache) = self.cache {
-                s.push_str(&format!("    - cache: {:?}\n", cache));
+                if let Some(ref max_age) = cache.max_age {
+                    s.push_str(&format!("  - HTTP cache max-age: {}\n", max_age));
+                }
+            }
+            if let Some(aliasing) = self.enable_aliasing {
+                s.push_str(&format!(
+                    "    - URL path aliasing: {}\n",
+                    if aliasing { "enabled" } else { "disabled" }
+                ));
             }
             if let Some(ref headers) = self.headers {
                 for (key, value) in headers {
                     s.push_str(&format!(
-                        "    - header: {key}: {value}\n",
+                        "    - HTTP Response header: {key}: {value}\n",
                         key = key,
                         value = value
                     ));

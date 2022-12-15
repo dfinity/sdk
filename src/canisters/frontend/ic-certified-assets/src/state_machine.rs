@@ -48,12 +48,6 @@ pub struct AssetEncoding {
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
-pub struct AssetProperties {
-    pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
-}
-
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
@@ -609,6 +603,7 @@ impl State {
         Ok(AssetProperties {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
+            is_aliased: asset.is_aliased,
         })
     }
 
@@ -623,6 +618,9 @@ impl State {
         }
         if let Some(max_age) = arg.max_age {
             asset.max_age = max_age
+        }
+        if let Some(aliasing) = arg.enable_aliasing {
+            asset.is_aliased = aliasing
         }
         Ok(())
     }

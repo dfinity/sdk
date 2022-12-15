@@ -278,20 +278,18 @@ async fn upload_content_chunks(
         .enumerate()
         .map(|(i, data_chunk)| {
             create_chunk(canister, batch_id, data_chunk, semaphores).map_ok(move |chunk_id| {
-                move |chunk_id| {
-                    println!(
-                        "  {}{} {}/{} ({} bytes) sha {}{}",
-                        &asset_descriptor.key,
-                        content_encoding_descriptive_suffix(content_encoding),
-                        i + 1,
-                        count,
-                        data_chunk.len(),
-                        hex::encode(&sha256),
-                        &asset_descriptor.config
-                    );
-                    chunk_id
-                },
-            )
+                println!(
+                    "  {}{} {}/{} ({} bytes) sha {}{}",
+                    &asset_descriptor.key,
+                    content_encoding_descriptive_suffix(content_encoding),
+                    i + 1,
+                    count,
+                    data_chunk.len(),
+                    hex::encode(&sha256),
+                    &asset_descriptor.config
+                );
+                chunk_id
+            })
         })
         .collect();
     try_join_all(chunks_futures).await

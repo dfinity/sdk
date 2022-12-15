@@ -1,5 +1,7 @@
 //! This module defines types shared by the certified assets state machine and the canister
 //! endpoints.
+use std::collections::HashMap;
+
 use crate::rc_bytes::RcBytes;
 use candid::{CandidType, Deserialize, Nat};
 use serde_bytes::ByteBuf;
@@ -105,6 +107,7 @@ pub struct CreateChunkResponse {
 pub struct AssetProperties {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
+    pub is_aliased: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -112,4 +115,5 @@ pub struct SetAssetPropertiesArguments {
     pub key: Key,
     pub max_age: Option<Option<u64>>,
     pub headers: Option<Option<HashMap<String, String>>>,
+    pub enable_aliasing: Option<Option<bool>>,
 }

@@ -25,6 +25,7 @@ struct AssetBuilder {
     name: String,
     content_type: String,
     encodings: Vec<(String, Vec<ByteBuf>)>,
+    max_age: Option<u64>,
     headers: Option<HashMap<String, String>>,
     aliasing: Option<bool>,
 }
@@ -35,13 +36,14 @@ impl AssetBuilder {
             name: name.as_ref().to_string(),
             content_type: content_type.as_ref().to_string(),
             encodings: vec![],
+            max_age: None,
             headers: None,
             aliasing: None,
         }
     }
 
     fn with_max_age(mut self, max_age: u64) -> Self {
-        self.properties.max_age = Some(max_age);
+        self.max_age = Some(max_age);
         self
     }
 
@@ -57,7 +59,7 @@ impl AssetBuilder {
     }
 
     fn with_header(mut self, header_key: &str, header_value: &str) -> Self {
-        let hm = self.properties.headers.get_or_insert(HashMap::new());
+        let hm = self.headers.get_or_insert(HashMap::new());
         hm.insert(header_key.to_string(), header_value.to_string());
         self
     }
@@ -512,7 +514,8 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "Access-Control-Allow-Origin".into(),
                 "*".into()
-            )]))
+            )])),
+            is_aliased: None
         })
     );
     assert_eq!(
@@ -522,7 +525,8 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
+            is_aliased: None
         })
     );
 
@@ -533,7 +537,8 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )])))
+            )]))),
+            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
@@ -543,7 +548,8 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
+            is_aliased: None
         })
     );
 
@@ -551,14 +557,16 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: Some(None),
-            headers: Some(None)
+            headers: Some(None),
+            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: None,
-            headers: None
+            headers: None,
+            is_aliased: None
         })
     );
 
@@ -569,7 +577,8 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )])))
+            )]))),
+            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
@@ -579,7 +588,8 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
+            is_aliased: None
         })
     );
 
@@ -587,14 +597,16 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: None,
-            headers: Some(Some(HashMap::from([("new-header".into(), "value".into())])))
+            headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
+            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())]))
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            is_aliased: None
         })
     );
 
@@ -602,14 +614,16 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: Some(Some(2)),
-            headers: None
+            headers: None,
+            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())]))
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            is_aliased: None
         })
     );
 
@@ -617,14 +631,16 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: None,
-            headers: Some(None)
+            headers: Some(None),
+            enable_aliasing: None
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: None
+            headers: None,
+            is_aliased: None
         })
     );
 }
