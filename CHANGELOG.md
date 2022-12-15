@@ -2,6 +2,98 @@
 
 # UNRELEASED
 
+## DFX
+
+### feat(ic-ref):
+- `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
+
+### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
+
+As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
+
+### feat: write canister metadata sections for dfx pull
+
+### feat: add `--argument-file` argument to the `dfx canister sign` command
+
+Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
+
+### feat: Add support for a default network key
+
+A remote canister ID can now be specified for the `__default` network.  If specified, `dfx` will assume that the canister is remote at the specified canister ID for all networks that don't have a dedicated entry.
+
+### feat: use OS-native keyring for pem file storage
+
+If keyring integration is available, PEM files (except for the default identity) are now by default stored in the OS-provided keyring.
+If it is not available, it will fall back on the already existing password-encrypted PEM files.
+Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk.
+
+To force the use of one specific storage mode, use the `--storage-mode` flag with either `--storage-mode password-protected` or `--storage-mode plaintext`.
+This works for both `dfx identity new` and `dfx identity import`.
+
+The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
+
+### feat: dfx pull
+
+- write canister metadata for dfx pull.
+- `dfx pull` can fetch `dfx:deps` metadata and resolve dependencies recursively.
+
+### feat(frontend-canister): better control and overview for asset canister authorized principals
+
+The asset canister now has two new functions:
+- Query function `list_authorized` displays a list of all principals that are currently authorized to change assets and the list of authorized principals.
+- Update function `deauthorize` that removes a principal from the list of authorized principals. It can be called by authorized principals and cotrollers of the canister.
+
+In addition, the update function `authorize` has new behavior:
+Now, controllers of the asset canister are always allowed to authorize new principals (including themselves).
+
+### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
+
+The Motoko compiler expects all imported canisters' .did files to be in one folder when it compiles a canister.
+`dfx` failed to organize the .did files correctly when running `dfx deploy <single Motoko canister>` in combintaion with the `--mode reinstall` flag.
+
+### fix: give more cycles margin when deleting canisters
+
+There have been a few reports of people not being able to delete canisters.
+The error happens if the temporary wallet tries to transfer out too many cycles.
+The number of cycles left in the canister is bumped a little bit so that people can again reliably delete their canisters.
+
+## Dependencies
+
+Updated candid to 0.8.4
+- Bug fix in TS bindings
+- Pretty print numbers
+
+### Frontend canister
+
+- Module hash: 5ce290cda1b167ef7732e50110cb4999572ae971752cedd7b486e97914e9a5b8
+- https://github.com/dfinity/sdk/pull/2819
+
+### ic-ref
+
+Updated ic-ref to master commit `3cc51be5`
+
+### Motoko
+
+Updated Motoko to 0.7.4
+
+### Replica
+
+Updated replica to elected commit 997ab2e9cc49189302fe54c1e60709abfbeb1d42.
+This incorporates the following executed proposals:
+
+- [93761](https://dashboard.internetcomputer.org/proposal/93761)
+- [93507](https://dashboard.internetcomputer.org/proposal/93507)
+- [92573](https://dashboard.internetcomputer.org/proposal/92573)
+- [92338](https://dashboard.internetcomputer.org/proposal/92338)
+- [91732](https://dashboard.internetcomputer.org/proposal/91732)
+- [91257](https://dashboard.internetcomputer.org/proposal/91257)
+
+# 0.12.1
+
+## DFX
+
+### fix: default not shrink for custom canisters
+
 ## Dependencies
 
 ### Replica
@@ -74,6 +166,12 @@ The function for calling sns can now call any bundled binary.
 - Governance for integration with the Internet Computer voting system
 - Ledger for financial integration testing
 - Internet Identity for user registration and authenttication
+
+### feat(frontend-canister): Add simple aliases from `<asset>` to `<asset>.html` and `<asset>/index.html`
+
+The asset canister now by default aliases any request to `<asset>` to `<asset>.html` or `<asset>/index.html`.
+This can be disabled by setting the field `"enable_aliasing"` to `false` in a rule for that asset in .ic-assets.json.
+This change will trigger frontend canister upgrades upon redeploying any asset canister.
 
 ### fix: Only kill main process on `dfx stop`
 Removes misleading panics when running `dfx stop`.
@@ -572,8 +670,8 @@ Updated ic-ref to 0.0.1-1fba03ee
 - https://github.com/dfinity/cycles-wallet/commit/fa86dd3a65b2509ca1e0c2bb9d7d4c5be95de378
 
 ### Frontend canister:
-- Module hash: 2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759
-- https://github.com/dfinity/sdk/pull/2689
+- Module hash: 6c8f7a094060b096c35e4c4499551e7a8a29ee0f86c456e521c09480ebbaa8ab
+- https://github.com/dfinity/sdk/pull/2720
 
 # 0.11.2
 
@@ -1276,7 +1374,7 @@ Newly deployed Motoko canisters now embed the Candid interface and Motoko stable
 	1) the backward compatible of Candid interface in both upgrade and reinstall mode;
 	2) the type safety of Motoko stable variable type in upgrade mode to avoid accidentally lossing data;
 
-See [Upgrade compatibility](https://smartcontracts.org/docs/language-guide/compatibility.html) for more details.
+See [Upgrade compatibility](https://internetcomputer.org/docs/language-guide/compatibility) for more details.
 
 ### feat: Unified environment variables across build commands
 

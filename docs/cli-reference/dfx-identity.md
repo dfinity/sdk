@@ -18,6 +18,7 @@ For reference information and examples that illustrate using `dfx identity` comm
 
 | Command                                         | Description                                                                                                               |
 |-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| [`deploy-wallet`](#dfx-identity-deploy-wallet) | Installs the wallet WASM to the provided canister id.                                                                     |
 | [`get-principal`](#dfx-identity-get-principal) | Shows the textual representation of the principal associated with the current identity.                                   |
 | [`get-wallet`](#dfx-identity-get-wallet)       | Shows the canister identifier for the wallet associated with your current identity principal.                             |
 | `help`                                          | Displays this usage message or the help of the given subcommand(s).                                                       |
@@ -39,6 +40,35 @@ You can then use `dfx identity new` to create new user identities and store cred
     dfx identity new ic_admin
 
 This command adds a private key for the `ic_admin` user identity in the `~/.config/dfx/identity/ic_admin/identity.pem` file.
+
+## dfx identity deploy-wallet
+
+Use the `dfx identity deploy-wallet` command to turn a canister into a wallet canister by installing the wallet WASM to it.
+
+Note that you must be connected to the IC or the local canister execution environment to run this command. In addition, you must be a controller of the canister you want to deploy the wallet to.
+
+### Basic usage
+
+``` bash
+dfx identity deploy-wallet [flag] <canister id>
+```
+
+### Arguments
+
+You must specify the following argument for the `dfx identity deploy-wallet` command.
+
+| Argument        | Description                                                    |
+|-----------------|----------------------------------------------------------------|
+| `<canister id>` | The ID of the canister where the wallet WASM will be deployed. |
+
+### Flags
+
+You can use the following optional flags with the `dfx identity get-wallet` command.
+
+| Flag              | Description                   |
+|-------------------|-------------------------------|
+| `-h`, `--help`    | Displays usage information.   |
+| `-V`, `--version` | Displays version information. |
 
 ## dfx identity get-principal
 
@@ -132,7 +162,7 @@ You can specify the following options for the `dfx identity import` command.
 
 |Argument|Description|
 |--------|-----------|
-|`--disable-encryption` |DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk. If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption with this flag.|
+|`--storage-mode` | By default, PEM files are stored in the OS-provided keyring. If that is not available, they are encrypted with a password when writing them to disk. Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk. To force the use of one specific storage mode, use the `--storage-mode` flag with either `--storage-mode password-protected` or `--storage-mode plaintext`.|
 |`--force` |If the identity already exists, remove and re-import it.|
 
 ### Examples
@@ -217,7 +247,7 @@ You can specify the following options for the `+dfx identity new+` command.
 
 |Argument|Description|
 |--------|-----------|
-|`--disable-encryption` |DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk. If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption with this flag.|
+|`--storage-mode` |By default, PEM files are stored in the OS-provided keyring. If that is not available, they are encrypted with a password when writing them to disk. Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk. To force the use of one specific storage mode, use the `--storage-mode` flag with either `--storage-mode password-protected` or `--storage-mode plaintext`.|
 |`--force` |If the identity already exists, remove and re-import it.|
 |`--hsm-key-id <hsm key id>` |A sequence of pairs of hex digits.|
 |`--hsm-pkcs11-lib-path <hsm pkcs11 lib path>` |The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"|
@@ -333,7 +363,7 @@ You can use the following optional flags with the `dfx identity set-wallet` comm
 
 | Flag              | Description                                                                                                                                                |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `force`           | Skips verification that the canister you specify is a valid wallet canister. This option is only useful if you are connecting to the IC running locally. |
+| `--force`           | Skips verification that the canister you specify is a valid wallet canister. This option is only useful if you are connecting to the IC running locally. |
 | `-h`, `--help`    | Displays usage information.                                                                                                                                |
 | `-V`, `--version` | Displays version information.                                                                                                                              |
 

@@ -11,9 +11,8 @@ use crate::lib::network::local_server_descriptor::{
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
 use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
 use ic_agent::Agent;
 use lazy_static::lazy_static;
@@ -441,24 +440,28 @@ pub async fn ping_and_wait(url: &str) -> DfxResult {
         )
         .build()
         .with_context(|| format!("Failed to build agent with url {url}."))?;
-    let mut waiter = Delay::builder()
-        .timeout(Duration::from_secs(60))
-        .throttle(Duration::from_secs(1))
-        .build();
-    waiter.start();
+    let mut retries = 0;
     loop {
         let status = agent.status().await;
-        if let Ok(status) = &status {
-            let healthy = match &status.replica_health_status {
-                Some(status) if status == "healthy" => true,
-                None => true, // emulator doesn't report replica_health_status
-                _ => false,
-            };
-            if healthy {
-                break;
+        match status {
+            Ok(status) => {
+                let healthy = match &status.replica_health_status {
+                    Some(status) if status == "healthy" => true,
+                    None => true, // emulator doesn't report replica_health_status
+                    _ => false,
+                };
+                if healthy {
+                    break;
+                }
+            }
+            Err(e) => {
+                if retries >= 60 {
+                    bail!(e);
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                retries += 1;
             }
         }
-        waiter.wait().map_err(|_| status.unwrap_err())?;
     }
     Ok(())
 }

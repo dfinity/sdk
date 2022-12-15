@@ -18,6 +18,7 @@ pub struct AssetConfig {
     pub(crate) cache: Option<CacheConfig>,
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
+    pub(crate) enable_aliasing: Option<bool>,
 }
 
 pub(crate) type HeadersConfig = HashMap<String, String>;
@@ -46,6 +47,8 @@ pub struct AssetConfigRule {
     headers: Maybe<HeadersConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     ignore: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enable_aliasing: Option<bool>,
     #[serde(skip_serializing)]
     used: bool,
 }
@@ -206,7 +209,7 @@ impl AssetConfigTreeNode {
         };
 
         configs.insert(dir.to_path_buf(), parent_ref.clone());
-        for f in std::fs::read_dir(&dir)
+        for f in std::fs::read_dir(dir)
             .with_context(|| format!("Unable to read directory {}", &dir.display()))?
             .filter_map(|x| x.ok())
             .filter(|x| x.file_type().map_or_else(|_e| false, |ft| ft.is_dir()))
@@ -247,6 +250,10 @@ impl AssetConfig {
 
         if other.ignore.is_some() {
             self.ignore = other.ignore;
+        }
+
+        if other.enable_aliasing.is_some() {
+            self.enable_aliasing = other.enable_aliasing;
         }
         self
     }
@@ -335,6 +342,7 @@ mod rule_utils {
         #[serde(default, deserialize_with = "headers_deserialize")]
         headers: Maybe<HeadersConfig>,
         ignore: Option<bool>,
+        enable_aliasing: Option<bool>,
     }
 
     impl AssetConfigRule {
@@ -344,6 +352,7 @@ mod rule_utils {
                 cache,
                 headers,
                 ignore,
+                enable_aliasing,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> anyhow::Result<Self> {
@@ -367,6 +376,7 @@ mod rule_utils {
                 headers,
                 ignore,
                 used: false,
+                enable_aliasing,
             })
         }
     }

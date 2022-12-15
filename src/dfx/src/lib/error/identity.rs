@@ -23,6 +23,9 @@ pub enum IdentityError {
     #[error("Cannot delete the default identity.")]
     CannotDeleteDefaultIdentity(),
 
+    #[error("Cannot delete the anonymous identity.")]
+    CannotDeleteAnonymousIdentity(),
+
     #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 

@@ -54,7 +54,7 @@ pub struct ConfigCanistersCanisterRemote {
     pub id: BTreeMap<String, Principal>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum MetadataVisibility {
     /// Anyone can query the metadata
@@ -91,11 +91,17 @@ pub struct CanisterMetadataSection {
 
     /// # Path
     /// Path to file containing section contents.
+    /// Conflicts with `content`.
     /// For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use
     /// the canister's candid definition.
     /// If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's
     /// actual candid service definition.
     pub path: Option<PathBuf>,
+
+    /// # Content
+    /// Content of this metadata section.
+    /// Conflicts with `path`.
+    pub content: Option<String>,
 }
 
 impl CanisterMetadataSection {
@@ -128,8 +134,8 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub remote: Option<ConfigCanistersCanisterRemote>,
 
-    /// # Canister Argument
-    /// This field defines a static argument to use when deploying the canister.
+    /// # Canister-Specific Build Argument
+    /// This field defines an additional argument to pass to the Motoko compiler when building the canister.
     pub args: Option<String>,
 
     /// # Resource Allocation Settings
@@ -164,14 +170,21 @@ pub struct ConfigCanistersCanister {
 
     /// # Shrink Canister WASM
     /// Whether run `ic-wasm shrink` after building the Canister.
-    /// Default is true.
-    #[serde(default = "default_as_true")]
-    pub shrink: bool,
+    /// Enabled by default for Rust/Motoko canisters.
+    /// Disabled by default for custom canisters.
+    pub shrink: Option<bool>,
 
     /// # Metadata
     /// Defines metadata sections to set in the canister .wasm
     #[serde(default)]
     pub metadata: Vec<CanisterMetadataSection>,
+
+    /// # Ready for dfx Pull
+    /// Whether or not to make this canister ready for dfx pull by other project.
+    /// If true, several required metadata fields must be also set with the correct format.
+    // TODO: Add a link to `dfx pull` document.
+    #[serde(default)]
+    pub pull_ready: bool,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -212,6 +225,13 @@ pub enum CanisterTypeProperties {
     },
     /// # Motoko-Specific Properties
     Motoko,
+    /// # Pull-Specific Properties
+    Pull {
+        /// # Canister ID
+        /// Principal of the canister on the ic network.
+        #[schemars(with = "String")]
+        id: candid::Principal,
+    },
 }
 
 impl CanisterTypeProperties {
@@ -221,6 +241,7 @@ impl CanisterTypeProperties {
             Self::Motoko { .. } => "motoko",
             Self::Assets { .. } => "assets",
             Self::Custom { .. } => "custom",
+            Self::Pull { .. } => "pull",
         }
     }
 }
@@ -304,7 +325,7 @@ impl Default for ConfigDefaultsBitcoin {
 }
 
 /// # HTTP Adapter Configuration
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsCanisterHttp {
     /// # Enable HTTP Adapter
     #[serde(default = "default_as_true")]
@@ -331,7 +352,7 @@ fn default_as_true() -> bool {
 }
 
 /// # Bootstrap Server Configuration
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBootstrap {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
     #[serde(default = "default_bootstrap_ip")]
@@ -377,7 +398,7 @@ pub struct ConfigDefaultsBuild {
     pub args: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ReplicaLogLevel {
     Critical,
@@ -408,7 +429,7 @@ impl ReplicaLogLevel {
 }
 
 /// # Local Replica Configuration
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsReplica {
     /// Port the replica listens on.
     pub port: Option<u16>,
@@ -427,7 +448,7 @@ pub struct ConfigDefaultsReplica {
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
 /// Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
     // We store ephemeral canister ids in .dfx/{network}/canister_ids.json
@@ -454,7 +475,7 @@ impl NetworkType {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ReplicaSubnetType {
     System,
@@ -480,7 +501,7 @@ impl ReplicaSubnetType {
 }
 
 /// # Custom Network Configuration
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigNetworkProvider {
     /// The URL(s) this network can be reached at.
     pub providers: Vec<String>,
@@ -491,7 +512,7 @@ pub struct ConfigNetworkProvider {
 }
 
 /// # Local Replica Configuration
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigLocalProvider {
     /// Bind address for the webserver.
     /// For the shared local network, the default is 127.0.0.1:4943.
@@ -508,7 +529,7 @@ pub struct ConfigLocalProvider {
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ConfigNetwork {
     ConfigNetworkProvider(ConfigNetworkProvider),
@@ -637,7 +658,8 @@ impl ConfigInterface {
         &self,
         some_canister: Option<&str>,
     ) -> DfxResult<Vec<String>> {
-        let canister_map = (&self.canisters)
+        let canister_map = self
+            .canisters
             .as_ref()
             .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
 
@@ -664,7 +686,8 @@ impl ConfigInterface {
         canister: &str,
         network: &str,
     ) -> DfxResult<Option<Principal>> {
-        let maybe_principal = (&self.canisters)
+        let maybe_principal = self
+            .canisters
             .as_ref()
             .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?
             .get(canister)
@@ -795,7 +818,7 @@ impl Config {
 
     #[context("Failed to load config from {}.", path.to_string_lossy())]
     fn from_file(path: &Path) -> DfxResult<Config> {
-        let content = std::fs::read(&path)
+        let content = std::fs::read(path)
             .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
         Ok(Config::from_slice(path.to_path_buf(), &content)?)
     }
@@ -887,9 +910,13 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         A: MapAccess<'de>,
     {
         let missing_field = A::Error::missing_field;
-        let mut wasm: Option<String> = None;
-        let mut candid: Option<String> = None;
-        let (mut package, mut source, mut build, mut r#type) = (None, None, None, None);
+        let mut wasm = None;
+        let mut candid = None;
+        let mut package = None;
+        let mut source = None;
+        let mut build = None;
+        let mut r#type = None;
+        let mut id = None;
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -898,6 +925,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 "build" => build = Some(map.next_value()?),
                 "wasm" => wasm = Some(map.next_value()?),
                 "type" => r#type = Some(map.next_value::<String>()?),
+                "id" => id = Some(map.next_value()?),
                 _ => continue,
             }
         }
@@ -914,6 +942,9 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 build: build.unwrap_or_default(),
                 candid: candid.ok_or_else(|| missing_field("candid"))?,
                 wasm: wasm.ok_or_else(|| missing_field("wasm"))?,
+            },
+            Some("pull") => CanisterTypeProperties::Pull {
+                id: id.ok_or_else(|| missing_field("id"))?,
             },
             Some(x) => {
                 return Err(A::Error::unknown_variant(
@@ -969,7 +1000,7 @@ impl NetworksConfig {
 
     #[context("Failed to read shared configuration from {}.", path.to_string_lossy())]
     fn from_file(path: &Path) -> DfxResult<NetworksConfig> {
-        let content = std::fs::read(&path)
+        let content = std::fs::read(path)
             .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
 
         let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)?;

@@ -85,7 +85,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         b.enable_steady_tick(80);
         let response = reqwest::blocking::get(url).map_err(DfxError::new)?;
         let content = response.bytes().context("Failed to get response body.")?;
-        dest.write_all(&*content).with_context(|| {
+        dest.write_all(&content).with_context(|| {
             format!(
                 "Failed to write response content to {}.",
                 download_file.to_string_lossy()
@@ -124,7 +124,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
     // Install components
     let dfx = version_cache_dir.join("dfx");
     std::process::Command::new(dfx)
-        .args(&["cache", "install"])
+        .args(["cache", "install"])
         .status()
         .map_err(DfxError::from)?;
 

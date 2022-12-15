@@ -2,14 +2,14 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
 
 use anyhow::{anyhow, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use candid::Principal;
 use clap::Parser;
-use garcon::Waiter;
 use ic_agent::agent::{Replied, RequestStatusResponse};
 use ic_agent::{AgentError, RequestId};
 use std::str::FromStr;
@@ -51,13 +51,12 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     let canister_id = Principal::from_text(callee_canister)
         .or_else(|_| canister_id_store.get(callee_canister))?;
 
-    let mut waiter = waiter_with_exponential_backoff();
+    let mut retry_policy = ExponentialBackoff::default();
     let Replied::CallReplied(blob) = async {
-        waiter.start();
         let mut request_accepted = false;
         loop {
             match agent
-                .request_status_raw(&request_id, canister_id, false)
+                .request_status_raw(&request_id, canister_id)
                 .await
                 .context("Failed to fetch request status.")?
             {
@@ -79,9 +78,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                     // instantaneous. Therefore, once we know the request is accepted,
                     // we restart the waiter so the request does not time out.
                     if !request_accepted {
-                        waiter
-                            .restart()
-                            .map_err(|_| DfxError::new(AgentError::WaiterRestartError()))?;
+                        retry_policy.reset();
                         request_accepted = true;
                     }
                 }
@@ -92,9 +89,10 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                 }
             };
 
-            waiter
-                .wait()
-                .map_err(|_| DfxError::new(AgentError::TimeoutWaitingForResponse()))?;
+            let interval = retry_policy
+                .next_backoff()
+                .ok_or_else(|| DfxError::new(AgentError::TimeoutWaitingForResponse()))?;
+            tokio::time::sleep(interval).await;
         }
     }
     .await

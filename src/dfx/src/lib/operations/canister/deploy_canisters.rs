@@ -18,7 +18,6 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::convert::TryFrom;
-use std::time::Duration;
 
 #[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
@@ -28,7 +27,6 @@ pub async fn deploy_canisters(
     argument_type: Option<&str>,
     force_reinstall: bool,
     upgrade_unchanged: bool,
-    timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
     create_call_sender: &CallSender,
@@ -78,9 +76,8 @@ pub async fn deploy_canisters(
 
     register_canisters(
         env,
-        &canisters_to_deploy,
+        &canisters_to_load,
         &initial_canister_id_store,
-        timeout,
         with_cycles,
         create_call_sender,
         &config,
@@ -98,7 +95,6 @@ pub async fn deploy_canisters(
         argument_type,
         force_reinstall,
         upgrade_unchanged,
-        timeout,
         call_sender,
         pool,
         skip_consent,
@@ -128,7 +124,6 @@ async fn register_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
-    timeout: Duration,
     with_cycles: Option<&str>,
     call_sender: &CallSender,
     config: &Config,
@@ -173,7 +168,6 @@ async fn register_canisters(
             create_canister(
                 env,
                 canister_name,
-                timeout,
                 with_cycles,
                 call_sender,
                 CanisterSettings {
@@ -217,7 +211,6 @@ async fn install_canisters(
     argument_type: Option<&str>,
     force_reinstall: bool,
     upgrade_unchanged: bool,
-    timeout: Duration,
     call_sender: &CallSender,
     pool: CanisterPool,
     skip_consent: bool,
@@ -254,7 +247,6 @@ async fn install_canisters(
             &canister_info,
             &install_args,
             install_mode,
-            timeout,
             call_sender,
             upgrade_unchanged,
             Some(&pool),

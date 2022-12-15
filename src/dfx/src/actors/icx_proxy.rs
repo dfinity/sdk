@@ -10,7 +10,6 @@ use actix::{
     ResponseActFuture, Running, WrapFuture,
 };
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -127,7 +126,7 @@ impl Actor for IcxProxy {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         if let Some(port_ready_subscribe) = &self.config.port_ready_subscribe {
-            let _ = port_ready_subscribe.do_send(PortReadySubscribe(ctx.address().recipient()));
+            port_ready_subscribe.do_send(PortReadySubscribe(ctx.address().recipient()));
         }
 
         self.config
@@ -193,13 +192,6 @@ fn icx_proxy_start_thread(
     verbose: bool,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), 1.2)
-            .build();
-        waiter.start();
-
         // Start the process, then wait for the file.
         let icx_proxy_path = icx_proxy_path.as_os_str();
 
@@ -209,10 +201,10 @@ fn icx_proxy_start_thread(
             cmd.arg("--fetch-root-key");
         }
         let address = format!("{}", &address);
-        cmd.args(&["--address", &address]);
+        cmd.args(["--address", &address]);
         for url in &replica_urls {
             let s = format!("{}", url);
-            cmd.args(&["--replica", &s]);
+            cmd.args(["--replica", &s]);
         }
         if !verbose {
             cmd.arg("-q");
@@ -242,18 +234,15 @@ fn icx_proxy_start_thread(
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "icx-proxy process failed.");
-                    // Reset waiter if last start was over 2 seconds ago, and do not wait.
-                    if std::time::Instant::now().duration_since(last_start)
-                        >= Duration::from_secs(2)
+                    // If it took less than two seconds to exit, wait a bit before trying again.
+                    if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
+                        std::thread::sleep(Duration::from_secs(2));
+                    } else {
                         debug!(
                             logger,
                             "Last icx-proxy seemed to have been healthy, not waiting..."
                         );
-                        waiter.start();
-                    } else {
-                        // Wait before we start it again.
-                        let _ = waiter.wait();
                     }
                 }
             }

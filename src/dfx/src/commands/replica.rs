@@ -109,7 +109,7 @@ pub fn exec(
     local_server_descriptor.describe(env.get_logger(), true, true);
 
     let temp_dir = &local_server_descriptor.data_directory;
-    create_dir_all(&temp_dir).with_context(|| {
+    create_dir_all(temp_dir).with_context(|| {
         format!(
             "Failed to create network temp directory {}.",
             temp_dir.to_string_lossy()

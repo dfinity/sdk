@@ -17,6 +17,7 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use std::convert::TryFrom;
 use std::fmt::Display;
+use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use std::time::Duration;
@@ -111,7 +112,7 @@ pub async fn read_module_metadata(
     Some(
         String::from_utf8_lossy(
             &agent
-                .read_state_canister_metadata(canister_id, metadata, false)
+                .read_state_canister_metadata(canister_id, metadata)
                 .await
                 .ok()?,
         )
@@ -157,6 +158,19 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
     })
 }
 
+pub fn arguments_from_file(file_name: &str) -> DfxResult<String> {
+    if file_name == "-" {
+        let mut content = String::new();
+        stdin().read_to_string(&mut content).map_err(|e| {
+            error_invalid_argument!("Could not read arguments from stdin to string: {}", e)
+        })?;
+        Ok(content)
+    } else {
+        std::fs::read_to_string(file_name)
+            .map_err(|e| error_invalid_argument!("Could not read arguments file to string: {}", e))
+    }
+}
+
 #[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
     arguments: Option<&str>,
@@ -167,7 +181,7 @@ pub fn blob_from_arguments(
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
         "raw" => {
-            let bytes = hex::decode(&arguments.unwrap_or("")).map_err(|e| {
+            let bytes = hex::decode(arguments.unwrap_or("")).map_err(|e| {
                 error_invalid_argument!("Argument is not a valid hex string: {}", e)
             })?;
             Ok(bytes)

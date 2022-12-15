@@ -22,6 +22,7 @@ use std::sync::Arc;
 mod assets;
 mod custom;
 mod motoko;
+mod pull;
 mod rust;
 
 pub use custom::custom_download;
@@ -134,7 +135,7 @@ pub trait CanisterBuilder {
             );
         }
 
-        std::fs::create_dir_all(&generate_output_dir).with_context(|| {
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
             format!(
                 "Failed to create dir: {}",
                 generate_output_dir.to_string_lossy()
@@ -198,7 +199,10 @@ pub trait CanisterBuilder {
                 format!("Failed to remove {}.", generated_idl_path.to_string_lossy())
             })?;
         } else {
-            eprintln!("  {}", &generated_idl_path.display());
+            let relative_idl_path = generated_idl_path
+                .strip_prefix(info.get_workspace_root())
+                .unwrap_or(&generated_idl_path);
+            eprintln!("  {}", &relative_idl_path.display());
         }
 
         Ok(())
@@ -352,7 +356,7 @@ pub fn environment_variables<'a>(
     vars
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
@@ -429,6 +433,7 @@ impl BuilderPool {
             ("custom", Arc::new(custom::CustomBuilder::new(env)?)),
             ("motoko", Arc::new(motoko::MotokoBuilder::new(env)?)),
             ("rust", Arc::new(rust::RustBuilder::new(env)?)),
+            ("pull", Arc::new(pull::PullBuilder::new(env)?)),
         ]);
 
         Ok(Self { builders })

@@ -51,7 +51,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
             let mut file = OpenOptions::new()
                 .write(true)
                 .truncate(true)
-                .open(&path)
+                .open(path)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             file.write_all(json.as_bytes())
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;

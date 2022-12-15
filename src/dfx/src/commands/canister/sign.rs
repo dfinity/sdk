@@ -7,7 +7,8 @@ use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::sign::sign_transport::SignReplicaV2Transport;
 use crate::lib::sign::signed_message::SignedMessageV1;
 
-use crate::util::{blob_from_arguments, get_candid_type};
+use crate::util::clap::validators::file_or_stdin_validator;
+use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
 
 use candid::Principal;
 use ic_agent::AgentError;
@@ -44,6 +45,15 @@ pub struct CanisterSignOpts {
 
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
+
+    /// Specifies the file from which to read the argument to pass to the method.
+    #[clap(
+        long,
+        validator(file_or_stdin_validator),
+        conflicts_with("random"),
+        conflicts_with("argument")
+    )]
+    argument_file: Option<String>,
 
     /// Specifies the config for generating random argument.
     #[clap(long, conflicts_with("argument"))]
@@ -94,7 +104,13 @@ pub async fn exec(
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
+    let arguments_from_file = opts
+        .argument_file
+        .map(|v| arguments_from_file(&v))
+        .transpose()?;
     let arguments = opts.argument.as_deref();
+    let arguments = arguments_from_file.as_deref().or(arguments);
+
     let arg_type = opts.r#type.as_deref();
     let is_query = match is_query_method {
         Some(true) => !opts.update,
@@ -201,7 +217,7 @@ pub async fn exec(
             Ok(_) => unreachable!(),
         }
         let path = Path::new(&file_name);
-        let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
+        let mut file = File::open(path).map_err(|_| anyhow!("Message file doesn't exist."))?;
         let mut json = String::new();
         file.read_to_string(&mut json)
             .map_err(|_| anyhow!("Cannot read the message file."))?;
@@ -211,7 +227,7 @@ pub async fn exec(
         let request_id = RequestId::from_str(&message.request_id.unwrap())
             .context("Failed to parse request id.")?;
         let res = sign_agent
-            .request_status_raw(&request_id, canister_id, false)
+            .request_status_raw(&request_id, canister_id)
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {

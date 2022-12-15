@@ -33,7 +33,7 @@ pub async fn exec(
     }
     let file_name = opts.file_name;
     let path = Path::new(&file_name);
-    let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
+    let mut file = File::open(path).map_err(|_| anyhow!("Message file doesn't exist."))?;
     let mut json = String::new();
     file.read_to_string(&mut json)
         .map_err(|_| anyhow!("Cannot read the message file."))?;

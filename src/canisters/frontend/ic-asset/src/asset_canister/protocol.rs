@@ -78,6 +78,8 @@ pub struct AssetProperties {
     pub max_age: Option<u64>,
     /// The HTTP headers
     pub headers: Option<HeadersConfig>,
+    /// Aliasing enabled or not
+    pub enable_aliasing: Option<bool>,
 }
 
 /// Set the data for a particular content encoding for the given asset.

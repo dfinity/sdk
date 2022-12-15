@@ -7,45 +7,33 @@ use crate::asset_config::{
 use crate::operations::{
     create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
 };
-use crate::params::CanisterCallParams;
 use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
 use anyhow::{bail, Context};
 use ic_utils::Canister;
 use std::collections::HashMap;
 use std::path::Path;
-use std::time::Duration;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(
-    canister: &Canister<'_>,
-    dirs: &[&Path],
-    timeout: Duration,
-) -> anyhow::Result<()> {
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path]) -> anyhow::Result<()> {
     let asset_descriptors = gather_asset_descriptors(dirs)?;
 
-    let canister_call_params = CanisterCallParams { canister, timeout };
-
-    let container_assets = list_assets(&canister_call_params).await?;
+    let container_assets = list_assets(canister).await?;
 
     println!("Starting batch.");
 
-    let batch_id = create_batch(&canister_call_params).await?;
+    let batch_id = create_batch(canister).await?;
 
     println!("Staging contents of new and changed assets:");
 
-    let project_assets = make_project_assets(
-        &canister_call_params,
-        &batch_id,
-        asset_descriptors,
-        &container_assets,
-    )
-    .await?;
+    let project_assets =
+        make_project_assets(canister, &batch_id, asset_descriptors, &container_assets).await?;
 
     let operations = assemble_synchronization_operations(project_assets, container_assets);
 
     println!("Committing batch.");
-    commit_batch(&canister_call_params, &batch_id, operations).await?;
+
+    commit_batch(canister, &batch_id, operations).await?;
 
     Ok(())
 }
