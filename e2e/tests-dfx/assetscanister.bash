@@ -796,7 +796,6 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
-    is_aliased = null;
     max_age = opt (2_000 : nat64);
   },
 )'
@@ -808,7 +807,6 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
-    is_aliased = null;
     max_age = opt (5 : nat64);
   },
 )'
@@ -820,19 +818,6 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
-    is_aliased = null;
-    max_age = opt (5 : nat64);
-  },
-)'
-
-    # set aliasing property and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; enable_aliasing=opt(opt(false))})'
-    assert_contains '()'
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(
-  record {
-    headers = opt vec { record { "new-key"; "new-value" } };
-    is_aliased = opt false;
     max_age = opt (5 : nat64);
   },
 )'
@@ -841,7 +826,7 @@ CHERRIES" "$stdout"
     assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); enable_aliasing=opt(null)})'
     assert_contains '()'
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(record { headers = null; is_aliased = null; max_age = null })'
+    assert_contains '(record { headers = null; max_age = null })'
 }
 
 @test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
