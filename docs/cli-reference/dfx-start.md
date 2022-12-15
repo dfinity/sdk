@@ -20,13 +20,7 @@ You can use the following optional flags with the `dfx start` command.
 | `--clean`                | Starts the local canister execution environment and web server processes in a clean state by removing checkpoints from your project cache. You can use this flag to set your project cache to a new state when troubleshooting or debugging. |
 | `--emulator`      | Starts the [IC reference emulator](https://github.com/dfinity/ic-hs) rather than the replica.                                                                                                                                                |
 | `--enable-bitcoin` | Enables bitcoin integration.                                                                                                                                                                                                                 |
-<<<<<<< HEAD
 | `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                                                                                                                                                                         |
-| `-h`, `--help`           | Displays usage information.                                                                                                                                                                                                                  |
-| `-V`, `--version`        | Displays version information.                                                                                                                                                                                                                |
-=======
-| `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                                                                                                                                                        |
->>>>>>> e61a932e (docs: remove -h, -v flag descriptions from CLI docs)
 
 ## Options
 
