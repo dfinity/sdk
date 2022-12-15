@@ -71,15 +71,6 @@ Use the `dfx ledger balance` command to print your account balance or that of an
 dfx ledger balance [of] [flag] --network ic
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx ledger balance` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Arguments
 
 You can specify the following argument for the `dfx ledger balance` command.
@@ -109,15 +100,6 @@ Use the `dfx ledger create-canister` command to convert ICP tokens to cycles and
 ``` bash
 dfx ledger create-canister <controller> [options]  [flag] --network ic
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx ledger create-canister` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -173,15 +155,6 @@ Use the `dfx ledger fabricate-cycles` add cycles to a canister while developing 
 ```
 dfx ledger fabricate-cycles [options]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx ledger fabricate-cycles` command.
-
-| Flag | Description |
-|------|-------------|
-|`+-h+`, `+--help+` |Displays usage information. |
-|`+-V+`, `+--version+` |Displays version information. |
 
 ### Options
 
@@ -240,15 +213,6 @@ Use the `dfx ledger notify` command to notify the ledger about a send transactio
 dfx ledger notify [options] _block-height_ _destination-principal_
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx ledger notify` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Arguments
 
 You can specify the following argument for the `dfx ledger notify` command.
@@ -275,15 +239,6 @@ Use the `dfx ledger show-subnet-types` command to list the available subnet type
 ``` bash
 dfx ledger show-subnet-types [options] [flag]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx ledger show-subnet-types` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Options
 
@@ -316,15 +271,6 @@ Use the `dfx ledger top-up` command to top up a canister with cycles minted from
 ``` bash
 dfx ledger top-up [options] canister [flag] --network ic
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx ledger top-up` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -370,15 +316,6 @@ Use the `dfx ledger transfer` command to transfer ICP tokens from your account a
 ``` bash
 dfx ledger transfer [options] to --memo memo
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx ledger transfer` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
