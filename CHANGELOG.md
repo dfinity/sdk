@@ -26,7 +26,7 @@ At the present time, there are two ways to reconfigure an existing asset:
   1. execute `dfx deploy`
 2. via manual candid call 
   ```
-  dfx canister call PROJECTE_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
+  dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
 
   ```
 
