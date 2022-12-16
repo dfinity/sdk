@@ -16,6 +16,20 @@ By default, the frontend canister will now restrict the access of traffic to the
 ]
 ```
 
+**Important**: Note that any assets already uploaded to an asset canister will be protected by this redirection, because at present the asset synchronization process does not update the `allow_raw_access` property, or any other properties, after creating an asset.  This also applies to assets that are deployed without any configuration, and later configured to allow raw access.
+At the present time, there are two ways to reconfigure an existing asset:
+1. re-create the asset
+  1. delete the asset in your project's directory 
+  1. execute `dfx deploy`
+  1. re-create the asset in your project's directory
+  1. modify `.ic-assets.json` acordingly 
+  1. execute `dfx deploy`
+2. via manual candid call 
+  ```
+  dfx canister call PROJECTE_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
+
+  ```
+
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
 
@@ -84,7 +98,7 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 74685de39c166ea310d4e2446893602a3bbfb44c3b10890f91d6c08508b516b4
+- Module hash: fe549a416c02891553c886f0f3be580ae9935ae2cdf3ae8b0d630601adb24eec
 - https://github.com/dfinity/sdk/pull/2824
 
 ### ic-ref
