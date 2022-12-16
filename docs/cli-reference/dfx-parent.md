@@ -40,21 +40,28 @@ For reference information and examples, select an appropriate subcommand.
 
 | Command                        | Description                                                                                                                                                                            |
 |--------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| bootstrap                  | Starts the bootstrap server (icx-proxy)             |
 | [`build`](dfx-build)       | Builds canister output from the source code in your project.                                                                                                                           |
 | [`cache`](dfx-cache)       | Manages the `dfx` cache on the local computer.                                                                                                                                         |
 | [`canister`](dfx-canister) | Manages deployed canisters .                                                                                                                                                           |                                                                                                                    |
 | [`deploy`](dfx-deploy)     | Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.                                                                              |
+| diagnose                   | Detects known problems in the current environment caused by upgrading DFX, and suggests commands to fix them. These commands can be batch-run automatically via `dfx fix` |
+| fix                        | Applies one-time fixes for known problems in the current environment caused by upgrading DFX. Makes no changes that would not have been suggested by `dfx diagnose` |
+| generate                   | Generate type declarations for canisters from the code in your project |
 | [`help`](dfx-help)         | Displays usage information for a specified subcommand.                                                                                                                                 |
 | [`identity`](dfx-identity) | Enables you to create and manage the identities used to communicate with the IC.                                                                                               |
+| info                       | Displays information like port numbers and version numbers. |
 | [`ledger`](dfx-ledger)     | Enables you to interact with accounts in the ledger canister running on the Internet Computer.                                                                                         |
 | [`new`](dfx-new)           | Creates a new project.                                                                                                                                                                 |
 | [`ping`](dfx-ping)         | Sends a response request to the IC or the local canister execution environment to determine network connectivity. If the connection is successful, a status reply is returned. |
+| quickstart                 | Perform initial one time setup for your identity and/or wallet. |
+| remote                     | Commands used to work with remote canisters. |
 | [`replica`](dfx-replica)   | Starts a local canister execution environment.                                                                                                                                         |
 | [`schema`](dfx-schema)     | Prints the schema for `dfx.json`.                                                                                                                                                      |
 | [`start`](dfx-start)       | Starts the local canister execution environment a web server for the current project.                                                                                                  |
 | [`stop`](dfx-stop)         | Stops the local canister execution environment.                                                                                                                                        |
 | [`upgrade`](dfx-upgrade)   | Upgrades the version of `dfx` installed on the local computer to the latest version available.                                                                                         |
-| [`dfx wallet`](dfx-wallet) | Enables you to manage cycles, controllers, custodians, and addresses for the default cycles wallet associated with the currently-selected identity.                                    |
+| [`wallet`](dfx-wallet) | Enables you to manage cycles, controllers, custodians, and addresses for the default cycles wallet associated with the currently-selected identity.                                    |
 
 ## Examples
 
