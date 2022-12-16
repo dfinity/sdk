@@ -158,6 +158,7 @@ service: {
   get_asset_properties : (key: Key) -> (record {
     max_age: opt nat64;
     headers: opt vec HeaderField;
+    headers: opt vec HeaderField;
     allow_raw_access: opt bool; } ) query;
   set_asset_properties: (SetAssetPropertiesArguments) -> ();
 }

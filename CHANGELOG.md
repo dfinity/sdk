@@ -30,6 +30,8 @@ At the present time, there are two ways to reconfigure an existing asset:
 
   ```
 
+### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
+
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
 
@@ -98,7 +100,7 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 41f4ca0cb90ea8b0a71f0ac2ed38513312765fc73ca1d70706c13220f5fba536
+- Module hash: 581e1f207e3eba98146c5447547f7ad6368c01410be19e89f0d109cb7528d75e
 - https://github.com/dfinity/sdk/pull/2824
 
 ### ic-ref

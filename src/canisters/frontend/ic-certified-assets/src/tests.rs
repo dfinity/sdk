@@ -24,8 +24,8 @@ fn unused_callback() -> candid::Func {
 struct AssetBuilder {
     name: String,
     content_type: String,
-    max_age: Option<u64>,
     encodings: Vec<(String, Vec<ByteBuf>)>,
+    max_age: Option<u64>,
     headers: Option<HashMap<String, String>>,
     aliasing: Option<bool>,
     allow_raw_access: Option<bool>,
@@ -36,8 +36,8 @@ impl AssetBuilder {
         Self {
             name: name.as_ref().to_string(),
             content_type: content_type.as_ref().to_string(),
-            max_age: None,
             encodings: vec![],
+            max_age: None,
             headers: None,
             aliasing: None,
             allow_raw_access: None,

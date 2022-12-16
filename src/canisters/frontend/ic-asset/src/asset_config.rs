@@ -276,7 +276,7 @@ impl AssetConfig {
 /// This module contains various utilities needed for serialization/deserialization
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
-    use super::{AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
+    use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
     use anyhow::Context;
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
@@ -398,6 +398,38 @@ mod rule_utils {
             })
         }
     }
+
+    impl std::fmt::Display for AssetConfig {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let mut s = String::new();
+
+            if self.cache.is_some() || self.headers.is_some() {
+                s.push_str(", with config:\n");
+            }
+            if let Some(ref cache) = self.cache {
+                if let Some(ref max_age) = cache.max_age {
+                    s.push_str(&format!("  - HTTP cache max-age: {}\n", max_age));
+                }
+            }
+            if let Some(aliasing) = self.enable_aliasing {
+                s.push_str(&format!(
+                    "    - URL path aliasing: {}\n",
+                    if aliasing { "enabled" } else { "disabled" }
+                ));
+            }
+            if let Some(ref headers) = self.headers {
+                for (key, value) in headers {
+                    s.push_str(&format!(
+                        "    - HTTP Response header: {key}: {value}\n",
+                        key = key,
+                        value = value
+                    ));
+                }
+            }
+
+            write!(f, "{}", s)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -420,7 +452,7 @@ mod with_tempdir {
             .map(|d| assets_dir.as_ref().join(d))
             .map(std::fs::create_dir_all);
 
-        let _asset_files = [
+        [
             "index.html",
             "js/index.js",
             "js/index.map.js",
