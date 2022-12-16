@@ -91,7 +91,6 @@ impl HttpRequest {
 
         let location = format!(
             "https://{canister_id}.ic0.app{path}",
-            canister_id,
             path = self.url
         );
         HttpResponse::build_redirect(HTTP_REDIRECT_PERMANENT, location)
@@ -109,7 +108,7 @@ impl HttpRequest {
                 }
             }
         }
-        "canister-id-is-unreachable"
+        unreachable!()
     }
 
     pub fn is_raw_domain(&self) -> bool {
