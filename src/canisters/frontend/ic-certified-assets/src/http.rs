@@ -85,15 +85,13 @@ impl HttpRequest {
 
     pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
         #[cfg(not(test))]
-        let location = format!(
-            "https://{canister_id}.ic0.app{path}",
-            canister_id = ic_cdk::api::id().to_text(),
-            path = self.url
-        );
+        let canister_id = ic_cdk::api::id().to_text();
         #[cfg(test)]
+        let canister_id = self.get_canister_id();
+
         let location = format!(
             "https://{canister_id}.ic0.app{path}",
-            canister_id = self.get_canister_id(),
+            canister_id,
             path = self.url
         );
         HttpResponse::build_redirect(HTTP_REDIRECT_PERMANENT, location)
