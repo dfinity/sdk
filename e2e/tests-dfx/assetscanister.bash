@@ -744,25 +744,29 @@ CHERRIES" "$stdout"
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
-  }
+  },
+  "allow_raw_access": false
 }'
     assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
     assert_contains '{
   "match": "nevermatchme",
   "headers": {},
-  "ignore": false
+  "ignore": false,
+  "allow_raw_access": false
 }
 {
   "match": "nevermatchmetoo",
   "headers": {},
-  "ignore": false
+  "ignore": false,
+  "allow_raw_access": false
 }
 {
   "match": "non-matcher",
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false
+  "ignore": false,
+  "allow_raw_access": false
 }'
     # splitting this up into two checks, because the order is different on macos vs ubuntu
     assert_contains '{
@@ -770,7 +774,8 @@ CHERRIES" "$stdout"
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false
+  "ignore": false,
+  "allow_raw_access": false
 }'
 }
 
@@ -796,6 +801,7 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
+    allow_raw_access = opt false;
     max_age = opt (2_000 : nat64);
   },
 )'
@@ -807,6 +813,7 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
+    allow_raw_access = opt false;
     max_age = opt (5 : nat64);
   },
 )'
@@ -818,13 +825,26 @@ CHERRIES" "$stdout"
     assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
+    allow_raw_access = opt false;
+    max_age = opt (5 : nat64);
+  },
+)'
+
+    # set allow_raw_access property and read it back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; allow_raw_access=opt(opt(true))})'
+    assert_contains '()'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(
+  record {
+    headers = opt vec { record { "new-key"; "new-value" } };
+    allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
 )'
 
     # set headers and max_age property to None and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null)})'
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null)})'
     assert_contains '()'
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(record { headers = null; max_age = null })'
+    assert_contains '(record { headers = null; allow_raw_access = null; max_age = null })'
 }
