@@ -24,8 +24,8 @@ fn unused_callback() -> candid::Func {
 struct AssetBuilder {
     name: String,
     content_type: String,
-    max_age: Option<u64>,
     encodings: Vec<(String, Vec<ByteBuf>)>,
+    max_age: Option<u64>,
     headers: Option<HashMap<String, String>>,
     aliasing: Option<bool>,
 }
@@ -35,8 +35,8 @@ impl AssetBuilder {
         Self {
             name: name.as_ref().to_string(),
             content_type: content_type.as_ref().to_string(),
-            max_age: None,
             encodings: vec![],
+            max_age: None,
             headers: None,
             aliasing: None,
         }
@@ -514,7 +514,7 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "Access-Control-Allow-Origin".into(),
                 "*".into()
-            )]))
+            )])),
         })
     );
     assert_eq!(
@@ -524,7 +524,7 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
         })
     );
 
@@ -535,7 +535,7 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )])))
+            )]))),
         })
         .is_ok());
     assert_eq!(
@@ -545,7 +545,7 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
         })
     );
 
@@ -553,14 +553,14 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: Some(None),
-            headers: Some(None)
+            headers: Some(None),
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: None,
-            headers: None
+            headers: None,
         })
     );
 
@@ -571,7 +571,7 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )])))
+            )]))),
         })
         .is_ok());
     assert_eq!(
@@ -581,7 +581,7 @@ fn supports_getting_and_setting_asset_properties() {
             headers: Some(HashMap::from([(
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
-            )]))
+            )])),
         })
     );
 
@@ -589,14 +589,14 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: None,
-            headers: Some(Some(HashMap::from([("new-header".into(), "value".into())])))
+            headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())]))
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
         })
     );
 
@@ -604,14 +604,14 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: Some(Some(2)),
-            headers: None
+            headers: None,
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())]))
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
         })
     );
 
@@ -619,14 +619,14 @@ fn supports_getting_and_setting_asset_properties() {
         .set_asset_properties(SetAssetPropertiesArguments {
             key: "/max-age.html".into(),
             max_age: None,
-            headers: Some(None)
+            headers: Some(None),
         })
         .is_ok());
     assert_eq!(
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: None
+            headers: None,
         })
     );
 }
