@@ -4,6 +4,32 @@
 
 ## DFX
 
+### feat(frontend-canister)!: add `allow_raw_access` config option
+
+By default, the frontend canister will now restrict the access of traffic to the `<canister-id>.raw.ic0.app` domain, and will automatically redirect all requests to the certified domain (`<canister-id>.ic0.app`), unless configured explicitly. Below is an example configuration to allow access to the `robots.txt` file from the "raw" domain:
+```json
+[
+  {
+    "match": "robots.txt",
+    "allow_raw_access": true
+  }
+]
+```
+
+**Important**: Note that any assets already uploaded to an asset canister will be protected by this redirection, because at present the asset synchronization process does not update the `allow_raw_access` property, or any other properties, after creating an asset.  This also applies to assets that are deployed without any configuration, and later configured to allow raw access.
+At the present time, there are two ways to reconfigure an existing asset:
+1. re-create the asset
+  1. delete the asset in your project's directory 
+  1. execute `dfx deploy`
+  1. re-create the asset in your project's directory
+  1. modify `.ic-assets.json` acordingly 
+  1. execute `dfx deploy`
+2. via manual candid call 
+  ```
+  dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
+
+  ```
+
 ### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
 
 ### feat(ic-ref):
@@ -74,8 +100,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: e2e86e8231d24e3b0ca1a21fffaa60b5ff22d040b6e141b57433595e43b50bb6
-- https://github.com/dfinity/sdk/pull/2759
+- Module hash: 9093294e28805eac1c8226b9d73cb0da02657ca1219ae951b655931e8a2f32b8
+- https://github.com/dfinity/sdk/pull/2824
 
 ### ic-ref
 

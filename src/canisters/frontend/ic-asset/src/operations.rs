@@ -65,6 +65,7 @@ pub(crate) fn create_new_assets(
 
             let headers = project_asset.asset_descriptor.config.clone().headers;
             let enable_aliasing = project_asset.asset_descriptor.config.enable_aliasing;
+            let allow_raw_access = project_asset.asset_descriptor.config.allow_raw_access;
 
             operations.push(BatchOperationKind::CreateAsset(CreateAssetArguments {
                 key: key.clone(),
@@ -72,6 +73,7 @@ pub(crate) fn create_new_assets(
                 max_age,
                 headers,
                 enable_aliasing,
+                allow_raw_access,
             }));
         }
     }

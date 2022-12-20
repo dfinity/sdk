@@ -19,6 +19,7 @@ pub struct CreateAssetArguments {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
     pub enable_aliasing: Option<bool>,
+    pub allow_raw_access: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -107,6 +108,7 @@ pub struct CreateChunkResponse {
 pub struct AssetProperties {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
+    pub allow_raw_access: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -114,4 +116,5 @@ pub struct SetAssetPropertiesArguments {
     pub key: Key,
     pub max_age: Option<Option<u64>>,
     pub headers: Option<Option<HashMap<String, String>>>,
+    pub allow_raw_access: Option<Option<bool>>,
 }

@@ -28,6 +28,7 @@ struct AssetBuilder {
     max_age: Option<u64>,
     headers: Option<HashMap<String, String>>,
     aliasing: Option<bool>,
+    allow_raw_access: Option<bool>,
 }
 
 impl AssetBuilder {
@@ -39,6 +40,7 @@ impl AssetBuilder {
             max_age: None,
             headers: None,
             aliasing: None,
+            allow_raw_access: None,
         }
     }
 
@@ -66,6 +68,11 @@ impl AssetBuilder {
 
     fn with_aliasing(mut self, aliasing: bool) -> Self {
         self.aliasing = Some(aliasing);
+        self
+    }
+
+    fn with_allow_raw_access(mut self, allow_raw_access: Option<bool>) -> Self {
+        self.allow_raw_access = allow_raw_access;
         self
     }
 }
@@ -115,6 +122,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             max_age: asset.max_age,
             headers: asset.headers,
             enable_aliasing: asset.aliasing,
+            allow_raw_access: asset.allow_raw_access,
         }));
 
         for (enc, chunks) in asset.encodings {
@@ -162,6 +170,21 @@ fn lookup_header<'a>(response: &'a HttpResponse, header: &str) -> Option<&'a str
         .headers
         .iter()
         .find_map(|(h, v)| h.eq_ignore_ascii_case(header).then_some(v.as_str()))
+}
+
+impl State {
+    fn fake_http_request(&self, host: &str, path: &str) -> HttpResponse {
+        let fake_cert = [0xca, 0xfe];
+        self.http_request(
+            RequestBuilder::get(path).with_header("Host", host).build(),
+            &fake_cert,
+            unused_callback(),
+        )
+    }
+
+    fn create_test_asset(&mut self, asset: AssetBuilder) {
+        create_assets(self, 100_000_000_000, vec![asset]);
+    }
 }
 
 #[test]
@@ -515,6 +538,7 @@ fn supports_getting_and_setting_asset_properties() {
                 "Access-Control-Allow-Origin".into(),
                 "*".into()
             )])),
+            allow_raw_access: None
         })
     );
     assert_eq!(
@@ -525,6 +549,7 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
+            allow_raw_access: None
         })
     );
 
@@ -536,6 +561,7 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )]))),
+            allow_raw_access: None
         })
         .is_ok());
     assert_eq!(
@@ -546,6 +572,7 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
+            allow_raw_access: None
         })
     );
 
@@ -554,6 +581,7 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: Some(None),
             headers: Some(None),
+            allow_raw_access: None
         })
         .is_ok());
     assert_eq!(
@@ -561,6 +589,7 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: None,
             headers: None,
+            allow_raw_access: None
         })
     );
 
@@ -572,6 +601,7 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )]))),
+            allow_raw_access: None
         })
         .is_ok());
     assert_eq!(
@@ -582,6 +612,7 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
+            allow_raw_access: None
         })
     );
 
@@ -590,6 +621,7 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: None,
             headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
+            allow_raw_access: None
         })
         .is_ok());
     assert_eq!(
@@ -597,6 +629,7 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(1),
             headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            allow_raw_access: None
         })
     );
 
@@ -605,6 +638,7 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: Some(Some(2)),
             headers: None,
+            allow_raw_access: None
         })
         .is_ok());
     assert_eq!(
@@ -612,6 +646,7 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(2),
             headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            allow_raw_access: None
         })
     );
 
@@ -620,6 +655,7 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: None,
             headers: Some(None),
+            allow_raw_access: None
         })
         .is_ok());
     assert_eq!(
@@ -627,6 +663,7 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(2),
             headers: None,
+            allow_raw_access: None
         })
     );
 }
@@ -863,4 +900,90 @@ fn aliasing_name_clash() {
         unused_callback(),
     );
     assert_eq!(alias_accessible_again.body.as_ref(), FILE_BODY);
+}
+
+#[cfg(test)]
+mod allow_raw_access {
+    use super::*;
+
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    #[test]
+    fn redirects_from_raw_to_certified() {
+        let mut state = State::default();
+
+        state.create_test_asset(
+            AssetBuilder::new("/page.html", "text/html").with_allow_raw_access(Some(false)),
+        );
+        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/page");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.ic0.app/page"
+        );
+
+        state.create_test_asset(AssetBuilder::new("/page2.html", "text/html"));
+        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/page2");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.ic0.app/page2"
+        );
+
+        state.create_test_asset(AssetBuilder::new("/index.html", "text/html"));
+        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.ic0.app/"
+        );
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/index.html", "text/html").with_allow_raw_access(Some(false)),
+        );
+        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.ic0.app/"
+        );
+    }
+
+    #[test]
+    fn wont_redirect_from_raw_to_certified() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/blog.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY])
+                .with_allow_raw_access(Some(true)),
+        );
+        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/blog.html");
+        dbg!(&response);
+        assert_eq!(response.status_code, 200);
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/index.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY])
+                .with_allow_raw_access(Some(true)),
+        );
+        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/index.html");
+        dbg!(&response);
+        assert_eq!(response.status_code, 200);
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/index.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY])
+                .with_allow_raw_access(Some(true)),
+        );
+        let response = state.fake_http_request("a-b-c.localhost:4444", "/index.html");
+        dbg!(&response);
+        assert_eq!(response.status_code, 200);
+    }
 }
