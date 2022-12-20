@@ -823,8 +823,33 @@ CHERRIES" "$stdout"
 )'
 
     # set headers and max_age property to None and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null)})'
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); enable_aliasing=opt(null)})'
     assert_contains '()'
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
     assert_contains '(record { headers = null; max_age = null })'
+}
+
+@test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
+    install_asset assetscanister
+
+    dfx_start
+
+    mkdir src/e2e_project_frontend/assets/somedir
+    echo "content" > src/e2e_project_frontend/assets/somedir/upload-me.txt
+    echo '[
+      {
+        "match": "**/*",
+        "cache": { "max_age": 2000 },
+        "headers": {
+          "x-header": "x-value"
+        },
+        "enable_aliasing": true
+      },
+    ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
+
+    assert_command dfx deploy
+    assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]*, with config:'
+    assert_contains '- HTTP cache max-age: 2000'
+    assert_contains '- HTTP Response header: x-header: x-value'
+    assert_contains '- URL path aliasing: enabled'
 }

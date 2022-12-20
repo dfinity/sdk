@@ -4,6 +4,8 @@
 
 ## DFX
 
+### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
+
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
 
@@ -72,8 +74,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 5ce290cda1b167ef7732e50110cb4999572ae971752cedd7b486e97914e9a5b8
-- https://github.com/dfinity/sdk/pull/2819
+- Module hash: e2e86e8231d24e3b0ca1a21fffaa60b5ff22d040b6e141b57433595e43b50bb6
+- https://github.com/dfinity/sdk/pull/2759
 
 ### ic-ref
 
