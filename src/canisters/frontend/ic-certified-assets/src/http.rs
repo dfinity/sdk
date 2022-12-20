@@ -89,10 +89,7 @@ impl HttpRequest {
         #[cfg(test)]
         let canister_id = self.get_canister_id();
 
-        let location = format!(
-            "https://{canister_id}.ic0.app{path}",
-            path = self.url
-        );
+        let location = format!("https://{canister_id}.ic0.app{path}", path = self.url);
         HttpResponse::build_redirect(HTTP_REDIRECT_PERMANENT, location)
     }
 
