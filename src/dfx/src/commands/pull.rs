@@ -13,7 +13,7 @@ use ic_agent::{Agent, AgentError};
 use slog::Logger;
 use tokio::runtime::Runtime;
 
-/// Pings an Internet Computer network and returns its status.
+/// Pull canisters upon which the project depends
 #[derive(Parser)]
 pub struct PullOpts {
     /// Specifies the name of the canister you want to pull.
