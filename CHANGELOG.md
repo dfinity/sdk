@@ -6,8 +6,9 @@
 
 ### feat(frontend-canister)!: default secure configuration for assets when creating a new frontend project 
 
-- Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](./src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
+- Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
 - Redirect all traffic from `.raw.ic0.app` domain to `.ic0.app`.
+Since redirecting from .raw.ic0.app to .ic0.app is the default, let's instead call out that we are showing that configuration in the default starter projects, even though it is already the default.
 
 ### feat(frontend-canister)!: add `allow_raw_access` config option
 
