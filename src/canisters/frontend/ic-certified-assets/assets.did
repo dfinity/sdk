@@ -8,6 +8,8 @@ type CreateAssetArguments = record {
   content_type: text;
   max_age: opt nat64;
   headers: opt vec HeaderField;
+  enable_aliasing: opt bool;
+  allow_raw_access: opt bool;
 };
 
 // Add or change content for an asset, by content encoding
@@ -77,8 +79,14 @@ type StreamingStrategy = variant {
   };
 };
 
-service: {
+type SetAssetPropertiesArguments = record {
+  key: Key;
+  max_age: opt opt nat64;
+  headers: opt opt vec HeaderField;
+  allow_raw_access: opt opt bool;
+};
 
+service: {
   get: (record {
     key: Key;
     accept_encodings: vec text;
@@ -110,6 +118,11 @@ service: {
     };
   }) query;
 
+  certified_tree : (record {}) -> (record {
+    certificate: blob;
+    tree: blob;
+  }) query;
+
   create_batch : (record {}) -> (record { batch_id: BatchId });
 
   create_chunk: (record { batch_id: BatchId; content: blob }) -> (record { chunk_id: ChunkId });
@@ -139,4 +152,12 @@ service: {
   http_request_streaming_callback: (token: StreamingCallbackToken) -> (opt StreamingCallbackHttpResponse) query;
 
   authorize: (principal) -> ();
+  deauthorize: (principal) -> ();
+  list_authorized: () -> (vec principal) query;
+
+  get_asset_properties : (key: Key) -> (record {
+    max_age: opt nat64;
+    headers: opt vec HeaderField;
+    allow_raw_access: opt bool; } ) query;
+  set_asset_properties: (SetAssetPropertiesArguments) -> ();
 }

@@ -16,9 +16,18 @@ on:
         description: 'Update the NNS canisters for e2e tests'
         type: boolean
         default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   IC_RELEASES_API: "https://ic-api.internetcomputer.org/api/v3/subnet-replica-versions?limit=50&offset=0"
-  
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   update-replica:
     runs-on: ubuntu-latest
@@ -35,7 +44,7 @@ jobs:
         grep -s "REPLICA_VERSION" $GITHUB_ENV
    
     - name: install Nix
-      uses: cachix/install-nix-action@d64e0553100205688c0fb2fa16edb0fc8663c590 # https://github.com/cachix/install-nix-action/releases/tag/v17
+      uses: cachix/install-nix-action@v18
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 

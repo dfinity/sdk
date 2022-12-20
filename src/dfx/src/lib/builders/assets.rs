@@ -105,7 +105,6 @@ impl CanisterBuilder for AssetsBuilder {
             canister_id: info.get_canister_id().expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(wasm_path),
             idl: IdlBuildOutput::File(idl_path),
-            add_candid_service_metadata: false,
         })
     }
 
@@ -167,7 +166,7 @@ impl CanisterBuilder for AssetsBuilder {
                 continue;
             }
             // See https://github.com/alexcrichton/tar-rs/issues/261
-            fs::create_dir_all(&generate_output_dir).with_context(|| {
+            fs::create_dir_all(generate_output_dir).with_context(|| {
                 format!(
                     "Failed to create {}.",
                     generate_output_dir.to_string_lossy()

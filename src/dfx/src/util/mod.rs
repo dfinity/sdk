@@ -6,15 +6,18 @@ use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
+use directories_next::ProjectDirs;
 use fn_error_context::context;
-use net2::TcpListenerExt;
-use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
+#[cfg(unix)]
+use net2::unix::UnixTcpBuilderExt;
+use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
 use rust_decimal::Decimal;
 use schemars::JsonSchema;
 use serde::Serialize;
 use std::convert::TryFrom;
 use std::fmt::Display;
+use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use std::time::Duration;
@@ -38,11 +41,15 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
     } else {
         TcpBuilder::new_v6().context("Failed to create IPv6 builder.")?
     };
-    let listener = tcp_builder
+    let tcp_builder = tcp_builder
         .reuse_address(true)
-        .context("Failed to set option reuse_address of tcp builder.")?
+        .context("Failed to set option reuse_address of tcp builder.")?;
+    // On Windows, SO_REUSEADDR without SO_EXCLUSIVEADDRUSE acts like SO_REUSEPORT (among other things), so this is only necessary on *nix.
+    #[cfg(unix)]
+    let tcp_builder = tcp_builder
         .reuse_port(true)
-        .context("Failed to set option reuse_port of tcp builder.")?
+        .context("Failed to set option reuse_port of tcp builder.")?;
+    let listener = tcp_builder
         .bind(SocketAddr::new(ip, port))
         .with_context(|| format!("Failed to set socket of tcp builder to {}:{}.", ip, port))?
         .to_tcp_listener()
@@ -105,7 +112,7 @@ pub async fn read_module_metadata(
     Some(
         String::from_utf8_lossy(
             &agent
-                .read_state_canister_metadata(canister_id, metadata, false)
+                .read_state_canister_metadata(canister_id, metadata)
                 .await
                 .ok()?,
         )
@@ -151,6 +158,19 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
     })
 }
 
+pub fn arguments_from_file(file_name: &str) -> DfxResult<String> {
+    if file_name == "-" {
+        let mut content = String::new();
+        stdin().read_to_string(&mut content).map_err(|e| {
+            error_invalid_argument!("Could not read arguments from stdin to string: {}", e)
+        })?;
+        Ok(content)
+    } else {
+        std::fs::read_to_string(file_name)
+            .map_err(|e| error_invalid_argument!("Could not read arguments file to string: {}", e))
+    }
+}
+
 #[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
     arguments: Option<&str>,
@@ -161,7 +181,7 @@ pub fn blob_from_arguments(
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
         "raw" => {
-            let bytes = hex::decode(&arguments.unwrap_or("")).map_err(|e| {
+            let bytes = hex::decode(arguments.unwrap_or("")).map_err(|e| {
                 error_invalid_argument!("Argument is not a valid hex string: {}", e)
             })?;
             Ok(bytes)
@@ -341,6 +361,13 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .chars()
         .rev()
         .collect::<_>()
+}
+
+pub fn project_dirs() -> DfxResult<&'static ProjectDirs> {
+    lazy_static::lazy_static! {
+        static ref DIRS: Option<ProjectDirs> = ProjectDirs::from("org", "dfinity", "dfx");
+    }
+    DIRS.as_ref().context("Failed to resolve 'HOME' env var.")
 }
 
 #[cfg(test)]

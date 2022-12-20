@@ -4,28 +4,21 @@ version = "0.20.0"
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
 description = "CLI tool to manage assets on an asset canister on the Internet Computer."
-homepage = "https://docs.rs/icx-asset"
 documentation = "https://docs.rs/icx-asset"
-repository = "https://github.com/dfinity/agent-rs"
+repository = "https://github.com/dfinity/sdk"
 license = "Apache-2.0"
-readme = "README.md"
 categories = ["command-line-interface"]
 keywords = ["internet-computer", "agent", "icp", "dfinity", "asset"]
-include = ["src", "Cargo.toml", "../LICENSE", "README.md"]
-rust-version = "1.60.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.34"
-candid = "0.7.15"
+candid = "0.8.2"
 clap = { version = "3.0.14", features = ["derive", "cargo"] }
 delay = "0.3.1"
-garcon = "0.2.2"
 humantime = "2.0.1"
-ic-agent = "0.20"
-ic-asset = "0.20"
-ic-utils = "0.20"
+ic-agent = "0.23.0"
+ic-asset = { path = "../ic-asset" }
+ic-utils = "0.23.0"
 libflate = "1.2.0"
 num-traits = "0.2"
 pem = "1.0.1"

@@ -4,7 +4,15 @@
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
-use crate::{rc_bytes::RcBytes, types::*, url_decode::url_decode};
+use crate::{
+    http::{
+        HeaderField, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+        StreamingCallbackToken,
+    },
+    rc_bytes::RcBytes,
+    types::*,
+    url_decode::url_decode,
+};
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
 use num_traits::ToPrimitive;
@@ -24,6 +32,9 @@ const ENCODING_CERTIFICATION_ORDER: &[&str] = &["identity", "gzip", "compress", 
 /// The file to serve if the requested file wasn't found.
 const INDEX_FILE: &str = "/index.html";
 
+/// Default aliasing behavior.
+const DEFAULT_ALIAS_ENABLED: bool = true;
+
 type AssetHashes = RbTree<Key, Hash>;
 type Timestamp = Int;
 
@@ -42,6 +53,8 @@ pub struct Asset {
     pub encodings: HashMap<String, AssetEncoding>,
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
+    pub is_aliased: Option<bool>,
+    pub allow_raw_access: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -66,6 +79,12 @@ pub struct AssetEncodingDetails {
     pub sha256: Option<ByteBuf>,
     pub length: Nat,
     pub modified: Timestamp,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct CertifiedTree {
+    pub certificate: Vec<u8>,
+    pub tree: Vec<u8>,
 }
 
 pub struct Chunk {
@@ -98,19 +117,47 @@ pub struct StableState {
     stable_assets: HashMap<String, Asset>,
 }
 
+impl Asset {
+    fn allow_raw_access(&self) -> bool {
+        self.allow_raw_access.unwrap_or(false)
+    }
+}
+
 impl State {
+    fn get_asset(&self, key: &Key) -> Result<&Asset, String> {
+        self.assets
+            .get(key)
+            .or_else(|| {
+                let aliased = aliases_of(key)
+                    .into_iter()
+                    .find_map(|alias_key| self.assets.get(&alias_key));
+                if let Some(asset) = aliased {
+                    if asset.is_aliased.unwrap_or(DEFAULT_ALIAS_ENABLED) {
+                        aliased
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| "asset not found".to_string())
+    }
+
     pub fn authorize_unconditionally(&mut self, principal: Principal) {
         if !self.is_authorized(&principal) {
             self.authorized.push(principal);
         }
     }
 
-    pub fn authorize(&mut self, caller: &Principal, other: Principal) -> Result<(), String> {
-        if !self.is_authorized(caller) {
-            return Err("the caller is not authorized".to_string());
+    pub fn deauthorize_unconditionally(&mut self, principal: Principal) {
+        if let Some(pos) = self.authorized.iter().position(|x| *x == principal) {
+            self.authorized.remove(pos);
         }
-        self.authorize_unconditionally(other);
-        Ok(())
+    }
+
+    pub fn list_authorized(&self) -> &Vec<Principal> {
+        &self.authorized
     }
 
     pub fn root_hash(&self) -> Hash {
@@ -131,6 +178,8 @@ impl State {
                     encodings: HashMap::new(),
                     max_age: arg.max_age,
                     headers: arg.headers,
+                    is_aliased: arg.enable_aliasing,
+                    allow_raw_access: arg.allow_raw_access,
                 },
             );
         }
@@ -146,6 +195,7 @@ impl State {
             return Err("encoding must have at least one chunk".to_string());
         }
 
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -183,25 +233,29 @@ impl State {
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset);
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
 
         Ok(())
     }
 
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
             .ok_or_else(|| "asset not found".to_string())?;
 
         if asset.encodings.remove(&arg.content_encoding).is_some() {
-            on_asset_change(&mut self.asset_hashes, &arg.key, asset);
+            on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
         }
 
         Ok(())
     }
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
+        for dependent in self.dependent_keys(&arg.key) {
+            self.asset_hashes.delete(dependent.as_bytes());
+        }
         self.assets.remove(&arg.key);
         self.asset_hashes.delete(arg.key.as_bytes());
     }
@@ -219,10 +273,7 @@ impl State {
     }
 
     pub fn retrieve(&self, key: &Key) -> Result<RcBytes, String> {
-        let asset = self
-            .assets
-            .get(key)
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(key)?;
 
         let id_enc = asset
             .encodings
@@ -237,8 +288,10 @@ impl State {
     }
 
     pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
+        asset.is_aliased = arg.aliased;
 
         let hash = sha2::Sha256::digest(&arg.content).into();
         if let Some(provided_hash) = arg.sha256 {
@@ -253,7 +306,7 @@ impl State {
         encoding.modified = Int::from(time);
         encoding.sha256 = hash;
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset);
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
         Ok(())
     }
 
@@ -340,11 +393,22 @@ impl State {
             .collect::<Vec<_>>()
     }
 
+    pub fn certified_tree(&self, certificate: &[u8]) -> CertifiedTree {
+        use ic_certified_map::labeled;
+
+        let hash_tree = labeled(b"http_assets", self.asset_hashes.as_hash_tree());
+        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+        serializer.self_describe().unwrap();
+        hash_tree.serialize(&mut serializer).unwrap();
+
+        CertifiedTree {
+            certificate: certificate.to_vec(),
+            tree: serializer.into_inner(),
+        }
+    }
+
     pub fn get(&self, arg: GetArg) -> Result<EncodedAsset, String> {
-        let asset = self
-            .assets
-            .get(&arg.key)
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(&arg.key)?;
 
         for enc in arg.accept_encodings.iter() {
             if let Some(asset_enc) = asset.encodings.get(enc) {
@@ -361,10 +425,7 @@ impl State {
     }
 
     pub fn get_chunk(&self, arg: GetChunkArg) -> Result<RcBytes, String> {
-        let asset = self
-            .assets
-            .get(&arg.key)
-            .ok_or_else(|| "asset not found".to_string())?;
+        let asset = self.get_asset(&arg.key)?;
 
         let enc = asset
             .encodings
@@ -392,6 +453,7 @@ impl State {
         index: usize,
         callback: Func,
         etags: Vec<Hash>,
+        req: HttpRequest,
     ) -> HttpResponse {
         let index_redirect_certificate = if self.asset_hashes.get(path.as_bytes()).is_none()
             && self.asset_hashes.get(INDEX_FILE.as_bytes()).is_some()
@@ -406,10 +468,13 @@ impl State {
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
+                if !asset.allow_raw_access() && req.is_raw_domain() {
+                    return req.redirect_from_raw_to_certified_domain();
+                }
                 for enc_name in encodings.iter() {
                     if let Some(enc) = asset.encodings.get(enc_name) {
                         if enc.certified {
-                            return build_ok(
+                            return HttpResponse::build_ok(
                                 asset,
                                 enc_name,
                                 enc,
@@ -428,11 +493,14 @@ impl State {
         let certificate_header =
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
-        if let Some(asset) = self.assets.get(path) {
+        if let Ok(asset) = self.get_asset(&path.into()) {
+            if !asset.allow_raw_access() && req.is_raw_domain() {
+                return req.redirect_from_raw_to_certified_domain();
+            }
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
-                        return build_ok(
+                        return HttpResponse::build_ok(
                             asset,
                             enc_name,
                             enc,
@@ -446,7 +514,7 @@ impl State {
                         // Find if identity is certified, if it's not.
                         if let Some(id_enc) = asset.encodings.get("identity") {
                             if id_enc.certified {
-                                return build_ok(
+                                return HttpResponse::build_ok(
                                     asset,
                                     enc_name,
                                     enc,
@@ -463,7 +531,7 @@ impl State {
             }
         }
 
-        build_404(certificate_header)
+        HttpResponse::build_404(certificate_header)
     }
 
     pub fn http_request(
@@ -490,7 +558,9 @@ impl State {
         };
 
         match url_decode(path) {
-            Ok(path) => self.build_http_response(certificate, &path, encodings, 0, callback, etags),
+            Ok(path) => {
+                self.build_http_response(certificate, &path, encodings, 0, callback, etags, req)
+            }
             Err(err) => HttpResponse {
                 status_code: 400,
                 headers: vec![],
@@ -513,9 +583,8 @@ impl State {
         }: StreamingCallbackToken,
     ) -> Result<StreamingCallbackHttpResponse, String> {
         let asset = self
-            .assets
-            .get(&key)
-            .ok_or_else(|| "Invalid token on streaming: key not found.".to_string())?;
+            .get_asset(&key)
+            .map_err(|_| "Invalid token on streaming: key not found.".to_string())?;
         let enc = asset
             .encodings
             .get(&content_encoding)
@@ -532,8 +601,62 @@ impl State {
 
         Ok(StreamingCallbackHttpResponse {
             body: enc.content_chunks[chunk_index].clone(),
-            token: create_token(asset, &content_encoding, enc, &key, chunk_index),
+            token: StreamingCallbackToken::create_token(
+                &content_encoding,
+                enc.content_chunks.len(),
+                enc.sha256,
+                &key,
+                chunk_index,
+            ),
         })
+    }
+
+    pub fn get_asset_properties(&self, key: Key) -> Result<AssetProperties, String> {
+        let asset = self
+            .assets
+            .get(&key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        Ok(AssetProperties {
+            max_age: asset.max_age,
+            headers: asset.headers.clone(),
+            allow_raw_access: asset.allow_raw_access,
+        })
+    }
+
+    pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
+        let asset = self
+            .assets
+            .get_mut(&arg.key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        if let Some(headers) = arg.headers {
+            asset.headers = headers
+        }
+        if let Some(max_age) = arg.max_age {
+            asset.max_age = max_age
+        }
+        if let Some(allow_raw_access) = arg.allow_raw_access {
+            asset.allow_raw_access = allow_raw_access
+        }
+        Ok(())
+    }
+
+    // Returns keys that needs to be updated if the supplied key is changed.
+    fn dependent_keys<'a>(&self, key: &Key) -> Vec<Key> {
+        if self
+            .assets
+            .get(key)
+            .and_then(|asset| asset.is_aliased)
+            .unwrap_or(DEFAULT_ALIAS_ENABLED)
+        {
+            aliased_by(key)
+                .into_iter()
+                .filter(|k| !self.assets.contains_key(k))
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 }
 
@@ -554,17 +677,28 @@ impl From<StableState> for State {
             ..Self::default()
         };
 
-        for (asset_name, asset) in state.assets.iter_mut() {
-            for enc in asset.encodings.values_mut() {
-                enc.certified = false;
+        let assets_keys: Vec<_> = state.assets.keys().cloned().collect();
+        for key in assets_keys {
+            let dependent_keys = state.dependent_keys(&key);
+            if let Some(asset) = state.assets.get_mut(&key) {
+                for enc in asset.encodings.values_mut() {
+                    enc.certified = false;
+                }
+                on_asset_change(&mut state.asset_hashes, &key, asset, dependent_keys);
+            } else {
+                // shouldn't reach this
             }
-            on_asset_change(&mut state.asset_hashes, asset_name, asset);
         }
         state
     }
 }
 
-fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset) {
+fn on_asset_change(
+    asset_hashes: &mut AssetHashes,
+    key: &str,
+    asset: &mut Asset,
+    dependent_keys: Vec<Key>,
+) {
     // If the most preferred encoding is present and certified,
     // there is nothing to do.
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
@@ -579,6 +713,9 @@ fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset)
 
     if asset.encodings.is_empty() {
         asset_hashes.delete(key.as_bytes());
+        for dependent in dependent_keys {
+            asset_hashes.delete(dependent.as_bytes());
+        }
         return;
     }
 
@@ -592,6 +729,9 @@ fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset)
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
         if let Some(enc) = asset.encodings.get_mut(*enc_name) {
             asset_hashes.insert(key.to_string(), enc.sha256);
+            for dependent in dependent_keys {
+                asset_hashes.insert(dependent, enc.sha256);
+            }
             enc.certified = true;
             return;
         }
@@ -602,6 +742,9 @@ fn on_asset_change(asset_hashes: &mut AssetHashes, key: &str, asset: &mut Asset)
     // almost never happen anyway.
     if let Some(enc) = asset.encodings.values_mut().next() {
         asset_hashes.insert(key.to_string(), enc.sha256);
+        for dependent in dependent_keys {
+            asset_hashes.insert(dependent, enc.sha256);
+        }
         enc.certified = true;
     }
 }
@@ -659,78 +802,29 @@ fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a> {
     }
 }
 
-fn create_token(
-    _asset: &Asset,
-    enc_name: &str,
-    enc: &AssetEncoding,
-    key: &str,
-    chunk_index: usize,
-) -> Option<StreamingCallbackToken> {
-    if chunk_index + 1 >= enc.content_chunks.len() {
-        None
+// path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
+fn aliases_of(key: &Key) -> Vec<Key> {
+    if key.ends_with('/') {
+        vec![format!("{}index.html", key)]
+    } else if !key.ends_with(".html") {
+        vec![format!("{}.html", key), format!("{}/index.html", key)]
     } else {
-        Some(StreamingCallbackToken {
-            key: key.to_string(),
-            content_encoding: enc_name.to_string(),
-            index: Nat::from(chunk_index + 1),
-            sha256: Some(ByteBuf::from(enc.sha256)),
-        })
+        Vec::new()
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn build_ok(
-    asset: &Asset,
-    enc_name: &str,
-    enc: &AssetEncoding,
-    key: &str,
-    chunk_index: usize,
-    certificate_header: Option<HeaderField>,
-    callback: Func,
-    etags: Vec<Hash>,
-) -> HttpResponse {
-    let mut headers = vec![("Content-Type".to_string(), asset.content_type.to_string())];
-    if enc_name != "identity" {
-        headers.push(("Content-Encoding".to_string(), enc_name.to_string()));
-    }
-    if let Some(head) = certificate_header {
-        headers.push(head);
-    }
-    if let Some(max_age) = asset.max_age {
-        headers.push(("Cache-Control".to_string(), format!("max-age={}", max_age)));
-    }
-    if let Some(arg_headers) = asset.headers.as_ref() {
-        for (k, v) in arg_headers {
-            headers.push((k.to_owned(), v.to_owned()));
-        }
-    }
-
-    let streaming_strategy = create_token(asset, enc_name, enc, key, chunk_index)
-        .map(|token| StreamingStrategy::Callback { callback, token });
-
-    let (status_code, body) = if etags.contains(&enc.sha256) {
-        (304, RcBytes::default())
+// Determines possible original keys in case the supplied key is being aliaseded to.
+// Sort-of a reverse operation of `alias_of`
+fn aliased_by(key: &Key) -> Vec<Key> {
+    if key.ends_with("/index.html") {
+        vec![
+            key[..(key.len() - 5)].into(),
+            key[..(key.len() - 10)].into(),
+            key[..(key.len() - 11)].to_string(),
+        ]
+    } else if key.ends_with(".html") {
+        vec![key[..(key.len() - 5)].to_string()]
     } else {
-        headers.push((
-            "ETag".to_string(),
-            format!("\"{}\"", hex::encode(enc.sha256)),
-        ));
-        (200, enc.content_chunks[chunk_index].clone())
-    };
-
-    HttpResponse {
-        status_code,
-        headers,
-        body,
-        streaming_strategy,
-    }
-}
-
-fn build_404(certificate_header: HeaderField) -> HttpResponse {
-    HttpResponse {
-        status_code: 404,
-        headers: vec![certificate_header],
-        body: RcBytes::from(ByteBuf::from("not found")),
-        streaming_strategy: None,
+        Vec::new()
     }
 }

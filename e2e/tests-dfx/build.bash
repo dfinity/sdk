@@ -9,9 +9,54 @@ setup() {
 }
 
 teardown() {
+    stop_webserver
     dfx_stop
 
     standard_teardown
+}
+
+@test "can build a custom canister with wasm and/or candid from a url" {
+    install_asset wasm/identity
+    mkdir -p www/wasm
+    mv main.wasm www/wasm/
+    mv main.did www/wasm
+    start_webserver --directory www
+    dfx_start
+
+    dfx_new
+
+    jq '.canisters={}' dfx.json | sponge dfx.json
+
+    jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
+
+    dfx deploy
+
+    ID=$(dfx canister id e2e_project)
+    assert_command dfx canister call e2e_project getCanisterId
+    assert_match "$ID"
+}
+
+@test "report an error if a canister defines both a wasm url and a build step" {
+    install_asset wasm/identity
+    mkdir -p www/wasm
+    mv main.wasm www/wasm/
+    mv main.did www/wasm
+    start_webserver --directory www
+    dfx_start
+
+    dfx_new
+
+    jq '.canisters={}' dfx.json | sponge dfx.json
+
+    jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project.build="echo nope"' dfx.json | sponge dfx.json
+
+    assert_command_fail dfx deploy
+    assert_contains "Canister 'e2e_project' defines its wasm field as a URL, and has a build step."
 }
 
 @test "build uses default build args" {
@@ -65,6 +110,27 @@ teardown() {
     dfx_start
     dfx canister create --all
     assert_command dfx build
+}
+
+@test "build succeeds if disable shrink" {
+    jq '.canisters.e2e_project_backend.shrink=false' dfx.json | sponge dfx.json
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
+}
+
+@test "build custom canister default no shrink" {
+    install_asset custom_canister
+    install_asset wasm/identity
+
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build custom
+    assert_not_match "Shrink"
+
+    jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
+    assert_command dfx build custom
+    assert_match "Shrink"
 }
 
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
@@ -204,28 +270,4 @@ teardown() {
   assert_command dfx build --network actuallylocal
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/e2e_project_backend.wasm
-}
-
-@test "does not add candid:service metadata for a custom canister if there are no build steps" {
-  install_asset prebuilt_custom_canister
-  install_asset wasm/identity
-
-  dfx_start
-  dfx deploy
-
-  # this canister has a build step, so dfx sets the candid metadata
-  dfx canister metadata custom_with_build_step candid:service >from_canister.txt
-  diff custom_with_build_step.did from_canister.txt
-
-  # this canister doesn't have a build step, so dfx leaves the candid metadata as-is
-  dfx canister metadata prebuilt_custom_no_build candid:service >from_canister.txt
-  diff main.did from_canister.txt
-
-  # this canister has a build step, but it is an empty string, so dfx leaves the candid:service metadata as-is
-  dfx canister metadata prebuilt_custom_blank_build candid:service >from_canister.txt
-  diff main.did from_canister.txt
-
-  # this canister has a build step, but it is an empty array, so dfx leaves the candid:service metadata as-is
-  dfx canister metadata prebuilt_custom_empty_build candid:service >from_canister.txt
-  diff main.did from_canister.txt
 }

@@ -1,6 +1,7 @@
 set -e
 load "${BATSLIB}/load.bash"
 load ../utils/assertions
+load ../utils/webserver
 
 # Takes a name of the asset folder, and copy those files to the current project.
 install_asset() {
@@ -24,7 +25,7 @@ standard_setup() {
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export E2E_TEMP_DIR="$x"
 
-    cache_root="${E2E_CACHE_ROOT:-$x/cache-root}"
+    cache_root="${E2E_CACHE_ROOT:-"$HOME/.e2e-cache-root"}"
 
     mkdir "$x/working-dir"
     mkdir -p "$cache_root"
@@ -37,6 +38,7 @@ standard_setup() {
     export DFX_CACHE_ROOT="$cache_root"
     export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
+    export MOCK_KEYRING_LOCATION="$HOME/mock_keyring.json"
 
     if [ "$(uname)" == "Darwin" ]; then
         export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/Library/Application Support/org.dfinity.dfx/network/local"

@@ -10,15 +10,6 @@ The bootstrap web server you specify is used to serve the front-end static asset
 dfx bootstrap [option]
 ```
 
-## Flags {#_flags}
-
-You can use the following optional flags with the `dfx bootstrap` command.
-
-| Flag                 | Description                                   |
------------------------|-----------------------------------------------|
-| `-h`, `--help`       | Displays usage information.                   |
-| `-V`, `--version`    | Displays version information.                 |
-
 ## Options {#_options}
 
 You can specify the following options for the `dfx bootstrap` command.

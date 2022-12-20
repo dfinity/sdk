@@ -34,15 +34,6 @@ Use the `dfx cache delete` command to delete a specified version of `dfx` from t
 dfx cache delete [version] [flag]
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx cache delete` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Arguments
 
 You can specify the following argument for the `dfx cache delete` command.
@@ -69,15 +60,6 @@ Use the `dfx cache install` command to install `dfx` using the version currently
 dfx cache install [flag]
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx cache install` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Examples
 
 You can use the `dfx cache install` command to force the installation of `dfx` from the version in the cache. For example, you can run the following command to install `dfx`:
@@ -97,15 +79,6 @@ If you have multiple versions of `dfx` installed, the cache list displays an ast
 ``` bash
 dfx cache list [flag]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx cache list` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Examples
 
@@ -132,15 +105,6 @@ Use the `dfx cache show` command to display the full path to the cache used by t
 ``` bash
 dfx cache show [flag]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx cache show` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Examples
 

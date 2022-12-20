@@ -13,6 +13,17 @@ on:
     # * is a special character in YAML so you have to quote this string
     # Run every hour
     - cron:  '0 * * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   niv-updater:
     name: 'Check for Motoko updates'

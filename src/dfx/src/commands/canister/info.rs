@@ -29,10 +29,15 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         .or_else(|_| canister_id_store.get(callee_canister))?;
 
     fetch_root_key_if_needed(env).await?;
-    let controller_blob = agent
-        .read_state_canister_info(canister_id, "controllers", false)
+    let controller_blob = match agent
+        .read_state_canister_info(canister_id, "controllers")
         .await
-        .with_context(|| format!("Failed to read controllers of canister {}.", canister_id))?;
+    {
+        Err(AgentError::LookupPathUnknown(_) | AgentError::LookupPathAbsent(_)) => {
+            bail!("Canister {canister_id} does not exist.")
+        }
+        r => r.with_context(|| format!("Failed to read controllers of canister {canister_id}."))?,
+    };
     let cbor: Value = serde_cbor::from_slice(&controller_blob)
         .map_err(|_| anyhow!("Invalid cbor data in controllers canister info."))?;
     let controllers = if let Value::Array(vec) = cbor {
@@ -61,7 +66,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     .context("Failed to determine controllers.")?;
 
     let module_hash_hex = match agent
-        .read_state_canister_info(canister_id, "module_hash", false)
+        .read_state_canister_info(canister_id, "module_hash")
         .await
     {
         Ok(blob) => format!("0x{}", hex::encode(&blob)),

@@ -16,13 +16,16 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 mod assets;
 mod custom;
 mod motoko;
+mod pull;
 mod rust;
+
+pub use custom::custom_download;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -41,7 +44,6 @@ pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
-    pub add_candid_service_metadata: bool,
 }
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.
@@ -116,16 +118,6 @@ pub trait CanisterBuilder {
                 )
             })?;
         }
-        std::fs::create_dir_all(&generate_output_dir).with_context(|| {
-            format!(
-                "Failed to create dir: {}",
-                generate_output_dir.to_string_lossy()
-            )
-        })?;
-
-        let generated_idl_path = self.generate_idl(pool, info, config)?;
-
-        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
 
         let bindings = info
             .get_declarations_config()
@@ -143,6 +135,17 @@ pub trait CanisterBuilder {
             );
         }
 
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
+            format!(
+                "Failed to create dir: {}",
+                generate_output_dir.to_string_lossy()
+            )
+        })?;
+
+        let generated_idl_path = self.generate_idl(pool, info, config)?;
+
+        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
+
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
@@ -156,6 +159,8 @@ pub trait CanisterBuilder {
                 )
             })?;
             eprintln!("  {}", &output_did_ts_path.display());
+
+            compile_handlebars_files("ts", info, generate_output_dir)?;
         }
 
         // Javascript
@@ -172,78 +177,8 @@ pub trait CanisterBuilder {
                 )
             })?;
             eprintln!("  {}", &output_did_js_path.display());
-            // index.js
-            let mut language_bindings = crate::util::assets::language_bindings()
-                .context("Failed to get language bindings archive.")?;
-            for f in language_bindings
-                .entries()
-                .context("Failed to read language bindings archive entries.")?
-            {
-                let mut file = f.context("Failed to read language bindings archive entry.")?;
 
-                let pathname: PathBuf = file
-                    .path()
-                    .context("Failed to read language bindings entry path name.")?
-                    .to_path_buf();
-                let extension = pathname.extension();
-                let is_template = matches! (extension, Some (ext ) if ext == OsStr::new("hbs"));
-
-                if is_template {
-                    let mut file_contents = String::new();
-                    file.read_to_string(&mut file_contents)
-                        .context("Failed to read language bindings archive file content.")?;
-
-                    // create the handlebars registry
-                    let handlebars = Handlebars::new();
-
-                    let mut data: BTreeMap<String, &String> = BTreeMap::new();
-
-                    let canister_name = &info.get_name().to_string();
-
-                    let node_compatibility = info.get_declarations_config().node_compatibility;
-
-                    // Insert only if node outputs are specified
-                    let actor_export = if node_compatibility {
-                        // leave empty for nodejs
-                        "".to_string()
-                    } else {
-                        format!(
-                            r#"
-
-/**
- * A ready-to-use agent for the {0} canister
- * @type {{import("@dfinity/agent").ActorSubclass<import("./{0}.did.js")._SERVICE>}}
-*/
-export const {0} = createActor(canisterId);"#,
-                            canister_name
-                        )
-                        .to_string()
-                    };
-
-                    data.insert("canister_name".to_string(), canister_name);
-                    data.insert("actor_export".to_string(), &actor_export);
-
-                    let process_string: String = match &info.get_declarations_config().env_override
-                    {
-                        Some(s) => format!(r#""{}""#, s.clone()),
-                        None => {
-                            format!(
-                                "process.env.{}{}",
-                                &canister_name.to_ascii_uppercase(),
-                                "_CANISTER_ID"
-                            )
-                        }
-                    };
-
-                    data.insert("canister_name_process_env".to_string(), &process_string);
-
-                    let new_file_contents =
-                        handlebars.render_template(&file_contents, &data).unwrap();
-                    let new_path = generate_output_dir.join(pathname.with_extension(""));
-                    std::fs::write(&new_path, new_file_contents)
-                        .with_context(|| format!("Failed to write to {}.", new_path.display()))?;
-                }
-            }
+            compile_handlebars_files("js", info, generate_output_dir)?;
         }
 
         // Motoko
@@ -264,8 +199,12 @@ export const {0} = createActor(canisterId);"#,
                 format!("Failed to remove {}.", generated_idl_path.to_string_lossy())
             })?;
         } else {
-            eprintln!("  {}", &generated_idl_path.display());
+            let relative_idl_path = generated_idl_path
+                .strip_prefix(info.get_workspace_root())
+                .unwrap_or(&generated_idl_path);
+            eprintln!("  {}", &relative_idl_path.display());
         }
+
         Ok(())
     }
 
@@ -277,6 +216,83 @@ export const {0} = createActor(canisterId);"#,
     ) -> DfxResult<PathBuf> {
         Ok(PathBuf::new())
     }
+}
+
+fn compile_handlebars_files(
+    lang: &str,
+    info: &CanisterInfo,
+    generate_output_dir: &Path,
+) -> DfxResult {
+    // index.js
+    let mut language_bindings = crate::util::assets::language_bindings()
+        .context("Failed to get language bindings archive.")?;
+    for f in language_bindings
+        .entries()
+        .context("Failed to read language bindings archive entries.")?
+    {
+        let mut file = f.context("Failed to read language bindings archive entry.")?;
+
+        let pathname: PathBuf = file
+            .path()
+            .context("Failed to read language bindings entry path name.")?
+            .to_path_buf();
+        let file_extension = format!("{}.hbs", lang);
+        let is_template = pathname
+            .to_str()
+            .map_or(false, |name| name.ends_with(&file_extension));
+
+        if is_template {
+            let mut file_contents = String::new();
+            file.read_to_string(&mut file_contents)
+                .context("Failed to read language bindings archive file content.")?;
+
+            // create the handlebars registry
+            let handlebars = Handlebars::new();
+
+            let mut data: BTreeMap<String, &String> = BTreeMap::new();
+
+            let canister_name = &info.get_name().to_string();
+
+            let node_compatibility = info.get_declarations_config().node_compatibility;
+
+            // Insert only if node outputs are specified
+            let actor_export = if node_compatibility {
+                // leave empty for nodejs
+                "".to_string()
+            } else {
+                format!(
+                    r#"
+
+export const {0} = createActor(canisterId);"#,
+                    canister_name
+                )
+                .to_string()
+            };
+
+            data.insert("canister_name".to_string(), canister_name);
+            data.insert("actor_export".to_string(), &actor_export);
+
+            let process_string: String = match &info.get_declarations_config().env_override {
+                Some(s) => format!(r#""{}""#, s.clone()),
+                None => {
+                    format!(
+                        "process.env.{}{}",
+                        &canister_name.to_ascii_uppercase(),
+                        "_CANISTER_ID"
+                    )
+                }
+            };
+
+            data.insert("canister_name_process_env".to_string(), &process_string);
+
+            let new_file_contents = handlebars.render_template(&file_contents, &data).unwrap();
+            let new_path = generate_output_dir.join(pathname.with_extension(""));
+            std::fs::write(&new_path, new_file_contents)
+                .with_context(|| format!("Failed to write to {}.", new_path.display()))?;
+        }
+    }
+
+    Ok(())
 }
 
 // TODO: this function was copied from src/lib/models/canister.rs
@@ -314,14 +330,20 @@ pub fn environment_variables<'a>(
             };
 
             vars.push((
-                Owned(format!("CANISTER_CANDID_PATH_{}", canister.get_name())),
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_")
+                )),
                 Borrowed(candid_path),
             ));
         }
     }
     for canister in pool.get_canister_list() {
         vars.push((
-            Owned(format!("CANISTER_ID_{}", canister.get_name())),
+            Owned(format!(
+                "CANISTER_ID_{}",
+                canister.get_name().replace('-', "_")
+            )),
             Owned(canister.canister_id().to_text().into()),
         ));
     }
@@ -334,7 +356,7 @@ pub fn environment_variables<'a>(
     vars
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
@@ -346,6 +368,9 @@ pub struct BuildConfig {
     pub lsp_root: PathBuf,
     /// The root for all build files.
     pub build_root: PathBuf,
+    /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
+    /// If all canisters should be built, then this is None.
+    pub canisters_to_build: Option<Vec<String>>,
 }
 
 impl BuildConfig {
@@ -363,6 +388,7 @@ impl BuildConfig {
             build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
+            canisters_to_build: None,
         })
     }
 
@@ -372,6 +398,24 @@ impl BuildConfig {
             ..self
         }
     }
+
+    pub fn with_canisters_to_build(self, canisters: Vec<String>) -> Self {
+        Self {
+            canisters_to_build: Some(canisters),
+            ..self
+        }
+    }
+}
+
+#[context("Failed to shrink wasm at {}.", &wasm_path.as_ref().display())]
+fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
+    let wasm_path = wasm_path.as_ref();
+    let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
+    let shrinked_wasm =
+        ic_wasm::shrink::shrink(&wasm).context("Could not shrink the WASM module.")?;
+    std::fs::write(wasm_path, &shrinked_wasm)
+        .with_context(|| format!("Could not write shrinked WASM to {:?}", wasm_path))?;
+    Ok(())
 }
 
 pub struct BuilderPool {
@@ -389,6 +433,7 @@ impl BuilderPool {
             ("custom", Arc::new(custom::CustomBuilder::new(env)?)),
             ("motoko", Arc::new(motoko::MotokoBuilder::new(env)?)),
             ("rust", Arc::new(rust::RustBuilder::new(env)?)),
+            ("pull", Arc::new(pull::PullBuilder::new(env)?)),
         ]);
 
         Ok(Self { builders })

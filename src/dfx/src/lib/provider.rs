@@ -11,13 +11,12 @@ use crate::lib::network::local_server_descriptor::{
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
 use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
 use ic_agent::Agent;
 use lazy_static::lazy_static;
-use slog::{info, warn, Logger};
+use slog::{debug, info, warn, Logger};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -61,6 +60,7 @@ fn config_network_to_network_descriptor(
     ephemeral_wallet_config_path: &Path,
     local_bind_determination: &LocalBindDetermination,
     default_local_bind: &str,
+    legacy_pid_path: Option<PathBuf>,
 ) -> DfxResult<NetworkDescriptor> {
     match config_network {
         ConfigNetwork::ConfigNetworkProvider(network_provider) => {
@@ -128,6 +128,7 @@ fn config_network_to_network_descriptor(
                 canister_http,
                 replica,
                 local_scope,
+                legacy_pid_path,
             )?;
             Ok(NetworkDescriptor {
                 name: network_name.to_string(),
@@ -238,14 +239,14 @@ fn create_shared_network_descriptor(
         }
         (network_name, None) => {
             if shared_config_file_exists {
-                info!(
+                debug!(
                     logger,
                     "There is no shared network '{}' defined in {}",
                     &shared_config_display_path,
                     network_name
                 );
             } else {
-                info!(
+                debug!(
                     logger,
                     "There is no shared network '{}' because {} does not exist.",
                     network_name,
@@ -257,7 +258,7 @@ fn create_shared_network_descriptor(
         (network_name, Some(network)) => {
             info!(
                 logger,
-                "Found shared network '{}' in {}",
+                "Using shared network '{}' defined in {}",
                 network_name,
                 shared_config.get_path().display()
             );
@@ -280,6 +281,7 @@ fn create_shared_network_descriptor(
             &ephemeral_wallet_config_path,
             local_bind_determination,
             DEFAULT_SHARED_LOCAL_BIND,
+            None,
         )
     })
 }
@@ -294,7 +296,7 @@ fn create_project_network_descriptor(
         if let Some(config_network) = config.get_config().get_network(network_name) {
             info!(
                 logger,
-                "Found project-specific network '{}' in {}",
+                "Using project-specific network '{}' defined in {}",
                 network_name,
                 config.get_path().display(),
             );
@@ -304,6 +306,7 @@ fn create_project_network_descriptor(
             );
 
             let data_directory = config.get_temp_path().join("network").join(network_name);
+            let legacy_pid_path = Some(config.get_temp_path().join("pid"));
             let ephemeral_wallet_config_path = config
                 .get_temp_path()
                 .join("local")
@@ -317,18 +320,19 @@ fn create_project_network_descriptor(
                 &ephemeral_wallet_config_path,
                 local_bind_determination,
                 DEFAULT_PROJECT_LOCAL_BIND,
+                legacy_pid_path,
             ))
         } else {
-            info!(
+            debug!(
                 logger,
-                "There is no project-specific network '{}' defined in {}.",
+                "There is no project-specific network '{}' defined in {}",
                 network_name,
                 config.get_path().display()
             );
             None
         }
     } else {
-        info!(
+        debug!(
             logger,
             "There is no project-specific network '{}' because there is no project (no dfx.json).",
             network_name
@@ -436,24 +440,28 @@ pub async fn ping_and_wait(url: &str) -> DfxResult {
         )
         .build()
         .with_context(|| format!("Failed to build agent with url {url}."))?;
-    let mut waiter = Delay::builder()
-        .timeout(Duration::from_secs(60))
-        .throttle(Duration::from_secs(1))
-        .build();
-    waiter.start();
+    let mut retries = 0;
     loop {
         let status = agent.status().await;
-        if let Ok(status) = &status {
-            let healthy = match &status.replica_health_status {
-                Some(status) if status == "healthy" => true,
-                None => true, // emulator doesn't report replica_health_status
-                _ => false,
-            };
-            if healthy {
-                break;
+        match status {
+            Ok(status) => {
+                let healthy = match &status.replica_health_status {
+                    Some(status) if status == "healthy" => true,
+                    None => true, // emulator doesn't report replica_health_status
+                    _ => false,
+                };
+                if healthy {
+                    break;
+                }
+            }
+            Err(e) => {
+                if retries >= 60 {
+                    bail!(e);
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                retries += 1;
             }
         }
-        waiter.wait().map_err(|_| status.unwrap_err())?;
     }
     Ok(())
 }
@@ -464,7 +472,7 @@ mod tests {
     use crate::config::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
     use crate::config::dfinity::{
         to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
-        ConfigDefaultsReplica,
+        ConfigDefaultsReplica, ReplicaLogLevel,
     };
     use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
     use std::fs;
@@ -884,7 +892,8 @@ mod tests {
                   "bind": "127.0.0.1:8000",
                   "replica": {
                     "subnet_type": "verifiedapplication",
-                    "port": 17001
+                    "port": 17001,
+                    "log_level": "trace"
                   }
                 }
               }
@@ -909,7 +918,8 @@ mod tests {
             replica_config,
             &ConfigDefaultsReplica {
                 subnet_type: Some(VerifiedApplication),
-                port: Some(17001)
+                port: Some(17001),
+                log_level: Some(ReplicaLogLevel::Trace)
             }
         );
     }
@@ -955,7 +965,8 @@ mod tests {
             replica_config,
             &ConfigDefaultsReplica {
                 subnet_type: Some(System),
-                port: None
+                port: None,
+                log_level: None
             }
         );
     }
@@ -968,7 +979,8 @@ mod tests {
                 "local": {
                   "bind": "127.0.0.1:8000",
                   "canister_http": {
-                    "enabled": true
+                    "enabled": true,
+                    "log_level": "debug"
                   }
                 }
               }
@@ -991,7 +1003,10 @@ mod tests {
 
         assert_eq!(
             canister_http_config,
-            &ConfigDefaultsCanisterHttp { enabled: true }
+            &ConfigDefaultsCanisterHttp {
+                enabled: true,
+                log_level: crate::lib::canister_http::adapter::config::HttpAdapterLogLevel::Debug
+            }
         );
     }
 

@@ -26,9 +26,8 @@ use crate::{
             ledger::{balance, xdr_permyriad_per_icp},
         },
         provider::create_agent_environment,
-        waiter::waiter_with_timeout,
     },
-    util::{assets::wallet_wasm, expiry_duration},
+    util::assets::wallet_wasm,
 };
 
 pub fn exec(env: &dyn Environment) -> DfxResult {
@@ -96,7 +95,7 @@ async fn step_import_wallet(env: &dyn Environment, agent: &Agent, ident: &str) -
         let wasm = wallet_wasm(env.get_logger())?;
         mgmt.install_code(&id, &wasm)
             .with_mode(InstallMode::Install)
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .call_and_wait()
             .await?;
         WalletCanister::create(agent, id).await?
     };
@@ -171,7 +170,7 @@ async fn step_interact_ledger(
     let notify_spinner = ProgressBar::new_spinner();
     notify_spinner.set_message("Notifying the the cycles minting canister...");
     notify_spinner.enable_steady_tick(100);
-    let res = notify_create(agent, ident_principal, height).await
+    let res = notify_create(agent, ident_principal, height, None).await
                         .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
     let wallet = match res {
         Ok(principal) => principal,

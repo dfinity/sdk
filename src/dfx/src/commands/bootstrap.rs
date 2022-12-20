@@ -6,6 +6,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::util::get_reusable_socket_addr;
 use crate::util::network::get_replica_urls;
+use crate::NetworkOpt;
 
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
@@ -24,12 +25,8 @@ pub struct BootstrapOpts {
     #[clap(long)]
     port: Option<String>,
 
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[clap(long)]
-    network: Option<String>,
+    #[clap(flatten)]
+    network: NetworkOpt,
 
     /// Specifies the maximum number of seconds that the bootstrap server
     /// will wait for upstream requests to complete. Defaults to 30.
@@ -50,14 +47,14 @@ pub fn exec(
     let network_descriptor = create_network_descriptor(
         env.get_config(),
         env.get_networks_config(),
-        network,
+        network.network,
         Some(env.get_logger().clone()),
         LocalBindDetermination::AsConfigured,
     )?;
     let network_descriptor =
         apply_arguments(network_descriptor, ip, port.as_deref(), timeout.as_deref())?;
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
-    local_server_descriptor.describe_bootstrap();
+    local_server_descriptor.describe_bootstrap(env.get_logger());
     let config_bootstrap = &local_server_descriptor.bootstrap;
 
     create_dir_all(&local_server_descriptor.data_directory).with_context(|| {
@@ -102,6 +99,7 @@ pub fn exec(
                 bind: socket_addr,
                 replica_urls,
                 fetch_root_key: !network_descriptor.is_ic,
+                verbose: env.get_verbose_level() > 0,
             };
 
             let port_ready_subscribe = None;

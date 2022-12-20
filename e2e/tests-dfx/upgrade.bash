@@ -2,10 +2,13 @@
 
 load ../utils/_
 
-RANDOM_EMPHEMERAL_PORT=$(shuf -i 49152-65535 -n 1)
-
 setup() {
     standard_setup
+}
+
+teardown() {
+    stop_webserver
+    standard_teardown
 }
 
 @test "upgrade succeeds" {
@@ -26,26 +29,21 @@ setup() {
         "0.4.7"
       ]
     }' > manifest.json
-    python3 -m http.server "$RANDOM_EMPHEMERAL_PORT" &
-    WEB_SERVER_PID=$!
 
-    while ! nc -z localhost "$RANDOM_EMPHEMERAL_PORT"; do
-        sleep 1
-    done
+    start_webserver
 
     # Override current version to force upgrade
     assert_command ./dfx upgrade \
         --current-version 0.4.6 \
-        --release-root "http://localhost:$RANDOM_EMPHEMERAL_PORT"
+        --release-root "http://localhost:$E2E_WEB_SERVER_PORT"
     assert_match "Current version: .*"
     assert_match "Fetching manifest .*"
     assert_match "New version available: .*"
 
     assert_command ./dfx upgrade \
-        --release-root "http://localhost:$RANDOM_EMPHEMERAL_PORT"
+        --release-root "http://localhost:$E2E_WEB_SERVER_PORT"
     assert_match "Already up to date"
 
-    kill "$WEB_SERVER_PID"
     assert_command ./dfx --version
-    assert_match "$version"
+    assert_contains "$version"
 }

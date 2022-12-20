@@ -10,7 +10,6 @@ use ic_agent::{agent, Agent, Identity};
 
 use crate::commands::upload::upload;
 use std::path::PathBuf;
-use std::time::Duration;
 
 const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 
@@ -22,7 +21,7 @@ const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
 )]
 struct Opts {
     /// Some input. Because this isn't an Option<T> it's required to be used
-    #[clap(long, default_value = "http://localhost:8000/")]
+    #[clap(long, default_value = "http://localhost:4943/")]
     replica: String,
 
     /// An optional PEM file to read the identity from. If none is passed,
@@ -97,11 +96,6 @@ fn create_identity(maybe_pem: Option<PathBuf>) -> Box<dyn Identity + Sync + Send
 async fn main() -> support::Result {
     let opts: Opts = Opts::parse();
 
-    let ttl: std::time::Duration = opts
-        .ttl
-        .map(|ht| ht.into())
-        .unwrap_or_else(|| Duration::from_secs(60 * 5)); // 5 minutes is max ingress timeout
-
     let agent = Agent::builder()
         .with_transport(
             agent::http_transport::ReqwestHttpReplicaV2Transport::create(opts.replica.clone())?,
@@ -127,7 +121,7 @@ async fn main() -> support::Result {
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            sync(&canister, ttl, o).await?;
+            sync(&canister, o).await?;
         }
         SubCommand::Upload(o) => {
             let canister = ic_utils::Canister::builder()

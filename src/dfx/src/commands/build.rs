@@ -4,8 +4,10 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
+use crate::NetworkOpt;
 
 use clap::Parser;
+use tokio::runtime::Runtime;
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
 #[derive(Parser)]
@@ -22,16 +24,12 @@ pub struct CanisterBuildOpts {
     #[clap(long)]
     check: bool,
 
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[clap(long)]
-    network: Option<String>,
+    #[clap(flatten)]
+    network: NetworkOpt,
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network)?;
+    let env = create_agent_environment(env, opts.network.network)?;
 
     let logger = env.get_logger();
 
@@ -43,20 +41,28 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     env.get_cache().install()?;
 
     let build_mode_check = opts.check;
-    let _all = opts.all;
 
     // Option can be None in which case --all was specified
-    let canister_names = config
+    let canisters_to_load = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
+    let canisters_to_build = canisters_to_load
+        .clone()
+        .into_iter()
+        .filter(|canister_name| {
+            !config
+                .get_config()
+                .is_remote_canister(canister_name, &env.get_network_descriptor().name)
+                .unwrap_or(false)
+        })
+        .collect();
 
-    // Get pool of canisters to build
-    let canister_pool = CanisterPool::load(&env, build_mode_check, &canister_names)?;
+    let canister_pool = CanisterPool::load(&env, build_mode_check, &canisters_to_load)?;
 
     // Create canisters on the replica and associate canister ids locally.
     if build_mode_check {
         slog::warn!(
-            env.get_logger(),
+            logger,
             "Building canisters to check they build ok. Canister IDs might be hard coded."
         );
     } else {
@@ -71,9 +77,11 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     slog::info!(logger, "Building canisters...");
 
-    canister_pool.build_or_fail(
-        &BuildConfig::from_config(&config)?.with_build_mode_check(build_mode_check),
-    )?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
+    let build_config = BuildConfig::from_config(&config)?
+        .with_build_mode_check(build_mode_check)
+        .with_canisters_to_build(canisters_to_build);
+    runtime.block_on(canister_pool.build_or_fail(logger, &build_config))?;
 
     Ok(())
 }

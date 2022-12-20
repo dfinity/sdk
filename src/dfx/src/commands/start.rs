@@ -4,6 +4,7 @@ use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
     start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
+use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -19,14 +20,15 @@ use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
+use os_str_bytes::{OsStrBytes, OsStringBytes};
+use slog::{info, warn, Logger};
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -75,14 +77,10 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
 fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxResult {
-    let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .throttle(std::time::Duration::from_secs(1))
-        .build();
     let runtime = Runtime::new().expect("Unable to create a runtime");
     let port = runtime
         .block_on(async {
-            waiter.start();
+            let mut retries = 0;
             let mut contents = String::new();
             loop {
                 let tokio_file = tokio::fs::File::open(&webserver_port_path)
@@ -97,7 +95,11 @@ fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxRe
                 if !contents.is_empty() {
                     break;
                 }
-                waiter.wait().map_err(|err| anyhow!("{:?}", err))?;
+                if retries >= 30 {
+                    bail!("Timed out waiting for replica to become healthy");
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                retries += 1;
             }
             Ok::<String, DfxError>(contents.clone())
         })
@@ -126,6 +128,13 @@ pub fn exec(
         enable_canister_http,
     }: StartOpts,
 ) -> DfxResult {
+    if !background {
+        info!(
+            env.get_logger(),
+            "Running dfx start for version {}",
+            dfx_version_str()
+        );
+    }
     let project_config = env.get_config();
 
     let network_descriptor_logger = if background {
@@ -142,6 +151,7 @@ pub fn exec(
     )?;
 
     let network_descriptor = apply_command_line_parameters(
+        env.get_logger(),
         network_descriptor,
         host,
         None,
@@ -153,7 +163,7 @@ pub fn exec(
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
     let pid_file_path = local_server_descriptor.dfx_pid_path();
 
-    check_previous_process_running(&pid_file_path)?;
+    check_previous_process_running(local_server_descriptor)?;
 
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
@@ -211,7 +221,7 @@ pub fn exec(
         send_background()?;
         return fg_ping_and_wait(webserver_port_path, frontend_url);
     }
-    local_server_descriptor.describe(true, false);
+    local_server_descriptor.describe(env.get_logger(), true, false);
 
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
@@ -243,6 +253,10 @@ pub fn exec(
     let subnet_type = local_server_descriptor
         .replica
         .subnet_type
+        .unwrap_or_default();
+    let log_level = local_server_descriptor
+        .replica
+        .log_level
         .unwrap_or_default();
     let network_descriptor = network_descriptor.clone();
 
@@ -285,9 +299,8 @@ pub fn exec(
                 } else {
                     (None, None)
                 };
-
-            let mut replica_config =
-                ReplicaConfig::new(&state_root, subnet_type).with_random_port(&replica_port_path);
+            let mut replica_config = ReplicaConfig::new(&state_root, subnet_type, log_level)
+                .with_random_port(&replica_port_path);
             if btc_adapter_config.is_some() {
                 replica_config = replica_config.with_btc_adapter_enabled();
                 if let Some(btc_adapter_socket) = btc_adapter_socket_path {
@@ -316,6 +329,7 @@ pub fn exec(
             bind: address_and_port,
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
+            verbose: env.get_verbose_level() > 0,
         };
 
         let proxy = start_icx_proxy_actor(
@@ -340,6 +354,7 @@ pub fn exec(
 }
 
 pub fn apply_command_line_parameters(
+    logger: &Logger,
     network_descriptor: NetworkDescriptor,
     host: Option<String>,
     replica_port: Option<String>,
@@ -347,6 +362,14 @@ pub fn apply_command_line_parameters(
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
 ) -> DfxResult<NetworkDescriptor> {
+    if enable_canister_http {
+        warn!(
+            logger,
+            "The --enable-canister-http parameter is deprecated."
+        );
+        warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
+    }
+
     let _ = network_descriptor.local_server_descriptor()?;
     let mut local_server_descriptor = network_descriptor.local_server_descriptor.unwrap();
 
@@ -368,10 +391,6 @@ pub fn apply_command_line_parameters(
 
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
-    }
-
-    if enable_canister_http {
-        local_server_descriptor = local_server_descriptor.with_canister_http_enabled();
     }
 
     Ok(NetworkDescriptor {
@@ -412,7 +431,12 @@ fn send_background() -> DfxResult<()> {
     let exe = std::env::current_exe().context("Failed to get current executable.")?;
     let mut cmd = Command::new(exe);
     // Skip 1 because arg0 is this executable's path.
-    cmd.args(std::env::args().skip(1).filter(|a| !a.eq("--background")));
+    cmd.args(
+        std::env::args()
+            .skip(1)
+            .filter(|a| !a.eq("--background"))
+            .filter(|a| !a.eq("--clean")),
+    );
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())
@@ -441,16 +465,20 @@ fn frontend_address(
     Ok((frontend_url, address_and_port))
 }
 
-fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
-    if dfx_pid_path.exists() {
-        // Read and verify it's not running. If it is just return.
-        if let Ok(s) = std::fs::read_to_string(&dfx_pid_path) {
-            if let Ok(pid) = s.parse::<Pid>() {
-                // If we find the pid in the file, we tell the user and don't start!
-                let mut system = System::new();
-                system.refresh_processes();
-                if let Some(_process) = system.process(pid) {
-                    bail!("dfx is already running.");
+fn check_previous_process_running(
+    local_server_descriptor: &LocalServerDescriptor,
+) -> DfxResult<()> {
+    for pid_path in local_server_descriptor.dfx_pid_paths() {
+        if pid_path.exists() {
+            // Read and verify it's not running. If it is just return.
+            if let Ok(s) = std::fs::read_to_string(&pid_path) {
+                if let Ok(pid) = s.parse::<Pid>() {
+                    // If we find the pid in the file, we tell the user and don't start!
+                    let mut system = System::new();
+                    system.refresh_processes();
+                    if let Some(_process) = system.process(pid) {
+                        bail!("dfx is already running.");
+                    }
                 }
             }
         }
@@ -460,7 +488,7 @@ fn check_previous_process_running(dfx_pid_path: &Path) -> DfxResult<()> {
 
 fn write_pid(pid_file_path: &Path) {
     if let Ok(pid) = sysinfo::get_current_pid() {
-        let _ = std::fs::write(&pid_file_path, pid.to_string());
+        let _ = std::fs::write(pid_file_path, pid.to_string());
     }
 }
 
@@ -498,20 +526,20 @@ fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> Df
     // Unix domain socket names can only be so long.
     // An attempt to use a path under .dfx/ resulted in this error:
     //    path must be shorter than libc::sockaddr_un.sun_path
-    let uds_path = format!("/tmp/{}.{}.{}", prefix, pid, timestamp_seconds);
-    std::fs::write(uds_holder_path, &uds_path).with_context(|| {
+    let uds_path = std::env::temp_dir().join(format!("{}.{}.{}", prefix, pid, timestamp_seconds));
+    std::fs::write(uds_holder_path, &uds_path.to_raw_bytes()).with_context(|| {
         format!(
             "unable to write unix domain socket path to {}",
             uds_holder_path.to_string_lossy()
         )
     })?;
-    Ok(PathBuf::from(uds_path))
+    Ok(uds_path)
 }
 
 #[context("Failed to get persistent socket path for {} at {}.", prefix, uds_holder_path.to_string_lossy())]
 fn get_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<PathBuf> {
-    if let Ok(uds_path) = std::fs::read_to_string(uds_holder_path) {
-        Ok(PathBuf::from(uds_path.trim()))
+    if let Ok(uds_path) = std::fs::read(uds_holder_path) {
+        Ok(PathBuf::assert_from_raw_vec(uds_path))
     } else {
         create_new_persistent_socket_path(uds_holder_path, prefix)
     }
@@ -559,7 +587,8 @@ pub fn configure_canister_http_adapter_if_enabled(
     let socket_path =
         get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
 
-    let adapter_config = canister_http::adapter::Config::new(socket_path);
+    let log_level = local_server_descriptor.canister_http.log_level;
+    let adapter_config = canister_http::adapter::Config::new(socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;

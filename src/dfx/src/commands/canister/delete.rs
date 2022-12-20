@@ -10,9 +10,8 @@ use crate::lib::operations::canister::{
 };
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
-use crate::util::{blob_from_arguments, expiry_duration};
+use crate::util::blob_from_arguments;
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -29,12 +28,13 @@ use ic_utils::interfaces::ManagementCanister;
 use num_traits::cast::ToPrimitive;
 use slog::info;
 use std::convert::TryFrom;
-use std::time::Duration;
 
 #[allow(deprecated)]
 const DANK_PRINCIPAL: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
-const WITHDRAWAL_COST: u128 = 10_000_000_000; // Emperically estimated.
+
+// "Couldn't send message" when deleting a canister: increase WITHDRAWAL_COST
+const WITHDRAWAL_COST: u128 = 10_606_030_000; // 5% higher than a value observed ok locally
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a currently stopped canister.
@@ -77,7 +77,6 @@ pub struct CanisterDeleteOpts {
 async fn delete_canister(
     env: &dyn Environment,
     canister: &str,
-    timeout: Duration,
     call_sender: &CallSender,
     no_withdrawal: bool,
     withdraw_cycles_to_canister: Option<String>,
@@ -136,7 +135,7 @@ async fn delete_canister(
         );
 
         // Determine how many cycles we can withdraw.
-        let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
+        let status = canister::get_canister_status(env, canister_id, call_sender).await?;
         if status.status == CanisterStatus::Stopped {
             let agent = env
                 .get_agent()
@@ -153,7 +152,7 @@ async fn delete_canister(
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
             };
             info!(log, "Setting the controller to identity princpal.");
-            update_settings(env, canister_id, settings, timeout, call_sender).await?;
+            update_settings(env, canister_id, settings, call_sender).await?;
 
             // Install a temporary wallet wasm which will transfer the cycles out of the canister before it is deleted.
             let wasm_module = wallet_wasm(env.get_logger())?;
@@ -171,40 +170,42 @@ async fn delete_canister(
             let install_result = install_builder
                 .build()
                 .context("Failed to build InstallCode call.")?
-                .call_and_wait(waiter_with_timeout(timeout))
+                .call_and_wait()
                 .await;
             if install_result.is_ok() {
-                start_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
-                let status = canister::get_canister_status(
-                    env,
-                    canister_id,
-                    timeout,
-                    &CallSender::SelectedId,
-                )
-                .await?;
-                let mut cycles = status.cycles.0.to_u128().unwrap();
-                if cycles > WITHDRAWAL_COST {
-                    cycles -= WITHDRAWAL_COST;
-
-                    if !to_dank {
+                start_canister(env, canister_id, &CallSender::SelectedId).await?;
+                let status =
+                    canister::get_canister_status(env, canister_id, &CallSender::SelectedId)
+                        .await?;
+                let cycles = status.cycles.0.to_u128().unwrap();
+                let mut attempts = 0_u128;
+                loop {
+                    let margin = WITHDRAWAL_COST + attempts * WITHDRAWAL_COST / 10;
+                    if margin >= cycles {
+                        info!(log, "Too few cycles to withdraw: {}.", cycles);
+                        break;
+                    }
+                    let cycles_to_withdraw = cycles - margin;
+                    let result = if !to_dank {
                         info!(
                             log,
-                            "Transfering {} cycles to canister {}.", cycles, target_canister_id
+                            "Attempting to transfer {} cycles to canister {}.",
+                            cycles_to_withdraw,
+                            target_canister_id
                         );
                         // Transfer cycles from the source canister to the target canister using the temporary wallet.
                         deposit_cycles(
                             env,
                             target_canister_id,
-                            timeout,
                             &CallSender::Wallet(canister_id),
-                            cycles,
+                            cycles_to_withdraw,
                         )
-                        .await?;
+                        .await
                     } else {
                         info!(
                             log,
-                            "Transfering {} cycles to dank principal {}.",
-                            cycles,
+                            "Attempting to transfer {} cycles to dank principal {}.",
+                            cycles_to_withdraw,
                             dank_target_principal
                         );
                         let wallet = Identity::build_wallet_canister(canister_id, env).await?;
@@ -214,16 +215,24 @@ async fn delete_canister(
                                 target_canister_id,
                                 "mint",
                                 Argument::from_candid((opt_principal,)),
-                                cycles,
+                                cycles_to_withdraw,
                             )
-                            .call_and_wait(waiter_with_timeout(timeout))
+                            .call_and_wait()
                             .await
-                            .context("Failed mint call.")?;
+                            .context("Failed mint call.")
+                    };
+                    if result.is_ok() {
+                        info!(log, "Successfully withdrew {} cycles.", cycles_to_withdraw);
+                        break;
+                    } else if format!("{:?}", result).contains("Couldn't send message") {
+                        info!(log, "Not enough margin. Trying again with more margin.");
+                        attempts += 1;
+                    } else {
+                        // Unforseen error. Report it back to user
+                        result?;
                     }
-                } else {
-                    info!(log, "Too few cycles to withdraw: {}.", cycles);
                 }
-                stop_canister(env, canister_id, timeout, &CallSender::SelectedId).await?;
+                stop_canister(env, canister_id, &CallSender::SelectedId).await?;
             } else {
                 info!(
                     log,
@@ -241,12 +250,12 @@ async fn delete_canister(
 
     info!(
         log,
-        "Deleting code for canister {}, with canister_id {}",
+        "Deleting canister {}, with canister_id {}",
         canister,
         canister_id.to_text(),
     );
 
-    canister::delete_canister(env, canister_id, timeout, call_sender).await?;
+    canister::delete_canister(env, canister_id, call_sender).await?;
 
     canister_id_store.remove(canister)?;
 
@@ -259,7 +268,6 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let timeout = expiry_duration();
 
     fetch_root_key_if_needed(env).await?;
 
@@ -267,7 +275,6 @@ pub async fn exec(
         delete_canister(
             env,
             canister,
-            timeout,
             call_sender,
             opts.no_withdrawal,
             opts.withdraw_cycles_to_canister,
@@ -281,7 +288,6 @@ pub async fn exec(
                 delete_canister(
                     env,
                     canister,
-                    timeout,
                     call_sender,
                     opts.no_withdrawal,
                     opts.withdraw_cycles_to_canister.clone(),

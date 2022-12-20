@@ -171,6 +171,13 @@ teardown() {
     assert_command dfx canister deposit-cycles 1 hello_backend --wallet "$(dfx identity get-wallet)"
 }
 
+@test "dfx canister deposit-cycles uses default wallet if no wallet is specified" {
+    dfx_new hello
+    dfx_start
+    dfx deploy
+    assert_command dfx canister deposit-cycles 1 hello_backend
+}
+
 @test "detects if there is no wallet to upgrade" {
     dfx_new hello
     assert_command_fail dfx wallet upgrade
@@ -210,7 +217,7 @@ teardown() {
     unset DFX_DISABLE_AUTO_WALLET
 
     assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
-    assert_eq "Redeemed coupon code another-valid-coupon for 10.000 TC (trillion cycles)."
+    assert_match "Redeemed coupon code another-valid-coupon for 10.000 TC"
 
     assert_command dfx wallet balance
     # checking only balance before the dot, rest may fluctuate

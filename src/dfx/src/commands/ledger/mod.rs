@@ -1,5 +1,4 @@
-use crate::init_env;
-
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{
     AccountIdBlob, BlockHeight, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult,
@@ -9,23 +8,20 @@ use crate::lib::ledger_types::{
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::provider::create_agent_environment;
-use crate::lib::waiter::waiter_with_timeout;
-use crate::util::expiry_duration;
+use crate::NetworkOpt;
 
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use candid::Principal;
 use candid::{Decode, Encode};
 use clap::Parser;
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
-
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
-
-use super::NetworkOpts;
 
 const TRANSFER_METHOD: &str = "transfer";
 const NOTIFY_TOP_UP_METHOD: &str = "notify_top_up";
@@ -36,53 +32,48 @@ mod balance;
 pub mod create_canister;
 mod fabricate_cycles;
 mod notify;
+pub mod show_subnet_types;
 mod top_up;
 mod transfer;
 
 /// Ledger commands.
 #[derive(Parser)]
 #[clap(name("ledger"))]
-pub struct LedgerCommand {
+pub struct LedgerOpts {
+    #[clap(flatten)]
+    network: NetworkOpt,
+
     #[clap(subcommand)]
     subcmd: SubCommand,
 }
 
 #[derive(Parser)]
 enum SubCommand {
-    AccountId(NetworkOpts<account_id::AccountIdOpts>),
-    Balance(NetworkOpts<balance::BalanceOpts>),
-    CreateCanister(NetworkOpts<create_canister::CreateCanisterOpts>),
-    FabricateCycles(NetworkOpts<fabricate_cycles::FabricateCyclesOpts>),
-    Notify(NetworkOpts<notify::NotifyOpts>),
-    TopUp(NetworkOpts<top_up::TopUpOpts>),
-    Transfer(NetworkOpts<transfer::TransferOpts>),
+    AccountId(account_id::AccountIdOpts),
+    Balance(balance::BalanceOpts),
+    CreateCanister(create_canister::CreateCanisterOpts),
+    FabricateCycles(fabricate_cycles::FabricateCyclesOpts),
+    Notify(notify::NotifyOpts),
+    ShowSubnetTypes(show_subnet_types::ShowSubnetTypesOpts),
+    TopUp(top_up::TopUpOpts),
+    Transfer(transfer::TransferOpts),
 }
 
-macro_rules! with_env {
-    ($opts:expr, |$env:ident, $v:ident| $e:expr) => {{
-        let NetworkOpts { base_opts, network } = $opts;
-        let env = init_env(base_opts.env_opts)?;
-        let $env = create_agent_environment(&env, network)?;
-        let runtime = Runtime::new().expect("Unable to create a runtime");
-        let $v = base_opts.command_opts;
-        runtime.block_on($e)
-    }};
-}
-
-pub fn dispatch(cmd: LedgerCommand) -> DfxResult {
-    match cmd.subcmd {
-        SubCommand::AccountId(v) => with_env!(v, |env, v| account_id::exec(&env, v)),
-        SubCommand::Balance(v) => with_env!(v, |env, v| balance::exec(&env, v)),
-        SubCommand::CreateCanister(v) => {
-            with_env!(v, |env, v| create_canister::exec(&env, v))
+pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
+    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
+    runtime.block_on(async {
+        match opts.subcmd {
+            SubCommand::AccountId(v) => account_id::exec(&agent_env, v).await,
+            SubCommand::Balance(v) => balance::exec(&agent_env, v).await,
+            SubCommand::CreateCanister(v) => create_canister::exec(&agent_env, v).await,
+            SubCommand::FabricateCycles(v) => fabricate_cycles::exec(&agent_env, v).await,
+            SubCommand::Notify(v) => notify::exec(&agent_env, v).await,
+            SubCommand::ShowSubnetTypes(v) => show_subnet_types::exec(&agent_env, v).await,
+            SubCommand::TopUp(v) => top_up::exec(&agent_env, v).await,
+            SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
         }
-        SubCommand::FabricateCycles(v) => {
-            with_env!(v, |env, v| fabricate_cycles::exec(&env, v))
-        }
-        SubCommand::Notify(v) => with_env!(v, |env, v| notify::exec(&env, v)),
-        SubCommand::TopUp(v) => with_env!(v, |env, v| top_up::exec(&env, v)),
-        SubCommand::Transfer(v) => with_env!(v, |env, v| transfer::exec(&env, v)),
-    }
+    })
 }
 
 #[context("Failed to determine icp amount from supplied arguments.")]
@@ -132,15 +123,7 @@ pub async fn transfer(
         .unwrap()
         .as_nanos() as u64;
 
-    let mut waiter = Delay::builder()
-        .with(Delay::count_timeout(30))
-        .exponential_backoff_capped(
-            std::time::Duration::from_secs(1),
-            2.0,
-            std::time::Duration::from_secs(16),
-        )
-        .build();
-    waiter.start();
+    let mut retry_policy = ExponentialBackoff::default();
 
     let block_height: BlockHeight = loop {
         match agent
@@ -156,7 +139,7 @@ pub async fn transfer(
                 })
                 .context("Failed to encode arguments.")?,
             )
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .call_and_wait()
             .await
         {
             Ok(data) => {
@@ -173,8 +156,9 @@ pub async fn transfer(
             }
             Err(agent_err) => {
                 eprintln!("Waiting to retry after error: {:?}", &agent_err);
-                if let Err(_waiter_err) = waiter.async_wait().await {
-                    bail!(agent_err);
+                match retry_policy.next_backoff() {
+                    Some(duration) => tokio::time::sleep(duration).await,
+                    None => bail!(agent_err),
                 }
             }
         }
@@ -210,6 +194,7 @@ pub async fn notify_create(
     agent: &Agent,
     controller: Principal,
     block_height: BlockHeight,
+    subnet_type: Option<String>,
 ) -> DfxResult<NotifyCreateCanisterResult> {
     let result = agent
         .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_CREATE_METHOD)
@@ -217,10 +202,11 @@ pub async fn notify_create(
             Encode!(&NotifyCreateCanisterArg {
                 block_index: block_height,
                 controller,
+                subnet_type,
             })
             .context("Failed to encode notify arguments.")?,
         )
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await
         .context("Notify call failed.")?;
     let result =
@@ -242,7 +228,7 @@ pub async fn notify_top_up(
             })
             .context("Failed to encode notify arguments.")?,
         )
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await
         .context("Notify call failed.")?;
     let result = Decode!(&result, NotifyTopUpResult).context("Failed to decode notify response")?;

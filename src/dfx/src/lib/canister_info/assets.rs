@@ -21,9 +21,6 @@ impl AssetsCanisterInfo {
             .map(|sp| self.input_root.join(sp))
             .collect::<_>()
     }
-    pub fn get_output_wasm_path(&self) -> &Path {
-        self.output_wasm_path.as_path()
-    }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
     }
@@ -53,9 +50,6 @@ impl AssetsCanisterInfo {
 
 impl CanisterInfoFactory for AssetsCanisterInfo {
     fn create(info: &CanisterInfo) -> DfxResult<AssetsCanisterInfo> {
-        let build_root = info.get_build_root();
-        let name = info.get_name();
-
         let input_root = info.get_workspace_root().to_path_buf();
         // If there are no "source" field, we just ignore this.
         let source_paths = if let CanisterTypeProperties::Assets { source } = &info.type_specific {
@@ -67,7 +61,7 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
             )
         };
 
-        let output_root = build_root.join(name);
+        let output_root = info.get_output_root();
 
         let output_wasm_path = output_root.join(Path::new("assetstorage.wasm.gz"));
         let output_idl_path = output_wasm_path.with_extension("").with_extension("did");

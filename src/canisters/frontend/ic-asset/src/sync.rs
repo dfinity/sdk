@@ -4,8 +4,6 @@ use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind};
 use crate::asset_config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::params::CanisterCallParams;
-
 use crate::operations::{
     create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
 };
@@ -14,39 +12,28 @@ use anyhow::{bail, Context};
 use ic_utils::Canister;
 use std::collections::HashMap;
 use std::path::Path;
-use std::time::Duration;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(
-    canister: &Canister<'_>,
-    dirs: &[&Path],
-    timeout: Duration,
-) -> anyhow::Result<()> {
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path]) -> anyhow::Result<()> {
     let asset_descriptors = gather_asset_descriptors(dirs)?;
 
-    let canister_call_params = CanisterCallParams { canister, timeout };
-
-    let container_assets = list_assets(&canister_call_params).await?;
+    let container_assets = list_assets(canister).await?;
 
     println!("Starting batch.");
 
-    let batch_id = create_batch(&canister_call_params).await?;
+    let batch_id = create_batch(canister).await?;
 
     println!("Staging contents of new and changed assets:");
 
-    let project_assets = make_project_assets(
-        &canister_call_params,
-        &batch_id,
-        asset_descriptors,
-        &container_assets,
-    )
-    .await?;
+    let project_assets =
+        make_project_assets(canister, &batch_id, asset_descriptors, &container_assets).await?;
 
     let operations = assemble_synchronization_operations(project_assets, container_assets);
 
     println!("Committing batch.");
-    commit_batch(&canister_call_params, &batch_id, operations).await?;
+
+    commit_batch(canister, &batch_id, operations).await?;
 
     Ok(())
 }
@@ -73,9 +60,9 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
                 dir.display()
             )
         })?;
-        let configuration = AssetSourceDirectoryConfiguration::load(&dir)?;
+        let mut configuration = AssetSourceDirectoryConfiguration::load(&dir)?;
         let mut asset_descriptors_interim = vec![];
-        for e in WalkDir::new(&dir)
+        let entries = WalkDir::new(&dir)
             .into_iter()
             .filter_entry(|entry| {
                 if let Ok(canonical_path) = &entry.path().canonicalize() {
@@ -91,7 +78,9 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
             .filter(|entry| {
                 entry.file_type().is_file() && entry.file_name() != ASSETS_CONFIG_FILENAME_JSON
             })
-        {
+            .collect::<Vec<_>>();
+
+        for e in entries {
             let source = e.path().canonicalize().with_context(|| {
                 format!(
                     "unable to canonicalize the path when gathering asset descriptors: {}",
@@ -122,6 +111,18 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
                 )
             }
             asset_descriptors.insert(asset_descriptor.key.clone(), asset_descriptor);
+        }
+
+        for (config_path, rules) in configuration.get_unused_configs() {
+            println!(
+                "WARNING: {count} unmatched configuration{s} in {path}/.ic-assets.json config file:",
+                count=rules.len(),
+                s=if rules.len() > 1 { "s" } else { "" },
+                path=config_path.display()
+            );
+            for rule in rules {
+                println!("{}", serde_json::to_string_pretty(&rule).unwrap());
+            }
         }
     }
     Ok(asset_descriptors.into_values().collect())

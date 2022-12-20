@@ -1,6 +1,9 @@
 use anyhow::{bail, ensure, Context};
 use candid::{Encode, Principal};
-use ic_agent::{hash_tree::LookupResult, ic_types::HashTree, lookup_value, Agent};
+use ic_agent::{
+    hash_tree::{HashTree, LookupResult},
+    lookup_value, Agent,
+};
 use ic_utils::{call::SyncCall, Canister};
 
 use crate::lib::{
@@ -49,7 +52,7 @@ pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
     // check certificate, this is a query call
     let cert = serde_cbor::from_slice(&certified_rate.certificate)?;
     agent
-        .verify(&cert, MAINNET_CYCLE_MINTER_CANISTER_ID, false)
+        .verify(&cert, MAINNET_CYCLE_MINTER_CANISTER_ID)
         .context(
             "The origin of the certificate for the XDR <> ICP exchange rate could not be verified",
         )?;

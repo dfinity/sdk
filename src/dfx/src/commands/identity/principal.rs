@@ -11,7 +11,7 @@ use ic_agent::identity::Identity;
 pub struct GetPrincipalOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetPrincipalOpts) -> DfxResult {
-    let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+    let identity = IdentityManager::new(env)?.instantiate_selected_identity(env.get_logger())?;
     let principal_id = identity
         .as_ref()
         .sender()
