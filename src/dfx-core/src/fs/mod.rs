@@ -1,11 +1,15 @@
 use crate::error::io::IoError;
-use crate::error::io::IoError::{
-    CreateDirectoryFailed, ReadFileFailed, ReadPermissionsFailed, RenameFailed, WriteFileFailed,
-    WritePermissionsFailed,
-};
 
+use crate::error::io::IoError::{
+    CopyFileFailed, CreateDirectoryFailed, ReadFileFailed, ReadPermissionsFailed, RenameFailed,
+    WriteFileFailed, WritePermissionsFailed,
+};
 use std::fs::Permissions;
 use std::path::{Path, PathBuf};
+
+pub fn copy(from: &Path, to: &Path) -> Result<u64, IoError> {
+    std::fs::copy(from, to).map_err(|err| CopyFileFailed(from.to_path_buf(), to.to_path_buf(), err))
+}
 
 pub fn create_dir_all(path: &Path) -> Result<(), IoError> {
     std::fs::create_dir_all(path).map_err(|err| CreateDirectoryFailed(path.to_path_buf(), err))

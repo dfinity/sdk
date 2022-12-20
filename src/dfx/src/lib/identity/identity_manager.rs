@@ -6,10 +6,11 @@ use crate::lib::identity::{
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
 use dfx_core::error::identity::IdentityError::{
-    CreateIdentityDirectoryFailed, LoadIdentityConfigurationFailed,
+    CreateIdentityDirectoryFailed, GetLegacyPemPathFailed, LoadIdentityConfigurationFailed,
     LoadIdentityManagerConfigurationFailed, RenameIdentityDirectoryFailed,
     SaveIdentityManagerConfigurationFailed,
 };
+use dfx_core::foundation::get_user_home;
 use dfx_core::json::{load_json_file, save_json_file};
 
 use anyhow::{anyhow, bail, Context};
@@ -24,7 +25,6 @@ use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
 use slog::{debug, trace, Logger};
 use std::boxed::Box;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -493,12 +493,11 @@ pub(super) fn get_dfx_hsm_pin() -> Result<String, String> {
         .map_err(|_| "There is no DFX_HSM_PIN environment variable.".to_string())
 }
 
-#[context("Failed to initialize identity manager at {}.", identity_root_path.to_string_lossy())]
 fn initialize(
     logger: &Logger,
     identity_json_path: &Path,
     identity_root_path: &Path,
-) -> DfxResult<Configuration> {
+) -> Result<Configuration, IdentityError> {
     slog::info!(
         logger,
         r#"Creating the "default" identity.
@@ -530,13 +529,8 @@ To create a more secure identity, create and use an identity that is protected b
                 creds_pem_path.display(),
                 identity_pem_path.display()
             );
-            fs::copy(&creds_pem_path, &identity_pem_path).with_context(|| {
-                format!(
-                    "Failed to migrate legacy identity from {} to {}.",
-                    creds_pem_path.to_string_lossy(),
-                    identity_pem_path.to_string_lossy()
-                )
-            })?;
+            dfx_core::fs::copy(&creds_pem_path, &identity_pem_path)
+                .map_err(IdentityError::MigrateLegacyIdentityFailed)?;
         } else {
             slog::info!(
                 logger,
@@ -564,14 +558,13 @@ To create a more secure identity, create and use an identity that is protected b
     Ok(config)
 }
 
-#[context("Failed to get legacy pem path.")]
-fn get_legacy_creds_pem_path() -> DfxResult<Option<PathBuf>> {
+fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, IdentityError> {
     if cfg!(windows) {
         // No legacy path on Windows - there was no Windows support when paths were changed
         Ok(None)
     } else {
         let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
-        let home = std::env::var("HOME").map_err(|_| IdentityError::NoHomeInEnvironment())?;
+        let home = get_user_home().map_err(GetLegacyPemPathFailed)?;
         let root = config_root.unwrap_or(home);
 
         Ok(Some(
@@ -642,17 +635,20 @@ fn remove_identity_file(file: &Path) -> DfxResult {
 }
 
 /// Generates a new secp256k1 key.
-#[context("Failed to generate a fresh secp256k1 key.")]
-pub(super) fn generate_key() -> DfxResult<(Vec<u8>, Mnemonic)> {
-    let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256)?, Language::English);
+pub(super) fn generate_key() -> Result<(Vec<u8>, Mnemonic), IdentityError> {
+    let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256).unwrap(), Language::English);
     let secret = mnemonic_to_key(&mnemonic)?;
-    let pem = secret.to_sec1_pem(LineEnding::CRLF)?;
+    let pem = secret
+        .to_sec1_pem(LineEnding::CRLF)
+        .map_err(IdentityError::GenerateFreshSecp256k1KeyFailed)?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }
 
-pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> DfxResult<SecretKey> {
+pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> Result<SecretKey, IdentityError> {
     const DEFAULT_DERIVATION_PATH: &str = "m/44'/223'/0'/0/0";
+    let path = DEFAULT_DERIVATION_PATH.parse().unwrap();
     let seed = Seed::new(mnemonic, "");
-    let pk = XPrv::derive_from_path(seed.as_bytes(), &DEFAULT_DERIVATION_PATH.parse()?)?;
+    let pk = XPrv::derive_from_path(seed.as_bytes(), &path)
+        .map_err(IdentityError::DeriveExtendedKeyFromPathFailed)?;
     Ok(SecretKey::from(pk.private_key()))
 }
