@@ -30,6 +30,8 @@ pub struct UpdateSettingsOpts {
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
+    /// Can be specified more than once, indicating the canister will have multiple controllers.
+    /// If any controllers are set with this parameter, any other controllers will be removed.
     #[clap(long, multiple_occurrences(true))]
     set_controller: Option<Vec<String>>,
 
