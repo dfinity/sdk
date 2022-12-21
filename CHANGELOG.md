@@ -24,16 +24,15 @@ By default, the frontend canister will now restrict the access of traffic to the
 **Important**: Note that any assets already uploaded to an asset canister will be protected by this redirection, because at present the asset synchronization process does not update the `allow_raw_access` property, or any other properties, after creating an asset.  This also applies to assets that are deployed without any configuration, and later configured to allow raw access.
 At the present time, there are two ways to reconfigure an existing asset:
 1. re-create the asset
-  1. delete the asset in your project's directory 
-  1. execute `dfx deploy`
-  1. re-create the asset in your project's directory
-  1. modify `.ic-assets.json` acordingly 
-  1. execute `dfx deploy`
+    1. delete the asset in your project's directory 
+    1. execute `dfx deploy`
+    1. re-create the asset in your project's directory
+    1. modify `.ic-assets.json` acordingly 
+    1. execute `dfx deploy`
 2. via manual candid call 
-  ```
-  dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
-
-  ```
+    ```
+    dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
+    ```
 
 ### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
 
