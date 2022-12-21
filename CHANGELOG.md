@@ -4,7 +4,7 @@
 
 ## DFX
 
-### feat(frontend-canister)!: default secure configuration for assets when creating a new frontend project 
+### feat(frontend-canister)!: default secure configuration for assets in frontend project template
 
 - Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
 - Configures `allow_raw_access` option in starter `.ic-assets.json5` config files, with the value set to its default value (which is `false`). We are showing that configuration in the default starter projects for the sake of easier discoverability, even though it's value is set to the default.
