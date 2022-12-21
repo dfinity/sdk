@@ -113,9 +113,13 @@ Updated Motoko to 0.7.4
 
 ### Replica
 
-Updated replica to elected commit 997ab2e9cc49189302fe54c1e60709abfbeb1d42.
+Updated replica to elected commit 70754517f862aba2b524936a1e8e4be08562c97d.
 This incorporates the following executed proposals:
 
+- [97472](https://dashboard.internetcomputer.org/proposal/97472)
+- [96114](https://dashboard.internetcomputer.org/proposal/96114)
+- [94953](https://dashboard.internetcomputer.org/proposal/94953)
+- [94852](https://dashboard.internetcomputer.org/proposal/94852)
 - [93761](https://dashboard.internetcomputer.org/proposal/93761)
 - [93507](https://dashboard.internetcomputer.org/proposal/93507)
 - [92573](https://dashboard.internetcomputer.org/proposal/92573)
