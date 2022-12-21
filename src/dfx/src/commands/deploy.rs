@@ -7,6 +7,7 @@ use crate::lib::{environment::Environment, identity::Identity, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::NetworkOpt;
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -71,6 +72,10 @@ pub struct DeployOpts {
     #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
 
+    /// Output environment variables to a file in dotenv format.
+    #[clap(long)]
+    output_env_file: Option<PathBuf>,
+
     /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
     /// so this is not recommended outside of CI.
     #[clap(long, short)]
@@ -90,6 +95,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .transpose()
         .map_err(|err| anyhow!(err))
         .context("Failed to parse InstallMode.")?;
+    let config = env.get_config_or_anyhow()?;
+    let env_file = opts
+        .output_env_file
+        .or_else(|| config.get_config().output_env_file.clone());
 
     let with_cycles = opts.with_cycles.as_deref();
 
@@ -132,6 +141,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         &call_sender,
         create_call_sender,
         opts.yes,
+        env_file,
     ))?;
 
     display_urls(&env)

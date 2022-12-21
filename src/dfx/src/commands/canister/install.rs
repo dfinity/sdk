@@ -52,6 +52,9 @@ pub struct CanisterInstallOpts {
     #[clap(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 
+    /// Output environment variables to a file in dotenv format.
+    output_env_file: Option<PathBuf>,
+
     /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
     /// so this is not recommended outside of CI.
     #[clap(long, short)]
@@ -122,6 +125,10 @@ pub async fn exec(
         } else {
             let canister_info = canister_info
                 .with_context(|| format!("Failed to load canister info for {}.", canister))?;
+            let config = config.unwrap();
+            let env_file = opts
+                .output_env_file
+                .or_else(|| config.get_config().output_env_file.clone());
             let idl_path = canister_info.get_build_idl_path();
             let init_type = get_candid_init_type(&idl_path);
             let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
@@ -136,12 +143,16 @@ pub async fn exec(
                 opts.upgrade_unchanged,
                 None,
                 opts.yes,
+                env_file.as_deref(),
             )
             .await
         }
     } else if opts.all {
         // Install all canisters.
         let config = env.get_config_or_anyhow()?;
+        let env_file = opts
+            .output_env_file
+            .or_else(|| config.get_config().output_env_file.clone());
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 let canister_is_remote = config
@@ -174,6 +185,7 @@ pub async fn exec(
                     opts.upgrade_unchanged,
                     None,
                     opts.yes,
+                    env_file.as_deref(),
                 )
                 .await?;
             }

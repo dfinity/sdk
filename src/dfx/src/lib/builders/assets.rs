@@ -126,13 +126,19 @@ impl CanisterBuilder for AssetsBuilder {
             })
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
 
-        let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
+        let vars = super::get_and_write_environment_variables(
+            info,
+            &config.network_name,
+            pool,
+            &dependencies,
+            config.env_file.as_deref(),
+        );
 
         build_frontend(
             pool.get_logger(),
             info.get_workspace_root(),
             &config.network_name,
-            vars,
+            vars?,
         )?;
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
