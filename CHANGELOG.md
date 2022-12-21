@@ -4,6 +4,11 @@
 
 ## DFX
 
+### feat(frontend-canister)!: default secure configuration for assets in frontend project template
+
+- Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
+- Configures `allow_raw_access` option in starter `.ic-assets.json5` config files, with the value set to its default value (which is `false`). We are showing that configuration in the default starter projects for the sake of easier discoverability, even though its value is set to the default.
+
 ### feat(frontend-canister)!: add `allow_raw_access` config option
 
 By default, the frontend canister will now restrict the access of traffic to the `<canister-id>.raw.ic0.app` domain, and will automatically redirect all requests to the certified domain (`<canister-id>.ic0.app`), unless configured explicitly. Below is an example configuration to allow access to the `robots.txt` file from the "raw" domain:
@@ -19,16 +24,15 @@ By default, the frontend canister will now restrict the access of traffic to the
 **Important**: Note that any assets already uploaded to an asset canister will be protected by this redirection, because at present the asset synchronization process does not update the `allow_raw_access` property, or any other properties, after creating an asset.  This also applies to assets that are deployed without any configuration, and later configured to allow raw access.
 At the present time, there are two ways to reconfigure an existing asset:
 1. re-create the asset
-  1. delete the asset in your project's directory 
-  1. execute `dfx deploy`
-  1. re-create the asset in your project's directory
-  1. modify `.ic-assets.json` acordingly 
-  1. execute `dfx deploy`
+    1. delete the asset in your project's directory 
+    1. execute `dfx deploy`
+    1. re-create the asset in your project's directory
+    1. modify `.ic-assets.json` acordingly 
+    1. execute `dfx deploy`
 2. via manual candid call 
-  ```
-  dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
-
-  ```
+    ```
+    dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
+    ```
 
 ### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
 
