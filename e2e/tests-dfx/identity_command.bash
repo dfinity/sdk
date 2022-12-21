@@ -536,6 +536,9 @@ XXX
     assert_command dfx identity import alice2 --seed-file seed.txt --disable-encryption
     assert_command dfx identity get-principal --identity alice2
     assert_eq "$principal"
+    dfx identity export alice2 > export.pem
+    assert_command openssl asn1parse -in export.pem
+    assert_match ':secp256k1'
 }
 
 @test "identity: consistently imports a known seed phrase" {
