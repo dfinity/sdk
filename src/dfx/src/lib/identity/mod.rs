@@ -20,6 +20,7 @@ use ic_identity_hsm::HardwareIdentity;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
+use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
 use slog::{debug, info, trace, Logger};
 use std::collections::BTreeMap;
@@ -195,7 +196,7 @@ impl Identity {
                 identity_config = create_identity_config(log, mode, name, None)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)?;
                 let key = identity_manager::mnemonic_to_key(&mnemonic)?;
-                let pem = key.to_pem(k256::pkcs8::LineEnding::CRLF)?;
+                let pem = key.to_sec1_pem(k256::pkcs8::LineEnding::CRLF)?;
                 let pem_content = pem.as_bytes();
                 pem_safekeeping::save_pem(
                     log,
