@@ -1,6 +1,9 @@
-use std::{collections::HashMap, path::PathBuf};
-
 use crate::lib::error::DfxResult;
+use dfx_core::error::keyring::KeyringError;
+use dfx_core::error::keyring::KeyringError::{
+    DeletePasswordFailed, LoadMockKeyringFailed, MockUnavailable, SaveMockKeyringFailed,
+};
+use dfx_core::json::{load_json_file, save_json_file};
 
 use super::TEMP_IDENTITY_PREFIX;
 use anyhow::{bail, Context};
@@ -8,6 +11,7 @@ use fn_error_context::context;
 use keyring;
 use serde::{Deserialize, Serialize};
 use slog::{trace, Logger};
+use std::{collections::HashMap, path::PathBuf};
 
 pub const KEYRING_SERVICE_NAME: &str = "internet_computer_identities";
 pub const KEYRING_IDENTITY_PREFIX: &str = "internet_computer_identity_";
@@ -43,45 +47,28 @@ struct KeyringMock {
 }
 
 impl KeyringMock {
-    fn get_location() -> DfxResult<PathBuf> {
+    fn get_location() -> Result<PathBuf, KeyringError> {
         match std::env::var(USE_KEYRING_MOCK_ENV_VAR) {
             Ok(filename) => match filename.as_str() {
-                "" => bail!("Mock keyring unavailable - access rejected."),
+                "" => Err(MockUnavailable()),
                 _ => Ok(PathBuf::from(filename)),
             },
-            _ => bail!("Mock keyring unavailable."),
+            _ => unreachable!("Mock keyring unavailable."),
         }
     }
 
-    #[context("Failed to load mock keyring.")]
-    pub fn load() -> DfxResult<Self> {
+    pub fn load() -> Result<Self, KeyringError> {
         let location = Self::get_location()?;
         if location.exists() {
-            let serialized_mock = std::fs::read(&location).with_context(|| {
-                format!(
-                    "Failed to read existing keyring mock at {}",
-                    location.to_string_lossy()
-                )
-            })?;
-            let mock = serde_json::from_slice(serialized_mock.as_slice())
-                .context("Failed to deserialize mock keyring.")?;
-            Ok(mock)
+            load_json_file(&location).map_err(LoadMockKeyringFailed)
         } else {
             Ok(Self::default())
         }
     }
 
-    #[context("Failed to load mock keyring.")]
-    pub fn save(&self) -> DfxResult {
+    pub fn save(&self) -> Result<(), KeyringError> {
         let location = Self::get_location()?;
-        let content =
-            serde_json::to_string_pretty(self).context("Failed to serialize mock keyring")?;
-        std::fs::write(&location, content).with_context(|| {
-            format!(
-                "Failed to save mock keyring to {}",
-                location.to_string_lossy()
-            )
-        })
+        save_json_file(&location, self).map_err(SaveMockKeyringFailed)
     }
 }
 
@@ -151,13 +138,13 @@ pub fn keyring_available(log: &Logger) -> bool {
     }
 }
 
-pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> DfxResult {
+pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> Result<(), KeyringError> {
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
             if entry.get_password().is_ok() {
-                entry.delete_password()?;
+                entry.delete_password().map_err(DeletePasswordFailed)?;
             }
         }
         KeyringMockMode::MockAvailable => {
@@ -165,7 +152,7 @@ pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> DfxResult {
             mock.kv_store.remove(&keyring_identity_name);
             mock.save()?;
         }
-        KeyringMockMode::MockReject => bail!("Mock Keyring not available."),
+        KeyringMockMode::MockReject => return Err(MockUnavailable()),
     }
     Ok(())
 }
