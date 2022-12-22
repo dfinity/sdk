@@ -6,7 +6,8 @@ setup() {
     standard_setup
 
     REPO_ROOT="${BATS_TEST_DIRNAME}/../../"
-    cp -R "$REPO_ROOT/src/canisters/telemetry/" .
+    cp -R "$REPO_ROOT/src/canisters/telemetry" .
+    cd telemetry || exit 1
 }
 
 teardown() {
