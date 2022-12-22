@@ -7,7 +7,7 @@ export
 # Enter temporary directory.
 pushd /tmp
 
-brew install coreutils moreutils
+brew install coreutils moreutils openssl@3
 
 # Install Bats.
 if [ "$(uname -r)" = "19.6.0" ]; then
