@@ -57,6 +57,10 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
         if: contains(matrix.os, 'macos')
+      - name: Dependencies
+        run: |
+          brew install openssl@3
+        if: contains(matrix.os, 'macos')
       - name: Build
         run: |
           cargo build --target ${{ matrix.target }} --locked --release
