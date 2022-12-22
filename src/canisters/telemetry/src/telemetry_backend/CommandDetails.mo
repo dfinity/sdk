@@ -28,7 +28,7 @@ module CommandDetails {
   };
 
   public func equal(a : CommandDetails, b : CommandDetails) : Bool {
-    a.command == b.command and a.parameters == b.parameters
+    a == b
   };
 
   public func trieKey(v : CommandDetails) : CommandDetailsTrieKey {

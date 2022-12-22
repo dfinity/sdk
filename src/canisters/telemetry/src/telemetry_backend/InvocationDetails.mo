@@ -50,9 +50,7 @@ module InvocationDetails
   };
 
   public func equal(a : InvocationDetails, b : InvocationDetails) : Bool {
-    a.dfxVersion == b.dfxVersion and
-      a.platform == b.platform and
-      a.network == b.network
+    a == b
   };
 
   public func trieKey(v : InvocationDetails) : InvocationDetailsTrieKey {
