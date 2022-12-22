@@ -57,10 +57,6 @@ jobs:
           toolchain: ${{ matrix.rust }}
           override: true
         if: contains(matrix.os, 'macos')
-      - name: Dependencies
-        run: |
-          brew install openssl@3
-        if: contains(matrix.os, 'macos')
       - name: Build
         run: |
           cargo build --target ${{ matrix.target }} --locked --release
@@ -107,6 +103,10 @@ jobs:
           path: /usr/local/bin
       - name: Setup dfx binary
         run: chmod +x /usr/local/bin/dfx
+      - name: Install dependencies
+        run: |
+          brew install openssl@3
+        if: contains(matrix.os, 'macos')
       - name: start and deploy
         run: |
           pwd
