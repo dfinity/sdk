@@ -1,0 +1,26 @@
+name: release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: "install vessel"
+      run: |
+       mkdir /home/runner/bin
+       echo "/home/runner/bin" >> $GITHUB_PATH
+       wget --output-document /home/runner/bin/vessel https://github.com/dfinity/vessel/releases/download/v0.6.0/vessel-linux64
+       chmod +x /home/runner/bin/vessel
+    - name: "docs"
+      run: make docs
+    - name: Upload docs
+      uses: JamesIves/github-pages-deploy-action@releases/v3
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH: gh-pages # The branch the action should deploy to.
+        FOLDER: docs/ # The folder the action should deploy.

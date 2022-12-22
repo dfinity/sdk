@@ -361,6 +361,7 @@ pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
     pub network_name: String,
+    pub network_is_playground: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
@@ -378,11 +379,28 @@ impl BuildConfig {
     pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
+        let network_is_playground = config_intf
+            .networks
+            .as_ref()
+            .map(|m| {
+                m.get(&network_name)
+                    .map(|n| match n {
+                        crate::config::dfinity::ConfigNetwork::ConfigNetworkProvider(a) => {
+                            a.playground.is_some()
+                        }
+                        crate::config::dfinity::ConfigNetwork::ConfigLocalProvider(a) => {
+                            a.playground.is_some()
+                        }
+                    })
+                    .unwrap_or(false)
+            })
+            .unwrap_or(false);
         let network_root = config.get_temp_path().join(&network_name);
         let canister_root = network_root.join("canisters");
 
         Ok(BuildConfig {
             network_name,
+            network_is_playground,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
             build_root: canister_root.clone(),

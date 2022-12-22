@@ -1,0 +1,12 @@
+# Builds
+_build
+_out
+
+# Macs
+.DS_Store
+
+# IDEs
+.vscode/
+
+# Node
+node_modules

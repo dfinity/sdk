@@ -12,8 +12,10 @@ use crate::util;
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
+use flate2::read::GzDecoder;
 use fn_error_context::context;
 use std::fs;
+use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -69,7 +71,7 @@ impl CanisterBuilder for AssetsBuilder {
         &self,
         _pool: &CanisterPool,
         info: &CanisterInfo,
-        _config: &BuildConfig,
+        config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let mut canister_assets = util::assets::assetstorage_canister()
             .context("Failed to get asset canister archive.")?;
@@ -97,15 +99,36 @@ impl CanisterBuilder for AssetsBuilder {
             })?;
         }
 
-        let wasm_path = info
+        let compressed_wasm_path = info
             .get_output_root()
             .join(Path::new("assetstorage.wasm.gz"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
-        Ok(BuildOutput {
-            canister_id: info.get_canister_id().expect("Could not find canister ID."),
-            wasm: WasmBuildOutput::File(wasm_path),
-            idl: IdlBuildOutput::File(idl_path),
-        })
+        if config.network_is_playground {
+            let zipped_wasm =
+                std::fs::read(compressed_wasm_path).context("failed to read compressed wasm")?;
+            let mut compressed_wasm = GzDecoder::new(zipped_wasm.as_slice());
+            let outfile = info.get_output_root().join(Path::new("assetstorage.wasm"));
+            // let name = compressed_wasm.header().unwrap().filename().unwrap();
+            // let outfile = info
+            //     .get_output_root()
+            //     .join(Path::from(String::from_utf8(name)?));
+            let mut v = Vec::new();
+            compressed_wasm.read_to_end(&mut v).unwrap();
+            std::fs::write(&outfile, v).unwrap();
+            let decompressed_wasm_path =
+                info.get_output_root().join(Path::new("assetstorage.wasm"));
+            Ok(BuildOutput {
+                canister_id: info.get_canister_id().expect("Could not find canister ID."),
+                wasm: WasmBuildOutput::File(decompressed_wasm_path),
+                idl: IdlBuildOutput::File(idl_path),
+            })
+        } else {
+            Ok(BuildOutput {
+                canister_id: info.get_canister_id().expect("Could not find canister ID."),
+                wasm: WasmBuildOutput::File(compressed_wasm_path),
+                idl: IdlBuildOutput::File(idl_path),
+            })
+        }
     }
 
     fn postbuild(

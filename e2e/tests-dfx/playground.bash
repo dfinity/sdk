@@ -43,7 +43,7 @@ setup_playground() {
   assert_command dfx canister id hello_backend --playground
 }
 
-@test "reserve canister" {
+@test "canister lifecycle" {
   setup_playground
   echo "trying to call canister $PLAYGROUND_CANISTER_ID stats"
   dfx canister call "$PLAYGROUND_CANISTER_ID" getStats '()' --query
@@ -58,4 +58,6 @@ setup_playground() {
   assert_command dfx canister create hello_backend --playground -vv
   assert_match "Canister 'hello_backend' has timed out."
   assert_match "Reserved canister 'hello_backend'"
+
+  # TODO: install wasm, test calling it. Blocked by .env file change
 }

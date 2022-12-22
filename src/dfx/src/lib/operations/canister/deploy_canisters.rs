@@ -90,7 +90,6 @@ pub async fn deploy_canisters(
 
     let pool = build_canisters(env, &canisters_to_load, &canisters_to_deploy, &config).await?;
 
-    //todo!(playground)
     install_canisters(
         env,
         &canisters_to_deploy,

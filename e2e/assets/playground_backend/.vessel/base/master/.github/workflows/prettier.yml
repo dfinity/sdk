@@ -1,0 +1,36 @@
+name: Check Formatting
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-22.04]
+        node: [16]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install -g npm
+      - run: npm install prettier pretty-quick
+      - run: npm run prettier:check
+
+  aggregate:
+    name: format:required
+    if: ${{ always() }}
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: check e2e test result
+        if: ${{ needs.test.result != 'success' }}
+        run: exit 1

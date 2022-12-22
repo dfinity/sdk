@@ -12,6 +12,7 @@ use crate::{
         environment::Environment, error::DfxResult, identity::identity_utils::CallSender,
         models::canister_id_store::CanisterIdStore,
         network::network_descriptor::NetworkTypeDescriptor, waiter::waiter_with_timeout,
+        wasm::file::is_wasm_module,
     },
     util::expiry_duration,
 };
@@ -81,16 +82,57 @@ pub async fn reserve_canister_with_playground(
     Ok(())
 }
 
-pub async fn _playground_install_code(
+#[context("Failed to authorize asset uploader through playground.")]
+pub async fn authorize_asset_uploader(
     env: &dyn Environment,
-    canister_info: &CanisterInfo,
+    canister_id: Principal,
+    canister_timestamp: candid::Int,
+    principal_to_authorize: &Principal,
+) -> DfxResult {
+    let agent = env.get_agent().context("Failed to get HTTP agent")?;
+    let playground_cid = if let NetworkTypeDescriptor::Playground { playground_cid, .. } =
+        env.get_network_descriptor().r#type
+    {
+        playground_cid
+    } else {
+        bail!("This shouldn't happen")
+    };
+    let canister_info = CanisterInfo {
+        id: canister_id,
+        timestamp: canister_timestamp,
+    };
+
+    let level_2_arg = Encode!(&(*principal_to_authorize,))?;
+    let call_arg = Encode!(&(canister_info, "authorize", level_2_arg))?;
+
+    let _ = agent
+        .update(&playground_cid, "callCanister")
+        .with_arg(call_arg)
+        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .await
+        .context("Failed to call playground.")?;
+    Ok(())
+}
+
+pub async fn playground_install_code(
+    env: &dyn Environment,
+    canister_id: Principal,
+    canister_timestamp: candid::Int,
     arg: &[u8],
     wasm_module: &[u8],
     mode: InstallMode,
+    _call_sender: &CallSender,
 ) -> DfxResult {
-    //todo!(properly implement)
+    // todo!(call sender);
 
+    if !is_wasm_module(wasm_module) {
+        bail!("Invalid WASM detected. Is your file maybe zipped? Playground can only deploy .wasm files.");
+    }
     println!("Trying to install a wasm:");
+    let canister_info = CanisterInfo {
+        id: canister_id,
+        timestamp: canister_timestamp,
+    };
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
     let playground_cid = if let NetworkTypeDescriptor::Playground { playground_cid, .. } =
         env.get_network_descriptor().r#type

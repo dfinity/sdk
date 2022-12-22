@@ -541,6 +541,9 @@ impl Identity {
         name: &str,
         some_canister_id: Option<Principal>,
     ) -> DfxResult<Principal> {
+        if env.get_network_descriptor().is_playground() {
+            bail!("Cannot create a wallet via playground.");
+        }
         fetch_root_key_if_needed(env).await?;
         let mgr = ManagementCanister::create(
             env.get_agent()

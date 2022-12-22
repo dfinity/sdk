@@ -675,6 +675,7 @@ pub async fn install_canister(
         agent,
         canister_id,
         Some(canister_name),
+        None,
         &install_args,
         install_mode,
         timeout,

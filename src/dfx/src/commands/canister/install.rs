@@ -98,6 +98,7 @@ pub async fn exec(
 
         let canister_id =
             Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+        let canister_timestamp = canister_id_store.get_timestamp(canister);
         let arguments = opts.argument.as_deref();
         let arg_type = opts.argument_type.as_deref();
         let canister_info = config.as_ref()
@@ -112,6 +113,7 @@ pub async fn exec(
                 agent,
                 canister_id,
                 canister_info.as_ref().map(|info| info.get_name()).ok(),
+                canister_timestamp,
                 &install_args,
                 mode,
                 timeout,

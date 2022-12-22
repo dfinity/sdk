@@ -118,6 +118,13 @@ impl CanisterIdStore {
         Ok(store)
     }
 
+    pub fn get_timestamp(&self, canister_name: &str) -> Option<candid::Int> {
+        self.timestamps
+            .get(canister_name)
+            .and_then(|n_to_t| n_to_t.get(&self.network_descriptor.name))
+            .map(|a| candid::Int::from(a.clone()))
+    }
+
     pub fn get_name(&self, canister_id: &str) -> Option<&String> {
         self.remote_ids
             .as_ref()
@@ -284,7 +291,7 @@ impl CanisterIdStore {
             .unwrap()
             .as_millis()
             * 1_000_000;
-        let prune_cutoff: BigInt = now - timeout_seconds * 1_000_000;
+        let prune_cutoff: BigInt = now - timeout_seconds * 1_000_000_000;
 
         let mut canisters_to_prune: Vec<String> = Vec::new();
         for (canister_name, timestamp) in

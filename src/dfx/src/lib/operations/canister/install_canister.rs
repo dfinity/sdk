@@ -9,6 +9,7 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::named_canister;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
 use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
 use crate::util::{expiry_duration, read_module_metadata};
@@ -29,6 +30,8 @@ use std::collections::HashSet;
 use std::io::stdin;
 use std::process::{Command, Stdio};
 use std::time::Duration;
+
+use super::motoko_playground::playground_install_code;
 
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
 pub async fn install_canister(
@@ -102,6 +105,7 @@ pub async fn install_canister(
     }
 
     let wasm_path = canister_info.get_build_wasm_path();
+    println!("WASM is located at {}", wasm_path.to_string_lossy());
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
     let new_hash = Sha256::digest(&wasm_module);
@@ -120,6 +124,7 @@ pub async fn install_canister(
             agent,
             canister_id,
             Some(canister_info.get_name()),
+            canister_id_store.get_timestamp(canister_info.get_name()),
             &args()?,
             mode,
             timeout,
@@ -186,6 +191,22 @@ pub async fn install_canister(
         }
     }
     if canister_info.is_assets() {
+        if let Some(canister_timeout) = canister_id_store.get_timestamp(canister_info.get_name()) {
+            // playground installed the code, so playground has to authorize call_sender to upload files
+            let call_sender_principal = match call_sender {
+                CallSender::SelectedId => env
+                    .get_selected_identity_principal()
+                    .context("Failed to figure out seleted identity's principal.")?,
+                CallSender::Wallet(id) => *id,
+            };
+            authorize_asset_uploader(
+                env,
+                canister_info.get_canister_id()?,
+                canister_timeout,
+                &call_sender_principal,
+            )
+            .await?;
+        }
         if let CallSender::Wallet(wallet_id) = call_sender {
             let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
@@ -354,6 +375,7 @@ pub async fn install_canister_wasm(
     agent: &Agent,
     canister_id: Principal,
     canister_name: Option<&str>,
+    canister_timestamp: Option<candid::Int>,
     args: &[u8],
     mode: InstallMode,
     timeout: Duration,
@@ -369,11 +391,11 @@ pub async fn install_canister_wasm(
         } else {
             format!("You are about to reinstall the canister {canister_id}")
         } + r#"
-This will OVERWRITE all the data and code in the canister.
-
-YOU WILL LOSE ALL DATA IN THE CANISTER.");
-
-"#;
+        This will OVERWRITE all the data and code in the canister.
+        
+        YOU WILL LOSE ALL DATA IN THE CANISTER.");
+        
+        "#;
         ask_for_consent(&msg)?;
     }
     let mode_str = match mode {
@@ -389,37 +411,53 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
     } else {
         info!(log, "{mode_str} code for canister {canister_id}");
     }
-    match call_sender {
-        CallSender::SelectedId => {
-            let install_builder = mgr
-                .install_code(&canister_id, &wasm_module)
-                .with_raw_arg(args.to_vec())
-                .with_mode(mode);
-            install_builder
-                .build()
-                .context("Failed to build call sender.")?
-                .call_and_wait(waiter_with_timeout(timeout))
-                .await
-                .context("Failed to install wasm.")?;
-        }
-        CallSender::Wallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
-            let install_args = CanisterInstall {
-                mode,
-                canister_id,
-                wasm_module,
-                arg: args.to_vec(),
-            };
-            wallet
-                .call(
-                    *mgr.canister_id_(),
-                    "install_code",
-                    Argument::from_candid((install_args,)),
-                    0,
-                )
-                .call_and_wait(waiter_with_timeout(timeout))
-                .await
-                .context("Failed during wasm installation call.")?;
+    if let (Some(canister_timestamp), true) = (
+        canister_timestamp,
+        env.get_network_descriptor().is_playground(),
+    ) {
+        playground_install_code(
+            env,
+            canister_id,
+            canister_timestamp,
+            args,
+            wasm_module.as_slice(),
+            mode,
+            call_sender,
+        )
+        .await?;
+    } else {
+        match call_sender {
+            CallSender::SelectedId => {
+                let install_builder = mgr
+                    .install_code(&canister_id, &wasm_module)
+                    .with_raw_arg(args.to_vec())
+                    .with_mode(mode);
+                install_builder
+                    .build()
+                    .context("Failed to build call sender.")?
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await
+                    .context("Failed to install wasm.")?;
+            }
+            CallSender::Wallet(wallet_id) => {
+                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                let install_args = CanisterInstall {
+                    mode,
+                    canister_id,
+                    wasm_module,
+                    arg: args.to_vec(),
+                };
+                wallet
+                    .call(
+                        *mgr.canister_id_(),
+                        "install_code",
+                        Argument::from_candid((install_args,)),
+                        0,
+                    )
+                    .call_and_wait(waiter_with_timeout(timeout))
+                    .await
+                    .context("Failed during wasm installation call.")?;
+            }
         }
     }
     Ok(())
@@ -431,6 +469,9 @@ pub async fn install_wallet(
     id: Principal,
     mode: InstallMode,
 ) -> DfxResult {
+    if env.get_network_descriptor().is_playground() {
+        bail!("Refusing to install wallet. Wallets do not work in the playground.");
+    }
     let mgmt = ManagementCanister::create(agent);
     let wasm = wallet_wasm(env.get_logger())?;
     mgmt.install_code(&id, &wasm)

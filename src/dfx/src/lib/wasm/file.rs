@@ -11,3 +11,7 @@ pub fn is_wasm_format(path: &Path) -> DfxResult<bool> {
     file.read_exact(&mut header)?;
     Ok(header == *b"\0asm")
 }
+
+pub fn is_wasm_module(wasm: &[u8]) -> bool {
+    wasm.starts_with(b"\0asm")
+}
