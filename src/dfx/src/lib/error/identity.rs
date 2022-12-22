@@ -15,10 +15,10 @@ pub enum IdentityError {
     IdentityDoesNotExist(String, PathBuf),
 
     #[error("Cannot create identity directory at '{0}': {1:#}")]
-    CannotCreateIdentityDirectory(PathBuf, Box<DfxError>),
+    CreateIdentityDirectoryFailed(PathBuf, Box<DfxError>),
 
     #[error("Cannot rename identity directory from '{0}' to '{1}': {2:#}")]
-    CannotRenameIdentityDirectory(PathBuf, PathBuf, Box<DfxError>),
+    RenameIdentityDirectoryFailed(PathBuf, PathBuf, Box<DfxError>),
 
     #[error("Cannot delete the default identity.")]
     CannotDeleteDefaultIdentity(),
@@ -29,9 +29,9 @@ pub enum IdentityError {
     #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
-    #[error("Cannot find home directory.")]
-    CannotFindHomeDirectory(),
+    #[error("Cannot find home directory (no HOME environment variable).")]
+    NoHomeInEnvironment(),
 
     #[error("Cannot read identity file '{0}': {1:#}")]
-    CannotReadIdentityFile(String, Box<DfxError>),
+    ReadIdentityFileFailed(String, Box<DfxError>),
 }

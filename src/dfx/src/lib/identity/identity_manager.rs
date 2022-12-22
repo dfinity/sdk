@@ -361,7 +361,7 @@ impl IdentityManager {
 
         DfxIdentity::map_wallets_to_renamed_identity(env, from, to)?;
         std::fs::rename(&from_dir, &to_dir).map_err(|err| {
-            DfxError::new(IdentityError::CannotRenameIdentityDirectory(
+            DfxError::new(IdentityError::RenameIdentityDirectoryFailed(
                 from_dir,
                 to_dir,
                 Box::new(DfxError::new(err)),
@@ -521,7 +521,7 @@ To create a more secure identity, create and use an identity that is protected b
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
             std::fs::create_dir_all(&identity_dir).map_err(|err| {
-                DfxError::new(IdentityError::CannotCreateIdentityDirectory(
+                DfxError::new(IdentityError::CreateIdentityDirectoryFailed(
                     identity_dir,
                     Box::new(DfxError::new(err)),
                 ))
@@ -584,7 +584,7 @@ fn get_legacy_creds_pem_path() -> DfxResult<Option<PathBuf>> {
     } else {
         let config_root = std::env::var("DFX_CONFIG_ROOT").ok();
         let home = std::env::var("HOME")
-            .map_err(|_| DfxError::new(IdentityError::CannotFindHomeDirectory()))?;
+            .map_err(|_| DfxError::new(IdentityError::NoHomeInEnvironment()))?;
         let root = config_root.unwrap_or(home);
 
         Ok(Some(
