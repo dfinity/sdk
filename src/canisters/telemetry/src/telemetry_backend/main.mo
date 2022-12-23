@@ -31,10 +31,9 @@ actor {
   let nsPerDay = 86_400 * 1000_000_000;
   let nsPer30Days = 30 * nsPerDay;
 
-  stable var v0 : ?V0 = ?Data.v0();
-  let data : V0 = switch (v0) {
-    case null Prelude.unreachable();
-    case (?v0) v0;
+  stable var versioned : Data.Versioned = #v0(Data.new());
+  let data : Data.Data = switch (versioned) {
+    case (#v0 v0) v0;
   };
 
   func currentTime() : Time {

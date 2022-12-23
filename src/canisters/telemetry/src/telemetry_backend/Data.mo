@@ -20,7 +20,12 @@ module Data {
     var overrideTime : ?Time;
   };
 
-  public func v0() : V0 {
+  public type Data = V0;
+  public type Versioned = {
+    #v0 : V0;
+  };
+
+  public func new() : Data {
     {
       var dailyAggregationPeriodStart = 0;
       var dailyAggregationPeriodEnd = 0;
