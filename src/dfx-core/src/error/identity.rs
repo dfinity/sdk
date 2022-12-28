@@ -1,6 +1,8 @@
 use crate::error::io::IoError;
 
+use crate::error::encryption::EncryptionError;
 use ic_agent::identity::PemError;
+
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -17,6 +19,9 @@ pub enum IdentityError {
 
     #[error("Cannot create identity directory: {0}")]
     CreateIdentityDirectoryFailed(IoError),
+
+    #[error("Cannot encrypt PEM file: {0}")]
+    EncryptPemFileFailed(PathBuf, EncryptionError),
 
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
@@ -35,4 +40,7 @@ pub enum IdentityError {
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
+
+    #[error("Cannot write PEM file: {0}")]
+    WritePemFileFailed(IoError),
 }

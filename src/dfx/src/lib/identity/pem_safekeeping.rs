@@ -2,6 +2,9 @@ use std::path::Path;
 
 use crate::lib::error::DfxResult;
 use crate::lib::identity::keyring_mock;
+use dfx_core::error::encryption::EncryptionError;
+use dfx_core::error::identity::IdentityError;
+use dfx_core::error::io::IoError;
 
 use super::identity_manager::EncryptionConfiguration;
 use super::{IdentityConfiguration, IdentityManager};
@@ -56,7 +59,8 @@ pub fn save_pem(
         keyring_mock::write_pem_to_keyring(keyring_identity, pem_content)
     } else {
         let path = manager.get_identity_pem_path(name, identity_config);
-        write_pem_to_file(&path, Some(identity_config), pem_content)
+        write_pem_to_file(&path, Some(identity_config), pem_content)?;
+        Ok(())
     }
 }
 
@@ -79,28 +83,24 @@ pub fn load_pem_from_file(
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.
 ///
 /// Automatically creates required directories.
-#[context("Failed to write pem file.")]
 pub fn write_pem_to_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
     pem_content: &[u8],
-) -> DfxResult<()> {
-    let pem_content = maybe_encrypt_pem(pem_content, config)?;
+) -> Result<(), IdentityError> {
+    let pem_content = maybe_encrypt_pem(pem_content, config)
+        .map_err(|err| IdentityError::EncryptPemFileFailed(path.to_path_buf(), err))?;
 
-    let containing_folder = path.parent().with_context(|| {
-        format!(
-            "Could not determine parent folder for {}",
-            path.to_string_lossy()
-        )
-    })?;
-    std::fs::create_dir_all(containing_folder)
-        .with_context(|| format!("Failed to create {}.", containing_folder.to_string_lossy()))?;
-    std::fs::write(path, pem_content)
-        .with_context(|| format!("Failed to write pem file to {}.", path.to_string_lossy()))?;
+    write_pem_content(path, &pem_content).map_err(IdentityError::WritePemFileFailed)
+}
 
-    let mut permissions = std::fs::metadata(path)
-        .with_context(|| format!("Failed to read permissions of {}.", path.to_string_lossy()))?
-        .permissions();
+fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), IoError> {
+    let containing_folder = dfx_core::fs::parent(path)?;
+    dfx_core::fs::create_dir_all(&containing_folder)?;
+    dfx_core::fs::write(path, pem_content)?;
+
+    let mut permissions = dfx_core::fs::read_permissions(path)?;
+
     permissions.set_readonly(true);
     // On *nix, set the read permission to owner-only.
     #[cfg(unix)]
@@ -108,10 +108,8 @@ pub fn write_pem_to_file(
         use std::os::unix::fs::PermissionsExt;
         permissions.set_mode(0o400);
     }
-    std::fs::set_permissions(path, permissions)
-        .with_context(|| format!("Failed to set permissions of {}.", path.to_string_lossy()))?;
 
-    Ok(())
+    dfx_core::fs::set_permissions(path, permissions)
 }
 
 /// If the IndentityConfiguration suggests that the content of the pem file should be encrypted,
@@ -121,11 +119,10 @@ pub fn write_pem_to_file(
 /// If the pem file should not be encrypted, then the content is returned as is.
 ///
 /// `maybe_decrypt_pem` does the opposite.
-#[context("Failed to encrypt pem file.")]
 fn maybe_encrypt_pem(
     pem_content: &[u8],
     config: Option<&IdentityConfiguration>,
-) -> DfxResult<Vec<u8>> {
+) -> Result<Vec<u8>, EncryptionError> {
     if let Some(encryption_config) = config.and_then(|c| c.encryption.as_ref()) {
         let password = password_prompt(EncryptingToCreate)?;
         let result = encrypt(pem_content, encryption_config, &password);
@@ -166,25 +163,26 @@ enum PromptMode {
     DecryptingToUse,
 }
 
-#[context("Failed to prompt user for password.")]
-fn password_prompt(mode: PromptMode) -> DfxResult<String> {
+fn password_prompt(mode: PromptMode) -> Result<String, EncryptionError> {
     let prompt = match mode {
         PromptMode::EncryptingToCreate => "Please enter a passphrase for your identity",
         PromptMode::DecryptingToUse => "Please enter the passphrase for your identity",
     };
-    let pw = dialoguer::Password::new()
+    dialoguer::Password::new()
         .with_prompt(prompt)
         .interact()
-        .context("Failed to read user input.")?;
-    Ok(pw)
+        .map_err(EncryptionError::ReadUserPasswordFailed)
 }
 
 fn get_argon_params() -> argon2::Params {
     argon2::Params::new(64000 /* in kb */, 3, 1, Some(32 /* in bytes */)).unwrap()
 }
 
-#[context("Failed during encryption.")]
-fn encrypt(content: &[u8], config: &EncryptionConfiguration, password: &str) -> DfxResult<Vec<u8>> {
+fn encrypt(
+    content: &[u8],
+    config: &EncryptionConfiguration,
+    password: &str,
+) -> Result<Vec<u8>, EncryptionError> {
     let argon2 = Argon2::new(
         argon2::Algorithm::Argon2id,
         argon2::Version::V0x13,
@@ -192,14 +190,14 @@ fn encrypt(content: &[u8], config: &EncryptionConfiguration, password: &str) -> 
     );
     let hash = argon2
         .hash_password(password.as_bytes(), &config.pw_salt)
-        .map_err(|e| anyhow!(format!("Error during password hashing: {}", e)))?;
+        .map_err(EncryptionError::HashPasswordFailed)?;
     let key = Key::clone_from_slice(hash.hash.unwrap().as_ref());
     let cipher = Aes256Gcm::new(&key);
     let nonce = Nonce::from_slice(config.file_nonce.as_slice());
 
     let encrypted = cipher
         .encrypt(nonce, content)
-        .map_err(|e| anyhow!("Failed to encrypt content: {}", e))?;
+        .map_err(EncryptionError::EncryptContentFailed)?;
 
     Ok(encrypted)
 }
