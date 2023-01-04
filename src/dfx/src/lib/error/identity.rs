@@ -5,21 +5,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
-    #[error("Identity already exists.")]
-    IdentityAlreadyExists(),
-
-    #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
-    ReservedIdentityName(String),
-
-    #[error("Identity {0} does not exist at '{1}'.")]
-    IdentityDoesNotExist(String, PathBuf),
-
-    #[error("Cannot create identity directory at '{0}': {1:#}")]
-    CreateIdentityDirectoryFailed(PathBuf, Box<DfxError>),
-
-    #[error("Cannot rename identity directory from '{0}' to '{1}': {2:#}")]
-    RenameIdentityDirectoryFailed(PathBuf, PathBuf, Box<DfxError>),
-
     #[error("Cannot delete the default identity.")]
     CannotDeleteDefaultIdentity(),
 
@@ -29,9 +14,24 @@ pub enum IdentityError {
     #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
+    #[error("Cannot create identity directory at '{0}': {1:#}")]
+    CreateIdentityDirectoryFailed(PathBuf, Box<DfxError>),
+
+    #[error("Identity already exists.")]
+    IdentityAlreadyExists(),
+
+    #[error("Identity {0} does not exist at '{1}'.")]
+    IdentityDoesNotExist(String, PathBuf),
+
     #[error("Cannot find home directory (no HOME environment variable).")]
     NoHomeInEnvironment(),
 
     #[error("Cannot read identity file '{0}': {1:#}")]
     ReadIdentityFileFailed(String, Box<DfxError>),
+
+    #[error("Cannot rename identity directory from '{0}' to '{1}': {2:#}")]
+    RenameIdentityDirectoryFailed(PathBuf, PathBuf, Box<DfxError>),
+
+    #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
+    ReservedIdentityName(String),
 }
