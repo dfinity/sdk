@@ -1,7 +1,7 @@
 queue_rules:
   - name: default
     conditions:
-      - "#approved-reviews-by>=1"
+      - "#approved-reviews-by>=0"
       - "#changes-requested-reviews-by=0"
       - status-success=audit:required
       - status-success=e2e:required
@@ -9,13 +9,13 @@ queue_rules:
       - status-success=license-check:required
       - status-success=lint:required
       - status-success=prepare-dfx-assets:required
-      - base=master
+      - base=test-mergify
       - label=automerge-squash
 
 pull_request_rules:
   - name: Automatic merge (squash)
     conditions:
-      - "#approved-reviews-by>=1"
+      - "#approved-reviews-by>=0"
       - "#changes-requested-reviews-by=0"
       - status-success=audit:required
       - status-success=e2e:required
@@ -23,7 +23,7 @@ pull_request_rules:
       - status-success=license-check:required
       - status-success=lint:required
       - status-success=prepare-dfx-assets:required
-      - base=master
+      - base=test-mergify
       - label=automerge-squash
     actions:
       queue:
@@ -32,7 +32,7 @@ pull_request_rules:
         commit_message_template: |
           {{ title }} (#{{ number }})
 
-          {{ body }}
+          {{ body | get_section('# Description', default=body) }}
       delete_head_branch: {}
   - name: Clean up automerge tags
     conditions:
