@@ -4,6 +4,9 @@
 
 ## DFX
 
+### fix: fixed error text
+- `dfx nns install` had the wrong instructions for setting up the local replica type
+
 ### feat(frontend-canister)!: default secure configuration for assets in frontend project template
 
 - Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
