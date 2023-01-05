@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "src/dfx",
+    "src/dfx-core",
     "src/canisters/frontend/ic-asset",
     "src/canisters/frontend/icx-asset",
     "src/canisters/frontend/ic-certified-assets",

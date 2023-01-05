@@ -247,10 +247,7 @@ impl Identity {
         was_encrypted: bool,
     ) -> DfxResult<Self> {
         let inner = Box::new(BasicIdentity::from_pem(pem_content).map_err(|e| {
-            DfxError::new(IdentityError::ReadIdentityFileFailed(
-                name.into(),
-                Box::new(DfxError::new(e)),
-            ))
+            IdentityError::ReadIdentityFileFailed(name.into(), Box::new(DfxError::new(e)))
         })?);
 
         Ok(Self {
@@ -268,10 +265,7 @@ impl Identity {
         was_encrypted: bool,
     ) -> DfxResult<Self> {
         let inner = Box::new(Secp256k1Identity::from_pem(pem_content).map_err(|e| {
-            DfxError::new(IdentityError::ReadIdentityFileFailed(
-                name.into(),
-                Box::new(DfxError::new(e)),
-            ))
+            IdentityError::ReadIdentityFileFailed(name.into(), Box::new(DfxError::new(e)))
         })?);
 
         Ok(Self {
@@ -287,15 +281,12 @@ impl Identity {
         name: &str,
         hsm: HardwareIdentityConfiguration,
     ) -> DfxResult<Self> {
-        let inner = Box::new(
-            HardwareIdentity::new(
-                hsm.pkcs11_lib_path,
-                HSM_SLOT_INDEX,
-                &hsm.key_id,
-                identity_manager::get_dfx_hsm_pin,
-            )
-            .map_err(DfxError::new)?,
-        );
+        let inner = Box::new(HardwareIdentity::new(
+            hsm.pkcs11_lib_path,
+            HSM_SLOT_INDEX,
+            &hsm.key_id,
+            identity_manager::get_dfx_hsm_pin,
+        )?);
         Ok(Self {
             name: name.to_string(),
             inner,

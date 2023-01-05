@@ -326,7 +326,7 @@ pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Res
                      "bind": "127.0.0.1:8080",
                      "type": "ephemeral",
                      "replica": {{
-                       "subnet_type": "application"
+                       "subnet_type": "system"
                      }}
                    }}
                  }}
