@@ -2,6 +2,21 @@
 
 # UNRELEASED
 
+### feat: added `dfx completion` command
+
+This command generates shell completion scripts for `bash`, `elvish`, `fish`, `zsh`, or PowerShell.
+
+Describing how to install completion scripts is beyond the scope of this document.
+Here are two ways to enable completion in the current shell:
+
+```bash
+source <(dfx completion --shell zsh)
+```
+
+```bash
+source <(dfx completion)
+```
+
 # 0.19.0
 
 ### fix: call management canister Bitcoin query API without replica-signed query

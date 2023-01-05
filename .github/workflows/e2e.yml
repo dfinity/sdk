@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/sdk-1528-command-completion
   pull_request:
 
 concurrency:
