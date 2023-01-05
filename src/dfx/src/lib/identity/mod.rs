@@ -5,7 +5,7 @@
 use crate::config::dfinity::NetworksConfig;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult, IdentityError};
+use crate::lib::error::{DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -246,9 +246,10 @@ impl Identity {
         pem_content: &[u8],
         was_encrypted: bool,
     ) -> DfxResult<Self> {
-        let inner = Box::new(BasicIdentity::from_pem(pem_content).map_err(|e| {
-            IdentityError::ReadIdentityFileFailed(name.into(), Box::new(DfxError::new(e)))
-        })?);
+        let inner = Box::new(
+            BasicIdentity::from_pem(pem_content)
+                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
+        );
 
         Ok(Self {
             name: name.to_string(),
@@ -264,9 +265,10 @@ impl Identity {
         pem_content: &[u8],
         was_encrypted: bool,
     ) -> DfxResult<Self> {
-        let inner = Box::new(Secp256k1Identity::from_pem(pem_content).map_err(|e| {
-            IdentityError::ReadIdentityFileFailed(name.into(), Box::new(DfxError::new(e)))
-        })?);
+        let inner = Box::new(
+            Secp256k1Identity::from_pem(pem_content)
+                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
+        );
 
         Ok(Self {
             name: name.to_string(),

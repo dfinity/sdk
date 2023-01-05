@@ -360,13 +360,8 @@ impl IdentityManager {
         }
 
         DfxIdentity::map_wallets_to_renamed_identity(env, from, to)?;
-        std::fs::rename(&from_dir, &to_dir).map_err(|err| {
-            IdentityError::RenameIdentityDirectoryFailed(
-                from_dir,
-                to_dir,
-                Box::new(DfxError::new(err)),
-            )
-        })?;
+        std::fs::rename(&from_dir, &to_dir)
+            .map_err(|err| IdentityError::RenameIdentityDirectoryFailed(from_dir, to_dir, err))?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
             let (pem, _) = pem_safekeeping::load_pem(log, self, from, &identity_config)?;
@@ -520,12 +515,8 @@ To create a more secure identity, create and use an identity that is protected b
     let identity_pem_path = identity_dir.join(IDENTITY_PEM);
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
-            std::fs::create_dir_all(&identity_dir).map_err(|err| {
-                IdentityError::CreateIdentityDirectoryFailed(
-                    identity_dir,
-                    Box::new(DfxError::new(err)),
-                )
-            })?;
+            std::fs::create_dir_all(&identity_dir)
+                .map_err(|err| IdentityError::CreateIdentityDirectoryFailed(identity_dir, err))?;
         }
 
         let maybe_creds_pem_path = get_legacy_creds_pem_path()?;
