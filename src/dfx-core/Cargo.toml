@@ -1,0 +1,9 @@
+[package]
+name = "dfx-core"
+version = "0.0.1"
+authors = ["DFINITY Team"]
+edition = "2021"
+
+[dependencies]
+ic-agent = { version = "0.23.0", features = ["reqwest"] }
+thiserror = "1.0.20"
