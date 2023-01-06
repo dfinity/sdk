@@ -4,9 +4,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum StructuredFileError {
-    #[error("Failed to read JSON file: {0}")]
-    ReadJsonFileFailed(IoError),
-
     #[error("Failed to deserialize JSON from {0}: {1}")]
     DeserializeJsonFileFailed(PathBuf, serde_json::Error),
+
+    #[error("Failed to read JSON file: {0}")]
+    ReadJsonFileFailed(IoError),
 }
