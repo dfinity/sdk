@@ -5,5 +5,7 @@ authors = ["DFINITY Team"]
 edition = "2021"
 
 [dependencies]
+aes-gcm = "0.9.4"
+argon2 = "0.4.0"
 ic-agent = { version = "0.23.0", features = ["reqwest"] }
 thiserror = "1.0.20"
