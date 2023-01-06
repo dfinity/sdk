@@ -1,6 +1,7 @@
-use crate::error::io::IoError;
-
 use crate::error::encryption::EncryptionError;
+use crate::error::io::IoError;
+use crate::error::structured_file::StructuredFileError;
+
 use ic_agent::identity::PemError;
 
 use std::path::PathBuf;
@@ -31,6 +32,9 @@ pub enum IdentityError {
 
     #[error("Cannot find home directory (no HOME environment variable).")]
     NoHomeInEnvironment(),
+
+    #[error("Failed to read configuration for identity '{0}': {1}")]
+    ReadIdentityConfigurationFailed(String, StructuredFileError),
 
     #[error("Cannot read identity file '{0}': {1:#}")]
     ReadIdentityFileFailed(String, PemError),

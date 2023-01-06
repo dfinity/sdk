@@ -9,6 +9,9 @@ pub enum IoError {
     #[error("Cannot determine parent folder for {0}")]
     NoParent(PathBuf),
 
+    #[error("Failed to read {0}: {1}")]
+    ReadFileFailed(PathBuf, std::io::Error),
+
     #[error("Failed to read permissions of {0}: {1}")]
     ReadPermissionsFailed(PathBuf, std::io::Error),
 

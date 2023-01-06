@@ -1,12 +1,13 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
+use dfx_core::json::read_json_file;
 use crate::lib::identity::{
     pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
 use dfx_core::error::identity::IdentityError::{
-    CreateIdentityDirectoryFailed, RenameIdentityDirectoryFailed,
+    CreateIdentityDirectoryFailed, ReadIdentityConfigurationFailed, RenameIdentityDirectoryFailed,
 };
 
 use anyhow::{anyhow, bail, Context};
@@ -470,22 +471,14 @@ impl IdentityManager {
         self.get_identity_dir_path(identity).join(IDENTITY_JSON)
     }
 
-    #[context("Failed to get identity config for '{}'.", identity)]
     pub fn get_identity_config_or_default(
         &self,
         identity: &str,
-    ) -> DfxResult<IdentityConfiguration> {
+    ) -> Result<IdentityConfiguration, IdentityError> {
         let json_path = self.get_identity_json_path(identity);
         if json_path.exists() {
-            let content = std::fs::read(&json_path)
-                .with_context(|| format!("Failed to read {}.", json_path.to_string_lossy()))?;
-            let config = serde_json::from_slice(content.as_ref()).with_context(|| {
-                format!(
-                    "Error deserializing identity configuration at {}.",
-                    json_path.to_string_lossy()
-                )
-            })?;
-            Ok(config)
+            read_json_file(&json_path)
+                .map_err(|err| ReadIdentityConfigurationFailed(identity.to_string(), err))
         } else {
             Ok(IdentityConfiguration::default())
         }
