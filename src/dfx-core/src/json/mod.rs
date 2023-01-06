@@ -4,7 +4,7 @@ use crate::error::structured_file::StructuredFileError::ReadJsonFileFailed;
 
 use std::path::Path;
 
-pub fn read_json_file<T: for<'a> serde::de::Deserialize<'a>>(
+pub fn load_json_file<T: for<'a> serde::de::Deserialize<'a>>(
     path: &Path,
 ) -> Result<T, StructuredFileError> {
     let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;

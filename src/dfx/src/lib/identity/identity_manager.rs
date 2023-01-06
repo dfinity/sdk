@@ -6,9 +6,9 @@ use crate::lib::identity::{
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
 use dfx_core::error::identity::IdentityError::{
-    CreateIdentityDirectoryFailed, ReadIdentityConfigurationFailed, RenameIdentityDirectoryFailed,
+    CreateIdentityDirectoryFailed, LoadIdentityConfigurationFailed, RenameIdentityDirectoryFailed,
 };
-use dfx_core::json::read_json_file;
+use dfx_core::json::load_json_file;
 
 use anyhow::{anyhow, bail, Context};
 use bip32::XPrv;
@@ -477,8 +477,8 @@ impl IdentityManager {
     ) -> Result<IdentityConfiguration, IdentityError> {
         let json_path = self.get_identity_json_path(identity);
         if json_path.exists() {
-            read_json_file(&json_path)
-                .map_err(|err| ReadIdentityConfigurationFailed(identity.to_string(), err))
+            load_json_file(&json_path)
+                .map_err(|err| LoadIdentityConfigurationFailed(identity.to_string(), err))
         } else {
             Ok(IdentityConfiguration::default())
         }

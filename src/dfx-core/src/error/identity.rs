@@ -30,11 +30,11 @@ pub enum IdentityError {
     #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
 
+    #[error("Failed to load configuration for identity '{0}': {1}")]
+    LoadIdentityConfigurationFailed(String, StructuredFileError),
+
     #[error("Cannot find home directory (no HOME environment variable).")]
     NoHomeInEnvironment(),
-
-    #[error("Failed to read configuration for identity '{0}': {1}")]
-    ReadIdentityConfigurationFailed(String, StructuredFileError),
 
     #[error("Cannot read identity file '{0}': {1:#}")]
     ReadIdentityFileFailed(String, PemError),
