@@ -67,7 +67,7 @@ actor {
     };
   };
 
-  public func reportCommandResult(args: ReportCommandArgs) : async () {
+  public func reportCommandResult(args: ReportCommandArgs) : () {
     updateAggregationPeriods();
     let aggregationPeriod = data.thirtyDayAggregationPeriodStart;
     let invocationDetails : InvocationDetails = {
