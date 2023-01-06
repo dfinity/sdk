@@ -1,7 +1,6 @@
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult, IdentityError};
-use dfx_core::json::read_json_file;
 use crate::lib::identity::{
     pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
@@ -9,6 +8,7 @@ use crate::lib::identity::{
 use dfx_core::error::identity::IdentityError::{
     CreateIdentityDirectoryFailed, ReadIdentityConfigurationFailed, RenameIdentityDirectoryFailed,
 };
+use dfx_core::json::read_json_file;
 
 use anyhow::{anyhow, bail, Context};
 use bip32::XPrv;
