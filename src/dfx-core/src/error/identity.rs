@@ -1,3 +1,5 @@
+use crate::error::io::IoError;
+
 use ic_agent::identity::PemError;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -13,8 +15,8 @@ pub enum IdentityError {
     #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
-    #[error("Cannot create identity directory at '{0}': {1:#}")]
-    CreateIdentityDirectoryFailed(PathBuf, std::io::Error),
+    #[error("Cannot create identity directory: {0}")]
+    CreateIdentityDirectoryFailed(IoError),
 
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
@@ -28,8 +30,8 @@ pub enum IdentityError {
     #[error("Cannot read identity file '{0}': {1:#}")]
     ReadIdentityFileFailed(String, PemError),
 
-    #[error("Cannot rename identity directory from '{0}' to '{1}': {2:#}")]
-    RenameIdentityDirectoryFailed(PathBuf, PathBuf, std::io::Error),
+    #[error("Cannot rename identity directory: {0}")]
+    RenameIdentityDirectoryFailed(IoError),
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
