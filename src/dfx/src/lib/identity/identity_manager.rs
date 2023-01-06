@@ -5,14 +5,14 @@ use crate::lib::identity::{
     pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON, IDENTITY_PEM,
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
+use dfx_core::error::identity::IdentityError::{
+    CreateIdentityDirectoryFailed, RenameIdentityDirectoryFailed,
+};
 
 use anyhow::{anyhow, bail, Context};
 use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
-use dfx_core::error::identity::IdentityError::{
-    CreateIdentityDirectoryFailed, RenameIdentityDirectoryFailed,
-};
 use fn_error_context::context;
 use k256::pkcs8::LineEnding;
 use k256::SecretKey;

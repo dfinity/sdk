@@ -910,6 +910,8 @@ dependencies = [
 name = "dfx-core"
 version = "0.0.1"
 dependencies = [
+ "aes-gcm",
+ "argon2",
  "ic-agent",
  "thiserror",
 ]
