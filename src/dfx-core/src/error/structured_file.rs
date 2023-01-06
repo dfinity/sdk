@@ -9,4 +9,10 @@ pub enum StructuredFileError {
 
     #[error("Failed to read JSON file: {0}")]
     ReadJsonFileFailed(IoError),
+
+    #[error("Failed to serialize JSON to {0}: {1}")]
+    SerializeJsonFileFailed(PathBuf, serde_json::Error),
+
+    #[error("Failed to write JSON file: {0}")]
+    WriteJsonFileFailed(IoError),
 }
