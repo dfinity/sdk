@@ -151,7 +151,7 @@ async fn delete_canister(
                 memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
             };
-            info!(log, "Setting the controller to identity princpal.");
+            info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
 
             // Install a temporary wallet wasm which will transfer the cycles out of the canister before it is deleted.
