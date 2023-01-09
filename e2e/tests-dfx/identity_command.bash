@@ -19,11 +19,11 @@ teardown() {
     assert_command dfx identity new jose
     assert_command dfx identity new juana
 
-    PRINCPAL_ID_JOSE=$(dfx identity get-principal --identity jose)
-    PRINCPAL_ID_JUANA=$(dfx identity get-principal --identity juana)
+    PRINCIPAL_ID_JOSE=$(dfx identity get-principal --identity jose)
+    PRINCIPAL_ID_JUANA=$(dfx identity get-principal --identity juana)
 
-    if [ "$PRINCPAL_ID_JOSE" -eq "$PRINCPAL_ID_JUANA" ]; then
-      echo "IDs should not match: Jose '${PRINCPAL_ID_JOSE}' == Juana '${PRINCPAL_ID_JUANA}'..." | fail
+    if [ "$PRINCIPAL_ID_JOSE" -eq "$PRINCIPAL_ID_JUANA" ]; then
+      echo "IDs should not match: Jose '${PRINCIPAL_ID_JOSE}' == Juana '${PRINCIPAL_ID_JUANA}'..." | fail
     fi
 }
 

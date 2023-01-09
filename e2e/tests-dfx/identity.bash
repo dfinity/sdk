@@ -20,7 +20,7 @@ teardown() {
     dfx_start
     assert_command dfx identity new --disable-encryption jose
 
-    PRINCPAL_ID=$(dfx identity get-principal --identity jose)
+    PRINCIPAL_ID=$(dfx identity get-principal --identity jose)
 
     dfx canister create e2e_project_backend --identity jose
     dfx build e2e_project_backend --identity jose
@@ -30,8 +30,8 @@ teardown() {
 
     SENDER_ID=$(dfx canister call e2e_project_backend fromCall --identity jose)
 
-    if [ "$PRINCPAL_ID" -ne "$SENDER_ID" ]; then
-      echo "IDs did not match: Principal '${PRINCPAL_ID}' != Sender '${SENDER_ID}'..." | fail
+    if [ "$PRINCIPAL_ID" -ne "$SENDER_ID" ]; then
+      echo "IDs did not match: Principal '${PRINCIPAL_ID}' != Sender '${SENDER_ID}'..." | fail
     fi
 }
 
