@@ -1,6 +1,6 @@
 use crate::error::io::IoError;
 use crate::error::io::IoError::{
-    CreateDirectoryFailed, ReadPermissionsFailed, RenameFailed, WriteFileFailed,
+    CreateDirectoryFailed, ReadFileFailed, ReadPermissionsFailed, RenameFailed, WriteFileFailed,
     WritePermissionsFailed,
 };
 
@@ -16,6 +16,10 @@ pub fn parent(path: &Path) -> Result<PathBuf, IoError> {
         None => Err(IoError::NoParent(path.to_path_buf())),
         Some(parent) => Ok(parent.to_path_buf()),
     }
+}
+
+pub fn read(path: &Path) -> Result<Vec<u8>, IoError> {
+    std::fs::read(path).map_err(|err| ReadFileFailed(path.to_path_buf(), err))
 }
 
 pub fn rename(from: &Path, to: &Path) -> Result<(), IoError> {
