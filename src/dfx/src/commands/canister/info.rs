@@ -10,7 +10,7 @@ use ic_agent::AgentError;
 use serde_cbor::Value;
 use std::convert::TryFrom;
 
-/// Get the hash of a canister’s WASM module and its current controller.
+/// Get the hash of a canister’s WASM module and its current controllers.
 #[derive(Parser)]
 pub struct InfoOpts {
     /// Specifies the name or id of the canister to get its canister information.
