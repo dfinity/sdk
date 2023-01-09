@@ -913,6 +913,8 @@ dependencies = [
  "aes-gcm",
  "argon2",
  "ic-agent",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 
