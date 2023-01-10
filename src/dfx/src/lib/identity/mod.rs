@@ -8,6 +8,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use dfx_core::error::identity::IdentityError::{
+    InstantiateHardwareIdentityFailed, ReadIdentityFileFailed,
+};
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
     EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
@@ -234,10 +237,10 @@ impl Identity {
         }
     }
 
-    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
+    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> Result<Self, IdentityError> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
-                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), Box::new(e)))?,
+                .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
         );
 
         Ok(Self {
@@ -247,10 +250,14 @@ impl Identity {
         })
     }
 
-    fn secp256k1(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
+    fn secp256k1(
+        name: &str,
+        pem_content: &[u8],
+        was_encrypted: bool,
+    ) -> Result<Self, IdentityError> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
-                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), Box::new(e)))?,
+                .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
         );
 
         Ok(Self {
@@ -260,13 +267,16 @@ impl Identity {
         })
     }
 
-    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> DfxResult<Self> {
-        let inner = Box::new(HardwareIdentity::new(
-            hsm.pkcs11_lib_path,
-            HSM_SLOT_INDEX,
-            &hsm.key_id,
-            identity_manager::get_dfx_hsm_pin,
-        )?);
+    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> Result<Self, IdentityError> {
+        let inner = Box::new(
+            HardwareIdentity::new(
+                hsm.pkcs11_lib_path,
+                HSM_SLOT_INDEX,
+                &hsm.key_id,
+                identity_manager::get_dfx_hsm_pin,
+            )
+            .map_err(|e| InstantiateHardwareIdentityFailed(name.into(), Box::new(e)))?,
+        );
         Ok(Self {
             name: name.to_string(),
             inner,
@@ -274,8 +284,11 @@ impl Identity {
         })
     }
 
-    #[context("Failed to load identity '{}'.", name)]
-    pub fn load(manager: &IdentityManager, name: &str, log: &Logger) -> DfxResult<Self> {
+    pub fn load(
+        manager: &IdentityManager,
+        name: &str,
+        log: &Logger,
+    ) -> Result<Self, IdentityError> {
         let config = manager.get_identity_config_or_default(name)?;
         if let Some(hsm) = config.hsm {
             Identity::hardware(name, hsm)
