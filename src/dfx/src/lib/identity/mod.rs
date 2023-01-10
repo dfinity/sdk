@@ -236,7 +236,7 @@ impl Identity {
         }
     }
 
-    fn load_basic_identity(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
+    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
                 .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
@@ -249,11 +249,7 @@ impl Identity {
         })
     }
 
-    fn load_secp256k1_identity(
-        name: &str,
-        pem_content: &[u8],
-        was_encrypted: bool,
-    ) -> DfxResult<Self> {
+    fn secp256k1(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
                 .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
@@ -266,7 +262,7 @@ impl Identity {
         })
     }
 
-    fn load_hardware_identity(name: &str, hsm: HardwareIdentityConfiguration) -> DfxResult<Self> {
+    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> DfxResult<Self> {
         let inner = Box::new(HardwareIdentity::new(
             hsm.pkcs11_lib_path,
             HSM_SLOT_INDEX,
@@ -290,13 +286,12 @@ impl Identity {
             IdentityConfiguration::default()
         };
         if let Some(hsm) = config.hsm {
-            Identity::load_hardware_identity(name, hsm)
+            Identity::hardware(name, hsm)
         } else {
             let (pem_content, was_encrypted) =
                 pem_safekeeping::load_pem(log, manager, name, &config)?;
-            Identity::load_secp256k1_identity(name, &pem_content, was_encrypted).or_else(|e| {
-                Identity::load_basic_identity(name, &pem_content, was_encrypted).map_err(|_| e)
-            })
+            Identity::secp256k1(name, &pem_content, was_encrypted)
+                .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
         }
     }
 
