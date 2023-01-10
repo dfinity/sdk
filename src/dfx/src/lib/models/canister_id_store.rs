@@ -119,10 +119,17 @@ impl CanisterIdStore {
     }
 
     pub fn get_timestamp(&self, canister_name: &str) -> Option<candid::Int> {
-        self.timestamps
+        let a = self
+            .timestamps
             .get(canister_name)
             .and_then(|n_to_t| n_to_t.get(&self.network_descriptor.name))
-            .map(|a| candid::Int::from(a.clone()))
+            .map(|a| candid::Int::from(a.clone()));
+        println!(
+            "Fetching timestamp for canister {}: {}",
+            canister_name,
+            a.clone().unwrap_or(0.into())
+        );
+        a
     }
 
     pub fn get_name(&self, canister_id: &str) -> Option<&String> {

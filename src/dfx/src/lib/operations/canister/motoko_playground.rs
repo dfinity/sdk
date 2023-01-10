@@ -5,7 +5,7 @@ use candid::{encode_args, CandidType, Decode, Deserialize, Encode, Principal};
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use rand::Rng;
-use slog::info;
+use slog::{debug, info};
 
 use crate::{
     lib::{
@@ -45,9 +45,11 @@ pub async fn reserve_canister_with_playground(
 ) -> DfxResult {
     //todo!(call sender)
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
+    let log = env.get_logger();
     let playground_cid = if let NetworkTypeDescriptor::Playground { playground_cid, .. } =
         env.get_network_descriptor().r#type
     {
+        debug!(log, "playground canister is {}", playground_cid);
         playground_cid
     } else {
         bail!("This shouldn't happen")
@@ -102,9 +104,11 @@ pub async fn authorize_asset_uploader(
         timestamp: canister_timestamp,
     };
 
-    let level_2_arg = Encode!(&(*principal_to_authorize,))?;
-    let call_arg = Encode!(&(canister_info, "authorize", level_2_arg))?;
+    let level_2_arg = Encode!(&principal_to_authorize)?;
+    let call_arg = Encode!(&canister_info, &"authorize", &level_2_arg)?;
+    // println!("hex call arg: {:02x?}", &call_arg);
 
+    println!("Playground cid is {}", &playground_cid);
     let _ = agent
         .update(&playground_cid, "callCanister")
         .with_arg(call_arg)
@@ -122,7 +126,7 @@ pub async fn playground_install_code(
     wasm_module: &[u8],
     mode: InstallMode,
     _call_sender: &CallSender,
-) -> DfxResult {
+) -> DfxResult<num_bigint::BigInt> {
     // todo!(call sender);
 
     if !is_wasm_module(wasm_module) {
@@ -156,7 +160,8 @@ pub async fn playground_install_code(
         .context("install failed")?;
     let out = Decode!(&result, CanisterInfo)?;
     println!("Install result: {:?}, principal: {}", &out, &out.id);
-    Ok(())
+    let refreshed_timestamp = out.timestamp;
+    Ok(refreshed_timestamp.into())
 }
 
 fn create_nonce() -> (candid::Int, candid::Nat) {

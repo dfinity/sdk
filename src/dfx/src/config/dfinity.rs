@@ -793,7 +793,7 @@ fn add_dependencies(
     Ok(())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Config {
     path: PathBuf,
     json: Value,

@@ -115,6 +115,7 @@ impl NetworkDescriptor {
 
     /// Playground on mainnet
     pub(crate) fn default_playground_network() -> Self {
+        println!("using default playground definition");
         Self {
             name: PLAYGROUND_NETWORK_NAME.to_string(),
             providers: vec![DEFAULT_IC_GATEWAY.to_string()],

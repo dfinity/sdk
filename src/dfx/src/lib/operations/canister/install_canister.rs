@@ -119,7 +119,8 @@ pub async fn install_canister(
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
     } else {
-        install_canister_wasm(
+        println!("performing install call");
+        if let Some(new_timestamp) = install_canister_wasm(
             env,
             agent,
             canister_id,
@@ -132,7 +133,14 @@ pub async fn install_canister(
             wasm_module,
             skip_consent,
         )
-        .await?;
+        .await?
+        {
+            canister_id_store.add(
+                canister_info.get_name(),
+                &canister_id.to_string(),
+                Some(new_timestamp),
+            )?;
+        }
     }
     let mut waiter = Delay::builder()
         .with(Delay::count_timeout(30))
@@ -146,7 +154,14 @@ pub async fn install_canister(
             .await
         {
             Ok(reported_hash) => {
-                if reported_hash[..] == new_hash[..] {
+                if env.get_network_descriptor().is_playground() {
+                    // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
+                    info!(
+                        log,
+                        "Something is installed in the canister. Assuming new code is installed."
+                    );
+                    break;
+                } else if reported_hash[..] == new_hash[..] {
                     break;
                 } else if installed_module_hash
                     .as_deref()
@@ -382,7 +397,7 @@ pub async fn install_canister_wasm(
     call_sender: &CallSender,
     wasm_module: Vec<u8>,
     skip_consent: bool,
-) -> DfxResult {
+) -> DfxResult<Option<num_bigint::BigInt>> {
     let log = env.get_logger();
     let mgr = ManagementCanister::create(agent);
     if !skip_consent && mode == InstallMode::Reinstall {
@@ -415,7 +430,7 @@ pub async fn install_canister_wasm(
         canister_timestamp,
         env.get_network_descriptor().is_playground(),
     ) {
-        playground_install_code(
+        let new_timestamp = playground_install_code(
             env,
             canister_id,
             canister_timestamp,
@@ -425,6 +440,7 @@ pub async fn install_canister_wasm(
             call_sender,
         )
         .await?;
+        Ok(Some(new_timestamp)) //todo!(ew, can this be done some other way?)
     } else {
         match call_sender {
             CallSender::SelectedId => {
@@ -459,8 +475,8 @@ pub async fn install_canister_wasm(
                     .context("Failed during wasm installation call.")?;
             }
         }
+        Ok(None)
     }
-    Ok(())
 }
 
 pub async fn install_wallet(

@@ -377,6 +377,7 @@ pub struct BuildConfig {
 impl BuildConfig {
     #[context("Failed to create build config.")]
     pub fn from_config(config: &Config) -> DfxResult<Self> {
+        println!("making build config from {:#?}", config);
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
         let network_is_playground = config_intf
@@ -386,9 +387,11 @@ impl BuildConfig {
                 m.get(&network_name)
                     .map(|n| match n {
                         crate::config::dfinity::ConfigNetwork::ConfigNetworkProvider(a) => {
+                            println!("PALLYGROUND NETWORK CONFIG: {:?}", &a.playground);
                             a.playground.is_some()
                         }
                         crate::config::dfinity::ConfigNetwork::ConfigLocalProvider(a) => {
+                            println!("PLAYGROUND NETWORK CONFIG: {:?}", &a.playground);
                             a.playground.is_some()
                         }
                     })
@@ -400,7 +403,7 @@ impl BuildConfig {
 
         Ok(BuildConfig {
             network_name,
-            network_is_playground,
+            network_is_playground: true, //todo!(fix proper derivation of this setting, is wrong currently)
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
             build_root: canister_root.clone(),
