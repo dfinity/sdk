@@ -24,6 +24,9 @@ pub enum IdentityError {
     #[error("Cannot create identity directory: {0}")]
     CreateIdentityDirectoryFailed(IoError),
 
+    #[error("Failed to decrypt PEM file: {0}")]
+    DecryptPemFileFailed(PathBuf, EncryptionError),
+
     #[error("Failed to derive extended secret key from path: {0}")]
     DeriveExtendedKeyFromPathFailed(bip32::Error),
 
@@ -54,11 +57,17 @@ pub enum IdentityError {
     #[error("Failed to load identity manager configuration: {0}")]
     LoadIdentityManagerConfigurationFailed(StructuredFileError),
 
+    #[error("Failed to load PEM file from keyring for identity '{0}': {1}")]
+    LoadPemFromKeyringFailed(Box<String>, KeyringError),
+
     #[error("Failed to migrate legacy identity")]
     MigrateLegacyIdentityFailed(IoError),
 
     #[error("Cannot read identity file '{0}': {1:#}")]
     ReadIdentityFileFailed(String, Box<PemError>),
+
+    #[error("Failed to read pem file: {0}")]
+    ReadPemFileFailed(IoError),
 
     #[error("Failed to remove identity directory: {0}")]
     RemoveIdentityDirectoryFailed(IoError),

@@ -2,6 +2,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum EncryptionError {
+    #[error("Failed to decrypt content: {0}")]
+    DecryptContentFailed(aes_gcm::Error),
+
     #[error("Failed to encrypt content: {0}")]
     EncryptContentFailed(aes_gcm::Error),
 
