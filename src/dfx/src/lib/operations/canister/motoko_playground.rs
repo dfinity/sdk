@@ -9,8 +9,7 @@ use slog::{debug, info};
 
 use crate::{
     lib::{
-        environment::Environment, error::DfxResult, identity::identity_utils::CallSender,
-        models::canister_id_store::CanisterIdStore,
+        environment::Environment, error::DfxResult, models::canister_id_store::CanisterIdStore,
         network::network_descriptor::NetworkTypeDescriptor, waiter::waiter_with_timeout,
         wasm::file::is_wasm_module,
     },
@@ -41,9 +40,7 @@ pub struct InstallArgs<'a> {
 pub async fn reserve_canister_with_playground(
     env: &dyn Environment,
     canister_name: &str,
-    _call_sender: &CallSender,
 ) -> DfxResult {
-    //todo!(call sender)
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
     let log = env.get_logger();
     let playground_cid = if let NetworkTypeDescriptor::Playground { playground_cid, .. } =
@@ -52,7 +49,7 @@ pub async fn reserve_canister_with_playground(
         debug!(log, "playground canister is {}", playground_cid);
         playground_cid
     } else {
-        bail!("This shouldn't happen")
+        bail!("Unreachable - trying to reserve canister with playground on non-playground network.")
     };
     let mut canister_id_store = CanisterIdStore::for_env(env)?;
     let (timestamp, nonce) = create_nonce();
@@ -67,7 +64,6 @@ pub async fn reserve_canister_with_playground(
         .await
         .context("Failed to reserve canister at the playground.")?;
     let reserved_canister = Decode!(&result, CanisterInfo)?;
-    println!("Return value: {:?}", reserved_canister);
     canister_id_store.add(
         canister_name,
         &reserved_canister.id.to_string(),
@@ -97,7 +93,7 @@ pub async fn authorize_asset_uploader(
     {
         playground_cid
     } else {
-        bail!("This shouldn't happen")
+        bail!("Unreachable - trying to authorize asset uploader on non-playground network.")
     };
     let canister_info = CanisterInfo {
         id: canister_id,
@@ -106,9 +102,7 @@ pub async fn authorize_asset_uploader(
 
     let level_2_arg = Encode!(&principal_to_authorize)?;
     let call_arg = Encode!(&canister_info, &"authorize", &level_2_arg)?;
-    // println!("hex call arg: {:02x?}", &call_arg);
 
-    println!("Playground cid is {}", &playground_cid);
     let _ = agent
         .update(&playground_cid, "callCanister")
         .with_arg(call_arg)
@@ -125,14 +119,10 @@ pub async fn playground_install_code(
     arg: &[u8],
     wasm_module: &[u8],
     mode: InstallMode,
-    _call_sender: &CallSender,
 ) -> DfxResult<num_bigint::BigInt> {
-    // todo!(call sender);
-
     if !is_wasm_module(wasm_module) {
         bail!("Invalid WASM detected. Is your file maybe zipped? Playground can only deploy .wasm files.");
     }
-    println!("Trying to install a wasm:");
     let canister_info = CanisterInfo {
         id: canister_id,
         timestamp: canister_timestamp,
@@ -143,7 +133,7 @@ pub async fn playground_install_code(
     {
         playground_cid
     } else {
-        bail!("This shouldn't happen")
+        bail!("Unreachable - trying to install wasm through playground on non-playground network.")
     };
     let install_arg = InstallArgs {
         arg,
@@ -159,29 +149,26 @@ pub async fn playground_install_code(
         .await
         .context("install failed")?;
     let out = Decode!(&result, CanisterInfo)?;
-    println!("Install result: {:?}, principal: {}", &out, &out.id);
     let refreshed_timestamp = out.timestamp;
     Ok(refreshed_timestamp.into())
 }
 
 fn create_nonce() -> (candid::Int, candid::Nat) {
-    println!("generating nonce");
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_millis();
     let timestamp = candid::Int::from(now * 1_000_000);
     let out = proof_of_work(timestamp);
-    println!("nonce generated");
     out
 }
 
-const DOMAIN: &str = "motoko-playground";
+const POW_DOMAIN: &str = "motoko-playground";
 
 fn proof_of_work(timestamp: candid::Int) -> (candid::Int, candid::Nat) {
     let mut rng = rand::thread_rng();
     let mut nonce = candid::Nat::from(rng.gen::<i32>());
-    let prefix = format!("{}{}", DOMAIN, timestamp);
+    let prefix = format!("{}{}", POW_DOMAIN, timestamp);
     loop {
         let hash = motoko_hash(&format!("{}{}", prefix, nonce));
         if check_hash(hash) {

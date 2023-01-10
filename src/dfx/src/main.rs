@@ -42,7 +42,7 @@ pub struct CliOpts {
     command: commands::Command,
 }
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Default)]
 pub struct NetworkOpt {
     /// Override the compute network to connect to. By default, the local network is used.
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
@@ -55,14 +55,6 @@ pub struct NetworkOpt {
     /// Borrows short-lived canisters on the real IC network instead of creating normal canisters.
     #[clap(long, global(true), conflicts_with("network"))]
     playground: bool,
-}
-impl NetworkOpt {
-    pub(crate) fn default() -> NetworkOpt {
-        Self {
-            playground: false,
-            network: None,
-        }
-    }
 }
 
 fn is_warning_disabled(warning: &str) -> bool {

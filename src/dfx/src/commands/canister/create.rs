@@ -89,8 +89,6 @@ pub async fn exec(
         call_sender = &proxy_sender;
     }
 
-    println!("checkpoint 1");
-
     let controllers: Option<Vec<_>> = opts
         .controller
         .clone()
@@ -119,7 +117,6 @@ pub async fn exec(
         })
         .transpose()
         .context("Failed to determine controllers.")?;
-    println!("checkpoint 2");
 
     if let Some(canister_name) = opts.canister_name.as_deref() {
         let canister_is_remote = config

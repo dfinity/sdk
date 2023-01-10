@@ -144,7 +144,7 @@ async fn register_canisters(
     } else if env.get_network_descriptor().is_playground() {
         info!(env.get_logger(), "Reserving canisters in playground...");
         for canister_name in &canisters_to_create {
-            reserve_canister_with_playground(env, canister_name, call_sender).await?;
+            reserve_canister_with_playground(env, canister_name).await?;
         }
     } else {
         info!(env.get_logger(), "Creating canisters...");
@@ -229,8 +229,7 @@ async fn install_canisters(
     pool: CanisterPool,
     skip_consent: bool,
 ) -> DfxResult {
-    let log = env.get_logger();
-    info!(log, "Installing canisters...");
+    info!(env.get_logger(), "Installing canisters...");
 
     let agent = env
         .get_agent()

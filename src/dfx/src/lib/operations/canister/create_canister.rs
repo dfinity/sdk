@@ -73,7 +73,7 @@ pub async fn create_canister(
         }
         None => {
             if env.get_network_descriptor().is_playground() {
-                reserve_canister_with_playground(env, canister_name, call_sender).await?;
+                reserve_canister_with_playground(env, canister_name).await?;
                 Ok(())
             } else {
                 let agent = env

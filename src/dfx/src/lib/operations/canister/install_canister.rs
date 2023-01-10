@@ -105,7 +105,6 @@ pub async fn install_canister(
     }
 
     let wasm_path = canister_info.get_build_wasm_path();
-    println!("WASM is located at {}", wasm_path.to_string_lossy());
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
     let new_hash = Sha256::digest(&wasm_module);
@@ -119,7 +118,6 @@ pub async fn install_canister(
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
     } else {
-        println!("performing install call");
         if let Some(new_timestamp) = install_canister_wasm(
             env,
             agent,
@@ -208,17 +206,14 @@ pub async fn install_canister(
     if canister_info.is_assets() {
         if let Some(canister_timeout) = canister_id_store.get_timestamp(canister_info.get_name()) {
             // playground installed the code, so playground has to authorize call_sender to upload files
-            let call_sender_principal = match call_sender {
-                CallSender::SelectedId => env
-                    .get_selected_identity_principal()
-                    .context("Failed to figure out seleted identity's principal.")?,
-                CallSender::Wallet(id) => *id,
-            };
+            let uploader_principal = env
+                .get_selected_identity_principal()
+                .context("Failed to figure out seleted identity's principal.")?;
             authorize_asset_uploader(
                 env,
                 canister_info.get_canister_id()?,
                 canister_timeout,
-                &call_sender_principal,
+                &uploader_principal,
             )
             .await?;
         }
@@ -406,11 +401,11 @@ pub async fn install_canister_wasm(
         } else {
             format!("You are about to reinstall the canister {canister_id}")
         } + r#"
-        This will OVERWRITE all the data and code in the canister.
-        
-        YOU WILL LOSE ALL DATA IN THE CANISTER.");
-        
-        "#;
+This will OVERWRITE all the data and code in the canister.
+
+YOU WILL LOSE ALL DATA IN THE CANISTER.");
+
+"#;
         ask_for_consent(&msg)?;
     }
     let mode_str = match mode {
@@ -437,7 +432,6 @@ pub async fn install_canister_wasm(
             args,
             wasm_module.as_slice(),
             mode,
-            call_sender,
         )
         .await?;
         Ok(Some(new_timestamp))

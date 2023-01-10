@@ -54,7 +54,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         let network_descriptor = create_network_descriptor(
             env.get_config(),
             env.get_networks_config(),
-            NetworkOpt::default(), /* opts.network */
+            NetworkOpt::default(),
             None,
             LocalBindDetermination::ApplyRunningWebserverPort,
         )?;

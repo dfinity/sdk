@@ -377,7 +377,6 @@ pub struct BuildConfig {
 impl BuildConfig {
     #[context("Failed to create build config.")]
     pub fn from_config(config: &Config, network_is_playground: bool) -> DfxResult<Self> {
-        println!("making build config from {:#?}", config);
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
         let network_root = config.get_temp_path().join(&network_name);
@@ -385,7 +384,7 @@ impl BuildConfig {
 
         Ok(BuildConfig {
             network_name,
-            network_is_playground: true, //todo!(fix proper derivation of this setting, is wrong currently)
+            network_is_playground,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
             build_root: canister_root.clone(),

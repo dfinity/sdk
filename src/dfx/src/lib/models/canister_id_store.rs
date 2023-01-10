@@ -22,6 +22,7 @@ pub type CanisterIdString = String;
 pub type NetworkNametoCanisterId = BTreeMap<NetworkName, CanisterIdString>;
 pub type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 
+// Canister timestamp is saved as a num_bigint::BigInt because of serialization problems with candid::Int
 pub type NetworkNametoCanisterTimestamp = BTreeMap<NetworkName, BigInt>;
 pub type CanisterTimestamps = BTreeMap<CanisterName, NetworkNametoCanisterTimestamp>;
 
@@ -310,10 +311,6 @@ impl CanisterIdStore {
                         .map(|timestamp| (canister_name, timestamp))
                 })
         {
-            eprintln!(
-                "Canister {} timestamp: {}, prune cutoff: {}, now: {}",
-                canister_name, timestamp, prune_cutoff, now
-            );
             if *timestamp < prune_cutoff {
                 canisters_to_prune.push(canister_name.clone());
             }
