@@ -376,25 +376,10 @@ pub struct BuildConfig {
 
 impl BuildConfig {
     #[context("Failed to create build config.")]
-    pub fn from_config(config: &Config) -> DfxResult<Self> {
+    pub fn from_config(config: &Config, network_is_playground: bool) -> DfxResult<Self> {
+        println!("making build config from {:#?}", config);
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
-        let network_is_playground = config_intf
-            .networks
-            .as_ref()
-            .map(|m| {
-                m.get(&network_name)
-                    .map(|n| match n {
-                        crate::config::dfinity::ConfigNetwork::ConfigNetworkProvider(a) => {
-                            a.playground.is_some()
-                        }
-                        crate::config::dfinity::ConfigNetwork::ConfigLocalProvider(a) => {
-                            a.playground.is_some()
-                        }
-                    })
-                    .unwrap_or(false)
-            })
-            .unwrap_or(false);
         let network_root = config.get_temp_path().join(&network_name);
         let canister_root = network_root.join("canisters");
 

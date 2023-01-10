@@ -78,9 +78,10 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     slog::info!(logger, "Building canisters...");
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let build_config = BuildConfig::from_config(&config)?
-        .with_build_mode_check(build_mode_check)
-        .with_canisters_to_build(canisters_to_build);
+    let build_config =
+        BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
+            .with_build_mode_check(build_mode_check)
+            .with_canisters_to_build(canisters_to_build);
     runtime.block_on(canister_pool.build_or_fail(logger, &build_config))?;
 
     Ok(())

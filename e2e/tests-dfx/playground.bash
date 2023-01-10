@@ -23,8 +23,9 @@ setup_playground() {
   export PLAYGROUND_CANISTER_ID=$(dfx canister id backend)
   echo "PLAYGROUND_CANISTER_ID is $PLAYGROUND_CANISTER_ID"
   create_networks_json
-  webserver_port=$(get_webserver_port)
-  jq '.playground.bind="127.0.0.1:'$webserver_port'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+  jq '.local.replica.subnet_type=system' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON" # required until DTS enabled on dfx's replica. Should happen no later than 0.12.2
+  WEBSERVER_PORT=$(get_webserver_port)
+  jq '.playground.bind="127.0.0.1:'$WEBSERVER_PORT'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   jq '.playground.playground.playground_cid="'$PLAYGROUND_CANISTER_ID'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   rm dfx.json
   rm .dfx/local/canister_ids.json

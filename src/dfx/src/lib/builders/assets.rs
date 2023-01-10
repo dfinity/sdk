@@ -104,6 +104,7 @@ impl CanisterBuilder for AssetsBuilder {
             .join(Path::new("assetstorage.wasm.gz"));
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
         if config.network_is_playground {
+            println!("on playground. unzipping assetstorage wasm");
             let zipped_wasm =
                 std::fs::read(compressed_wasm_path).context("failed to read compressed wasm")?;
             let mut compressed_wasm = GzDecoder::new(zipped_wasm.as_slice());
@@ -123,6 +124,7 @@ impl CanisterBuilder for AssetsBuilder {
                 idl: IdlBuildOutput::File(idl_path),
             })
         } else {
+            println!("NOOOOOOOOT on playground. unzipping assetstorage wasm");
             Ok(BuildOutput {
                 canister_id: info.get_canister_id().expect("Could not find canister ID."),
                 wasm: WasmBuildOutput::File(compressed_wasm_path),

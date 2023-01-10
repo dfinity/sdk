@@ -122,7 +122,8 @@ pub async fn exec(
                     .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
                 opts.yes,
             )
-            .await
+            .await?;
+            Ok(())
         } else {
             let canister_info = canister_info
                 .with_context(|| format!("Failed to load canister info for {}.", canister))?;
@@ -142,7 +143,8 @@ pub async fn exec(
                 None,
                 opts.yes,
             )
-            .await
+            .await?;
+            Ok(())
         }
     } else if opts.all {
         // Install all canisters.

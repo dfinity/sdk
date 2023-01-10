@@ -208,7 +208,8 @@ async fn build_canisters(
     let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
 
     let build_config =
-        BuildConfig::from_config(config)?.with_canisters_to_build(canisters_to_build.into());
+        BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
+            .with_canisters_to_build(canisters_to_build.into());
     canister_pool.build_or_fail(log, &build_config).await?;
     Ok(canister_pool)
 }

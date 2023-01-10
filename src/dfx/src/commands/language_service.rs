@@ -72,7 +72,8 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         }
 
         // Add IDL directory flag
-        let build_config = BuildConfig::from_config(&config)?;
+        let build_config =
+            BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?;
         package_arguments.append(&mut vec![
             "--actor-idl".to_owned(),
             (*build_config.lsp_root.to_string_lossy()).to_owned(),
