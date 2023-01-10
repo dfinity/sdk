@@ -7,10 +7,12 @@ use clap::Parser;
 mod deploy_wallet;
 mod export;
 mod get_wallet;
+mod ii;
 mod import;
 mod list;
 mod new;
 mod principal;
+mod public_key;
 mod remove;
 mod rename;
 mod set_wallet;
@@ -38,11 +40,14 @@ enum SubCommand {
     List(list::ListOpts),
     New(new::NewIdentityOpts),
     GetPrincipal(principal::GetPrincipalOpts),
+    GetPublicKey(public_key::GetPublicKeyOpts),
     Remove(remove::RemoveOpts),
     Rename(rename::RenameOpts),
     SetWallet(set_wallet::SetWalletOpts),
     Use(r#use::UseOpts),
     Whoami(whoami::WhoAmIOpts),
+    RegisterWithII(ii::RegisterWithOpts),
+    AddDeviceToII(ii::AddDeviceToOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: IdentityOpts) -> DfxResult {
@@ -53,11 +58,14 @@ pub fn exec(env: &dyn Environment, opts: IdentityOpts) -> DfxResult {
         SubCommand::List(v) => list::exec(env, v),
         SubCommand::New(v) => new::exec(env, v),
         SubCommand::GetPrincipal(v) => principal::exec(env, v),
+        SubCommand::GetPublicKey(v) => public_key::exec(env, v),
         SubCommand::Import(v) => import::exec(env, v),
         SubCommand::Remove(v) => remove::exec(env, v),
         SubCommand::Rename(v) => rename::exec(env, v),
         SubCommand::SetWallet(v) => set_wallet::exec(env, v, opts.network.network),
         SubCommand::Use(v) => r#use::exec(env, v),
         SubCommand::Whoami(v) => whoami::exec(env, v),
+        SubCommand::RegisterWithII(v) => ii::register(env, v),
+        SubCommand::AddDeviceToII(v) => ii::add_device(env, v, opts.network.clone()),
     }
 }
