@@ -23,7 +23,7 @@ use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
-use slog::{debug, info, trace, Logger};
+use slog::{info, trace, Logger};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -276,13 +276,7 @@ impl Identity {
 
     #[context("Failed to load identity '{}'.", name)]
     pub fn load(manager: &IdentityManager, name: &str, log: &Logger) -> DfxResult<Self> {
-        let json_path = manager.get_identity_json_path(name);
-        let config = if json_path.exists() {
-            identity_manager::read_identity_configuration(&json_path)?
-        } else {
-            debug!(log, "Found no identity configuration. Using default.");
-            IdentityConfiguration::default()
-        };
+        let config = manager.get_identity_config_or_default(name)?;
         if let Some(hsm) = config.hsm {
             Identity::hardware(name, hsm)
         } else {

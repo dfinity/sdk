@@ -565,17 +565,6 @@ fn save_configuration(path: &Path, config: &Configuration) -> Result<(), Identit
     save_json_file(path, config).map_err(SaveIdentityManagerConfigurationFailed)
 }
 
-#[context("Failed to read identity configuration at {}.", path.to_string_lossy())]
-pub(super) fn read_identity_configuration(path: &Path) -> DfxResult<IdentityConfiguration> {
-    let content = std::fs::read_to_string(path).with_context(|| {
-        format!(
-            "Cannot read identity configuration file at '{}'.",
-            PathBuf::from(path).display()
-        )
-    })?;
-    serde_json::from_str(&content).context("Failed to deserialise identity configuration.")
-}
-
 #[context("Failed to write identity configuration.")]
 pub(super) fn write_identity_configuration(
     log: &Logger,
