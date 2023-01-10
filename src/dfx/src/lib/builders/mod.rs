@@ -385,7 +385,7 @@ impl BuildConfig {
 
         Ok(BuildConfig {
             network_name,
-            network_is_playground,
+            network_is_playground: true, //todo!(fix proper derivation of this setting, is wrong currently)
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
             build_root: canister_root.clone(),
