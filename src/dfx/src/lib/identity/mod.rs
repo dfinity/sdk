@@ -85,7 +85,7 @@ impl Identity {
         force: bool,
     ) -> DfxResult {
         trace!(log, "Creating identity '{name}'.");
-        let identity_in_use = name;
+        let identity_in_use = manager.get_selected_identity_name().clone();
         // cannot delete an identity in use. Use anonymous identity temporarily if we force-overwrite the identity currently in use
         let temporarily_use_anonymous_identity = identity_in_use == name && force;
 
@@ -225,7 +225,7 @@ impl Identity {
         })?;
 
         if temporarily_use_anonymous_identity {
-            manager.use_identity_named(log, identity_in_use)
+            manager.use_identity_named(log, &identity_in_use)
                 .with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
         }
         Ok(())
