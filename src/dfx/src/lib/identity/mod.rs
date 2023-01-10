@@ -68,9 +68,6 @@ pub struct Identity {
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
-
-    /// The root directory for this identity.
-    pub dir: PathBuf,
 }
 
 impl Identity {
@@ -236,16 +233,10 @@ impl Identity {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
             insecure: false,
-            dir: PathBuf::new(),
         }
     }
 
-    fn load_basic_identity(
-        manager: &IdentityManager,
-        name: &str,
-        pem_content: &[u8],
-        was_encrypted: bool,
-    ) -> DfxResult<Self> {
+    fn load_basic_identity(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
                 .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
@@ -254,13 +245,11 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: !was_encrypted,
         })
     }
 
     fn load_secp256k1_identity(
-        manager: &IdentityManager,
         name: &str,
         pem_content: &[u8],
         was_encrypted: bool,
@@ -273,16 +262,11 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: !was_encrypted,
         })
     }
 
-    fn load_hardware_identity(
-        manager: &IdentityManager,
-        name: &str,
-        hsm: HardwareIdentityConfiguration,
-    ) -> DfxResult<Self> {
+    fn load_hardware_identity(name: &str, hsm: HardwareIdentityConfiguration) -> DfxResult<Self> {
         let inner = Box::new(HardwareIdentity::new(
             hsm.pkcs11_lib_path,
             HSM_SLOT_INDEX,
@@ -292,7 +276,6 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: false,
         })
     }
@@ -307,16 +290,13 @@ impl Identity {
             IdentityConfiguration::default()
         };
         if let Some(hsm) = config.hsm {
-            Identity::load_hardware_identity(manager, name, hsm)
+            Identity::load_hardware_identity(name, hsm)
         } else {
             let (pem_content, was_encrypted) =
                 pem_safekeeping::load_pem(log, manager, name, &config)?;
-            Identity::load_secp256k1_identity(manager, name, &pem_content, was_encrypted).or_else(
-                |e| {
-                    Identity::load_basic_identity(manager, name, &pem_content, was_encrypted)
-                        .map_err(|_| e)
-                },
-            )
+            Identity::load_secp256k1_identity(name, &pem_content, was_encrypted).or_else(|e| {
+                Identity::load_basic_identity(name, &pem_content, was_encrypted).map_err(|_| e)
+            })
         }
     }
 
