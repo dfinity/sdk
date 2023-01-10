@@ -37,6 +37,7 @@ pub mod keyring_mock;
 pub mod pem_safekeeping;
 pub mod wallet;
 
+use crate::lib::identity::identity_file_locations::IdentityFileLocations;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
     IdentityManager,
@@ -284,17 +285,17 @@ impl Identity {
         })
     }
 
-    pub fn load(
-        manager: &IdentityManager,
+    pub(crate) fn new(
         name: &str,
+        config: IdentityConfiguration,
+        locations: &IdentityFileLocations,
         log: &Logger,
     ) -> Result<Self, IdentityError> {
-        let config = manager.get_identity_config_or_default(name)?;
         if let Some(hsm) = config.hsm {
             Identity::hardware(name, hsm)
         } else {
             let (pem_content, was_encrypted) =
-                pem_safekeeping::load_pem(log, manager.file_locations(), name, &config)?;
+                pem_safekeeping::load_pem(log, locations, name, &config)?;
             Identity::secp256k1(name, &pem_content, was_encrypted)
                 .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
         }
