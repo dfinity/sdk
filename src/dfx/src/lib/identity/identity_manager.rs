@@ -6,9 +6,11 @@ use crate::lib::identity::{
     IDENTITY_PEM_ENCRYPTED, TEMP_IDENTITY_PREFIX,
 };
 use dfx_core::error::identity::IdentityError::{
-    CreateIdentityDirectoryFailed, LoadIdentityConfigurationFailed, RenameIdentityDirectoryFailed,
+    CreateIdentityDirectoryFailed, LoadIdentityConfigurationFailed,
+    LoadIdentityManagerConfigurationFailed, RenameIdentityDirectoryFailed,
+    SaveIdentityManagerConfigurationFailed,
 };
-use dfx_core::json::load_json_file;
+use dfx_core::json::{load_json_file, save_json_file};
 
 use anyhow::{anyhow, bail, Context};
 use bip32::XPrv;
@@ -158,7 +160,7 @@ impl IdentityManager {
         let identity_json_path = config_dfx_dir_path.join("identity.json");
 
         let configuration = if identity_json_path.exists() {
-            read_configuration(&identity_json_path)?
+            load_configuration(&identity_json_path)?
         } else {
             initialize(env.get_logger(), &identity_json_path, &identity_root_path)?
         };
@@ -401,7 +403,8 @@ impl IdentityManager {
         let config = Configuration {
             default: String::from(name),
         };
-        write_configuration(&self.identity_json_path, &config)
+        save_configuration(&self.identity_json_path, &config)?;
+        Ok(())
     }
 
     /// Determines if there are enough files present to consider the identity as existing.
@@ -555,7 +558,7 @@ To create a more secure identity, create and use an identity that is protected b
     let config = Configuration {
         default: String::from(DEFAULT_IDENTITY_NAME),
     };
-    write_configuration(identity_json_path, &config)?;
+    save_configuration(identity_json_path, &config)?;
     slog::info!(logger, r#"Created the "default" identity."#);
 
     Ok(config)
@@ -580,28 +583,12 @@ fn get_legacy_creds_pem_path() -> DfxResult<Option<PathBuf>> {
     }
 }
 
-#[context("Failed to load identity manager config from {}.", path.to_string_lossy())]
-fn read_configuration(path: &Path) -> DfxResult<Configuration> {
-    let content = std::fs::read_to_string(path).with_context(|| {
-        format!(
-            "Cannot read configuration file at '{}'.",
-            PathBuf::from(path).display()
-        )
-    })?;
-    serde_json::from_str(&content).map_err(DfxError::from)
+fn load_configuration(path: &Path) -> Result<Configuration, IdentityError> {
+    load_json_file(path).map_err(LoadIdentityManagerConfigurationFailed)
 }
 
-#[context("Failed to write configuration to {}.", path.to_string_lossy())]
-fn write_configuration(path: &Path, config: &Configuration) -> DfxResult {
-    let content =
-        serde_json::to_string_pretty(&config).context("Failed to serialize configuration.")?;
-    std::fs::write(path, content).with_context(|| {
-        format!(
-            "Cannot write configuration file at '{}'.",
-            PathBuf::from(path).display()
-        )
-    })?;
-    Ok(())
+fn save_configuration(path: &Path, config: &Configuration) -> Result<(), IdentityError> {
+    save_json_file(path, config).map_err(SaveIdentityManagerConfigurationFailed)
 }
 
 #[context("Failed to read identity configuration at {}.", path.to_string_lossy())]

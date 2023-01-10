@@ -33,6 +33,9 @@ pub enum IdentityError {
     #[error("Failed to load configuration for identity '{0}': {1}")]
     LoadIdentityConfigurationFailed(String, StructuredFileError),
 
+    #[error("Failed to load identity manager configuration: {0}")]
+    LoadIdentityManagerConfigurationFailed(StructuredFileError),
+
     #[error("Cannot find home directory (no HOME environment variable).")]
     NoHomeInEnvironment(),
 
@@ -44,6 +47,9 @@ pub enum IdentityError {
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
+
+    #[error("Failed to save identity manager configuration: {0}")]
+    SaveIdentityManagerConfigurationFailed(StructuredFileError),
 
     #[error("Cannot write PEM file: {0}")]
     WritePemFileFailed(IoError),
