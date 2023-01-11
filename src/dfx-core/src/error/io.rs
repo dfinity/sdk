@@ -3,6 +3,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IoError {
+    #[error("Failed to copy {0} to {1}: {2}")]
+    CopyFileFailed(PathBuf, PathBuf, std::io::Error),
+
     #[error("Failed to create {0}: {1}")]
     CreateDirectoryFailed(PathBuf, std::io::Error),
 
