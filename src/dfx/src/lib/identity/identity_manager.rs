@@ -17,11 +17,12 @@ use dfx_core::error::identity::IdentityError::{
     RenameIdentityDirectoryFailed, SaveIdentityConfigurationFailed,
     SaveIdentityManagerConfigurationFailed, TranslatePemContentToTextFailed,
 };
+use dfx_core::error::io::IoError;
 use dfx_core::foundation::get_user_home;
 use dfx_core::fs::composite::ensure_parent_dir_exists;
 use dfx_core::json::{load_json_file, save_json_file};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
 use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
@@ -248,18 +249,8 @@ impl IdentityManager {
     }
 
     /// Return a sorted list of all available identity names
-    #[context("Failed to list available identities.")]
-    pub fn get_identity_names(&self, log: &Logger) -> DfxResult<Vec<String>> {
-        let mut names = self
-            .file_locations
-            .root()
-            .read_dir()
-            .with_context(|| {
-                format!(
-                    "Failed to read identity root directory {}.",
-                    self.file_locations.root().display()
-                )
-            })?
+    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, IoError> {
+        let mut names = dfx_core::fs::read_dir(self.file_locations.root())?
             .filter_map(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {
                     Ok(file_type) if file_type.is_dir() => Some(dir_entry),
