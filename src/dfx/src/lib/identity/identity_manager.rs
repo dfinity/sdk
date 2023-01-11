@@ -390,16 +390,14 @@ impl IdentityManager {
     }
 
     /// Select an identity by name to use by default
-    #[context("Failed to switch default identity to '{}'.", name)]
-    pub fn use_identity_named(&mut self, log: &Logger, name: &str) -> DfxResult {
+    pub fn use_identity_named(&mut self, log: &Logger, name: &str) -> Result<(), IdentityError> {
         self.require_identity_exists(log, name)?;
         self.write_default_identity(name)?;
         self.configuration.default = name.to_string();
         Ok(())
     }
 
-    #[context("Failed to write default identity '{}'.", name)]
-    fn write_default_identity(&self, name: &str) -> DfxResult {
+    fn write_default_identity(&self, name: &str) -> Result<(), IdentityError> {
         let config = Configuration {
             default: String::from(name),
         };
@@ -409,16 +407,14 @@ impl IdentityManager {
 
     /// Determines if there are enough files present to consider the identity as existing.
     /// Does NOT guarantee that the identity will load correctly.
-    pub fn require_identity_exists(&self, log: &Logger, name: &str) -> DfxResult {
+    pub fn require_identity_exists(&self, log: &Logger, name: &str) -> Result<(), IdentityError> {
         trace!(log, "Checking if identity '{name}' exists.");
         if name == ANONYMOUS_IDENTITY_NAME {
             return Ok(());
         }
 
         if name.starts_with(TEMP_IDENTITY_PREFIX) {
-            return Err(DfxError::new(IdentityError::ReservedIdentityName(
-                String::from(name),
-            )));
+            return Err(IdentityError::ReservedIdentityName(String::from(name)));
         }
 
         let json_path = self.get_identity_json_path(name);
@@ -426,10 +422,10 @@ impl IdentityManager {
         let encrypted_pem_path = self.get_encrypted_identity_pem_path(name);
 
         if !plaintext_pem_path.exists() && !encrypted_pem_path.exists() && !json_path.exists() {
-            Err(DfxError::new(IdentityError::IdentityDoesNotExist(
+            Err(IdentityError::IdentityDoesNotExist(
                 String::from(name),
                 json_path,
-            )))
+            ))
         } else {
             Ok(())
         }
