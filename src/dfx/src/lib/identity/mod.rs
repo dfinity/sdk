@@ -9,6 +9,11 @@ use crate::lib::error::{DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
+use dfx_core::error::wallet_config::WalletConfigError;
+use dfx_core::error::wallet_config::WalletConfigError::{
+    EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
+};
+use dfx_core::json::{load_json_file, save_json_file};
 
 use anyhow::{anyhow, bail, Context};
 use bip39::{Language, Mnemonic};
@@ -24,7 +29,6 @@ use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
 use slog::{debug, info, trace, Logger};
 use std::collections::BTreeMap;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 pub mod identity_manager;
@@ -336,8 +340,10 @@ impl Identity {
     }
 
     /// Logs all wallets that are configured in a WalletGlobalConfig.
-    #[context("Failed while trying to display configured wallets in {}.", wallet_config.to_string_lossy())]
-    pub fn display_linked_wallets(logger: &Logger, wallet_config: &Path) -> DfxResult {
+    pub fn display_linked_wallets(
+        logger: &Logger,
+        wallet_config: &Path,
+    ) -> Result<(), WalletConfigError> {
         let config = Identity::load_wallet_config(wallet_config)?;
         info!(
             logger,
@@ -354,38 +360,19 @@ impl Identity {
         Ok(())
     }
 
-    #[context("Failed to load wallet config {}.", path.to_string_lossy())]
-    fn load_wallet_config(path: &Path) -> DfxResult<WalletGlobalConfig> {
-        let mut buffer = Vec::new();
-        std::fs::File::open(path)
-            .with_context(|| format!("Unable to open {}", path.to_string_lossy()))?
-            .read_to_end(&mut buffer)
-            .with_context(|| format!("Unable to read {}", path.to_string_lossy()))?;
-        serde_json::from_slice::<WalletGlobalConfig>(&buffer).with_context(|| {
-            format!(
-                "Unable to parse contents of {} as json",
-                path.to_string_lossy()
-            )
-        })
+    fn load_wallet_config(path: &Path) -> Result<WalletGlobalConfig, WalletConfigError> {
+        load_json_file(path).map_err(LoadWalletConfigFailed)
     }
 
-    #[context("Failed to save wallet config to {}.", path.to_string_lossy())]
-    fn save_wallet_config(path: &Path, config: &WalletGlobalConfig) -> DfxResult {
-        let parent_path = match path.parent() {
-            Some(parent) => parent,
-            None => bail!(format!(
-                "Unable to determine parent of {}",
-                path.to_string_lossy()
-            )),
-        };
-        std::fs::create_dir_all(parent_path).with_context(|| {
-            format!(
-                "Unable to create directory {} with parents for wallet configuration",
-                parent_path.to_string_lossy()
-            )
-        })?;
-        std::fs::write(path, &serde_json::to_string_pretty(&config)?)
-            .with_context(|| format!("Unable to write {}", path.to_string_lossy()))
+    fn save_wallet_config(
+        path: &Path,
+        config: &WalletGlobalConfig,
+    ) -> Result<(), WalletConfigError> {
+        dfx_core::fs::parent(path)
+            .and_then(|path| dfx_core::fs::create_dir_all(&path))
+            .map_err(EnsureWalletConfigDirFailed)?;
+
+        save_json_file(path, &config).map_err(SaveWalletConfigFailed)
     }
 
     #[context("Failed to set wallet id to {} for identity '{}' on network '{}'.", id, name, network.name)]
