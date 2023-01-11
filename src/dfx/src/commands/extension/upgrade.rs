@@ -10,6 +10,5 @@ pub struct UpgradeOpts {
 }
 
 pub fn exec(_env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult<()> {
-    todo!()
-    Ok(())
+    todo!();
 }
