@@ -15,7 +15,7 @@ use dfx_core::error::identity::IdentityError::{
     LoadIdentityConfigurationFailed, LoadIdentityManagerConfigurationFailed,
     RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
     RenameIdentityDirectoryFailed, SaveIdentityConfigurationFailed,
-    SaveIdentityManagerConfigurationFailed,
+    SaveIdentityManagerConfigurationFailed, TranslatePemContentToTextFailed,
 };
 use dfx_core::foundation::get_user_home;
 use dfx_core::fs::composite::ensure_parent_dir_exists;
@@ -295,15 +295,13 @@ impl IdentityManager {
     }
 
     /// Returns the pem file content of the selected identity
-    #[context("Failed to export identity '{}'.", name)]
-    pub fn export(&self, log: &Logger, name: &str) -> DfxResult<String> {
+    pub fn export(&self, log: &Logger, name: &str) -> Result<String, IdentityError> {
         self.require_identity_exists(log, name)?;
         let config = self.get_identity_config_or_default(name)?;
         let (pem_content, _) = pem_safekeeping::load_pem(log, &self.file_locations, name, &config)?;
 
         validate_pem_file(&pem_content)?;
-        String::from_utf8(pem_content)
-            .map_err(|e| anyhow!("Could not translate pem file to text: {}", e))
+        String::from_utf8(pem_content).map_err(TranslatePemContentToTextFailed)
     }
 
     /// Remove a named identity.
