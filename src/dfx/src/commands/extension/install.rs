@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::extension::manifest::fetch_dfinity_extension_manifest;
 
 use std::io::Cursor;
+use std::os::unix::fs::PermissionsExt;
 
 use clap::Parser;
 use semver::{Prerelease, VersionReq};
@@ -40,6 +41,8 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
                 let response = reqwest::blocking::get(&extension_location.download_url).unwrap();
                 std::fs::create_dir_all(extension_dir).unwrap();
                 let mut file = std::fs::File::create(extension_archive)?;
+                let perm = std::fs::Permissions::from_mode(0o777);
+                file.set_permissions(perm).unwrap();
                 let mut content = Cursor::new(response.bytes().unwrap());
                 std::io::copy(&mut content, &mut file)?;
             } else {
