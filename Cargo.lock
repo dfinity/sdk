@@ -917,6 +917,7 @@ dependencies = [
  "ic-agent",
  "ic-identity-hsm",
  "keyring",
+ "ring",
  "sec1",
  "serde",
  "serde_json",

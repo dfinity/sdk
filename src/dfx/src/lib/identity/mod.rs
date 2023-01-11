@@ -9,7 +9,8 @@ use crate::lib::error::{DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::identity::IdentityError::{
-    InstantiateHardwareIdentityFailed, ReadIdentityFileFailed,
+    GenerateFreshEncryptionConfigurationFailed, InstantiateHardwareIdentityFailed,
+    ReadIdentityFileFailed,
 };
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
@@ -131,13 +132,19 @@ impl Identity {
                             })
                         } else {
                             Ok(IdentityConfiguration {
-                                encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                                encryption: Some(
+                                    identity_manager::EncryptionConfiguration::new()
+                                        .map_err(GenerateFreshEncryptionConfigurationFailed)?,
+                                ),
                                 ..Default::default()
                             })
                         }
                     }
                     IdentityStorageMode::PasswordProtected => Ok(IdentityConfiguration {
-                        encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                        encryption: Some(
+                            identity_manager::EncryptionConfiguration::new()
+                                .map_err(GenerateFreshEncryptionConfigurationFailed)?,
+                        ),
                         ..Default::default()
                     }),
                     IdentityStorageMode::Plaintext => Ok(IdentityConfiguration::default()),

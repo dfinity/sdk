@@ -6,6 +6,8 @@ use crate::lib::identity::{
     pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON,
     TEMP_IDENTITY_PREFIX,
 };
+use dfx_core::error::encryption::EncryptionError;
+use dfx_core::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use dfx_core::error::identity::IdentityError::{
     CreateIdentityDirectoryFailed, DisplayLinkedWalletsFailed,
     DropWalletsFlagRequiredToRemoveIdentityWithWallets, GetLegacyPemPathFailed,
@@ -69,13 +71,12 @@ pub struct EncryptionConfiguration {
 
 impl EncryptionConfiguration {
     /// Generates a random salt and nonce. Use this for every new identity
-    #[context("Failed to generate a fresh EncryptionConfiguration.")]
-    pub fn new() -> DfxResult<Self> {
+    pub fn new() -> Result<Self, EncryptionError> {
         let mut nonce: [u8; 12] = [0; 12];
         let mut salt: [u8; 32] = [0; 32];
         let sr = rand::SystemRandom::new();
-        sr.fill(&mut nonce).context("Failed to generate nonce.")?;
-        sr.fill(&mut salt).context("Failed to generate salt.")?;
+        sr.fill(&mut nonce).map_err(NonceGenerationFailed)?;
+        sr.fill(&mut salt).map_err(SaltGenerationFailed)?;
 
         let pw_salt = hex::encode(salt);
         let file_nonce = nonce.into();
