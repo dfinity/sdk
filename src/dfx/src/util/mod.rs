@@ -1,5 +1,7 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
+use dfx_core::error::foundation::FoundationError;
+use dfx_core::error::foundation::FoundationError::NoHomeInEnvironment;
 
 use anyhow::Context;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
@@ -363,11 +365,11 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .collect::<_>()
 }
 
-pub fn project_dirs() -> DfxResult<&'static ProjectDirs> {
+pub fn project_dirs() -> Result<&'static ProjectDirs, FoundationError> {
     lazy_static::lazy_static! {
         static ref DIRS: Option<ProjectDirs> = ProjectDirs::from("org", "dfinity", "dfx");
     }
-    DIRS.as_ref().context("Failed to resolve 'HOME' env var.")
+    DIRS.as_ref().ok_or(NoHomeInEnvironment())
 }
 
 #[cfg(test)]

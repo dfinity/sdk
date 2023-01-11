@@ -1,3 +1,5 @@
+pub mod composite;
+
 use crate::error::io::IoError;
 use crate::error::io::IoErrorKind::{
     CopyFileFailed, CreateDirectoryFailed, NoParent, ReadFileFailed, ReadPermissionsFailed,
