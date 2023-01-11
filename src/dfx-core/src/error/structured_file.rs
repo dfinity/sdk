@@ -4,7 +4,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum StructuredFileError {
-    #[error("Failed to deserialize JSON from {0}: {1}")]
+    #[error("Failed to parse contents of {0} as json: {1}")]
     DeserializeJsonFileFailed(PathBuf, serde_json::Error),
 
     #[error("Failed to read JSON file: {0}")]
