@@ -10,13 +10,15 @@ use dfx_core::error::encryption::EncryptionError;
 use dfx_core::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use dfx_core::error::identity::IdentityError::{
     CreateIdentityDirectoryFailed, DisplayLinkedWalletsFailed,
-    DropWalletsFlagRequiredToRemoveIdentityWithWallets, GetConfigDirectoryFailed,
-    GetIdentityPrincipalFailed, GetLegacyPemPathFailed, LoadIdentityConfigurationFailed,
-    LoadIdentityManagerConfigurationFailed, RemoveIdentityDirectoryFailed,
-    RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed, RenameIdentityDirectoryFailed,
+    DropWalletsFlagRequiredToRemoveIdentityWithWallets, EnsureIdentityConfigurationDirExistsFailed,
+    GetConfigDirectoryFailed, GetIdentityPrincipalFailed, GetLegacyPemPathFailed,
+    LoadIdentityConfigurationFailed, LoadIdentityManagerConfigurationFailed,
+    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
+    RenameIdentityDirectoryFailed, SaveIdentityConfigurationFailed,
     SaveIdentityManagerConfigurationFailed,
 };
 use dfx_core::foundation::get_user_home;
+use dfx_core::fs::composite::ensure_parent_dir_exists;
 use dfx_core::json::{load_json_file, save_json_file};
 
 use anyhow::{anyhow, bail, Context};
@@ -392,7 +394,7 @@ impl IdentityManager {
             };
             pem_safekeeping::save_pem(log, &self.file_locations, to, &new_config, pem.as_ref())?;
             let config_path = self.get_identity_json_path(to);
-            write_identity_configuration(log, &config_path, &new_config)?;
+            save_identity_configuration(log, &config_path, &new_config)?;
             keyring_mock::delete_pem_from_keyring(keyring_identity_suffix)?;
         }
 
@@ -572,34 +574,15 @@ fn save_configuration(path: &Path, config: &Configuration) -> Result<(), Identit
     save_json_file(path, config).map_err(SaveIdentityManagerConfigurationFailed)
 }
 
-#[context("Failed to write identity configuration.")]
-pub(super) fn write_identity_configuration(
+pub(super) fn save_identity_configuration(
     log: &Logger,
     path: &Path,
     config: &IdentityConfiguration,
-) -> DfxResult {
+) -> Result<(), IdentityError> {
     trace!(log, "Writing identity configuration to {}", path.display());
-    let content = serde_json::to_string_pretty(&config)
-        .context("Failed to serialize identity configuration.")?;
-    std::fs::create_dir_all(path.parent().with_context(|| {
-        format!(
-            "Failed to determine parent of identity configuration file {}",
-            PathBuf::from(path).display(),
-        )
-    })?)
-    .with_context(|| {
-        format!(
-            "Failed to create directory for identity configuration file {}",
-            PathBuf::from(path).display()
-        )
-    })?;
-    std::fs::write(path, content).with_context(|| {
-        format!(
-            "Cannot write identity configuration file at '{}'.",
-            PathBuf::from(path).display()
-        )
-    })?;
-    Ok(())
+    ensure_parent_dir_exists(path).map_err(EnsureIdentityConfigurationDirExistsFailed)?;
+
+    save_json_file(path, &config).map_err(SaveIdentityConfigurationFailed)
 }
 
 /// Removes the file if it exists.

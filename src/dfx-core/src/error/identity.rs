@@ -41,6 +41,9 @@ pub enum IdentityError {
     #[error("Cannot encrypt PEM file: {0}")]
     EncryptPemFileFailed(PathBuf, EncryptionError),
 
+    #[error("Failed to ensure identity configuration directory exists: {0}")]
+    EnsureIdentityConfigurationDirExistsFailed(IoError),
+
     #[error("Failed to generate a fresh encryption configuration: {0}")]
     GenerateFreshEncryptionConfigurationFailed(EncryptionError),
 
@@ -97,6 +100,9 @@ pub enum IdentityError {
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
+
+    #[error("Failed to save identity configuration: {0}")]
+    SaveIdentityConfigurationFailed(StructuredFileError),
 
     #[error("Failed to save identity manager configuration: {0}")]
     SaveIdentityManagerConfigurationFailed(StructuredFileError),

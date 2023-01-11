@@ -214,7 +214,7 @@ impl Identity {
             }
         }
         let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
-        identity_manager::write_identity_configuration(
+        identity_manager::save_identity_configuration(
             log,
             &identity_config_location,
             &identity_config,
