@@ -114,6 +114,15 @@ frank'
     assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
 }
 
+@test "identity new: --force does not switch to created identity" {
+    # Was a bug: https://dfinity.atlassian.net/browse/SDK-911
+    assert_command dfx identity new --force alice
+    PRINCIPAL_ORIGINAL="$(dfx identity get-principal)"
+    assert_command dfx identity use alice
+    PRINCIPAL_ALICE="$(dfx identity get-principal)"
+    assert_neq "$PRINCIPAL_ORIGINAL" "$PRINCIPAL_ALICE"
+}
+
 @test "identity new: create an HSM-backed identity" {
     assert_command dfx identity new --hsm-pkcs11-lib-path /something/else/somewhere.so --hsm-key-id abcd4321 bob
     assert_command jq -r .hsm.pkcs11_lib_path "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.json"

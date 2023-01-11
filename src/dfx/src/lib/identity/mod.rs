@@ -68,9 +68,6 @@ pub struct Identity {
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
-
-    /// The root directory for this identity.
-    pub dir: PathBuf,
 }
 
 impl Identity {
@@ -85,7 +82,7 @@ impl Identity {
         force: bool,
     ) -> DfxResult {
         trace!(log, "Creating identity '{name}'.");
-        let identity_in_use = name;
+        let identity_in_use = manager.get_selected_identity_name().clone();
         // cannot delete an identity in use. Use anonymous identity temporarily if we force-overwrite the identity currently in use
         let temporarily_use_anonymous_identity = identity_in_use == name && force;
 
@@ -225,7 +222,7 @@ impl Identity {
         })?;
 
         if temporarily_use_anonymous_identity {
-            manager.use_identity_named(log, identity_in_use)
+            manager.use_identity_named(log, &identity_in_use)
                 .with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
         }
         Ok(())
@@ -236,16 +233,10 @@ impl Identity {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
             insecure: false,
-            dir: PathBuf::new(),
         }
     }
 
-    fn load_basic_identity(
-        manager: &IdentityManager,
-        name: &str,
-        pem_content: &[u8],
-        was_encrypted: bool,
-    ) -> DfxResult<Self> {
+    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
                 .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
@@ -254,17 +245,11 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: !was_encrypted,
         })
     }
 
-    fn load_secp256k1_identity(
-        manager: &IdentityManager,
-        name: &str,
-        pem_content: &[u8],
-        was_encrypted: bool,
-    ) -> DfxResult<Self> {
+    fn secp256k1(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
                 .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
@@ -273,16 +258,11 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: !was_encrypted,
         })
     }
 
-    fn load_hardware_identity(
-        manager: &IdentityManager,
-        name: &str,
-        hsm: HardwareIdentityConfiguration,
-    ) -> DfxResult<Self> {
+    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> DfxResult<Self> {
         let inner = Box::new(HardwareIdentity::new(
             hsm.pkcs11_lib_path,
             HSM_SLOT_INDEX,
@@ -292,7 +272,6 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: false,
         })
     }
@@ -307,16 +286,12 @@ impl Identity {
             IdentityConfiguration::default()
         };
         if let Some(hsm) = config.hsm {
-            Identity::load_hardware_identity(manager, name, hsm)
+            Identity::hardware(name, hsm)
         } else {
             let (pem_content, was_encrypted) =
                 pem_safekeeping::load_pem(log, manager, name, &config)?;
-            Identity::load_secp256k1_identity(manager, name, &pem_content, was_encrypted).or_else(
-                |e| {
-                    Identity::load_basic_identity(manager, name, &pem_content, was_encrypted)
-                        .map_err(|_| e)
-                },
-            )
+            Identity::secp256k1(name, &pem_content, was_encrypted)
+                .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
         }
     }
 

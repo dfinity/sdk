@@ -912,7 +912,9 @@ version = "0.0.1"
 dependencies = [
  "aes-gcm",
  "argon2",
+ "bip32",
  "ic-agent",
+ "sec1",
  "serde",
  "serde_json",
  "thiserror",
