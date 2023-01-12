@@ -37,7 +37,7 @@ pub enum IdentityError {
     EncryptPemFileFailed(PathBuf, EncryptionError),
 
     #[error("Failed to generate a fresh secp256k1 key: {0}")]
-    GenerateFreshSecp256k1KeyFailed(sec1::Error),
+    GenerateFreshSecp256k1KeyFailed(Box<sec1::Error>),
 
     #[error("Failed to get legacy pem path: {0}")]
     GetLegacyPemPathFailed(FoundationError),
