@@ -18,6 +18,12 @@ pub enum IoError {
     #[error("Failed to read permissions of {0}: {1}")]
     ReadPermissionsFailed(PathBuf, std::io::Error),
 
+    #[error("Failed to remove directory {0}: {1}")]
+    RemoveDirectoryFailed(PathBuf, std::io::Error),
+
+    #[error("Failed to remove file {0}: {1}")]
+    RemoveFileFailed(PathBuf, std::io::Error),
+
     #[error("Failed to rename {0} to {1}: {2}")]
     RenameFailed(PathBuf, PathBuf, std::io::Error),
 

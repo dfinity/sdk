@@ -1,7 +1,9 @@
 use crate::error::encryption::EncryptionError;
 use crate::error::foundation::FoundationError;
 use crate::error::io::IoError;
+use crate::error::keyring::KeyringError;
 use crate::error::structured_file::StructuredFileError;
+use crate::error::wallet_config::WalletConfigError;
 
 use ic_agent::identity::PemError;
 
@@ -24,6 +26,12 @@ pub enum IdentityError {
 
     #[error("Failed to derive extended secret key from path: {0}")]
     DeriveExtendedKeyFromPathFailed(bip32::Error),
+
+    #[error("Failed to display linked wallets: {0}")]
+    DisplayLinkedWalletsFailed(WalletConfigError),
+
+    #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
+    DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
     #[error("Cannot encrypt PEM file: {0}")]
     EncryptPemFileFailed(PathBuf, EncryptionError),
@@ -51,6 +59,15 @@ pub enum IdentityError {
 
     #[error("Cannot read identity file '{0}': {1:#}")]
     ReadIdentityFileFailed(String, PemError),
+
+    #[error("Failed to remove identity directory: {0}")]
+    RemoveIdentityDirectoryFailed(IoError),
+
+    #[error("Failed to remove identity from keyring: {0}")]
+    RemoveIdentityFromKeyringFailed(KeyringError),
+
+    #[error("Failed to remove identity file: {0}")]
+    RemoveIdentityFileFailed(IoError),
 
     #[error("Cannot rename identity directory: {0}")]
     RenameIdentityDirectoryFailed(IoError),
