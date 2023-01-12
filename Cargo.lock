@@ -914,6 +914,7 @@ dependencies = [
  "argon2",
  "bip32",
  "ic-agent",
+ "keyring",
  "sec1",
  "serde",
  "serde_json",
