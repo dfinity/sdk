@@ -1,5 +1,6 @@
 use crate::config::dfx_version;
 use crate::lib::error::{CacheError, DfxError, DfxResult};
+use crate::lib::extension::ExtensionsManager;
 use crate::util;
 #[cfg(windows)]
 use crate::util::project_dirs;
@@ -19,7 +20,7 @@ use std::process::ExitStatus;
 #[cfg(unix)]
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
 
-pub trait Cache {
+pub trait Cache: ExtensionsManager {
     fn version_str(&self) -> String;
     fn is_installed(&self) -> DfxResult<bool>;
     fn install(&self) -> DfxResult;
@@ -27,8 +28,6 @@ pub trait Cache {
     fn delete(&self) -> DfxResult;
     fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf>;
     fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command>;
-    fn get_extensions_directory(&self) -> DfxResult<PathBuf>;
-    fn get_extension_binary(&self, binary_name: &str) -> DfxResult<std::process::Command>;
 }
 
 pub struct DiskBasedCache {
@@ -70,21 +69,6 @@ impl Cache for DiskBasedCache {
 
     fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command> {
         binary_command_from_version(&self.version_str(), binary_name)
-    }
-    fn get_extensions_directory(&self) -> DfxResult<PathBuf> {
-        get_extensions_dir_from_version(&self.version_str())
-    }
-    fn get_extension_binary(&self, binary_name: &str) -> DfxResult<std::process::Command> {
-        if let Ok(dir) = self.get_extensions_directory() {
-            let mut path = dir;
-            path.push(binary_name);
-            path.push(binary_name);
-            Ok(std::process::Command::new(path))
-        } else {
-            Err(DfxError::new(CacheError::CreateCacheDirectoryFailed(
-                PathBuf::from(binary_name.to_string()),
-            )))
-        }
     }
 }
 
@@ -313,13 +297,6 @@ pub fn binary_command_from_version(version: &str, name: &str) -> DfxResult<std::
     let cmd = std::process::Command::new(path);
 
     Ok(cmd)
-}
-
-#[context("Failed to get extensions path to binary for version '{}'.", version)]
-pub fn get_extensions_dir_from_version(version: &str) -> DfxResult<PathBuf> {
-    install_version(version, false)?;
-
-    Ok(get_bin_cache(version)?.join("extensions"))
 }
 
 #[context("Failed to list cache versions.")]

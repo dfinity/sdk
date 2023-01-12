@@ -1,7 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use anyhow::{anyhow};
 use clap::Parser;
 
 use std::ffi::OsString;
@@ -25,24 +24,6 @@ impl From<Vec<OsString>> for RunOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: RunOpts) -> DfxResult<()> {
-    println!("params: {:?}", opts);
-    if let Ok(mut extension_binary) = env
-        .get_cache()
-        .get_extension_binary(opts.extension_name.to_str().unwrap())
-    {
-        return extension_binary
-            .args(&opts.params)
-            .spawn()
-            .expect("failed to execute process")
-            .wait()
-            .expect("failed to wait on child")
-            .code()
-            .map_or(Ok(()), |code| {
-                Err(anyhow!("Extension exited with code {}", code))
-            });
-    } else {
-        println!("extension {:?} does cannot be found", opts.extension_name);
-    }
-
-    Ok(())
+    env.get_cache()
+        .run_extension(opts.extension_name, opts.params)
 }
