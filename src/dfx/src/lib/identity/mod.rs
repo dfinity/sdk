@@ -243,7 +243,7 @@ impl Identity {
     fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
-                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
+                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), Box::new(e)))?,
         );
 
         Ok(Self {
@@ -256,7 +256,7 @@ impl Identity {
     fn secp256k1(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
-                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
+                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), Box::new(e)))?,
         );
 
         Ok(Self {

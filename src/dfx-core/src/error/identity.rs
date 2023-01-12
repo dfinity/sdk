@@ -58,7 +58,7 @@ pub enum IdentityError {
     MigrateLegacyIdentityFailed(IoError),
 
     #[error("Cannot read identity file '{0}': {1:#}")]
-    ReadIdentityFileFailed(String, PemError),
+    ReadIdentityFileFailed(String, Box<PemError>),
 
     #[error("Failed to remove identity directory: {0}")]
     RemoveIdentityDirectoryFailed(IoError),
