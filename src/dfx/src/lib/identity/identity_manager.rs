@@ -260,24 +260,22 @@ impl IdentityManager {
                     self.file_locations.root().display()
                 )
             })?
-            .filter(|entry_result| match entry_result {
+            .filter_map(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {
-                    Ok(file_type) => file_type.is_dir(),
-                    _ => false,
+                    Ok(file_type) => {
+                        if file_type.is_dir() {
+                            Some(dir_entry)
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
                 },
-                _ => false,
+                _ => None,
             })
-            .map(|entry_result| {
-                entry_result.map(|entry| entry.file_name().to_string_lossy().to_string())
-            })
-            .filter(|identity_name| {
-                identity_name.is_ok()
-                    && self
-                        .require_identity_exists(log, identity_name.as_ref().unwrap())
-                        .is_ok()
-            })
-            .collect::<Result<Vec<_>, std::io::Error>>()
-            .context("Failed to collect identity names.")?;
+            .map(|entry| entry.file_name().to_string_lossy().to_string())
+            .filter(|identity_name| self.require_identity_exists(log, identity_name).is_ok())
+            .collect::<Vec<_>>();
         names.push(ANONYMOUS_IDENTITY_NAME.to_string());
 
         names.sort();
