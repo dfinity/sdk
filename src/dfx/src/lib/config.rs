@@ -1,5 +1,5 @@
 #[cfg(windows)]
-use crate::util::project_dirs;
+use dfx_core::config::directories::project_dirs;
 use dfx_core::error::config::ConfigError;
 use dfx_core::error::config::ConfigError::{
     DetermineConfigDirectoryFailed, EnsureConfigDirectoryExistsFailed,

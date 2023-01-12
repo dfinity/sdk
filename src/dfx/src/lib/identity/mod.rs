@@ -2,12 +2,12 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::config::dfinity::NetworksConfig;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::error::identity::IdentityError::{
     GenerateFreshEncryptionConfigurationFailed, InstantiateHardwareIdentityFailed,
     ReadIdentityFileFailed,
@@ -475,7 +475,7 @@ impl Identity {
             )?;
         }
         let shared_local_network_wallet_path =
-            NetworksConfig::get_network_data_directory("local")?.join(WALLET_CONFIG_FILENAME);
+            get_shared_network_data_directory("local")?.join(WALLET_CONFIG_FILENAME);
         if shared_local_network_wallet_path.exists() {
             Identity::rename_wallet_global_config_key(
                 original_identity,
