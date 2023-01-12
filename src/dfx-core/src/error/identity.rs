@@ -54,6 +54,9 @@ pub enum IdentityError {
     #[error("Failed to get config directory for identity manager: {0}")]
     GetConfigDirectoryFailed(ConfigError),
 
+    #[error("Failed to get shared network data directory: {0}")]
+    GetSharedNetworkDataDirectoryFailed(ConfigError),
+
     #[error("Failed to get principal of identity: {0}")]
     GetIdentityPrincipalFailed(String),
 
@@ -98,6 +101,9 @@ pub enum IdentityError {
 
     #[error("Cannot rename identity directory: {0}")]
     RenameIdentityDirectoryFailed(IoError),
+
+    #[error("Failed to rename '{0}' to '{1}' in the global wallet config: {2}")]
+    RenameWalletFailed(Box<String>, Box<String>, WalletConfigError),
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
