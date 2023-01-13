@@ -20,6 +20,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::Argument;
 
+use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
@@ -208,7 +209,7 @@ async fn delete_canister(
                             cycles_to_withdraw,
                             dank_target_principal
                         );
-                        let wallet = Identity::build_wallet_canister(canister_id, env).await?;
+                        let wallet = build_wallet_canister(canister_id, env).await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
                             .call(
