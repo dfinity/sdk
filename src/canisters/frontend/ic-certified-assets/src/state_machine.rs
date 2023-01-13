@@ -759,7 +759,7 @@ fn on_asset_change(
 fn witness_to_header(
     witness: HashTree,
     certificate: &[u8],
-    certificate_version: Nat,
+    certificate_version: u8,
 ) -> HeaderField {
     use ic_certified_map::labeled;
 
@@ -767,7 +767,7 @@ fn witness_to_header(
     let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
     serializer.self_describe().unwrap();
     hash_tree.serialize(&mut serializer).unwrap();
-    let version_string = if certificate_version == Nat::from(1) {
+    let version_string = if certificate_version == 1 {
         "".to_string()
     } else {
         format!("version={}", certificate_version)
@@ -844,4 +844,12 @@ fn aliased_by(key: &Key) -> Vec<Key> {
     } else {
         Vec::new()
     }
+}
+
+#[test]
+fn cbor() {
+    assert_eq!(
+        base64::encode(serde_cbor::to_vec(&["hello", "world"]).unwrap()),
+        "2dn3gmVoZWxsb2V3b3JsZA=="
+    )
 }

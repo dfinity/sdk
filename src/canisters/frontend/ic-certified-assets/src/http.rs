@@ -84,8 +84,16 @@ impl HttpRequest {
             .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then_some(v))
     }
 
-    pub fn get_certificate_version(&self) -> Nat {
-        self.certificate_version.clone().unwrap_or(Nat::from(1))
+    // Spec:
+    // If not set, version 1 is assumed.
+    // If available, use requested certificate version.
+    // If requested version is not available, use latest available version.
+    pub fn get_certificate_version(&self) -> u8 {
+        if self.certificate_version.is_none() || self.certificate_version == Some(Nat::from(1)) {
+            1
+        } else {
+            2 // latest available
+        }
     }
 
     pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
