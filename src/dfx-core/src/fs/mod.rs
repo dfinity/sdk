@@ -49,6 +49,14 @@ pub fn read_permissions(path: &Path) -> Result<Permissions, IoError> {
         .map(|x| x.permissions())
 }
 
+pub fn remove_dir(path: &Path) -> Result<(), IoError> {
+    std::fs::remove_dir(path).map_err(|err| IoError::RemoveDirectoryFailed(path.to_path_buf(), err))
+}
+
+pub fn remove_file(path: &Path) -> Result<(), IoError> {
+    std::fs::remove_file(path).map_err(|err| IoError::RemoveFileFailed(path.to_path_buf(), err))
+}
+
 pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), IoError> {
     std::fs::set_permissions(path, permissions)
         .map_err(|err| IoError::new(WritePermissionsFailed(path.to_path_buf(), err)))
