@@ -7,6 +7,8 @@ use std::collections::HashMap;
 
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
 
+pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding"{headers}]}}}})"#;
+
 pub type HeaderField = (String, String);
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -158,6 +160,9 @@ impl HttpResponse {
                 headers.insert(k.to_owned().to_lowercase(), v.to_owned());
             }
         }
+        if let Some(expr) = &asset.ic_certificate_expression {
+            headers.insert("ic-certificateexpression".to_string(), expr.clone());
+        }
 
         let streaming_strategy = StreamingCallbackToken::create_token(
             enc_name,
@@ -213,3 +218,14 @@ impl HttpResponse {
         }
     }
 }
+
+pub fn build_ic_certificate_expression_from_headers(headers: Vec<&str>) -> String {
+    let headers = headers
+        .iter()
+        .map(|h| format!(", \"{}\"", h))
+        .collect::<Vec<_>>()
+        .join("");
+
+    IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers)
+}
+

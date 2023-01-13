@@ -7,7 +7,7 @@
 use crate::{
     http::{
         HeaderField, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
-        StreamingCallbackToken,
+        StreamingCallbackToken, build_ic_certificate_expression_from_headers,
     },
     rc_bytes::RcBytes,
     types::*,
@@ -20,8 +20,8 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_cbor::{ser::IoWrite, Serializer};
 use sha2::Digest;
-use std::collections::HashMap;
 use std::convert::TryInto;
+use std::collections::HashMap;
 
 /// The amount of time a batch is kept alive. Modifying the batch
 /// delays the expiry further.
@@ -35,6 +35,7 @@ const INDEX_FILE: &str = "/index.html";
 
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
+
 
 type AssetHashes = RbTree<Key, Hash>;
 type Timestamp = Int;
@@ -56,6 +57,7 @@ pub struct Asset {
     pub headers: Option<HashMap<String, String>>,
     pub is_aliased: Option<bool>,
     pub allow_raw_access: Option<bool>,
+    pub ic_certificate_expression: Option<String>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -122,6 +124,26 @@ impl Asset {
     fn allow_raw_access(&self) -> bool {
         self.allow_raw_access.unwrap_or(false)
     }
+
+    fn update_ic_certificate_expression(&mut self) {
+        // gather all headers
+        let mut headers = vec![];
+
+        if self.max_age.is_some()
+            {
+                headers.push("cache-control");
+            }
+        if let Some(custom_headers) = &self.headers {
+
+            for (k,_) in custom_headers.iter() {
+                headers.push(k);
+            }
+        }
+
+        // update
+        self.ic_certificate_expression = Some(build_ic_certificate_expression_from_headers(headers));
+    }
+
 }
 
 impl State {
@@ -181,6 +203,7 @@ impl State {
                     headers: arg.headers,
                     is_aliased: arg.enable_aliasing,
                     allow_raw_access: arg.allow_raw_access,
+                    ic_certificate_expression: None,
                 },
             );
         }
@@ -633,6 +656,7 @@ impl State {
     }
 
     pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
+        let dependent_keys = self.dependent_keys(&arg.key).clone();
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -647,6 +671,8 @@ impl State {
         if let Some(allow_raw_access) = arg.allow_raw_access {
             asset.allow_raw_access = allow_raw_access
         }
+
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
         Ok(())
     }
 
@@ -707,6 +733,9 @@ fn on_asset_change(
     asset: &mut Asset,
     dependent_keys: Vec<Key>,
 ) {
+    // update IC-CertificateExpression header value
+    asset.update_ic_certificate_expression();
+
     // If the most preferred encoding is present and certified,
     // there is nothing to do.
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
