@@ -461,7 +461,11 @@ impl State {
             let absence_proof = self.asset_hashes.witness(path.as_bytes());
             let index_proof = self.asset_hashes.witness(INDEX_FILE.as_bytes());
             let combined_proof = merge_hash_trees(absence_proof, index_proof);
-            Some(witness_to_header(combined_proof, certificate))
+            Some(witness_to_header(
+                combined_proof,
+                certificate,
+                req.get_certificate_version(),
+            ))
         } else {
             None
         };
@@ -490,8 +494,11 @@ impl State {
             }
         }
 
-        let certificate_header =
-            witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
+        let certificate_header = witness_to_header(
+            self.asset_hashes.witness(path.as_bytes()),
+            certificate,
+            req.get_certificate_version(),
+        );
 
         if let Ok(asset) = self.get_asset(&path.into()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
@@ -749,17 +756,27 @@ fn on_asset_change(
     }
 }
 
-fn witness_to_header(witness: HashTree, certificate: &[u8]) -> HeaderField {
+fn witness_to_header(
+    witness: HashTree,
+    certificate: &[u8],
+    certificate_version: Nat,
+) -> HeaderField {
     use ic_certified_map::labeled;
 
     let hash_tree = labeled(b"http_assets", witness);
     let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
     serializer.self_describe().unwrap();
     hash_tree.serialize(&mut serializer).unwrap();
+    let version_string = if certificate_version == Nat::from(1) {
+        "".to_string()
+    } else {
+        format!("version={}", certificate_version)
+    };
 
     (
         "IC-Certificate".to_string(),
         String::from("certificate=:")
+            + &version_string
             + &base64::encode(certificate)
             + ":, tree=:"
             + &base64::encode(&serializer.into_inner())
