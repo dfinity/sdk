@@ -7,7 +7,7 @@ use crate::types::{
     CreateChunkArg, DeleteAssetArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
-use candid::Principal;
+use candid::{Nat, Principal};
 use serde_bytes::ByteBuf;
 
 fn some_principal() -> Principal {
@@ -82,6 +82,7 @@ struct RequestBuilder {
     method: String,
     headers: Vec<(String, String)>,
     body: ByteBuf,
+    certificate_version: Option<Nat>,
 }
 
 impl RequestBuilder {
@@ -91,6 +92,7 @@ impl RequestBuilder {
             method: "GET".to_string(),
             headers: vec![],
             body: ByteBuf::new(),
+            certificate_version: None,
         }
     }
 
@@ -106,6 +108,7 @@ impl RequestBuilder {
             url: self.resource,
             headers: self.headers,
             body: self.body,
+            certificate_version: self.certificate_version,
         }
     }
 }

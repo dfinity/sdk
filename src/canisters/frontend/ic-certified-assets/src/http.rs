@@ -15,6 +15,7 @@ pub struct HttpRequest {
     pub url: String,
     pub headers: Vec<HeaderField>,
     pub body: ByteBuf,
+    pub certificate_version: Option<Nat>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -81,6 +82,10 @@ impl HttpRequest {
         self.headers
             .iter()
             .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then_some(v))
+    }
+
+    pub fn get_certificate_version(&self) -> Nat {
+        self.certificate_version.clone().unwrap_or(Nat::from(1))
     }
 
     pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
