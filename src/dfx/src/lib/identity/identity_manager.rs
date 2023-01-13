@@ -636,7 +636,7 @@ pub(super) fn generate_key() -> Result<(Vec<u8>, Mnemonic), IdentityError> {
     let secret = mnemonic_to_key(&mnemonic)?;
     let pem = secret
         .to_sec1_pem(LineEnding::CRLF)
-        .map_err(IdentityError::GenerateFreshSecp256k1KeyFailed)?;
+        .map_err(|e| IdentityError::GenerateFreshSecp256k1KeyFailed(Box::new(e)))?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }
 
