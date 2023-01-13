@@ -18,6 +18,7 @@ use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
+use serde_cbor::{ser::IoWrite, Serializer};
 use sha2::Digest;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -846,10 +847,17 @@ fn aliased_by(key: &Key) -> Vec<Key> {
     }
 }
 
-#[test]
-fn cbor() {
-    assert_eq!(
-        base64::encode(serde_cbor::to_vec(&["hello", "world"]).unwrap()),
-        "2dn3gmVoZWxsb2V3b3JsZA=="
-    )
+fn serialize_cbor_self_describing<T>(value: &T) -> Vec<u8>
+where
+    T: serde::Serialize,
+{
+    let mut vec = Vec::new();
+    let mut binding = IoWrite::new(&mut vec);
+    let mut s = Serializer::new(&mut binding);
+    s.self_describe()
+        .expect("Cannot produce self-describing cbor.");
+    value
+        .serialize(&mut s)
+        .expect("Failed to serialize self-describing CBOR.");
+    vec
 }
