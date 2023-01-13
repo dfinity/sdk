@@ -27,6 +27,9 @@ pub enum IdentityError {
     #[error("Cannot create identity directory: {0}")]
     CreateIdentityDirectoryFailed(IoError),
 
+    #[error("Cannot save PEM content for an HSM.")]
+    CannotSavePemContentForHsm(),
+
     #[error("Failed to decrypt PEM file: {0}")]
     DecryptPemFileFailed(PathBuf, EncryptionError),
 
@@ -114,6 +117,9 @@ pub enum IdentityError {
     #[error("Failed to save identity manager configuration: {0}")]
     SaveIdentityManagerConfigurationFailed(StructuredFileError),
 
+    #[error("Failed to switch over default identity settings: {0}")]
+    SwitchDefaultIdentitySettingsFailed(Box<IdentityError>),
+
     #[error("Could not translate pem file to text: {0}")]
     TranslatePemContentToTextFailed(FromUtf8Error),
 
@@ -127,4 +133,7 @@ pub enum IdentityError {
 
     #[error("Cannot write PEM file: {0}")]
     WritePemFileFailed(IoError),
+
+    #[error("Failed to write PEM to keyring: {0}")]
+    WritePemToKeyringFailed(KeyringError),
 }

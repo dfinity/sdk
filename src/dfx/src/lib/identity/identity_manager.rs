@@ -15,14 +15,15 @@ use dfx_core::error::identity::IdentityError::{
     LoadIdentityConfigurationFailed, LoadIdentityManagerConfigurationFailed,
     RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
     RenameIdentityDirectoryFailed, SaveIdentityConfigurationFailed,
-    SaveIdentityManagerConfigurationFailed, TranslatePemContentToTextFailed,
+    SaveIdentityManagerConfigurationFailed, SwitchDefaultIdentitySettingsFailed,
+    TranslatePemContentToTextFailed,
 };
 use dfx_core::error::io::IoError;
 use dfx_core::foundation::get_user_home;
 use dfx_core::fs::composite::ensure_parent_dir_exists;
 use dfx_core::json::{load_json_file, save_json_file};
 
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
@@ -342,16 +343,15 @@ impl IdentityManager {
     /// Rename an identity.
     /// If renaming the selected (default) identity, changes that
     /// to refer to the new identity name.
-    #[context("Failed to rename identity '{}' to '{}'.", from, to)]
     pub fn rename(
         &mut self,
         log: &Logger,
         env: &dyn Environment,
         from: &str,
         to: &str,
-    ) -> DfxResult<bool> {
+    ) -> Result<bool, IdentityError> {
         if to == ANONYMOUS_IDENTITY_NAME {
-            return Err(DfxError::new(IdentityError::CannotCreateAnonymousIdentity()));
+            return Err(IdentityError::CannotCreateAnonymousIdentity());
         }
         self.require_identity_exists(log, from)?;
 
@@ -360,7 +360,7 @@ impl IdentityManager {
         let to_dir = self.get_identity_dir_path(to);
 
         if to_dir.exists() {
-            return Err(DfxError::new(IdentityError::IdentityAlreadyExists()));
+            return Err(IdentityError::IdentityAlreadyExists());
         }
 
         DfxIdentity::map_wallets_to_renamed_identity(env, from, to)?;
@@ -376,12 +376,13 @@ impl IdentityManager {
             pem_safekeeping::save_pem(log, &self.file_locations, to, &new_config, pem.as_ref())?;
             let config_path = self.get_identity_json_path(to);
             save_identity_configuration(log, &config_path, &new_config)?;
-            keyring_mock::delete_pem_from_keyring(keyring_identity_suffix)?;
+            keyring_mock::delete_pem_from_keyring(keyring_identity_suffix)
+                .map_err(RemoveIdentityFromKeyringFailed)?;
         }
 
         if from == self.configuration.default {
             self.write_default_identity(to)
-                .map_err(|_| anyhow!("Failed to switch over default identity settings. Please do this manually by running 'dfx identity use {}'", to))?;
+                .map_err(|e| SwitchDefaultIdentitySettingsFailed(Box::new(e)))?;
             Ok(true)
         } else {
             Ok(false)
