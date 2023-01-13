@@ -2,7 +2,7 @@ use crate::error::io::IoError;
 
 use crate::error::io::IoErrorKind::{
     CopyFileFailed, CreateDirectoryFailed, NoParent, ReadFileFailed, ReadPermissionsFailed,
-    RenameFailed, WriteFileFailed, WritePermissionsFailed,
+    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, WriteFileFailed, WritePermissionsFailed,
 };
 use std::fs::Permissions;
 use std::path::{Path, PathBuf};
@@ -50,11 +50,13 @@ pub fn read_permissions(path: &Path) -> Result<Permissions, IoError> {
 }
 
 pub fn remove_dir(path: &Path) -> Result<(), IoError> {
-    std::fs::remove_dir(path).map_err(|err| IoError::RemoveDirectoryFailed(path.to_path_buf(), err))
+    std::fs::remove_dir(path)
+        .map_err(|err| IoError::new(RemoveDirectoryFailed(path.to_path_buf(), err)))
 }
 
 pub fn remove_file(path: &Path) -> Result<(), IoError> {
-    std::fs::remove_file(path).map_err(|err| IoError::RemoveFileFailed(path.to_path_buf(), err))
+    std::fs::remove_file(path)
+        .map_err(|err| IoError::new(RemoveFileFailed(path.to_path_buf(), err)))
 }
 
 pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), IoError> {
