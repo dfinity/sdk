@@ -913,6 +913,7 @@ dependencies = [
  "aes-gcm",
  "argon2",
  "bip32",
+ "hex",
  "ic-agent",
  "keyring",
  "sec1",
