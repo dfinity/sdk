@@ -10,6 +10,7 @@ argon2 = "0.4.0"
 bip32 = "0.4.0"
 hex = {version = "0.4.2", features = ["serde"] }
 ic-agent = { version = "0.23.0", features = ["reqwest"] }
+ic-identity-hsm = "0.23.0"
 keyring = "1.2.0"
 sec1 = { version = "0.3.0", features = ["std"] }
 serde = "1.0"

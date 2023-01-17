@@ -915,6 +915,7 @@ dependencies = [
  "bip32",
  "hex",
  "ic-agent",
+ "ic-identity-hsm",
  "keyring",
  "sec1",
  "serde",

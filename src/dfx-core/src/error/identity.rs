@@ -7,6 +7,7 @@ use crate::error::wallet_config::WalletConfigError;
 
 use ic_agent::identity::PemError;
 
+use ic_identity_hsm::HardwareIdentityError;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -50,6 +51,9 @@ pub enum IdentityError {
 
     #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
+
+    #[error("Failed to instantiate hardware identity for identity '{0}': {1}.")]
+    InstantiateHardwareIdentityFailed(String, Box<HardwareIdentityError>),
 
     #[error("Failed to load configuration for identity '{0}': {1}")]
     LoadIdentityConfigurationFailed(String, StructuredFileError),
