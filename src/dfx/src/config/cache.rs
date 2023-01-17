@@ -1,6 +1,5 @@
 use crate::config::dfx_version;
 use crate::lib::error::{CacheError, DfxError, DfxResult};
-use crate::lib::extension::ExtensionsManager;
 use crate::util;
 #[cfg(windows)]
 use crate::util::project_dirs;
@@ -20,7 +19,7 @@ use std::process::ExitStatus;
 #[cfg(unix)]
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
 
-pub trait Cache: ExtensionsManager {
+pub trait Cache {
     fn version_str(&self) -> String;
     fn is_installed(&self) -> DfxResult<bool>;
     fn install(&self) -> DfxResult;

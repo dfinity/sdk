@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::extension::manager::ExtensionsManager;
 
 use clap::Parser;
 
@@ -24,6 +25,6 @@ impl From<Vec<OsString>> for RunOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: RunOpts) -> DfxResult<()> {
-    env.get_cache()
-        .run_extension(opts.extension_name, opts.params)
+    let mgr = ExtensionsManager::new(env).unwrap();
+    mgr.run_extension(opts.extension_name, opts.params)
 }

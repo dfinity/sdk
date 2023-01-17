@@ -31,9 +31,14 @@ impl ExtensionsManifest {
             if sv_test.unwrap().matches(&dfx_version) {
                 if let Some(extension_location) = manifests.get(extension_name) {
                     return Some(extension_location.clone());
-                }             }
+                }
+            }
         }
-                    println!("Extension not found");
-                    return None;
+        println!("Extension not found");
+        return None;
+    }
+
+    pub fn _list_compatible_extensions(&self) -> &'static str {
+        todo!()
     }
 }

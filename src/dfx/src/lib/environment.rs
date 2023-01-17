@@ -2,6 +2,7 @@ use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::{Config, NetworksConfig};
 use crate::config::{cache, dfx_version};
 use crate::lib::error::DfxResult;
+// use crate::lib::extension::manager::ExtensionsManager;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
@@ -24,6 +25,7 @@ pub trait Environment {
     fn get_config(&self) -> Option<Arc<Config>>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
+    // fn get_extension_manager(&self) -> Arc<ExtensionsManager>;
 
     fn is_in_project(&self) -> bool;
     /// Return a temporary directory for the current project.
@@ -237,6 +239,10 @@ impl Environment for EnvironmentImpl {
     fn get_effective_canister_id(&self) -> Principal {
         self.effective_canister_id
     }
+
+    // fn get_extension_manager(&self) -> Arc<ExtensionsManager> {
+    //     Arc::new(ExtensionsManager::new(self))
+    // }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -341,6 +347,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
     fn get_effective_canister_id(&self) -> Principal {
         self.backend.get_effective_canister_id()
     }
+
+    // fn get_extension_manager(&self) -> Arc<ExtensionsManager> {
+    //     todo!()
+    // }
 }
 
 pub struct AgentClient {

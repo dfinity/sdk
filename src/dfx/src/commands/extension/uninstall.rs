@@ -1,5 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::extension::manager::ExtensionsManager;
 
 use clap::Parser;
 
@@ -10,5 +11,7 @@ pub struct UninstallOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: UninstallOpts) -> DfxResult<()> {
-    env.get_cache().uninstall_extension(&opts.extension_name)
+    let mgr = ExtensionsManager::new(env)?;
+    mgr.uninstall_extension(&opts.extension_name)?;
+    Ok(())
 }
