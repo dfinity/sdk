@@ -1,3 +1,4 @@
+use anyhow::Context;
 use std::str::FromStr;
 
 use crate::lib::environment::Environment;
@@ -6,9 +7,10 @@ use crate::lib::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityManager, IdentityStorageMode,
 };
 use crate::util::clap::validators::is_hsm_key_id;
+use dfx_core::error::identity::IdentityError::SwitchBackToIdentityFailed;
 
 use clap::Parser;
-use slog::{info, warn};
+use slog::{info, warn, Logger};
 use IdentityCreationParameters::{Hardware, Pem};
 
 /// Creates a new identity.
@@ -77,8 +79,25 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
         }
     };
 
-    IdentityManager::new(env)?.create_new_identity(log, name, creation_parameters, opts.force)?;
+    create_new_dfx_identity(env, log, name, creation_parameters, opts.force)?;
 
     info!(log, r#"Created identity: "{}"."#, name);
+    Ok(())
+}
+
+pub fn create_new_dfx_identity(
+    env: &dyn Environment,
+    log: &Logger,
+    name: &str,
+    creation_parameters: IdentityCreationParameters,
+    force: bool,
+) -> DfxResult {
+    let result =
+        IdentityManager::new(env)?.create_new_identity(log, name, creation_parameters, force);
+    if let Err(SwitchBackToIdentityFailed(underlying)) = result {
+        Err(*underlying).with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
+    } else {
+        result?;
+    }
     Ok(())
 }
