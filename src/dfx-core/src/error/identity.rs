@@ -40,6 +40,9 @@ pub enum IdentityError {
     #[error("Cannot encrypt PEM file: {0}")]
     EncryptPemFileFailed(PathBuf, EncryptionError),
 
+    #[error("Failed to generate a fresh encryption configuration: {0}")]
+    GenerateFreshEncryptionConfigurationFailed(EncryptionError),
+
     #[error("Failed to generate a fresh secp256k1 key: {0}")]
     GenerateFreshSecp256k1KeyFailed(Box<sec1::Error>),
 
