@@ -6,8 +6,8 @@
 
 use crate::{
     http::{
-        HeaderField, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
-        StreamingCallbackToken, build_ic_certificate_expression_from_headers,
+        build_ic_certificate_expression_from_headers_and_encoding, HeaderField, HttpRequest,
+        HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
     },
     rc_bytes::RcBytes,
     types::*,
@@ -20,8 +20,8 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_cbor::{ser::IoWrite, Serializer};
 use sha2::Digest;
-use std::convert::TryInto;
 use std::collections::HashMap;
+use std::convert::TryInto;
 
 /// The amount of time a batch is kept alive. Modifying the batch
 /// delays the expiry further.
@@ -36,7 +36,6 @@ const INDEX_FILE: &str = "/index.html";
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
 
-
 type AssetHashes = RbTree<Key, Hash>;
 type Timestamp = Int;
 
@@ -47,6 +46,8 @@ pub struct AssetEncoding {
     pub total_length: usize,
     pub certified: bool,
     pub sha256: [u8; 32],
+    pub ic_certificate_expression: Option<String>,
+    pub response_hash: Option<String>,
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
@@ -57,7 +58,6 @@ pub struct Asset {
     pub headers: Option<HashMap<String, String>>,
     pub is_aliased: Option<bool>,
     pub allow_raw_access: Option<bool>,
-    pub ic_certificate_expression: Option<String>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -125,25 +125,50 @@ impl Asset {
         self.allow_raw_access.unwrap_or(false)
     }
 
-    fn update_ic_certificate_expression(&mut self) {
+    fn update_ic_certificate_expressions(&mut self) {
         // gather all headers
         let mut headers = vec![];
 
-        if self.max_age.is_some()
-            {
-                headers.push("cache-control");
-            }
+        if self.max_age.is_some() {
+            headers.push("cache-control");
+        }
         if let Some(custom_headers) = &self.headers {
-
-            for (k,_) in custom_headers.iter() {
+            for (k, _) in custom_headers.iter() {
                 headers.push(k);
             }
         }
 
         // update
-        self.ic_certificate_expression = Some(build_ic_certificate_expression_from_headers(headers));
+        for (enc_name, encoding) in self.encodings.iter_mut() {
+            encoding.ic_certificate_expression = Some(
+                build_ic_certificate_expression_from_headers_and_encoding(&headers, enc_name),
+            );
+        }
     }
 
+    pub fn get_headers_for_encoding(&self, encoding_name: &str) -> HashMap<String, String> {
+        let mut headers =
+            HashMap::from([("content-type".to_string(), self.content_type.to_string())]);
+        if let Some(max_age) = self.max_age {
+            headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
+        }
+        if encoding_name != "identity" {
+            headers.insert("content-encoding".to_string(), encoding_name.to_string());
+        }
+        if let Some(arg_headers) = self.headers.as_ref() {
+            for (k, v) in arg_headers {
+                headers.insert(k.to_owned().to_lowercase(), v.to_owned());
+            }
+        }
+        if let Some(expr) = self
+            .encodings
+            .get(encoding_name)
+            .and_then(|enc| enc.ic_certificate_expression.as_ref())
+        {
+            headers.insert("ic-certificateexpression".to_string(), expr.clone());
+        }
+        headers
+    }
 }
 
 impl State {
@@ -203,7 +228,6 @@ impl State {
                     headers: arg.headers,
                     is_aliased: arg.enable_aliasing,
                     allow_raw_access: arg.allow_raw_access,
-                    ic_certificate_expression: None,
                 },
             );
         }
@@ -254,6 +278,8 @@ impl State {
             certified: false,
             total_length,
             sha256,
+            ic_certificate_expression: None, // set by on_asset_change
+            response_hash: None,             // set by on_asset_change
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
@@ -733,8 +759,9 @@ fn on_asset_change(
     asset: &mut Asset,
     dependent_keys: Vec<Key>,
 ) {
+    // todo!(update response hashes)
     // update IC-CertificateExpression header value
-    asset.update_ic_certificate_expression();
+    asset.update_ic_certificate_expressions();
 
     // If the most preferred encoding is present and certified,
     // there is nothing to do.

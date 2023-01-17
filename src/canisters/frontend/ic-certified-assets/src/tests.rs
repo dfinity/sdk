@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
-use crate::http::{HttpRequest, HttpResponse, StreamingStrategy, IC_CERTIFICATE_EXPRESSION_VALUE};
-use crate::state_machine::{
-    StableState, State, BATCH_EXPIRY_NANOS
-};
+use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
+use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
@@ -32,7 +30,6 @@ struct AssetBuilder {
     headers: Option<HashMap<String, String>>,
     aliasing: Option<bool>,
     allow_raw_access: Option<bool>,
-    ic_certificate_expression: Option<String>,
 }
 
 impl AssetBuilder {
@@ -45,7 +42,6 @@ impl AssetBuilder {
             headers: None,
             aliasing: None,
             allow_raw_access: None,
-            ic_certificate_expression: None,
         }
     }
 
@@ -78,17 +74,6 @@ impl AssetBuilder {
 
     fn with_allow_raw_access(mut self, allow_raw_access: Option<bool>) -> Self {
         self.allow_raw_access = allow_raw_access;
-        self
-    }
-    fn update_ic_certificate_expression(mut self) -> Self {
-        let h = self.headers.clone().unwrap_or_default();
-        let hf = h
-            .iter()
-            .map(|(k, _)| format!("\"{}\"", k))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let c = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &hf);
-        self.ic_certificate_expression = Some(c);
         self
     }
 }
@@ -1009,16 +994,14 @@ mod allow_raw_access {
 
 #[cfg(test)]
 mod certificate_expression {
-    use serde::de::IntoDeserializer;
-
-    use crate::http::build_ic_certificate_expression_from_headers;
+    use crate::http::build_ic_certificate_expression_from_headers_and_encoding;
 
     use super::*;
 
     #[test]
     fn ic_certificate_expression_value_from_headers() {
         let h = ["a", "b", "c"].to_vec();
-        let c = build_ic_certificate_expression_from_headers(h);
+        let c = build_ic_certificate_expression_from_headers_and_encoding(&h, "not identity");
         assert_eq!(
             c,
             r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
@@ -1035,12 +1018,10 @@ mod certificate_expression {
         create_assets(
             &mut state,
             time_now,
-            vec![
-                AssetBuilder::new("/contents.html", "text/html")
-                    .with_encoding("identity", vec![BODY])
-                    .with_max_age(604800)
-                    .with_header("Access-Control-Allow-Origin", "*"),
-            ],
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
         );
 
         let response = state.http_request(
@@ -1058,7 +1039,7 @@ mod certificate_expression {
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
             "Missing ic-certifiedexpression header in response: {:#?}",
             response,
         );
@@ -1074,12 +1055,10 @@ r#"default_certification(ValidationArgs{certification: Certification{request_cer
         create_assets(
             &mut state,
             time_now,
-            vec![
-                AssetBuilder::new("/contents.html", "text/html")
-                    .with_encoding("identity", vec![BODY])
-                    .with_max_age(604800)
-                    .with_header("Access-Control-Allow-Origin", "*"),
-            ],
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("gzip", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
         );
 
         let response = state.http_request(
@@ -1092,20 +1071,27 @@ r#"default_certification(ValidationArgs{certification: Certification{request_cer
 
         assert!(
             lookup_header(&response, "ic-certificateexpression").is_some(),
-            "Missing ic-certifiedexpression header in response: {:#?}",
+            "Missing ic-certificateexpression header in response: {:#?}",
             response,
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
-            "Missing ic-certifiedexpression header in response: {:#?}",
+            r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            "Missing ic-certificateexpression header in response: {:#?}",
             response,
         );
 
-        state.set_asset_properties(SetAssetPropertiesArguments { key: "/contents.html".into(),
-                                                                 max_age: Some(None),
-                                                                 headers: Some(Some(HashMap::from([("custom-header".into(), "value".into())]))),
-                                                                 allow_raw_access: None }).unwrap();
+        state
+            .set_asset_properties(SetAssetPropertiesArguments {
+                key: "/contents.html".into(),
+                max_age: Some(None),
+                headers: Some(Some(HashMap::from([(
+                    "custom-header".into(),
+                    "value".into(),
+                )]))),
+                allow_raw_access: None,
+            })
+            .unwrap();
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
@@ -1115,12 +1101,12 @@ r#"default_certification(ValidationArgs{certification: Certification{request_cer
         );
         assert!(
             lookup_header(&response, "ic-certificateexpression").is_some(),
-            "Missing ic-certifiedexpression header in response: {:#?}",
+            "Missing ic-certificateexpression header in response: {:#?}",
             response,
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "custom-header"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "custom-header"]}}}})"#,
             "Missing ic-certifiedexpression header in response: {:#?}",
             response,
         );

@@ -3,11 +3,10 @@ use crate::state_machine::{Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
 use ic_certified_map::Hash;
 use serde_bytes::ByteBuf;
-use std::collections::HashMap;
 
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
 
-pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding"{headers}]}}}})"#;
+pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type"{headers}]}}}})"#;
 
 pub type HeaderField = (String, String);
 
@@ -144,24 +143,9 @@ impl HttpResponse {
         callback: Func,
         etags: Vec<Hash>,
     ) -> HttpResponse {
-        let mut headers =
-            HashMap::from([("content-type".to_string(), asset.content_type.to_string())]);
-        if enc_name != "identity" {
-            headers.insert("content-encoding".to_string(), enc_name.to_string());
-        }
+        let mut headers = asset.get_headers_for_encoding(enc_name);
         if let Some(head) = certificate_header {
             headers.insert(head.0, head.1);
-        }
-        if let Some(max_age) = asset.max_age {
-            headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
-        }
-        if let Some(arg_headers) = asset.headers.as_ref() {
-            for (k, v) in arg_headers {
-                headers.insert(k.to_owned().to_lowercase(), v.to_owned());
-            }
-        }
-        if let Some(expr) = &asset.ic_certificate_expression {
-            headers.insert("ic-certificateexpression".to_string(), expr.clone());
         }
 
         let streaming_strategy = StreamingCallbackToken::create_token(
@@ -219,13 +203,18 @@ impl HttpResponse {
     }
 }
 
-pub fn build_ic_certificate_expression_from_headers(headers: Vec<&str>) -> String {
-    let headers = headers
+pub fn build_ic_certificate_expression_from_headers_and_encoding(
+    headers: &[&str],
+    encoding_name: &str,
+) -> String {
+    let mut headers = headers
         .iter()
         .map(|h| format!(", \"{}\"", h))
         .collect::<Vec<_>>()
         .join("");
+    if encoding_name != "identity" {
+        headers = format!(", \"content-encoding\"{}", headers);
+    }
 
     IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers)
 }
-
