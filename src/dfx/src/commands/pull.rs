@@ -1,5 +1,6 @@
 use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::error::DfxResult;
+use crate::lib::metadata::names::DFX_DEPS;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, provider::create_agent_environment};
 use crate::NetworkOpt;
@@ -78,7 +79,7 @@ async fn fetch_deps_to_pull(
     slog::info!(logger, "Pulling canister {canister_id}...");
 
     match agent
-        .read_state_canister_metadata(canister_id, "dfx:deps")
+        .read_state_canister_metadata(canister_id, DFX_DEPS)
         .await
     {
         Ok(data) => {
