@@ -1,4 +1,3 @@
-use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use dfx_core::error::identity::IdentityError;
 use dfx_core::error::identity::IdentityError::{UnsupportedKeyVersion, ValidatePemContentFailed};
@@ -19,7 +18,7 @@ pub enum CallSender {
 // Determine whether the selected Identity
 // or the provided wallet canister ID should be the Sender of the call.
 #[context("Failed to determine call sender.")]
-pub async fn call_sender(_env: &dyn Environment, wallet: &Option<String>) -> DfxResult<CallSender> {
+pub async fn call_sender(wallet: &Option<String>) -> DfxResult<CallSender> {
     let sender = if let Some(id) = wallet {
         CallSender::Wallet(
             Principal::from_text(id)
