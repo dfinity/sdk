@@ -27,6 +27,7 @@ use slog::{debug, info, trace, Logger};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+mod identity_file_locations;
 pub mod identity_manager;
 pub mod identity_utils;
 pub mod keyring_mock;
@@ -39,8 +40,6 @@ pub use identity_manager::{
 };
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
-pub const IDENTITY_PEM: &str = "identity.pem";
-pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
 pub const IDENTITY_JSON: &str = "identity.json";
 pub const TEMP_IDENTITY_PREFIX: &str = "___temp___";
 pub const WALLET_CONFIG_FILENAME: &str = "wallets.json";
@@ -163,7 +162,7 @@ impl Identity {
                 identity_config = create_identity_config(log, mode, name, None)?;
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     pem_content.as_slice(),
@@ -177,7 +176,7 @@ impl Identity {
                 identity_utils::validate_pem_file(&src_pem_content)?;
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     src_pem_content.as_slice(),
@@ -196,7 +195,7 @@ impl Identity {
                 let pem_content = pem.as_bytes();
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     pem_content,
@@ -288,7 +287,7 @@ impl Identity {
             Identity::hardware(name, hsm)
         } else {
             let (pem_content, was_encrypted) =
-                pem_safekeeping::load_pem(log, manager, name, &config)?;
+                pem_safekeeping::load_pem(log, manager.file_locations(), name, &config)?;
             Identity::secp256k1(name, &pem_content, was_encrypted)
                 .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
         }
