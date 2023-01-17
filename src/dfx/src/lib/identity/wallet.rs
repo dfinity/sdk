@@ -1,4 +1,3 @@
-use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::{
@@ -8,6 +7,7 @@ use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDesc
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
+use dfx_core::config::directories::get_config_dfx_dir_path;
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
     EnsureWalletConfigDirFailed, GetWalletConfigPathFailed, SaveWalletConfigFailed,
