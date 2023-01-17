@@ -4,7 +4,7 @@
 //! type.
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxResult, IdentityError};
+use crate::lib::error::IdentityError;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::error::identity::IdentityError::{
@@ -13,13 +13,12 @@ use dfx_core::error::identity::IdentityError::{
 };
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
-    EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
+    EnsureWalletConfigDirFailed, GetWalletConfigPathFailed, LoadWalletConfigFailed,
+    SaveWalletConfigFailed,
 };
 use dfx_core::json::{load_json_file, save_json_file};
 
-use anyhow::Context;
 use candid::Principal;
-use fn_error_context::context;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
@@ -148,12 +147,21 @@ impl Identity {
         &self.name
     }
 
-    #[context("Failed to get path to wallet config file for identity '{}' on network '{}'.", name, network.name)]
-    pub fn get_wallet_config_file(network: &NetworkDescriptor, name: &str) -> DfxResult<PathBuf> {
+    pub fn get_wallet_config_path(
+        network: &NetworkDescriptor,
+        name: &str,
+    ) -> Result<PathBuf, WalletConfigError> {
         Ok(match &network.r#type {
             NetworkTypeDescriptor::Persistent => {
                 // Using the global
-                get_config_dfx_dir_path()?
+                get_config_dfx_dir_path()
+                    .map_err(|e| {
+                        GetWalletConfigPathFailed(
+                            Box::new(name.to_string()),
+                            Box::new(network.name.clone()),
+                            e,
+                        )
+                    })?
                     .join("identity")
                     .join(name)
                     .join(WALLET_CONFIG_FILENAME)
@@ -162,12 +170,11 @@ impl Identity {
         })
     }
 
-    #[context("Failed to get wallet config for identity '{}' on network '{}'.", name, network.name)]
     fn wallet_config(
         network: &NetworkDescriptor,
         name: &str,
-    ) -> DfxResult<(PathBuf, WalletGlobalConfig)> {
-        let wallet_path = Identity::get_wallet_config_file(network, name)?;
+    ) -> Result<(PathBuf, WalletGlobalConfig), WalletConfigError> {
+        let wallet_path = Identity::get_wallet_config_path(network, name)?;
 
         // Read the config file.
         Ok((
@@ -218,8 +225,11 @@ impl Identity {
         save_json_file(path, &config).map_err(SaveWalletConfigFailed)
     }
 
-    #[context("Failed to set wallet id to {} for identity '{}' on network '{}'.", id, name, network.name)]
-    pub fn set_wallet_id(network: &NetworkDescriptor, name: &str, id: Principal) -> DfxResult {
+    pub fn set_wallet_id(
+        network: &NetworkDescriptor,
+        name: &str,
+        id: Principal,
+    ) -> Result<(), WalletConfigError> {
         let (wallet_path, mut config) = Identity::wallet_config(network, name)?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
@@ -236,7 +246,10 @@ impl Identity {
     }
 
     #[allow(dead_code)]
-    pub fn remove_wallet_id(network: &NetworkDescriptor, name: &str) -> DfxResult {
+    pub fn remove_wallet_id(
+        network: &NetworkDescriptor,
+        name: &str,
+    ) -> Result<(), WalletConfigError> {
         let (wallet_path, mut config) = Identity::wallet_config(network, name)?;
         // Update the wallet map in it.
         let identities = &mut config.identities;
@@ -248,19 +261,10 @@ impl Identity {
 
         network_map.networks.remove(&network.name);
 
-        std::fs::create_dir_all(wallet_path.parent().unwrap()).with_context(|| {
-            format!(
-                "Failed to create {}.",
-                wallet_path.parent().unwrap().to_string_lossy()
-            )
-        })?;
-        std::fs::write(
-            &wallet_path,
-            &serde_json::to_string_pretty(&config)
-                .context("Failed to serialize global wallet config.")?,
-        )
-        .with_context(|| format!("Failed to write to {}.", wallet_path.to_string_lossy()))?;
-        Ok(())
+        dfx_core::fs::composite::ensure_parent_dir_exists(&wallet_path)
+            .map_err(EnsureWalletConfigDirFailed)?;
+
+        save_json_file(&wallet_path, &config).map_err(SaveWalletConfigFailed)
     }
 
     fn rename_wallet_global_config_key(
@@ -329,12 +333,11 @@ impl Identity {
         Ok(())
     }
 
-    #[context("Failed to get wallet canister id for identity '{}' on network '{}'.", name, network.name)]
     pub fn wallet_canister_id(
         network: &NetworkDescriptor,
         name: &str,
-    ) -> DfxResult<Option<Principal>> {
-        let wallet_path = Identity::get_wallet_config_file(network, name)?;
+    ) -> Result<Option<Principal>, WalletConfigError> {
+        let wallet_path = Identity::get_wallet_config_path(network, name)?;
         if !wallet_path.exists() {
             return Ok(None);
         }
