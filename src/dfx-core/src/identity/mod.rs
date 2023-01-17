@@ -2,17 +2,22 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::lib::error::IdentityError;
-use dfx_core::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
-use dfx_core::error::identity::IdentityError::{
+use crate::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
+use crate::error::identity::IdentityError;
+use crate::error::identity::IdentityError::{
     GetConfigDirectoryFailed, GetSharedNetworkDataDirectoryFailed,
     InstantiateHardwareIdentityFailed, ReadIdentityFileFailed, RenameWalletFailed,
 };
-use dfx_core::error::wallet_config::WalletConfigError;
-use dfx_core::error::wallet_config::WalletConfigError::{
+use crate::error::wallet_config::WalletConfigError;
+use crate::error::wallet_config::WalletConfigError::{
     EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
 };
-use dfx_core::json::{load_json_file, save_json_file};
+use crate::identity::identity_file_locations::IdentityFileLocations;
+use crate::json::{load_json_file, save_json_file};
+pub use identity_manager::{
+    HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
+    IdentityManager,
+};
 
 use candid::Principal;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
@@ -25,17 +30,9 @@ use std::path::{Path, PathBuf};
 
 mod identity_file_locations;
 pub mod identity_manager;
-pub mod identity_utils;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
 pub mod pem_utils;
-pub mod wallet;
-
-use crate::lib::identity::identity_file_locations::IdentityFileLocations;
-pub use identity_manager::{
-    HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
-    IdentityManager,
-};
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_JSON: &str = "identity.json";
@@ -44,13 +41,13 @@ pub const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct WalletNetworkMap {
+pub struct WalletNetworkMap {
     #[serde(flatten)]
     pub networks: BTreeMap<String, Principal>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct WalletGlobalConfig {
+pub struct WalletGlobalConfig {
     pub identities: BTreeMap<String, WalletNetworkMap>,
 }
 
@@ -165,16 +162,16 @@ impl Identity {
         Ok(())
     }
 
-    fn load_wallet_config(path: &Path) -> Result<WalletGlobalConfig, WalletConfigError> {
+    pub fn load_wallet_config(path: &Path) -> Result<WalletGlobalConfig, WalletConfigError> {
         load_json_file(path).map_err(LoadWalletConfigFailed)
     }
 
-    fn save_wallet_config(
+    pub fn save_wallet_config(
         path: &Path,
         config: &WalletGlobalConfig,
     ) -> Result<(), WalletConfigError> {
-        dfx_core::fs::parent(path)
-            .and_then(|path| dfx_core::fs::create_dir_all(&path))
+        crate::fs::parent(path)
+            .and_then(|path| crate::fs::create_dir_all(&path))
             .map_err(EnsureWalletConfigDirFailed)?;
 
         save_json_file(path, &config).map_err(SaveWalletConfigFailed)

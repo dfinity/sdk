@@ -4,13 +4,13 @@ use crate::config::dfinity::{
 };
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
-use crate::lib::identity::WALLET_CONFIG_FILENAME;
 use crate::lib::network::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
 use dfx_core::config::directories::get_shared_network_data_directory;
+use dfx_core::identity::{ANONYMOUS_IDENTITY_NAME, WALLET_CONFIG_FILENAME};
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -22,8 +22,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use url::Url;
-
-use super::identity::ANONYMOUS_IDENTITY_NAME;
 
 lazy_static! {
     static ref NETWORK_CONTEXT: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
