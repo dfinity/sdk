@@ -11,3 +11,8 @@ pub fn ensure_dir_exists(p: &Path) -> Result<(), IoError> {
         Ok(())
     }
 }
+
+pub fn ensure_parent_dir_exists(d: &Path) -> Result<(), IoError> {
+    let parent = crate::fs::parent(d)?;
+    ensure_dir_exists(&parent)
+}
