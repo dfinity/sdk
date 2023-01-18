@@ -1,3 +1,4 @@
+use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
 use crate::error::foundation::FoundationError;
 use crate::error::io::IoError;
@@ -6,8 +7,8 @@ use crate::error::structured_file::StructuredFileError;
 use crate::error::wallet_config::WalletConfigError;
 
 use ic_agent::identity::PemError;
-
 use ic_identity_hsm::HardwareIdentityError;
+
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -45,6 +46,9 @@ pub enum IdentityError {
 
     #[error("Failed to generate a fresh secp256k1 key: {0}")]
     GenerateFreshSecp256k1KeyFailed(Box<sec1::Error>),
+
+    #[error("Failed to get config directory for identity manager: {0}")]
+    GetConfigDirectoryFailed(ConfigError),
 
     #[error("Failed to get legacy pem path: {0}")]
     GetLegacyPemPathFailed(FoundationError),

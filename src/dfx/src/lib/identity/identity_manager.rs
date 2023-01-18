@@ -10,10 +10,11 @@ use dfx_core::error::encryption::EncryptionError;
 use dfx_core::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use dfx_core::error::identity::IdentityError::{
     CreateIdentityDirectoryFailed, DisplayLinkedWalletsFailed,
-    DropWalletsFlagRequiredToRemoveIdentityWithWallets, GetLegacyPemPathFailed,
-    LoadIdentityConfigurationFailed, LoadIdentityManagerConfigurationFailed,
-    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
-    RenameIdentityDirectoryFailed, SaveIdentityManagerConfigurationFailed,
+    DropWalletsFlagRequiredToRemoveIdentityWithWallets, GetConfigDirectoryFailed,
+    GetLegacyPemPathFailed, LoadIdentityConfigurationFailed,
+    LoadIdentityManagerConfigurationFailed, RemoveIdentityDirectoryFailed,
+    RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed, RenameIdentityDirectoryFailed,
+    SaveIdentityManagerConfigurationFailed,
 };
 use dfx_core::foundation::get_user_home;
 use dfx_core::json::{load_json_file, save_json_file};
@@ -157,9 +158,8 @@ pub struct IdentityManager {
 }
 
 impl IdentityManager {
-    #[context("Failed to load identity manager.")]
-    pub fn new(env: &dyn Environment) -> DfxResult<Self> {
-        let config_dfx_dir_path = get_config_dfx_dir_path()?;
+    pub fn new(env: &dyn Environment) -> Result<Self, IdentityError> {
+        let config_dfx_dir_path = get_config_dfx_dir_path().map_err(GetConfigDirectoryFailed)?;
         let identity_root_path = config_dfx_dir_path.join("identity");
         let identity_json_path = config_dfx_dir_path.join("identity.json");
 
