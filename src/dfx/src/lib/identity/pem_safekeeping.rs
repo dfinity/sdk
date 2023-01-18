@@ -1,30 +1,33 @@
 use std::path::Path;
 
+use super::identity_manager::EncryptionConfiguration;
+use super::IdentityConfiguration;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_file_locations::IdentityFileLocations;
 use crate::lib::identity::keyring_mock;
+use crate::lib::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
 use dfx_core::error::encryption::EncryptionError;
+use dfx_core::error::encryption::EncryptionError::{DecryptContentFailed, HashPasswordFailed};
 use dfx_core::error::identity::IdentityError;
+use dfx_core::error::identity::IdentityError::{
+    DecryptPemFileFailed, LoadPemFromKeyringFailed, ReadPemFileFailed,
+};
 use dfx_core::error::io::IoError;
 
-use super::identity_manager::EncryptionConfiguration;
-use super::{IdentityConfiguration, IdentityManager};
-
-use crate::lib::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
-use anyhow::{anyhow, bail, Context};
+use anyhow::bail;
 use argon2::{password_hash::PasswordHasher, Argon2};
 use fn_error_context::context;
 use slog::{debug, trace, Logger};
 
 /// Loads an identity's PEM file content.
-#[context("Failed to load pem content for identity '{identity_name}'")]
-pub fn load_pem(
+pub(crate) fn load_pem(
     log: &Logger,
-    manager: &IdentityManager,
+    locations: &IdentityFileLocations,
     identity_name: &str,
     identity_config: &IdentityConfiguration,
-) -> DfxResult<(Vec<u8>, bool)> {
+) -> Result<(Vec<u8>, bool), IdentityError> {
     if identity_config.hsm.is_some() {
         unreachable!("Cannot load pem content for an HSM identity.")
     } else if identity_config.keyring_identity_suffix.is_some() {
@@ -32,17 +35,19 @@ pub fn load_pem(
             log,
             "Found keyring identity suffix - PEM file is stored in keyring."
         );
-        Ok((keyring_mock::load_pem_from_keyring(identity_name)?, true))
+        let pem = keyring_mock::load_pem_from_keyring(identity_name)
+            .map_err(|err| LoadPemFromKeyringFailed(Box::new(identity_name.to_string()), err))?;
+        Ok((pem, true))
     } else {
-        let pem_path = manager.get_identity_pem_path(identity_name, identity_config);
-        Ok(load_pem_from_file(&pem_path, Some(identity_config))?)
+        let pem_path = locations.get_identity_pem_path(identity_name, identity_config);
+        load_pem_from_file(&pem_path, Some(identity_config))
     }
 }
 
 #[context("Failed to save PEM file for identity '{name}'.")]
-pub fn save_pem(
+pub(crate) fn save_pem(
     log: &Logger,
-    manager: &IdentityManager,
+    locations: &IdentityFileLocations,
     name: &str,
     identity_config: &IdentityConfiguration,
     pem_content: &[u8],
@@ -58,7 +63,7 @@ pub fn save_pem(
         debug!(log, "Saving keyring identity.");
         keyring_mock::write_pem_to_keyring(keyring_identity, pem_content)
     } else {
-        let path = manager.get_identity_pem_path(name, identity_config);
+        let path = locations.get_identity_pem_path(name, identity_config);
         write_pem_to_file(&path, Some(identity_config), pem_content)?;
         Ok(())
     }
@@ -69,14 +74,14 @@ pub fn save_pem(
 /// Returns the pem and whether the original was encrypted.
 ///
 /// Try to only load the pem file once, as the user may be prompted for the password every single time you call this function.
-#[context("Failed to load pem file {}.", path.to_string_lossy())]
 pub fn load_pem_from_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
-) -> DfxResult<(Vec<u8>, bool)> {
-    let content = std::fs::read(path)
-        .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
-    let (content, was_encrypted) = maybe_decrypt_pem(content.as_slice(), config)?;
+) -> Result<(Vec<u8>, bool), IdentityError> {
+    let content = dfx_core::fs::read(path).map_err(ReadPemFileFailed)?;
+
+    let (content, was_encrypted) = maybe_decrypt_pem(content.as_slice(), config)
+        .map_err(|err| DecryptPemFileFailed(path.to_path_buf(), err))?;
     Ok((content, was_encrypted))
 }
 
@@ -142,11 +147,10 @@ fn maybe_encrypt_pem(
 /// Additionally returns whether or not it was necessary to decrypt the file.
 ///
 /// `maybe_encrypt_pem` does the opposite.
-#[context("Failed to decrypt pem file.")]
 fn maybe_decrypt_pem(
     pem_content: &[u8],
     config: Option<&IdentityConfiguration>,
-) -> DfxResult<(Vec<u8>, bool)> {
+) -> Result<(Vec<u8>, bool), EncryptionError> {
     if let Some(decryption_config) = config.and_then(|c| c.encryption.as_ref()) {
         let password = password_prompt(DecryptingToUse)?;
         let pem = decrypt(pem_content, decryption_config, &password)?;
@@ -202,12 +206,11 @@ fn encrypt(
     Ok(encrypted)
 }
 
-#[context("Failed during decryption.")]
 fn decrypt(
     encrypted_content: &[u8],
     config: &EncryptionConfiguration,
     password: &str,
-) -> DfxResult<Vec<u8>> {
+) -> Result<Vec<u8>, EncryptionError> {
     let argon2 = Argon2::new(
         argon2::Algorithm::Argon2id,
         argon2::Version::V0x13,
@@ -215,15 +218,14 @@ fn decrypt(
     );
     let hash = argon2
         .hash_password(password.as_bytes(), &config.pw_salt)
-        .map_err(|e| anyhow!(format!("Error during password hashing: {}", e)))?;
+        .map_err(HashPasswordFailed)?;
     let key = Key::clone_from_slice(hash.hash.unwrap().as_ref());
     let cipher = Aes256Gcm::new(&key);
     let nonce = Nonce::from_slice(config.file_nonce.as_slice());
 
-    let decrypted = cipher
+    cipher
         .decrypt(nonce, encrypted_content.as_ref())
-        .map_err(|e| anyhow!("Failed to decrypt content: {}.", e))?;
-    Ok(decrypted)
+        .map_err(DecryptContentFailed)
 }
 
 #[cfg(test)]

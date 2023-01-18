@@ -19,11 +19,11 @@ teardown() {
     assert_command dfx identity new jose
     assert_command dfx identity new juana
 
-    PRINCPAL_ID_JOSE=$(dfx identity get-principal --identity jose)
-    PRINCPAL_ID_JUANA=$(dfx identity get-principal --identity juana)
+    PRINCIPAL_ID_JOSE=$(dfx identity get-principal --identity jose)
+    PRINCIPAL_ID_JUANA=$(dfx identity get-principal --identity juana)
 
-    if [ "$PRINCPAL_ID_JOSE" -eq "$PRINCPAL_ID_JUANA" ]; then
-      echo "IDs should not match: Jose '${PRINCPAL_ID_JOSE}' == Juana '${PRINCPAL_ID_JUANA}'..." | fail
+    if [ "$PRINCIPAL_ID_JOSE" -eq "$PRINCIPAL_ID_JUANA" ]; then
+      echo "IDs should not match: Jose '${PRINCIPAL_ID_JOSE}' == Juana '${PRINCIPAL_ID_JUANA}'..." | fail
     fi
 }
 
@@ -112,6 +112,15 @@ frank'
     assert_command dfx identity new --force alice
     PRINCIPAL_2="$(dfx identity get-principal)"
     assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
+}
+
+@test "identity new: --force does not switch to created identity" {
+    # Was a bug: https://dfinity.atlassian.net/browse/SDK-911
+    assert_command dfx identity new --force alice
+    PRINCIPAL_ORIGINAL="$(dfx identity get-principal)"
+    assert_command dfx identity use alice
+    PRINCIPAL_ALICE="$(dfx identity get-principal)"
+    assert_neq "$PRINCIPAL_ORIGINAL" "$PRINCIPAL_ALICE"
 }
 
 @test "identity new: create an HSM-backed identity" {

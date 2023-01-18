@@ -20,6 +20,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::Argument;
 
+use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
@@ -151,7 +152,7 @@ async fn delete_canister(
                 memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
             };
-            info!(log, "Setting the controller to identity princpal.");
+            info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
 
             // Install a temporary wallet wasm which will transfer the cycles out of the canister before it is deleted.
@@ -208,7 +209,7 @@ async fn delete_canister(
                             cycles_to_withdraw,
                             dank_target_principal
                         );
-                        let wallet = Identity::build_wallet_canister(canister_id, env).await?;
+                        let wallet = build_wallet_canister(canister_id, env).await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
                             .call(

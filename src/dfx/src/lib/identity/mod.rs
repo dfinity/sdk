@@ -8,40 +8,43 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use crate::lib::root_key::fetch_root_key_if_needed;
+use dfx_core::error::identity::IdentityError::{
+    GenerateFreshEncryptionConfigurationFailed, InstantiateHardwareIdentityFailed,
+    ReadIdentityFileFailed,
+};
+use dfx_core::error::wallet_config::WalletConfigError;
+use dfx_core::error::wallet_config::WalletConfigError::{
+    EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
+};
+use dfx_core::json::{load_json_file, save_json_file};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use bip39::{Language, Mnemonic};
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
-use ic_agent::{AgentError, Signature};
+use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
-use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
-use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
-use slog::{debug, info, trace, Logger};
+use slog::{info, trace, Logger};
 use std::collections::BTreeMap;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
+mod identity_file_locations;
 pub mod identity_manager;
 pub mod identity_utils;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
-use crate::util::assets::wallet_wasm;
+pub mod wallet;
+
+use crate::lib::identity::identity_file_locations::IdentityFileLocations;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
     IdentityManager,
 };
 
-use super::diagnosis::DiagnosedError;
-
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
-pub const IDENTITY_PEM: &str = "identity.pem";
-pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
 pub const IDENTITY_JSON: &str = "identity.json";
 pub const TEMP_IDENTITY_PREFIX: &str = "___temp___";
 pub const WALLET_CONFIG_FILENAME: &str = "wallets.json";
@@ -68,9 +71,6 @@ pub struct Identity {
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
-
-    /// The root directory for this identity.
-    pub dir: PathBuf,
 }
 
 impl Identity {
@@ -85,7 +85,7 @@ impl Identity {
         force: bool,
     ) -> DfxResult {
         trace!(log, "Creating identity '{name}'.");
-        let identity_in_use = name;
+        let identity_in_use = manager.get_selected_identity_name().clone();
         // cannot delete an identity in use. Use anonymous identity temporarily if we force-overwrite the identity currently in use
         let temporarily_use_anonymous_identity = identity_in_use == name && force;
 
@@ -132,13 +132,19 @@ impl Identity {
                             })
                         } else {
                             Ok(IdentityConfiguration {
-                                encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                                encryption: Some(
+                                    identity_manager::EncryptionConfiguration::new()
+                                        .map_err(GenerateFreshEncryptionConfigurationFailed)?,
+                                ),
                                 ..Default::default()
                             })
                         }
                     }
                     IdentityStorageMode::PasswordProtected => Ok(IdentityConfiguration {
-                        encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                        encryption: Some(
+                            identity_manager::EncryptionConfiguration::new()
+                                .map_err(GenerateFreshEncryptionConfigurationFailed)?,
+                        ),
                         ..Default::default()
                     }),
                     IdentityStorageMode::Plaintext => Ok(IdentityConfiguration::default()),
@@ -167,7 +173,7 @@ impl Identity {
                 identity_config = create_identity_config(log, mode, name, None)?;
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     pem_content.as_slice(),
@@ -181,7 +187,7 @@ impl Identity {
                 identity_utils::validate_pem_file(&src_pem_content)?;
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     src_pem_content.as_slice(),
@@ -200,7 +206,7 @@ impl Identity {
                 let pem_content = pem.as_bytes();
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     pem_content,
@@ -225,7 +231,7 @@ impl Identity {
         })?;
 
         if temporarily_use_anonymous_identity {
-            manager.use_identity_named(log, identity_in_use)
+            manager.use_identity_named(log, &identity_in_use)
                 .with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
         }
         Ok(())
@@ -236,87 +242,69 @@ impl Identity {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
             insecure: false,
-            dir: PathBuf::new(),
         }
     }
 
-    fn load_basic_identity(
-        manager: &IdentityManager,
-        name: &str,
-        pem_content: &[u8],
-        was_encrypted: bool,
-    ) -> DfxResult<Self> {
+    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> Result<Self, IdentityError> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
-                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
+                .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
         );
 
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: !was_encrypted,
         })
     }
 
-    fn load_secp256k1_identity(
-        manager: &IdentityManager,
+    fn secp256k1(
         name: &str,
         pem_content: &[u8],
         was_encrypted: bool,
-    ) -> DfxResult<Self> {
+    ) -> Result<Self, IdentityError> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
-                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), e))?,
+                .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
         );
 
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: !was_encrypted,
         })
     }
 
-    fn load_hardware_identity(
-        manager: &IdentityManager,
-        name: &str,
-        hsm: HardwareIdentityConfiguration,
-    ) -> DfxResult<Self> {
-        let inner = Box::new(HardwareIdentity::new(
-            hsm.pkcs11_lib_path,
-            HSM_SLOT_INDEX,
-            &hsm.key_id,
-            identity_manager::get_dfx_hsm_pin,
-        )?);
+    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> Result<Self, IdentityError> {
+        let inner = Box::new(
+            HardwareIdentity::new(
+                hsm.pkcs11_lib_path,
+                HSM_SLOT_INDEX,
+                &hsm.key_id,
+                identity_manager::get_dfx_hsm_pin,
+            )
+            .map_err(|e| InstantiateHardwareIdentityFailed(name.into(), Box::new(e)))?,
+        );
         Ok(Self {
             name: name.to_string(),
             inner,
-            dir: manager.get_identity_dir_path(name),
             insecure: false,
         })
     }
 
-    #[context("Failed to load identity '{}'.", name)]
-    pub fn load(manager: &IdentityManager, name: &str, log: &Logger) -> DfxResult<Self> {
-        let json_path = manager.get_identity_json_path(name);
-        let config = if json_path.exists() {
-            identity_manager::read_identity_configuration(&json_path)?
-        } else {
-            debug!(log, "Found no identity configuration. Using default.");
-            IdentityConfiguration::default()
-        };
+    pub(crate) fn new(
+        name: &str,
+        config: IdentityConfiguration,
+        locations: &IdentityFileLocations,
+        log: &Logger,
+    ) -> Result<Self, IdentityError> {
         if let Some(hsm) = config.hsm {
-            Identity::load_hardware_identity(manager, name, hsm)
+            Identity::hardware(name, hsm)
         } else {
             let (pem_content, was_encrypted) =
-                pem_safekeeping::load_pem(log, manager, name, &config)?;
-            Identity::load_secp256k1_identity(manager, name, &pem_content, was_encrypted).or_else(
-                |e| {
-                    Identity::load_basic_identity(manager, name, &pem_content, was_encrypted)
-                        .map_err(|_| e)
-                },
-            )
+                pem_safekeeping::load_pem(log, locations, name, &config)?;
+            Identity::secp256k1(name, &pem_content, was_encrypted)
+                .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
         }
     }
 
@@ -361,8 +349,10 @@ impl Identity {
     }
 
     /// Logs all wallets that are configured in a WalletGlobalConfig.
-    #[context("Failed while trying to display configured wallets in {}.", wallet_config.to_string_lossy())]
-    pub fn display_linked_wallets(logger: &Logger, wallet_config: &Path) -> DfxResult {
+    pub fn display_linked_wallets(
+        logger: &Logger,
+        wallet_config: &Path,
+    ) -> Result<(), WalletConfigError> {
         let config = Identity::load_wallet_config(wallet_config)?;
         info!(
             logger,
@@ -379,38 +369,19 @@ impl Identity {
         Ok(())
     }
 
-    #[context("Failed to load wallet config {}.", path.to_string_lossy())]
-    fn load_wallet_config(path: &Path) -> DfxResult<WalletGlobalConfig> {
-        let mut buffer = Vec::new();
-        std::fs::File::open(path)
-            .with_context(|| format!("Unable to open {}", path.to_string_lossy()))?
-            .read_to_end(&mut buffer)
-            .with_context(|| format!("Unable to read {}", path.to_string_lossy()))?;
-        serde_json::from_slice::<WalletGlobalConfig>(&buffer).with_context(|| {
-            format!(
-                "Unable to parse contents of {} as json",
-                path.to_string_lossy()
-            )
-        })
+    fn load_wallet_config(path: &Path) -> Result<WalletGlobalConfig, WalletConfigError> {
+        load_json_file(path).map_err(LoadWalletConfigFailed)
     }
 
-    #[context("Failed to save wallet config to {}.", path.to_string_lossy())]
-    fn save_wallet_config(path: &Path, config: &WalletGlobalConfig) -> DfxResult {
-        let parent_path = match path.parent() {
-            Some(parent) => parent,
-            None => bail!(format!(
-                "Unable to determine parent of {}",
-                path.to_string_lossy()
-            )),
-        };
-        std::fs::create_dir_all(parent_path).with_context(|| {
-            format!(
-                "Unable to create directory {} with parents for wallet configuration",
-                parent_path.to_string_lossy()
-            )
-        })?;
-        std::fs::write(path, &serde_json::to_string_pretty(&config)?)
-            .with_context(|| format!("Unable to write {}", path.to_string_lossy()))
+    fn save_wallet_config(
+        path: &Path,
+        config: &WalletGlobalConfig,
+    ) -> Result<(), WalletConfigError> {
+        dfx_core::fs::parent(path)
+            .and_then(|path| dfx_core::fs::create_dir_all(&path))
+            .map_err(EnsureWalletConfigDirFailed)?;
+
+        save_json_file(path, &config).map_err(SaveWalletConfigFailed)
     }
 
     #[context("Failed to set wallet id to {} for identity '{}' on network '{}'.", id, name, network.name)]
@@ -525,104 +496,6 @@ impl Identity {
         Ok(())
     }
 
-    #[context("Failed to create wallet for identity '{}' on network '{}'.", name, network.name)]
-    pub async fn create_wallet(
-        env: &dyn Environment,
-        network: &NetworkDescriptor,
-        name: &str,
-        some_canister_id: Option<Principal>,
-    ) -> DfxResult<Principal> {
-        fetch_root_key_if_needed(env).await?;
-        let mgr = ManagementCanister::create(
-            env.get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-        );
-        info!(
-            env.get_logger(),
-            "Creating a wallet canister on the {} network.", network.name
-        );
-
-        let wasm = wallet_wasm(env.get_logger())?;
-
-        let canister_id = match some_canister_id {
-            Some(id) => id,
-            None => {
-                mgr.create_canister()
-                    .as_provisional_create_with_amount(None)
-                    .with_effective_canister_id(env.get_effective_canister_id())
-                    .call_and_wait()
-                    .await
-                    .context("Failed create canister call.")?
-                    .0
-            }
-        };
-
-        match mgr
-            .install_code(&canister_id, wasm.as_slice())
-            .with_mode(InstallMode::Install)
-            .call_and_wait()
-            .await
-        {
-            Err(AgentError::ReplicaError {
-                reject_code: 5,
-                reject_message,
-            }) if reject_message.contains("not empty") => {
-                bail!(
-                    r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#,
-                    network.name
-                )
-            }
-            res => res.context("Failed while installing wasm.")?,
-        }
-
-        let wallet = Identity::build_wallet_canister(canister_id, env).await?;
-
-        wallet
-            .wallet_store_wallet_wasm(wasm)
-            .call_and_wait()
-            .await
-            .context("Failed to store wallet wasm.")?;
-
-        Identity::set_wallet_id(network, name, canister_id)?;
-
-        info!(
-            env.get_logger(),
-            r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
-            network.name,
-            name,
-            canister_id,
-        );
-
-        Ok(canister_id)
-    }
-
-    /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
-    ///
-    /// While developing locally, this always creates a new wallet, even if `create` is false.
-    /// This can be inhibited by setting the DFX_DISABLE_AUTO_WALLET env var.
-    #[context("Failed to get wallet for identity '{}' on network '{}'.", name, network.name)]
-    pub async fn get_or_create_wallet(
-        env: &dyn Environment,
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> DfxResult<Principal> {
-        match Identity::wallet_canister_id(network, name)? {
-            None => {
-                // If the network is not the IC, we ignore the error and create a new wallet for the identity.
-                if !network.is_ic && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err() {
-                    Identity::create_wallet(env, network, name, None).await
-                } else {
-                    Err(DiagnosedError::new(format!("This command requires a configured wallet, but the combination of identity '{}' and network '{}' has no wallet set.", name, network.name),
-                    "To use an identity with a configured wallet you can do one of the following:\n\
-                    - Run the command for a network where you have a wallet configured. To do so, add '--network <network name>' to your command.\n\
-                    - Switch to an identity that has a wallet configured using 'dfx identity use <identity name>'.\n\
-                    - Configure a wallet for this identity/network combination: 'dfx identity set-wallet <wallet id> --network <network name>'.".to_string())).context("Wallet not configured.")
-                }
-            }
-            Some(principal) => Ok(principal),
-        }
-    }
-
     #[context("Failed to get wallet canister id for identity '{}' on network '{}'.", name, network.name)]
     pub fn wallet_canister_id(
         network: &NetworkDescriptor,
@@ -640,43 +513,6 @@ impl Identity {
             .get(name)
             .and_then(|wallet_network| wallet_network.networks.get(&network.name).cloned());
         Ok(maybe_wallet_principal)
-    }
-
-    #[context("Failed to construct wallet canister caller.")]
-    pub async fn build_wallet_canister(
-        id: Principal,
-        env: &dyn Environment,
-    ) -> DfxResult<WalletCanister<'_>> {
-        Ok(WalletCanister::from_canister(
-            ic_utils::Canister::builder()
-                .with_agent(
-                    env.get_agent()
-                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-                )
-                .with_canister_id(id)
-                .build()
-                .unwrap(),
-        )
-        .await?)
-    }
-
-    /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
-    ///
-    /// While developing locally, this always creates a new wallet, even if `create` is false.
-    /// This can be inhibited by setting the DFX_DISABLE_AUTO_WALLET env var.
-    #[allow(clippy::needless_lifetimes)]
-    #[context("Failed to get wallet canister caller for identity '{}' on network '{}'.", name, network.name)]
-    pub async fn get_or_create_wallet_canister<'env>(
-        env: &'env dyn Environment,
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> DfxResult<WalletCanister<'env>> {
-        // without this async block, #[context] gives a spurious error
-        async {
-            let wallet_canister_id = Identity::get_or_create_wallet(env, network, name).await?;
-            Identity::build_wallet_canister(wallet_canister_id, env).await
-        }
-        .await
     }
 }
 

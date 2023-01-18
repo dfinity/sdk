@@ -5,6 +5,7 @@ use crate::lib::identity::Identity;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 
+use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
@@ -70,7 +71,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = Identity::build_wallet_canister(canister_id, env).await?;
+                let canister = build_wallet_canister(canister_id, env).await?;
                 let balance = canister.wallet_balance().await;
 
                 match balance {

@@ -1,11 +1,12 @@
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::{environment::Environment, identity::Identity};
 use crate::util::clap::validators::cycle_amount_validator;
 
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
@@ -65,7 +66,7 @@ pub async fn exec(
 
     // choose default wallet if no wallet is specified
     if call_sender == &CallSender::SelectedId {
-        let wallet = Identity::get_or_create_wallet_canister(
+        let wallet = get_or_create_wallet_canister(
             env,
             env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
