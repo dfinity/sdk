@@ -262,13 +262,7 @@ impl IdentityManager {
             })?
             .filter_map(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {
-                    Ok(file_type) => {
-                        if file_type.is_dir() {
-                            Some(dir_entry)
-                        } else {
-                            None
-                        }
-                    }
+                    Ok(file_type) if file_type.is_dir() => Some(dir_entry),
                     _ => None,
                 },
                 _ => None,
