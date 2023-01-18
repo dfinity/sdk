@@ -1,6 +1,6 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
 };
@@ -12,8 +12,9 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{
     compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
 };
+use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use clap::Parser;
 use fn_error_context::context;
@@ -246,7 +247,8 @@ fn controller_to_principal(env: &dyn Environment, controller: &str) -> DfxResult
                 let identity_name = controller;
                 IdentityManager::new(env)?
                     .instantiate_identity_from_name(identity_name, env.get_logger())
-                    .and_then(|identity| identity.sender().map_err(|err| anyhow!(err)))
+                    .and_then(|identity| identity.sender().map_err(GetIdentityPrincipalFailed))
+                    .map_err(DfxError::new)
             }
         }
     }

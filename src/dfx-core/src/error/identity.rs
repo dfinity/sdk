@@ -50,6 +50,9 @@ pub enum IdentityError {
     #[error("Failed to get config directory for identity manager: {0}")]
     GetConfigDirectoryFailed(ConfigError),
 
+    #[error("Failed to get principal of identity: {0}")]
+    GetIdentityPrincipalFailed(String),
+
     #[error("Failed to get legacy pem path: {0}")]
     GetLegacyPemPathFailed(FoundationError),
 
