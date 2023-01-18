@@ -287,8 +287,6 @@ fn replica_start_thread(
             config.state_manager.state_root.to_str().unwrap_or_default(),
             "--create-funds-whitelist",
             "*",
-            "--consensus-pool-backend",
-            "rocksdb",
             "--subnet-type",
             &config.subnet_type.as_ic_starter_string(),
             "--ecdsa-keyid",
@@ -296,6 +294,8 @@ fn replica_start_thread(
             "--log-level",
             &config.log_level.as_ic_starter_string(),
         ]);
+        #[cfg(target_os = "macos")]
+        cmd.args(["--consensus-pool-backend", "rocksdb"]);
         if let Some(port) = port {
             cmd.args(["--http-port", &port.to_string()]);
         }
