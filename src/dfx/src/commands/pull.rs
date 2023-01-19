@@ -1,12 +1,14 @@
+use crate::config::cache::get_cache_root;
 use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::error::DfxResult;
-use crate::lib::metadata::names::DFX_DEPS;
+use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_URL};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, provider::create_agent_environment};
 use crate::NetworkOpt;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use anyhow::{anyhow, bail, Context};
+use bytes::Buf;
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
@@ -65,6 +67,10 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
             }
         }
 
+        for canister_id in pulled_canisters {
+            download_canister_wasm(agent, logger, canister_id).await?;
+        }
+
         Ok(())
     })
 }
@@ -104,7 +110,8 @@ async fn fetch_deps_to_pull(
                 if content.starts_with("Custom section") {
                     slog::warn!(
                         logger,
-                        "`dfx:deps` metadata not found in canister {canister_id}."
+                        "`{}` metadata not found in canister {canister_id}.",
+                        DFX_DEPS
                     );
                     Ok(())
                 } else {
@@ -114,4 +121,50 @@ async fn fetch_deps_to_pull(
             _ => Err(anyhow!(agent_error)),
         },
     }
+}
+
+async fn download_canister_wasm(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: Principal,
+) -> DfxResult {
+    slog::info!(logger, "Downloading wasm of canister {canister_id}...");
+
+    let wasm_dir = get_cache_root()?
+        .join("wasms")
+        .join(canister_id.to_string());
+    std::fs::create_dir_all(&wasm_dir)
+        .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
+    let wasm_path = wasm_dir.join("canister.wasm");
+    let mut wasm_file = std::fs::File::create(&wasm_path)
+        .with_context(|| format!("Failed to create dir at {:?}", &wasm_path))?;
+
+    let url = match agent
+        .read_state_canister_metadata(canister_id, DFX_WASM_URL)
+        .await
+    {
+        Ok(data) => {
+            let s = String::from_utf8(data)?;
+            reqwest::Url::parse(&s)?
+        }
+        Err(agent_error) => match agent_error {
+            AgentError::HttpError(ref e) => {
+                let content = String::from_utf8(e.content.clone())?;
+                if content.starts_with("Custom section") {
+                    bail!(
+                        "`{}` metadata not found in canister {canister_id}.",
+                        DFX_WASM_URL
+                    );
+                } else {
+                    bail!(agent_error);
+                }
+            }
+            _ => bail!(agent_error),
+        },
+    };
+    let mut content = reqwest::get(url).await?.bytes().await?.reader();
+
+    std::io::copy(&mut content, &mut wasm_file)?;
+
+    Ok(())
 }
