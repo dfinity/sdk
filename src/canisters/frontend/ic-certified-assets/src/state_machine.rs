@@ -954,6 +954,43 @@ fn aliases_of(key: &Key) -> Vec<Key> {
     }
 }
 
+/// determines possible alternate lookup keys for a given key in order of most likely to least likely
+fn aliases_of_v2(key: &KeyV2) -> Vec<KeyV2> {
+    if let Some(last) = key.last() {
+        if last == "" {
+            // map /path/to/my/asset/ to
+            //     /path/to/my/asset
+            //  or /path/to/my/asset.html
+            //  or /path/to/my/asset/index.html
+            let no_slash = Vec::from(&key[..key.len() - 1]);
+            let mut with_html = no_slash.clone();
+            with_html.push(format!("{}.html", last));
+            let mut with_index = no_slash.clone();
+            with_index.push("index.html".to_string());
+            if let Some(second_last) = no_slash.last() {
+                let mut with_html = Vec::from(&key[..key.len() - 2]);
+                with_html.push(format!("{}.html", second_last));
+                vec![no_slash, with_html, with_index]
+            } else {
+                vec![no_slash, with_index]
+            }
+        } else if !last.ends_with(".html") {
+            // map /path/to/my/asset to
+            //     /path/to/my/asset.html
+            //  or /path/to/my/asset/index.html
+            let mut with_html = Vec::from(&key[..key.len() - 1]);
+            with_html.push(format!("{}.html", last));
+            let mut with_index = key.clone();
+            with_index.push("index.html".to_string());
+            vec![with_html, with_index]
+        } else {
+            todo!()
+        }
+    } else {
+        Vec::new()
+    }
+}
+
 // Determines possible original keys in case the supplied key is being aliaseded to.
 // Sort-of a reverse operation of `alias_of`
 fn aliased_by(key: &Key) -> Vec<Key> {
@@ -965,6 +1002,45 @@ fn aliased_by(key: &Key) -> Vec<Key> {
         ]
     } else if key.ends_with(".html") {
         vec![key[..(key.len() - 5)].to_string()]
+    } else {
+        Vec::new()
+    }
+}
+
+// Determines possible original keys in case the supplied key is being aliaseded to.
+// Sort-of a reverse operation of `alias_of_v2`
+fn aliased_by_v2(key: &KeyV2) -> Vec<KeyV2> {
+    if let Some(last) = key.last() {
+        if last == "index.html" {
+            //    /path/to/my/asset/index.html is aliased by
+            //    /path/to/my/asset/index
+            // or /path/to/my/asset.html
+            // or /path/to/my/asset/
+            // or /path/to/my/asset
+            let parent = Vec::from(&key[..key.len() - 1]);
+            let mut index = parent.clone();
+            index.push("index".to_string());
+            let mut parent_with_slash = parent.clone();
+            parent_with_slash.push("".to_string());
+            if let Some(second_last) = parent.last() {
+                let mut parent_with_html = Vec::from(&key[..key.len() - 2]);
+                parent_with_html.push(format!("{}.html", second_last));
+                vec![index, parent_with_html, parent_with_slash, parent]
+            } else {
+                vec![index, parent_with_slash, parent]
+            }
+        } else if last.ends_with(".html") {
+            //    /path/to/my/asset.html is aliased by
+            //    /path/to/my/asset/
+            // or /path/to/my/asset
+            let mut without_html = Vec::from(&key[..key.len() - 1]);
+            let mut parent_with_slash = without_html.clone();
+            without_html.push(last[..last.len() - 5].to_string());
+            parent_with_slash.push("".to_string());
+            vec![without_html, parent_with_slash]
+        } else {
+            Vec::new()
+        }
     } else {
         Vec::new()
     }

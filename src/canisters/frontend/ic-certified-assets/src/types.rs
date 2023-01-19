@@ -9,6 +9,7 @@ use serde_bytes::ByteBuf;
 pub type BatchId = Nat;
 pub type ChunkId = Nat;
 pub type Key = String;
+pub type KeyV2 = Vec<String>;
 
 // IDL Types
 
