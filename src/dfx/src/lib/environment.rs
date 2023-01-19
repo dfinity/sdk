@@ -9,6 +9,7 @@ use crate::lib::progress_bar::ProgressBar;
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use fn_error_context::context;
+use ic_agent::identity::AnonymousIdentity;
 use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{warn, Logger, Record};
@@ -243,24 +244,41 @@ pub struct AgentEnvironment<'a> {
     backend: &'a dyn Environment,
     agent: Agent,
     network_descriptor: NetworkDescriptor,
-    identity_manager: IdentityManager,
+    identity_manager: Option<IdentityManager>,
 }
 
 impl<'a> AgentEnvironment<'a> {
-    #[context("Failed to create AgentEnvironment for network '{}'.", network_descriptor.name)]
     pub fn new(
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
     ) -> DfxResult<Self> {
-        let logger = backend.get_logger().clone();
         let mut identity_manager = IdentityManager::new(backend)?;
         let identity = identity_manager.instantiate_selected_identity(backend.get_logger())?;
         if network_descriptor.is_ic && identity.insecure {
+            let logger = backend.get_logger().clone();
             warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
+        Self::new_as(
+            backend,
+            network_descriptor,
+            identity,
+            Some(identity_manager),
+            timeout,
+        )
+    }
+
+    #[context("Failed to create AgentEnvironment for network '{}'.", network_descriptor.name)]
+    fn new_as(
+        backend: &'a dyn Environment,
+        network_descriptor: NetworkDescriptor,
+        identity: Box<dyn Identity + Send + Sync>,
+        identity_manager: Option<IdentityManager>,
+        timeout: Duration,
+    ) -> DfxResult<Self> {
         let url = network_descriptor.first_provider()?;
+        let logger = backend.get_logger().clone();
 
         Ok(AgentEnvironment {
             backend,
@@ -268,6 +286,20 @@ impl<'a> AgentEnvironment<'a> {
             network_descriptor: network_descriptor.clone(),
             identity_manager,
         })
+    }
+
+    pub fn new_anonymous(
+        backend: &'a dyn Environment,
+        network_descriptor: NetworkDescriptor,
+        timeout: Duration,
+    ) -> DfxResult<Self> {
+        Self::new_as(
+            backend,
+            network_descriptor,
+            Box::new(AnonymousIdentity),
+            None,
+            timeout,
+        )
     }
 }
 
@@ -331,11 +363,17 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_selected_identity(&self) -> Option<&String> {
-        Some(self.identity_manager.get_selected_identity_name())
+        self.identity_manager
+            .as_ref()
+            .map(|mgr| mgr.get_selected_identity_name())
     }
 
     fn get_selected_identity_principal(&self) -> Option<Principal> {
-        self.identity_manager.get_selected_identity_principal()
+        self.identity_manager
+            .as_ref()
+            .map_or(Some(Principal::anonymous()), |mgr| {
+                mgr.get_selected_identity_principal()
+            })
     }
 
     fn get_effective_canister_id(&self) -> Principal {

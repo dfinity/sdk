@@ -415,6 +415,21 @@ pub fn create_agent_environment<'a>(
     AgentEnvironment::new(env, network_descriptor, timeout)
 }
 
+pub fn create_anonymous_agent_environment<'a>(
+    env: &'a (dyn Environment + 'a),
+    network: Option<String>,
+) -> DfxResult<AgentEnvironment<'a>> {
+    let network_descriptor = create_network_descriptor(
+        env.get_config(),
+        env.get_networks_config(),
+        network,
+        None,
+        LocalBindDetermination::ApplyRunningWebserverPort,
+    )?;
+    let timeout = expiry_duration();
+    AgentEnvironment::new_anonymous(env, network_descriptor, timeout)
+}
+
 #[context("Failed to parse supplied provider url {}.", s)]
 pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
     match parse_provider_url(s) {
