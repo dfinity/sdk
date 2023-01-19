@@ -9,8 +9,9 @@ use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::error::identity::IdentityError::{
-    GenerateFreshEncryptionConfigurationFailed, InstantiateHardwareIdentityFailed,
-    ReadIdentityFileFailed,
+    GenerateFreshEncryptionConfigurationFailed, GetConfigDirectoryFailed,
+    GetSharedNetworkDataDirectoryFailed, InstantiateHardwareIdentityFailed, ReadIdentityFileFailed,
+    RenameWalletFailed,
 };
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
@@ -429,41 +430,39 @@ impl Identity {
         Ok(())
     }
 
-    #[context(
-        "Failed to rename '{}' to '{}' in the global wallet config.",
-        original_identity,
-        renamed_identity
-    )]
     fn rename_wallet_global_config_key(
         original_identity: &str,
         renamed_identity: &str,
         wallet_path: PathBuf,
-    ) -> DfxResult {
-        let mut config = Identity::load_wallet_config(&wallet_path)
-            .context("Failed to load existing wallet config.")?;
-        let identities = &mut config.identities;
-        let v = identities
-            .remove(original_identity)
-            .unwrap_or(WalletNetworkMap {
-                networks: BTreeMap::new(),
-            });
-        identities.insert(renamed_identity.to_string(), v);
-        Identity::save_wallet_config(&wallet_path, &config)?;
-        Ok(())
+    ) -> Result<(), IdentityError> {
+        Identity::load_wallet_config(&wallet_path)
+            .and_then(|mut config| {
+                let identities = &mut config.identities;
+                let v = identities
+                    .remove(original_identity)
+                    .unwrap_or(WalletNetworkMap {
+                        networks: BTreeMap::new(),
+                    });
+                identities.insert(renamed_identity.to_string(), v);
+                Identity::save_wallet_config(&wallet_path, &config)
+            })
+            .map_err(|err| {
+                RenameWalletFailed(
+                    Box::new(original_identity.to_string()),
+                    Box::new(renamed_identity.to_string()),
+                    err,
+                )
+            })
     }
 
     // used for dfx identity rename foo bar
-    #[context(
-        "Failed to migrate wallets from identity '{}' to '{}'.",
-        original_identity,
-        renamed_identity
-    )]
     pub fn map_wallets_to_renamed_identity(
         env: &dyn Environment,
         original_identity: &str,
         renamed_identity: &str,
-    ) -> DfxResult {
-        let persistent_wallet_path = get_config_dfx_dir_path()?
+    ) -> Result<(), IdentityError> {
+        let persistent_wallet_path = get_config_dfx_dir_path()
+            .map_err(GetConfigDirectoryFailed)?
             .join("identity")
             .join(original_identity)
             .join(WALLET_CONFIG_FILENAME);
@@ -474,8 +473,9 @@ impl Identity {
                 persistent_wallet_path,
             )?;
         }
-        let shared_local_network_wallet_path =
-            get_shared_network_data_directory("local")?.join(WALLET_CONFIG_FILENAME);
+        let shared_local_network_wallet_path = get_shared_network_data_directory("local")
+            .map_err(GetSharedNetworkDataDirectoryFailed)?
+            .join(WALLET_CONFIG_FILENAME);
         if shared_local_network_wallet_path.exists() {
             Identity::rename_wallet_global_config_key(
                 original_identity,
