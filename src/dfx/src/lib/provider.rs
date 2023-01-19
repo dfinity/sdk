@@ -22,6 +22,8 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use url::Url;
 
+use super::identity::ANONYMOUS_IDENTITY_NAME;
+
 lazy_static! {
     static ref NETWORK_CONTEXT: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
 }
@@ -412,7 +414,27 @@ pub fn create_agent_environment<'a>(
         LocalBindDetermination::ApplyRunningWebserverPort,
     )?;
     let timeout = expiry_duration();
-    AgentEnvironment::new(env, network_descriptor, timeout)
+    AgentEnvironment::new(env, network_descriptor, timeout, None)
+}
+
+pub fn create_anonymous_agent_environment<'a>(
+    env: &'a (dyn Environment + 'a),
+    network: Option<String>,
+) -> DfxResult<AgentEnvironment<'a>> {
+    let network_descriptor = create_network_descriptor(
+        env.get_config(),
+        env.get_networks_config(),
+        network,
+        None,
+        LocalBindDetermination::ApplyRunningWebserverPort,
+    )?;
+    let timeout = expiry_duration();
+    AgentEnvironment::new(
+        env,
+        network_descriptor,
+        timeout,
+        Some(ANONYMOUS_IDENTITY_NAME),
+    )
 }
 
 #[context("Failed to parse supplied provider url {}.", s)]
