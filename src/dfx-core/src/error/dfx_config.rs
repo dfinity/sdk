@@ -5,7 +5,7 @@ pub enum DfxConfigError {
     #[error("Circular canister dependencies: {}", _0.join(" -> "))]
     CanisterCircularDependency(Vec<String>),
 
-    #[error("Canister '{0}' not found.")]
+    #[error("Canister '{0}' not found in dfx.json.")]
     CanisterNotFound(String),
 
     #[error("No canisters in the configuration file.")]
@@ -22,4 +22,7 @@ pub enum DfxConfigError {
 
     #[error("Failed to get memory allocation for canister '{0}': {1}")]
     GetMemoryAllocationFailed(String, Box<DfxConfigError>),
+
+    #[error("Failed to figure out if canister '{0}' has a remote id on network '{1}': {2}")]
+    GetRemoteCanisterIdFailed(Box<String>, Box<String>, Box<DfxConfigError>),
 }
