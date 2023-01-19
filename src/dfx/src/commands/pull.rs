@@ -13,7 +13,7 @@ use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
-use slog::Logger;
+use slog::{info, warn, Logger};
 use tokio::runtime::Runtime;
 
 /// Pull canisters upon which the project depends
@@ -68,7 +68,12 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
         }
 
         for canister_id in pulled_canisters {
-            download_canister_wasm(agent, logger, canister_id).await?;
+            if let Err(e) = download_canister_wasm(agent, logger, canister_id).await {
+                warn!(
+                    logger,
+                    "Failed to download wasm of canister {canister_id}. {e}"
+                );
+            }
         }
 
         Ok(())
@@ -82,7 +87,7 @@ async fn fetch_deps_to_pull(
     canister_id: Principal,
     canisters_to_pull: &mut VecDeque<Principal>,
 ) -> DfxResult {
-    slog::info!(logger, "Pulling canister {canister_id}...");
+    info!(logger, "Pulling canister {canister_id}...");
 
     match agent
         .read_state_canister_metadata(canister_id, DFX_DEPS)
@@ -108,10 +113,9 @@ async fn fetch_deps_to_pull(
             AgentError::HttpError(ref e) => {
                 let content = String::from_utf8(e.content.clone())?;
                 if content.starts_with("Custom section") {
-                    slog::warn!(
+                    warn!(
                         logger,
-                        "`{}` metadata not found in canister {canister_id}.",
-                        DFX_DEPS
+                        "`{}` metadata not found in canister {canister_id}.", DFX_DEPS
                     );
                     Ok(())
                 } else {
@@ -128,7 +132,7 @@ async fn download_canister_wasm(
     logger: &Logger,
     canister_id: Principal,
 ) -> DfxResult {
-    slog::info!(logger, "Downloading wasm of canister {canister_id}...");
+    info!(logger, "Downloading wasm of canister {canister_id}...");
 
     let wasm_dir = get_cache_root()?
         .join("wasms")
