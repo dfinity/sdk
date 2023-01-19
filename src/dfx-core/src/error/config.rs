@@ -9,4 +9,7 @@ pub enum ConfigError {
 
     #[error("Failed to determine config directory path: {0}")]
     DetermineConfigDirectoryFailed(FoundationError),
+
+    #[error("Failed to determine shared network data directory: {0}")]
+    DetermineSharedNetworkDirectoryFailed(FoundationError),
 }

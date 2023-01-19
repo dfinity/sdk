@@ -10,6 +10,7 @@ use crate::lib::network::local_server_descriptor::{
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
+use dfx_core::config::directories::get_shared_network_data_directory;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -198,7 +199,7 @@ fn create_url_based_network_descriptor(network_name: &str) -> Option<DfxResult<N
         // OS-friendly directory name for it.
         let name = util::network_to_pathcompat(network_name);
         let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
-        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)?;
         let network_type = NetworkTypeDescriptor::new(
             NetworkType::Ephemeral,
             &data_directory.join(WALLET_CONFIG_FILENAME),
@@ -269,7 +270,7 @@ fn create_shared_network_descriptor(
     };
 
     network.as_ref().map(|config_network| {
-        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)?;
 
         let ephemeral_wallet_config_path = data_directory.join(WALLET_CONFIG_FILENAME);
 
