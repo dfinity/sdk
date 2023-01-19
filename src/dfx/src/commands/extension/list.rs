@@ -4,7 +4,7 @@ use crate::lib::extension::manager::ExtensionsManager;
 
 pub fn exec(env: &dyn Environment) -> DfxResult<()> {
     let mgr = ExtensionsManager::new(env)?;
-    let extensions = mgr.list_installed_extensions();
+    let extensions = mgr.list_installed_extensions()?;
     if extensions.is_empty() {
         println!("No extensions installed.");
     } else {

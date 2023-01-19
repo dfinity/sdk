@@ -1,27 +1,28 @@
-// use std::collections::HashMap;
-use std::fs::DirEntry;
-
-use std::fmt::{Display,Formatter};
 pub mod manager;
 pub mod manifest;
 
+use std::{
+    fmt::{Display, Formatter},
+    fs::DirEntry,
+};
+
+#[derive(Debug, Default)]
 pub struct Extension {
     pub name: String,
-    // pub version: String,
-    // pub description: String,
-    // pub author: String,
-    // pub license: String,
-    // pub homepage: String,
-    // pub repository: String,
-    // pub dependencies: Vec<String>,
-    // pub files: Vec<String>,
-    // pub scripts: HashMap<String, String>,
 }
 
 impl From<DirEntry> for Extension {
+    // type Error = <T as TryFrom<_>>::Error: Into<anyhow::Error>;
+
+    // fn try_from(value: DirEntry) -> Result<Self, Self::Error> {
+
+    // }
     fn from(entry: DirEntry) -> Self {
-        let name = entry.file_name().into_string().unwrap();
-        Extension { name }
+        let name = entry.file_name().to_string_lossy().to_string();
+        Extension {
+            name,
+            ..Default::default()
+        }
     }
 }
 

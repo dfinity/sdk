@@ -1,11 +1,12 @@
-use std::path::PathBuf;
 use crate::config::cache::get_bin_cache;
 use crate::lib::environment::Environment;
-use crate::lib::error::{ExtensionError, DfxError, DfxResult};
+use crate::lib::error::{DfxError, DfxResult, ExtensionError};
 use semver::Version;
+use std::path::PathBuf;
 
 mod execute;
 mod help;
+mod info;
 mod install;
 mod list;
 mod uninstall;
@@ -14,7 +15,6 @@ mod upgrade;
 pub struct ExtensionsManager {
     pub dir: PathBuf,
     pub dfx_version: Version,
-    // env: &'a dyn Environment,
 }
 
 impl ExtensionsManager {
@@ -36,7 +36,9 @@ impl ExtensionsManager {
     pub fn get_extension_directory(&self, extension_name: &str) -> DfxResult<PathBuf> {
         let dir = self.dir.join(extension_name);
         if !dir.exists() {
-           return Err(DfxError::new(ExtensionError::ExtensionError(extension_name.to_string())));
+            return Err(DfxError::new(ExtensionError::ExtensionError(
+                extension_name.to_string(),
+            )));
         }
         Ok(dir)
     }
