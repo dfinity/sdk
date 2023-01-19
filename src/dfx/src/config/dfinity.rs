@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use crate::config::dfinity::MetadataVisibility::Public;
-use crate::error_invalid_data;
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::error::{DfxError, DfxResult};
@@ -12,6 +11,15 @@ use dfx_core::error::dfx_config::DfxConfigError::{
     GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
     GetMemoryAllocationFailed, GetRemoteCanisterIdFailed,
 };
+use dfx_core::error::load_dfx_config::LoadDfxConfigError;
+use dfx_core::error::load_dfx_config::LoadDfxConfigError::{
+    DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
+};
+use dfx_core::error::structured_file::StructuredFileError;
+use dfx_core::error::structured_file::StructuredFileError::{
+    DeserializeJsonFileFailed, ReadJsonFileFailed,
+};
+use dfx_core::json::save_json_file;
 
 use anyhow::Context;
 use byte_unit::Byte;
@@ -801,14 +809,8 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
-    #[context("Failed to resolve config path from {}.", working_dir.to_string_lossy())]
-    fn resolve_config_path(working_dir: &Path) -> DfxResult<Option<PathBuf>> {
-        let mut curr = PathBuf::from(working_dir).canonicalize().with_context(|| {
-            format!(
-                "Failed to canonicalize working dir path {:}.",
-                working_dir.to_string_lossy()
-            )
-        })?;
+    fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, LoadDfxConfigError> {
+        let mut curr = dfx_core::fs::canonicalize(working_dir).map_err(ResolveConfigPathFailed)?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
                 return Ok(Some(curr.join(CONFIG_FILE_NAME)));
@@ -825,40 +827,37 @@ impl Config {
         Ok(None)
     }
 
-    #[context("Failed to load config from {}.", path.to_string_lossy())]
-    fn from_file(path: &Path) -> DfxResult<Config> {
-        let content = std::fs::read(path)
-            .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
-        Ok(Config::from_slice(path.to_path_buf(), &content)?)
+    fn from_file(path: &Path) -> Result<Config, StructuredFileError> {
+        let content = dfx_core::fs::read(path).map_err(ReadJsonFileFailed)?;
+        Config::from_slice(path.to_path_buf(), &content)
     }
 
-    #[context("Failed to read config from directory {}.", working_dir.to_string_lossy())]
-    pub fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
+    pub fn from_dir(working_dir: &Path) -> Result<Option<Config>, LoadDfxConfigError> {
         let path = Config::resolve_config_path(working_dir)?;
-        let maybe_config = path.map(|path| Config::from_file(&path)).transpose()?;
-        Ok(maybe_config)
+        path.map(|path| Config::from_file(&path))
+            .transpose()
+            .map_err(LoadFromFileFailed)
     }
 
-    #[context("Failed to read config from current working directory.")]
-    pub fn from_current_dir() -> DfxResult<Option<Config>> {
-        Config::from_dir(
-            &std::env::current_dir().context("Failed to determine current working dir.")?,
-        )
+    pub fn from_current_dir() -> Result<Option<Config>, LoadDfxConfigError> {
+        Config::from_dir(&std::env::current_dir().map_err(DetermineCurrentWorkingDirFailed)?)
     }
 
-    fn from_slice(path: PathBuf, content: &[u8]) -> std::io::Result<Config> {
-        let config = serde_json::from_slice(content)?;
-        let json = serde_json::from_slice(content)?;
+    fn from_slice(path: PathBuf, content: &[u8]) -> Result<Config, StructuredFileError> {
+        let config = serde_json::from_slice(content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
+        let json = serde_json::from_slice(content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
         Ok(Config { path, json, config })
     }
 
     /// Create a configuration from a string.
-    pub fn from_str(content: &str) -> std::io::Result<Config> {
+    pub fn from_str(content: &str) -> Result<Config, StructuredFileError> {
         Config::from_slice(PathBuf::from("-"), content.as_bytes())
     }
 
     #[cfg(test)]
-    pub fn from_str_and_path(path: PathBuf, content: &str) -> std::io::Result<Config> {
+    pub fn from_str_and_path(path: PathBuf, content: &str) -> Result<Config, StructuredFileError> {
         Config::from_slice(path, content.as_bytes())
     }
 
@@ -887,13 +886,8 @@ impl Config {
         )
     }
 
-    pub fn save(&self) -> DfxResult {
-        let json_pretty = serde_json::to_string_pretty(&self.json)
-            .map_err(|e| error_invalid_data!("Failed to serialize dfx.json: {}", e))?;
-        std::fs::write(&self.path, json_pretty).with_context(|| {
-            format!("Failed to write config to {}.", self.path.to_string_lossy())
-        })?;
-        Ok(())
+    pub fn save(&self) -> Result<(), StructuredFileError> {
+        save_json_file(&self.path, &self.json)
     }
 }
 
