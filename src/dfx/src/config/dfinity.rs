@@ -9,7 +9,8 @@ use dfx_core::config::directories::get_config_dfx_dir_path;
 use dfx_core::error::dfx_config::DfxConfigError;
 use dfx_core::error::dfx_config::DfxConfigError::{
     CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
-    GetCanistersWithDependenciesFailed,
+    GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
+    GetMemoryAllocationFailed,
 };
 
 use anyhow::Context;
@@ -714,41 +715,49 @@ impl ConfigInterface {
         Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
-    #[context("Failed to get compute allocation for '{}'.", canister_name)]
-    pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<u64>> {
+    pub fn get_compute_allocation(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<u64>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetComputeAllocationFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .compute_allocation
             .map(|x| x.0))
     }
 
-    #[context("Failed to get memory allocation for '{}'.", canister_name)]
-    pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<Byte>> {
+    pub fn get_memory_allocation(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Byte>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetMemoryAllocationFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .memory_allocation)
     }
 
-    #[context("Failed to get freezing threshold for '{}'.", canister_name)]
-    pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<Duration>> {
+    pub fn get_freezing_threshold(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Duration>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetFreezingThresholdFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .freezing_threshold)
     }
 
-    fn get_canister_config(&self, canister_name: &str) -> DfxResult<&ConfigCanistersCanister> {
-        let canister_map = self
-            .canisters
+    fn get_canister_config(
+        &self,
+        canister_name: &str,
+    ) -> Result<&ConfigCanistersCanister, DfxConfigError> {
+        self.canisters
             .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
-
-        let canister_config = canister_map
+            .ok_or(CanistersFieldDoesNotExist())?
             .get(canister_name)
-            .with_context(|| format!("Cannot find canister '{canister_name}'."))?;
-        Ok(canister_config)
+            .ok_or_else(|| CanisterNotFound(canister_name.to_string()))
     }
 }
 
