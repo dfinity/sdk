@@ -16,6 +16,9 @@ use crate::{
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
 use num_traits::ToPrimitive;
+use representation_independent_hashing::representation_independent_hash::{
+    representation_independent_hash, Value,
+};
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_cbor::{ser::IoWrite, Serializer};
@@ -40,13 +43,20 @@ type AssetHashes = RbTree<Key, Hash>;
 type Timestamp = Int;
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
+pub struct IcCertificateExpression {
+    pub ic_certificate_expression: String,
+    /// Hash of ic_certificate_expression
+    pub expression_hash: String,
+}
+
+#[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct AssetEncoding {
     pub modified: Timestamp,
     pub content_chunks: Vec<RcBytes>,
     pub total_length: usize,
     pub certified: bool,
     pub sha256: [u8; 32],
-    pub ic_certificate_expression: Option<String>,
+    pub ic_ce: Option<IcCertificateExpression>,
     pub response_hash: Option<String>,
 }
 
@@ -140,34 +150,22 @@ impl Asset {
 
         // update
         for (enc_name, encoding) in self.encodings.iter_mut() {
-            encoding.ic_certificate_expression = Some(
-                build_ic_certificate_expression_from_headers_and_encoding(&headers, enc_name),
-            );
+            encoding.ic_ce = Some(build_ic_certificate_expression_from_headers_and_encoding(
+                &headers, enc_name,
+            ));
         }
     }
 
-    pub fn get_headers_for_encoding(&self, encoding_name: &str) -> HashMap<String, String> {
-        let mut headers =
-            HashMap::from([("content-type".to_string(), self.content_type.to_string())]);
-        if let Some(max_age) = self.max_age {
-            headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
-        }
-        if encoding_name != "identity" {
-            headers.insert("content-encoding".to_string(), encoding_name.to_string());
-        }
-        if let Some(arg_headers) = self.headers.as_ref() {
-            for (k, v) in arg_headers {
-                headers.insert(k.to_owned().to_lowercase(), v.to_owned());
-            }
-        }
-        if let Some(expr) = self
-            .encodings
-            .get(encoding_name)
-            .and_then(|enc| enc.ic_certificate_expression.as_ref())
-        {
-            headers.insert("ic-certificateexpression".to_string(), expr.clone());
-        }
-        headers
+    pub fn get_headers_for_asset(&self, encoding_name: &str) -> HashMap<String, String> {
+        build_headers(
+            self.headers.as_ref().map(|h| h.iter()),
+            &self.max_age,
+            &self.content_type,
+            encoding_name.to_owned(),
+            self.encodings
+                .get(encoding_name)
+                .and_then(|e| e.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression)),
+        )
     }
 }
 
@@ -278,8 +276,8 @@ impl State {
             certified: false,
             total_length,
             sha256,
-            ic_certificate_expression: None, // set by on_asset_change
-            response_hash: None,             // set by on_asset_change
+            ic_ce: None,         // set by on_asset_change
+            response_hash: None, // set by on_asset_change
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
@@ -753,6 +751,32 @@ impl From<StableState> for State {
     }
 }
 
+fn build_headers<'a>(
+    custom_headers: Option<impl Iterator<Item = (impl Into<String>, impl Into<String>)>>,
+    max_age: &Option<u64>,
+    content_type: impl Into<String>,
+    encoding_name: impl Into<String>,
+    cert_expr: Option<impl Into<String>>,
+) -> HashMap<String, String> {
+    let mut headers = HashMap::from([("content-type".to_string(), content_type.into())]);
+    if let Some(max_age) = max_age {
+        headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
+    }
+    let encoding_name = encoding_name.into();
+    if encoding_name != "identity" {
+        headers.insert("content-encoding".to_string(), encoding_name);
+    }
+    if let Some(arg_headers) = custom_headers {
+        for (k, v) in arg_headers {
+            headers.insert(k.into().to_lowercase(), v.into());
+        }
+    }
+    if let Some(expr) = cert_expr {
+        headers.insert("ic-certificateexpression".to_string(), expr.into());
+    }
+    headers
+}
+
 fn on_asset_change(
     asset_hashes: &mut AssetHashes,
     key: &str,
@@ -790,12 +814,34 @@ fn on_asset_change(
         enc.certified = false;
     }
 
+    // todo!(deduplicate this and below code)
     for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
-        if let Some(enc) = asset.encodings.get_mut(*enc_name) {
+        let Asset {
+            content_type,
+            encodings,
+            max_age,
+            headers,
+            ..
+        } = asset;
+        if let Some(enc) = encodings.get_mut(*enc_name) {
+            let encoding_headers = build_headers(
+                headers.as_ref().map(|h| h.iter()),
+                max_age,
+                &*content_type,
+                *enc_name,
+                enc.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression),
+            )
+            .into_iter()
+            .map(|(k, v)| (k, Value::String(v)))
+            .collect();
+            let header_hash = representation_independent_hash(&encoding_headers);
+            let new_response_hash = format!("{:02x?}{:02x?}", &header_hash, &enc.sha256);
+
             asset_hashes.insert(key.to_string(), enc.sha256);
             for dependent in dependent_keys {
                 asset_hashes.insert(dependent, enc.sha256);
             }
+            enc.response_hash = Some(new_response_hash);
             enc.certified = true;
             return;
         }
@@ -804,11 +850,32 @@ fn on_asset_change(
     // No known encodings found. Just pick the first one. The exact
     // order is hard to predict because we use a hash map. Should
     // almost never happen anyway.
-    if let Some(enc) = asset.encodings.values_mut().next() {
+    let Asset {
+        content_type,
+        encodings,
+        max_age,
+        headers,
+        ..
+    } = asset;
+    if let Some((enc_name, enc)) = encodings.iter_mut().next() {
+        let encoding_headers = build_headers(
+            headers.as_ref().map(|h| h.iter()),
+            max_age,
+            &*content_type,
+            enc_name,
+            enc.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression),
+        )
+        .into_iter()
+        .map(|(k, v)| (k, Value::String(v)))
+        .collect();
+        let header_hash = representation_independent_hash(&encoding_headers);
+        let new_response_hash = format!("{:02x?}{:02x?}", &header_hash, &enc.sha256);
+
         asset_hashes.insert(key.to_string(), enc.sha256);
         for dependent in dependent_keys {
             asset_hashes.insert(dependent, enc.sha256);
         }
+        enc.response_hash = Some(new_response_hash);
         enc.certified = true;
     }
 }

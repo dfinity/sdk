@@ -1,8 +1,9 @@
 use crate::rc_bytes::RcBytes;
-use crate::state_machine::{Asset, AssetEncoding};
+use crate::state_machine::{Asset, AssetEncoding, IcCertificateExpression};
 use candid::{CandidType, Deserialize, Func, Nat};
 use ic_certified_map::Hash;
 use serde_bytes::ByteBuf;
+use sha2::Digest;
 
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
 
@@ -143,7 +144,7 @@ impl HttpResponse {
         callback: Func,
         etags: Vec<Hash>,
     ) -> HttpResponse {
-        let mut headers = asset.get_headers_for_encoding(enc_name);
+        let mut headers = asset.get_headers_for_asset(enc_name);
         if let Some(head) = certificate_header {
             headers.insert(head.0, head.1);
         }
@@ -206,7 +207,7 @@ impl HttpResponse {
 pub fn build_ic_certificate_expression_from_headers_and_encoding(
     headers: &[&str],
     encoding_name: &str,
-) -> String {
+) -> IcCertificateExpression {
     let mut headers = headers
         .iter()
         .map(|h| format!(", \"{}\"", h))
@@ -216,5 +217,10 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding(
         headers = format!(", \"content-encoding\"{}", headers);
     }
 
-    IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers)
+    let ic_certificate_expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
+    let expression_hash = hex::encode(sha2::Sha256::digest(ic_certificate_expression.as_bytes()));
+    IcCertificateExpression {
+        ic_certificate_expression,
+        expression_hash,
+    }
 }
