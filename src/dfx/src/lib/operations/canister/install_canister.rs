@@ -294,11 +294,12 @@ fn run_post_install_tasks(
     let pool = match pool {
         Some(pool) => pool,
         None => {
-            tmp = env
+            let deps = env
                 .get_config_or_anyhow()?
                 .get_config()
-                .get_canister_names_with_dependencies(Some(canister.get_name()))
-                .and_then(|deps| CanisterPool::load(env, false, &deps))
+                .get_canister_names_with_dependencies(Some(canister.get_name()))?;
+
+            tmp = CanisterPool::load(env, false, &deps)
                 .context("Error collecting canisters for post-install task")?;
             &tmp
         }
