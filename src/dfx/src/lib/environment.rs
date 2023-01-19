@@ -252,10 +252,15 @@ impl<'a> AgentEnvironment<'a> {
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
+        use_identity: Option<&str>,
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
         let mut identity_manager = IdentityManager::new(backend)?;
-        let identity = identity_manager.instantiate_selected_identity(backend.get_logger())?;
+        let identity = if let Some(identity_name) = use_identity {
+            identity_manager.instantiate_identity_from_name(identity_name, &logger)?
+        } else {
+            identity_manager.instantiate_selected_identity(&logger)?
+        };
         if network_descriptor.is_ic && identity.insecure {
             warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());

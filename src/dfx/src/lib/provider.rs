@@ -10,6 +10,7 @@ use crate::lib::network::local_server_descriptor::{
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
+use dfx_core::config::directories::get_shared_network_data_directory;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -21,6 +22,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use url::Url;
+
+use super::identity::ANONYMOUS_IDENTITY_NAME;
 
 lazy_static! {
     static ref NETWORK_CONTEXT: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
@@ -196,7 +199,7 @@ fn create_url_based_network_descriptor(network_name: &str) -> Option<DfxResult<N
         // OS-friendly directory name for it.
         let name = util::network_to_pathcompat(network_name);
         let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
-        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)?;
         let network_type = NetworkTypeDescriptor::new(
             NetworkType::Ephemeral,
             &data_directory.join(WALLET_CONFIG_FILENAME),
@@ -267,7 +270,7 @@ fn create_shared_network_descriptor(
     };
 
     network.as_ref().map(|config_network| {
-        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)?;
 
         let ephemeral_wallet_config_path = data_directory.join(WALLET_CONFIG_FILENAME);
 
@@ -412,7 +415,27 @@ pub fn create_agent_environment<'a>(
         LocalBindDetermination::ApplyRunningWebserverPort,
     )?;
     let timeout = expiry_duration();
-    AgentEnvironment::new(env, network_descriptor, timeout)
+    AgentEnvironment::new(env, network_descriptor, timeout, None)
+}
+
+pub fn create_anonymous_agent_environment<'a>(
+    env: &'a (dyn Environment + 'a),
+    network: Option<String>,
+) -> DfxResult<AgentEnvironment<'a>> {
+    let network_descriptor = create_network_descriptor(
+        env.get_config(),
+        env.get_networks_config(),
+        network,
+        None,
+        LocalBindDetermination::ApplyRunningWebserverPort,
+    )?;
+    let timeout = expiry_duration();
+    AgentEnvironment::new(
+        env,
+        network_descriptor,
+        timeout,
+        Some(ANONYMOUS_IDENTITY_NAME),
+    )
 }
 
 #[context("Failed to parse supplied provider url {}.", s)]
