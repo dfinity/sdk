@@ -16,7 +16,7 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         Spinners::Dots9,
         format!("installing extension: {}", opts.extension_name).into(),
     );
-    let mgr = ExtensionsManager::new(env).unwrap();
+    let mgr = ExtensionsManager::new(env)?;
     mgr.install_extension(&opts.extension_name)?;
     sp.stop();
     Ok(())

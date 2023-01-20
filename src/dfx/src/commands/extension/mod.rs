@@ -5,10 +5,8 @@ use clap::{Parser, Subcommand};
 
 mod install;
 mod list;
-mod info;
 pub mod run;
 mod uninstall;
-mod upgrade;
 
 /// Manages canisters deployed on a network replica.
 #[derive(Parser)]
@@ -24,12 +22,8 @@ pub enum SubCommand {
     Install(install::InstallOpts),
     /// Unintall an extension
     Uninstall(uninstall::UninstallOpts),
-    /// Upgrade an extension
-    Upgrade(upgrade::UpgradeOpts),
     /// Executes an extension
     Run(run::RunOpts),
-    /// Print extension metadata
-    Info(info::InfoOpts),
     /// Lists installed extensions
     List,
 }
@@ -38,9 +32,7 @@ pub fn exec(env: &dyn Environment, opts: ExtensionOpts) -> DfxResult {
     match opts.subcmd {
         SubCommand::Install(v) => install::exec(env, v),
         SubCommand::Uninstall(v) => uninstall::exec(env, v),
-        SubCommand::Upgrade(v) => upgrade::exec(env, v),
         SubCommand::Run(v) => run::exec(env, v),
-        SubCommand::Info(v) => info::exec(env, v),
         SubCommand::List => list::exec(env),
     }
 }

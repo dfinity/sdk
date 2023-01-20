@@ -5,12 +5,9 @@ use semver::Version;
 use std::path::PathBuf;
 
 mod execute;
-mod help;
-mod info;
 mod install;
 mod list;
 mod uninstall;
-mod upgrade;
 
 pub struct ExtensionsManager {
     pub dir: PathBuf,
