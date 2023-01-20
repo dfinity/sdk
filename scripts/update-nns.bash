@@ -18,9 +18,9 @@ get_binary() {
   fi
   local TMP_FILE
   TMP_FILE="$(mktemp)"
-  curl -s "https://download.dfinity.systems/ic/${IC_COMMIT}/nix-release/x86_64-darwin/${FILENAME}.gz" | gunzip >"$TMP_FILE"
+  curl -s "https://download.dfinity.systems/ic/${IC_COMMIT}/binaries/x86_64-darwin/${FILENAME}.gz" | gunzip >"$TMP_FILE"
   install -m 755 "$TMP_FILE" "$NNS_ARTIFACTS/${FILENAME}_macos"
-  curl -s "https://download.dfinity.systems/ic/${IC_COMMIT}/release/${FILENAME}.gz" | gunzip >"$TMP_FILE"
+  curl -s "https://download.dfinity.systems/ic/${IC_COMMIT}/binaries/x86_64-linux/${FILENAME}.gz" | gunzip >"$TMP_FILE"
   install -m 755 "$TMP_FILE" "$NNS_ARTIFACTS/${FILENAME}_linux"
   
   rm "$TMP_FILE"
