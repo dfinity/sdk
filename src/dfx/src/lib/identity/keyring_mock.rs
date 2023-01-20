@@ -1,14 +1,11 @@
-use crate::lib::error::DfxResult;
 use dfx_core::error::keyring::KeyringError;
 use dfx_core::error::keyring::KeyringError::{
     DecodePemFailed, DeletePasswordFailed, GetPasswordFailed, LoadMockKeyringFailed,
-    MockKeyNotFound, MockUnavailable, SaveMockKeyringFailed,
+    MockKeyNotFound, MockUnavailable, SaveMockKeyringFailed, SetPasswordFailed,
 };
 use dfx_core::json::{load_json_file, save_json_file};
 
 use super::TEMP_IDENTITY_PREFIX;
-use anyhow::bail;
-use fn_error_context::context;
 use keyring;
 use serde::{Deserialize, Serialize};
 use slog::{trace, Logger};
@@ -95,17 +92,18 @@ pub fn load_pem_from_keyring(identity_name_suffix: &str) -> Result<Vec<u8>, Keyr
     }
 }
 
-#[context(
-    "Failed to write PEM file to keyring for identity '{}'.",
-    identity_name_suffix
-)]
-pub fn write_pem_to_keyring(identity_name_suffix: &str, pem_content: &[u8]) -> DfxResult<()> {
+pub fn write_pem_to_keyring(
+    identity_name_suffix: &str,
+    pem_content: &[u8],
+) -> Result<(), KeyringError> {
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
     let encoded_pem = hex::encode(pem_content);
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
-            entry.set_password(&encoded_pem)?;
+            entry
+                .set_password(&encoded_pem)
+                .map_err(SetPasswordFailed)?;
             Ok(())
         }
         KeyringMockMode::MockAvailable => {
@@ -114,7 +112,7 @@ pub fn write_pem_to_keyring(identity_name_suffix: &str, pem_content: &[u8]) -> D
             mock.save()?;
             Ok(())
         }
-        KeyringMockMode::MockReject => bail!("Mock Keyring not available."),
+        KeyringMockMode::MockReject => Err(MockUnavailable()),
     }
 }
 
