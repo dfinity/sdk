@@ -15,13 +15,16 @@ use dfx_core::error::load_dfx_config::LoadDfxConfigError;
 use dfx_core::error::load_dfx_config::LoadDfxConfigError::{
     DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
 };
+use dfx_core::error::load_networks_config::LoadNetworksConfigError;
+use dfx_core::error::load_networks_config::LoadNetworksConfigError::{
+    GetConfigPathFailed, LoadConfigFromFileFailed,
+};
 use dfx_core::error::structured_file::StructuredFileError;
 use dfx_core::error::structured_file::StructuredFileError::{
     DeserializeJsonFileFailed, ReadJsonFileFailed,
 };
 use dfx_core::json::save_json_file;
 
-use anyhow::Context;
 use byte_unit::Byte;
 use candid::Principal;
 use fn_error_context::context;
@@ -976,13 +979,12 @@ impl NetworksConfig {
         &self.networks_config
     }
 
-    #[context("Failed to read shared networks configuration.")]
-    pub fn new() -> DfxResult<NetworksConfig> {
-        let dir = get_config_dfx_dir_path()?;
+    pub fn new() -> Result<NetworksConfig, LoadNetworksConfigError> {
+        let dir = get_config_dfx_dir_path().map_err(GetConfigPathFailed)?;
 
         let path = dir.join("networks.json");
         if path.exists() {
-            NetworksConfig::from_file(&path)
+            NetworksConfig::from_file(&path).map_err(LoadConfigFromFileFailed)
         } else {
             Ok(NetworksConfig {
                 path,
@@ -994,14 +996,14 @@ impl NetworksConfig {
         }
     }
 
-    #[context("Failed to read shared configuration from {}.", path.to_string_lossy())]
-    fn from_file(path: &Path) -> DfxResult<NetworksConfig> {
-        let content = std::fs::read(path)
-            .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
+    fn from_file(path: &Path) -> Result<NetworksConfig, StructuredFileError> {
+        let content = dfx_core::fs::read(path).map_err(ReadJsonFileFailed)?;
 
-        let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)?;
+        let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
         let networks_config = NetworksConfigInterface { networks };
-        let json = serde_json::from_slice(&content)?;
+        let json = serde_json::from_slice(&content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
         let path = PathBuf::from(path);
         Ok(NetworksConfig {
             path,
