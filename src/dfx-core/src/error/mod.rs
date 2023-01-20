@@ -1,3 +1,4 @@
+pub mod config;
 pub mod encryption;
 pub mod foundation;
 pub mod identity;

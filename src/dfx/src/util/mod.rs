@@ -6,7 +6,6 @@ use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
-use directories_next::ProjectDirs;
 use fn_error_context::context;
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
@@ -361,13 +360,6 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .chars()
         .rev()
         .collect::<_>()
-}
-
-pub fn project_dirs() -> DfxResult<&'static ProjectDirs> {
-    lazy_static::lazy_static! {
-        static ref DIRS: Option<ProjectDirs> = ProjectDirs::from("org", "dfinity", "dfx");
-    }
-    DIRS.as_ref().context("Failed to resolve 'HOME' env var.")
 }
 
 #[cfg(test)]

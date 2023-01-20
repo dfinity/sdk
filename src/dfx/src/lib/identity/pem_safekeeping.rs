@@ -61,7 +61,8 @@ pub(crate) fn save_pem(
         bail!("Cannot save PEM content for an HSM.")
     } else if let Some(keyring_identity) = &identity_config.keyring_identity_suffix {
         debug!(log, "Saving keyring identity.");
-        keyring_mock::write_pem_to_keyring(keyring_identity, pem_content)
+        keyring_mock::write_pem_to_keyring(keyring_identity, pem_content)?;
+        Ok(())
     } else {
         let path = locations.get_identity_pem_path(name, identity_config);
         write_pem_to_file(&path, Some(identity_config), pem_content)?;
