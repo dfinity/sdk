@@ -148,6 +148,14 @@ getCommandSuccessRates() {
     reportCommandSuccess 0.12.1 localProject linux 'dfxDeploy'
     reportCommandFailure 0.12.1 localProject linux 'dfxDeploy'
 
+    # fourth reporting period - multiple dfx versions and platforms
+    setTime 91
+    reportCommandSuccess 0.12.1 localProject linux 'dfxDeploy'
+    reportCommandSuccess 0.12.1 localProject darwin 'dfxDeploy'
+    reportCommandSuccess 0.12.2 localShared darwin 'dfxCanisterCall'
+    reportCommandSuccess 0.12.2 localProject linux 'dfxCanisterCall'
+
+
     assert_command getCommandResultReportingPeriods
     assert_contains '1_668_556_800_000_000_000'
     assert_contains '1_671_148_800_000_000_000'
@@ -185,4 +193,30 @@ getCommandSuccessRates() {
     };
   },
 )'
+
+    assert_command getInvocationDetailsForReportingPeriod 90
+    assert_contains '
+    record {
+      dfxVersion = "0.12.1";
+      network = variant { localProject };
+      platform = variant { linux };
+    };'
+    assert_contains '
+    record {
+      dfxVersion = "0.12.1";
+      network = variant { localProject };
+      platform = variant { darwin };
+    };'
+    assert_contains '
+    record {
+      dfxVersion = "0.12.2";
+      network = variant { localShared };
+      platform = variant { darwin };
+    };'
+    assert_contains '
+    record {
+      dfxVersion = "0.12.2";
+      network = variant { localProject };
+      platform = variant { linux };
+    };'
 }
