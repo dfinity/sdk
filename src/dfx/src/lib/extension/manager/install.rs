@@ -1,4 +1,5 @@
 use std::io::Cursor;
+#[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::PermissionsExt;
 
 use crate::lib::error::DfxResult;
@@ -58,6 +59,7 @@ impl ExtensionsManager {
         let url = Url::parse(&download_url)?;
 
         let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
+        #[cfg(not(target_os = "windows"))]
         std::fs::File::open(temp_dir.path().join(extension_name))?
             .set_permissions(std::fs::Permissions::from_mode(0o777))?;
 
