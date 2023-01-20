@@ -1,8 +1,9 @@
 use std::path::Path;
 
 use super::identity_manager::EncryptionConfiguration;
-use super::{IdentityConfiguration, IdentityManager};
+use super::IdentityConfiguration;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_file_locations::IdentityFileLocations;
 use crate::lib::identity::keyring_mock;
 use crate::lib::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
 use dfx_core::error::encryption::EncryptionError;
@@ -21,9 +22,9 @@ use fn_error_context::context;
 use slog::{debug, trace, Logger};
 
 /// Loads an identity's PEM file content.
-pub fn load_pem(
+pub(crate) fn load_pem(
     log: &Logger,
-    manager: &IdentityManager,
+    locations: &IdentityFileLocations,
     identity_name: &str,
     identity_config: &IdentityConfiguration,
 ) -> Result<(Vec<u8>, bool), IdentityError> {
@@ -38,15 +39,15 @@ pub fn load_pem(
             .map_err(|err| LoadPemFromKeyringFailed(Box::new(identity_name.to_string()), err))?;
         Ok((pem, true))
     } else {
-        let pem_path = manager.get_identity_pem_path(identity_name, identity_config);
+        let pem_path = locations.get_identity_pem_path(identity_name, identity_config);
         load_pem_from_file(&pem_path, Some(identity_config))
     }
 }
 
 #[context("Failed to save PEM file for identity '{name}'.")]
-pub fn save_pem(
+pub(crate) fn save_pem(
     log: &Logger,
-    manager: &IdentityManager,
+    locations: &IdentityFileLocations,
     name: &str,
     identity_config: &IdentityConfiguration,
     pem_content: &[u8],
@@ -62,7 +63,7 @@ pub fn save_pem(
         debug!(log, "Saving keyring identity.");
         keyring_mock::write_pem_to_keyring(keyring_identity, pem_content)
     } else {
-        let path = manager.get_identity_pem_path(name, identity_config);
+        let path = locations.get_identity_pem_path(name, identity_config);
         write_pem_to_file(&path, Some(identity_config), pem_content)?;
         Ok(())
     }

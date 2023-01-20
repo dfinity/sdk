@@ -2,7 +2,7 @@ use crate::config::dfx_version;
 use crate::lib::error::{CacheError, DfxError, DfxResult};
 use crate::util;
 #[cfg(windows)]
-use crate::util::project_dirs;
+use dfx_core::config::directories::project_dirs;
 
 use anyhow::{bail, Context};
 use fn_error_context::context;

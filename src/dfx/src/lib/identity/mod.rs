@@ -2,12 +2,17 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::config::dfinity::NetworksConfig;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxResult, IdentityError};
 use crate::lib::identity::identity_manager::IdentityStorageMode;
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use dfx_core::config::directories::get_shared_network_data_directory;
+use dfx_core::error::identity::IdentityError::{
+    GenerateFreshEncryptionConfigurationFailed, GetConfigDirectoryFailed,
+    GetSharedNetworkDataDirectoryFailed, InstantiateHardwareIdentityFailed, ReadIdentityFileFailed,
+    RenameWalletFailed,
+};
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
     EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
@@ -23,24 +28,24 @@ use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
-use slog::{debug, info, trace, Logger};
+use slog::{info, trace, Logger};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+mod identity_file_locations;
 pub mod identity_manager;
 pub mod identity_utils;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
 pub mod wallet;
 
+use crate::lib::identity::identity_file_locations::IdentityFileLocations;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
     IdentityManager,
 };
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
-pub const IDENTITY_PEM: &str = "identity.pem";
-pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
 pub const IDENTITY_JSON: &str = "identity.json";
 pub const TEMP_IDENTITY_PREFIX: &str = "___temp___";
 pub const WALLET_CONFIG_FILENAME: &str = "wallets.json";
@@ -128,13 +133,19 @@ impl Identity {
                             })
                         } else {
                             Ok(IdentityConfiguration {
-                                encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                                encryption: Some(
+                                    identity_manager::EncryptionConfiguration::new()
+                                        .map_err(GenerateFreshEncryptionConfigurationFailed)?,
+                                ),
                                 ..Default::default()
                             })
                         }
                     }
                     IdentityStorageMode::PasswordProtected => Ok(IdentityConfiguration {
-                        encryption: Some(identity_manager::EncryptionConfiguration::new()?),
+                        encryption: Some(
+                            identity_manager::EncryptionConfiguration::new()
+                                .map_err(GenerateFreshEncryptionConfigurationFailed)?,
+                        ),
                         ..Default::default()
                     }),
                     IdentityStorageMode::Plaintext => Ok(IdentityConfiguration::default()),
@@ -163,7 +174,7 @@ impl Identity {
                 identity_config = create_identity_config(log, mode, name, None)?;
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     pem_content.as_slice(),
@@ -177,7 +188,7 @@ impl Identity {
                 identity_utils::validate_pem_file(&src_pem_content)?;
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     src_pem_content.as_slice(),
@@ -196,7 +207,7 @@ impl Identity {
                 let pem_content = pem.as_bytes();
                 pem_safekeeping::save_pem(
                     log,
-                    manager,
+                    manager.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     pem_content,
@@ -204,7 +215,7 @@ impl Identity {
             }
         }
         let identity_config_location = manager.get_identity_json_path(&temp_identity_name);
-        identity_manager::write_identity_configuration(
+        identity_manager::save_identity_configuration(
             log,
             &identity_config_location,
             &identity_config,
@@ -235,10 +246,10 @@ impl Identity {
         }
     }
 
-    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
+    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> Result<Self, IdentityError> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
-                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), Box::new(e)))?,
+                .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
         );
 
         Ok(Self {
@@ -248,10 +259,14 @@ impl Identity {
         })
     }
 
-    fn secp256k1(name: &str, pem_content: &[u8], was_encrypted: bool) -> DfxResult<Self> {
+    fn secp256k1(
+        name: &str,
+        pem_content: &[u8],
+        was_encrypted: bool,
+    ) -> Result<Self, IdentityError> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
-                .map_err(|e| IdentityError::ReadIdentityFileFailed(name.into(), Box::new(e)))?,
+                .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
         );
 
         Ok(Self {
@@ -261,13 +276,16 @@ impl Identity {
         })
     }
 
-    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> DfxResult<Self> {
-        let inner = Box::new(HardwareIdentity::new(
-            hsm.pkcs11_lib_path,
-            HSM_SLOT_INDEX,
-            &hsm.key_id,
-            identity_manager::get_dfx_hsm_pin,
-        )?);
+    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> Result<Self, IdentityError> {
+        let inner = Box::new(
+            HardwareIdentity::new(
+                hsm.pkcs11_lib_path,
+                HSM_SLOT_INDEX,
+                &hsm.key_id,
+                identity_manager::get_dfx_hsm_pin,
+            )
+            .map_err(|e| InstantiateHardwareIdentityFailed(name.into(), Box::new(e)))?,
+        );
         Ok(Self {
             name: name.to_string(),
             inner,
@@ -275,20 +293,17 @@ impl Identity {
         })
     }
 
-    #[context("Failed to load identity '{}'.", name)]
-    pub fn load(manager: &IdentityManager, name: &str, log: &Logger) -> DfxResult<Self> {
-        let json_path = manager.get_identity_json_path(name);
-        let config = if json_path.exists() {
-            identity_manager::read_identity_configuration(&json_path)?
-        } else {
-            debug!(log, "Found no identity configuration. Using default.");
-            IdentityConfiguration::default()
-        };
+    pub(crate) fn new(
+        name: &str,
+        config: IdentityConfiguration,
+        locations: &IdentityFileLocations,
+        log: &Logger,
+    ) -> Result<Self, IdentityError> {
         if let Some(hsm) = config.hsm {
             Identity::hardware(name, hsm)
         } else {
             let (pem_content, was_encrypted) =
-                pem_safekeeping::load_pem(log, manager, name, &config)?;
+                pem_safekeeping::load_pem(log, locations, name, &config)?;
             Identity::secp256k1(name, &pem_content, was_encrypted)
                 .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
         }
@@ -415,41 +430,39 @@ impl Identity {
         Ok(())
     }
 
-    #[context(
-        "Failed to rename '{}' to '{}' in the global wallet config.",
-        original_identity,
-        renamed_identity
-    )]
     fn rename_wallet_global_config_key(
         original_identity: &str,
         renamed_identity: &str,
         wallet_path: PathBuf,
-    ) -> DfxResult {
-        let mut config = Identity::load_wallet_config(&wallet_path)
-            .context("Failed to load existing wallet config.")?;
-        let identities = &mut config.identities;
-        let v = identities
-            .remove(original_identity)
-            .unwrap_or(WalletNetworkMap {
-                networks: BTreeMap::new(),
-            });
-        identities.insert(renamed_identity.to_string(), v);
-        Identity::save_wallet_config(&wallet_path, &config)?;
-        Ok(())
+    ) -> Result<(), IdentityError> {
+        Identity::load_wallet_config(&wallet_path)
+            .and_then(|mut config| {
+                let identities = &mut config.identities;
+                let v = identities
+                    .remove(original_identity)
+                    .unwrap_or(WalletNetworkMap {
+                        networks: BTreeMap::new(),
+                    });
+                identities.insert(renamed_identity.to_string(), v);
+                Identity::save_wallet_config(&wallet_path, &config)
+            })
+            .map_err(|err| {
+                RenameWalletFailed(
+                    Box::new(original_identity.to_string()),
+                    Box::new(renamed_identity.to_string()),
+                    err,
+                )
+            })
     }
 
     // used for dfx identity rename foo bar
-    #[context(
-        "Failed to migrate wallets from identity '{}' to '{}'.",
-        original_identity,
-        renamed_identity
-    )]
     pub fn map_wallets_to_renamed_identity(
         env: &dyn Environment,
         original_identity: &str,
         renamed_identity: &str,
-    ) -> DfxResult {
-        let persistent_wallet_path = get_config_dfx_dir_path()?
+    ) -> Result<(), IdentityError> {
+        let persistent_wallet_path = get_config_dfx_dir_path()
+            .map_err(GetConfigDirectoryFailed)?
             .join("identity")
             .join(original_identity)
             .join(WALLET_CONFIG_FILENAME);
@@ -460,8 +473,9 @@ impl Identity {
                 persistent_wallet_path,
             )?;
         }
-        let shared_local_network_wallet_path =
-            NetworksConfig::get_network_data_directory("local")?.join(WALLET_CONFIG_FILENAME);
+        let shared_local_network_wallet_path = get_shared_network_data_directory("local")
+            .map_err(GetSharedNetworkDataDirectoryFailed)?
+            .join(WALLET_CONFIG_FILENAME);
         if shared_local_network_wallet_path.exists() {
             Identity::rename_wallet_global_config_key(
                 original_identity,

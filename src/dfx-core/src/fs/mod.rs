@@ -1,10 +1,13 @@
-use crate::error::io::IoError;
+pub mod composite;
 
+use crate::error::io::IoError;
 use crate::error::io::IoErrorKind::{
-    CopyFileFailed, CreateDirectoryFailed, NoParent, ReadFileFailed, ReadPermissionsFailed,
-    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, WriteFileFailed, WritePermissionsFailed,
+    CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed, ReadFileFailed,
+    ReadPermissionsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, WriteFileFailed,
+    WritePermissionsFailed,
 };
-use std::fs::Permissions;
+
+use std::fs::{Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
 pub fn copy(from: &Path, to: &Path) -> Result<u64, IoError> {
@@ -31,6 +34,11 @@ pub fn parent(path: &Path) -> Result<PathBuf, IoError> {
 
 pub fn read(path: &Path) -> Result<Vec<u8>, IoError> {
     std::fs::read(path).map_err(|err| IoError::new(ReadFileFailed(path.to_path_buf(), err)))
+}
+
+pub fn read_dir(path: &Path) -> Result<ReadDir, IoError> {
+    path.read_dir()
+        .map_err(|err| IoError::new(ReadDirFailed(path.to_path_buf(), err)))
 }
 
 pub fn rename(from: &Path, to: &Path) -> Result<(), IoError> {

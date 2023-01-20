@@ -12,6 +12,12 @@ pub enum IoErrorKind {
     #[error("Cannot determine parent folder for {0}")]
     NoParent(PathBuf),
 
+    #[error("Path {0} is not a directory")]
+    NotADirectory(PathBuf),
+
+    #[error("Failed to read directory {0}: {1}")]
+    ReadDirFailed(PathBuf, std::io::Error),
+
     #[error("Failed to read {0}: {1}")]
     ReadFileFailed(PathBuf, std::io::Error),
 
