@@ -16,7 +16,7 @@
         "builtin": false,
         "description": "The canister_sandbox binary. It must be updated together with the replica binary.",
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "07m1q35vgvdic01b1q70bh822cfv8swfd9vrmnq2gr2p4v6q7dhg",
+        "sha256": "0n8m76cmnvpwfga7xryiz2jckdpcf5s01752z8l67h28amjwhd3w",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/canister_sandbox.gz"
@@ -34,7 +34,7 @@
         "builtin": false,
         "description": "The ic-admin binary.",
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "0brx7ndmrrbjqqcvya5b46w5q9cv42ahil69c2yp5manjqa0yv1w",
+        "sha256": "1mh5chgzbqsigz2wld694nqg445xh3v6fgva578yllj6glcgvi0k",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-admin.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/ic-admin.gz"
@@ -51,7 +51,7 @@
     "ic-btc-adapter-x86_64-darwin": {
         "builtin": false,
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "01zl68kw16c7xdkdpqz2f64qmzirg6b9d6hrz11r58vr5zpllg67",
+        "sha256": "1nhph5z4w1nq955ijf30i5kixv46camknj4s9m0mlzyx9iwccyhz",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-btc-adapter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/ic-btc-adapter.gz"
@@ -67,7 +67,7 @@
     "ic-canister-http-adapter-x86_64-darwin": {
         "builtin": false,
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "03w7hpvbbxhk3vmykklppmy1qa1gplgh20iql1j6ja9lidfsx8w9",
+        "sha256": "05nrx9b87znmwsxk01am9mfir6fkkc3nbn8spmjxzy0mn1n4xi4v",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-canister-http-adapter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/ic-canister-http-adapter.gz"
@@ -84,7 +84,7 @@
         "builtin": false,
         "description": "The ic-nns-init binary.",
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "0yfaa8z4vkk47sab76h184cw0hmhivl0jhwvv914bzlw4lyk3bsv",
+        "sha256": "08sc9kggr514mi4jd0q0pj3m5z73hjggrmhj6aghdpcbk7hz92l2",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-nns-init.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/ic-nns-init.gz"
@@ -119,7 +119,7 @@
     "ic-starter-x86_64-darwin": {
         "builtin": false,
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "02s0p49j7z3xwan18gqmxg37q5nvf6cjfld5clhwfg4f149jx26n",
+        "sha256": "0c8wpk7h52ppjm85frkc5ya30nbskz3h7z99wzvrc8chahm6lkxs",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/sdk-release/x86_64-darwin/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/sdk-release/x86_64-darwin/ic-starter.gz"
@@ -180,7 +180,7 @@
         "builtin": false,
         "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "07jqlwyw2xbz3bdzln1k5lg7i379skmms0df39ir133r6gpzcapw",
+        "sha256": "1iz92vzfz3hi86ds5cwl5xa0r1ylnmd67x9yal1m8n9a5nkkxs0v",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/replica.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/replica.gz"
@@ -198,7 +198,7 @@
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "0knqnhj812m4hhb746n1sm6h76nfvwbnr58wd4dzpgafl3c24g46",
+        "sha256": "0n98pajac2c7mdj4n06agndg1j9nvc7cb90j7b1fd8xlild7dv18",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/sandbox_launcher.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/sandbox_launcher.gz"
@@ -216,7 +216,7 @@
         "builtin": false,
         "description": "The sns binary.",
         "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "1fvl5xjff4f0bjpsca8lj25w57j2qri1sbpahq397cdckz7xa21q",
+        "sha256": "1n4rmhmx6n5lpdyb2zpm5khwrpyzg2ffb1l691pblkv41q4wwqga",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/sns.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/sns.gz"

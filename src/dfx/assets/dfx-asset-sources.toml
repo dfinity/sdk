@@ -11,23 +11,23 @@ sha256 = '5783bba5021cf43149bc118789cea29f6462fd97dd78bdb776f8782ea7813d27'
 
 [x86_64-darwin.ic-admin]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-admin.gz'
-sha256 = '3c6c0f149656d572bd60c9d00895209b255cb821ab28bf19c672e55c9b3d3d2f'
+sha256 = '13c4fd187d4652ead1296a3f67f680bd10f2b025c934cac57f51e3f51f6405d6'
 
 [x86_64-darwin.ic-btc-adapter]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-btc-adapter.gz'
-sha256 = 'c73c4aef2f79a39243f8199a96967939fe8a8971e2e3db66eb8799c02732f407'
+sha256 = '1f7ac6784cdd7f5a414d9a483bab6286ec1e67896038194b49d8064e7e8117da'
 
 [x86_64-darwin.ic-canister-http-adapter]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-canister-http-adapter.gz'
-sha256 = '89a3ae5d8b34296964a03802011fbd2f281c7cbd97cee9eb1e13f6b5f685870f'
+sha256 = '9bc44e6cb015f8df65bd1ad965079bd3991c5d4d550530bbe6d5fe8356ead916'
 
 [x86_64-darwin.ic-nns-init]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-nns-init.gz'
-sha256 = '5baf313d259cfe4542da9b4309e88eb042c01941019ab3943e64ce4d3e52ca79'
+sha256 = '828af4e1998bdd069f3212d6fc9e84e3fc5287bc00832649ac2494fcde4c4c23'
 
 [x86_64-darwin.ic-starter]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/sdk-release/x86_64-darwin/ic-starter.gz'
-sha256 = 'd6882e13098e3cc72165a551279971db167cc6eb153f14ace27dfc2313b9400b'
+sha256 = 'ba4f6a2a54902196f7e729fd03c79f7a5930942f6c66575095f78a02cfbc1c31'
 
 [x86_64-darwin.motoko]
 url = 'https://github.com/dfinity/motoko/releases/download/0.7.4/motoko-macos-0.7.4.tar.gz'
@@ -36,20 +36,20 @@ sha256 = '27e79a3136bc20081527dd19af977be03e470db0aa3a48b7e1ee160a4db31c4a'
 
 [x86_64-darwin.replica]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/replica.gz'
-sha256 = 'fc2af6ef33798c90631aae015debd4e98c781e2d3358fadb1a7f75c13da7581e'
+sha256 = '1be83ea72d2a595403553ef5635ab5d4870c542f94b3a29b41118eeffe16e9c7'
 # The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-darwin.canister_sandbox]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/canister_sandbox.gz'
-sha256 = '0fb683cd2657e427b0ad79a7e6b846db3121105ce0e0b00260b1edb7cbc0a11e'
+sha256 = '7c34c8655548c06328faa29c007471ecb6c9a4f8d1e77ed473fc6e5b99391559'
 
 [x86_64-darwin.sandbox_launcher]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/sandbox_launcher.gz'
-sha256 = '863c22d8a04ebdfb1b691c956c17dfce9a034dd5c11a721684a48a8024b4d84e'
+sha256 = '28ec761a8db4a3e6c23a12a4c50edb36c9f09a7dca004b64ab8709a6a4ba2859'
 
 [x86_64-darwin.sns]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/sns.gz'
-sha256 = '3808d5cf9facb1930686ea2e1d62c6429ec28b901429a6af5cc011e7642f74bb'
+sha256 = 'ea61ce090e644fba6e488686e59c78dfdfcce12cf57eb17cbbb458d32bac99d8'
 
 [x86_64-darwin.motoko-base]
 url = 'https://github.com/dfinity/motoko/releases/download/0.7.4/motoko-base-library.tar.gz'
