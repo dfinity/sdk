@@ -24,4 +24,7 @@ pub enum KeyringError {
 
     #[error("Failed to save mock keyring: {0}")]
     SaveMockKeyringFailed(StructuredFileError),
+
+    #[error("Failed to set password for keyring: {0}")]
+    SetPasswordFailed(keyring::Error),
 }
