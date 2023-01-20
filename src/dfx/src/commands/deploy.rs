@@ -3,12 +3,13 @@ use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::{environment::Environment, identity::Identity, named_canister};
+use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::NetworkOpt;
 use std::collections::BTreeMap;
 
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use anyhow::{anyhow, bail, Context};
@@ -109,7 +110,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let call_sender = runtime.block_on(call_sender(&env, &opts.wallet))?;
     let proxy_sender;
     let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
-        let wallet = runtime.block_on(Identity::get_or_create_wallet_canister(
+        let wallet = runtime.block_on(get_or_create_wallet_canister(
             &env,
             env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
