@@ -2,7 +2,6 @@
 use crate::config::dfinity::MetadataVisibility::Public;
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
-use crate::lib::error::{DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
 use dfx_core::config::directories::get_config_dfx_dir_path;
 use dfx_core::error::dfx_config::DfxConfigError;
@@ -19,6 +18,8 @@ use dfx_core::error::load_networks_config::LoadNetworksConfigError;
 use dfx_core::error::load_networks_config::LoadNetworksConfigError::{
     GetConfigPathFailed, LoadConfigFromFileFailed,
 };
+use dfx_core::error::socket_addr_conversion::SocketAddrConversionError;
+use dfx_core::error::socket_addr_conversion::SocketAddrConversionError::ParseSocketAddrFailed;
 use dfx_core::error::structured_file::StructuredFileError;
 use dfx_core::error::structured_file::StructuredFileError::{
     DeserializeJsonFileFailed, ReadJsonFileFailed,
@@ -27,7 +28,6 @@ use dfx_core::json::save_json_file;
 
 use byte_unit::Byte;
 use candid::Principal;
-use fn_error_context::context;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -35,7 +35,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::default::Default;
 use std::fmt;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -606,18 +606,9 @@ pub struct NetworksConfigInterface {
 
 impl ConfigCanistersCanister {}
 
-#[context("Failed to convert '{}' to a SocketAddress.", s)]
-pub fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
-    match s.to_socket_addrs() {
-        Ok(mut a) => match a.next() {
-            Some(res) => Ok(res),
-            None => Err(DfxError::new(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Empty iterator",
-            ))),
-        },
-        Err(err) => Err(DfxError::new(err)),
-    }
+pub fn to_socket_addr(s: &str) -> Result<SocketAddr, SocketAddrConversionError> {
+    s.parse()
+        .map_err(|e| ParseSocketAddrFailed(s.to_string(), e))
 }
 
 impl ConfigDefaultsBuild {
