@@ -1,5 +1,5 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxResult, DfxError, ExtensionError};
+use crate::lib::error::{DfxError, DfxResult, ExtensionError};
 use crate::lib::extension::manager::ExtensionsManager;
 
 use clap::Parser;
@@ -18,9 +18,11 @@ impl TryFrom<Vec<OsString>> for RunOpts {
     type Error = DfxError;
 
     fn try_from(value: Vec<OsString>) -> Result<Self, Self::Error> {
-        let (extension_name, params) = value.split_first().ok_or(DfxError::new(
-            ExtensionError::ExtensionError("hard to imagine what went wrong here".to_string())
-        ))?;
+        let (extension_name, params) = value.split_first().ok_or_else(|| {
+            DfxError::new(ExtensionError::ExtensionError(
+                "hard to imagine what went wrong here".to_string(), // perhaps its ok to just unwrap here instead of TryFrom?
+            ))
+        })?;
         Ok(RunOpts {
             extension_name: extension_name.clone(),
             params: params.to_vec(),

@@ -9,7 +9,7 @@ use crate::lib::error::{DfxError, DfxResult, ExtensionError};
 pub static COMMON_EXTENSIONS_MANIFEST_LOCATION: &str =
     "https://raw.githubusercontent.com/smallstepman/dfx-extensions/main/compatibility.json";
 // pub static COMMON_EXTENSIONS_MANIFEST_LOCATION: &str =
-//     "http://localhost:8000/Desktop/sdk_extensions/test/compatibility.json";
+//     "https://raw.githubusercontent.com/dfinity/dfx-extensions/main/compatibility.json";
 
 type DfxVersion = Version;
 type ExtensionName = String;
@@ -55,11 +55,13 @@ impl ExtensionsCompatibilityMatrix {
             .map(|v| Version::parse(v).unwrap_or(Version::new(0, 0, 0)))
             .sorted()
             .rev()
-            .nth(0)
-            .ok_or(DfxError::new(ExtensionError::ExtensionError(format!(
-                "versions array empty for dfx version: {} and extension name: {}",
-                dfx_version, extension_name
-            ))));
+            .next()
+            .ok_or_else(|| {
+                DfxError::new(ExtensionError::ExtensionError(format!(
+                    "versions array empty for dfx version: {} and extension name: {}",
+                    dfx_version, extension_name
+                )))
+            });
     }
 
     pub fn _list_compatible_extensions(&self) -> &'static str {

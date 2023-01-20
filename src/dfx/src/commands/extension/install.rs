@@ -14,7 +14,7 @@ pub struct InstallOpts {
 pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
     let mut sp = Spinner::new(
         Spinners::Dots9,
-        format!("installing extension: {}", opts.extension_name).into(),
+        format!("installing extension: {}", opts.extension_name),
     );
     let mgr = ExtensionsManager::new(env)?;
     mgr.install_extension(&opts.extension_name)?;
