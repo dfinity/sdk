@@ -30,14 +30,13 @@ pub struct ExtensionManifest {
                                                // 	"nns": "0.5.0",
                                                // 	"ckbtc": "0.1.1"
                                                // }
-
-    // pub license: String,
-    // pub repository: String,
-    // pub files: Vec<String>,
 }
 
 impl Display for ExtensionManifest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string_pretty(self).unwrap())
+        match serde_json::to_string_pretty(self) {
+            Ok(json) => write!(f, "{}", json),
+            Err(e) => write!(f, "error parsing manifest.json: {}", e)
+        }
     }
 }
