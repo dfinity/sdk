@@ -383,7 +383,7 @@ fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult
             let end_pos = existing_file[start_pos + START_TAG.len()..].find(END_TAG);
             if let Some(end_pos) = end_pos {
                 // the section is correctly formed
-                let end_pos = end_pos + END_TAG.len();
+                let end_pos = end_pos + END_TAG.len() + start_pos + START_TAG.len();
                 existing_file.replace_range(start_pos..end_pos, &write_string);
                 fs::write(write_path, existing_file)?;
                 return Ok(());
