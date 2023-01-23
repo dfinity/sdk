@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_manager::{
-    HardwareIdentityConfiguration, IdentityCreationParameters, IdentityManager, IdentityStorageMode,
+    HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
 };
 use crate::util::clap::validators::is_hsm_key_id;
 use dfx_core::error::identity::IdentityError::SwitchBackToIdentityFailed;
@@ -93,7 +93,8 @@ pub fn create_new_dfx_identity(
     force: bool,
 ) -> DfxResult {
     let result =
-        IdentityManager::new(env)?.create_new_identity(log, name, creation_parameters, force);
+        env.new_identity_manager()?
+            .create_new_identity(log, name, creation_parameters, force);
     if let Err(SwitchBackToIdentityFailed(underlying)) = result {
         Err(*underlying).with_context(||format!("Failed to switch back over to the identity you're replacing. Please run 'dfx identity use {}' to do it manually.", name))?;
     } else {

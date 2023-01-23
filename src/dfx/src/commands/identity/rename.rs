@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
 use dfx_core::error::identity::IdentityError::SwitchDefaultIdentitySettingsFailed;
 
 use anyhow::bail;
@@ -23,8 +22,8 @@ pub fn exec(env: &dyn Environment, opts: RenameOpts) -> DfxResult {
 
     let log = env.get_logger();
 
-    let mut identity_manager = IdentityManager::new(env)?;
-    let result = identity_manager.rename(log, env, from, to);
+    let mut identity_manager = env.new_identity_manager()?;
+    let result = identity_manager.rename(log, env.get_project_temp_dir(), from, to);
     if let Err(SwitchDefaultIdentitySettingsFailed(_)) = result {
         bail!("Failed to switch over default identity settings.  Please do this manually by running 'dfx identity use {}'", to);
     }
