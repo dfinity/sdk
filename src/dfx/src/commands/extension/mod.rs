@@ -20,11 +20,11 @@ pub struct ExtensionOpts {
 pub enum SubCommand {
     /// Install an extension
     Install(install::InstallOpts),
-    /// Unintall an extension
+    /// Uninstall an extension
     Uninstall(uninstall::UninstallOpts),
-    /// Executes an extension
+    /// Execute an extension
     Run(run::RunOpts),
-    /// Lists installed extensions
+    /// List installed extensions
     List,
 }
 

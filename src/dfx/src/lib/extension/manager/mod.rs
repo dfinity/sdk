@@ -16,18 +16,18 @@ pub struct ExtensionsManager {
 
 impl ExtensionsManager {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
-        if let Ok(x) = get_bin_cache(env.get_version().to_string().as_str()) {
-            let dir = x.join("extensions");
-            std::fs::create_dir_all(&dir)?;
-            Ok(Self {
-                dir,
-                dfx_version: env.get_version().clone(),
-            })
-        } else {
-            Err(DfxError::new(ExtensionError::ExtensionError(
+        let Ok(x) = get_bin_cache(env.get_version().to_string().as_str())
+         else {
+            return Err(DfxError::new(ExtensionError::ExtensionError(
                 "Unable to get bin cache".to_string(),
             )))
-        }
+        };
+        let dir = x.join("extensions");
+        std::fs::create_dir_all(&dir)?;
+        Ok(Self {
+            dir,
+            dfx_version: env.get_version().clone(),
+        })
     }
 
     pub fn get_extension_directory(&self, extension_name: &str) -> DfxResult<PathBuf> {

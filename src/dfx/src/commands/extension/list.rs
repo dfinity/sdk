@@ -1,16 +1,20 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::extension::manager::ExtensionsManager;
+
+use std::io::Write;
 
 pub fn exec(env: &dyn Environment) -> DfxResult<()> {
-    let mgr = ExtensionsManager::new(env)?;
+    let mgr = env.new_extension_manager()?;
     let extensions = mgr.list_installed_extensions()?;
     if extensions.is_empty() {
-        println!("No extensions installed.");
+        eprintln!("No extensions installed.");
     } else {
-        println!("Installed extensions:");
+        eprintln!("Installed extensions:");
         for extension in extensions {
-            println!("  {}", extension);
+            eprint!("  ");
+            std::io::stderr().flush()?;
+            println!("{}", extension);
+            std::io::stdout().flush()?;
         }
     }
     Ok(())

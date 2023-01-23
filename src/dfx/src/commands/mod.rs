@@ -85,7 +85,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Diagnose(v) => diagnose::exec(env, v),
         Command::Fix(v) => fix::exec(env, v),
         Command::Extension(v) => extension::exec(env, v),
-        Command::ExtensionRun(v) => extension::run::exec(env, v.try_into()?),
+        Command::ExtensionRun(v) => extension::run::exec(env, v.into()),
         Command::Generate(v) => generate::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
         Command::Info(v) => info::exec(env, v),

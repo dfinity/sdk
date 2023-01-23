@@ -18,9 +18,9 @@ pub struct ExtensionManifest {
 
 impl Display for ExtensionManifest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match serde_json::to_string_pretty(self) {
-            Ok(json) => write!(f, "{}", json),
-            Err(e) => write!(f, "error parsing manifest.json: {}", e),
-        }
+        let Ok(json) = serde_json::to_string_pretty(self) else {
+            return Err(std::fmt::Error)
+        };
+        write!(f, "{}", json)
     }
 }
