@@ -1,14 +1,14 @@
-use crate::config::dfinity::{
-    to_socket_addr, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
-    DEFAULT_SHARED_LOCAL_BIND,
-};
-use crate::config::dfinity::{
-    ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
-    ConfigDefaultsReplica,
-};
 use crate::lib::error::DfxResult;
 use dfx_core::config::model::bitcoin_adapter;
 use dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel;
+use dfx_core::config::model::dfinity::{
+    to_socket_addr, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
+    DEFAULT_SHARED_LOCAL_BIND,
+};
+use dfx_core::config::model::dfinity::{
+    ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
+    ConfigDefaultsReplica,
+};
 
 use anyhow::Context;
 use fn_error_context::context;

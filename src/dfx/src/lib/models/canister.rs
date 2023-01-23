@@ -1,4 +1,3 @@
-use crate::config::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 use crate::lib::builders::{
     custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
     WasmBuildOutput,
@@ -10,6 +9,7 @@ use crate::lib::metadata::names::{CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_U
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
+use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;

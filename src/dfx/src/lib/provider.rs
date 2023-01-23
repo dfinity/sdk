@@ -1,7 +1,3 @@
-use crate::config::dfinity::{
-    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
-    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
-};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::{
@@ -10,6 +6,10 @@ use crate::lib::network::local_server_descriptor::{
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
 use dfx_core::config::directories::get_shared_network_data_directory;
+use dfx_core::config::model::dfinity::{
+    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
+    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
+};
 use dfx_core::identity::{ANONYMOUS_IDENTITY_NAME, WALLET_CONFIG_FILENAME};
 
 use anyhow::{anyhow, bail, Context};
@@ -490,12 +490,13 @@ pub async fn ping_and_wait(url: &str) -> DfxResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
-    use crate::config::dfinity::{
+    use dfx_core::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
+    use dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel;
+    use dfx_core::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
+    use dfx_core::config::model::dfinity::{
         to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
         ConfigDefaultsReplica, ReplicaLogLevel,
     };
-    use dfx_core::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
     use std::fs;
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::str::FromStr;
@@ -1026,8 +1027,7 @@ mod tests {
             canister_http_config,
             &ConfigDefaultsCanisterHttp {
                 enabled: true,
-                log_level:
-                    dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel::Debug
+                log_level: HttpAdapterLogLevel::Debug
             }
         );
     }
