@@ -495,7 +495,7 @@ mod tests {
         to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
         ConfigDefaultsReplica, ReplicaLogLevel,
     };
-    use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
+    use dfx_core::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
     use std::fs;
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::str::FromStr;
@@ -1026,7 +1026,8 @@ mod tests {
             canister_http_config,
             &ConfigDefaultsCanisterHttp {
                 enabled: true,
-                log_level: crate::lib::canister_http::adapter::config::HttpAdapterLogLevel::Debug
+                log_level:
+                    dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel::Debug
             }
         );
     }

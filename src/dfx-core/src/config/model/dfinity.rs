@@ -1,32 +1,34 @@
 #![allow(dead_code)]
-use crate::config::dfinity::MetadataVisibility::Public;
-use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
-use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
-use dfx_core::config::directories::get_config_dfx_dir_path;
-use dfx_core::error::dfx_config::DfxConfigError;
-use dfx_core::error::dfx_config::DfxConfigError::{
+#![warn(clippy::should_implement_trait)] // for from_str.  why now?
+
+use crate::config::directories::get_config_dfx_dir_path;
+use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
+use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
+use crate::config::model::dfinity::MetadataVisibility::Public;
+use crate::error::dfx_config::DfxConfigError;
+use crate::error::dfx_config::DfxConfigError::{
     CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
     GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
     GetMemoryAllocationFailed, GetRemoteCanisterIdFailed,
 };
-use dfx_core::error::load_dfx_config::LoadDfxConfigError;
-use dfx_core::error::load_dfx_config::LoadDfxConfigError::{
+use crate::error::load_dfx_config::LoadDfxConfigError;
+use crate::error::load_dfx_config::LoadDfxConfigError::{
     DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
 };
-use dfx_core::error::load_networks_config::LoadNetworksConfigError;
-use dfx_core::error::load_networks_config::LoadNetworksConfigError::{
+use crate::error::load_networks_config::LoadNetworksConfigError;
+use crate::error::load_networks_config::LoadNetworksConfigError::{
     GetConfigPathFailed, LoadConfigFromFileFailed,
 };
-use dfx_core::error::socket_addr_conversion::SocketAddrConversionError;
-use dfx_core::error::socket_addr_conversion::SocketAddrConversionError::{
+use crate::error::socket_addr_conversion::SocketAddrConversionError;
+use crate::error::socket_addr_conversion::SocketAddrConversionError::{
     EmptyIterator, ParseSocketAddrFailed,
 };
-use dfx_core::error::structured_file::StructuredFileError;
-use dfx_core::error::structured_file::StructuredFileError::{
+use crate::error::structured_file::StructuredFileError;
+use crate::error::structured_file::StructuredFileError::{
     DeserializeJsonFileFailed, ReadJsonFileFailed,
 };
-use dfx_core::json::save_json_file;
-use dfx_core::json::structure::{PossiblyStr, SerdeVec};
+use crate::json::save_json_file;
+use crate::json::structure::{PossiblyStr, SerdeVec};
 
 use byte_unit::Byte;
 use candid::Principal;
@@ -811,7 +813,7 @@ pub struct Config {
 #[allow(dead_code)]
 impl Config {
     fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, LoadDfxConfigError> {
-        let mut curr = dfx_core::fs::canonicalize(working_dir).map_err(ResolveConfigPathFailed)?;
+        let mut curr = crate::fs::canonicalize(working_dir).map_err(ResolveConfigPathFailed)?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
                 return Ok(Some(curr.join(CONFIG_FILE_NAME)));
@@ -829,7 +831,7 @@ impl Config {
     }
 
     fn from_file(path: &Path) -> Result<Config, StructuredFileError> {
-        let content = dfx_core::fs::read(path).map_err(ReadJsonFileFailed)?;
+        let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
         Config::from_slice(path.to_path_buf(), &content)
     }
 
@@ -995,7 +997,7 @@ impl NetworksConfig {
     }
 
     fn from_file(path: &Path) -> Result<NetworksConfig, StructuredFileError> {
-        let content = dfx_core::fs::read(path).map_err(ReadJsonFileFailed)?;
+        let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
 
         let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;

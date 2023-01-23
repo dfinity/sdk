@@ -6,8 +6,9 @@ use crate::config::dfinity::{
     ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
     ConfigDefaultsReplica,
 };
-use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::error::DfxResult;
+use dfx_core::config::model::bitcoin_adapter;
+use dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel;
 
 use anyhow::Context;
 use fn_error_context::context;
@@ -246,7 +247,7 @@ impl LocalServerDescriptor {
         };
         debug!(log, "  bind address: {:?}{}", self.bind_address, diffs);
         if self.bitcoin.enabled {
-            let default_nodes = crate::lib::bitcoin::adapter::config::default_nodes();
+            let default_nodes = bitcoin_adapter::default_nodes();
             debug!(log, "  bitcoin: enabled (default: disabled)");
             let nodes: Vec<SocketAddr> = if let Some(ref nodes) = self.bitcoin.nodes {
                 nodes.clone()

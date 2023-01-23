@@ -46,7 +46,6 @@ futures-util = "0.3.21"
 handlebars = "4.3.3"
 hex = {version = "0.4.2", features = ["serde"] }
 humantime = "2.1.0"
-humantime-serde = "1.1.1"
 hyper-rustls = { version = "0.23.0", features = [ "webpki-roots", "http2" ] }
 ic-agent = { version = "0.23.0", features = ["reqwest"] }
 ic-asset = { version = "0.20.0", path = "../canisters/frontend/ic-asset" }
