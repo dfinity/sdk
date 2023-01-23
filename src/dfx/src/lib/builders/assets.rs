@@ -132,13 +132,13 @@ impl CanisterBuilder for AssetsBuilder {
             pool,
             &dependencies,
             config.env_file.as_deref(),
-        );
+        )?;
 
         build_frontend(
             pool.get_logger(),
             info.get_workspace_root(),
             &config.network_name,
-            vars?,
+            vars,
         )?;
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;

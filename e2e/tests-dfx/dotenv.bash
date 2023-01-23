@@ -25,6 +25,11 @@ teardown() {
     env=$(< .env)
     assert_contains "DFX_NETWORK='local'" "$env"
     assert_contains "CANISTER_ID_e2e_project_backend='$canister'" "$env"
+
+    setup_actuallylocal_project_network
+    dfx canister create --all --network actuallylocal
+    assert_command dfx build --network actuallylocal
+    assert_contains "DFX_NETWORK='actuallylocal'" "$(< .env)"
 }
 
 @test "writes environment variables to selected file" {
