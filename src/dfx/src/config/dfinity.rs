@@ -3,7 +3,7 @@ use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::util::{project_dirs, PossiblyStr, SerdeVec};
+use crate::util::{PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 
 use crate::config::dfinity::MetadataVisibility::Public;
@@ -974,13 +974,6 @@ impl NetworksConfig {
     }
     pub fn get_interface(&self) -> &NetworksConfigInterface {
         &self.networks_config
-    }
-    #[context("Failed to determine shared network data directory.")]
-    pub fn get_network_data_directory(network: &str) -> DfxResult<PathBuf> {
-        Ok(project_dirs()?
-            .data_local_dir()
-            .join("network")
-            .join(network))
     }
 
     #[context("Failed to read shared networks configuration.")]

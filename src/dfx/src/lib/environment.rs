@@ -8,6 +8,7 @@ use crate::lib::progress_bar::ProgressBar;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
+use dfx_core::error::identity::IdentityError;
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
@@ -47,6 +48,10 @@ pub trait Environment {
     fn get_verbose_level(&self) -> i64;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
+
+    fn new_identity_manager(&self) -> Result<IdentityManager, IdentityError> {
+        IdentityManager::new(self.get_logger(), self.get_identity_override())
+    }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
@@ -252,10 +257,15 @@ impl<'a> AgentEnvironment<'a> {
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
+        use_identity: Option<&str>,
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
-        let mut identity_manager = IdentityManager::new(backend)?;
-        let identity = identity_manager.instantiate_selected_identity(backend.get_logger())?;
+        let mut identity_manager = backend.new_identity_manager()?;
+        let identity = if let Some(identity_name) = use_identity {
+            identity_manager.instantiate_identity_from_name(identity_name, &logger)?
+        } else {
+            identity_manager.instantiate_selected_identity(&logger)?
+        };
         if network_descriptor.is_ic && identity.insecure {
             warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());

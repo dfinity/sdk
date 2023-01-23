@@ -1,8 +1,8 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::Manifest;
-#[cfg(windows)]
-use crate::util::project_dirs;
 use crate::{error_invalid_argument, error_invalid_data};
+#[cfg(windows)]
+use dfx_core::config::directories::project_dirs;
 
 use anyhow::Context;
 use flate2::read::GzDecoder;

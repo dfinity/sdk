@@ -4,6 +4,43 @@
 
 ## DFX
 
+### fix: fixed error text
+- `dfx nns install` had the wrong instructions for setting up the local replica type
+
+### fix: creating an identity with `--force` no longer switches to the newly created identity
+
+### feat(frontend-canister)!: default secure configuration for assets in frontend project template
+
+- Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
+- Configures `allow_raw_access` option in starter `.ic-assets.json5` config files, with the value set to its default value (which is `false`). We are showing that configuration in the default starter projects for the sake of easier discoverability, even though its value is set to the default.
+
+### feat(frontend-canister)!: add `allow_raw_access` config option
+
+By default, the frontend canister will now restrict the access of traffic to the `<canister-id>.raw.ic0.app` domain, and will automatically redirect all requests to the certified domain (`<canister-id>.ic0.app`), unless configured explicitly. Below is an example configuration to allow access to the `robots.txt` file from the "raw" domain:
+```json
+[
+  {
+    "match": "robots.txt",
+    "allow_raw_access": true
+  }
+]
+```
+
+**Important**: Note that any assets already uploaded to an asset canister will be protected by this redirection, because at present the asset synchronization process does not update the `allow_raw_access` property, or any other properties, after creating an asset.  This also applies to assets that are deployed without any configuration, and later configured to allow raw access.
+At the present time, there are two ways to reconfigure an existing asset:
+1. re-create the asset
+    1. delete the asset in your project's directory 
+    1. execute `dfx deploy`
+    1. re-create the asset in your project's directory
+    1. modify `.ic-assets.json` acordingly 
+    1. execute `dfx deploy`
+2. via manual candid call 
+    ```
+    dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
+    ```
+
+### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
+
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
 
@@ -46,6 +83,13 @@ The asset canister now has two new functions:
 In addition, the update function `authorize` has new behavior:
 Now, controllers of the asset canister are always allowed to authorize new principals (including themselves).
 
+### fix: add retry logic to `dfx canister delete`
+
+`dfx canister delete` tries to withdraw as many cycles as possible from a canister before deleting it.
+To do so, dfx has to manually send all cycles in the canister, minus some margin.
+The margin was previously hard-coded, meaning that withdrawals can fail if the margin is not generous enough.
+Now, upon failure with some margin, dfx will retry withdrawing cycles with a continuously larger margin until withdrawing succeeds or the margin becomes larger than the cycles balance.
+
 ### fix: dfx deploy --mode reinstall for a single Motoko canister fails to compile
 
 The Motoko compiler expects all imported canisters' .did files to be in one folder when it compiles a canister.
@@ -65,8 +109,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 5ce290cda1b167ef7732e50110cb4999572ae971752cedd7b486e97914e9a5b8
-- https://github.com/dfinity/sdk/pull/2819
+- Module hash: 9093294e28805eac1c8226b9d73cb0da02657ca1219ae951b655931e8a2f32b8
+- https://github.com/dfinity/sdk/pull/2824
 
 ### ic-ref
 
@@ -78,9 +122,14 @@ Updated Motoko to 0.7.4
 
 ### Replica
 
-Updated replica to elected commit 997ab2e9cc49189302fe54c1e60709abfbeb1d42.
+Updated replica to elected commit b5a1a8c0e005216f2d945f538fc27163bafc3bf7.
 This incorporates the following executed proposals:
 
+- [100821](https://dashboard.internetcomputer.org/proposal/100821)
+- [97472](https://dashboard.internetcomputer.org/proposal/97472)
+- [96114](https://dashboard.internetcomputer.org/proposal/96114)
+- [94953](https://dashboard.internetcomputer.org/proposal/94953)
+- [94852](https://dashboard.internetcomputer.org/proposal/94852)
 - [93761](https://dashboard.internetcomputer.org/proposal/93761)
 - [93507](https://dashboard.internetcomputer.org/proposal/93507)
 - [92573](https://dashboard.internetcomputer.org/proposal/92573)

@@ -5,6 +5,8 @@ use ic_certified_map::Hash;
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
 
+const HTTP_REDIRECT_PERMANENT: u16 = 308;
+
 pub type HeaderField = (String, String);
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -80,6 +82,39 @@ impl HttpRequest {
             .iter()
             .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then_some(v))
     }
+
+    pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
+        #[cfg(not(test))]
+        let canister_id = ic_cdk::api::id().to_text();
+        #[cfg(test)]
+        let canister_id = self.get_canister_id();
+
+        let location = format!("https://{canister_id}.ic0.app{path}", path = self.url);
+        HttpResponse::build_redirect(HTTP_REDIRECT_PERMANENT, location)
+    }
+
+    #[cfg(test)]
+    pub fn get_canister_id(&self) -> &str {
+        if let Some(host_header) = self.get_header_value("Host") {
+            if host_header.contains(".localhost") || host_header.contains(".app") {
+                return host_header.split('.').next().unwrap();
+            } else if let Some(t) = self.url.split("canisterId=").nth(1) {
+                let x = t.split_once('&');
+                if let Some(c) = x {
+                    return c.0;
+                }
+            }
+        }
+        unreachable!()
+    }
+
+    pub fn is_raw_domain(&self) -> bool {
+        if let Some(host_header) = self.get_header_value("Host") {
+            host_header.contains(".raw.ic")
+        } else {
+            false
+        }
+    }
 }
 
 impl HttpResponse {
@@ -152,6 +187,15 @@ impl HttpResponse {
             status_code: 404,
             headers: vec![certificate_header],
             body: RcBytes::from(ByteBuf::from("not found")),
+            streaming_strategy: None,
+        }
+    }
+
+    pub fn build_redirect(status_code: u16, location: String) -> HttpResponse {
+        HttpResponse {
+            status_code,
+            headers: vec![("Location".to_string(), location)],
+            body: RcBytes::from(ByteBuf::default()),
             streaming_strategy: None,
         }
     }

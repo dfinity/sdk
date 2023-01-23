@@ -54,6 +54,7 @@ pub struct Asset {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
     pub is_aliased: Option<bool>,
+    pub allow_raw_access: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -116,6 +117,12 @@ pub struct StableState {
     stable_assets: HashMap<String, Asset>,
 }
 
+impl Asset {
+    fn allow_raw_access(&self) -> bool {
+        self.allow_raw_access.unwrap_or(false)
+    }
+}
+
 impl State {
     fn get_asset(&self, key: &Key) -> Result<&Asset, String> {
         self.assets
@@ -172,6 +179,7 @@ impl State {
                     max_age: arg.max_age,
                     headers: arg.headers,
                     is_aliased: arg.enable_aliasing,
+                    allow_raw_access: arg.allow_raw_access,
                 },
             );
         }
@@ -445,6 +453,7 @@ impl State {
         index: usize,
         callback: Func,
         etags: Vec<Hash>,
+        req: HttpRequest,
     ) -> HttpResponse {
         let index_redirect_certificate = if self.asset_hashes.get(path.as_bytes()).is_none()
             && self.asset_hashes.get(INDEX_FILE.as_bytes()).is_some()
@@ -459,6 +468,9 @@ impl State {
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
+                if !asset.allow_raw_access() && req.is_raw_domain() {
+                    return req.redirect_from_raw_to_certified_domain();
+                }
                 for enc_name in encodings.iter() {
                     if let Some(enc) = asset.encodings.get(enc_name) {
                         if enc.certified {
@@ -482,6 +494,9 @@ impl State {
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
         if let Ok(asset) = self.get_asset(&path.into()) {
+            if !asset.allow_raw_access() && req.is_raw_domain() {
+                return req.redirect_from_raw_to_certified_domain();
+            }
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
@@ -543,7 +558,9 @@ impl State {
         };
 
         match url_decode(path) {
-            Ok(path) => self.build_http_response(certificate, &path, encodings, 0, callback, etags),
+            Ok(path) => {
+                self.build_http_response(certificate, &path, encodings, 0, callback, etags, req)
+            }
             Err(err) => HttpResponse {
                 status_code: 400,
                 headers: vec![],
@@ -603,6 +620,7 @@ impl State {
         Ok(AssetProperties {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
+            allow_raw_access: asset.allow_raw_access,
         })
     }
 
@@ -617,6 +635,9 @@ impl State {
         }
         if let Some(max_age) = arg.max_age {
             asset.max_age = max_age
+        }
+        if let Some(allow_raw_access) = arg.allow_raw_access {
+            asset.allow_raw_access = allow_raw_access
         }
         Ok(())
     }

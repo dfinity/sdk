@@ -839,6 +839,7 @@ dependencies = [
  "crc32fast",
  "crossbeam",
  "ctrlc",
+ "dfx-core",
  "dialoguer",
  "directories-next",
  "env_logger",
@@ -903,6 +904,26 @@ dependencies = [
  "walkdir",
  "wasmparser 0.87.0",
  "which",
+]
+
+[[package]]
+name = "dfx-core"
+version = "0.0.1"
+dependencies = [
+ "aes-gcm",
+ "argon2",
+ "bip32",
+ "directories-next",
+ "hex",
+ "ic-agent",
+ "ic-identity-hsm",
+ "keyring",
+ "lazy_static",
+ "ring",
+ "sec1",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -1818,9 +1839,9 @@ dependencies = [
 
 [[package]]
 name = "ic0"
-version = "0.18.5"
+version = "0.18.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98ab1f6b3f5d42461777721a8afc7297a72e64e224202ed1a36cb44ef0f3af31"
+checksum = "e17ec1438d667907ee275368801390f45ba0b4f6e6c2a45221e5d01199187f4f"
 
 [[package]]
 name = "icx-asset"
@@ -3836,9 +3857,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.22.0"
+version = "1.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d76ce4a75fb488c605c54bf610f221cea8b0dafb53333c1a67e8ee199dcd2ae3"
+checksum = "38a54aca0c15d014013256222ba0ebed095673f89345dd79119d912eb561b7a8"
 dependencies = [
  "autocfg",
  "bytes",
@@ -3851,7 +3872,7 @@ dependencies = [
  "signal-hook-registry",
  "socket2",
  "tokio-macros",
- "winapi",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]

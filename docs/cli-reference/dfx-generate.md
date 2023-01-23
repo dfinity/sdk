@@ -14,15 +14,6 @@ The `dfx generate` command looks for the configuration under the `declarations` 
 dfx generate [canister_name]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx generate` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ## Arguments
 
 You can specify the following arguments for the `dfx generate` command.

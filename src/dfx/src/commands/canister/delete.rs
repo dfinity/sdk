@@ -20,6 +20,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::Argument;
 
+use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
@@ -151,7 +152,7 @@ async fn delete_canister(
                 memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
             };
-            info!(log, "Setting the controller to identity princpal.");
+            info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
 
             // Install a temporary wallet wasm which will transfer the cycles out of the canister before it is deleted.
@@ -177,45 +178,60 @@ async fn delete_canister(
                 let status =
                     canister::get_canister_status(env, canister_id, &CallSender::SelectedId)
                         .await?;
-                let mut cycles = status.cycles.0.to_u128().unwrap();
-                if cycles > WITHDRAWAL_COST {
-                    cycles -= WITHDRAWAL_COST;
-
-                    if !to_dank {
+                let cycles = status.cycles.0.to_u128().unwrap();
+                let mut attempts = 0_u128;
+                loop {
+                    let margin = WITHDRAWAL_COST + attempts * WITHDRAWAL_COST / 10;
+                    if margin >= cycles {
+                        info!(log, "Too few cycles to withdraw: {}.", cycles);
+                        break;
+                    }
+                    let cycles_to_withdraw = cycles - margin;
+                    let result = if !to_dank {
                         info!(
                             log,
-                            "Transfering {} cycles to canister {}.", cycles, target_canister_id
+                            "Attempting to transfer {} cycles to canister {}.",
+                            cycles_to_withdraw,
+                            target_canister_id
                         );
                         // Transfer cycles from the source canister to the target canister using the temporary wallet.
                         deposit_cycles(
                             env,
                             target_canister_id,
                             &CallSender::Wallet(canister_id),
-                            cycles,
+                            cycles_to_withdraw,
                         )
-                        .await?;
+                        .await
                     } else {
                         info!(
                             log,
-                            "Transfering {} cycles to dank principal {}.",
-                            cycles,
+                            "Attempting to transfer {} cycles to dank principal {}.",
+                            cycles_to_withdraw,
                             dank_target_principal
                         );
-                        let wallet = Identity::build_wallet_canister(canister_id, env).await?;
+                        let wallet = build_wallet_canister(canister_id, env).await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
                             .call(
                                 target_canister_id,
                                 "mint",
                                 Argument::from_candid((opt_principal,)),
-                                cycles,
+                                cycles_to_withdraw,
                             )
                             .call_and_wait()
                             .await
-                            .context("Failed mint call.")?;
+                            .context("Failed mint call.")
+                    };
+                    if result.is_ok() {
+                        info!(log, "Successfully withdrew {} cycles.", cycles_to_withdraw);
+                        break;
+                    } else if format!("{:?}", result).contains("Couldn't send message") {
+                        info!(log, "Not enough margin. Trying again with more margin.");
+                        attempts += 1;
+                    } else {
+                        // Unforseen error. Report it back to user
+                        result?;
                     }
-                } else {
-                    info!(log, "Too few cycles to withdraw: {}.", cycles);
                 }
                 stop_canister(env, canister_id, &CallSender::SelectedId).await?;
             } else {
@@ -235,7 +251,7 @@ async fn delete_canister(
 
     info!(
         log,
-        "Deleting code for canister {}, with canister_id {}",
+        "Deleting canister {}, with canister_id {}",
         canister,
         canister_id.to_text(),
     );

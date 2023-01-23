@@ -1,13 +1,15 @@
-use std::{collections::HashMap, path::PathBuf};
-
-use crate::lib::error::DfxResult;
+use dfx_core::error::keyring::KeyringError;
+use dfx_core::error::keyring::KeyringError::{
+    DecodePemFailed, DeletePasswordFailed, GetPasswordFailed, LoadMockKeyringFailed,
+    MockKeyNotFound, MockUnavailable, SaveMockKeyringFailed, SetPasswordFailed,
+};
+use dfx_core::json::{load_json_file, save_json_file};
 
 use super::TEMP_IDENTITY_PREFIX;
-use anyhow::{bail, Context};
-use fn_error_context::context;
 use keyring;
 use serde::{Deserialize, Serialize};
 use slog::{trace, Logger};
+use std::{collections::HashMap, path::PathBuf};
 
 pub const KEYRING_SERVICE_NAME: &str = "internet_computer_identities";
 pub const KEYRING_IDENTITY_PREFIX: &str = "internet_computer_identity_";
@@ -43,84 +45,65 @@ struct KeyringMock {
 }
 
 impl KeyringMock {
-    fn get_location() -> DfxResult<PathBuf> {
+    fn get_location() -> Result<PathBuf, KeyringError> {
         match std::env::var(USE_KEYRING_MOCK_ENV_VAR) {
             Ok(filename) => match filename.as_str() {
-                "" => bail!("Mock keyring unavailable - access rejected."),
+                "" => Err(MockUnavailable()),
                 _ => Ok(PathBuf::from(filename)),
             },
-            _ => bail!("Mock keyring unavailable."),
+            _ => unreachable!("Mock keyring unavailable."),
         }
     }
 
-    #[context("Failed to load mock keyring.")]
-    pub fn load() -> DfxResult<Self> {
+    pub fn load() -> Result<Self, KeyringError> {
         let location = Self::get_location()?;
         if location.exists() {
-            let serialized_mock = std::fs::read(&location).with_context(|| {
-                format!(
-                    "Failed to read existing keyring mock at {}",
-                    location.to_string_lossy()
-                )
-            })?;
-            let mock = serde_json::from_slice(serialized_mock.as_slice())
-                .context("Failed to deserialize mock keyring.")?;
-            Ok(mock)
+            load_json_file(&location).map_err(LoadMockKeyringFailed)
         } else {
             Ok(Self::default())
         }
     }
 
-    #[context("Failed to load mock keyring.")]
-    pub fn save(&self) -> DfxResult {
+    pub fn save(&self) -> Result<(), KeyringError> {
         let location = Self::get_location()?;
-        let content =
-            serde_json::to_string_pretty(self).context("Failed to serialize mock keyring")?;
-        std::fs::write(&location, content).with_context(|| {
-            format!(
-                "Failed to save mock keyring to {}",
-                location.to_string_lossy()
-            )
-        })
+        save_json_file(&location, self).map_err(SaveMockKeyringFailed)
     }
 }
 
-#[context(
-    "Failed to load PEM file from keyring for identity '{}'.",
-    identity_name_suffix
-)]
-pub fn load_pem_from_keyring(identity_name_suffix: &str) -> DfxResult<Vec<u8>> {
+pub fn load_pem_from_keyring(identity_name_suffix: &str) -> Result<Vec<u8>, KeyringError> {
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
-            let encoded_pem = entry.get_password()?;
-            let pem = hex::decode(&encoded_pem)?;
+            let encoded_pem = entry.get_password().map_err(GetPasswordFailed)?;
+            let pem = hex::decode(&encoded_pem).map_err(DecodePemFailed)?;
             Ok(pem)
         }
         KeyringMockMode::MockAvailable => {
             let mock = KeyringMock::load()?;
-            let encoded_pem = mock.kv_store.get(&keyring_identity_name).with_context(|| {
-                format!("Mock Keyring: key {} not found", &keyring_identity_name)
-            })?;
-            let pem = hex::decode(encoded_pem)?;
+            let encoded_pem = mock
+                .kv_store
+                .get(&keyring_identity_name)
+                .ok_or(MockKeyNotFound(keyring_identity_name))?;
+            let pem = hex::decode(encoded_pem).map_err(DecodePemFailed)?;
             Ok(pem)
         }
-        KeyringMockMode::MockReject => bail!("Mock Keyring not available."),
+        KeyringMockMode::MockReject => Err(MockUnavailable()),
     }
 }
 
-#[context(
-    "Failed to write PEM file to keyring for identity '{}'.",
-    identity_name_suffix
-)]
-pub fn write_pem_to_keyring(identity_name_suffix: &str, pem_content: &[u8]) -> DfxResult<()> {
+pub fn write_pem_to_keyring(
+    identity_name_suffix: &str,
+    pem_content: &[u8],
+) -> Result<(), KeyringError> {
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
     let encoded_pem = hex::encode(pem_content);
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
-            entry.set_password(&encoded_pem)?;
+            entry
+                .set_password(&encoded_pem)
+                .map_err(SetPasswordFailed)?;
             Ok(())
         }
         KeyringMockMode::MockAvailable => {
@@ -129,7 +112,7 @@ pub fn write_pem_to_keyring(identity_name_suffix: &str, pem_content: &[u8]) -> D
             mock.save()?;
             Ok(())
         }
-        KeyringMockMode::MockReject => bail!("Mock Keyring not available."),
+        KeyringMockMode::MockReject => Err(MockUnavailable()),
     }
 }
 
@@ -151,13 +134,13 @@ pub fn keyring_available(log: &Logger) -> bool {
     }
 }
 
-pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> DfxResult {
+pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> Result<(), KeyringError> {
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
             if entry.get_password().is_ok() {
-                entry.delete_password()?;
+                entry.delete_password().map_err(DeletePasswordFailed)?;
             }
         }
         KeyringMockMode::MockAvailable => {
@@ -165,7 +148,7 @@ pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> DfxResult {
             mock.kv_store.remove(&keyring_identity_name);
             mock.save()?;
         }
-        KeyringMockMode::MockReject => bail!("Mock Keyring not available."),
+        KeyringMockMode::MockReject => return Err(MockUnavailable()),
     }
     Ok(())
 }

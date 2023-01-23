@@ -30,7 +30,7 @@ sha2 = "0.10"
 walkdir = "2.2.9"
 derivative = "2.2.0"
 backoff = "0.4.0"
-tokio = "1.22.0"
+tokio = "1.23.1"
 
 [dev-dependencies]
 mockito = "0.31.0"

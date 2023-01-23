@@ -39,7 +39,7 @@ if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     sudo tar --directory /usr/local/bin --extract --file mitmproxy.tar.gz
     echo "mitmproxy version: $(mitmproxy --version)"
 fi
-if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] || [ "$E2E_TEST" = "tests-dfx/identity.bash" ]; then
+if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] || [ "$E2E_TEST" = "tests-dfx/identity.bash" ] || [ "$E2E_TEST" = "tests-dfx/generate.bash" ]; then
     sudo apt-get install --yes expect
 fi
 if [ "$E2E_TEST" = "tests-dfx/pull.bash" ]; then

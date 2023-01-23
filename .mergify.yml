@@ -32,7 +32,7 @@ pull_request_rules:
         commit_message_template: |
           {{ title }} (#{{ number }})
 
-          {{ body }}
+          {{ body | get_section('# Description', default=body) }}
       delete_head_branch: {}
   - name: Clean up automerge tags
     conditions:

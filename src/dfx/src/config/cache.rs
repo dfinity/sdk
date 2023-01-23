@@ -2,7 +2,7 @@ use crate::config::dfx_version;
 use crate::lib::error::{CacheError, DfxError, DfxResult};
 use crate::util;
 #[cfg(windows)]
-use crate::util::project_dirs;
+use dfx_core::config::directories::project_dirs;
 
 use anyhow::{bail, Context};
 use fn_error_context::context;
@@ -77,7 +77,7 @@ pub fn get_cache_root() -> DfxResult<PathBuf> {
     #[cfg(not(windows))]
     let p = {
         let home = std::env::var_os("HOME")
-            .ok_or_else(|| DfxError::new(CacheError::CannotFindHomeDirectory()))?;
+            .ok_or_else(|| DfxError::new(CacheError::NoHomeInEnvironment()))?;
         let root = cache_root.unwrap_or(home);
         PathBuf::from(root).join(".cache").join("dfinity")
     };
@@ -88,10 +88,10 @@ pub fn get_cache_root() -> DfxResult<PathBuf> {
     };
     if !p.exists() {
         if let Err(_e) = std::fs::create_dir_all(&p) {
-            return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));
+            return Err(DfxError::new(CacheError::CreateCacheDirectoryFailed(p)));
         }
     } else if !p.is_dir() {
-        return Err(DfxError::new(CacheError::CannotFindCacheDirectory(p)));
+        return Err(DfxError::new(CacheError::FindCacheDirectoryFailed(p)));
     }
     Ok(p)
 }
@@ -104,10 +104,10 @@ pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
 
     if !p.exists() {
         if let Err(_e) = std::fs::create_dir_all(&p) {
-            return Err(DfxError::new(CacheError::CannotCreateCacheDirectory(p)));
+            return Err(DfxError::new(CacheError::CreateCacheDirectoryFailed(p)));
         }
     } else if !p.is_dir() {
-        return Err(DfxError::new(CacheError::CannotFindCacheDirectory(p)));
+        return Err(DfxError::new(CacheError::FindCacheDirectoryFailed(p)));
     }
 
     Ok(p)

@@ -97,7 +97,6 @@ You can use the following optional flags with the `dfx canister call` command.
 | Flag              | Description     |
 |-------------------|-----------------|
 | `--async`         | Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.  |
-| `-h`, `--help`    | Displays usage information.  |
 | `--query`         | Sends a query request instead of an update request. For information about the difference between query and update calls, see [Canisters include both program and state](../../concepts/canisters-code.md#canister-state).  |
 | `--update`        | Sends an update request to a canister. This is the default if the method is not a query method.  |
 
@@ -181,14 +180,6 @@ Note that you can only run this command from within the project directory struct
 dfx canister create [option] [flag] [--all | canister_name]
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx canister create` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-
 ### Options
 
 You can use the following options with the `dfx canister create` command.
@@ -242,7 +233,6 @@ You can use the following optional flags with the `dfx canister delete` command.
 
 | Flag                        | Description                   |
 |-----------------------------|-------------------------------|
-| `-h`, `--help`              | Displays usage information.   |
 | `--no-withdrawal`           | Do not withdrawal cycles, just delete the canister.  |
 | `--withdraw-cycles-to-dank` | Withdraw cycles to dank with the current principal.  |
 
@@ -284,14 +274,6 @@ Note that you must have your cycles wallet configured for this to work.
 ``` bash
 dfx canister deposit-cycles [amount of cycles] [--all | canister_name]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister deposit-cycles` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
 
 ### Arguments
 
@@ -336,14 +318,6 @@ If a canister is typically deployed to the same canister ID on mainnet and all t
 dfx canister id [flag] canister_name
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx canister id` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-
 ### Arguments
 
 You can use the following argument with the `dfx canister id` command.
@@ -377,14 +351,6 @@ Use the `dfx canister info` command to output a canister's controller and instal
 ``` bash
 dfx canister info canister
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister info` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
 
 ### Arguments
 
@@ -428,7 +394,6 @@ You can use the following optional flags with the `dfx canister install` command
 | Flag              | Description  |
 |-------------------|--------------|
 | `--async-call`    | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment.  |
-| `-h`, `--help`    | Displays usage information.  |
 | `--upgrade-unchanged` | Upgrade the canister even if the .wasm did not change.  |
 
 ### Options
@@ -519,14 +484,6 @@ Use the `dfx canister metadata` command to display metadata stored in a canister
 dfx canister metadata canister metadata-name
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx canister metadata` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-
 ### Arguments
 
 You can use the following argument with the `dfx canister metadata` command.
@@ -563,14 +520,6 @@ Use the `dfx canister request-status` command to request the status of a specifi
 ``` bash
 dfx canister request-status request_id canister [option]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister request-status` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
 
 ### Options
 
@@ -617,7 +566,6 @@ You can use the following optional flags with the `dfx canister request-status` 
 
 | Flag              | Description                   |
 |-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
 | `--status`        | Send the signed request-status call in the message.  |
 
 ### Arguments
@@ -650,7 +598,6 @@ You can use the following optional flags with the `dfx canister sign` command.
 
 | Flag              | Description                                                                                              |
 |-------------------|----------------------------------------------------------------------------------------------------------|
-| `-h`, `--help`    | Displays usage information.                                                                              |
 | `--query`         | Sends a query request to a canister.                                                                     |
 | `--update`        | Sends an update request to the canister. This is the default method if the `--query` method is not used. |
 
@@ -708,14 +655,6 @@ Note that you can only run this command from within the project directory struct
 dfx canister start [--all | canister_name]
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx canister start` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-
 ### Arguments
 
 You can use the following arguments with the `dfx canister start` command.
@@ -752,14 +691,6 @@ Note that you can only run this command from within the project directory struct
 ``` bash
 dfx canister status [--all | canister_name]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister status` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
 
 ### Arguments
 
@@ -800,14 +731,6 @@ Note that you can only run this command from within the project directory struct
 dfx canister stop [--all | canister_name]
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx canister stop` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-
 ### Arguments
 
 You can use the following arguments with the `dfx canister stop` command.
@@ -846,14 +769,6 @@ Note that you can only run this command from within the project directory struct
 ``` bash
 dfx canister uninstall-code [flag] [--all | canister_name]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister uninstall-code` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
 
 ### Arguments
 
@@ -900,7 +815,6 @@ You can use the following optional flags with the `dfx canister update-settings`
 
 | Flag                                    | Description  |
 |-----------------------------------------|--------------|
-| `-h`, `--help`                          | Displays usage information.  |
 | `--confirm-very-long-freezing-threshold`| Freezing thresholds above ~1.5 years require this flag as confirmation. |
 
 ### Options
@@ -911,7 +825,7 @@ You can specify the following options for the `dfx canister update-settings` com
 |--------------------------------------------|--------------|
 | `--add-controller <principal>`             | Add a principal to the list of controllers of the canister.  |
 | `-c`, `--compute-allocation <allocation>`  | Specifies the canister's compute allocation. This should be a percent in the range [0..100].  |
-| `--set-controller <principal>`             | Specifies the identity name or the principal of the new controller.  |
+| `--set-controller <principal>`             | Specifies the identity name or the principal of the new controller. Can be specified more than once, indicating the canister will have multiple controllers. If any controllers are set with this parameter, any other controllers will be removed.  |
 | `--memory-allocation <allocation>`         | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
 | `--remove-controller <principal>`          | Removes a principal from the list of controllers of the canister. |
 | `--freezing-threshold <seconds>`           | Set the [freezing threshold](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-create_canister) in seconds for a canister. This should be a value in the range [0..2^64^-1]. Very long thresholds require the `--confirm-very-long-freezing-threshold` flag.  |

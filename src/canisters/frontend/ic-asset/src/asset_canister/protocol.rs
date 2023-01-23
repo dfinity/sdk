@@ -74,6 +74,8 @@ pub struct CreateAssetArguments {
     pub headers: Option<HeadersConfig>,
     /// Aliasing enabled or not
     pub enable_aliasing: Option<bool>,
+    /// When set to true, don't redirect from raw to certified
+    pub allow_raw_access: Option<bool>,
 }
 
 /// Set the data for a particular content encoding for the given asset.
