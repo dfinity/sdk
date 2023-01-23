@@ -2,7 +2,6 @@ use std::path::Path;
 
 use super::identity_manager::EncryptionConfiguration;
 use super::IdentityConfiguration;
-use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_file_locations::IdentityFileLocations;
 use crate::lib::identity::keyring_mock;
 use crate::lib::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
@@ -10,15 +9,14 @@ use dfx_core::error::encryption::EncryptionError;
 use dfx_core::error::encryption::EncryptionError::{DecryptContentFailed, HashPasswordFailed};
 use dfx_core::error::identity::IdentityError;
 use dfx_core::error::identity::IdentityError::{
-    DecryptPemFileFailed, LoadPemFromKeyringFailed, ReadPemFileFailed,
+    CannotSavePemContentForHsm, DecryptPemFileFailed, LoadPemFromKeyringFailed, ReadPemFileFailed,
+    WritePemToKeyringFailed,
 };
 use dfx_core::error::io::IoError;
 
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
-use anyhow::bail;
 use argon2::{password_hash::PasswordHasher, Argon2};
-use fn_error_context::context;
 use slog::{debug, trace, Logger};
 
 /// Loads an identity's PEM file content.
@@ -44,29 +42,27 @@ pub(crate) fn load_pem(
     }
 }
 
-#[context("Failed to save PEM file for identity '{name}'.")]
 pub(crate) fn save_pem(
     log: &Logger,
     locations: &IdentityFileLocations,
     name: &str,
     identity_config: &IdentityConfiguration,
     pem_content: &[u8],
-) -> DfxResult<()> {
+) -> Result<(), IdentityError> {
     trace!(
         log,
         "Saving pem with input identity name '{name}' and identity config {:?}",
         identity_config
     );
     if identity_config.hsm.is_some() {
-        bail!("Cannot save PEM content for an HSM.")
+        Err(CannotSavePemContentForHsm())
     } else if let Some(keyring_identity) = &identity_config.keyring_identity_suffix {
         debug!(log, "Saving keyring identity.");
-        keyring_mock::write_pem_to_keyring(keyring_identity, pem_content)?;
-        Ok(())
+        keyring_mock::write_pem_to_keyring(keyring_identity, pem_content)
+            .map_err(WritePemToKeyringFailed)
     } else {
         let path = locations.get_identity_pem_path(name, identity_config);
-        write_pem_to_file(&path, Some(identity_config), pem_content)?;
-        Ok(())
+        write_pem_to_file(&path, Some(identity_config), pem_content)
     }
 }
 
