@@ -10,6 +10,10 @@ use dfx_core::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
     DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
+use dfx_core::error::network_config::NetworkConfigError;
+use dfx_core::error::network_config::NetworkConfigError::{
+    NoProvidersForNetwork, ParseProviderUrlFailed,
+};
 use dfx_core::identity::{ANONYMOUS_IDENTITY_NAME, WALLET_CONFIG_FILENAME};
 
 use anyhow::{anyhow, bail, Context};
@@ -70,12 +74,9 @@ fn config_network_to_network_descriptor(
                     .providers
                     .iter()
                     .map(|provider| parse_provider_url(provider))
-                    .collect::<DfxResult<_>>()
+                    .collect::<Result<_, NetworkConfigError>>()
             } else {
-                Err(anyhow!(
-                    "Cannot find providers for network \"{}\"",
-                    network_name
-                ))
+                Err(NoProvidersForNetwork(network_name.to_string()))
             }?;
             let is_ic = NetworkDescriptor::is_ic(network_name, &providers);
             Ok(NetworkDescriptor {
@@ -436,8 +437,7 @@ pub fn create_anonymous_agent_environment<'a>(
     )
 }
 
-#[context("Failed to parse supplied provider url {}.", s)]
-pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
+pub fn command_line_provider_to_url(s: &str) -> Result<String, NetworkConfigError> {
     match parse_provider_url(s) {
         Ok(url) => Ok(url),
         Err(original_error) => {
@@ -447,10 +447,10 @@ pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
     }
 }
 
-pub fn parse_provider_url(url: &str) -> DfxResult<String> {
+pub fn parse_provider_url(url: &str) -> Result<String, NetworkConfigError> {
     Url::parse(url)
         .map(|_| String::from(url))
-        .with_context(|| format!("Cannot parse provider URL {}.", url))
+        .map_err(|e| ParseProviderUrlFailed(Box::new(url.to_string()), e))
 }
 
 pub async fn ping_and_wait(url: &str) -> DfxResult {
