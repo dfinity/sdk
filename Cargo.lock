@@ -919,6 +919,7 @@ dependencies = [
  "k256",
  "keyring",
  "lazy_static",
+ "proptest",
  "ring",
  "sec1",
  "serde",
