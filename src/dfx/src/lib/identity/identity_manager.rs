@@ -1,10 +1,10 @@
-use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::IdentityError;
 use crate::lib::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
 use crate::lib::identity::{
     identity_utils, pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME,
     IDENTITY_JSON, TEMP_IDENTITY_PREFIX,
 };
+use dfx_core::config::directories::get_config_dfx_dir_path;
 use dfx_core::error::encryption::EncryptionError;
 use dfx_core::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use dfx_core::error::identity::IdentityError::{

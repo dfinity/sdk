@@ -2,9 +2,8 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::IdentityError;
-use dfx_core::config::directories::get_shared_network_data_directory;
+use dfx_core::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
 use dfx_core::error::identity::IdentityError::{
     GetConfigDirectoryFailed, GetSharedNetworkDataDirectoryFailed,
     InstantiateHardwareIdentityFailed, ReadIdentityFileFailed, RenameWalletFailed,
