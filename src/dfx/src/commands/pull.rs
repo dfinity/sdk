@@ -5,7 +5,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_HASH, DFX_WASM_URL};
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::{environment::Environment, provider::create_agent_environment};
+use crate::lib::{agent::create_agent_environment, environment::Environment};
 use crate::NetworkOpt;
 use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};

@@ -1,6 +1,6 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::NetworkOpt;
 
