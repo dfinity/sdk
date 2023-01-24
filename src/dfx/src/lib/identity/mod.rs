@@ -2,11 +2,8 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::lib::config::get_config_dfx_dir_path;
-use crate::lib::environment::Environment;
-use crate::lib::error::{DfxResult, IdentityError};
-use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use dfx_core::config::directories::get_shared_network_data_directory;
+use crate::lib::error::IdentityError;
+use dfx_core::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
 use dfx_core::error::identity::IdentityError::{
     GetConfigDirectoryFailed, GetSharedNetworkDataDirectoryFailed,
     InstantiateHardwareIdentityFailed, ReadIdentityFileFailed, RenameWalletFailed,
@@ -17,9 +14,7 @@ use dfx_core::error::wallet_config::WalletConfigError::{
 };
 use dfx_core::json::{load_json_file, save_json_file};
 
-use anyhow::Context;
 use candid::Principal;
-use fn_error_context::context;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
@@ -148,40 +143,6 @@ impl Identity {
         &self.name
     }
 
-    #[context("Failed to get path to wallet config file for identity '{}' on network '{}'.", name, network.name)]
-    pub fn get_wallet_config_file(network: &NetworkDescriptor, name: &str) -> DfxResult<PathBuf> {
-        Ok(match &network.r#type {
-            NetworkTypeDescriptor::Persistent => {
-                // Using the global
-                get_config_dfx_dir_path()?
-                    .join("identity")
-                    .join(name)
-                    .join(WALLET_CONFIG_FILENAME)
-            }
-            NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path.clone(),
-        })
-    }
-
-    #[context("Failed to get wallet config for identity '{}' on network '{}'.", name, network.name)]
-    fn wallet_config(
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> DfxResult<(PathBuf, WalletGlobalConfig)> {
-        let wallet_path = Identity::get_wallet_config_file(network, name)?;
-
-        // Read the config file.
-        Ok((
-            wallet_path.clone(),
-            if wallet_path.exists() {
-                Identity::load_wallet_config(&wallet_path)?
-            } else {
-                WalletGlobalConfig {
-                    identities: BTreeMap::new(),
-                }
-            },
-        ))
-    }
-
     /// Logs all wallets that are configured in a WalletGlobalConfig.
     pub fn display_linked_wallets(
         logger: &Logger,
@@ -218,51 +179,6 @@ impl Identity {
         save_json_file(path, &config).map_err(SaveWalletConfigFailed)
     }
 
-    #[context("Failed to set wallet id to {} for identity '{}' on network '{}'.", id, name, network.name)]
-    pub fn set_wallet_id(network: &NetworkDescriptor, name: &str, id: Principal) -> DfxResult {
-        let (wallet_path, mut config) = Identity::wallet_config(network, name)?;
-        // Update the wallet map in it.
-        let identities = &mut config.identities;
-        let network_map = identities
-            .entry(name.to_string())
-            .or_insert(WalletNetworkMap {
-                networks: BTreeMap::new(),
-            });
-
-        network_map.networks.insert(network.name.clone(), id);
-
-        Identity::save_wallet_config(&wallet_path, &config)?;
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    pub fn remove_wallet_id(network: &NetworkDescriptor, name: &str) -> DfxResult {
-        let (wallet_path, mut config) = Identity::wallet_config(network, name)?;
-        // Update the wallet map in it.
-        let identities = &mut config.identities;
-        let network_map = identities
-            .entry(name.to_string())
-            .or_insert(WalletNetworkMap {
-                networks: BTreeMap::new(),
-            });
-
-        network_map.networks.remove(&network.name);
-
-        std::fs::create_dir_all(wallet_path.parent().unwrap()).with_context(|| {
-            format!(
-                "Failed to create {}.",
-                wallet_path.parent().unwrap().to_string_lossy()
-            )
-        })?;
-        std::fs::write(
-            &wallet_path,
-            &serde_json::to_string_pretty(&config)
-                .context("Failed to serialize global wallet config.")?,
-        )
-        .with_context(|| format!("Failed to write to {}.", wallet_path.to_string_lossy()))?;
-        Ok(())
-    }
-
     fn rename_wallet_global_config_key(
         original_identity: &str,
         renamed_identity: &str,
@@ -290,7 +206,7 @@ impl Identity {
 
     // used for dfx identity rename foo bar
     pub fn map_wallets_to_renamed_identity(
-        env: &dyn Environment,
+        project_temp_dir: Option<PathBuf>,
         original_identity: &str,
         renamed_identity: &str,
     ) -> Result<(), IdentityError> {
@@ -316,7 +232,7 @@ impl Identity {
                 shared_local_network_wallet_path,
             )?;
         }
-        if let Some(temp_dir) = env.get_project_temp_dir() {
+        if let Some(temp_dir) = project_temp_dir {
             let local_wallet_path = temp_dir.join("local").join(WALLET_CONFIG_FILENAME);
             if local_wallet_path.exists() {
                 Identity::rename_wallet_global_config_key(
@@ -327,25 +243,6 @@ impl Identity {
             }
         }
         Ok(())
-    }
-
-    #[context("Failed to get wallet canister id for identity '{}' on network '{}'.", name, network.name)]
-    pub fn wallet_canister_id(
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> DfxResult<Option<Principal>> {
-        let wallet_path = Identity::get_wallet_config_file(network, name)?;
-        if !wallet_path.exists() {
-            return Ok(None);
-        }
-
-        let config = Identity::load_wallet_config(&wallet_path)?;
-
-        let maybe_wallet_principal = config
-            .identities
-            .get(name)
-            .and_then(|wallet_network| wallet_network.networks.get(&network.name).cloned());
-        Ok(maybe_wallet_principal)
     }
 }
 

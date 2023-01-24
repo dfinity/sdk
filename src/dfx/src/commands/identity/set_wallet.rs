@@ -1,11 +1,10 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::identity::Identity;
+use crate::lib::identity::wallet::{build_wallet_canister, set_wallet_id};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::provider::create_agent_environment;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
@@ -101,7 +100,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         network.name,
         canister_id
     );
-    Identity::set_wallet_id(network, &identity_name, canister_id)?;
+    set_wallet_id(network, &identity_name, canister_id)?;
     info!(log, "Wallet set successfully.");
 
     Ok(())

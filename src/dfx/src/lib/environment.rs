@@ -9,6 +9,7 @@ use crate::lib::progress_bar::ProgressBar;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
+use dfx_core::error::identity::IdentityError;
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
@@ -48,6 +49,10 @@ pub trait Environment {
     fn get_verbose_level(&self) -> i64;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
+
+    fn new_identity_manager(&self) -> Result<IdentityManager, IdentityError> {
+        IdentityManager::new(self.get_logger(), self.get_identity_override())
+    }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
@@ -262,7 +267,7 @@ impl<'a> AgentEnvironment<'a> {
         use_identity: Option<&str>,
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
-        let mut identity_manager = IdentityManager::new(backend)?;
+        let mut identity_manager = backend.new_identity_manager()?;
         let identity = if let Some(identity_name) = use_identity {
             identity_manager.instantiate_identity_from_name(identity_name, &logger)?
         } else {

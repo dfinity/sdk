@@ -1,11 +1,10 @@
-use crate::lib::config::get_config_dfx_dir_path;
-use crate::lib::environment::Environment;
 use crate::lib::error::IdentityError;
 use crate::lib::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
 use crate::lib::identity::{
     identity_utils, pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME,
     IDENTITY_JSON, TEMP_IDENTITY_PREFIX,
 };
+use dfx_core::config::directories::get_config_dfx_dir_path;
 use dfx_core::error::encryption::EncryptionError;
 use dfx_core::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use dfx_core::error::identity::IdentityError::{
@@ -165,7 +164,7 @@ pub struct IdentityManager {
 }
 
 impl IdentityManager {
-    pub fn new(env: &dyn Environment) -> Result<Self, IdentityError> {
+    pub fn new(logger: &Logger, identity_override: &Option<String>) -> Result<Self, IdentityError> {
         let config_dfx_dir_path = get_config_dfx_dir_path().map_err(GetConfigDirectoryFailed)?;
         let identity_root_path = config_dfx_dir_path.join("identity");
         let identity_json_path = config_dfx_dir_path.join("identity.json");
@@ -173,10 +172,9 @@ impl IdentityManager {
         let configuration = if identity_json_path.exists() {
             load_configuration(&identity_json_path)?
         } else {
-            initialize(env.get_logger(), &identity_json_path, &identity_root_path)?
+            initialize(logger, &identity_json_path, &identity_root_path)?
         };
 
-        let identity_override = env.get_identity_override();
         let selected_identity = identity_override
             .clone()
             .unwrap_or_else(|| configuration.default.clone());
@@ -191,7 +189,7 @@ impl IdentityManager {
         };
 
         if let Some(identity) = identity_override {
-            mgr.require_identity_exists(env.get_logger(), identity)?;
+            mgr.require_identity_exists(logger, identity)?;
         }
 
         Ok(mgr)
@@ -480,7 +478,7 @@ impl IdentityManager {
     pub fn rename(
         &mut self,
         log: &Logger,
-        env: &dyn Environment,
+        project_temp_dir: Option<PathBuf>,
         from: &str,
         to: &str,
     ) -> Result<bool, IdentityError> {
@@ -497,7 +495,7 @@ impl IdentityManager {
             return Err(IdentityError::IdentityAlreadyExists());
         }
 
-        DfxIdentity::map_wallets_to_renamed_identity(env, from, to)?;
+        DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)?;
         dfx_core::fs::rename(&from_dir, &to_dir).map_err(RenameIdentityDirectoryFailed)?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
