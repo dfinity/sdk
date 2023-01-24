@@ -9,12 +9,12 @@ mod install;
 mod list;
 mod uninstall;
 
-pub struct ExtensionsManager {
+pub struct ExtensionManager {
     pub dir: PathBuf,
     pub dfx_version: Version,
 }
 
-impl ExtensionsManager {
+impl ExtensionManager {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         let Ok(x) = get_bin_cache(env.get_version().to_string().as_str())
          else {

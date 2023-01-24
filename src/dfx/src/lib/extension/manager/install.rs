@@ -12,9 +12,9 @@ use semver::{BuildMetadata, Prerelease, Version};
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
 
-use super::ExtensionsManager;
+use super::ExtensionManager;
 
-impl ExtensionsManager {
+impl ExtensionManager {
     pub fn install_extension(&self, extension_name: &str) -> DfxResult<()> {
         if self.get_extension_directory(extension_name).exists() {
             return Err(DfxError::new(ExtensionError::ExtensionAlreadyInstalled(

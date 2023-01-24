@@ -1,8 +1,8 @@
-use super::ExtensionsManager;
+use super::ExtensionManager;
 use crate::lib::error::{DfxError, DfxResult, ExtensionError};
 use std::ffi::OsString;
 
-impl ExtensionsManager {
+impl ExtensionManager {
     pub fn run_extension(&self, extension_name: OsString, params: Vec<OsString>) -> DfxResult<()> {
         let Ok(extension_name) = extension_name.clone().into_string() else {
             return Err(DfxError::new(ExtensionError::InvalidExtensionName(extension_name.to_string_lossy().to_string())))

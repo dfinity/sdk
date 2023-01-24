@@ -32,7 +32,7 @@ pub enum ExtensionError {
     MalformedExtensionDownloadUrl(url::ParseError),
 
     #[error("DFX version '{0}' is not supported.")]
-    DfxVersionNotFoundInCompatibilityJson(String),
+    DfxVersionNotFoundInCompatibilityJson(semver::Version, String),
 
     #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
     ExtensionVersionNotFoundInRepository(String, String, String),

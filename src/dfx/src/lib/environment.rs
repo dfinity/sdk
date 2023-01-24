@@ -2,7 +2,7 @@ use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::{Config, NetworksConfig};
 use crate::config::{cache, dfx_version};
 use crate::lib::error::DfxResult;
-use crate::lib::extension::manager::ExtensionsManager;
+use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
@@ -61,7 +61,7 @@ pub trait Environment {
 
     fn get_effective_canister_id(&self) -> Principal;
 
-    fn new_extension_manager(&self) -> DfxResult<ExtensionsManager>;
+    fn new_extension_manager(&self) -> DfxResult<ExtensionManager>;
 }
 
 pub struct EnvironmentImpl {
@@ -241,8 +241,8 @@ impl Environment for EnvironmentImpl {
         self.effective_canister_id
     }
 
-    fn new_extension_manager(&self) -> DfxResult<ExtensionsManager> {
-        ExtensionsManager::new(self)
+    fn new_extension_manager(&self) -> DfxResult<ExtensionManager> {
+        ExtensionManager::new(self)
     }
 }
 
@@ -354,8 +354,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_effective_canister_id()
     }
 
-    fn new_extension_manager(&self) -> DfxResult<ExtensionsManager> {
-        ExtensionsManager::new(self.backend)
+    fn new_extension_manager(&self) -> DfxResult<ExtensionManager> {
+        ExtensionManager::new(self.backend)
     }
 }
 
