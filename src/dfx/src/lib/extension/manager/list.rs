@@ -1,16 +1,16 @@
 use super::ExtensionsManager;
-use crate::lib::{error::DfxResult, extension::Extension};
-
-// possible errors:
-// - extensions directory does not exist
-// - extensions directory is not a directory
-// - extensions directory is not readable
+use crate::lib::{
+    error::{DfxError, DfxResult, ExtensionError},
+    extension::Extension,
+};
 
 impl ExtensionsManager {
     pub fn list_installed_extensions(&self) -> DfxResult<Vec<Extension>> {
-        Ok(self
-            .dir
-            .read_dir()?
+        let Ok(dir_content) = self.dir.read_dir() else {
+            return Err(DfxError::new(ExtensionError::ExtensionsDirectoryIsNotReadable));
+        };
+
+        Ok(dir_content
             .filter_map(|v| {
                 let dir_entry = v.ok()?;
                 if dir_entry.file_type().map_or(false, |e| e.is_dir())

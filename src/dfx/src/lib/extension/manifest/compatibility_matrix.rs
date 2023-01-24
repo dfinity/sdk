@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use schemars::JsonSchema;
 use semver::Version;
 use serde::Deserialize;
@@ -26,9 +25,11 @@ pub struct ExtensionCompatibleVersions {
 
 impl ExtensionsCompatibilityMatrix {
     pub fn fetch() -> DfxResult<Self> {
-        let resp = reqwest::blocking::get(COMMON_EXTENSIONS_MANIFEST_LOCATION)?;
-        let matrix: Self = resp.json()?;
-        Ok(matrix)
+        let Ok(resp) = reqwest::blocking::get(COMMON_EXTENSIONS_MANIFEST_LOCATION) else {
+            return Err(DfxError::new(ExtensionError::CompatibilityMatrixFetchError(COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string())));
+        };
+        resp.json()
+            .map_err(|e| DfxError::new(ExtensionError::MalformedCompatibilityMatrix(e)))
     }
 
     pub fn find_latest_compatible_extension_version(
@@ -37,31 +38,32 @@ impl ExtensionsCompatibilityMatrix {
         dfx_version: Version,
     ) -> DfxResult<Version> {
         let Some(manifests) = self.0.get(&dfx_version) else {
-                    return Err(DfxError::new(ExtensionError::ExtensionError(format!(
+                    return Err(DfxError::new(ExtensionError::DfxVersionNotFoundInCompatibilityJson(format!(
             "can't find dfx version: {} in dfx extensions compatibility matrix: {}",
             dfx_version, COMMON_EXTENSIONS_MANIFEST_LOCATION
         ))));
 
         };
         let Some(extension_location) = manifests.get(extension_name) else{
-            return Err(DfxError::new(ExtensionError::ExtensionError(
-            format!("can't find extension: {} in dfx extensions compatibility matrix: {} for dfx version: {}", extension_name, dfx_version, COMMON_EXTENSIONS_MANIFEST_LOCATION)
-        )));
-
+            return Err(DfxError::new(ExtensionError::ExtensionVersionNotFoundInRepository( extension_name.to_string(), dfx_version.to_string(), COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string())));
         };
-        return extension_location
-            .versions
-            .iter()
-            .map(|v| Version::parse(v).unwrap_or(Version::new(0, 0, 0)))
-            .sorted()
-            .rev()
-            .next()
-            .ok_or_else(|| {
-                DfxError::new(ExtensionError::ExtensionError(format!(
-                    "versions array empty for dfx version: {} and extension name: {}",
-                    dfx_version, extension_name
-                )))
-            });
+        let mut extension_versions = vec![];
+        for ext_verion in extension_location.versions.iter().rev() {
+            let Ok(version) = Version::parse(ext_verion) else {
+                return Err(DfxError::new(ExtensionError::MalformedVersionsEntryForExtensionInCompatibilityMatrix(format!(
+                    "can't parse version extension: {}",
+                    ext_verion
+                ))));
+            };
+            extension_versions.push(version);
+        }
+        extension_versions.sort();
+        extension_versions.reverse();
+        extension_versions.first().cloned().ok_or(DfxError::new(
+            ExtensionError::ListOfVersionsForExtensionIsEmpty(
+                COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(),
+            ),
+        ))
     }
 
     pub fn _list_compatible_extensions(&self) -> &'static str {
