@@ -1,10 +1,10 @@
-use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::IdentityError;
 use crate::lib::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
 use crate::lib::identity::{
-    identity_utils, pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME,
-    IDENTITY_JSON, TEMP_IDENTITY_PREFIX,
+    pem_safekeeping, pem_utils, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON,
+    TEMP_IDENTITY_PREFIX,
 };
+use dfx_core::config::directories::get_config_dfx_dir_path;
 use dfx_core::error::encryption::EncryptionError;
 use dfx_core::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use dfx_core::error::identity::IdentityError::{
@@ -40,7 +40,7 @@ use std::boxed::Box;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use super::identity_utils::validate_pem_file;
+use super::pem_utils::validate_pem_file;
 use super::{keyring_mock, WALLET_CONFIG_FILENAME};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
@@ -333,7 +333,7 @@ impl IdentityManager {
                 identity_config = create_identity_config(log, mode, name, None)?;
                 let (src_pem_content, _) =
                     pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
-                identity_utils::validate_pem_file(&src_pem_content)?;
+                pem_utils::validate_pem_file(&src_pem_content)?;
                 pem_safekeeping::save_pem(
                     log,
                     self.file_locations(),

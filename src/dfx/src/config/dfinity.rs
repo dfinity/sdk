@@ -1,12 +1,12 @@
 #![allow(dead_code)]
+use crate::config::dfinity::MetadataVisibility::Public;
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
-use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
+use dfx_core::config::directories::get_config_dfx_dir_path;
 
-use crate::config::dfinity::MetadataVisibility::Public;
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use candid::Principal;

@@ -116,7 +116,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let call_sender = runtime.block_on(call_sender(&env, &opts.wallet))?;
+    let call_sender = runtime.block_on(call_sender(&opts.wallet))?;
     let proxy_sender;
     let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
         let wallet = runtime.block_on(get_or_create_wallet_canister(

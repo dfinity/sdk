@@ -1,10 +1,18 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::identity::{
+    Identity, WalletGlobalConfig, WalletNetworkMap, WALLET_CONFIG_FILENAME,
+};
+use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
+use dfx_core::config::directories::get_config_dfx_dir_path;
+use dfx_core::error::wallet_config::WalletConfigError;
+use dfx_core::error::wallet_config::WalletConfigError::{
+    EnsureWalletConfigDirFailed, GetWalletConfigPathFailed, SaveWalletConfigFailed,
+};
+use dfx_core::json::save_json_file;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -14,6 +22,8 @@ use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use slog::info;
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 /// Gets the currently configured wallet canister. If none exists yet and `create` is true, then this creates a new wallet. WARNING: Creating a new wallet costs ICP!
 ///
@@ -25,7 +35,7 @@ pub async fn get_or_create_wallet(
     network: &NetworkDescriptor,
     name: &str,
 ) -> DfxResult<Principal> {
-    match Identity::wallet_canister_id(network, name)? {
+    match wallet_canister_id(network, name)? {
         None => {
             // If the network is not the IC, we ignore the error and create a new wallet for the identity.
             if !network.is_ic && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err() {
@@ -40,6 +50,29 @@ pub async fn get_or_create_wallet(
         }
         Some(principal) => Ok(principal),
     }
+}
+
+pub fn get_wallet_config_path(
+    network: &NetworkDescriptor,
+    name: &str,
+) -> Result<PathBuf, WalletConfigError> {
+    Ok(match &network.r#type {
+        NetworkTypeDescriptor::Persistent => {
+            // Using the global
+            get_config_dfx_dir_path()
+                .map_err(|e| {
+                    GetWalletConfigPathFailed(
+                        Box::new(name.to_string()),
+                        Box::new(network.name.clone()),
+                        e,
+                    )
+                })?
+                .join("identity")
+                .join(name)
+                .join(WALLET_CONFIG_FILENAME)
+        }
+        NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path.clone(),
+    })
 }
 
 #[context("Failed to create wallet for identity '{}' on network '{}'.", name, network.name)]
@@ -100,7 +133,7 @@ pub async fn create_wallet(
         .await
         .context("Failed to store wallet wasm.")?;
 
-    Identity::set_wallet_id(network, name, canister_id)?;
+    set_wallet_id(network, name, canister_id)?;
 
     info!(
         env.get_logger(),
@@ -148,4 +181,79 @@ pub async fn get_or_create_wallet_canister<'env>(
         build_wallet_canister(wallet_canister_id, env).await
     }
     .await
+}
+
+pub fn set_wallet_id(
+    network: &NetworkDescriptor,
+    name: &str,
+    id: Principal,
+) -> Result<(), WalletConfigError> {
+    let (wallet_path, mut config) = wallet_config(network, name)?;
+    // Update the wallet map in it.
+    let identities = &mut config.identities;
+    let network_map = identities
+        .entry(name.to_string())
+        .or_insert(WalletNetworkMap {
+            networks: BTreeMap::new(),
+        });
+
+    network_map.networks.insert(network.name.clone(), id);
+
+    Identity::save_wallet_config(&wallet_path, &config)
+}
+
+#[allow(dead_code)]
+pub fn remove_wallet_id(network: &NetworkDescriptor, name: &str) -> Result<(), WalletConfigError> {
+    let (wallet_path, mut config) = wallet_config(network, name)?;
+    // Update the wallet map in it.
+    let identities = &mut config.identities;
+    let network_map = identities
+        .entry(name.to_string())
+        .or_insert(WalletNetworkMap {
+            networks: BTreeMap::new(),
+        });
+
+    network_map.networks.remove(&network.name);
+
+    dfx_core::fs::composite::ensure_parent_dir_exists(&wallet_path)
+        .map_err(EnsureWalletConfigDirFailed)?;
+
+    save_json_file(&wallet_path, &config).map_err(SaveWalletConfigFailed)
+}
+
+pub fn wallet_canister_id(
+    network: &NetworkDescriptor,
+    name: &str,
+) -> Result<Option<Principal>, WalletConfigError> {
+    let wallet_path = get_wallet_config_path(network, name)?;
+    if !wallet_path.exists() {
+        return Ok(None);
+    }
+
+    let config = Identity::load_wallet_config(&wallet_path)?;
+
+    let maybe_wallet_principal = config
+        .identities
+        .get(name)
+        .and_then(|wallet_network| wallet_network.networks.get(&network.name).cloned());
+    Ok(maybe_wallet_principal)
+}
+
+fn wallet_config(
+    network: &NetworkDescriptor,
+    name: &str,
+) -> Result<(PathBuf, WalletGlobalConfig), WalletConfigError> {
+    let wallet_path = get_wallet_config_path(network, name)?;
+
+    // Read the config file.
+    Ok((
+        wallet_path.clone(),
+        if wallet_path.exists() {
+            Identity::load_wallet_config(&wallet_path)?
+        } else {
+            WalletGlobalConfig {
+                identities: BTreeMap::new(),
+            }
+        },
+    ))
 }

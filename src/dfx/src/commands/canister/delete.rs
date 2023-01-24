@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::Identity;
+use crate::lib::identity::wallet::{build_wallet_canister, wallet_canister_id};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
@@ -20,7 +20,6 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::Argument;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
@@ -113,7 +112,7 @@ async fn delete_canister(
                         .expect("No selected identity.")
                         .to_string();
                     // If there is no wallet, then do not attempt to withdraw the cycles.
-                    Identity::wallet_canister_id(network, &identity_name)?
+                    wallet_canister_id(network, &identity_name)?
                 }
             },
         }
