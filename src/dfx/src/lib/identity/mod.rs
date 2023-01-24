@@ -4,7 +4,6 @@
 //! type.
 use crate::lib::config::get_config_dfx_dir_path;
 use crate::lib::error::IdentityError;
-use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::error::identity::IdentityError::{
     GetConfigDirectoryFailed, GetSharedNetworkDataDirectoryFailed,
@@ -12,8 +11,7 @@ use dfx_core::error::identity::IdentityError::{
 };
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
-    EnsureWalletConfigDirFailed, GetWalletConfigPathFailed, LoadWalletConfigFailed,
-    SaveWalletConfigFailed,
+    EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
 };
 use dfx_core::json::{load_json_file, save_json_file};
 
@@ -146,48 +144,6 @@ impl Identity {
         &self.name
     }
 
-    pub fn get_wallet_config_path(
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> Result<PathBuf, WalletConfigError> {
-        Ok(match &network.r#type {
-            NetworkTypeDescriptor::Persistent => {
-                // Using the global
-                get_config_dfx_dir_path()
-                    .map_err(|e| {
-                        GetWalletConfigPathFailed(
-                            Box::new(name.to_string()),
-                            Box::new(network.name.clone()),
-                            e,
-                        )
-                    })?
-                    .join("identity")
-                    .join(name)
-                    .join(WALLET_CONFIG_FILENAME)
-            }
-            NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path.clone(),
-        })
-    }
-
-    fn wallet_config(
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> Result<(PathBuf, WalletGlobalConfig), WalletConfigError> {
-        let wallet_path = Identity::get_wallet_config_path(network, name)?;
-
-        // Read the config file.
-        Ok((
-            wallet_path.clone(),
-            if wallet_path.exists() {
-                Identity::load_wallet_config(&wallet_path)?
-            } else {
-                WalletGlobalConfig {
-                    identities: BTreeMap::new(),
-                }
-            },
-        ))
-    }
-
     /// Logs all wallets that are configured in a WalletGlobalConfig.
     pub fn display_linked_wallets(
         logger: &Logger,
@@ -222,48 +178,6 @@ impl Identity {
             .map_err(EnsureWalletConfigDirFailed)?;
 
         save_json_file(path, &config).map_err(SaveWalletConfigFailed)
-    }
-
-    pub fn set_wallet_id(
-        network: &NetworkDescriptor,
-        name: &str,
-        id: Principal,
-    ) -> Result<(), WalletConfigError> {
-        let (wallet_path, mut config) = Identity::wallet_config(network, name)?;
-        // Update the wallet map in it.
-        let identities = &mut config.identities;
-        let network_map = identities
-            .entry(name.to_string())
-            .or_insert(WalletNetworkMap {
-                networks: BTreeMap::new(),
-            });
-
-        network_map.networks.insert(network.name.clone(), id);
-
-        Identity::save_wallet_config(&wallet_path, &config)?;
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    pub fn remove_wallet_id(
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> Result<(), WalletConfigError> {
-        let (wallet_path, mut config) = Identity::wallet_config(network, name)?;
-        // Update the wallet map in it.
-        let identities = &mut config.identities;
-        let network_map = identities
-            .entry(name.to_string())
-            .or_insert(WalletNetworkMap {
-                networks: BTreeMap::new(),
-            });
-
-        network_map.networks.remove(&network.name);
-
-        dfx_core::fs::composite::ensure_parent_dir_exists(&wallet_path)
-            .map_err(EnsureWalletConfigDirFailed)?;
-
-        save_json_file(&wallet_path, &config).map_err(SaveWalletConfigFailed)
     }
 
     fn rename_wallet_global_config_key(
@@ -330,24 +244,6 @@ impl Identity {
             }
         }
         Ok(())
-    }
-
-    pub fn wallet_canister_id(
-        network: &NetworkDescriptor,
-        name: &str,
-    ) -> Result<Option<Principal>, WalletConfigError> {
-        let wallet_path = Identity::get_wallet_config_path(network, name)?;
-        if !wallet_path.exists() {
-            return Ok(None);
-        }
-
-        let config = Identity::load_wallet_config(&wallet_path)?;
-
-        let maybe_wallet_principal = config
-            .identities
-            .get(name)
-            .and_then(|wallet_network| wallet_network.networks.get(&network.name).cloned());
-        Ok(maybe_wallet_principal)
     }
 }
 
