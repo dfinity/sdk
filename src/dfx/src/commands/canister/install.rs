@@ -52,7 +52,7 @@ pub struct CanisterInstallOpts {
     #[clap(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 
-    /// Output environment variables to a file in dotenv format.
+    /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
     output_env_file: Option<PathBuf>,
 
     /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,

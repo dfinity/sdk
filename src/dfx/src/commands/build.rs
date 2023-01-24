@@ -26,7 +26,7 @@ pub struct CanisterBuildOpts {
     #[clap(long)]
     check: bool,
 
-    /// Output environment variables to a file in dotenv format.
+    /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
     #[clap(long)]
     output_env_file: Option<PathBuf>,
 
