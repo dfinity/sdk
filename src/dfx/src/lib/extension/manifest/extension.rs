@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::{collections::HashMap, fmt::Display};
 
+pub static MANIFEST_FILE_NAME: &str = "manifest.json";
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ExtensionManifest {
     pub name: String,

@@ -65,6 +65,12 @@ pub enum ExtensionError {
     #[error("Cannot list extensions.")]
     ExtensionsDirectoryIsNotReadable,
 
+    #[error("Malformed extension manifest ({0}): '{1}'.")]
+    ExtensionManifestIsNotValidJson(std::path::PathBuf, serde_json::Error),
+
+    #[error("Malformed extension manifest ({0})..")]
+    ExtensionManifestDoesNotExist(std::path::PathBuf),
+
     // errors related to executing extensions
     #[error("Invalid extension name '{0}'.")]
     InvalidExtensionName(String),

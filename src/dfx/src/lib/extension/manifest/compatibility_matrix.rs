@@ -55,10 +55,10 @@ impl ExtensionsCompatibilityMatrix {
         }
         extension_versions.sort();
         extension_versions.reverse();
-        extension_versions.first().cloned().ok_or(DfxError::new(
-            ExtensionError::ListOfVersionsForExtensionIsEmpty(
+        extension_versions.first().cloned().ok_or_else(|| {
+            DfxError::new(ExtensionError::ListOfVersionsForExtensionIsEmpty(
                 COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(),
-            ),
-        ))
+            ))
+        })
     }
 }

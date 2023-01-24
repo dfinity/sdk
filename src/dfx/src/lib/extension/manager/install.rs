@@ -99,7 +99,7 @@ impl ExtensionManager {
             };
             if let Err(e) = f.set_permissions(std::fs::Permissions::from_mode(0o777)) {
                 return Err(DfxError::new(ExtensionError::ChangeFilePermissionsFailed(
-                bin, e,
+                    bin, e,
                 )));
             }
         }
