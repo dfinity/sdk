@@ -1,4 +1,4 @@
-use crate::lib::identity::IdentityConfiguration;
+use crate::identity::IdentityConfiguration;
 use std::path::{Path, PathBuf};
 
 pub const IDENTITY_PEM: &str = "identity.pem";

@@ -1,5 +1,5 @@
-use dfx_core::error::identity::IdentityError;
-use dfx_core::error::identity::IdentityError::{UnsupportedKeyVersion, ValidatePemContentFailed};
+use crate::error::identity::IdentityError;
+use crate::error::identity::IdentityError::{UnsupportedKeyVersion, ValidatePemContentFailed};
 
 use ic_agent::identity::BasicIdentity;
 use ic_agent::identity::PemError;
