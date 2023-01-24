@@ -1,8 +1,13 @@
 use crate::config::cache::{get_bin_cache, get_cache_root};
 use crate::lib::environment::Environment;
 use crate::lib::error::{CacheError, DfxError, DfxResult, ExtensionError};
+use crate::lib::extension::manifest::MANIFEST_FILE_NAME;
+
 use semver::Version;
 use std::path::PathBuf;
+
+use super::manifest::ExtensionManifest;
+use super::Extension;
 
 mod execute;
 mod install;
@@ -64,5 +69,18 @@ impl ExtensionManager {
         } else {
             Ok(std::process::Command::new(bin))
         }
+    }
+
+    pub fn load_manifest(&self, ext: Extension) -> Result<ExtensionManifest, ExtensionError> {
+        let manifest_path = self
+            .get_extension_directory(&ext.name)
+            .join(MANIFEST_FILE_NAME);
+        let Ok(manifest_file) = std::fs::File::open(&manifest_path) else {
+            return Err(ExtensionError::ExtensionManifestDoesNotExist(manifest_path));
+        };
+        let manifest_reader = std::io::BufReader::new(manifest_file);
+
+        serde_json::from_reader(manifest_reader)
+            .map_err(|e| ExtensionError::ExtensionManifestIsNotValidJson(manifest_path, e))
     }
 }
