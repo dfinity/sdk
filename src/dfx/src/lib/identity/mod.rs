@@ -28,6 +28,7 @@ pub mod identity_manager;
 pub mod identity_utils;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
+pub mod pem_utils;
 pub mod wallet;
 
 use crate::lib::identity::identity_file_locations::IdentityFileLocations;
