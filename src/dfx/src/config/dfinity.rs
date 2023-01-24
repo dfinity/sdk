@@ -575,6 +575,9 @@ pub struct ConfigInterface {
     /// Mapping between network names and their configurations.
     /// Networks 'ic' and 'local' are implicitly defined.
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
+
+    /// If set, environment variables will be output to this file (without overwriting any user-defined variables, if the file already exists).
+    pub output_env_file: Option<PathBuf>,
 }
 
 pub type TopLevelConfigNetworks = BTreeMap<String, ConfigNetwork>;

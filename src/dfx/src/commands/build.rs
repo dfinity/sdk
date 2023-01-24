@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -24,6 +26,10 @@ pub struct CanisterBuildOpts {
     #[clap(long)]
     check: bool,
 
+    /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
+    #[clap(long)]
+    output_env_file: Option<PathBuf>,
+
     #[clap(flatten)]
     network: NetworkOpt,
 }
@@ -35,6 +41,9 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     // Read the config.
     let config = env.get_config_or_anyhow()?;
+    let env_file = opts
+        .output_env_file
+        .or_else(|| config.get_config().output_env_file.clone());
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
@@ -80,7 +89,8 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
     let build_config = BuildConfig::from_config(&config)?
         .with_build_mode_check(build_mode_check)
-        .with_canisters_to_build(canisters_to_build);
+        .with_canisters_to_build(canisters_to_build)
+        .with_env_file(env_file);
     runtime.block_on(canister_pool.build_or_fail(logger, &build_config))?;
 
     Ok(())
