@@ -6,9 +6,7 @@ use std::collections::HashMap;
 use crate::lib::error::{DfxError, DfxResult, ExtensionError};
 
 pub static COMMON_EXTENSIONS_MANIFEST_LOCATION: &str =
-    "https://raw.githubusercontent.com/smallstepman/dfx-extensions/main/compatibility.json";
-// pub static COMMON_EXTENSIONS_MANIFEST_LOCATION: &str =
-//     "https://raw.githubusercontent.com/dfinity/dfx-extensions/main/compatibility.json";
+    "https://raw.githubusercontent.com/dfinity/dfx-extensions/main/compatibility.json";
 
 type DfxVersion = Version;
 type ExtensionName = String;

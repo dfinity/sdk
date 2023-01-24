@@ -47,8 +47,7 @@ impl ExtensionsManager {
         let extension_version =
             manifest.find_latest_compatible_extension_version(extension_name, dfx_version)?;
         let download_url = format!(
-            // "https://github.com/dfinity/dfx-extensions/releases/download/{tag}/{name}-{version}-{platform}-{arch}.tar.gz",
-            "https://github.com/smallstepman/dfx-extensions/releases/download/{name}-{version}/{name}-{version}-{platform}-{arch}.tar.gz",
+            "https://github.com/dfinity/dfx-extensions/releases/download/{name}-{version}/{name}-{version}-{platform}-{arch}.tar.gz",
             name = extension_name,
             version = extension_version,
             platform = std::env::consts::OS,
