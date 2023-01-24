@@ -18,8 +18,8 @@ impl ExtensionManager {
         };
 
         let Some(code) = exit_status.code() else {
+            #[cfg(not(target_os = "windows"))]
             return Err(DfxError::new(ExtensionError::ExtensionExecutionTerminatedViaSignal))
-
         };
 
         if code != 0 {
