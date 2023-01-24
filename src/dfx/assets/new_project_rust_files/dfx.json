@@ -21,5 +21,6 @@
       "packtool": "",
       "args": ""
     }
-  }
+  },
+  "output_env_file": ".env"
 }

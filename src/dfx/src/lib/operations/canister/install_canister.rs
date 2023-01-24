@@ -1,4 +1,4 @@
-use crate::lib::builders::environment_variables;
+use crate::lib::builders::get_and_write_environment_variables;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -27,6 +27,7 @@ use sha2::{Digest, Sha256};
 use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
+use std::path::Path;
 use std::process::{Command, Stdio};
 
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
@@ -41,6 +42,7 @@ pub async fn install_canister(
     upgrade_unchanged: bool,
     pool: Option<&CanisterPool>,
     skip_consent: bool,
+    env_file: Option<&Path>,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
@@ -207,9 +209,15 @@ pub async fn install_canister(
         info!(log, "Uploading assets to asset canister...");
         post_install_store_assets(canister_info, agent).await?;
     }
-
     if !canister_info.get_post_install().is_empty() {
-        run_post_install_tasks(env, canister_info, network, pool)?;
+        let config = env.get_config();
+        run_post_install_tasks(
+            env,
+            canister_info,
+            network,
+            pool,
+            env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
+        )?;
     }
 
     Ok(())
@@ -280,6 +288,7 @@ fn run_post_install_tasks(
     canister: &CanisterInfo,
     network: &NetworkDescriptor,
     pool: Option<&CanisterPool>,
+    env_file: Option<&Path>,
 ) -> DfxResult {
     let tmp;
     let pool = match pool {
@@ -300,7 +309,7 @@ fn run_post_install_tasks(
         .map(|can| can.canister_id())
         .collect_vec();
     for task in canister.get_post_install() {
-        run_post_install_task(canister, task, network, pool, &dependencies)?;
+        run_post_install_task(canister, task, network, pool, &dependencies, env_file)?;
     }
     Ok(())
 }
@@ -312,6 +321,7 @@ fn run_post_install_task(
     network: &NetworkDescriptor,
     pool: &CanisterPool,
     dependencies: &[Principal],
+    env_file: Option<&Path>,
 ) -> DfxResult {
     let cwd = canister.get_workspace_root();
     let words = shell_words::split(task)
@@ -323,7 +333,8 @@ fn run_post_install_task(
         .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
     let mut command = Command::new(&canonicalized);
     command.args(&words[1..]);
-    let vars = environment_variables(canister, &network.name, pool, dependencies);
+    let vars =
+        get_and_write_environment_variables(canister, &network.name, pool, dependencies, env_file)?;
     for (key, val) in vars {
         command.env(&*key, val);
     }
