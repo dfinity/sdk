@@ -30,8 +30,8 @@ url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64
 sha256 = 'ba4f6a2a54902196f7e729fd03c79f7a5930942f6c66575095f78a02cfbc1c31'
 
 [x86_64-darwin.motoko]
-url = 'https://github.com/dfinity/motoko/releases/download/0.7.4/motoko-macos-0.7.4.tar.gz'
-sha256 = '27e79a3136bc20081527dd19af977be03e470db0aa3a48b7e1ee160a4db31c4a'
+url = 'https://github.com/dfinity/motoko/releases/download/0.7.6/motoko-macos-0.7.6.tar.gz'
+sha256 = '45cb24c016f6e52807957785b19522464f8029d65827a21988712ad7e6ec86db'
 # The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-darwin.replica]
@@ -52,8 +52,8 @@ url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64
 sha256 = 'ea61ce090e644fba6e488686e59c78dfdfcce12cf57eb17cbbb458d32bac99d8'
 
 [x86_64-darwin.motoko-base]
-url = 'https://github.com/dfinity/motoko/releases/download/0.7.4/motoko-base-library.tar.gz'
-sha256 = '2c1469ff6f12c3e7cb7f0fafb9782e90e753950108f6b8340fed06e6af60bb96'
+url = 'https://github.com/dfinity/motoko/releases/download/0.7.6/motoko-base-library.tar.gz'
+sha256 = '1ee9ccf1204d7a2096742431f4c95101bf3f2906cde317b2532c02442cff8eee'
 
 [x86_64-linux.ic-ref]
 url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-3cc51be5-x86_64-linux.tar.gz'
@@ -84,8 +84,8 @@ url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64
 sha256 = 'fd9873f2e90b3ee04d9f7fffb0f8d3a9a041aa987b075daa3ef4d4091734ed19'
 
 [x86_64-linux.motoko]
-url = 'https://github.com/dfinity/motoko/releases/download/0.7.4/motoko-linux64-0.7.4.tar.gz'
-sha256 = 'd0411eafb4a90c5919a7f9447ee38257926b8a74aedaf6e46bfa7bb9ce38194f'
+url = 'https://github.com/dfinity/motoko/releases/download/0.7.6/motoko-linux64-0.7.6.tar.gz'
+sha256 = '467da3199e23b9541793f55dd776e14496194a1b8ff2ccbf855fc6e5684bdb4c'
 # The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-linux.replica]
@@ -106,5 +106,5 @@ url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64
 sha256 = '4ad5cf14d220a1036ed0abc3bf28eeb48c1bb146eef58a7ed00aa71f5e90bd6f'
 
 [x86_64-linux.motoko-base]
-url = 'https://github.com/dfinity/motoko/releases/download/0.7.4/motoko-base-library.tar.gz'
-sha256 = '2c1469ff6f12c3e7cb7f0fafb9782e90e753950108f6b8340fed06e6af60bb96'
+url = 'https://github.com/dfinity/motoko/releases/download/0.7.6/motoko-base-library.tar.gz'
+sha256 = '1ee9ccf1204d7a2096742431f4c95101bf3f2906cde317b2532c02442cff8eee'
