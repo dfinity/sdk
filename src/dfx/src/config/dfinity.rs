@@ -1,13 +1,19 @@
 #![allow(dead_code)]
+use crate::config::dfinity::MetadataVisibility::Public;
+use crate::error_invalid_data;
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
-use crate::lib::config::get_config_dfx_dir_path;
-use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::util::{project_dirs, PossiblyStr, SerdeVec};
-use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
+use crate::lib::error::{DfxError, DfxResult};
+use crate::util::{PossiblyStr, SerdeVec};
+use dfx_core::config::directories::get_config_dfx_dir_path;
+use dfx_core::error::dfx_config::DfxConfigError;
+use dfx_core::error::dfx_config::DfxConfigError::{
+    CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
+    GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
+    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed,
+};
 
-use crate::config::dfinity::MetadataVisibility::Public;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use byte_unit::Byte;
 use candid::Principal;
 use fn_error_context::context;
@@ -575,6 +581,9 @@ pub struct ConfigInterface {
     /// Mapping between network names and their configurations.
     /// Networks 'ic' and 'local' are implicitly defined.
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
+
+    /// If set, environment variables will be output to this file (without overwriting any user-defined variables, if the file already exists).
+    pub output_env_file: Option<PathBuf>,
 }
 
 pub type TopLevelConfigNetworks = BTreeMap<String, ConfigNetwork>;
@@ -653,115 +662,115 @@ impl ConfigInterface {
 
     /// Return the names of the specified canister and all of its dependencies.
     /// If none specified, return the names of all canisters.
-    #[context("Failed to get canisters with their dependencies (for {}).", some_canister.unwrap_or("all canisters"))]
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
-    ) -> DfxResult<Vec<String>> {
-        let canister_map = self
-            .canisters
+    ) -> Result<Vec<String>, DfxConfigError> {
+        self.canisters
             .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
-
-        let canister_names = match some_canister {
-            Some(specific_canister) => {
-                let mut names = HashSet::new();
-                let mut path = vec![];
-                add_dependencies(canister_map, &mut names, &mut path, specific_canister)?;
-                names.into_iter().collect()
-            }
-            None => canister_map.keys().cloned().collect(),
-        };
-
-        Ok(canister_names)
+            .ok_or(CanistersFieldDoesNotExist())
+            .and_then(|canister_map| match some_canister {
+                Some(specific_canister) => {
+                    let mut names = HashSet::new();
+                    let mut path = vec![];
+                    add_dependencies(canister_map, &mut names, &mut path, specific_canister)
+                        .map(|_| names.into_iter().collect())
+                }
+                None => Ok(canister_map.keys().cloned().collect()),
+            })
+            .map_err(|cause| {
+                GetCanistersWithDependenciesFailed(some_canister.map(String::from), Box::new(cause))
+            })
     }
 
-    #[context(
-        "Failed to figure out if canister '{}' has a remote id on network '{}'.",
-        canister,
-        network
-    )]
     pub fn get_remote_canister_id(
         &self,
         canister: &str,
         network: &str,
-    ) -> DfxResult<Option<Principal>> {
+    ) -> Result<Option<Principal>, DfxConfigError> {
         let maybe_principal = self
-            .canisters
-            .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?
-            .get(canister)
-            .ok_or_else(|| error_invalid_argument!("Canister {} not found in dfx.json", canister))?
+            .get_canister_config(canister)
+            .map_err(|e| {
+                GetRemoteCanisterIdFailed(
+                    Box::new(canister.to_string()),
+                    Box::new(network.to_string()),
+                    Box::new(e),
+                )
+            })?
             .remote
             .as_ref()
             .and_then(|r| r.id.get(network))
             .copied();
+
         Ok(maybe_principal)
     }
 
-    #[context(
-        "Failed while determining if canister '{}' is remote on network '{}'.",
-        canister,
-        network
-    )]
-    pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
+    pub fn is_remote_canister(
+        &self,
+        canister: &str,
+        network: &str,
+    ) -> Result<bool, DfxConfigError> {
         Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
-    #[context("Failed to get compute allocation for '{}'.", canister_name)]
-    pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<u64>> {
+    pub fn get_compute_allocation(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<u64>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetComputeAllocationFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .compute_allocation
             .map(|x| x.0))
     }
 
-    #[context("Failed to get memory allocation for '{}'.", canister_name)]
-    pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<Byte>> {
+    pub fn get_memory_allocation(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Byte>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetMemoryAllocationFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .memory_allocation)
     }
 
-    #[context("Failed to get freezing threshold for '{}'.", canister_name)]
-    pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<Duration>> {
+    pub fn get_freezing_threshold(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Duration>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetFreezingThresholdFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .freezing_threshold)
     }
 
-    fn get_canister_config(&self, canister_name: &str) -> DfxResult<&ConfigCanistersCanister> {
-        let canister_map = self
-            .canisters
+    fn get_canister_config(
+        &self,
+        canister_name: &str,
+    ) -> Result<&ConfigCanistersCanister, DfxConfigError> {
+        self.canisters
             .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
-
-        let canister_config = canister_map
+            .ok_or(CanistersFieldDoesNotExist())?
             .get(canister_name)
-            .with_context(|| format!("Cannot find canister '{canister_name}'."))?;
-        Ok(canister_config)
+            .ok_or_else(|| CanisterNotFound(canister_name.to_string()))
     }
 }
 
-#[context("Failed to add dependencies for canister '{}'.", canister_name)]
 fn add_dependencies(
     all_canisters: &BTreeMap<String, ConfigCanistersCanister>,
     names: &mut HashSet<String>,
     path: &mut Vec<String>,
     canister_name: &str,
-) -> DfxResult {
+) -> Result<(), DfxConfigError> {
     let inserted = names.insert(String::from(canister_name));
 
     if !inserted {
         return if path.contains(&String::from(canister_name)) {
             path.push(String::from(canister_name));
-            Err(DfxError::new(BuildError::DependencyError(format!(
-                "Found circular dependency: {}",
-                path.join(" -> ")
-            ))))
+            Err(CanisterCircularDependency(path.clone()))
         } else {
             Ok(())
         };
@@ -769,7 +778,7 @@ fn add_dependencies(
 
     let canister_config = all_canisters
         .get(canister_name)
-        .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
+        .ok_or_else(|| CanisterNotFound(canister_name.to_string()))?;
 
     path.push(String::from(canister_name));
 
@@ -971,13 +980,6 @@ impl NetworksConfig {
     }
     pub fn get_interface(&self) -> &NetworksConfigInterface {
         &self.networks_config
-    }
-    #[context("Failed to determine shared network data directory.")]
-    pub fn get_network_data_directory(network: &str) -> DfxResult<PathBuf> {
-        Ok(project_dirs()?
-            .data_local_dir()
-            .join("network")
-            .join(network))
     }
 
     #[context("Failed to read shared networks configuration.")]

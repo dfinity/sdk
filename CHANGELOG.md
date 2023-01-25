@@ -118,13 +118,18 @@ Updated ic-ref to master commit `3cc51be5`
 
 ### Motoko
 
-Updated Motoko to 0.7.4
+Updated Motoko to 0.7.6
 
 ### Replica
 
-Updated replica to elected commit 997ab2e9cc49189302fe54c1e60709abfbeb1d42.
+Updated replica to elected commit b5a1a8c0e005216f2d945f538fc27163bafc3bf7.
 This incorporates the following executed proposals:
 
+- [100821](https://dashboard.internetcomputer.org/proposal/100821)
+- [97472](https://dashboard.internetcomputer.org/proposal/97472)
+- [96114](https://dashboard.internetcomputer.org/proposal/96114)
+- [94953](https://dashboard.internetcomputer.org/proposal/94953)
+- [94852](https://dashboard.internetcomputer.org/proposal/94852)
 - [93761](https://dashboard.internetcomputer.org/proposal/93761)
 - [93507](https://dashboard.internetcomputer.org/proposal/93507)
 - [92573](https://dashboard.internetcomputer.org/proposal/92573)

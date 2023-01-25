@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::create_agent_environment;
+use crate::lib::provider::create_anonymous_agent_environment;
 use crate::NetworkOpt;
 
 use clap::Parser;
@@ -22,7 +22,7 @@ pub struct GenerateOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.network)?;
+    let env = create_anonymous_agent_environment(env, opts.network.network)?;
     let log = env.get_logger();
 
     // Read the config.
@@ -68,7 +68,6 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
             }
         }
     }
-
     let build_config =
         BuildConfig::from_config(&config)?.with_canisters_to_build(build_before_generate);
     let generate_config =

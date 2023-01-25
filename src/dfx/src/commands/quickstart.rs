@@ -15,7 +15,7 @@ use crate::{
     lib::{
         environment::Environment,
         error::DfxResult,
-        identity::Identity,
+        identity::wallet::{set_wallet_id, wallet_canister_id},
         ledger_types::{Memo, NotifyError},
         nns_types::{
             account_identifier::AccountIdentifier,
@@ -46,7 +46,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
         let xdr_per_icp = Decimal::from_i128_with_scale(xdr_conversion_rate as i128, 4);
         let icp_per_tc = xdr_per_icp.inv();
         eprintln!("Conversion rate: 1 ICP <> {xdr_per_icp} XDR");
-        let wallet = Identity::wallet_canister_id(env.get_network_descriptor(), ident)?;
+        let wallet = wallet_canister_id(env.get_network_descriptor(), ident)?;
         if let Some(wallet) = wallet {
             step_print_wallet(agent, wallet).await?;
         } else if Confirm::new()
@@ -99,7 +99,7 @@ async fn step_import_wallet(env: &dyn Environment, agent: &Agent, ident: &str) -
             .await?;
         WalletCanister::create(agent, id).await?
     };
-    Identity::set_wallet_id(env.get_network_descriptor(), ident, id)?;
+    set_wallet_id(env.get_network_descriptor(), ident, id)?;
     eprintln!("Successfully imported wallet {id}.");
     if let Ok(balance) = wallet.wallet_balance().await {
         eprintln!(
@@ -205,7 +205,7 @@ async fn step_finish_wallet(
     install_wallet(env, agent, wallet, InstallMode::Install)
         .await
         .context("Failed to install the wallet code to the canister")?;
-    Identity::set_wallet_id(env.get_network_descriptor(), ident, wallet)
+    set_wallet_id(env.get_network_descriptor(), ident, wallet)
         .context("Failed to record the wallet's principal as your associated wallet")?;
     install_spinner.finish_with_message("Installed the wallet code to the canister");
     eprintln!("Success! Run this command again at any time to print all this information again.");

@@ -2,11 +2,12 @@ pub mod composite;
 
 use crate::error::io::IoError;
 use crate::error::io::IoErrorKind::{
-    CopyFileFailed, CreateDirectoryFailed, NoParent, ReadFileFailed, ReadPermissionsFailed,
-    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, WriteFileFailed, WritePermissionsFailed,
+    CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed, ReadFileFailed,
+    ReadPermissionsFailed, RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed,
+    RemoveFileFailed, RenameFailed, WriteFileFailed, WritePermissionsFailed,
 };
 
-use std::fs::Permissions;
+use std::fs::{Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
 pub fn copy(from: &Path, to: &Path) -> Result<u64, IoError> {
@@ -35,6 +36,11 @@ pub fn read(path: &Path) -> Result<Vec<u8>, IoError> {
     std::fs::read(path).map_err(|err| IoError::new(ReadFileFailed(path.to_path_buf(), err)))
 }
 
+pub fn read_dir(path: &Path) -> Result<ReadDir, IoError> {
+    path.read_dir()
+        .map_err(|err| IoError::new(ReadDirFailed(path.to_path_buf(), err)))
+}
+
 pub fn rename(from: &Path, to: &Path) -> Result<(), IoError> {
     std::fs::rename(from, to).map_err(|err| {
         IoError::new(RenameFailed(
@@ -54,6 +60,11 @@ pub fn read_permissions(path: &Path) -> Result<Permissions, IoError> {
 pub fn remove_dir(path: &Path) -> Result<(), IoError> {
     std::fs::remove_dir(path)
         .map_err(|err| IoError::new(RemoveDirectoryFailed(path.to_path_buf(), err)))
+}
+
+pub fn remove_dir_all(path: &Path) -> Result<(), IoError> {
+    std::fs::remove_dir_all(path)
+        .map_err(|err| IoError::new(RemoveDirectoryAndContentsFailed(path.to_path_buf(), err)))
 }
 
 pub fn remove_file(path: &Path) -> Result<(), IoError> {

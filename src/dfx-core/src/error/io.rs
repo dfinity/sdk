@@ -15,6 +15,9 @@ pub enum IoErrorKind {
     #[error("Path {0} is not a directory")]
     NotADirectory(PathBuf),
 
+    #[error("Failed to read directory {0}: {1}")]
+    ReadDirFailed(PathBuf, std::io::Error),
+
     #[error("Failed to read {0}: {1}")]
     ReadFileFailed(PathBuf, std::io::Error),
 
@@ -23,6 +26,9 @@ pub enum IoErrorKind {
 
     #[error("Failed to remove directory {0}: {1}")]
     RemoveDirectoryFailed(PathBuf, std::io::Error),
+
+    #[error("Failed to remove directory {0} and its contents: {1}")]
+    RemoveDirectoryAndContentsFailed(PathBuf, std::io::Error),
 
     #[error("Failed to remove file {0}: {1}")]
     RemoveFileFailed(PathBuf, std::io::Error),

@@ -1,8 +1,7 @@
+use crate::commands::identity::new::create_new_dfx_identity;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::{
-    IdentityCreationParameters, IdentityManager, IdentityStorageMode,
-};
+use dfx_core::identity::identity_manager::{IdentityCreationParameters, IdentityStorageMode};
 
 use anyhow::Context;
 use clap::Parser;
@@ -63,7 +62,9 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
             fs::read_to_string(opts.seed_file.unwrap()).context("Failed to read seed file")?;
         IdentityCreationParameters::SeedPhrase { mnemonic, mode }
     };
-    IdentityManager::new(env)?.create_new_identity(log, name, params, opts.force)?;
+
+    create_new_dfx_identity(env, log, name, params, opts.force)?;
+
     info!(log, r#"Imported identity: "{}"."#, name);
     Ok(())
 }

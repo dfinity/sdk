@@ -24,8 +24,23 @@ pub enum IdentityError {
     #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
+    #[error("Failed to clean up previous creation attempts: {0}")]
+    CleanupPreviousCreationAttemptsFailed(IoError),
+
+    #[error("Convert secret key to sec1 Pem failed: {0}")]
+    ConvertSecretKeyToSec1PemFailed(Box<sec1::Error>),
+
     #[error("Cannot create identity directory: {0}")]
     CreateIdentityDirectoryFailed(IoError),
+
+    #[error("Failed to create mnemonic from phrase: {0}")]
+    CreateMnemonicFromPhraseFailed(String),
+
+    #[error("Failed to create temporary identity directory: {0}")]
+    CreateTemporaryIdentityDirectoryFailed(IoError),
+
+    #[error("Cannot save PEM content for an HSM.")]
+    CannotSavePemContentForHsm(),
 
     #[error("Failed to decrypt PEM file: {0}")]
     DecryptPemFileFailed(PathBuf, EncryptionError),
@@ -53,6 +68,9 @@ pub enum IdentityError {
 
     #[error("Failed to get config directory for identity manager: {0}")]
     GetConfigDirectoryFailed(ConfigError),
+
+    #[error("Failed to get shared network data directory: {0}")]
+    GetSharedNetworkDataDirectoryFailed(ConfigError),
 
     #[error("Failed to get principal of identity: {0}")]
     GetIdentityPrincipalFailed(String),
@@ -99,6 +117,12 @@ pub enum IdentityError {
     #[error("Cannot rename identity directory: {0}")]
     RenameIdentityDirectoryFailed(IoError),
 
+    #[error("Failed to rename temporary directory to permanent identity directory: {0}")]
+    RenameTemporaryIdentityDirectoryFailed(IoError),
+
+    #[error("Failed to rename '{0}' to '{1}' in the global wallet config: {2}")]
+    RenameWalletFailed(Box<String>, Box<String>, WalletConfigError),
+
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
 
@@ -107,6 +131,15 @@ pub enum IdentityError {
 
     #[error("Failed to save identity manager configuration: {0}")]
     SaveIdentityManagerConfigurationFailed(StructuredFileError),
+
+    #[error("Failed to switch back over to the identity you're replacing: {0}")]
+    SwitchBackToIdentityFailed(Box<IdentityError>),
+
+    #[error("Failed to switch over default identity settings: {0}")]
+    SwitchDefaultIdentitySettingsFailed(Box<IdentityError>),
+
+    #[error("Failed to temporarily switch over to anonymous identity: {0}")]
+    SwitchToAnonymousIdentityFailed(Box<IdentityError>),
 
     #[error("Could not translate pem file to text: {0}")]
     TranslatePemContentToTextFailed(FromUtf8Error),
@@ -121,4 +154,7 @@ pub enum IdentityError {
 
     #[error("Cannot write PEM file: {0}")]
     WritePemFileFailed(IoError),
+
+    #[error("Failed to write PEM to keyring: {0}")]
+    WritePemToKeyringFailed(KeyringError),
 }
