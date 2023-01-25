@@ -26,6 +26,7 @@ pub mod package_arguments;
 pub mod progress_bar;
 pub mod project;
 pub mod provider;
+pub mod replica;
 pub mod replica_config;
 pub mod root_key;
 pub mod sign;
