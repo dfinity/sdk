@@ -1,8 +1,8 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::directory::ensure_cohesive_network_directory;
-use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::config::model::dfinity::Config;
+use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;

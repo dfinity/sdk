@@ -1,10 +1,8 @@
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use dfx_core::config::model::dfinity::NetworkType;
-use dfx_core::config::model::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
-use dfx_core::error::network_config::NetworkConfigError;
-use dfx_core::error::network_config::NetworkConfigError::{
-    NetworkHasNoProviders, NetworkMustBeLocal,
-};
+use crate::config::model::dfinity::NetworkType;
+use crate::config::model::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
+use crate::config::model::local_server_descriptor::LocalServerDescriptor;
+use crate::error::network_config::NetworkConfigError;
+use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, NetworkMustBeLocal};
 
 use std::path::{Path, PathBuf};
 
