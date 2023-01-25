@@ -6,5 +6,6 @@ pub mod identity;
 pub mod io;
 pub mod keyring;
 pub mod load_dfx_config;
+pub mod load_networks_config;
 pub mod structured_file;
 pub mod wallet_config;
