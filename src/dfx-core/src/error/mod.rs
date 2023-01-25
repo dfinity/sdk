@@ -1,4 +1,5 @@
 pub mod config;
+pub mod dfx_config;
 pub mod encryption;
 pub mod foundation;
 pub mod identity;

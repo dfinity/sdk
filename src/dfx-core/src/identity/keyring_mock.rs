@@ -1,9 +1,9 @@
-use dfx_core::error::keyring::KeyringError;
-use dfx_core::error::keyring::KeyringError::{
+use crate::error::keyring::KeyringError;
+use crate::error::keyring::KeyringError::{
     DecodePemFailed, DeletePasswordFailed, GetPasswordFailed, LoadMockKeyringFailed,
     MockKeyNotFound, MockUnavailable, SaveMockKeyringFailed, SetPasswordFailed,
 };
-use dfx_core::json::{load_json_file, save_json_file};
+use crate::json::{load_json_file, save_json_file};
 
 use super::TEMP_IDENTITY_PREFIX;
 use keyring;

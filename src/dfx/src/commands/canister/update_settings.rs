@@ -4,7 +4,6 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
 };
-use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{get_canister_status, update_settings};
@@ -245,7 +244,7 @@ fn controller_to_principal(env: &dyn Environment, controller: &str) -> DfxResult
                 Ok(env.get_selected_identity_principal().unwrap())
             } else {
                 let identity_name = controller;
-                IdentityManager::new(env)?
+                env.new_identity_manager()?
                     .instantiate_identity_from_name(identity_name, env.get_logger())
                     .and_then(|identity| identity.sender().map_err(GetIdentityPrincipalFailed))
                     .map_err(DfxError::new)
