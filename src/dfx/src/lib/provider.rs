@@ -11,7 +11,8 @@ use dfx_core::config::model::dfinity::{
 };
 use dfx_core::error::network_config::NetworkConfigError;
 use dfx_core::error::network_config::NetworkConfigError::{
-    NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed, ReadWebserverPortFailed,
+    NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed,
+    ReadWebserverPortFailed,
 };
 use dfx_core::identity::WALLET_CONFIG_FILENAME;
 
@@ -37,13 +38,12 @@ fn set_network_context(network: Option<String>) {
     *n = Some(name);
 }
 
-#[context("Failed to get network context.")]
-pub fn get_network_context() -> DfxResult<String> {
+pub fn get_network_context() -> Result<String, NetworkConfigError> {
     NETWORK_CONTEXT
         .read()
         .unwrap()
         .clone()
-        .ok_or_else(|| anyhow!("Cannot find network context."))
+        .ok_or_else(|| NoNetworkContext())
 }
 
 pub enum LocalBindDetermination {

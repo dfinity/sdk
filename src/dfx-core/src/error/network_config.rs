@@ -12,6 +12,9 @@ pub enum NetworkConfigError {
     #[error("The '{0}' network must be a local network.")]
     NetworkMustBeLocal(String),
 
+    #[error("Cannot find network context.")]
+    NoNetworkContext(),
+
     #[error("Did not find any providers for network '{0}'")]
     NoProvidersForNetwork(String),
 
