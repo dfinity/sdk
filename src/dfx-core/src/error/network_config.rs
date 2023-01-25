@@ -1,16 +1,24 @@
+use crate::error::config::ConfigError;
 use crate::error::io::IoError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
+
 use std::num::ParseIntError;
 use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum NetworkConfigError {
+    #[error(transparent)]
+    Config(#[from] ConfigError),
+
     #[error("Network '{0}' does not specify any network providers.")]
     NetworkHasNoProviders(String),
 
     #[error("The '{0}' network must be a local network.")]
     NetworkMustBeLocal(String),
+
+    #[error("Compute network not found: {0}")]
+    NetworkNotFound(String),
 
     #[error("Cannot find network context.")]
     NoNetworkContext(),
