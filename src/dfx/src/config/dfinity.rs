@@ -1,16 +1,16 @@
 #![allow(dead_code)]
 use crate::config::dfinity::MetadataVisibility::Public;
+use crate::error_invalid_data;
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
-use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 use dfx_core::config::directories::get_config_dfx_dir_path;
 use dfx_core::error::dfx_config::DfxConfigError;
 use dfx_core::error::dfx_config::DfxConfigError::{
     CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
     GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
-    GetMemoryAllocationFailed,
+    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed,
 };
 
 use anyhow::Context;
@@ -683,35 +683,33 @@ impl ConfigInterface {
             })
     }
 
-    #[context(
-        "Failed to figure out if canister '{}' has a remote id on network '{}'.",
-        canister,
-        network
-    )]
     pub fn get_remote_canister_id(
         &self,
         canister: &str,
         network: &str,
-    ) -> DfxResult<Option<Principal>> {
+    ) -> Result<Option<Principal>, DfxConfigError> {
         let maybe_principal = self
-            .canisters
-            .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?
-            .get(canister)
-            .ok_or_else(|| error_invalid_argument!("Canister {} not found in dfx.json", canister))?
+            .get_canister_config(canister)
+            .map_err(|e| {
+                GetRemoteCanisterIdFailed(
+                    Box::new(canister.to_string()),
+                    Box::new(network.to_string()),
+                    Box::new(e),
+                )
+            })?
             .remote
             .as_ref()
             .and_then(|r| r.id.get(network))
             .copied();
+
         Ok(maybe_principal)
     }
 
-    #[context(
-        "Failed while determining if canister '{}' is remote on network '{}'.",
-        canister,
-        network
-    )]
-    pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
+    pub fn is_remote_canister(
+        &self,
+        canister: &str,
+        network: &str,
+    ) -> Result<bool, DfxConfigError> {
         Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
