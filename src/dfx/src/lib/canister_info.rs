@@ -4,10 +4,10 @@ use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::DfxResult;
 use crate::lib::provider::get_network_context;
-use crate::util;
 use dfx_core::config::model::dfinity::{
     CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
 };
+use dfx_core::util;
 
 use crate::lib::metadata::config::CanisterMetadataConfig;
 use anyhow::{anyhow, Context};
