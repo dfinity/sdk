@@ -2,12 +2,17 @@
 use crate::config::dfinity::MetadataVisibility::Public;
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
-use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::error::{DfxError, DfxResult};
 use crate::util::{PossiblyStr, SerdeVec};
 use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
 use dfx_core::config::directories::get_config_dfx_dir_path;
+use dfx_core::error::dfx_config::DfxConfigError;
+use dfx_core::error::dfx_config::DfxConfigError::{
+    CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
+    GetCanistersWithDependenciesFailed,
+};
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use byte_unit::Byte;
 use candid::Principal;
 use fn_error_context::context;
@@ -656,27 +661,25 @@ impl ConfigInterface {
 
     /// Return the names of the specified canister and all of its dependencies.
     /// If none specified, return the names of all canisters.
-    #[context("Failed to get canisters with their dependencies (for {}).", some_canister.unwrap_or("all canisters"))]
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
-    ) -> DfxResult<Vec<String>> {
-        let canister_map = self
-            .canisters
+    ) -> Result<Vec<String>, DfxConfigError> {
+        self.canisters
             .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
-
-        let canister_names = match some_canister {
-            Some(specific_canister) => {
-                let mut names = HashSet::new();
-                let mut path = vec![];
-                add_dependencies(canister_map, &mut names, &mut path, specific_canister)?;
-                names.into_iter().collect()
-            }
-            None => canister_map.keys().cloned().collect(),
-        };
-
-        Ok(canister_names)
+            .ok_or(CanistersFieldDoesNotExist())
+            .and_then(|canister_map| match some_canister {
+                Some(specific_canister) => {
+                    let mut names = HashSet::new();
+                    let mut path = vec![];
+                    add_dependencies(canister_map, &mut names, &mut path, specific_canister)
+                        .map(|_| names.into_iter().collect())
+                }
+                None => Ok(canister_map.keys().cloned().collect()),
+            })
+            .map_err(|cause| {
+                GetCanistersWithDependenciesFailed(some_canister.map(String::from), Box::new(cause))
+            })
     }
 
     #[context(
@@ -749,22 +752,18 @@ impl ConfigInterface {
     }
 }
 
-#[context("Failed to add dependencies for canister '{}'.", canister_name)]
 fn add_dependencies(
     all_canisters: &BTreeMap<String, ConfigCanistersCanister>,
     names: &mut HashSet<String>,
     path: &mut Vec<String>,
     canister_name: &str,
-) -> DfxResult {
+) -> Result<(), DfxConfigError> {
     let inserted = names.insert(String::from(canister_name));
 
     if !inserted {
         return if path.contains(&String::from(canister_name)) {
             path.push(String::from(canister_name));
-            Err(DfxError::new(BuildError::DependencyError(format!(
-                "Found circular dependency: {}",
-                path.join(" -> ")
-            ))))
+            Err(CanisterCircularDependency(path.clone()))
         } else {
             Ok(())
         };
@@ -772,7 +771,7 @@ fn add_dependencies(
 
     let canister_config = all_canisters
         .get(canister_name)
-        .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
+        .ok_or_else(|| CanisterNotFound(canister_name.to_string()))?;
 
     path.push(String::from(canister_name));
 
