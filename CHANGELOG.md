@@ -118,7 +118,7 @@ Updated ic-ref to master commit `3cc51be5`
 
 ### Motoko
 
-Updated Motoko to 0.7.4
+Updated Motoko to 0.7.6
 
 ### Replica
 
