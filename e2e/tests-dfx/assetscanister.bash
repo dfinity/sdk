@@ -54,16 +54,21 @@ teardown() {
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
   assert_contains "$STRANGER_PRINCIPAL"
 
-  # authorized principals, that are not controllers, can authorize other principals
+  # authorized principals, that are not controllers, cannot authorize other principals
   assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED_PRINCIPAL\")" --identity controller
-  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
-  assert_command dfx canister call e2e_project_frontend list_authorized '()'
-  assert_contains "$BACKDOOR_PRINCIPAL"
-
-  # authorized principals, that are not controllers, can deauthorize others
-  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
+  assert_command_fail dfx canister call e2e_project_frontend authorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
+  assert_contains "Caller is not a controller"
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
   assert_not_contains "$BACKDOOR_PRINCIPAL"
+
+  # authorized principals, that are not controllers, cannot deauthorize others
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity controller
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$BACKDOOR_PRINCIPAL"
+  assert_command_fail dfx canister call e2e_project_frontend deauthorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
+  assert_contains "Caller is not a controller"
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$BACKDOOR_PRINCIPAL"
 
   # authorized principals, that are not controllers, can deauthorize themselves
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
