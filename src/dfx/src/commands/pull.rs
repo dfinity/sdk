@@ -134,6 +134,7 @@ async fn download_canister_wasm(
 ) -> DfxResult {
     info!(logger, "Downloading wasm of canister {canister_id}...");
 
+    // wasm will be downloaded to $HOME/.cache/dfinity/wasms/{canister_id}/canister.wasm
     let wasm_dir = get_cache_root()?
         .join("wasms")
         .join(canister_id.to_string());
