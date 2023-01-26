@@ -57,7 +57,11 @@ teardown() {
   # authorized principals, that are not controllers, cannot authorize other principals
   assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED_PRINCIPAL\")" --identity controller
   assert_command_fail dfx canister call e2e_project_frontend authorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
-  assert_contains "Caller is not a controller"
+
+  # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
+  [ "$USE_IC_REF" ] && assert_contains "canister did not respond"
+  [ ! "$USE_IC_REF" ] && assert_contains "Caller is not a controller"
+
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
   assert_not_contains "$BACKDOOR_PRINCIPAL"
 
@@ -66,7 +70,11 @@ teardown() {
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
   assert_contains "$BACKDOOR_PRINCIPAL"
   assert_command_fail dfx canister call e2e_project_frontend deauthorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
-  assert_contains "Caller is not a controller"
+
+  # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
+  [ "$USE_IC_REF" ] && assert_contains "canister did not respond"
+  [ ! "$USE_IC_REF" ] && assert_contains "Caller is not a controller"
+
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
   assert_contains "$BACKDOOR_PRINCIPAL"
 
