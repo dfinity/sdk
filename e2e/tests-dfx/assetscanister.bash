@@ -18,6 +18,10 @@ teardown() {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller
   CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+  assert_command dfx identity new authorized --storage-mode plaintext
+  AUTHORIZED_PRINCIPAL=$(dfx identity get-principal --identity authorized)
+  assert_command dfx identity new backdoor --storage-mode plaintext
+  BACKDOOR_PRINCIPAL=$(dfx identity get-principal --identity backdoor)
   assert_command dfx identity new stranger --storage-mode plaintext
   assert_command dfx identity use stranger
   STRANGER_PRINCIPAL=$(dfx identity get-principal)
@@ -49,6 +53,24 @@ teardown() {
   assert_command dfx canister call e2e_project_frontend authorize "(principal \"$STRANGER_PRINCIPAL\")"
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
   assert_contains "$STRANGER_PRINCIPAL"
+
+  # authorized principals, that are not controllers, can authorize other principals
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED_PRINCIPAL\")" --identity controller
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$BACKDOOR_PRINCIPAL"
+
+  # authorized principals, that are not controllers, can deauthorize others
+  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$BACKDOOR_PRINCIPAL"
+
+  # authorized principals, that are not controllers, can deauthorize themselves
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$AUTHORIZED_PRINCIPAL"
+  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$AUTHORIZED_PRINCIPAL\")" --identity authorized
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$AUTHORIZED_PRINCIPAL"
 
   # canister controller may always deauthorize, even if they're not authorized themselves
   assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$STRANGER_PRINCIPAL\")"
