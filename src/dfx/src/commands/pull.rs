@@ -127,6 +127,7 @@ async fn fetch_deps_to_pull(
     }
 }
 
+#[context("Failed while download wasm of canister {canister_id}.")]
 async fn download_canister_wasm(
     agent: &Agent,
     logger: &Logger,
