@@ -14,6 +14,47 @@ teardown() {
     standard_teardown
 }
 
+@test "take ownership" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity use controller
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+
+  assert_command dfx identity new authorized1 --storage-mode plaintext
+  AUTHORIZED1_PRINCIPAL=$(dfx identity get-principal --identity authorized1)
+
+  assert_command dfx identity new authorized2 --storage-mode plaintext
+  AUTHORIZED2_PRINCIPAL=$(dfx identity get-principal --identity authorized2)
+
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED1_PRINCIPAL\")"
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED2_PRINCIPAL\")"
+
+  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$CONTROLLER_PRINCIPAL\")"
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$CONTROLLER_PRINCIPAL"
+  assert_contains "$AUTHORIZED1_PRINCIPAL"
+  assert_contains "$AUTHORIZED2_PRINCIPAL"
+
+  # authorized cannot take ownership
+  assert_command_fail dfx canister call e2e_project_frontend take_ownership "()" --identity authorized1
+  assert_command_fail dfx canister call e2e_project_frontend take_ownership "()" --identity authorized2
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$CONTROLLER_PRINCIPAL"
+  assert_contains "$AUTHORIZED1_PRINCIPAL"
+  assert_contains "$AUTHORIZED2_PRINCIPAL"
+
+  # controller can take ownership
+  assert_command dfx canister call e2e_project_frontend take_ownership "()"
+
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$CONTROLLER_PRINCIPAL"
+  assert_not_contains "$AUTHORIZED1_PRINCIPAL"
+  assert_not_contains "$AUTHORIZED2_PRINCIPAL"
+}
+
 @test "authorize and deauthorize work as expected" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller

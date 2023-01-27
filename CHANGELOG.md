@@ -48,6 +48,10 @@ At the present time, there are two ways to reconfigure an existing asset:
 
 ### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
 
+### feat(frontend-canister): add take_ownership() method
+
+Callable only by a controller.  Clears list of authorized principals and adds the caller (controller) as the only authorized principal.
+
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
 
@@ -116,9 +120,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: abc9044bdbb52d4af246341e1313411aaf438b6e339568aa6a10be3f9c11c73b
-- https://github.com/dfinity/sdk/pull/2928
-- https://github.com/dfinity/sdk/pull/2824
+- Module hash: 6433baa3d2806a391127a1f4c0734a1f8de52646a1a9ab41163b7d7bb52b7f4f
+- https://github.com/dfinity/sdk/pull/2929
 
 ### ic-ref
 

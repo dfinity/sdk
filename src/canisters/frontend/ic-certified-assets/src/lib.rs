@@ -58,6 +58,16 @@ fn list_authorized() -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_authorized()))
 }
 
+#[update]
+#[candid_method(update)]
+async fn take_ownership() {
+    let caller = caller();
+    match is_controller().await {
+        Err(e) => trap(&e),
+        Ok(_) => STATE.with(|s| s.borrow_mut().take_ownership(caller)),
+    }
+}
+
 #[query]
 #[candid_method(query)]
 fn retrieve(key: Key) -> RcBytes {
