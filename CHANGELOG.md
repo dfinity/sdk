@@ -9,6 +9,13 @@
 
 ### fix: creating an identity with `--force` no longer switches to the newly created identity
 
+### fix(frontend-canister)!: removed ability of authorized principals to manage the ACL
+
+Authorized principals can no longer authorize other principals.  They can deauthorize themselves,
+but cannot deauthorize any other principal.
+
+Only controllers can authorize and deauthorize any principal.
+
 ### feat(frontend-canister)!: default secure configuration for assets in frontend project template
 
 - Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
@@ -109,7 +116,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 9093294e28805eac1c8226b9d73cb0da02657ca1219ae951b655931e8a2f32b8
+- Module hash: abc9044bdbb52d4af246341e1313411aaf438b6e339568aa6a10be3f9c11c73b
+- https://github.com/dfinity/sdk/pull/2928
 - https://github.com/dfinity/sdk/pull/2824
 
 ### ic-ref
