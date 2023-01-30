@@ -227,7 +227,7 @@ fn check_candid_compatibility(
     canister_info: &CanisterInfo,
     candid: &str,
 ) -> anyhow::Result<Option<String>> {
-    use crate::util::check_candid_file;
+    use crate::util::{check_candid_source, CandidSource};
     let candid_path = canister_info.get_build_idl_path();
     let deployed_path = canister_info.get_build_idl_path().with_extension("old.did");
     std::fs::write(&deployed_path, candid).with_context(|| {
@@ -236,11 +236,12 @@ fn check_candid_compatibility(
             deployed_path.to_string_lossy()
         )
     })?;
-    let (mut env, opt_new) =
-        check_candid_file(&candid_path).context("Checking generated did file.")?;
+    let (mut env, opt_new) = check_candid_source(CandidSource::Path(&candid_path))
+        .context("Checking generated did file.")?;
     let new_type = opt_new
         .ok_or_else(|| anyhow!("Generated did file should contain some service interface"))?;
-    let (env2, opt_old) = check_candid_file(&deployed_path).context("Checking old candid file.")?;
+    let (env2, opt_old) = check_candid_source(CandidSource::Path(&deployed_path))
+        .context("Checking old candid file.")?;
     let old_type = opt_old
         .ok_or_else(|| anyhow!("Deployed did file should contain some service interface"))?;
     let mut gamma = HashSet::new();

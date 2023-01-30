@@ -3,11 +3,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::get_local_cid;
+use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
 use crate::util::{
-    arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob, read_module_metadata,
+    arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob,
+    read_module_metadata, CandidSource,
 };
 
 use crate::lib::identity::wallet::build_wallet_canister;
@@ -224,14 +225,15 @@ pub async fn exec(
         Ok(id) => id,
         Err(_) => {
             let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid(env, callee_canister, Some(canister_id))?
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?.0
         }
     };
     let maybe_candid = read_module_metadata(agent, canister_id, "candid:service").await;
 
     let is_management_canister = canister_id == CanisterId::management_canister();
 
-    let method_type = maybe_candid.and_then(|did| get_candid_type(&did, method_name));
+    let method_type =
+        maybe_candid.and_then(|did| get_candid_type(CandidSource::Text(&did), method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file = opts

@@ -9,7 +9,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_URL};
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::wasm::file::is_wasm_format;
-use crate::util::{assets, check_candid_file};
+use crate::util::{assets, check_candid_source, CandidSource};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
@@ -244,12 +244,12 @@ impl Canister {
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
 fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
-    let (mut env, opt_specified) =
-        check_candid_file(specified_idl_path).context("Checking specified candid file.")?;
+    let (mut env, opt_specified) = check_candid_source(CandidSource::Path(specified_idl_path))
+        .context("Checking specified candid file.")?;
     let specified_type =
         opt_specified.expect("Specified did file should contain some service interface");
-    let (env2, opt_compiled) =
-        check_candid_file(compiled_idl_path).context("Checking compiled candid file.")?;
+    let (env2, opt_compiled) = check_candid_source(CandidSource::Path(compiled_idl_path))
+        .context("Checking compiled candid file.")?;
     let compiled_type =
         opt_compiled.expect("Compiled did file should contain some service interface");
     let mut gamma = HashSet::new();
@@ -787,7 +787,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         .get_build_idl_path()
         .with_extension("did.d.ts");
 
-    let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())?;
+    let (env, ty) = check_candid_source(CandidSource::Path(&canister_info.get_build_idl_path()))?;
     let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(

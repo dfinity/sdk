@@ -6,7 +6,7 @@ use crate::lib::error::DfxResult;
 
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::get_network_context;
-use crate::util::{self, check_candid_file};
+use crate::util::{self, check_candid_source, CandidSource};
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
@@ -146,7 +146,7 @@ pub trait CanisterBuilder {
 
         let generated_idl_path = self.generate_idl(pool, info, config)?;
 
-        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
+        let (env, ty) = check_candid_source(CandidSource::Path(&generated_idl_path.as_path()))?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {

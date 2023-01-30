@@ -18,6 +18,7 @@ use std::convert::TryFrom;
 use std::fmt::Display;
 use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
+use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -119,18 +120,23 @@ pub async fn read_module_metadata(
     )
 }
 
+pub enum CandidSource<'a> {
+    Text(&'a str),
+    Path(&'a Path),
+}
+
 /// Parse IDL file into TypeEnv. This is a best effort function: it will succeed if
 /// the IDL file can be parsed and type checked in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.
-pub fn get_candid_type(candid: &str, method_name: &str) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_string(candid).ok()?;
+pub fn get_candid_type(candid: CandidSource, method_name: &str) -> Option<(TypeEnv, Function)> {
+    let (env, ty) = check_candid_source(candid).ok()?;
     let actor = ty?;
     let method = env.get_method(&actor, method_name).ok()?.clone();
     Some((env, method))
 }
 
 pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_file(idl_path).ok()?;
+    let (env, ty) = check_candid_source(CandidSource::Path(idl_path)).ok()?;
     let actor = ty?;
     let args = match actor {
         Type::Class(args, _) => args,
@@ -144,20 +150,20 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
     Some((env, res))
 }
 
-pub fn check_candid_string(str: &str) -> DfxResult<(TypeEnv, Option<Type>)> {
-    let mut env = TypeEnv::new();
-    let actor = candid::check_prog(&mut env, &str.parse()?)?;
-    Ok((env, actor))
-}
-
-pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    //context macro does not work for the returned error type
-    pretty_check_file(idl_path).with_context(|| {
-        format!(
-            "Candid file check failed for {}.",
-            idl_path.to_string_lossy()
-        )
-    })
+pub fn check_candid_source(idl: CandidSource) -> DfxResult<(TypeEnv, Option<Type>)> {
+    match idl {
+        CandidSource::Path(idl_path) => pretty_check_file(idl_path).with_context(|| {
+            format!(
+                "Candid file check failed for {}.",
+                idl_path.to_string_lossy()
+            )
+        }),
+        CandidSource::Text(did) => {
+            let mut env = TypeEnv::new();
+            let actor = candid::check_prog(&mut env, &did.parse()?)?;
+            Ok((env, actor))
+        }
+    }
 }
 
 pub fn arguments_from_file(file_name: &str) -> DfxResult<String> {
