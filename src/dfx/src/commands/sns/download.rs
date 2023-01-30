@@ -12,7 +12,7 @@ use tokio::runtime::Runtime;
 #[derive(Parser)]
 pub struct SnsDownloadOpts {
     /// IC commit of SNS canister WASMs to download
-    #[clap(long)]
+    #[clap(long, env("DFX_IC_COMMIT"))]
     ic_commit: Option<String>,
     /// Path to store downloaded SNS canister WASMs
     #[clap(long, default_value = ".")]
@@ -22,8 +22,6 @@ pub struct SnsDownloadOpts {
 /// Executes the command line `dfx sns import`.
 pub fn exec(env: &dyn Environment, opts: SnsDownloadOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let ic_commit = opts.ic_commit.unwrap_or_else(|| {
-        std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string())
-    });
+    let ic_commit = opts.ic_commit.unwrap_or_else(|| replica_rev().to_string());
     runtime.block_on(download_sns_wasms(env, &ic_commit, &opts.wasms_dir))
 }
