@@ -30,7 +30,7 @@ impl ExtensionManager {
                 )
             })?;
         let dir = versioned_cache_dir.join("extensions");
-        ensure_dir_exists(&dir).map_err(|e| ExtensionError::EnsureExtensionDirExistsFailed(e))?;
+        ensure_dir_exists(&dir).map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
 
         Ok(Self {
             dir,
