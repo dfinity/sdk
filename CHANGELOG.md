@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: Add dfx sns download
+
+This allows users to download SNS canister WASMs.
+
 ### fix: fixed error text
 - `dfx nns install` had the wrong instructions for setting up the local replica type
 
