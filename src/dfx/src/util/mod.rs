@@ -122,11 +122,8 @@ pub async fn read_module_metadata(
 /// Parse IDL file into TypeEnv. This is a best effort function: it will succeed if
 /// the IDL file can be parsed and type checked in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.
-pub fn get_candid_type(
-    idl_path: &std::path::Path,
-    method_name: &str,
-) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_file(idl_path).ok()?;
+pub fn get_candid_type(candid: &str, method_name: &str) -> Option<(TypeEnv, Function)> {
+    let (env, ty) = check_candid_string(candid).ok()?;
     let actor = ty?;
     let method = env.get_method(&actor, method_name).ok()?.clone();
     Some((env, method))
@@ -145,6 +142,12 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
         modes: vec![],
     };
     Some((env, res))
+}
+
+pub fn check_candid_string(str: &str) -> DfxResult<(TypeEnv, Option<Type>)> {
+    let mut env = TypeEnv::new();
+    let actor = candid::check_prog(&mut env, &str.parse()?)?;
+    Ok((env, actor))
 }
 
 pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {

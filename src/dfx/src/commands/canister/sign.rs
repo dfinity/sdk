@@ -3,12 +3,14 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::get_local_cid_and_candid_path;
+use crate::lib::operations::canister::get_local_cid;
 use crate::lib::sign::sign_transport::SignReplicaV2Transport;
 use crate::lib::sign::signed_message::SignedMessageV1;
 
 use crate::util::clap::validators::file_or_stdin_validator;
-use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
+use crate::util::{
+    arguments_from_file, blob_from_arguments, get_candid_type, read_module_metadata,
+};
 
 use candid::Principal;
 use ic_agent::AgentError;
@@ -81,27 +83,24 @@ pub async fn exec(
     if *call_sender != CallSender::SelectedId {
         bail!("`sign` currently doesn't support proxying through the wallet canister, please use `dfx canister sign --no-wallet ...`.");
     }
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
     let canister_id_store = CanisterIdStore::for_env(env)?;
 
-    let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
-        Ok(id) => {
-            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id))?
-            } else {
-                // TODO fetch candid file from remote canister
-                (id, None)
-            }
-        }
+    let canister_id = match Principal::from_text(callee_canister) {
+        Ok(id) => id,
         Err(_) => {
             let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
+            get_local_cid(env, callee_canister, Some(canister_id))?
         }
     };
+    let maybe_candid = read_module_metadata(agent, canister_id, "candid:service").await;
 
-    let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
+    let method_type = maybe_candid.and_then(|did| get_candid_type(&did, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file = opts
@@ -130,9 +129,6 @@ pub async fn exec(
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
     let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     let network = env
         .get_network_descriptor()

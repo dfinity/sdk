@@ -23,7 +23,6 @@ use candid::Principal;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
-use std::path::PathBuf;
 
 #[context(
     "Failed to call update function '{}' regarding canister '{}'.",
@@ -294,15 +293,12 @@ pub async fn provisional_deposit_cycles(
     "Failed to get canister id and path to its candid definitions for '{}'.",
     canister_name
 )]
-pub fn get_local_cid_and_candid_path(
+pub fn get_local_cid(
     env: &dyn Environment,
     canister_name: &str,
     maybe_canister_id: Option<CanisterId>,
-) -> DfxResult<(CanisterId, Option<PathBuf>)> {
+) -> DfxResult<CanisterId> {
     let config = env.get_config_or_anyhow()?;
     let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
-    Ok((
-        canister_info.get_canister_id()?,
-        canister_info.get_output_idl_path(),
-    ))
+    Ok(canister_info.get_canister_id()?)
 }
