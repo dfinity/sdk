@@ -146,7 +146,7 @@ pub trait CanisterBuilder {
 
         let generated_idl_path = self.generate_idl(pool, info, config)?;
 
-        let (env, ty) = check_candid_source(CandidSource::Path(&generated_idl_path.as_path()))?;
+        let (env, ty) = check_candid_source(CandidSource::Path(generated_idl_path.as_path()))?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {
