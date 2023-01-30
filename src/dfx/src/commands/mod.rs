@@ -48,8 +48,8 @@ pub enum Command {
     Fix(fix::FixOpts),
     Extension(extension::ExtensionOpts),
     // Executes an extension
-    #[clap(external_subcommand)]
-    ExtensionRun(Vec<OsString>),
+    // #[clap(external_subcommand)]
+    // ExtensionRun(Vec<OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
