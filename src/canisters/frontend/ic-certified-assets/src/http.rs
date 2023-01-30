@@ -218,7 +218,9 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding(
     }
 
     let ic_certificate_expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
-    let expression_hash = hex::encode(sha2::Sha256::digest(ic_certificate_expression.as_bytes()));
+    let expression_hash = sha2::Sha256::digest(ic_certificate_expression.as_bytes())
+        .into_iter()
+        .collect();
     IcCertificateExpression {
         ic_certificate_expression,
         expression_hash,

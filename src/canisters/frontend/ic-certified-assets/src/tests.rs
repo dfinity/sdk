@@ -103,6 +103,11 @@ impl RequestBuilder {
         self
     }
 
+    fn with_certificate_version(mut self, version: impl Into<Nat>) -> Self {
+        self.certificate_version = Some(version.into());
+        self
+    }
+
     fn build(self) -> HttpRequest {
         HttpRequest {
             method: self.method,
@@ -1110,5 +1115,51 @@ mod certificate_expression {
             "Missing ic-certifiedexpression header in response: {:#?}",
             response,
         );
+    }
+}
+
+#[cfg(test)]
+mod certification_v2 {
+    use super::*;
+
+    #[test]
+    fn proper_header_structure() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        let cert_header =
+            lookup_header(&response, "ic-certificate").expect("ic-certificate header missing");
+
+        println!("IC-Certificate: {}", cert_header);
+
+        assert!(
+            cert_header.contains("version=2"),
+            "cert is missing version indicator or has wrong version",
+        );
+        assert!(cert_header.contains("certificate=:"), "cert is missing",);
+        assert!(cert_header.contains("tree=:"), "tree is missing",);
+        assert!(!cert_header.contains("tree=::"), "tree is empty",);
+        assert!(cert_header.contains("expr_path=:"), "expr_path is missing",);
+        assert!(!cert_header.contains("expr_path=::"), "expr_path is empty",);
     }
 }

@@ -1,12 +1,9 @@
 use ic_certified_map::{AsHashTree, HashTree, RbTree};
-use serde::Serialize;
 
-use crate::http::HeaderField;
-
-pub trait NestedTreeKeyRequirements: Clone + AsRef<[u8]> + 'static {}
-pub trait NestedTreeValueRequirements: AsHashTree + 'static {}
-impl<T> NestedTreeKeyRequirements for T where T: Clone + AsRef<[u8]> + 'static {}
-impl<T> NestedTreeValueRequirements for T where T: AsHashTree + 'static {}
+pub trait NestedTreeKeyRequirements: Clone + AsRef<[u8]> + core::fmt::Debug + 'static {}
+pub trait NestedTreeValueRequirements: AsHashTree + 'static + core::fmt::Debug {}
+impl<T> NestedTreeKeyRequirements for T where T: Clone + AsRef<[u8]> + core::fmt::Debug + 'static {}
+impl<T> NestedTreeValueRequirements for T where T: AsHashTree + core::fmt::Debug + 'static {}
 
 #[derive(Debug, Clone)]
 pub enum NestedTree<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> {
@@ -107,34 +104,6 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
     }
 }
 
-pub fn witness_to_header(
-    witness: HashTree,
-    certificate: &[u8],
-    certificate_version: u8,
-) -> HeaderField {
-    use ic_certified_map::labeled;
-
-    let hash_tree = labeled(b"http_assets", witness);
-    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
-    serializer.self_describe().unwrap();
-    hash_tree.serialize(&mut serializer).unwrap();
-    let version_string = if certificate_version == 1 {
-        "".to_string()
-    } else {
-        format!("version={}", certificate_version)
-    };
-
-    (
-        "IC-Certificate".to_string(),
-        String::from("certificate=:")
-            + &version_string
-            + &base64::encode(certificate)
-            + ":, tree=:"
-            + &base64::encode(&serializer.into_inner())
-            + ":",
-    )
-}
-
 pub fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a> {
     use HashTree::{Empty, Fork, Labeled, Leaf, Pruned};
 
@@ -193,4 +162,25 @@ fn nested_tree_operation() {
     tree.delete(&["one"]);
     assert_eq!(tree.get(&["one", "two"]), None);
     assert_eq!(tree.get(&["one"]), None);
+}
+
+#[test]
+fn nested_tree_actual() {
+    use crate::state_machine::{AssetHashPath, NestedTreeKey};
+
+    let mut tree: NestedTree<NestedTreeKey, Vec<u8>> = NestedTree::new();
+    let key = AssetHashPath(vec![
+        NestedTreeKey::Bytes(vec![104, 116, 116, 112, 95, 97, 115, 115, 101, 116, 115]),
+        NestedTreeKey::String("contents.html".to_string()),
+    ]);
+    let key2 = AssetHashPath(vec![
+        NestedTreeKey::Bytes(vec![104, 116, 116, 112, 95, 97, 115, 115, 101, 116, 115]),
+        NestedTreeKey::String("subdirectory".to_string()),
+        NestedTreeKey::String("index".to_string()),
+    ]);
+
+    tree.insert(key.as_vec(), vec![1]);
+    tree.insert(key2.as_vec(), vec![2]);
+    assert_eq!(tree.get(key.as_vec()).unwrap(), &vec![1]);
+    assert_eq!(tree.get(key2.as_vec()).unwrap(), &vec![2]);
 }

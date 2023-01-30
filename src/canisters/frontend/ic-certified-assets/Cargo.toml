@@ -18,7 +18,7 @@ ic-cdk = "0.6.0"
 ic-cdk-macros = "0.6.0"
 ic-certified-map = "0.3"
 num-traits = "0.2.14"
-representation-independent-hashing = {path = "../../../../../response-verification/representation-independent-hashing"}
+ic-response-verification = {path = "../../../../../response-verification/packages/ic-response-verification"}
 serde = "1"
 serde_bytes = "0.11"
 serde_cbor = "0.11"

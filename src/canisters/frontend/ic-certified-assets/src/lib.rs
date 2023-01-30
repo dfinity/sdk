@@ -2,6 +2,7 @@
 pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
+mod tree;
 pub mod types;
 mod url_decode;
 
@@ -55,7 +56,7 @@ fn list_authorized() -> ManualReply<Vec<Principal>> {
 
 #[query]
 #[candid_method(query)]
-fn retrieve(key: Key) -> RcBytes {
+fn retrieve(key: AssetKey) -> RcBytes {
     STATE.with(|s| match s.borrow().retrieve(&key) {
         Ok(bytes) => bytes,
         Err(msg) => trap(&msg),
@@ -213,7 +214,7 @@ fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCa
 
 #[query]
 #[candid_method(query)]
-fn get_asset_properties(key: Key) -> AssetProperties {
+fn get_asset_properties(key: AssetKey) -> AssetProperties {
     STATE.with(|s| {
         s.borrow()
             .get_asset_properties(key)

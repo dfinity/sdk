@@ -10,18 +10,16 @@ use crate::{
         HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
     },
     rc_bytes::RcBytes,
+    tree::{merge_hash_trees, NestedTree},
     types::*,
     url_decode::url_decode,
 };
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
-use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
+use ic_certified_map::{AsHashTree, Hash, HashTree};
+use ic_response_verification::hash::{representation_independent_hash, Value};
 use num_traits::ToPrimitive;
-use representation_independent_hashing::representation_independent_hash::{
-    representation_independent_hash, Value,
-};
 use serde::Serialize;
 use serde_bytes::ByteBuf;
-use serde_cbor::{ser::IoWrite, Serializer};
 use sha2::Digest;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -39,14 +37,14 @@ const INDEX_FILE: &str = "/index.html";
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
 
-type AssetHashes = RbTree<Key, Hash>;
+type AssetHashes = NestedTree<NestedTreeKey, Vec<u8>>;
 type Timestamp = Int;
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct IcCertificateExpression {
     pub ic_certificate_expression: String,
     /// Hash of ic_certificate_expression
-    pub expression_hash: String,
+    pub expression_hash: Vec<u8>,
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
@@ -58,6 +56,32 @@ pub struct AssetEncoding {
     pub sha256: [u8; 32],
     pub ic_ce: Option<IcCertificateExpression>,
     pub response_hash: Option<String>,
+}
+impl AssetEncoding {
+    fn asset_hash_path_v2(&self, AssetPath(path): AssetPath) -> Option<AssetHashPath> {
+        if let Some(ce) = self.ic_ce.as_ref() {
+            if let Some(response_hash) = self.response_hash.as_ref() {
+                let mut path: Vec<NestedTreeKey> = path
+                    .into_iter()
+                    .map(|segment| NestedTreeKey::String(segment))
+                    .collect();
+                path.insert(
+                    0,
+                    NestedTreeKey::Bytes(b"http_expr".iter().map(|b| b.clone()).collect()),
+                );
+                path.push(NestedTreeKey::Bytes(
+                    b"<$>".iter().map(|b| b.clone()).collect(),
+                ));
+                path.push(NestedTreeKey::Bytes(ce.expression_hash.clone()));
+                path.push(response_hash.to_string().into());
+                Some(AssetHashPath(path))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
@@ -111,7 +135,7 @@ pub struct Batch {
 
 #[derive(Default)]
 pub struct State {
-    assets: HashMap<Key, Asset>,
+    assets: HashMap<AssetKey, Asset>,
 
     chunks: HashMap<ChunkId, Chunk>,
     next_chunk_id: ChunkId,
@@ -128,6 +152,110 @@ pub struct State {
 pub struct StableState {
     authorized: Vec<Principal>,
     stable_assets: HashMap<String, Asset>,
+}
+
+/// AssetKey that has been split into segments.
+/// E.g. `["foo", "index.html"]`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssetPath(pub Vec<AssetKey>);
+/// AssetPath that is ready to be inserted into asset_hashes.
+/// E.g. `["http_expr", "foo", "index.html", "<$>", "<expr_hash>", "<response_hash>"]`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssetHashPath(pub Vec<NestedTreeKey>);
+
+impl<T> From<T> for AssetPath
+where
+    T: Into<Vec<String>>,
+{
+    fn from(t: T) -> Self {
+        Self(t.into())
+    }
+}
+
+impl AssetPath {
+    pub fn from_asset_key(key: &str) -> Self {
+        let mut iter = key.split("/").peekable();
+        if let Some(first_segment) = iter.peek() {
+            if *first_segment == "" {
+                iter.next();
+            }
+        }
+        Self(iter.map(|segment| segment.to_string()).collect())
+    }
+
+    pub fn reconstruct_asset_key(&self) -> AssetKey {
+        format!("/{}", self.0.join("/"))
+    }
+
+    pub fn asset_hash_path_v1(&self) -> AssetHashPath {
+        AssetHashPath(vec![
+            NestedTreeKey::Bytes(b"http_assets".iter().map(|b| b.clone()).collect()),
+            NestedTreeKey::String(self.reconstruct_asset_key()),
+        ])
+    }
+
+    pub fn asset_hash_path_root_v2(&self) -> AssetHashPath {
+        let mut hash_path: Vec<NestedTreeKey> = self
+            .0
+            .iter()
+            .map(|segment| NestedTreeKey::String(segment.into()))
+            .collect();
+        hash_path.push(NestedTreeKey::Bytes(
+            b"<$>".iter().map(|b| b.clone()).collect(),
+        ));
+        hash_path.insert(
+            0,
+            NestedTreeKey::Bytes(b"http_assets".iter().map(|b| b.clone()).collect()),
+        );
+        AssetHashPath(hash_path)
+    }
+}
+
+impl AssetHashPath {
+    pub fn as_vec(&self) -> &Vec<NestedTreeKey> {
+        &self.0
+    }
+
+    pub fn expr_path(&self) -> String {
+        format!(
+            "/{}",
+            self.0
+                .iter()
+                .map(|key| match key {
+                    NestedTreeKey::String(k) => k.clone(),
+                    NestedTreeKey::Bytes(b) => hex::encode(b),
+                })
+                .collect::<Vec<String>>()
+                .join("/")
+        )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NestedTreeKey {
+    String(String),
+    Bytes(Vec<u8>),
+}
+
+impl AsRef<[u8]> for NestedTreeKey {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            NestedTreeKey::String(s) => s.as_bytes(),
+            NestedTreeKey::Bytes(b) => b.as_slice(),
+        }
+    }
+}
+
+impl From<&str> for NestedTreeKey {
+    fn from(s: &str) -> Self {
+        Self::String(s.into())
+    }
+}
+
+impl From<String> for NestedTreeKey {
+    fn from(s: String) -> Self {
+        Self::String(s)
+    }
 }
 
 impl Asset {
@@ -170,11 +298,11 @@ impl Asset {
 }
 
 impl State {
-    fn get_asset(&self, key: &Key) -> Result<&Asset, String> {
+    fn get_asset(&self, key: &AssetKey) -> Result<&Asset, String> {
         self.assets
             .get(key)
             .or_else(|| {
-                let aliased = aliases_of(key)
+                let aliased = aliases_of_key(key)
                     .into_iter()
                     .find_map(|alias_key| self.assets.get(&alias_key));
                 if let Some(asset) = aliased {
@@ -207,8 +335,7 @@ impl State {
     }
 
     pub fn root_hash(&self) -> Hash {
-        use ic_certified_map::labeled_hash;
-        labeled_hash(b"http_assets", &self.asset_hashes.root_hash())
+        self.asset_hashes.root_hash()
     }
 
     pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
@@ -241,7 +368,7 @@ impl State {
             return Err("encoding must have at least one chunk".to_string());
         }
 
-        let dependent_keys = self.dependent_keys(&arg.key);
+        let dependent_keys = self.dependent_keys_v1(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -287,7 +414,7 @@ impl State {
     }
 
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
-        let dependent_keys = self.dependent_keys(&arg.key);
+        let dependent_keys = self.dependent_keys_v1(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -301,11 +428,15 @@ impl State {
     }
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
-        for dependent in self.dependent_keys(&arg.key) {
-            self.asset_hashes.delete(dependent.as_bytes());
+        if let Some(_) = self.assets.get(&arg.key) {
+            for dependent in self.dependent_keys_v1(&arg.key) {
+                let path = AssetPath::from_asset_key(&dependent);
+                self.asset_hashes.delete(path.asset_hash_path_v1().as_vec());
+                self.asset_hashes
+                    .delete(path.asset_hash_path_root_v2().as_vec());
+            }
+            self.assets.remove(&arg.key);
         }
-        self.assets.remove(&arg.key);
-        self.asset_hashes.delete(arg.key.as_bytes());
     }
 
     pub fn clear(&mut self) {
@@ -320,7 +451,7 @@ impl State {
         self.authorized.contains(principal)
     }
 
-    pub fn retrieve(&self, key: &Key) -> Result<RcBytes, String> {
+    pub fn retrieve(&self, key: &AssetKey) -> Result<RcBytes, String> {
         let asset = self.get_asset(key)?;
 
         let id_enc = asset
@@ -336,7 +467,7 @@ impl State {
     }
 
     pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
-        let dependent_keys = self.dependent_keys(&arg.key);
+        let dependent_keys = self.dependent_keys_v1(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
         asset.is_aliased = arg.aliased;
@@ -442,12 +573,12 @@ impl State {
     }
 
     pub fn certified_tree(&self, certificate: &[u8]) -> CertifiedTree {
-        use ic_certified_map::labeled;
-
-        let hash_tree = labeled(b"http_assets", self.asset_hashes.as_hash_tree());
         let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
         serializer.self_describe().unwrap();
-        hash_tree.serialize(&mut serializer).unwrap();
+        self.asset_hashes
+            .as_hash_tree()
+            .serialize(&mut serializer)
+            .unwrap();
 
         CertifiedTree {
             certificate: certificate.to_vec(),
@@ -503,24 +634,53 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        let index_redirect_certificate = if self.asset_hashes.get(path.as_bytes()).is_none()
-            && self.asset_hashes.get(INDEX_FILE.as_bytes()).is_some()
-        {
-            let absence_proof = self.asset_hashes.witness(path.as_bytes());
-            let index_proof = self.asset_hashes.witness(INDEX_FILE.as_bytes());
-            let combined_proof = merge_hash_trees(absence_proof, index_proof);
-            Some(witness_to_header(
-                combined_proof,
-                certificate,
-                req.get_certificate_version(),
-            ))
+        println!("Path is {}", path);
+
+        let (asset_hash_path, index_hash_path) = if req.get_certificate_version() == 1 {
+            let path = AssetPath::from_asset_key(path);
+            let v1_path = path.asset_hash_path_v1();
+
+            let index_path = AssetPath::from_asset_key(INDEX_FILE);
+            let v1_index = index_path.asset_hash_path_v1();
+
+            (v1_path, v1_index)
         } else {
-            None
+            let path = AssetPath::from_asset_key(path);
+            let v2_root_path = path.asset_hash_path_root_v2();
+
+            let index_path = AssetPath::from_asset_key(INDEX_FILE);
+            let v2_index_root = index_path.asset_hash_path_root_v2();
+
+            (v2_root_path, v2_index_root)
         };
+
+        let index_redirect_certificate =
+            if self.asset_hashes.get(asset_hash_path.as_vec()).is_none()
+                && self.asset_hashes.get(index_hash_path.as_vec()).is_some()
+            {
+                let absence_proof = self.asset_hashes.witness(asset_hash_path.as_vec());
+                let index_proof = self.asset_hashes.witness(index_hash_path.as_vec());
+                let combined_proof = merge_hash_trees(absence_proof, index_proof);
+
+                if req.get_certificate_version() == 1 {
+                    Some(witness_to_header_v1(combined_proof, certificate))
+                } else {
+                    Some(witness_to_header_v2(
+                        combined_proof,
+                        certificate,
+                        &asset_hash_path.expr_path(),
+                    ))
+                }
+            } else {
+                None
+            };
+
+        println!("redirect cert: {:?}", &index_redirect_certificate);
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
                 if !asset.allow_raw_access() && req.is_raw_domain() {
+                    println!("redirecting from raw");
                     return req.redirect_from_raw_to_certified_domain();
                 }
                 for enc_name in encodings.iter() {
@@ -542,11 +702,18 @@ impl State {
             }
         }
 
-        let certificate_header = witness_to_header(
-            self.asset_hashes.witness(path.as_bytes()),
-            certificate,
-            req.get_certificate_version(),
-        );
+        let certificate_header = if req.get_certificate_version() == 1 {
+            witness_to_header_v1(
+                self.asset_hashes.witness(asset_hash_path.as_vec()),
+                certificate,
+            )
+        } else {
+            witness_to_header_v2(
+                self.asset_hashes.witness(asset_hash_path.as_vec()),
+                certificate,
+                &asset_hash_path.expr_path(),
+            )
+        };
 
         if let Ok(asset) = self.get_asset(&path.into()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
@@ -666,7 +833,7 @@ impl State {
         })
     }
 
-    pub fn get_asset_properties(&self, key: Key) -> Result<AssetProperties, String> {
+    pub fn get_asset_properties(&self, key: AssetKey) -> Result<AssetProperties, String> {
         let asset = self
             .assets
             .get(&key)
@@ -680,7 +847,7 @@ impl State {
     }
 
     pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
-        let dependent_keys = self.dependent_keys(&arg.key).clone();
+        let dependent_keys = self.dependent_keys_v1(&arg.key).clone();
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -701,16 +868,32 @@ impl State {
     }
 
     // Returns keys that needs to be updated if the supplied key is changed.
-    fn dependent_keys<'a>(&self, key: &Key) -> Vec<Key> {
+    fn dependent_keys_v1<'a>(&self, key: &AssetKey) -> Vec<AssetKey> {
         if self
             .assets
             .get(key)
             .and_then(|asset| asset.is_aliased)
             .unwrap_or(DEFAULT_ALIAS_ENABLED)
         {
-            aliased_by(key)
+            aliased_by_v1(key)
                 .into_iter()
                 .filter(|k| !self.assets.contains_key(k))
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn _dependent_paths_v2(&self, path: AssetPath) -> Vec<AssetPath> {
+        if self
+            .assets
+            .get(&path.reconstruct_asset_key())
+            .and_then(|asset| asset.is_aliased)
+            .unwrap_or(DEFAULT_ALIAS_ENABLED)
+        {
+            _aliased_by_v2(&path)
+                .into_iter()
+                .filter(|k| !self.assets.contains_key(&k.reconstruct_asset_key()))
                 .collect()
         } else {
             Vec::new()
@@ -737,7 +920,7 @@ impl From<StableState> for State {
 
         let assets_keys: Vec<_> = state.assets.keys().cloned().collect();
         for key in assets_keys {
-            let dependent_keys = state.dependent_keys(&key);
+            let dependent_keys = state.dependent_keys_v1(&key);
             if let Some(asset) = state.assets.get_mut(&key) {
                 for enc in asset.encodings.values_mut() {
                     enc.certified = false;
@@ -781,9 +964,8 @@ fn on_asset_change(
     asset_hashes: &mut AssetHashes,
     key: &str,
     asset: &mut Asset,
-    dependent_keys: Vec<Key>,
+    dependent_keys: Vec<AssetKey>,
 ) {
-    // todo!(update response hashes)
     // update IC-CertificateExpression header value
     asset.update_ic_certificate_expressions();
 
@@ -799,11 +981,14 @@ fn on_asset_change(
         }
     }
 
+    // Clean up pre-existing paths for this asset
+    let mut keys_to_remove = dependent_keys.clone();
+    keys_to_remove.push(key.to_string());
+    for key in keys_to_remove {
+        let key_path = AssetPath::from_asset_key(&key);
+        asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
+    }
     if asset.encodings.is_empty() {
-        asset_hashes.delete(key.as_bytes());
-        for dependent in dependent_keys {
-            asset_hashes.delete(dependent.as_bytes());
-        }
         return;
     }
 
@@ -814,8 +999,29 @@ fn on_asset_change(
         enc.certified = false;
     }
 
-    // todo!(deduplicate this and below code)
-    for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
+    // Order of encodings: Follow ENCODING_CERTIFICATION_ORDER,
+    // if none exist, we just pick the first existing encoding.
+    let mut encoding_order: Vec<String> = ENCODING_CERTIFICATION_ORDER
+        .iter()
+        .map(|enc| enc.to_string())
+        .collect();
+    if let Some(enc) = asset.encodings.keys().next() {
+        encoding_order.push(enc.clone());
+    }
+
+    // Once v1 certification support removed: can move this to just before `enc.certified = true;` happens
+    let mut keys_to_insert_hash_for = dependent_keys;
+    keys_to_insert_hash_for.push(key.into());
+    let keys_to_insert_hash_for: Vec<_> = keys_to_insert_hash_for
+        .into_iter()
+        .map(|key| {
+            let v1_hash_path = AssetPath::from_asset_key(&key).asset_hash_path_v1();
+            (key, v1_hash_path)
+        })
+        .collect();
+
+    // Insert certificate values into hash_tree
+    for enc_name in encoding_order.iter() {
         let Asset {
             content_type,
             encodings,
@@ -823,12 +1029,12 @@ fn on_asset_change(
             headers,
             ..
         } = asset;
-        if let Some(enc) = encodings.get_mut(*enc_name) {
-            let encoding_headers = build_headers(
+        if let Some(enc) = encodings.get_mut(enc_name) {
+            let encoding_headers: Vec<(String, Value)> = build_headers(
                 headers.as_ref().map(|h| h.iter()),
                 max_age,
                 &*content_type,
-                *enc_name,
+                enc_name,
                 enc.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression),
             )
             .into_iter()
@@ -836,115 +1042,23 @@ fn on_asset_change(
             .collect();
             let header_hash = representation_independent_hash(&encoding_headers);
             let new_response_hash = format!("{:02x?}{:02x?}", &header_hash, &enc.sha256);
-
-            asset_hashes.insert(key.to_string(), enc.sha256);
-            for dependent in dependent_keys {
-                asset_hashes.insert(dependent, enc.sha256);
-            }
             enc.response_hash = Some(new_response_hash);
+
+            for (key, v1_path) in keys_to_insert_hash_for {
+                let key_path = AssetPath::from_asset_key(&key);
+                asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
+                if let Some(hash_path) = enc.asset_hash_path_v2(key_path) {
+                    asset_hashes.insert(hash_path.as_vec(), Vec::new());
+                }
+            }
             enc.certified = true;
             return;
-        }
-    }
-
-    // No known encodings found. Just pick the first one. The exact
-    // order is hard to predict because we use a hash map. Should
-    // almost never happen anyway.
-    let Asset {
-        content_type,
-        encodings,
-        max_age,
-        headers,
-        ..
-    } = asset;
-    if let Some((enc_name, enc)) = encodings.iter_mut().next() {
-        let encoding_headers = build_headers(
-            headers.as_ref().map(|h| h.iter()),
-            max_age,
-            &*content_type,
-            enc_name,
-            enc.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression),
-        )
-        .into_iter()
-        .map(|(k, v)| (k, Value::String(v)))
-        .collect();
-        let header_hash = representation_independent_hash(&encoding_headers);
-        let new_response_hash = format!("{:02x?}{:02x?}", &header_hash, &enc.sha256);
-
-        asset_hashes.insert(key.to_string(), enc.sha256);
-        for dependent in dependent_keys {
-            asset_hashes.insert(dependent, enc.sha256);
-        }
-        enc.response_hash = Some(new_response_hash);
-        enc.certified = true;
-    }
-}
-
-fn witness_to_header(
-    witness: HashTree,
-    certificate: &[u8],
-    certificate_version: u8,
-) -> HeaderField {
-    use ic_certified_map::labeled;
-
-    let hash_tree = labeled(b"http_assets", witness);
-    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
-    serializer.self_describe().unwrap();
-    hash_tree.serialize(&mut serializer).unwrap();
-    let version_string = if certificate_version == 1 {
-        "".to_string()
-    } else {
-        format!("version={}", certificate_version)
-    };
-
-    (
-        "IC-Certificate".to_string(),
-        String::from("certificate=:")
-            + &version_string
-            + &base64::encode(certificate)
-            + ":, tree=:"
-            + &base64::encode(&serializer.into_inner())
-            + ":",
-    )
-}
-
-fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a> {
-    use HashTree::{Empty, Fork, Labeled, Leaf, Pruned};
-
-    match (lhs, rhs) {
-        (Pruned(l), Pruned(r)) => {
-            if l != r {
-                panic!("merge_hash_trees: inconsistent hashes");
-            }
-            Pruned(l)
-        }
-        (Pruned(_), r) => r,
-        (l, Pruned(_)) => l,
-        (Fork(l), Fork(r)) => Fork(Box::new((
-            merge_hash_trees(l.0, r.0),
-            merge_hash_trees(l.1, r.1),
-        ))),
-        (Labeled(l_label, l), Labeled(r_label, r)) => {
-            if l_label != r_label {
-                panic!("merge_hash_trees: inconsistent hash tree labels");
-            }
-            Labeled(l_label, Box::new(merge_hash_trees(*l, *r)))
-        }
-        (Empty, Empty) => Empty,
-        (Leaf(l), Leaf(r)) => {
-            if l != r {
-                panic!("merge_hash_trees: inconsistent leaves");
-            }
-            Leaf(l)
-        }
-        (_l, _r) => {
-            panic!("merge_hash_trees: inconsistent tree structure");
         }
     }
 }
 
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
-fn aliases_of(key: &Key) -> Vec<Key> {
+fn aliases_of_key(key: &AssetKey) -> Vec<AssetKey> {
     if key.ends_with('/') {
         vec![format!("{}index.html", key)]
     } else if !key.ends_with(".html") {
@@ -955,7 +1069,8 @@ fn aliases_of(key: &Key) -> Vec<Key> {
 }
 
 /// determines possible alternate lookup keys for a given key in order of most likely to least likely
-fn aliases_of_v2(key: &KeyV2) -> Vec<KeyV2> {
+fn _aliases_of_v2(key: &AssetPath) -> Vec<AssetPath> {
+    let AssetPath(key) = key;
     if let Some(last) = key.last() {
         if last == "" {
             // map /path/to/my/asset/ to
@@ -971,8 +1086,11 @@ fn aliases_of_v2(key: &KeyV2) -> Vec<KeyV2> {
                 let mut with_html = Vec::from(&key[..key.len() - 2]);
                 with_html.push(format!("{}.html", second_last));
                 vec![no_slash, with_html, with_index]
+                    .into_iter()
+                    .map(|path| path.into())
+                    .collect()
             } else {
-                vec![no_slash, with_index]
+                vec![no_slash.into(), with_index.into()]
             }
         } else if !last.ends_with(".html") {
             // map /path/to/my/asset to
@@ -982,9 +1100,9 @@ fn aliases_of_v2(key: &KeyV2) -> Vec<KeyV2> {
             with_html.push(format!("{}.html", last));
             let mut with_index = key.clone();
             with_index.push("index.html".to_string());
-            vec![with_html, with_index]
+            vec![with_html.into(), with_index.into()]
         } else {
-            todo!()
+            Vec::new()
         }
     } else {
         Vec::new()
@@ -993,8 +1111,13 @@ fn aliases_of_v2(key: &KeyV2) -> Vec<KeyV2> {
 
 // Determines possible original keys in case the supplied key is being aliaseded to.
 // Sort-of a reverse operation of `alias_of`
-fn aliased_by(key: &Key) -> Vec<Key> {
-    if key.ends_with("/index.html") {
+fn aliased_by_v1(key: &AssetKey) -> Vec<AssetKey> {
+    if key == "/index.html" {
+        vec![
+            key[..(key.len() - 5)].into(),
+            key[..(key.len() - 10)].into(),
+        ]
+    } else if key.ends_with("/index.html") {
         vec![
             key[..(key.len() - 5)].into(),
             key[..(key.len() - 10)].into(),
@@ -1009,35 +1132,51 @@ fn aliased_by(key: &Key) -> Vec<Key> {
 
 // Determines possible original keys in case the supplied key is being aliaseded to.
 // Sort-of a reverse operation of `alias_of_v2`
-fn aliased_by_v2(key: &KeyV2) -> Vec<KeyV2> {
+fn _aliased_by_v2(AssetPath(key): &AssetPath) -> Vec<AssetPath> {
     if let Some(last) = key.last() {
         if last == "index.html" {
             //    /path/to/my/asset/index.html is aliased by
-            //    /path/to/my/asset/index
-            // or /path/to/my/asset.html
-            // or /path/to/my/asset/
-            // or /path/to/my/asset
-            let parent = Vec::from(&key[..key.len() - 1]);
-            let mut index = parent.clone();
+            //    /path/to/my/asset/index      (case 'index')
+            // or /path/to/my/asset.html       (case 'parent_with_html')
+            // or /path/to/my/asset/           (case 'parent_with_slash')
+            // or /path/to/my/asset            (called 'parent')
+            let root = &key[..key.len() - 1];
+            let parent: Option<Vec<AssetKey>> = if root.len() == 0 {
+                None
+            } else {
+                Some(root.into())
+            };
+            let mut index: Vec<AssetKey> = root.into();
             index.push("index".to_string());
-            let mut parent_with_slash = parent.clone();
+            let mut parent_with_slash: Vec<AssetKey> = root.into();
             parent_with_slash.push("".to_string());
-            if let Some(second_last) = parent.last() {
+            let parent_with_html = if let Some(second_last) = root.last() {
                 let mut parent_with_html = Vec::from(&key[..key.len() - 2]);
                 parent_with_html.push(format!("{}.html", second_last));
-                vec![index, parent_with_html, parent_with_slash, parent]
+                Some(parent_with_html)
             } else {
-                vec![index, parent_with_slash, parent]
+                None
+            };
+
+            let mut output = Vec::new();
+            output.push(index.into());
+            if let Some(parent_with_html) = parent_with_html {
+                output.push(parent_with_html.into());
             }
+            output.push(parent_with_slash.into());
+            if let Some(parent) = parent {
+                output.push(parent.into());
+            }
+            output
         } else if last.ends_with(".html") {
             //    /path/to/my/asset.html is aliased by
-            //    /path/to/my/asset/
-            // or /path/to/my/asset
+            //    /path/to/my/asset/     (called 'parent_with_slash')
+            // or /path/to/my/asset      (called 'without_html')
             let mut without_html = Vec::from(&key[..key.len() - 1]);
             let mut parent_with_slash = without_html.clone();
-            without_html.push(last[..last.len() - 5].to_string());
+            without_html.push(last[..last.len() - 5].into());
             parent_with_slash.push("".to_string());
-            vec![without_html, parent_with_slash]
+            vec![without_html.into(), parent_with_slash.into()]
         } else {
             Vec::new()
         }
@@ -1046,17 +1185,34 @@ fn aliased_by_v2(key: &KeyV2) -> Vec<KeyV2> {
     }
 }
 
-fn serialize_cbor_self_describing<T>(value: &T) -> Vec<u8>
-where
-    T: serde::Serialize,
-{
-    let mut vec = Vec::new();
-    let mut binding = IoWrite::new(&mut vec);
-    let mut s = Serializer::new(&mut binding);
-    s.self_describe()
-        .expect("Cannot produce self-describing cbor.");
-    value
-        .serialize(&mut s)
-        .expect("Failed to serialize self-describing CBOR.");
-    vec
+pub fn witness_to_header_v1(witness: HashTree, certificate: &[u8]) -> HeaderField {
+    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+    serializer.self_describe().unwrap();
+    witness.serialize(&mut serializer).unwrap();
+    (
+        "IC-Certificate".to_string(),
+        String::from("certificate=:")
+            + &base64::encode(certificate)
+            + ":, tree=:"
+            + &base64::encode(&serializer.into_inner())
+            + ":",
+    )
+}
+
+pub fn witness_to_header_v2(witness: HashTree, certificate: &[u8], expr_path: &str) -> HeaderField {
+    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+    serializer.self_describe().unwrap();
+    witness.serialize(&mut serializer).unwrap();
+
+    (
+        "IC-Certificate".to_string(),
+        String::from("version=2, ")
+            + "certificate=:"
+            + &base64::encode(certificate)
+            + ":, tree=:"
+            + &base64::encode(&serializer.into_inner())
+            + ":, expr_path=:"
+            + expr_path
+            + ":",
+    )
 }
