@@ -228,15 +228,18 @@ pub async fn exec(
             get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?.0
         }
     };
-    let maybe_candid = read_module_metadata(agent, canister_id, "candid:service").await;
-    if maybe_candid.is_none() {
+    let method_type = if let Some(path) = opts.candid {
+        get_candid_type(CandidSource::Path(&path), method_name)
+    } else {
+        read_module_metadata(agent, canister_id, "candid:service")
+            .await
+            .and_then(|did| get_candid_type(CandidSource::Text(&did), method_name))
+    };
+    if method_type.is_none() {
         eprintln!("Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.");
     }
 
     let is_management_canister = canister_id == CanisterId::management_canister();
-
-    let method_type =
-        maybe_candid.and_then(|did| get_candid_type(CandidSource::Text(&did), method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file = opts
