@@ -8,7 +8,7 @@ mod list;
 pub mod run;
 mod uninstall;
 
-/// Manages canisters deployed on a network replica.
+/// Manages the dfx extensions.
 #[derive(Parser)]
 #[clap(name("extension"))]
 pub struct ExtensionOpts {
@@ -18,13 +18,13 @@ pub struct ExtensionOpts {
 
 #[derive(Subcommand)]
 pub enum SubCommand {
-    /// Install an extension
+    /// Install an extension.
     Install(install::InstallOpts),
-    /// Uninstall an extension
+    /// Uninstall an extension.
     Uninstall(uninstall::UninstallOpts),
-    /// Execute an extension
+    /// Execute an extension.
     Run(run::RunOpts),
-    /// List installed extensions
+    /// List installed extensions.
     List,
 }
 

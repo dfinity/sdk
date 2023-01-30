@@ -39,24 +39,22 @@ impl ExtensionCompatibilityMatrix {
         dfx_version: Version,
     ) -> Result<Version, ExtensionError> {
         let manifests = self.0.get(&dfx_version).ok_or_else(|| {
-            ExtensionError::DfxVersionNotFoundInCompatibilityJson(
-                dfx_version.clone(),
-                COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(),
-            )
+            ExtensionError::DfxVersionNotFoundInCompatibilityJson(dfx_version.clone())
         })?;
 
         let extension_location = manifests.get(extension_name).ok_or_else(|| {
             ExtensionError::ExtensionVersionNotFoundInRepository(
                 extension_name.to_string(),
-                dfx_version.to_string(),
+                dfx_version.clone(),
                 COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(),
             )
         })?;
         let mut extension_versions = vec![];
         for ext_verion in extension_location.versions.iter().rev() {
-            let version = Version::parse(ext_verion).map_err(|_e| {
+            let version = Version::parse(ext_verion).map_err(|e| {
                 ExtensionError::MalformedVersionsEntryForExtensionInCompatibilityMatrix(
                     ext_verion.to_string(),
+                    e,
                 )
             })?;
             extension_versions.push(version);
@@ -66,6 +64,7 @@ impl ExtensionCompatibilityMatrix {
         extension_versions.first().cloned().ok_or_else(|| {
             ExtensionError::ListOfVersionsForExtensionIsEmpty(
                 COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(),
+                dfx_version.clone(),
             )
         })
     }

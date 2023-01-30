@@ -3,10 +3,10 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
-    #[error("Cannot find cache directory at '{0}'.")]
+    #[error("Cannot find cache directory '{0}': '{1}'.")]
     FindCacheDirectoryFailed(std::path::PathBuf, anyhow::Error),
 
-    #[error("Cannot get extensions directory due to error: '{0}'")]
+    #[error("Cannot get extendirectory '{0}' not installed.")]
     EnsureExtensionDirExistsFailed(dfx_core::error::io::IoError),
 
     #[error("Extension '{0}' not installed.")]
@@ -16,59 +16,61 @@ pub enum ExtensionError {
     #[error("Extension '{0}' is already installed.")]
     ExtensionAlreadyInstalled(String),
 
-    #[error("Cannot fetch compatibility.json from '{0}'.")]
+    #[error("Cannot fetch compatibility.json: '{0}'.")]
     CompatibilityMatrixFetchError(String),
 
-    #[error("Cannot parse compatibility.json due to error '{0}'.")]
+    #[error("Cannot parse compatibility.json: '{0}'")]
     MalformedCompatibilityMatrix(reqwest::Error),
 
-    #[error("Cannot parse compatibility.json due to error '{0}'.")]
-    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String),
+    #[error("Cannot parse compatibility.json due to malformed semver '{0}': '{1}'")]
+    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, semver::Error),
 
-    #[error("Cannot parse compatibility.json due to error '{0}'.")]
-    ListOfVersionsForExtensionIsEmpty(String),
+    #[error("Cannot find compatible extension for dfx version '{1}': compatibility.json (downloaded from '{0}') has empty list of extension versions.")]
+    ListOfVersionsForExtensionIsEmpty(String, semver::Version),
 
-    #[error("Cannot parse extension manifest '{0}'.")]
-    MalformedExtensionDownloadUrl(url::ParseError),
+    #[error("Cannot parse extension manifest URL '{0}': '{1}'")]
+    MalformedExtensionDownloadUrl(String, url::ParseError),
 
     #[error("DFX version '{0}' is not supported.")]
-    DfxVersionNotFoundInCompatibilityJson(semver::Version, String),
+    DfxVersionNotFoundInCompatibilityJson(semver::Version),
 
     #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
-    ExtensionVersionNotFoundInRepository(String, String, String),
+    ExtensionVersionNotFoundInRepository(String, semver::Version, String),
 
-    #[error("Extension '{0}' download failed.")]
-    ExtensionDownloadFailed(url::Url),
+    #[error("Downloading extension from '{0}' failed.")]
+    ExtensionDownloadFailed(url::Url, reqwest::Error),
 
-    #[error("Cannot decompress extension archive (downloaded from: '{0}'), due to error: '{1}'.")]
+    #[error("Cannot decompress extension archive (downloaded from: '{0}'): '{1}'")]
     DecompressFailed(url::Url, std::io::Error),
 
     #[error("Cannot create temporary directory at '{0}'.")]
-    CreateTemporaryDirectoryFailed(std::path::PathBuf),
+    CreateTemporaryDirectoryFailed(std::path::PathBuf, std::io::Error),
 
     #[cfg(not(target_os = "windows"))]
-    #[error("Insufficient permissions to open extension's binary permissions '{0}'.")]
-    InsufficientPermissionsToOpenExtensionBinaryInWriteMode(String),
+    #[error(
+        "Insufficient permissions to open file in write mode (extension's binary '{0}'): '{1}'"
+    )]
+    InsufficientPermissionsToOpenExtensionBinaryInWriteMode(String, std::io::Error),
 
     #[cfg(not(target_os = "windows"))]
-    #[error("Cannot change file permissions at '{0}', due to error: {1}.")]
+    #[error("Cannot change file permissions at '{0}': '{1}'")]
     ChangeFilePermissionsFailed(std::path::PathBuf, std::io::Error),
 
-    #[error("Cannot rename directory at '{0}'.")]
+    #[error("Cannot rename directory: '{0}'")]
     RenameDirectoryFailed(std::io::Error),
 
     // errors related to uninstalling extensions
-    #[error("Cannot uninstall extension '{0}'.")]
-    InsufficientPermissionsToDeleteExtensionDirectory(std::io::Error),
+    #[error("Cannot uninstall extension: '{0}'")]
+    InsufficientPermissionsToDeleteExtensionDirectory(dfx_core::error::io::IoError),
 
     // errors related to listing extensions
     #[error("Cannot list extensions.")]
     ExtensionsDirectoryIsNotReadable(std::io::Error),
 
-    #[error("Malformed extension manifest ({0}): '{1}'.")]
+    #[error("Malformed extension manifest ({0}): '{1}'")]
     ExtensionManifestIsNotValidJson(std::path::PathBuf, serde_json::Error),
 
-    #[error("Malformed extension manifest ({0})..")]
+    #[error("Malformed extension manifest '{0}': '{1}'")]
     ExtensionManifestDoesNotExist(std::path::PathBuf, std::io::Error),
 
     // errors related to executing extensions

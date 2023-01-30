@@ -1,8 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
-use clap::Parser;
-
 use std::io::Write;
 
 pub fn exec(env: &dyn Environment) -> DfxResult<()> {

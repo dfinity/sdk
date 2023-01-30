@@ -14,9 +14,10 @@ use std::os::unix::fs::PermissionsExt;
 impl ExtensionManager {
     pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
         if self.get_extension_directory(extension_name).exists() {
-            return Err(ExtensionError::ExtensionAlreadyInstalled(
-                format!("extension {} already installed", extension_name), // TODO: --force
-            ));
+            return Err(ExtensionError::ExtensionAlreadyInstalled(format!(
+                "extension {} already installed",
+                extension_name
+            )));
         }
 
         let url = self.get_extension_download_url(extension_name)?;
@@ -50,7 +51,8 @@ impl ExtensionManager {
             platform = std::env::consts::OS,
             arch = std::env::consts::ARCH,
         );
-        Url::parse(&download_url).map_err(ExtensionError::MalformedExtensionDownloadUrl)
+        Url::parse(&download_url)
+            .map_err(|e| ExtensionError::MalformedExtensionDownloadUrl(download_url, e))
     }
 
     fn download_and_unpack_extension_to_tempdir(
@@ -58,14 +60,15 @@ impl ExtensionManager {
         download_url: Url,
     ) -> Result<TempDir, ExtensionError> {
         let response = reqwest::blocking::get(download_url.clone())
-            .map_err(|_e| ExtensionError::ExtensionDownloadFailed(download_url.clone()))?;
+            .map_err(|e| ExtensionError::ExtensionDownloadFailed(download_url.clone(), e))?;
 
         let bytes = response
             .bytes()
-            .map_err(|_e| ExtensionError::ExtensionDownloadFailed(download_url.clone()))?;
+            .map_err(|e| ExtensionError::ExtensionDownloadFailed(download_url.clone(), e))?;
 
-        let temp_dir = tempdir_in(&self.dir)
-            .map_err(|_e| ExtensionError::CreateTemporaryDirectoryFailed(self.dir.to_path_buf()))?;
+        let temp_dir = tempdir_in(&self.dir).map_err(|e| {
+            ExtensionError::CreateTemporaryDirectoryFailed(self.dir.to_path_buf(), e)
+        })?;
 
         let mut archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
 
@@ -84,9 +87,10 @@ impl ExtensionManager {
         #[cfg(not(target_os = "windows"))]
         {
             let bin = temp_dir.path().join(extension_name);
-            let f = std::fs::File::open(&bin).map_err(|_e| {
+            let f = std::fs::File::open(&bin).map_err(|e| {
                 ExtensionError::InsufficientPermissionsToOpenExtensionBinaryInWriteMode(
                     extension_name.to_string(),
+                    e,
                 )
             })?;
 

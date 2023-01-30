@@ -66,6 +66,7 @@ impl ExtensionManager {
         }
     }
 
+    #[allow(dead_code)]
     pub fn load_manifest(&self, ext: Extension) -> Result<ExtensionManifest, ExtensionError> {
         let manifest_path = self
             .get_extension_directory(&ext.name)
