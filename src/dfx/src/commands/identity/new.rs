@@ -3,15 +3,15 @@ use std::str::FromStr;
 
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::{
-    HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
-};
 use crate::util::clap::validators::is_hsm_key_id;
 use dfx_core::error::identity::IdentityError::SwitchBackToIdentityFailed;
+use dfx_core::identity::identity_manager::{
+    HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
+};
+use IdentityCreationParameters::{Hardware, Pem};
 
 use clap::Parser;
 use slog::{info, warn, Logger};
-use IdentityCreationParameters::{Hardware, Pem};
 
 /// Creates a new identity.
 #[derive(Parser)]

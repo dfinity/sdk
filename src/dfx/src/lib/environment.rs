@@ -4,13 +4,13 @@ use crate::config::{cache, dfx_version};
 use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
 use crate::lib::extension::manager::ExtensionManager;
-use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
+use dfx_core::error::identity::IdentityError;
+use dfx_core::identity::identity_manager::IdentityManager;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
-use dfx_core::error::identity::IdentityError;
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;

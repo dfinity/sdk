@@ -120,7 +120,13 @@ impl CanisterBuilder for CustomBuilder {
         } = CustomBuilderExtra::try_from(info, pool)?;
 
         let canister_id = info.get_canister_id().unwrap();
-        let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
+        let vars = super::get_and_write_environment_variables(
+            info,
+            &config.network_name,
+            pool,
+            &dependencies,
+            config.env_file.as_deref(),
+        )?;
 
         for command in build {
             info!(

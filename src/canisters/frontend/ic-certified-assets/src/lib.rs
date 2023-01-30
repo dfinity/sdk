@@ -32,7 +32,7 @@ thread_local! {
 #[update]
 #[candid_method(update)]
 async fn authorize(other: Principal) {
-    match is_authorized_or_controller().await {
+    match is_controller().await {
         Err(e) => trap(&e),
         Ok(_) => STATE.with(|s| s.borrow_mut().authorize_unconditionally(other)),
     }
@@ -41,7 +41,12 @@ async fn authorize(other: Principal) {
 #[update]
 #[candid_method(update)]
 async fn deauthorize(other: Principal) {
-    match is_authorized_or_controller().await {
+    let check_access_result = if other == caller() {
+        is_authorized_or_controller().await
+    } else {
+        is_controller().await
+    };
+    match check_access_result {
         Err(e) => trap(&e),
         Ok(_) => STATE.with(|s| s.borrow_mut().deauthorize_unconditionally(other)),
     }
@@ -51,6 +56,16 @@ async fn deauthorize(other: Principal) {
 #[candid_method(query)]
 fn list_authorized() -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_authorized()))
+}
+
+#[update]
+#[candid_method(update)]
+async fn take_ownership() {
+    let caller = caller();
+    match is_controller().await {
+        Err(e) => trap(&e),
+        Ok(_) => STATE.with(|s| s.borrow_mut().take_ownership(caller)),
+    }
 }
 
 #[query]
@@ -261,6 +276,27 @@ async fn is_authorized_or_controller() -> Result<(), String> {
                 } else {
                     Err("Caller is not authorized and not a controller.".to_string())
                 }
+            }
+        }
+    }
+}
+
+async fn is_controller() -> Result<(), String> {
+    let caller = caller();
+    match canister_status(CanisterIdRecord {
+        canister_id: ic_cdk::api::id(),
+    })
+    .await
+    {
+        Err((code, msg)) => trap(&format!(
+            "Failed to determine if caller is canister controller with code {:?} and message '{}'",
+            code, msg
+        )),
+        Ok((a,)) => {
+            if a.settings.controllers.contains(&caller) {
+                Ok(())
+            } else {
+                Err("Caller is not a controller.".to_string())
             }
         }
     }

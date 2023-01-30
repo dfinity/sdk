@@ -1,13 +1,8 @@
-use crate::lib::error::IdentityError;
-use crate::lib::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
-use crate::lib::identity::{
-    identity_utils, pem_safekeeping, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME,
-    IDENTITY_JSON, TEMP_IDENTITY_PREFIX,
-};
-use dfx_core::config::directories::get_config_dfx_dir_path;
-use dfx_core::error::encryption::EncryptionError;
-use dfx_core::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
-use dfx_core::error::identity::IdentityError::{
+use crate::config::directories::get_config_dfx_dir_path;
+use crate::error::encryption::EncryptionError;
+use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
+use crate::error::identity::IdentityError;
+use crate::error::identity::IdentityError::{
     CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
     CreateIdentityDirectoryFailed, CreateMnemonicFromPhraseFailed,
     CreateTemporaryIdentityDirectoryFailed, DisplayLinkedWalletsFailed,
@@ -21,12 +16,17 @@ use dfx_core::error::identity::IdentityError::{
     SwitchBackToIdentityFailed, SwitchDefaultIdentitySettingsFailed,
     SwitchToAnonymousIdentityFailed, TranslatePemContentToTextFailed,
 };
-use dfx_core::error::io::IoError;
-use dfx_core::foundation::get_user_home;
-use dfx_core::fs::composite::ensure_parent_dir_exists;
-use dfx_core::json::{load_json_file, save_json_file};
+use crate::error::io::IoError;
+use crate::foundation::get_user_home;
+use crate::fs::composite::ensure_parent_dir_exists;
+use crate::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
+use crate::identity::identity_manager::IdentityStorageModeError::UnknownStorageMode;
+use crate::identity::{
+    pem_safekeeping, pem_utils, Identity as DfxIdentity, ANONYMOUS_IDENTITY_NAME, IDENTITY_JSON,
+    TEMP_IDENTITY_PREFIX,
+};
+use crate::json::{load_json_file, save_json_file};
 
-use anyhow::bail;
 use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
@@ -39,8 +39,9 @@ use slog::{debug, trace, Logger};
 use std::boxed::Box;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use thiserror::Error;
 
-use super::identity_utils::validate_pem_file;
+use super::pem_utils::validate_pem_file;
 use super::{keyring_mock, WALLET_CONFIG_FILENAME};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
@@ -118,15 +119,21 @@ pub enum IdentityStorageMode {
     Plaintext,
 }
 
+#[derive(Error, Debug)]
+pub enum IdentityStorageModeError {
+    #[error("Unknown storage mode: {0}")]
+    UnknownStorageMode(String),
+}
+
 impl FromStr for IdentityStorageMode {
-    type Err = anyhow::Error;
+    type Err = IdentityStorageModeError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         match input {
             "keyring" => Ok(IdentityStorageMode::Keyring),
             "password-protected" => Ok(IdentityStorageMode::PasswordProtected),
             "plaintext" => Ok(IdentityStorageMode::Plaintext),
-            other => bail!("Unknown storage mode: {}", other),
+            other => Err(UnknownStorageMode(other.to_string())),
         }
     }
 }
@@ -311,7 +318,7 @@ impl IdentityManager {
         let temp_identity_dir = self.get_identity_dir_path(&temp_identity_name);
         if temp_identity_dir.exists() {
             // clean traces from previous identity creation attempts
-            dfx_core::fs::remove_dir_all(&temp_identity_dir)
+            crate::fs::remove_dir_all(&temp_identity_dir)
                 .map_err(CleanupPreviousCreationAttemptsFailed)?;
         }
 
@@ -333,7 +340,7 @@ impl IdentityManager {
                 identity_config = create_identity_config(log, mode, name, None)?;
                 let (src_pem_content, _) =
                     pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
-                identity_utils::validate_pem_file(&src_pem_content)?;
+                pem_utils::validate_pem_file(&src_pem_content)?;
                 pem_safekeeping::save_pem(
                     log,
                     self.file_locations(),
@@ -345,7 +352,7 @@ impl IdentityManager {
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config =
                     create_identity_config(log, IdentityStorageMode::default(), name, Some(hsm))?;
-                dfx_core::fs::create_dir_all(&temp_identity_dir)
+                crate::fs::create_dir_all(&temp_identity_dir)
                     .map_err(CreateTemporaryIdentityDirectoryFailed)?;
             }
             IdentityCreationParameters::SeedPhrase { mnemonic, mode } => {
@@ -371,7 +378,7 @@ impl IdentityManager {
 
         // Everything is created. Now move from the temporary directory to the actual identity location.
         let identity_dir = self.get_identity_dir_path(name);
-        dfx_core::fs::rename(&temp_identity_dir, &identity_dir)
+        crate::fs::rename(&temp_identity_dir, &identity_dir)
             .map_err(RenameTemporaryIdentityDirectoryFailed)?;
 
         if temporarily_use_anonymous_identity {
@@ -383,7 +390,7 @@ impl IdentityManager {
 
     /// Return a sorted list of all available identity names
     pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, IoError> {
-        let mut names = dfx_core::fs::read_dir(self.file_locations.root())?
+        let mut names = crate::fs::read_dir(self.file_locations.root())?
             .filter_map(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {
                     Ok(file_type) if file_type.is_dir() => Some(dir_entry),
@@ -466,7 +473,7 @@ impl IdentityManager {
 
         let dir = self.get_identity_dir_path(name);
         if dir.exists() {
-            dfx_core::fs::remove_dir(&dir).map_err(RemoveIdentityDirectoryFailed)?;
+            crate::fs::remove_dir(&dir).map_err(RemoveIdentityDirectoryFailed)?;
         }
 
         Ok(())
@@ -496,7 +503,7 @@ impl IdentityManager {
         }
 
         DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)?;
-        dfx_core::fs::rename(&from_dir, &to_dir).map_err(RenameIdentityDirectoryFailed)?;
+        crate::fs::rename(&from_dir, &to_dir).map_err(RenameIdentityDirectoryFailed)?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
             let (pem, _) =
@@ -616,7 +623,7 @@ To create a more secure identity, create and use an identity that is protected b
     let identity_pem_path = identity_dir.join(IDENTITY_PEM);
     if !identity_pem_path.exists() {
         if !identity_dir.exists() {
-            dfx_core::fs::create_dir_all(&identity_dir).map_err(CreateIdentityDirectoryFailed)?;
+            crate::fs::create_dir_all(&identity_dir).map_err(CreateIdentityDirectoryFailed)?;
         }
 
         let maybe_creds_pem_path = get_legacy_creds_pem_path()?;
@@ -633,7 +640,7 @@ To create a more secure identity, create and use an identity that is protected b
                 creds_pem_path.display(),
                 identity_pem_path.display()
             );
-            dfx_core::fs::copy(&creds_pem_path, &identity_pem_path)
+            crate::fs::copy(&creds_pem_path, &identity_pem_path)
                 .map_err(IdentityError::MigrateLegacyIdentityFailed)?;
         } else {
             slog::info!(
@@ -702,7 +709,7 @@ pub(super) fn save_identity_configuration(
 /// Removes the file if it exists.
 fn remove_identity_file(file: &Path) -> Result<(), IdentityError> {
     if file.exists() {
-        dfx_core::fs::remove_file(file).map_err(RemoveIdentityFileFailed)?;
+        crate::fs::remove_file(file).map_err(RemoveIdentityFileFailed)?;
     }
     Ok(())
 }
