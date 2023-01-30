@@ -25,7 +25,7 @@ impl ExtensionManager {
 
         let code = exit_status.code().ok_or(
             #[cfg(not(target_os = "windows"))]
-            ExtensionError::ExtensionExecutionTerminatedViaSignal
+            ExtensionError::ExtensionExecutionTerminatedViaSignal,
         )?;
 
         if code != 0 {

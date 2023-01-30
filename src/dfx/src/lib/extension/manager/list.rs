@@ -6,7 +6,7 @@ impl ExtensionManager {
         let dir_content = self
             .dir
             .read_dir()
-            .map_err(|e| ExtensionError::ExtensionsDirectoryIsNotReadable(e))?;
+            .map_err(ExtensionError::ExtensionsDirectoryIsNotReadable)?;
 
         Ok(dir_content
             .filter_map(|v| {
