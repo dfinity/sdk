@@ -3,6 +3,9 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
+    #[error("Cannot find cache directory at '{0}'.")]
+    FindCacheDirectoryFailed(std::path::PathBuf),
+
     #[error("Cannot create extensions directory at '{0}'.")]
     CreateExtensionDirectoryFailed(std::path::PathBuf),
 

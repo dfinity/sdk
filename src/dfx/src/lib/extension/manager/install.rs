@@ -2,10 +2,8 @@ use std::io::Cursor;
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::PermissionsExt;
 
-use crate::lib::error::DfxResult;
-use crate::lib::extension::manager::DfxError;
 use crate::lib::extension::manager::ExtensionError;
-use crate::lib::extension::manifest::compatibility_matrix::ExtensionsCompatibilityMatrix;
+use crate::lib::extension::manifest::ExtensionCompatibilityMatrix;
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
@@ -15,11 +13,11 @@ use tempfile::{tempdir_in, TempDir};
 use super::ExtensionManager;
 
 impl ExtensionManager {
-    pub fn install_extension(&self, extension_name: &str) -> DfxResult<()> {
+    pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
         if self.get_extension_directory(extension_name).exists() {
-            return Err(DfxError::new(ExtensionError::ExtensionAlreadyInstalled(
+            return Err(ExtensionError::ExtensionAlreadyInstalled(
                 format!("extension {} already installed", extension_name), // TODO: --force
-            )));
+            ));
         }
 
         let url = self.get_extension_download_url(extension_name)?;
@@ -41,8 +39,8 @@ impl ExtensionManager {
         dfx_version
     }
 
-    fn get_extension_download_url(&self, extension_name: &str) -> DfxResult<Url> {
-        let manifest = ExtensionsCompatibilityMatrix::fetch()?;
+    fn get_extension_download_url(&self, extension_name: &str) -> Result<Url, ExtensionError> {
+        let manifest = ExtensionCompatibilityMatrix::fetch()?;
         let dfx_version = self.dfx_version_strip_semver();
         let extension_version =
             manifest.find_latest_compatible_extension_version(extension_name, dfx_version)?;
@@ -53,8 +51,7 @@ impl ExtensionManager {
             platform = std::env::consts::OS,
             arch = std::env::consts::ARCH,
         );
-        Url::parse(&download_url)
-            .map_err(|e| DfxError::new(ExtensionError::MalformedExtensionDownloadUrl(e)))
+        Url::parse(&download_url).map_err(|e| ExtensionError::MalformedExtensionDownloadUrl(e))
     }
 
     fn download_and_unpack_extension_to_tempdir(
@@ -88,25 +85,27 @@ impl ExtensionManager {
         Ok(temp_dir)
     }
 
-    fn finalize_installation(&self, extension_name: &str, temp_dir: TempDir) -> DfxResult<()> {
+    fn finalize_installation(
+        &self,
+        extension_name: &str,
+        temp_dir: TempDir,
+    ) -> Result<(), ExtensionError> {
         #[cfg(not(target_os = "windows"))]
         {
             let bin = temp_dir.path().join(extension_name);
             let Ok(f) = std::fs::File::open(&bin) else {
-                return Err(DfxError::new(ExtensionError::InsufficientPermissionsToOpenExtensionBinaryInWriteMode(
+                return Err(ExtensionError::InsufficientPermissionsToOpenExtensionBinaryInWriteMode(
                     extension_name.to_string()
-                )));
+                ));
             };
             if let Err(e) = f.set_permissions(std::fs::Permissions::from_mode(0o777)) {
-                return Err(DfxError::new(ExtensionError::ChangeFilePermissionsFailed(
-                    bin, e,
-                )));
+                return Err(ExtensionError::ChangeFilePermissionsFailed(bin, e));
             }
         }
 
         let extension_dir = self.dir.join(extension_name);
         if let Err(e) = std::fs::rename(temp_dir, extension_dir) {
-            return Err(DfxError::new(ExtensionError::RenameDirectoryFailed(e)));
+            return Err(ExtensionError::RenameDirectoryFailed(e));
         }
 
         Ok(())

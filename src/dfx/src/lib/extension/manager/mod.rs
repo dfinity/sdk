@@ -1,6 +1,6 @@
 use crate::config::cache::{get_bin_cache, get_cache_root};
 use crate::lib::environment::Environment;
-use crate::lib::error::{CacheError, DfxError, DfxResult, ExtensionError};
+use crate::lib::error::ExtensionError;
 use crate::lib::extension::manifest::MANIFEST_FILE_NAME;
 
 use semver::Version;
@@ -20,25 +20,21 @@ pub struct ExtensionManager {
 }
 
 impl ExtensionManager {
-    pub fn new(env: &dyn Environment) -> DfxResult<Self> {
+    pub fn new(env: &dyn Environment) -> Result<Self, ExtensionError> {
         let Ok(x) = get_bin_cache(env.get_version().to_string().as_str())
          else {
-            return Err(DfxError::new(CacheError::FindCacheDirectoryFailed(
-                get_cache_root()?.join("versions"),
-            )))
+            return Err(ExtensionError::FindCacheDirectoryFailed(
+                get_cache_root().unwrap_or_default().join("versions"),
+            ))
         };
         let dir = x.join("extensions");
         if !dir.exists() {
             if let Err(_e) = std::fs::create_dir_all(&dir) {
-                return Err(DfxError::new(
-                    ExtensionError::CreateExtensionDirectoryFailed(dir),
-                ));
+                return Err(ExtensionError::CreateExtensionDirectoryFailed(dir));
             }
         }
         if !dir.is_dir() {
-            return Err(DfxError::new(
-                ExtensionError::ExtensionsDirectoryIsNotADirectory,
-            ));
+            return Err(ExtensionError::ExtensionsDirectoryIsNotADirectory);
         }
         Ok(Self {
             dir,
@@ -50,22 +46,25 @@ impl ExtensionManager {
         self.dir.join(extension_name)
     }
 
-    pub fn get_extension_binary(&self, extension_name: &str) -> DfxResult<std::process::Command> {
+    pub fn get_extension_binary(
+        &self,
+        extension_name: &str,
+    ) -> Result<std::process::Command, ExtensionError> {
         let dir = self.get_extension_directory(extension_name);
         if !dir.exists() {
-            return Err(DfxError::new(ExtensionError::ExtensionNotInstalled(
+            return Err(ExtensionError::ExtensionNotInstalled(
                 extension_name.to_string(),
-            )));
+            ));
         }
         let bin = dir.join(extension_name);
         if !bin.exists() {
-            Err(DfxError::new(ExtensionError::ExtensionBinaryDoesNotExist(
+            Err(ExtensionError::ExtensionBinaryDoesNotExist(
                 extension_name.to_string(),
-            )))
+            ))
         } else if !bin.is_file() {
-            Err(DfxError::new(ExtensionError::ExtensionBinaryIsNotAFile(
+            Err(ExtensionError::ExtensionBinaryIsNotAFile(
                 extension_name.to_string(),
-            )))
+            ))
         } else {
             Ok(std::process::Command::new(bin))
         }

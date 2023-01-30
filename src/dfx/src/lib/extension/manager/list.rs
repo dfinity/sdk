@@ -1,13 +1,10 @@
 use super::ExtensionManager;
-use crate::lib::{
-    error::{DfxError, DfxResult, ExtensionError},
-    extension::Extension,
-};
+use crate::lib::{error::ExtensionError, extension::Extension};
 
 impl ExtensionManager {
-    pub fn list_installed_extensions(&self) -> DfxResult<Vec<Extension>> {
+    pub fn list_installed_extensions(&self) -> Result<Vec<Extension>, ExtensionError> {
         let Ok(dir_content) = self.dir.read_dir() else {
-            return Err(DfxError::new(ExtensionError::ExtensionsDirectoryIsNotReadable));
+            return Err(ExtensionError::ExtensionsDirectoryIsNotReadable);
         };
 
         Ok(dir_content

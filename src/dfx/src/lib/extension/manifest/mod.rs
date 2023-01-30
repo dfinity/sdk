@@ -3,7 +3,7 @@
 pub mod compatibility_matrix;
 /// `compatibility.json` is a file describing the compatibility
 /// matrix between extensions versions and the dfx version.
-pub use compatibility_matrix::ExtensionsCompatibilityMatrix;
+pub use compatibility_matrix::ExtensionCompatibilityMatrix;
 /// URL to the `compatibility.json` file.
 pub use compatibility_matrix::COMMON_EXTENSIONS_MANIFEST_LOCATION;
 
