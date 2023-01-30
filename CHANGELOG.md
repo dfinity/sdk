@@ -9,6 +9,13 @@
 
 ### fix: creating an identity with `--force` no longer switches to the newly created identity
 
+### fix(frontend-canister)!: removed ability of authorized principals to manage the ACL
+
+Authorized principals can no longer authorize other principals.  They can deauthorize themselves,
+but cannot deauthorize any other principal.
+
+Only controllers can authorize and deauthorize any principal.
+
 ### feat(frontend-canister)!: default secure configuration for assets in frontend project template
 
 - Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
@@ -40,6 +47,10 @@ At the present time, there are two ways to reconfigure an existing asset:
     ```
 
 ### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
+
+### feat(frontend-canister): add take_ownership() method
+
+Callable only by a controller.  Clears list of authorized principals and adds the caller (controller) as the only authorized principal.
 
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
@@ -109,8 +120,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 9093294e28805eac1c8226b9d73cb0da02657ca1219ae951b655931e8a2f32b8
-- https://github.com/dfinity/sdk/pull/2824
+- Module hash: 6433baa3d2806a391127a1f4c0734a1f8de52646a1a9ab41163b7d7bb52b7f4f
+- https://github.com/dfinity/sdk/pull/2929
 
 ### ic-ref
 

@@ -14,10 +14,55 @@ teardown() {
     standard_teardown
 }
 
+@test "take ownership" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity use controller
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+
+  assert_command dfx identity new authorized1 --storage-mode plaintext
+  AUTHORIZED1_PRINCIPAL=$(dfx identity get-principal --identity authorized1)
+
+  assert_command dfx identity new authorized2 --storage-mode plaintext
+  AUTHORIZED2_PRINCIPAL=$(dfx identity get-principal --identity authorized2)
+
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED1_PRINCIPAL\")"
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED2_PRINCIPAL\")"
+
+  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$CONTROLLER_PRINCIPAL\")"
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$CONTROLLER_PRINCIPAL"
+  assert_contains "$AUTHORIZED1_PRINCIPAL"
+  assert_contains "$AUTHORIZED2_PRINCIPAL"
+
+  # authorized cannot take ownership
+  assert_command_fail dfx canister call e2e_project_frontend take_ownership "()" --identity authorized1
+  assert_command_fail dfx canister call e2e_project_frontend take_ownership "()" --identity authorized2
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$CONTROLLER_PRINCIPAL"
+  assert_contains "$AUTHORIZED1_PRINCIPAL"
+  assert_contains "$AUTHORIZED2_PRINCIPAL"
+
+  # controller can take ownership
+  assert_command dfx canister call e2e_project_frontend take_ownership "()"
+
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$CONTROLLER_PRINCIPAL"
+  assert_not_contains "$AUTHORIZED1_PRINCIPAL"
+  assert_not_contains "$AUTHORIZED2_PRINCIPAL"
+}
+
 @test "authorize and deauthorize work as expected" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller
   CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+  assert_command dfx identity new authorized --storage-mode plaintext
+  AUTHORIZED_PRINCIPAL=$(dfx identity get-principal --identity authorized)
+  assert_command dfx identity new backdoor --storage-mode plaintext
+  BACKDOOR_PRINCIPAL=$(dfx identity get-principal --identity backdoor)
   assert_command dfx identity new stranger --storage-mode plaintext
   assert_command dfx identity use stranger
   STRANGER_PRINCIPAL=$(dfx identity get-principal)
@@ -49,6 +94,37 @@ teardown() {
   assert_command dfx canister call e2e_project_frontend authorize "(principal \"$STRANGER_PRINCIPAL\")"
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
   assert_contains "$STRANGER_PRINCIPAL"
+
+  # authorized principals, that are not controllers, cannot authorize other principals
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$AUTHORIZED_PRINCIPAL\")" --identity controller
+  assert_command_fail dfx canister call e2e_project_frontend authorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
+
+  # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
+  [ "$USE_IC_REF" ] && assert_contains "canister did not respond"
+  [ ! "$USE_IC_REF" ] && assert_contains "Caller is not a controller"
+
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$BACKDOOR_PRINCIPAL"
+
+  # authorized principals, that are not controllers, cannot deauthorize others
+  assert_command dfx canister call e2e_project_frontend authorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity controller
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$BACKDOOR_PRINCIPAL"
+  assert_command_fail dfx canister call e2e_project_frontend deauthorize "(principal \"$BACKDOOR_PRINCIPAL\")" --identity authorized
+
+  # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
+  [ "$USE_IC_REF" ] && assert_contains "canister did not respond"
+  [ ! "$USE_IC_REF" ] && assert_contains "Caller is not a controller"
+
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$BACKDOOR_PRINCIPAL"
+
+  # authorized principals, that are not controllers, can deauthorize themselves
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_contains "$AUTHORIZED_PRINCIPAL"
+  assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$AUTHORIZED_PRINCIPAL\")" --identity authorized
+  assert_command dfx canister call e2e_project_frontend list_authorized '()'
+  assert_not_contains "$AUTHORIZED_PRINCIPAL"
 
   # canister controller may always deauthorize, even if they're not authorized themselves
   assert_command dfx canister call e2e_project_frontend deauthorize "(principal \"$STRANGER_PRINCIPAL\")"
