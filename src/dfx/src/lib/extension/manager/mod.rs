@@ -21,13 +21,12 @@ pub struct ExtensionManager {
 
 impl ExtensionManager {
     pub fn new(env: &dyn Environment) -> Result<Self, ExtensionError> {
-        let Ok(x) = get_bin_cache(env.get_version().to_string().as_str())
-         else {
-            return Err(ExtensionError::FindCacheDirectoryFailed(
-                get_cache_root().unwrap_or_default().join("versions"),
-            ))
-        };
-        let dir = x.join("extensions");
+        let versioned_cache_dir = get_bin_cache(env.get_version().to_string().as_str()).map_err(|e| {
+            ExtensionError::FindCacheDirectoryFailed(
+                get_cache_root().unwrap_or_default().join("versions"), e
+            )
+        })?;
+        let dir = versioned_cache_dir.join("extensions");
         if !dir.exists() {
             if let Err(_e) = std::fs::create_dir_all(&dir) {
                 return Err(ExtensionError::CreateExtensionDirectoryFailed(dir));
@@ -74,12 +73,12 @@ impl ExtensionManager {
         let manifest_path = self
             .get_extension_directory(&ext.name)
             .join(MANIFEST_FILE_NAME);
-        let Ok(manifest_file) = std::fs::File::open(&manifest_path) else {
-            return Err(ExtensionError::ExtensionManifestDoesNotExist(manifest_path));
-        };
+        let manifest_file = std::fs::File::open(&manifest_path)
+            .map_err(|e| ExtensionError::ExtensionManifestDoesNotExist(manifest_path.clone(), e))?;
+
         let manifest_reader = std::io::BufReader::new(manifest_file);
 
         serde_json::from_reader(manifest_reader)
-            .map_err(|e| ExtensionError::ExtensionManifestIsNotValidJson(manifest_path, e))
+            .map_err(|e| ExtensionError::ExtensionManifestIsNotValidJson(manifest_path.clone(), e))
     }
 }

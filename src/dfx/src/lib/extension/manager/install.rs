@@ -1,16 +1,15 @@
-use std::io::Cursor;
-#[cfg(not(target_os = "windows"))]
-use std::os::unix::fs::PermissionsExt;
+use crate::lib::error::extension::ExtensionError;
+use crate::lib::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
 
-use crate::lib::extension::manager::ExtensionError;
-use crate::lib::extension::manifest::ExtensionCompatibilityMatrix;
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
 
-use super::ExtensionManager;
+use std::io::Cursor;
+#[cfg(not(target_os = "windows"))]
+use std::os::unix::fs::PermissionsExt;
 
 impl ExtensionManager {
     pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
@@ -58,23 +57,18 @@ impl ExtensionManager {
         &self,
         download_url: Url,
     ) -> Result<TempDir, ExtensionError> {
-        let Ok(response) = reqwest::blocking::get(download_url.clone()) else {
-            return Err(ExtensionError::ExtensionDownloadFailed(
-                download_url
-            ));
-        };
+        let response = reqwest::blocking::get(download_url.clone())
+            .map_err(|_e| ExtensionError::ExtensionDownloadFailed(download_url.clone()))?;
 
-        let Ok(bytes) = response.bytes() else {
-            return Err(ExtensionError::ExtensionDownloadFailed(
-                download_url
-            ));
-        };
+        let bytes = response
+            .bytes()
+            .map_err(|_e| ExtensionError::ExtensionDownloadFailed(download_url.clone()))?;
 
-        let Ok(temp_dir) = tempdir_in(&self.dir) else {
-            return Err(ExtensionError::CreateTemporaryDirectoryFailed(
+        let temp_dir = tempdir_in(&self.dir).map_err(|_e|
+            ExtensionError::CreateTemporaryDirectoryFailed(
                 self.dir.to_path_buf()
-            ));
-        };
+            )
+        )?;
 
         let mut archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
 
@@ -93,11 +87,12 @@ impl ExtensionManager {
         #[cfg(not(target_os = "windows"))]
         {
             let bin = temp_dir.path().join(extension_name);
-            let Ok(f) = std::fs::File::open(&bin) else {
-                return Err(ExtensionError::InsufficientPermissionsToOpenExtensionBinaryInWriteMode(
+            let f = std::fs::File::open(&bin).map_err(|_e|
+                ExtensionError::InsufficientPermissionsToOpenExtensionBinaryInWriteMode(
                     extension_name.to_string()
-                ));
-            };
+                )
+            )?;
+
             if let Err(e) = f.set_permissions(std::fs::Permissions::from_mode(0o777)) {
                 return Err(ExtensionError::ChangeFilePermissionsFailed(bin, e));
             }

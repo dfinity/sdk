@@ -4,7 +4,7 @@ use thiserror::Error;
 pub enum ExtensionError {
     // errors related to extension directory management
     #[error("Cannot find cache directory at '{0}'.")]
-    FindCacheDirectoryFailed(std::path::PathBuf),
+    FindCacheDirectoryFailed(std::path::PathBuf, anyhow::Error),
 
     #[error("Cannot create extensions directory at '{0}'.")]
     CreateExtensionDirectoryFailed(std::path::PathBuf),
@@ -66,13 +66,13 @@ pub enum ExtensionError {
 
     // errors related to listing extensions
     #[error("Cannot list extensions.")]
-    ExtensionsDirectoryIsNotReadable,
+    ExtensionsDirectoryIsNotReadable(std::io::Error),
 
     #[error("Malformed extension manifest ({0}): '{1}'.")]
     ExtensionManifestIsNotValidJson(std::path::PathBuf, serde_json::Error),
 
     #[error("Malformed extension manifest ({0})..")]
-    ExtensionManifestDoesNotExist(std::path::PathBuf),
+    ExtensionManifestDoesNotExist(std::path::PathBuf, std::io::Error),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0}'.")]

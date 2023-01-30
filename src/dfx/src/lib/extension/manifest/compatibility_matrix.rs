@@ -23,9 +23,10 @@ pub struct ExtensionCompatibleVersions {
 
 impl ExtensionCompatibilityMatrix {
     pub fn fetch() -> Result<Self, ExtensionError> {
-        let Ok(resp) = reqwest::blocking::get(COMMON_EXTENSIONS_MANIFEST_LOCATION) else {
-            return Err(ExtensionError::CompatibilityMatrixFetchError(COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string()));
-        };
+        let resp = reqwest::blocking::get(COMMON_EXTENSIONS_MANIFEST_LOCATION).map_err(|_e|
+            ExtensionError::CompatibilityMatrixFetchError(COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string())
+        )?;
+
         resp.json()
             .map_err(|e| ExtensionError::MalformedCompatibilityMatrix(e))
     }
@@ -35,22 +36,22 @@ impl ExtensionCompatibilityMatrix {
         extension_name: &str,
         dfx_version: Version,
     ) -> Result<Version, ExtensionError> {
-        let Some(manifests) = self.0.get(&dfx_version) else {
-                    return Err(ExtensionError::DfxVersionNotFoundInCompatibilityJson(
-            dfx_version, COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string()
-        ));
+        let manifests = self.0.get(&dfx_version).ok_or_else(||
 
-        };
-        let Some(extension_location) = manifests.get(extension_name) else{
-            return Err(ExtensionError::ExtensionVersionNotFoundInRepository(extension_name.to_string(), dfx_version.to_string(), COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string()));
-        };
+                ExtensionError::DfxVersionNotFoundInCompatibilityJson(
+            dfx_version.clone(), COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string())
+        )?;
+
+        let extension_location = manifests.get(extension_name).ok_or_else(||
+            ExtensionError::ExtensionVersionNotFoundInRepository(extension_name.to_string(), dfx_version.to_string(), COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string())
+        )?;
         let mut extension_versions = vec![];
         for ext_verion in extension_location.versions.iter().rev() {
-            let Ok(version) = Version::parse(ext_verion) else {
-                return Err(ExtensionError::MalformedVersionsEntryForExtensionInCompatibilityMatrix(
+            let version = Version::parse(ext_verion).map_err(|_e|
+                ExtensionError::MalformedVersionsEntryForExtensionInCompatibilityMatrix(
                     ext_verion.to_string(),
-                ));
-            };
+                )
+            )?;
             extension_versions.push(version);
         }
         extension_versions.sort();

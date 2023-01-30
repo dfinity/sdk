@@ -3,9 +3,10 @@ use crate::lib::{error::ExtensionError, extension::Extension};
 
 impl ExtensionManager {
     pub fn list_installed_extensions(&self) -> Result<Vec<Extension>, ExtensionError> {
-        let Ok(dir_content) = self.dir.read_dir() else {
-            return Err(ExtensionError::ExtensionsDirectoryIsNotReadable);
-        };
+        let dir_content = self
+            .dir
+            .read_dir()
+            .map_err(|e| ExtensionError::ExtensionsDirectoryIsNotReadable(e))?;
 
         Ok(dir_content
             .filter_map(|v| {
