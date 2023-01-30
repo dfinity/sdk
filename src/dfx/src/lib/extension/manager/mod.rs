@@ -5,6 +5,7 @@ use crate::lib::extension::manifest::MANIFEST_FILE_NAME;
 
 use semver::Version;
 use std::path::PathBuf;
+use dfx_core::fs::composite::ensure_dir_exists;
 
 use super::manifest::ExtensionManifest;
 use super::Extension;
@@ -27,14 +28,10 @@ impl ExtensionManager {
             )
         })?;
         let dir = versioned_cache_dir.join("extensions");
-        if !dir.exists() {
-            if let Err(_e) = std::fs::create_dir_all(&dir) {
-                return Err(ExtensionError::CreateExtensionDirectoryFailed(dir));
-            }
-        }
-        if !dir.is_dir() {
-            return Err(ExtensionError::ExtensionsDirectoryIsNotADirectory);
-        }
+        ensure_dir_exists(&dir).map_err(|e| {
+            ExtensionError::EnsureExtensionDirExistsFailed(e)
+        })?;
+        
         Ok(Self {
             dir,
             dfx_version: env.get_version().clone(),

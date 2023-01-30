@@ -6,14 +6,11 @@ pub enum ExtensionError {
     #[error("Cannot find cache directory at '{0}'.")]
     FindCacheDirectoryFailed(std::path::PathBuf, anyhow::Error),
 
-    #[error("Cannot create extensions directory at '{0}'.")]
-    CreateExtensionDirectoryFailed(std::path::PathBuf),
+    #[error("Cannot get extensions directory due to error: '{0}'")]
+    EnsureExtensionDirExistsFailed(dfx_core::error::io::IoError),
 
     #[error("Extension '{0}' not installed.")]
     ExtensionNotInstalled(String),
-
-    #[error("Extensions directory is not a directory.")]
-    ExtensionsDirectoryIsNotADirectory,
 
     // errors related to installing extensions
     #[error("Extension '{0}' is already installed.")]
