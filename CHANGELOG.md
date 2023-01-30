@@ -4,6 +4,9 @@
 
 ## DFX
 
+### fix: always fetch did file from canister when making canister calls
+- `dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters.
+
 ### fix: fixed error text
 - `dfx nns install` had the wrong instructions for setting up the local replica type
 

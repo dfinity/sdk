@@ -229,6 +229,9 @@ pub async fn exec(
         }
     };
     let maybe_candid = read_module_metadata(agent, canister_id, "candid:service").await;
+    if maybe_candid.is_none() {
+        eprintln!("Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.");
+    }
 
     let is_management_canister = canister_id == CanisterId::management_canister();
 
