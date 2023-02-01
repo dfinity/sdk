@@ -23,9 +23,9 @@ impl ExtensionManager {
             ExtensionError::ExtensionNeverFinishedExecuting(extension_name.clone(), e)
         })?;
 
-        let code = exit_status.code().ok_or(
-            ExtensionError::ExtensionExecutionTerminatedViaSignal,
-        )?;
+        let code = exit_status
+            .code()
+            .ok_or(ExtensionError::ExtensionExecutionTerminatedViaSignal)?;
 
         if code != 0 {
             Err(ExtensionError::ExtensionExitedWithNonZeroStatus(code))
