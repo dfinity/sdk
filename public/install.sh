@@ -7,3 +7,4 @@
 . install/200_downloader.sh
 . install/300_license.sh
 . install/999_footer.sh
+. install/1000_post_install.sh
