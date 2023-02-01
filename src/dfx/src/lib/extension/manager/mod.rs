@@ -55,9 +55,7 @@ impl ExtensionManager {
         }
         let bin = dir.join(extension_name);
         if !bin.exists() {
-            Err(ExtensionError::ExtensionBinaryDoesNotExist(
-                extension_name.to_string(),
-            ))
+            Err(ExtensionError::ExtensionBinaryDoesNotExist(bin))
         } else if !bin.is_file() {
             Err(ExtensionError::ExtensionBinaryIsNotAFile(
                 extension_name.to_string(),

@@ -71,8 +71,8 @@ pub enum ExtensionError {
     #[error("Invalid extension name '{0:?}'.")]
     InvalidExtensionName(std::ffi::OsString),
 
-    #[error("Cannot find extension binary '{0}'.")]
-    ExtensionBinaryDoesNotExist(String),
+    #[error("Cannot find extension binary at '{0}'.")]
+    ExtensionBinaryDoesNotExist(std::path::PathBuf),
 
     #[error("Extension is not an executable file '{0}'.")]
     ExtensionBinaryIsNotAFile(String),
