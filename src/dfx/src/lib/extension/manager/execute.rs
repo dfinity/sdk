@@ -9,7 +9,6 @@ impl ExtensionManager {
         params: Vec<OsString>,
     ) -> Result<(), ExtensionError> {
         let extension_name = extension_name
-            
             .into_string()
             .map_err(ExtensionError::InvalidExtensionName)?;
 
