@@ -8,9 +8,10 @@ impl ExtensionManager {
         extension_name: OsString,
         params: Vec<OsString>,
     ) -> Result<(), ExtensionError> {
-        let extension_name = extension_name.clone().into_string().map_err(
-            ExtensionError::InvalidExtensionName
-        )?;
+        let extension_name = extension_name
+            
+            .into_string()
+            .map_err(ExtensionError::InvalidExtensionName)?;
 
         let mut extension_binary = self.get_extension_binary(&extension_name)?;
 

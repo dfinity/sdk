@@ -72,6 +72,7 @@ impl ExtensionManager {
         let manifest_path = self
             .get_extension_directory(&ext.name)
             .join(MANIFEST_FILE_NAME);
-        load_json_file(&manifest_path).map_err(|e| ExtensionError::ExtensionManifestIsNotValidJson(manifest_path.clone(), e))
+        load_json_file(&manifest_path)
+            .map_err(|e| ExtensionError::ExtensionManifestIsNotValidJson(manifest_path.clone(), e))
     }
 }

@@ -92,7 +92,8 @@ impl ExtensionManager {
         }
 
         let extension_dir = self.dir.join(extension_name);
-        dfx_core::fs::rename(temp_dir.path(), &extension_dir).map_err(|e| ExtensionError::RenameDirectoryFailed(e))?;
+        dfx_core::fs::rename(temp_dir.path(), &extension_dir)
+            .map_err(ExtensionError::RenameDirectoryFailed)?;
         Ok(())
     }
 }

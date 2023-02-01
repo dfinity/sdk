@@ -62,7 +62,10 @@ pub enum ExtensionError {
     ExtensionsDirectoryIsNotReadable(dfx_core::error::io::IoError),
 
     #[error("Malformed extension manifest ({0}): '{1}'")]
-    ExtensionManifestIsNotValidJson(std::path::PathBuf, dfx_core::error::structured_file::StructuredFileError),
+    ExtensionManifestIsNotValidJson(
+        std::path::PathBuf,
+        dfx_core::error::structured_file::StructuredFileError,
+    ),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]
