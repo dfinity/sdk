@@ -57,9 +57,7 @@ impl ExtensionManager {
         if !bin.exists() {
             Err(ExtensionError::ExtensionBinaryDoesNotExist(bin))
         } else if !bin.is_file() {
-            Err(ExtensionError::ExtensionBinaryIsNotAFile(
-                extension_name.to_string(),
-            ))
+            Err(ExtensionError::ExtensionBinaryIsNotAFile(bin))
         } else {
             Ok(std::process::Command::new(bin))
         }
@@ -70,7 +68,6 @@ impl ExtensionManager {
         let manifest_path = self
             .get_extension_directory(&ext.name)
             .join(MANIFEST_FILE_NAME);
-        load_json_file(&manifest_path)
-            .map_err(|e| ExtensionError::ExtensionManifestIsNotValidJson(manifest_path.clone(), e))
+        load_json_file(&manifest_path).map_err(ExtensionError::ExtensionManifestIsNotValidJson)
     }
 }

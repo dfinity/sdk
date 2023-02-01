@@ -6,7 +6,7 @@ pub enum ExtensionError {
     #[error("Cannot find cache directory '{0}': {1}")]
     FindCacheDirectoryFailed(std::path::PathBuf, anyhow::Error),
 
-    #[error("Cannot get extensions directory {0}")]
+    #[error("Cannot get extensions directory: {0}")]
     EnsureExtensionDirExistsFailed(dfx_core::error::io::IoError),
 
     #[error("Extension '{0}' not installed.")]
@@ -46,9 +46,8 @@ pub enum ExtensionError {
     #[error("Cannot create temporary directory at '{0}': {1}")]
     CreateTemporaryDirectoryFailed(std::path::PathBuf, std::io::Error),
 
-    #[cfg(not(target_os = "windows"))]
-    #[error("Cannot change file permissions at '{0}': {1}")]
-    ChangeFilePermissionsFailed(std::path::PathBuf, dfx_core::error::io::IoError),
+    #[error(transparent)]
+    Io(#[from] dfx_core::error::io::IoError),
 
     #[error("Cannot rename directory: {0}")]
     RenameDirectoryFailed(dfx_core::error::io::IoError),
@@ -61,11 +60,8 @@ pub enum ExtensionError {
     #[error("Cannot list extensions: {0}")]
     ExtensionsDirectoryIsNotReadable(dfx_core::error::io::IoError),
 
-    #[error("Malformed extension manifest at '{0}': {1}")]
-    ExtensionManifestIsNotValidJson(
-        std::path::PathBuf,
-        dfx_core::error::structured_file::StructuredFileError,
-    ),
+    #[error("Malformed extension manifest: {0}")]
+    ExtensionManifestIsNotValidJson(dfx_core::error::structured_file::StructuredFileError),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]
@@ -74,8 +70,8 @@ pub enum ExtensionError {
     #[error("Cannot find extension binary at '{0}'.")]
     ExtensionBinaryDoesNotExist(std::path::PathBuf),
 
-    #[error("Extension is not an executable file '{0}'.")]
-    ExtensionBinaryIsNotAFile(String),
+    #[error("Extension is not an executable file at '{0}'.")]
+    ExtensionBinaryIsNotAFile(std::path::PathBuf),
 
     #[error("Failed to run extension '{0}': {1}")]
     FailedToLaunchExtension(String, std::io::Error),

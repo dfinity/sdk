@@ -87,8 +87,7 @@ impl ExtensionManager {
         #[cfg(not(target_os = "windows"))]
         {
             let bin = temp_dir.path().join(extension_name);
-            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))
-                .map_err(|e| ExtensionError::ChangeFilePermissionsFailed(bin, e))?;
+            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
         }
 
         let extension_dir = self.dir.join(extension_name);
