@@ -3,10 +3,10 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
-    #[error("Cannot find cache directory '{0}': '{1}'.")]
+    #[error("Cannot find cache directory '{0}': '{1}'")]
     FindCacheDirectoryFailed(std::path::PathBuf, anyhow::Error),
 
-    #[error("Cannot get extendirectory '{0}' not installed.")]
+    #[error("Cannot get extension directory '{0}'")]
     EnsureExtensionDirExistsFailed(dfx_core::error::io::IoError),
 
     #[error("Extension '{0}' not installed.")]
@@ -16,8 +16,8 @@ pub enum ExtensionError {
     #[error("Extension '{0}' is already installed.")]
     ExtensionAlreadyInstalled(String),
 
-    #[error("Cannot fetch compatibility.json: '{0}'.")]
-    CompatibilityMatrixFetchError(String),
+    #[error("Cannot fetch compatibility.json from '{0}': '{1}'")]
+    CompatibilityMatrixFetchError(String, reqwest::Error),
 
     #[error("Cannot parse compatibility.json: '{0}'")]
     MalformedCompatibilityMatrix(reqwest::Error),
@@ -37,45 +37,36 @@ pub enum ExtensionError {
     #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
     ExtensionVersionNotFoundInRepository(String, semver::Version, String),
 
-    #[error("Downloading extension from '{0}' failed.")]
+    #[error("Downloading extension from '{0}' failed: '{1}'")]
     ExtensionDownloadFailed(url::Url, reqwest::Error),
 
     #[error("Cannot decompress extension archive (downloaded from: '{0}'): '{1}'")]
     DecompressFailed(url::Url, std::io::Error),
 
-    #[error("Cannot create temporary directory at '{0}'.")]
+    #[error("Cannot create temporary directory at '{0}': '{1}'")]
     CreateTemporaryDirectoryFailed(std::path::PathBuf, std::io::Error),
 
     #[cfg(not(target_os = "windows"))]
-    #[error(
-        "Insufficient permissions to open file in write mode (extension's binary '{0}'): '{1}'"
-    )]
-    InsufficientPermissionsToOpenExtensionBinaryInWriteMode(String, std::io::Error),
-
-    #[cfg(not(target_os = "windows"))]
     #[error("Cannot change file permissions at '{0}': '{1}'")]
-    ChangeFilePermissionsFailed(std::path::PathBuf, std::io::Error),
+    ChangeFilePermissionsFailed(std::path::PathBuf, dfx_core::error::io::IoError),
 
     #[error("Cannot rename directory: '{0}'")]
-    RenameDirectoryFailed(std::io::Error),
+    RenameDirectoryFailed(dfx_core::error::io::IoError),
 
     // errors related to uninstalling extensions
     #[error("Cannot uninstall extension: '{0}'")]
     InsufficientPermissionsToDeleteExtensionDirectory(dfx_core::error::io::IoError),
 
     // errors related to listing extensions
-    #[error("Cannot list extensions.")]
-    ExtensionsDirectoryIsNotReadable(std::io::Error),
+    #[error("Cannot list extensions: '{0}'")]
+    ExtensionsDirectoryIsNotReadable(dfx_core::error::io::IoError),
 
     #[error("Malformed extension manifest ({0}): '{1}'")]
-    ExtensionManifestIsNotValidJson(std::path::PathBuf, serde_json::Error),
-
-    #[error("Malformed extension manifest '{0}': '{1}'")]
-    ExtensionManifestDoesNotExist(std::path::PathBuf, std::io::Error),
+    ExtensionManifestIsNotValidJson(std::path::PathBuf, dfx_core::error::structured_file::StructuredFileError),
 
     // errors related to executing extensions
-    #[error("Invalid extension name '{0}'.")]
-    InvalidExtensionName(String),
+    #[error("Invalid extension name '{0:?}'.")]
+    InvalidExtensionName(std::ffi::OsString),
 
     #[error("Cannot find extension binary '{0}'.")]
     ExtensionBinaryDoesNotExist(String),
@@ -83,11 +74,11 @@ pub enum ExtensionError {
     #[error("Extension is not an executable file '{0}'.")]
     ExtensionBinaryIsNotAFile(String),
 
-    #[error("Failed to run extension '{0}'.")]
-    FailedToLaunchExtension(String),
+    #[error("Failed to run extension '{0}': '{1}'")]
+    FailedToLaunchExtension(String, std::io::Error),
 
-    #[error("Extension never finished '{0}'.")]
-    ExtensionNeverFinishedExecuting(String),
+    #[error("Extension never finished '{0}': '{1}'")]
+    ExtensionNeverFinishedExecuting(String, std::io::Error),
 
     #[cfg(not(target_os = "windows"))]
     #[error("Extension terminated by signal.")]

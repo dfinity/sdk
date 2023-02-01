@@ -87,23 +87,12 @@ impl ExtensionManager {
         #[cfg(not(target_os = "windows"))]
         {
             let bin = temp_dir.path().join(extension_name);
-            let f = std::fs::File::open(&bin).map_err(|e| {
-                ExtensionError::InsufficientPermissionsToOpenExtensionBinaryInWriteMode(
-                    extension_name.to_string(),
-                    e,
-                )
-            })?;
-
-            if let Err(e) = f.set_permissions(std::fs::Permissions::from_mode(0o777)) {
-                return Err(ExtensionError::ChangeFilePermissionsFailed(bin, e));
-            }
+            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))
+                .map_err(|e| ExtensionError::ChangeFilePermissionsFailed(bin, e))?;
         }
 
         let extension_dir = self.dir.join(extension_name);
-        if let Err(e) = std::fs::rename(temp_dir, extension_dir) {
-            return Err(ExtensionError::RenameDirectoryFailed(e));
-        }
-
+        dfx_core::fs::rename(temp_dir.path(), &extension_dir).map_err(|e| ExtensionError::RenameDirectoryFailed(e))?;
         Ok(())
     }
 }

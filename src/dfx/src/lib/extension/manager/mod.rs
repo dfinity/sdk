@@ -7,6 +7,7 @@ use crate::lib::extension::{
 };
 
 use dfx_core::fs::composite::ensure_dir_exists;
+use dfx_core::json::load_json_file;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -71,12 +72,6 @@ impl ExtensionManager {
         let manifest_path = self
             .get_extension_directory(&ext.name)
             .join(MANIFEST_FILE_NAME);
-        let manifest_file = std::fs::File::open(&manifest_path)
-            .map_err(|e| ExtensionError::ExtensionManifestDoesNotExist(manifest_path.clone(), e))?;
-
-        let manifest_reader = std::io::BufReader::new(manifest_file);
-
-        serde_json::from_reader(manifest_reader)
-            .map_err(|e| ExtensionError::ExtensionManifestIsNotValidJson(manifest_path.clone(), e))
+        load_json_file(&manifest_path).map_err(|e| ExtensionError::ExtensionManifestIsNotValidJson(manifest_path.clone(), e))
     }
 }

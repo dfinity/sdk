@@ -1,5 +1,3 @@
-use std::ffi::OsString;
-
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
@@ -49,7 +47,7 @@ pub enum Command {
     Extension(extension::ExtensionOpts),
     // Executes an extension
     // #[clap(external_subcommand)]
-    // ExtensionRun(Vec<OsString>),
+    // ExtensionRun(Vec<std::ffi::OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),

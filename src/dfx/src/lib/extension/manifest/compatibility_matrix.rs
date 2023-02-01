@@ -23,9 +23,10 @@ pub struct ExtensionCompatibleVersions {
 
 impl ExtensionCompatibilityMatrix {
     pub fn fetch() -> Result<Self, ExtensionError> {
-        let resp = reqwest::blocking::get(COMMON_EXTENSIONS_MANIFEST_LOCATION).map_err(|_e| {
+        let resp = reqwest::blocking::get(COMMON_EXTENSIONS_MANIFEST_LOCATION).map_err(|e| {
             ExtensionError::CompatibilityMatrixFetchError(
                 COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(),
+                e
             )
         })?;
 

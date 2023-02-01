@@ -3,10 +3,7 @@ use crate::lib::{error::ExtensionError, extension::Extension};
 
 impl ExtensionManager {
     pub fn list_installed_extensions(&self) -> Result<Vec<Extension>, ExtensionError> {
-        let dir_content = self
-            .dir
-            .read_dir()
-            .map_err(ExtensionError::ExtensionsDirectoryIsNotReadable)?;
+        let dir_content = dfx_core::fs::read_dir(&self.dir).map_err(ExtensionError::ExtensionsDirectoryIsNotReadable)?;
 
         Ok(dir_content
             .filter_map(|v| {
