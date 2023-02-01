@@ -83,7 +83,6 @@ pub enum ExtensionError {
     #[error("Extension never finished '{0}': '{1}'")]
     ExtensionNeverFinishedExecuting(String, std::io::Error),
 
-    #[cfg(not(target_os = "windows"))]
     #[error("Extension terminated by signal.")]
     ExtensionExecutionTerminatedViaSignal,
 
