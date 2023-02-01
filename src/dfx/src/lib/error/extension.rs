@@ -49,9 +49,6 @@ pub enum ExtensionError {
     #[error(transparent)]
     Io(#[from] dfx_core::error::io::IoError),
 
-    #[error("Cannot rename directory: {0}")]
-    RenameDirectoryFailed(dfx_core::error::io::IoError),
-
     // errors related to uninstalling extensions
     #[error("Cannot uninstall extension: {0}")]
     InsufficientPermissionsToDeleteExtensionDirectory(dfx_core::error::io::IoError),
@@ -70,13 +67,13 @@ pub enum ExtensionError {
     #[error("Cannot find extension binary at '{0}'.")]
     ExtensionBinaryDoesNotExist(std::path::PathBuf),
 
-    #[error("Extension is not an executable file at '{0}'.")]
+    #[error("Extension binary at {0} is not an executable file.")]
     ExtensionBinaryIsNotAFile(std::path::PathBuf),
 
     #[error("Failed to run extension '{0}': {1}")]
     FailedToLaunchExtension(String, std::io::Error),
 
-    #[error("Extension never finished '{0}': {1}")]
+    #[error("Extension '{0}' never finished: {1}")]
     ExtensionNeverFinishedExecuting(String, std::io::Error),
 
     #[error("Extension terminated by signal.")]

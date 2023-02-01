@@ -14,10 +14,9 @@ use std::os::unix::fs::PermissionsExt;
 impl ExtensionManager {
     pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
         if self.get_extension_directory(extension_name).exists() {
-            return Err(ExtensionError::ExtensionAlreadyInstalled(format!(
-                "extension {} already installed",
-                extension_name
-            )));
+            return Err(ExtensionError::ExtensionAlreadyInstalled(
+                extension_name.to_string(),
+            ));
         }
 
         let url = self.get_extension_download_url(extension_name)?;
@@ -72,9 +71,9 @@ impl ExtensionManager {
 
         let mut archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
 
-        if let Err(e) = archive.unpack(temp_dir.path()) {
-            return Err(ExtensionError::DecompressFailed(download_url, e));
-        }
+        archive
+            .unpack(temp_dir.path())
+            .map_err(|e| ExtensionError::DecompressFailed(download_url, e))?;
 
         Ok(temp_dir)
     }
@@ -91,8 +90,7 @@ impl ExtensionManager {
         }
 
         let extension_dir = self.dir.join(extension_name);
-        dfx_core::fs::rename(temp_dir.path(), &extension_dir)
-            .map_err(ExtensionError::RenameDirectoryFailed)?;
+        dfx_core::fs::rename(temp_dir.path(), &extension_dir)?;
         Ok(())
     }
 }
