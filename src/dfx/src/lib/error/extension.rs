@@ -3,10 +3,10 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
-    #[error("Cannot find cache directory '{0}': '{1}'")]
+    #[error("Cannot find cache directory '{0}': {1}")]
     FindCacheDirectoryFailed(std::path::PathBuf, anyhow::Error),
 
-    #[error("Cannot get extension directory '{0}'")]
+    #[error("Cannot get extensions directory {0}")]
     EnsureExtensionDirExistsFailed(dfx_core::error::io::IoError),
 
     #[error("Extension '{0}' not installed.")]
@@ -16,19 +16,19 @@ pub enum ExtensionError {
     #[error("Extension '{0}' is already installed.")]
     ExtensionAlreadyInstalled(String),
 
-    #[error("Cannot fetch compatibility.json from '{0}': '{1}'")]
+    #[error("Cannot fetch compatibility.json from '{0}': {1}")]
     CompatibilityMatrixFetchError(String, reqwest::Error),
 
-    #[error("Cannot parse compatibility.json: '{0}'")]
+    #[error("Cannot parse compatibility.json: {0}")]
     MalformedCompatibilityMatrix(reqwest::Error),
 
-    #[error("Cannot parse compatibility.json due to malformed semver '{0}': '{1}'")]
+    #[error("Cannot parse compatibility.json due to malformed semver '{0}': {1}")]
     MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, semver::Error),
 
     #[error("Cannot find compatible extension for dfx version '{1}': compatibility.json (downloaded from '{0}') has empty list of extension versions.")]
     ListOfVersionsForExtensionIsEmpty(String, semver::Version),
 
-    #[error("Cannot parse extension manifest URL '{0}': '{1}'")]
+    #[error("Cannot parse extension manifest URL '{0}': {1}")]
     MalformedExtensionDownloadUrl(String, url::ParseError),
 
     #[error("DFX version '{0}' is not supported.")]
@@ -37,31 +37,31 @@ pub enum ExtensionError {
     #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
     ExtensionVersionNotFoundInRepository(String, semver::Version, String),
 
-    #[error("Downloading extension from '{0}' failed: '{1}'")]
+    #[error("Downloading extension from '{0}' failed: {1}")]
     ExtensionDownloadFailed(url::Url, reqwest::Error),
 
-    #[error("Cannot decompress extension archive (downloaded from: '{0}'): '{1}'")]
+    #[error("Cannot decompress extension archive (downloaded from: '{0}'): {1}")]
     DecompressFailed(url::Url, std::io::Error),
 
-    #[error("Cannot create temporary directory at '{0}': '{1}'")]
+    #[error("Cannot create temporary directory at '{0}': {1}")]
     CreateTemporaryDirectoryFailed(std::path::PathBuf, std::io::Error),
 
     #[cfg(not(target_os = "windows"))]
-    #[error("Cannot change file permissions at '{0}': '{1}'")]
+    #[error("Cannot change file permissions at '{0}': {1}")]
     ChangeFilePermissionsFailed(std::path::PathBuf, dfx_core::error::io::IoError),
 
-    #[error("Cannot rename directory: '{0}'")]
+    #[error("Cannot rename directory: {0}")]
     RenameDirectoryFailed(dfx_core::error::io::IoError),
 
     // errors related to uninstalling extensions
-    #[error("Cannot uninstall extension: '{0}'")]
+    #[error("Cannot uninstall extension: {0}")]
     InsufficientPermissionsToDeleteExtensionDirectory(dfx_core::error::io::IoError),
 
     // errors related to listing extensions
-    #[error("Cannot list extensions: '{0}'")]
+    #[error("Cannot list extensions: {0}")]
     ExtensionsDirectoryIsNotReadable(dfx_core::error::io::IoError),
 
-    #[error("Malformed extension manifest ({0}): '{1}'")]
+    #[error("Malformed extension manifest at '{0}': {1}")]
     ExtensionManifestIsNotValidJson(
         std::path::PathBuf,
         dfx_core::error::structured_file::StructuredFileError,
@@ -77,10 +77,10 @@ pub enum ExtensionError {
     #[error("Extension is not an executable file '{0}'.")]
     ExtensionBinaryIsNotAFile(String),
 
-    #[error("Failed to run extension '{0}': '{1}'")]
+    #[error("Failed to run extension '{0}': {1}")]
     FailedToLaunchExtension(String, std::io::Error),
 
-    #[error("Extension never finished '{0}': '{1}'")]
+    #[error("Extension never finished '{0}': {1}")]
     ExtensionNeverFinishedExecuting(String, std::io::Error),
 
     #[error("Extension terminated by signal.")]
