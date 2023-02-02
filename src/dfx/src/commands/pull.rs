@@ -143,7 +143,7 @@ async fn download_canister_wasm(
         .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
     let wasm_path = wasm_dir.join("canister.wasm");
     let mut wasm_file = std::fs::File::create(&wasm_path)
-        .with_context(|| format!("Failed to create dir at {:?}", &wasm_path))?;
+        .with_context(|| format!("Failed to create file at {:?}", &wasm_path))?;
 
     let url = match agent
         .read_state_canister_metadata(canister_id, DFX_WASM_URL)
