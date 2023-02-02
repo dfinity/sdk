@@ -25,6 +25,7 @@ pem = "1.0.1"
 serde = "1.0.115"
 serde_bytes = "0.11.5"
 serde_json = "1.0.57"
+slog = { version = "2.5.2", features = ["max_level_trace"] }
 time = { version = "0.3.9", features = ["formatting", "local-offset"] }
 tokio = { version = "1.23.1", features = ["full", "rt"] }
 thiserror = "1.0.24"

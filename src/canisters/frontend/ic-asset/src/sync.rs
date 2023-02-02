@@ -10,28 +10,29 @@ use crate::operations::{
 use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
 use anyhow::{bail, Context};
 use ic_utils::Canister;
+use slog::{Logger, Record, log, info, slog_debug, error};
 use std::collections::HashMap;
 use std::path::Path;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(canister: &Canister<'_>, dirs: &[&Path]) -> anyhow::Result<()> {
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
     let asset_descriptors = gather_asset_descriptors(dirs)?;
 
     let container_assets = list_assets(canister).await?;
 
-    println!("Starting batch.");
+    info!(logger, "Starting batch.");
 
     let batch_id = create_batch(canister).await?;
 
-    println!("Staging contents of new and changed assets:");
+    error!(logger, "Staging contents of new and changed assets:");
 
     let project_assets =
         make_project_assets(canister, &batch_id, asset_descriptors, &container_assets).await?;
 
     let operations = assemble_synchronization_operations(project_assets, container_assets);
 
-    println!("Committing batch.");
+    info!(logger, "Committing batch.");
 
     commit_batch(canister, &batch_id, operations).await?;
 
