@@ -882,6 +882,13 @@ CHERRIES" "$stdout"
   },
 )'
 
+    # access required to update
+    assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity anonymous
+    assert_match "Caller is not authorized"
+    dfx identity new other --storage-mode plaintext
+    assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity other
+    assert_match "Caller is not authorized"
+
     # set max_age property and read it back
     assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
     assert_contains '()'
