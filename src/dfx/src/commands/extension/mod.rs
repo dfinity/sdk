@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
