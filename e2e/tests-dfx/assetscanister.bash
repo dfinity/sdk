@@ -14,6 +14,166 @@ teardown() {
     standard_teardown
 }
 
+create_batch() {
+    reg="\(record { batch_id = (.*) : nat }\)"
+    assert_command      dfx canister call e2e_project_frontend create_batch '(record { })'
+    [[ "$stdout" =~ $reg ]]
+    BATCH_ID="${BASH_REMATCH[1]}"
+    echo "$BATCH_ID"
+}
+
+@test "access control - fine-grained" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity use controller
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+
+  assert_command dfx identity new non-permissioned-controller --storage-mode plaintext
+
+  assert_command dfx identity new commit --storage-mode plaintext
+  assert_command dfx identity new manage-permissions --storage-mode plaintext
+  assert_command dfx identity new no-permissions --storage-mode plaintext
+  assert_command dfx identity new prepare --storage-mode plaintext
+
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+  COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
+  MANAGE_PERMISSIONS_PRINCIPAL=$(dfx identity get-principal --identity manage-permissions)
+
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+
+  assert_command dfx canister update-settings e2e_project_frontend --add-controller non-permissioned-controller
+
+  # initialization: the deploying controller has Commit permissions, no one else has permissions
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_eq "(vec {})"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_eq "(
+  vec {
+    principal \"$CONTROLLER_PRINCIPAL\";
+  },
+)"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_eq "(vec {})"
+
+  # granting permissions
+
+  # users without any permissions cannot grant
+  assert_command_fail dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$MANAGE_PERMISSIONS_PRINCIPAL\"; permission = variant { ManagePermissions }; })" --identity no-permissions
+  assert_contains "Caller does not have ManagePermissions permission and is not a controller"
+  # anonymous cannot grant
+  assert_command_fail dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$MANAGE_PERMISSIONS_PRINCIPAL\"; permission = variant { ManagePermissions }; })" --identity anonymous
+  assert_contains "Caller does not have ManagePermissions permission and is not a controller"
+
+  # controllers: can grant and revoke permissions
+  # first, with the controller that created the canister
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$MANAGE_PERMISSIONS_PRINCIPAL\"; permission = variant { ManagePermissions }; })"
+  # controller without any perms can too
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity non-permissioned-controller
+  # principal with only ManagePermissions can
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity manage-permissions
+
+  # now make sure access came out as expected
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_eq "(
+  vec {
+    principal \"$MANAGE_PERMISSIONS_PRINCIPAL\";
+  },
+)"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_contains "$CONTROLLER_PRINCIPAL"
+  assert_contains "$COMMIT_PRINCIPAL"
+
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_eq "(
+  vec {
+    principal \"$PREPARE_PRINCIPAL\";
+  },
+)"
+
+  # create batch
+  assert_command      dfx canister call e2e_project_frontend create_batch '(record { })'
+  assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
+  assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
+  assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
+  # create chunk
+  BATCH_ID="$(create_batch)"
+
+  echo "batch id is $BATCH_ID"
+  args="(record { batch_id=$BATCH_ID; content=blob \"the content\"})"
+  assert_command      dfx canister call e2e_project_frontend create_chunk "$args"
+  assert_command      dfx canister call e2e_project_frontend create_chunk "$args" --identity commit
+  assert_command      dfx canister call e2e_project_frontend create_chunk "$args" --identity prepare
+  assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
+  # create_asset
+  args='(record { key="/a.txt"; content_type="text/plain" })'
+  assert_command      dfx canister call e2e_project_frontend create_asset "$args"
+  assert_command      dfx canister call e2e_project_frontend create_asset "$args" --identity commit
+  assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity prepare
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity manage-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity no-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity anonymous
+  assert_contains "Caller does not have Commit permission"
+
+  # commit_batch
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend commit_batch "$args"
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend commit_batch "$args" --identity commit
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity prepare
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity no-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity anonymous
+  assert_contains "Caller does not have Commit permission"
+
+
+  # revoking permissions
+
+  assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
+  # controller w/o permissions can revoke
+  assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity non-permissioned-controller
+  assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity commit
+  assert_contains "Caller does not have Commit permission"
+
+  assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
+  # principal with only ManagePermissions can revokje
+  assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity manage-permissions
+  assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
+  assert_contains "Caller does not have Prepare permission"
+
+  # can revoke your own permissions even without ManagePermissions
+  assert_command      dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity manage-permissions
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_contains "$COMMIT_PRINCIPAL"
+  assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity commit
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_not_contains "$COMMIT_PRINCIPAL"
+
+
+}
+
 @test "take ownership" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller
@@ -101,7 +261,7 @@ teardown() {
 
   # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
   [ "$USE_IC_REF" ] && assert_contains "canister did not respond"
-  [ ! "$USE_IC_REF" ] && assert_contains "Caller is not a controller"
+  [ ! "$USE_IC_REF" ] && assert_contains "Caller does not have ManagePermissions permission and is not a controller."
 
   assert_command dfx canister call e2e_project_frontend list_authorized '()'
   assert_not_contains "$BACKDOOR_PRINCIPAL"
@@ -884,10 +1044,10 @@ CHERRIES" "$stdout"
 
     # access required to update
     assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity anonymous
-    assert_match "Caller is not authorized"
+    assert_match "Caller does not have Commit permission"
     dfx identity new other --storage-mode plaintext
     assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity other
-    assert_match "Caller is not authorized"
+    assert_match "Caller does not have Commit permission"
 
     # set max_age property and read it back
     assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
