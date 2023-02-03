@@ -6,9 +6,14 @@ use std::path::Path;
 use anyhow::Context;
 use fn_error_context::context;
 use ic_agent::Agent;
+use slog::Logger;
 
 #[context("Failed to store assets in canister '{}'.", info.get_name())]
-pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> DfxResult {
+pub async fn post_install_store_assets(
+    info: &CanisterInfo,
+    agent: &Agent,
+    logger: &Logger,
+) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
     let source_paths = assets_canister_info.get_source_paths();
     let source_paths: Vec<&Path> = source_paths.iter().map(|p| p.as_path()).collect::<_>();
@@ -23,7 +28,7 @@ pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent) -> Df
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    ic_asset::sync(&canister, &source_paths)
+    ic_asset::sync(&canister, &source_paths, logger)
         .await
         .with_context(|| {
             format!(

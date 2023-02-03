@@ -7,6 +7,7 @@ use crate::operations::{
 };
 use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
 use ic_utils::Canister;
+use slog::{info, Logger};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -14,6 +15,7 @@ use std::path::PathBuf;
 pub async fn upload(
     canister: &Canister<'_>,
     files: HashMap<String, PathBuf>,
+    logger: &Logger,
 ) -> anyhow::Result<()> {
     let asset_descriptors: Vec<AssetDescriptor> = files
         .iter()
@@ -26,18 +28,24 @@ pub async fn upload(
 
     let container_assets = list_assets(canister).await?;
 
-    println!("Starting batch.");
+    info!(logger, "Starting batch.");
 
     let batch_id = create_batch(canister).await?;
 
-    println!("Staging contents of new and changed assets:");
+    info!(logger, "Staging contents of new and changed assets:");
 
-    let project_assets =
-        make_project_assets(canister, &batch_id, asset_descriptors, &container_assets).await?;
+    let project_assets = make_project_assets(
+        canister,
+        &batch_id,
+        asset_descriptors,
+        &container_assets,
+        logger,
+    )
+    .await?;
 
     let operations = assemble_upload_operations(project_assets, container_assets);
 
-    println!("Committing batch.");
+    info!(logger, "Committing batch.");
 
     commit_batch(canister, &batch_id, operations).await?;
 
