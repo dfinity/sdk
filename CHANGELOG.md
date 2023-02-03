@@ -79,6 +79,8 @@ Added partial support for proposal-based asset updates:
   - propose_commit_batch() stores batch arguments for later commit
   - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
   - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
+  - commit_proposed_batch() commits batch previously proposed (must have evidence computed)
+  - validate_commit_proposed_batch() required validation method for SNS
 
 Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
 

@@ -620,6 +620,58 @@ impl State {
         Ok(())
     }
 
+    pub fn commit_proposed_batch(
+        &mut self,
+        arg: CommitProposedBatchArguments,
+        now: u64,
+    ) -> Result<(), String> {
+        self.validate_commit_proposed_batch_args(&arg)?;
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+        if let Some(commit_batch_arguments) = batch.commit_batch_arguments.take() {
+            self.commit_batch(commit_batch_arguments, now)
+        } else {
+            Err("batch does not have CommitBatchArguments".to_string())
+        }
+    }
+
+    pub fn validate_commit_proposed_batch(
+        &self,
+        arg: CommitProposedBatchArguments,
+    ) -> Result<String, String> {
+        self.validate_commit_proposed_batch_args(&arg)?;
+        Ok(format!(
+            "commit proposed batch {} with evidence {}",
+            arg.batch_id,
+            hex::encode(arg.evidence)
+        ))
+    }
+
+    fn validate_commit_proposed_batch_args(
+        &self,
+        arg: &CommitProposedBatchArguments,
+    ) -> Result<(), String> {
+        let batch = self.batches.get(&arg.batch_id).ok_or("batch not found")?;
+        if batch.commit_batch_arguments.is_none() {
+            return Err("batch does not have CommitBatchArguments".to_string());
+        };
+        let evidence = if let Some(Computed(evidence)) = &batch.evidence_computation {
+            evidence.clone()
+        } else {
+            return Err("batch does not have computed evidence".to_string());
+        };
+        if evidence != arg.evidence {
+            return Err(format!(
+                "batch computed evidence {} does not match presented evidence {}",
+                hex::encode(evidence),
+                hex::encode(&arg.evidence)
+            ));
+        }
+        Ok(())
+    }
+
     pub fn compute_evidence(
         &mut self,
         arg: ComputeEvidenceArguments,

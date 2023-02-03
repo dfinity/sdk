@@ -275,6 +275,57 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity anonymous
   assert_contains "Caller does not have Prepare permission"
 
+  # commit_proposed_batch
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID; evidence=blob \"\01\02\03\" })"
+  assert_command      dfx canister call e2e_project_frontend commit_proposed_batch "$args"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID; evidence=blob \"\01\02\03\" })"
+  assert_command      dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity commit
+
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity prepare
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity no-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity anonymous
+  assert_contains "Caller does not have Commit permission"
+
+  EVIDENCE_BLOB="blob \"\e3\b0\c4\42\98\fc\1c\14\9a\fb\f4\c8\99\6f\b9\24\27\ae\41\e4\64\9b\93\4c\a4\95\99\1b\78\52\b8\55\""
+  # validate_commit_proposed_batch
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+  args="(record { batch_id=$BATCH_ID; evidence=$EVIDENCE_BLOB })"
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args"
+  assert_contains "commit proposed batch $BATCH_ID with evidence"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+  args="(record { batch_id=$BATCH_ID; evidence=$EVIDENCE_BLOB })"
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity commit
+  assert_contains "commit proposed batch $BATCH_ID with evidence"
+
+  assert_command_fail dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity prepare
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity no-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity anonymous
+  assert_contains "Caller does not have Commit permission"
+
   # revoking permissions
 
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
