@@ -1,10 +1,10 @@
 use crate::{support, UploadOpts};
 use ic_utils::Canister;
+use slog::Logger;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr;
 use walkdir::WalkDir;
-use slog::Logger;
 
 pub(crate) async fn upload(
     canister: &Canister<'_>,

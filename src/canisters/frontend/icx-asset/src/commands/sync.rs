@@ -1,6 +1,6 @@
 use ic_utils::Canister;
-use std::path::Path;
 use slog::Logger;
+use std::path::Path;
 
 use crate::{support, SyncOpts};
 

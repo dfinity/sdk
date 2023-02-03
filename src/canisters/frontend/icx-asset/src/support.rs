@@ -48,8 +48,5 @@ pub(crate) fn new_logger() -> Logger {
     let decorator = slog_term::TermDecorator::new().build();
     let drain = TermLogFormat::new(decorator).fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
-    Logger::root(
-        drain,
-        slog::o!(),
-    )
+    Logger::root(drain, slog::o!())
 }
