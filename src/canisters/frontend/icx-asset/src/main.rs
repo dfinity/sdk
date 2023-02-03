@@ -96,6 +96,8 @@ fn create_identity(maybe_pem: Option<PathBuf>) -> Box<dyn Identity + Sync + Send
 async fn main() -> support::Result {
     let opts: Opts = Opts::parse();
 
+    let logger = support::new_logger();
+
     let agent = Agent::builder()
         .with_transport(
             agent::http_transport::ReqwestHttpReplicaV2Transport::create(opts.replica.clone())?,
@@ -114,21 +116,21 @@ async fn main() -> support::Result {
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            list(&canister).await?;
+            list(&canister, &logger).await?;
         }
         SubCommand::Sync(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            sync(&canister, o).await?;
+            sync(&canister, o, &logger).await?;
         }
         SubCommand::Upload(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            upload(&canister, o).await?;
+            upload(&canister, o, &logger).await?;
         }
     }
 

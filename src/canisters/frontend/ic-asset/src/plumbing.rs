@@ -10,6 +10,7 @@ use futures::future::try_join_all;
 use futures::TryFutureExt;
 use ic_utils::Canister;
 use mime::Mime;
+use slog::{debug, info, Logger};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -49,6 +50,7 @@ async fn make_project_asset_encoding(
     content: &Content,
     content_encoding: &str,
     semaphores: &Semaphores,
+    logger: &Logger,
 ) -> anyhow::Result<ProjectAssetEncoding> {
     let sha256 = content.sha256();
 
@@ -71,7 +73,8 @@ async fn make_project_asset_encoding(
         };
 
     let chunk_ids = if already_in_place {
-        println!(
+        info!(
+            logger,
             "  {}{} ({} bytes) sha {} is already installed",
             &asset_descriptor.key,
             content_encoding_descriptive_suffix(content_encoding),
@@ -88,6 +91,7 @@ async fn make_project_asset_encoding(
             &sha256,
             content_encoding,
             semaphores,
+            logger,
         )
         .await?
     };
@@ -108,6 +112,7 @@ async fn make_encoding(
     content: &Content,
     encoder: &Option<ContentEncoder>,
     semaphores: &Semaphores,
+    logger: &Logger,
 ) -> anyhow::Result<Option<(String, ProjectAssetEncoding)>> {
     match encoder {
         None => {
@@ -119,6 +124,7 @@ async fn make_encoding(
                 content,
                 CONTENT_ENCODING_IDENTITY,
                 semaphores,
+                logger,
             )
             .await?;
             Ok(Some((
@@ -138,6 +144,7 @@ async fn make_encoding(
                     &encoded,
                     &content_encoding,
                     semaphores,
+                    logger,
                 )
                 .await?;
                 Ok(Some((content_encoding, project_asset_encoding)))
@@ -155,6 +162,7 @@ async fn make_encodings(
     container_assets: &HashMap<String, AssetDetails>,
     content: &Content,
     semaphores: &Semaphores,
+    logger: &Logger,
 ) -> anyhow::Result<HashMap<String, ProjectAssetEncoding>> {
     let mut encoders = vec![None];
     for encoder in applicable_encoders(&content.media_type) {
@@ -172,6 +180,7 @@ async fn make_encodings(
                 content,
                 maybe_encoder,
                 semaphores,
+                logger,
             )
         })
         .collect();
@@ -192,6 +201,7 @@ async fn make_project_asset(
     asset_descriptor: AssetDescriptor,
     container_assets: &HashMap<String, AssetDetails>,
     semaphores: &Semaphores,
+    logger: &Logger,
 ) -> anyhow::Result<ProjectAsset> {
     let file_size = std::fs::metadata(&asset_descriptor.source)?.len();
     let permits = std::cmp::max(
@@ -211,6 +221,7 @@ async fn make_project_asset(
         container_assets,
         &content,
         semaphores,
+        logger,
     )
     .await?;
 
@@ -226,6 +237,7 @@ pub(crate) async fn make_project_assets(
     batch_id: &Nat,
     asset_descriptors: Vec<AssetDescriptor>,
     container_assets: &HashMap<String, AssetDetails>,
+    logger: &Logger,
 ) -> anyhow::Result<HashMap<String, ProjectAsset>> {
     let semaphores = Semaphores::new();
 
@@ -238,6 +250,7 @@ pub(crate) async fn make_project_assets(
                 loc.clone(),
                 container_assets,
                 &semaphores,
+                logger,
             )
         })
         .collect();
@@ -258,11 +271,13 @@ async fn upload_content_chunks(
     sha256: &Vec<u8>,
     content_encoding: &str,
     semaphores: &Semaphores,
+    logger: &Logger,
 ) -> anyhow::Result<Vec<Nat>> {
     if content.data.is_empty() {
         let empty = vec![];
         let chunk_id = create_chunk(canister, batch_id, &empty, semaphores).await?;
-        println!(
+        info!(
+            logger,
             "  {}{} 1/1 (0 bytes) sha {}",
             &asset_descriptor.key,
             content_encoding_descriptive_suffix(content_encoding),
@@ -278,8 +293,9 @@ async fn upload_content_chunks(
         .enumerate()
         .map(|(i, data_chunk)| {
             create_chunk(canister, batch_id, data_chunk, semaphores).map_ok(move |chunk_id| {
-                println!(
-                    "  {}{} {}/{} ({} bytes) sha {}{}",
+                info!(
+                    logger,
+                    "  {}{} {}/{} ({} bytes) sha {} {}",
                     &asset_descriptor.key,
                     content_encoding_descriptive_suffix(content_encoding),
                     i + 1,
@@ -288,6 +304,8 @@ async fn upload_content_chunks(
                     hex::encode(sha256),
                     &asset_descriptor.config
                 );
+                debug!(logger, "{:?}", &asset_descriptor.config);
+
                 chunk_id
             })
         })
