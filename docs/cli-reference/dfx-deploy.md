@@ -25,6 +25,7 @@ You can use the following options with the `dfx deploy` command.
 | `--network <network>`              | Overrides the environment to connect to. By default, the local canister execution environment is used.                                                                      |
 | `--argument <argument>`            | Specifies an argument using Candid syntax to pass to the canister during deployment. Note that this option requires you to define an actor class in the Motoko program. |
 | `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                            |
+| `--output-env-file`   | Writes dfx environment variables to a provided path. Overrides the `output_env_file` configuration from `dfx.json` if passed.                              |
 
 ### Arguments
 
