@@ -12,7 +12,9 @@ keywords = ["internet-computer", "assets", "icp", "dfinity"]
 
 [dependencies]
 anyhow = "1.0"
+backoff = "0.4.0"
 candid = "0.8.2"
+derivative = "2.2.0"
 flate2 = "1.0.22"
 futures = "0.3.21"
 futures-intrusive = "0.4.0"
@@ -20,17 +22,16 @@ globset = "0.4.9"
 hex = { version = "0.4.2", features = ["serde"] }
 ic-agent = { version = "0.23.0", features = [ "pem" ] }
 ic-utils = "0.23.0"
+json5 = "0.4.1"
 mime = "0.3.16"
 mime_guess = "2.0.4"
 serde = "1.0"
 serde_bytes = "0.11.2"
 serde_json = "1.0.81"
-json5 = "0.4.1"
 sha2 = "0.10"
-walkdir = "2.2.9"
-derivative = "2.2.0"
-backoff = "0.4.0"
+slog = { version = "2.5.2", features = ["max_level_trace"] }
 tokio = "1.23.1"
+walkdir = "2.2.9"
 
 [dev-dependencies]
 mockito = "0.31.0"
