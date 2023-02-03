@@ -192,8 +192,8 @@ This incorporates the following executed proposals:
 
 ### Frontend canister
 
-- Module hash: e05a306dc2485a8717ccec39283fe2bcdfa9837545f5d6df833c1787520a1850
-- https://github.com/dfinity/sdk/pull/todo
+- Module hash: db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+- https://github.com/dfinity/sdk/pull/2753
 
 # 0.12.0
 
