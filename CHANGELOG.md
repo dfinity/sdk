@@ -34,12 +34,34 @@ This allows users to download SNS canister WASMs.
 
 ### fix: creating an identity with `--force` no longer switches to the newly created identity
 
-### fix(frontend-canister)!: removed ability of authorized principals to manage the ACL
+### feat(frontend-canister)!: reworked to use permissions-based access control
 
-Authorized principals can no longer authorize other principals.  They can deauthorize themselves,
-but cannot deauthorize any other principal.
+The permissions are as follows:
+- ManagePermissions: Can grant and revoke permissions to any principal.  Controllers implicitly have this permission.
+- Prepare: Can call create_batch and create_chunk
+- Commit: Can call commit_batch and methods that manipulate assets directly, as well as any method permitted by Prepare.
 
-Only controllers can authorize and deauthorize any principal.
+For upgraded frontend canisters, all authorized principals will be granted the Commit permission.
+For newly deployed frontend canisters, the initializer (first deployer of the canister) will be granted the Commit permission.
+
+Added three new methods:
+- list_permitted: lists principals with a given permission.
+  - Callable by anyone.
+- grant_permission: grants a single permission to a principal
+  - Callable by Controllers and principals with the ManagePermissions permission.
+- revoke_permission: removes a single permission from a principal
+  - Any principal can revoke its own permissions.
+  - Only Controllers and principals with the ManagePermissions permission can revoke the permissions of other principals.
+
+Altered the behavior of the existing authorization-related methods to operate only on the "Commit" permission.  In this way, they are backwards-compatible.
+- authorize(principal): same as grant_permission(principal, Commit)
+- deauthorize(principal): same as revoke_permission(permission, Commit)
+- list_authorized(): same as list_permitted(Commit)
+
+### fix(frontend-canister)!: removed ability of some types of authorized principals to manage the ACL
+
+It used to be the case that any authorized principal could authorize and deauthorize any other principal.
+This is no longer the case.  See rules above for grant_permission and revoke_permission.
 
 ### feat(frontend-canister)!: default secure configuration for assets in frontend project template
 
@@ -145,8 +167,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 76416966d36ea5e15d63caf99cb054efe00efb6475beae54d0bca7c3ec753db8
-- https://github.com/dfinity/sdk/pull/2937
+- Module hash: d12e4493878911c21364c550ca90b81be900ebde43e7956ae1873c51504a8757
+- https://github.com/dfinity/sdk/pull/2942
 
 ### ic-ref
 
