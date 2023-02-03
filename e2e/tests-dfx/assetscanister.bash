@@ -26,9 +26,12 @@ create_batch() {
 check_permission_failure() {
     expected="$1"
     # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
-    [ "$USE_IC_REF" ] && assert_contains "canister did not respond"
-    [ ! "$USE_IC_REF" ] && assert_contains "$expected"
-
+    if [ "$USE_IC_REF" ]
+    then
+        assert_contains "canister did not respond"
+    else
+        assert_contains "$expected"
+    fi
 }
 @test "access control - fine-grained" {
   assert_command dfx identity new controller --storage-mode plaintext
@@ -104,11 +107,11 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity manage-permissions
-  check_permission_failure "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission"
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity no-permissions
-  check_permission_failure "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission"
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity anonymous
-  check_permission_failure "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission"
 
   # create chunk
   BATCH_ID="$(create_batch)"
@@ -119,24 +122,24 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend create_chunk "$args" --identity commit
   assert_command      dfx canister call e2e_project_frontend create_chunk "$args" --identity prepare
   assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity manage-permissions
-  check_permission_failure "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission"
   assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity no-permissions
-  check_permission_failure "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission"
   assert_command_fail dfx canister call e2e_project_frontend create_chunk "$args" --identity anonymous
-  check_permission_failure "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission"
 
   # create_asset
   args='(record { key="/a.txt"; content_type="text/plain" })'
   assert_command      dfx canister call e2e_project_frontend create_asset "$args"
   assert_command      dfx canister call e2e_project_frontend create_asset "$args" --identity commit
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity prepare
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity manage-permissions
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity no-permissions
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity anonymous
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
 
   # commit_batch
   BATCH_ID="$(create_batch)"
@@ -146,13 +149,13 @@ check_permission_failure() {
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
   assert_command      dfx canister call e2e_project_frontend commit_batch "$args" --identity commit
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity prepare
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity manage-permissions
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity no-permissions
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity anonymous
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
 
 
   # revoking permissions
@@ -161,15 +164,15 @@ check_permission_failure() {
   # controller w/o permissions can revoke
   assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity non-permissioned-controller
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
-  check_permission_failure "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission"
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity commit
-  check_permission_failure "Caller does not have Commit permission"
+  assert_contains "Caller does not have Commit permission"
 
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
   # principal with only ManagePermissions can revokje
   assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity manage-permissions
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
-  check_permission_failure "Caller does not have Prepare permission"
+  assert_contains "Caller does not have Prepare permission"
 
   # can revoke your own permissions even without ManagePermissions
   assert_command      dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity manage-permissions
