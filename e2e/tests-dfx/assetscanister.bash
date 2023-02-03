@@ -17,6 +17,7 @@ teardown() {
 create_batch() {
     reg="\(record { batch_id = (.*) : nat }\)"
     assert_command      dfx canister call e2e_project_frontend create_batch '(record { })'
+    # shellcheck disable=SC2154
     [[ "$stdout" =~ $reg ]]
     BATCH_ID="${BASH_REMATCH[1]}"
     echo "$BATCH_ID"
