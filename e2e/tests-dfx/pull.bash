@@ -154,13 +154,12 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_match "onchain_a:rrkah-fqaaa-aaaaa-aaaaq-cai;"
 
     # copy wasm files to web server dir
-    cd ..
-    cp onchain/src/onchain_a/main.wasm www/a.wasm
-    cp onchain/src/onchain_b/main.wasm www/b.wasm
-    cp onchain/src/onchain_c/main.wasm www/c.wasm
+    cp src/onchain_a/main.wasm ../www/a.wasm
+    cp src/onchain_b/main.wasm ../www/b.wasm
+    cp src/onchain_c/main.wasm ../www/c.wasm
 
     # pull canisters in app project
-    cd app
+    cd ../app
     assert_command dfx pull dep1
     
     assert_file_exists "$WASM_CACHE/ryjl3-tyaaa-aaaaa-aaaba-cai/canister.wasm"
@@ -171,18 +170,16 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_file_exists "$WASM_CACHE/r7inp-6aaaa-aaaaa-aaabq-cai/canister.wasm"
 
     # sad path 1: wasm hash doesn't match on chain
-    cd ..
-    cp onchain/src/onchain_b/main.wasm www/a.wasm 
+    cd ../onchain
+    cp src/onchain_b/main.wasm ../www/a.wasm 
 
-    cd app
+    cd ../app
     assert_command dfx pull dep1
     assert_contains "The hash of downloaded wasm doesn't match the canister on chain."
 
     # sad path 2: url server doesn't have the file
-    cd ..
-    rm www/a.wasm 
+    rm ../www/a.wasm
 
-    cd app
     assert_command dfx pull dep1
     assert_contains "Failed while download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 }
