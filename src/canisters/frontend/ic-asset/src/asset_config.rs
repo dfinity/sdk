@@ -13,7 +13,7 @@ pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
 /// A final piece of metadata assigned to the asset
-#[derive(Debug, Derivative, PartialEq, Eq, Serialize, Clone)]
+#[derive(Derivative, PartialEq, Eq, Serialize, Clone)]
 #[derivative(Default)]
 pub struct AssetConfig {
     pub(crate) cache: Option<CacheConfig>,
@@ -404,8 +404,36 @@ mod rule_utils {
             let mut s = String::new();
 
             if self.cache.is_some() || self.headers.is_some() {
-                s.push_str(", with config:\n");
+                s.push('(');
+                if self.cache.as_ref().map_or(false, |v| v.max_age.is_some()) {
+                    s.push_str("with cache");
+                }
+                if let Some(ref headers) = self.headers {
+                    if !headers.is_empty() {
+                        if s.len() > 1 {
+                            s.push_str(" and ");
+                        } else {
+                            s.push_str("with ");
+                        }
+                        s.push_str(headers.len().to_string().as_str());
+                        if headers.len() == 1 {
+                            s.push_str(" header");
+                        } else {
+                            s.push_str(" headers");
+                        }
+                    }
+                }
+                s.push(')');
             }
+
+            write!(f, "{}", s)
+        }
+    }
+
+    impl std::fmt::Debug for AssetConfig {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let mut s = String::new();
+
             if let Some(ref cache) = self.cache {
                 if let Some(ref max_age) = cache.max_age {
                     s.push_str(&format!("  - HTTP cache max-age: {}\n", max_age));
@@ -413,14 +441,14 @@ mod rule_utils {
             }
             if let Some(aliasing) = self.enable_aliasing {
                 s.push_str(&format!(
-                    "    - URL path aliasing: {}\n",
+                    "  - URL path aliasing: {}\n",
                     if aliasing { "enabled" } else { "disabled" }
                 ));
             }
             if let Some(ref headers) = self.headers {
                 for (key, value) in headers {
                     s.push_str(&format!(
-                        "    - HTTP Response header: {key}: {value}\n",
+                        "  - HTTP Response header: {key}: {value}\n",
                         key = key,
                         value = value
                     ));
