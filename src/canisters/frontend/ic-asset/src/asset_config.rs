@@ -404,12 +404,12 @@ mod rule_utils {
             let mut s = String::new();
 
             if self.cache.is_some() || self.headers.is_some() {
-                s.push_str("(");
+                s.push('(');
                 if self.cache.as_ref().map_or(false, |v| v.max_age.is_some()) {
                     s.push_str("with cache");
                 }
                 if let Some(ref headers) = self.headers {
-                    if headers.len() > 0 {
+                    if !headers.is_empty() {
                         if s.len() > 1 {
                             s.push_str(" and ");
                         } else {
@@ -418,7 +418,7 @@ mod rule_utils {
                         s.push_str(&format!("{} headers", headers.len()));
                     }
                 }
-                s.push_str(")");
+                s.push(')');
             }
 
             write!(f, "{}", s)

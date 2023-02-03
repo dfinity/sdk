@@ -9,7 +9,11 @@ use ic_agent::Agent;
 use slog::Logger;
 
 #[context("Failed to store assets in canister '{}'.", info.get_name())]
-pub async fn post_install_store_assets(info: &CanisterInfo, agent: &Agent, logger: &Logger) -> DfxResult {
+pub async fn post_install_store_assets(
+    info: &CanisterInfo,
+    agent: &Agent,
+    logger: &Logger,
+) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
     let source_paths = assets_canister_info.get_source_paths();
     let source_paths: Vec<&Path> = source_paths.iter().map(|p| p.as_path()).collect::<_>();
