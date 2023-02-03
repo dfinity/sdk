@@ -1866,6 +1866,8 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "slog",
+ "slog-async",
+ "slog-term",
  "thiserror",
  "time",
  "tokio",
