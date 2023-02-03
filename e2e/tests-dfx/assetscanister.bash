@@ -816,7 +816,7 @@ CHERRIES" "$stdout"
 
     assert_command dfx deploy
     assert_match 'WARN: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
-    assert_contains '{
+    assert_contains 'WARN: {
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
@@ -824,19 +824,19 @@ CHERRIES" "$stdout"
   "allow_raw_access": false
 }'
     assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
-    assert_contains '{
+    assert_contains 'WARN: {
   "match": "nevermatchme",
   "headers": {},
   "ignore": false,
   "allow_raw_access": false
 }
-{
+WARN: {
   "match": "nevermatchmetoo",
   "headers": {},
   "ignore": false,
   "allow_raw_access": false
 }
-{
+WARN: {
   "match": "non-matcher",
   "headers": {
     "x-header": "x-value"
@@ -845,7 +845,7 @@ CHERRIES" "$stdout"
   "allow_raw_access": false
 }'
     # splitting this up into two checks, because the order is different on macos vs ubuntu
-    assert_contains '{
+    assert_contains 'WARN: {
   "match": "/thanks-for-not-stripping-forward-slash",
   "headers": {
     "x-header": "x-value"
@@ -951,5 +951,5 @@ CHERRIES" "$stdout"
     ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
     assert_command dfx deploy
-    assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]*, \(with cache and 1 header\)'
+    assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
 }
