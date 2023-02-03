@@ -7,7 +7,23 @@
 ### feat: updates the dfx new starter project for env vars
 
 - Updates the starter project for env vars to use the new `dfx build` & `dfx deploy` environment variables
-- Changes the format of the canister id env vars to be `<canister_name>_CANISTER_ID`, matching the existing convention
+- Changes the format of the canister id env vars to be `CANISTER_ID_<canister_name_uppercase>`, for the frontend declaraction file to be consistent with the dfx environment variables. `CANISTER_ID` as both a prefix and suffix are supported for backwards compatibility.
+
+> Migration: If your frontend project is using the old environment variables, you will need to update your `webpack.config.js` file to use the new `CANISTER_ID_prefix` variables, or to use the new webpack config provided in the starter project.
+
+For example, if your frontend project is using the following mapping of environment variables inside of `initCanisterEnv`:
+
+```js
+prev[canisterName.toUpperCase() + "_CANISTER_ID"] = canisterDetails[network];
+```
+
+You will need to update your `webpack.config.js` file to use the new `CANISTER_ID_prefix` variables:
+
+```js
+prev[`CANISTER_ID_${canisterName.toUpperCase()}`] = canisterDetails[network];
+```
+
+Alternately, if you are using the new `.env` file support, you can install `dotenv` and use the new webpack config provided in the starter project.
 
 ### feat: Add dfx sns download
 
