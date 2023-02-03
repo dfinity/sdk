@@ -44,9 +44,9 @@ check_permission_failure() {
   assert_eq "(record { batch_id = 3 : nat })"
   assert_command dfx deploy --upgrade-unchanged
   assert_command dfx canister call e2e_project_frontend create_batch '(record { })'
-  assert_eq "(record { batch_id = 1 : nat })"
+  assert_eq "(record { batch_id = 5 : nat })"
   assert_command dfx canister call e2e_project_frontend create_batch '(record { })'
-  assert_eq "(record { batch_id = 2 : nat })"
+  assert_eq "(record { batch_id = 6 : nat })"
 }
 
 @test "dfx deploy does not retry forever on permissions failure" {
