@@ -4,10 +4,21 @@
 
 ## DFX
 
+### feat: Add dfx sns download
+
+This allows users to download SNS canister WASMs.
+
 ### fix: fixed error text
 - `dfx nns install` had the wrong instructions for setting up the local replica type
 
 ### fix: creating an identity with `--force` no longer switches to the newly created identity
+
+### fix(frontend-canister)!: removed ability of authorized principals to manage the ACL
+
+Authorized principals can no longer authorize other principals.  They can deauthorize themselves,
+but cannot deauthorize any other principal.
+
+Only controllers can authorize and deauthorize any principal.
 
 ### feat(frontend-canister)!: default secure configuration for assets in frontend project template
 
@@ -40,6 +51,10 @@ At the present time, there are two ways to reconfigure an existing asset:
     ```
 
 ### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
+
+### feat(frontend-canister): add take_ownership() method
+
+Callable only by a controller.  Clears list of authorized principals and adds the caller (controller) as the only authorized principal.
 
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
@@ -109,8 +124,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 9093294e28805eac1c8226b9d73cb0da02657ca1219ae951b655931e8a2f32b8
-- https://github.com/dfinity/sdk/pull/2824
+- Module hash: 76416966d36ea5e15d63caf99cb054efe00efb6475beae54d0bca7c3ec753db8
+- https://github.com/dfinity/sdk/pull/2937
 
 ### ic-ref
 
@@ -118,13 +133,18 @@ Updated ic-ref to master commit `3cc51be5`
 
 ### Motoko
 
-Updated Motoko to 0.7.4
+Updated Motoko to 0.7.6
 
 ### Replica
 
-Updated replica to elected commit 997ab2e9cc49189302fe54c1e60709abfbeb1d42.
+Updated replica to elected commit b5a1a8c0e005216f2d945f538fc27163bafc3bf7.
 This incorporates the following executed proposals:
 
+- [100821](https://dashboard.internetcomputer.org/proposal/100821)
+- [97472](https://dashboard.internetcomputer.org/proposal/97472)
+- [96114](https://dashboard.internetcomputer.org/proposal/96114)
+- [94953](https://dashboard.internetcomputer.org/proposal/94953)
+- [94852](https://dashboard.internetcomputer.org/proposal/94852)
 - [93761](https://dashboard.internetcomputer.org/proposal/93761)
 - [93507](https://dashboard.internetcomputer.org/proposal/93507)
 - [92573](https://dashboard.internetcomputer.org/proposal/92573)

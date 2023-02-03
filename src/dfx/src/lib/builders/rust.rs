@@ -79,8 +79,13 @@ impl CanisterBuilder for RustBuilder {
         let dependencies = self
             .get_dependencies(pool, canister_info)
             .unwrap_or_default();
-        let vars =
-            super::environment_variables(canister_info, &config.network_name, pool, &dependencies);
+        let vars = super::get_and_write_environment_variables(
+            canister_info,
+            &config.network_name,
+            pool,
+            &dependencies,
+            config.env_file.as_deref(),
+        )?;
         for (key, val) in vars {
             cargo.env(key.as_ref(), val);
         }

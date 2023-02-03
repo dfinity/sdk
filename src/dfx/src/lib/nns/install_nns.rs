@@ -462,11 +462,22 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
             download_ic_repo_wasm(test_wasm_name, &ic_commit, wasm_dir).await?;
         }
     }
+    download_sns_wasms(env, &ic_commit, wasm_dir).await?;
+    Ok(())
+}
+
+/// Downloads all the core SNS wasms.
+#[context("Failed to download SNS wasm files.")]
+pub async fn download_sns_wasms(
+    _env: &dyn Environment,
+    ic_commit: &str,
+    wasms_dir: &Path,
+) -> anyhow::Result<()> {
     try_join_all(
         SNS_CANISTERS
             .iter()
             .map(|SnsCanisterInstallation { wasm_name, .. }| {
-                download_ic_repo_wasm(wasm_name, &ic_commit, wasm_dir)
+                download_ic_repo_wasm(wasm_name, ic_commit, wasms_dir)
             }),
     )
     .await?;

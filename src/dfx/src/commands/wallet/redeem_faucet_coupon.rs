@@ -2,7 +2,7 @@ use crate::commands::wallet::get_wallet;
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
+use crate::lib::identity::wallet::set_wallet_id;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
@@ -89,7 +89,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                 log,
                 "Redeemed coupon {} for a new wallet: {}", opts.coupon_code, &new_wallet_address
             );
-            Identity::set_wallet_id(env.get_network_descriptor(), identity, new_wallet_address)
+            set_wallet_id(env.get_network_descriptor(), identity, new_wallet_address)
                 .with_context(|| {
                     DiagnosedError::new(
                         format!(

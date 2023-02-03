@@ -2,13 +2,18 @@ pub mod composite;
 
 use crate::error::io::IoError;
 use crate::error::io::IoErrorKind::{
-    CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed, ReadFileFailed,
-    ReadPermissionsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, WriteFileFailed,
-    WritePermissionsFailed,
+    CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed,
+    ReadFileFailed, ReadPermissionsFailed, RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed,
+    RemoveFileFailed, RenameFailed, WriteFileFailed, WritePermissionsFailed,
 };
 
 use std::fs::{Permissions, ReadDir};
 use std::path::{Path, PathBuf};
+
+pub fn canonicalize(path: &Path) -> Result<PathBuf, IoError> {
+    path.canonicalize()
+        .map_err(|err| IoError::new(CanonicalizePathFailed(path.to_path_buf(), err)))
+}
 
 pub fn copy(from: &Path, to: &Path) -> Result<u64, IoError> {
     std::fs::copy(from, to).map_err(|err| {
@@ -60,6 +65,11 @@ pub fn read_permissions(path: &Path) -> Result<Permissions, IoError> {
 pub fn remove_dir(path: &Path) -> Result<(), IoError> {
     std::fs::remove_dir(path)
         .map_err(|err| IoError::new(RemoveDirectoryFailed(path.to_path_buf(), err)))
+}
+
+pub fn remove_dir_all(path: &Path) -> Result<(), IoError> {
+    std::fs::remove_dir_all(path)
+        .map_err(|err| IoError::new(RemoveDirectoryAndContentsFailed(path.to_path_buf(), err)))
 }
 
 pub fn remove_file(path: &Path) -> Result<(), IoError> {

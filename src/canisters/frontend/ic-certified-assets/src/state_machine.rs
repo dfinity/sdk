@@ -160,6 +160,11 @@ impl State {
         &self.authorized
     }
 
+    pub fn take_ownership(&mut self, controller: Principal) {
+        self.authorized.clear();
+        self.authorized.push(controller);
+    }
+
     pub fn root_hash(&self) -> Hash {
         use ic_certified_map::labeled_hash;
         labeled_hash(b"http_assets", &self.asset_hashes.root_hash())

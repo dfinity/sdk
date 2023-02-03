@@ -830,7 +830,6 @@ dependencies = [
  "atty",
  "backoff",
  "base64",
- "bip32",
  "byte-unit",
  "bytes",
  "candid",
@@ -860,7 +859,6 @@ dependencies = [
  "indicatif",
  "itertools 0.10.5",
  "junction",
- "k256",
  "keyring",
  "lazy_static",
  "mime",
@@ -897,7 +895,6 @@ dependencies = [
  "term",
  "thiserror",
  "time",
- "tiny-bip39",
  "tokio",
  "toml",
  "url",
@@ -913,17 +910,23 @@ dependencies = [
  "aes-gcm",
  "argon2",
  "bip32",
+ "candid",
+ "dialoguer",
  "directories-next",
  "hex",
  "ic-agent",
  "ic-identity-hsm",
+ "k256",
  "keyring",
  "lazy_static",
+ "proptest",
  "ring",
  "sec1",
  "serde",
  "serde_json",
+ "slog",
  "thiserror",
+ "tiny-bip39",
 ]
 
 [[package]]
@@ -3305,9 +3308,12 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.14"
+version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e25dfac463d778e353db5be2449d1cce89bd6fd23c9f1ea21310ce6e5a1b29c4"
+checksum = "58bc9567378fc7690d6b2addae4e60ac2eeea07becb2c64b9f218b53865cba2a"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "serde"

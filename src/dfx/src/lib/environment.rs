@@ -1,10 +1,13 @@
 use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::{Config, NetworksConfig};
 use crate::config::{cache, dfx_version};
+use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
+use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
+use dfx_core::error::identity::IdentityError;
+use dfx_core::identity::identity_manager::IdentityManager;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -48,6 +51,10 @@ pub trait Environment {
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
 
+    fn new_identity_manager(&self) -> Result<IdentityManager, IdentityError> {
+        IdentityManager::new(self.get_logger(), self.get_identity_override())
+    }
+
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
     fn log<'a>(&self, record: &Record<'a>) {
@@ -59,6 +66,8 @@ pub trait Environment {
     fn get_selected_identity_principal(&self) -> Option<Principal>;
 
     fn get_effective_canister_id(&self) -> Principal;
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError>;
 }
 
 pub struct EnvironmentImpl {
@@ -237,6 +246,10 @@ impl Environment for EnvironmentImpl {
     fn get_effective_canister_id(&self) -> Principal {
         self.effective_canister_id
     }
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
+        ExtensionManager::new(self)
+    }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -255,7 +268,7 @@ impl<'a> AgentEnvironment<'a> {
         use_identity: Option<&str>,
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
-        let mut identity_manager = IdentityManager::new(backend)?;
+        let mut identity_manager = backend.new_identity_manager()?;
         let identity = if let Some(identity_name) = use_identity {
             identity_manager.instantiate_identity_from_name(identity_name, &logger)?
         } else {
@@ -345,6 +358,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_effective_canister_id(&self) -> Principal {
         self.backend.get_effective_canister_id()
+    }
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
+        ExtensionManager::new(self.backend)
     }
 }
 
