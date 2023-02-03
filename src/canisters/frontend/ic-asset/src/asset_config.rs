@@ -415,7 +415,12 @@ mod rule_utils {
                         } else {
                             s.push_str("with ");
                         }
-                        s.push_str(&format!("{} headers", headers.len()));
+                        s.push_str(headers.len().to_string().as_str());
+                        if headers.len() == 1 {
+                            s.push_str(" header");
+                        } else {
+                            s.push_str(" headers");
+                        }
                     }
                 }
                 s.push(')');
