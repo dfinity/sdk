@@ -19,7 +19,8 @@
 //!     .with_canister_id(canister_id)
 //!     .with_agent(&agent)
 //!     .build()?;
-//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()]).await?;
+//! let logger = slog::Logger::root(slog::Discard, slog::o!());
+//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], &logger).await?;
 //! # Ok(())
 //! # }
 
