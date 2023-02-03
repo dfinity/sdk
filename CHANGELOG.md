@@ -17,10 +17,10 @@ This allows users to download SNS canister WASMs.
 
 The permissions are as follows:
 - ManagePermissions: Can grant and revoke permissions to any principal.  Controllers implicitly have this permission.
-- Prepare: Can upload asset contents
-- Commit: Same as Prepare, and can commit changes to assets
+- Prepare: Can call create_batch and create_chunk
+- Commit: Can call commit_batch and methods that manipulate assets directly, as well as any method permitted by Prepare.
 
-For upgraded frontend canisters, all authorized principals will be granted the Commit premission.
+For upgraded frontend canisters, all authorized principals will be granted the Commit permission.
 For newly deployed frontend canisters, the initializer (first deployer of the canister) will be granted the Commit permission.
 
 Added three new methods:
