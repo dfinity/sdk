@@ -1,18 +1,22 @@
 use crate::config::cache::get_cache_root;
 use crate::config::dfinity::CanisterTypeProperties;
+use crate::lib::environment::AgentEnvironment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_URL};
+use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, provider::create_agent_environment};
 use crate::NetworkOpt;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::io::Write;
 
 use anyhow::{anyhow, bail, Context};
-use bytes::Buf;
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
+use sha2::{Digest, Sha256};
 use slog::{info, warn, Logger};
 use tokio::runtime::Runtime;
 
@@ -68,7 +72,7 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
         }
 
         for canister_id in pulled_canisters {
-            if let Err(e) = download_canister_wasm(agent, logger, canister_id).await {
+            if let Err(e) = download_canister_wasm(&agent_env, logger, canister_id).await {
                 warn!(
                     logger,
                     "Failed to download wasm of canister {canister_id}. {e}"
@@ -129,7 +133,7 @@ async fn fetch_deps_to_pull(
 
 #[context("Failed while download wasm of canister {canister_id}.")]
 async fn download_canister_wasm(
-    agent: &Agent,
+    agent_env: &AgentEnvironment<'_>,
     logger: &Logger,
     canister_id: Principal,
 ) -> DfxResult {
@@ -139,12 +143,17 @@ async fn download_canister_wasm(
     let wasm_dir = get_cache_root()?
         .join("wasms")
         .join(canister_id.to_string());
+    let wasm_path = wasm_dir.join("canister.wasm");
+
     std::fs::create_dir_all(&wasm_dir)
         .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
-    let wasm_path = wasm_dir.join("canister.wasm");
+    // always download and overwrite existing file.
     let mut wasm_file = std::fs::File::create(&wasm_path)
         .with_context(|| format!("Failed to create file at {:?}", &wasm_path))?;
 
+    let agent = agent_env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let url = match agent
         .read_state_canister_metadata(canister_id, DFX_WASM_URL)
         .await
@@ -168,9 +177,40 @@ async fn download_canister_wasm(
             _ => bail!(agent_error),
         },
     };
-    let mut content = reqwest::get(url).await?.bytes().await?.reader();
+    let response = reqwest::get(url.clone()).await?;
+    let status = response.status();
+    if status.is_client_error() || status.is_server_error() {
+        bail!("Failed to download wasm from url: {url}.\n  StatusCode: {status}");
+    }
+    let content = response.bytes().await?;
 
-    std::io::copy(&mut content, &mut wasm_file)?;
+    let canister_status =
+        get_canister_status(agent_env, canister_id, &CallSender::SelectedId).await?;
+    match canister_status.module_hash {
+        Some(hash_on_chain) => {
+            let mut hasher = Sha256::new();
+            hasher.update(&content);
+            let hash_wasm = hasher.finalize();
+            if hash_wasm.as_slice() != hash_on_chain {
+                warn!(
+                    logger,
+                    "The hash of downloaded wasm doesn't match the canister on chain.
+              wasm:     {}
+              on chain: {}",
+                    hex::encode(hash_wasm.as_slice()),
+                    hex::encode(&hash_on_chain)
+                );
+            }
+        }
+        None => {
+            warn!(
+                logger,
+                "Canister {canister_id} doesn't have module hash. Perhaps it's not installed."
+            );
+        }
+    }
+
+    wasm_file.write_all(&content)?;
 
     Ok(())
 }
