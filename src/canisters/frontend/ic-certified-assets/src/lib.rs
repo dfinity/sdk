@@ -125,7 +125,7 @@ fn store(arg: StoreArg) {
     });
 }
 
-#[update(guard = "can_deploy")]
+#[update(guard = "can_prepare")]
 #[candid_method(update)]
 fn create_batch() -> CreateBatchResponse {
     STATE.with(|s| CreateBatchResponse {
@@ -133,7 +133,7 @@ fn create_batch() -> CreateBatchResponse {
     })
 }
 
-#[update(guard = "can_deploy")]
+#[update(guard = "can_prepare")]
 #[candid_method(update)]
 fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
     STATE.with(|s| match s.borrow_mut().create_chunk(arg, time()) {
@@ -296,7 +296,7 @@ fn can_commit() -> Result<(), String> {
     can(Permission::Commit)
 }
 
-fn can_deploy() -> Result<(), String> {
+fn can_prepare() -> Result<(), String> {
     can(Permission::Prepare)
 }
 
