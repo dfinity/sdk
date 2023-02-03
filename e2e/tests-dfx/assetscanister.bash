@@ -815,7 +815,7 @@ CHERRIES" "$stdout"
     ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
     assert_command dfx deploy
-    assert_match 'WARNING: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
+    assert_match 'WARN: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
     assert_contains '{
   "match": "nevermatchme",
   "cache": {
@@ -823,7 +823,7 @@ CHERRIES" "$stdout"
   },
   "allow_raw_access": false
 }'
-    assert_match 'WARNING: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
+    assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
     assert_contains '{
   "match": "nevermatchme",
   "headers": {},
@@ -951,8 +951,5 @@ CHERRIES" "$stdout"
     ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
     assert_command dfx deploy
-    assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]*, with config:'
-    assert_contains '- HTTP cache max-age: 2000'
-    assert_contains '- HTTP Response header: x-header: x-value'
-    assert_contains '- URL path aliasing: enabled'
+    assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]*, \(with cache and 1 header\)'
 }
