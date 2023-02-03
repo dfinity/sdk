@@ -49,6 +49,10 @@ type CommitBatchArguments = record {
   operations: vec BatchOperationKind
 };
 
+type DeleteBatchArguments = record {
+  batch_id: BatchId;
+};
+
 type HeaderField = record { text; text; };
 
 type HttpRequest = record {
@@ -156,6 +160,9 @@ service: {
 
   // Save the batch operations for later commit
   propose_commit_batch: (CommitBatchArguments) -> ();
+
+  // Delete a batch that has been created, or proposed for commit, but not yet committed
+  delete_batch: (DeleteBatchArguments) -> ();
 
   create_asset: (CreateAssetArguments) -> ();
   set_asset_content: (SetAssetContentArguments) -> ();
