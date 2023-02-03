@@ -274,18 +274,22 @@ export const {0} = createActor(canisterId);"#,
             data.insert("canister_name".to_string(), canister_name);
             data.insert("actor_export".to_string(), &actor_export);
 
-            let process_string: String = match &info.get_declarations_config().env_override {
+            // Switches to prefixing the canister id with the env variable for frontend declarations as new default
+            let process_string_prefix: String = match &info.get_declarations_config().env_override {
                 Some(s) => format!(r#""{}""#, s.clone()),
                 None => {
                     format!(
                         "process.env.{}{}",
+                        "CANISTER_ID_",
                         &canister_name.to_ascii_uppercase(),
-                        "_CANISTER_ID"
                     )
                 }
             };
 
-            data.insert("canister_name_process_env".to_string(), &process_string);
+            data.insert(
+                "canister_name_process_env".to_string(),
+                &process_string_prefix,
+            );
 
             let new_file_contents = handlebars.render_template(&file_contents, &data).unwrap();
             let new_path = generate_output_dir.join(pathname.with_extension(""));
@@ -343,9 +347,17 @@ pub fn get_and_write_environment_variables<'a>(
         }
     }
     for canister in pool.get_canister_list() {
+        // Insert both suffixed and prefixed versions of the canister name for backwards compatibility
         vars.push((
             Owned(format!(
                 "{}_CANISTER_ID",
+                canister.get_name().replace('-', "_").to_ascii_uppercase(),
+            )),
+            Owned(canister.canister_id().to_text().into()),
+        ));
+        vars.push((
+            Owned(format!(
+                "CANISTER_ID_{}",
                 canister.get_name().replace('-', "_").to_ascii_uppercase(),
             )),
             Owned(canister.canister_id().to_text().into()),
