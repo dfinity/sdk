@@ -236,7 +236,7 @@ fn get_asset_properties(key: Key) -> AssetProperties {
     })
 }
 
-#[update]
+#[update(guard = "is_authorized")]
 #[candid_method(update)]
 fn set_asset_properties(arg: SetAssetPropertiesArguments) {
     STATE.with(|s| {
