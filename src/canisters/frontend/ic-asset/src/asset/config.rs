@@ -2,6 +2,7 @@ use anyhow::{bail, Context};
 use derivative::Derivative;
 use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::{
     collections::HashMap,
     fs,
@@ -24,7 +25,7 @@ pub struct AssetConfig {
     pub(crate) allow_raw_access: Option<bool>,
 }
 
-pub(crate) type HeadersConfig = HashMap<String, String>;
+pub(crate) type HeadersConfig = BTreeMap<String, String>;
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct CacheConfig {
@@ -281,7 +282,7 @@ mod rule_utils {
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
     use serde_json::Value;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     use std::fmt;
     use std::path::Path;
 
@@ -333,7 +334,7 @@ mod rule_utils {
             Value::Object(v) => Ok(Maybe::Value(
                 v.into_iter()
                     .map(|(k, v)| (k, v.to_string().trim_matches('"').to_string()))
-                    .collect::<HashMap<String, String>>(),
+                    .collect::<BTreeMap<String, String>>(),
             )),
             Value::Null => Ok(Maybe::Null),
             _ => Err(serde::de::Error::custom(

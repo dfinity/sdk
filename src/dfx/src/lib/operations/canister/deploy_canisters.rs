@@ -3,15 +3,18 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
+use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::operations::canister::deploy_canisters::DeployMode::ForceReinstallSingleCanister;
+use crate::lib::operations::canister::deploy_canisters::DeployMode::{
+    ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+};
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -26,6 +29,7 @@ use std::path::{Path, PathBuf};
 pub enum DeployMode {
     NormalDeploy,
     ForceReinstallSingleCanister(String),
+    PrepareForProposal(String),
 }
 
 #[context("Failed while trying to deploy canisters.")]
@@ -54,11 +58,12 @@ pub async fn deploy_canisters(
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_deploy = match deploy_mode {
+        PrepareForProposal(canister_name) => vec![canister_name.clone()],
         ForceReinstallSingleCanister(canister_name) => {
             // don't force-reinstall the dependencies too.
             vec![String::from(canister_name)]
         }
-        DeployMode::NormalDeploy => canisters_to_load
+        NormalDeploy => canisters_to_load
             .clone()
             .into_iter()
             .filter(|canister_name| {
@@ -96,26 +101,33 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
+    match deploy_mode {
+        NormalDeploy | ForceReinstallSingleCanister(_) => {
+            let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
+            install_canisters(
+                env,
+                &canisters_to_deploy,
+                &initial_canister_id_store,
+                &config,
+                argument,
+                argument_type,
+                force_reinstall,
+                upgrade_unchanged,
+                call_sender,
+                pool,
+                skip_consent,
+                env_file.as_deref(),
+                assets_upgrade,
+            )
+            .await?;
 
-    install_canisters(
-        env,
-        &canisters_to_deploy,
-        &initial_canister_id_store,
-        &config,
-        argument,
-        argument_type,
-        force_reinstall,
-        upgrade_unchanged,
-        call_sender,
-        pool,
-        skip_consent,
-        env_file.as_deref(),
-        assets_upgrade,
-    )
-    .await?;
-
-    info!(log, "Deployed canisters.");
+            info!(log, "Deployed canisters.");
+        }
+        PrepareForProposal(canister_name) => {
+            prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
+                .await?;
+        }
+    }
 
     Ok(())
 }
@@ -275,6 +287,32 @@ async fn install_canisters(
         )
         .await?;
     }
+
+    Ok(())
+}
+
+#[context("Failed to prepare assets for commit.")]
+async fn prepare_assets_for_commit(
+    env: &dyn Environment,
+    canister_id_store: &CanisterIdStore,
+    config: &Config,
+    canister_name: &str,
+) -> DfxResult {
+    let canister_id = canister_id_store.get(canister_name)?;
+    let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
+
+    if !canister_info.is_assets() {
+        bail!(
+            "Expected canister {} to be an asset canister.",
+            canister_name
+        );
+    }
+
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
 
     Ok(())
 }

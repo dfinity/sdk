@@ -64,6 +64,14 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
 
+### feat: dfx deploy <frontend canister name> --by-proposal
+
+This supports asset updates through SNS proposal.
+
+Uploads asset changes to an asset canister (propose_commit_batch()), but does not commit them.
+
+The SNS will call `commit_proposed_batch()` to commit the changes.  If the proposal fails, the caller of `dfx deploy --by-proposal` should call `delete_batch()`.
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
@@ -99,6 +107,7 @@ For completeness' sake, the new behavior is as follows:
 ### Frontend canister
 
 - Module hash: 65e3e99401ec65d915a8d977274e1d507b541ab0d15007769d2bde213c55acff
+- https://github.com/dfinity/sdk/pull/todo
 - https://github.com/dfinity/sdk/pull/3058
 - https://github.com/dfinity/sdk/pull/3057
 - https://github.com/dfinity/sdk/pull/2960

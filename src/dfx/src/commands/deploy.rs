@@ -3,7 +3,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::deploy_canisters;
-use crate::lib::operations::canister::DeployMode::{ForceReinstallSingleCanister, NormalDeploy};
+use crate::lib::operations::canister::DeployMode::{
+    ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
@@ -92,6 +94,10 @@ pub struct DeployOpts {
     /// Skips upgrading the asset canister, to only install the assets themselves.
     #[clap(long)]
     no_asset_upgrade: bool,
+
+    /// Prepare (upload) assets for later commit by proposal.
+    #[clap(long)]
+    by_proposal: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -131,6 +137,12 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         }
         (Some(_), _) => {
             unreachable!("The only valid option for --mode is --mode=reinstall");
+        }
+        (None, None) if opts.by_proposal => {
+            bail!("The --by-proposal flag is only valid when deploying a single canister.");
+        }
+        (None, Some(canister_name)) if opts.by_proposal => {
+            PrepareForProposal(canister_name.to_string())
         }
         (None, _) => NormalDeploy,
     };
@@ -172,7 +184,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         !opts.no_asset_upgrade,
     ))?;
 
-    display_urls(&env)
+    if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {
+        display_urls(&env)?;
+    }
+    Ok(())
 }
 
 fn display_urls(env: &dyn Environment) -> DfxResult {

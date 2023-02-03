@@ -52,6 +52,100 @@ check_permission_failure() {
   assert_contains "Caller does not have Prepare permission"
 }
 
+@test "deploy --by-proposal happy path" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity new prepare --storage-mode plaintext
+  assert_command dfx identity new commit --storage-mode plaintext
+  assert_command dfx identity use anonymous
+
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal --identity controller)
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+  COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
+
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy --identity controller
+
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
+
+  echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
+#  echo "file a b c" > 'src/e2e_project_frontend/assets/a_b_c.txt'
+#  echo "file x y z" > 'src/e2e_project_frontend/assets/x_y_z.txt'
+  dfx identity get-principal --identity prepare
+  dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_contains "Proposed commit of batch 2 with evidence 44b61c14d0a060a051c3ca2bb7c7e370e9123d3bb61eac3a850d74233a6dd761.  Either commit it by proposal, or delete it."
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
+  assert_contains "The requested URL returned error: 404"
+
+  commit_args='(record { batch_id = 2; evidence = blob "\44\b6\1c\14\d0\a0\60\a0\51\c3\ca\2b\b7\c7\e3\70\e9\12\3d\3b\b6\1e\ac\3a\85\0d\74\23\3a\6d\d7\61" } )'
+  assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
+  assert_contains "commit proposed batch 2 with evidence 44b6"
+  assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
+  assert_eq "()"
+  assert_command curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "new file content"
+}
+
+@test "deploy --by-proposal all assets" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity new prepare --storage-mode plaintext
+  assert_command dfx identity new commit --storage-mode plaintext
+  assert_command dfx identity use anonymous
+
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal --identity controller)
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+  COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
+
+  install_asset assetscanister
+  dfx_start
+  mkdir tmp
+  mkdir tmp/assets
+
+  # this includes some more files, so they have the possibility to be in a different order
+  # and require sorting in order to have a consistent hash.
+
+  mv src/e2e_project_frontend/assets/* tmp/assets/
+
+  assert_command dfx deploy --identity controller
+
+  mv tmp/assets/* src/e2e_project_frontend/assets/
+
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
+
+  dfx identity get-principal --identity prepare
+  dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_contains "Proposed commit of batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200.  Either commit it by proposal, or delete it."
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+  assert_contains "The requested URL returned error: 404"
+
+  commit_args='(record { batch_id = 2; evidence = blob "\1b\45\c8\b1\d0\de\ec\88\ac\03\25\90\e0\f1\cd\9a\b4\07\f7\96\e8\27\aa\c8\80\f4\ff\b0\35\fd\c2\00" } )'
+  assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
+  assert_contains "commit proposed batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200"
+  assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
+  assert_eq "()"
+
+  dfx canister call --query e2e_project_frontend list '(record{})'
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "This is a sample asset!"
+}
+
 @test "validation methods" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller
