@@ -254,6 +254,34 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity anonymous
   assert_contains "Caller does not have Prepare permission"
 
+
+  # compute_evidence
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity commit
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args" --identity commit
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity prepare
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args" --identity prepare
+
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity manage-permissions
+  assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
   # revoking permissions
 
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit

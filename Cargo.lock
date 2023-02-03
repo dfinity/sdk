@@ -1782,6 +1782,7 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-certified-map",
+ "itertools 0.10.5",
  "num-traits",
  "serde",
  "serde_bytes",

@@ -1,4 +1,5 @@
 //! This module declares canister methods expected by the assets canister client.
+pub mod evidence;
 pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
@@ -23,6 +24,7 @@ use ic_cdk::api::{
     set_certified_data, time, trap,
 };
 use ic_cdk_macros::{query, update};
+use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
 thread_local! {
@@ -241,6 +243,15 @@ fn propose_commit_batch(arg: CommitBatchArguments) {
             trap(&msg);
         }
     });
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
+    STATE.with(|s| match s.borrow_mut().compute_evidence(arg) {
+        Err(msg) => trap(&msg),
+        Ok(maybe_evidence) => maybe_evidence,
+    })
 }
 
 #[update(guard = "can_prepare")]
