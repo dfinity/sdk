@@ -725,7 +725,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     }
 
     #[test]
-    /// It is not possible to include a file if its parent directory has been excluded
+    /// Test if the content of `.well-known` is included by default.
     fn include_well_known_directory_by_default() {
         let files = HashMap::from([
             // additional, non-dot dirs and files
@@ -747,7 +747,36 @@ mod test_gathering_asset_descriptors_with_tempdir {
     }
 
     #[test]
-    /// It is not possible to include a file if its parent directory has been excluded
+    /// Test that the `ignore` flag is respected for `.well-known` directory.
+    fn include_well_known_directory_when_configured() {
+        let files = HashMap::from([
+            // additional, non-dot dirs and files
+            (Path::new(".well-known/file").to_path_buf(), "".to_string()),
+            (
+                Path::new(".ic-assets.json").to_path_buf(),
+                r#"[
+                    {"match": ".well-known", "ignore": false}
+                ]"#
+                .to_string(),
+            ),
+        ]);
+
+        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+
+        let mut expected_asset_descriptors = vec![
+            AssetDescriptor::default_from_path(&assets_dir, "file"),
+            AssetDescriptor::default_from_path(&assets_dir, ".well-known/file"),
+        ];
+
+        expected_asset_descriptors.sort_by_key(|v| v.source.clone());
+        asset_descriptors.sort_by_key(|v| v.source.clone());
+        assert_eq!(asset_descriptors, expected_asset_descriptors);
+    }
+
+    #[test]
+    /// Test that the `ignore` flag is respected for `.well-known` directory.
     fn exclude_well_known_directory_explicitly() {
         let files = HashMap::from([
             // additional, non-dot dirs and files
