@@ -51,6 +51,7 @@ type HttpRequest = record {
   url: text;
   headers: vec HeaderField;
   body: blob;
+  certificate_version: opt nat;
 };
 
 type HttpResponse = record {
