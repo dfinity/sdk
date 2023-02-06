@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix(frontend-canister): include .well-known dir by defualt, unless explicitly ignored 
+
+Since .well-known is a well-known hidden directory, we're adding a rule that asset canisters should upload it's content by default, even when not configured in .ic-assets.json.
+
 ### feat: Add dfx sns download
 
 This allows users to download SNS canister WASMs.
