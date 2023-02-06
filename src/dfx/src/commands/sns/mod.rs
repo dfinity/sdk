@@ -2,6 +2,7 @@
 #![warn(clippy::missing_docs_in_private_items)]
 use crate::{
     commands::sns::config::SnsConfigOpts,
+    commands::sns::download::SnsDownloadOpts,
     commands::sns::import::SnsImportOpts,
     lib::{environment::Environment, error::DfxResult},
 };
@@ -10,6 +11,7 @@ use clap::Parser;
 
 mod config;
 mod deploy;
+mod download;
 mod import;
 
 /// Options for `dfx sns`.
@@ -33,6 +35,9 @@ enum SubCommand {
     /// Subcommand for importing sns API definitions and canister IDs.
     #[clap(hide(true))]
     Import(SnsImportOpts),
+    /// Subcommand for downloading SNS WASMs.
+    #[clap(hide(true))]
+    Download(SnsDownloadOpts),
 }
 
 /// Executes `dfx sns` and its subcommands.
@@ -41,5 +46,6 @@ pub fn exec(env: &dyn Environment, cmd: SnsOpts) -> DfxResult {
         SubCommand::Config(v) => config::exec(env, v),
         SubCommand::Import(v) => import::exec(env, v),
         SubCommand::Deploy(v) => deploy::exec(env, v),
+        SubCommand::Download(v) => download::exec(env, v),
     }
 }

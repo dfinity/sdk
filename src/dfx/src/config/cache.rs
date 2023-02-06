@@ -28,6 +28,7 @@ pub trait Cache {
     fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf>;
     fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command>;
 }
+
 pub struct DiskBasedCache {
     version: Version,
 }

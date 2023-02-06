@@ -1,7 +1,9 @@
 use crate::config::cache::{Cache, DiskBasedCache};
 use crate::config::dfinity::{Config, NetworksConfig};
 use crate::config::{cache, dfx_version};
+use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
+use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
 use dfx_core::error::identity::IdentityError;
@@ -64,6 +66,8 @@ pub trait Environment {
     fn get_selected_identity_principal(&self) -> Option<Principal>;
 
     fn get_effective_canister_id(&self) -> Principal;
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError>;
 }
 
 pub struct EnvironmentImpl {
@@ -242,6 +246,10 @@ impl Environment for EnvironmentImpl {
     fn get_effective_canister_id(&self) -> Principal {
         self.effective_canister_id
     }
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
+        ExtensionManager::new(self)
+    }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -350,6 +358,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_effective_canister_id(&self) -> Principal {
         self.backend.get_effective_canister_id()
+    }
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
+        ExtensionManager::new(self.backend)
     }
 }
 
