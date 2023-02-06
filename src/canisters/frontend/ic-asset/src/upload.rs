@@ -1,6 +1,6 @@
 use crate::asset_canister::batch::{commit_batch, create_batch};
 use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind};
+use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
 use crate::asset_config::AssetConfig;
 use crate::operations::{
     create_new_assets, delete_incompatible_assets, set_encodings, unset_obsolete_encodings,
@@ -47,7 +47,12 @@ pub async fn upload(
 
     info!(logger, "Committing batch.");
 
-    commit_batch(canister, &batch_id, operations).await?;
+    let args = CommitBatchArguments {
+        batch_id,
+        operations,
+    };
+
+    commit_batch(canister, args).await?;
 
     Ok(())
 }
