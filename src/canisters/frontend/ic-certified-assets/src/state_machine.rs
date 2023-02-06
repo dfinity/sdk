@@ -175,13 +175,12 @@ where
 
 impl AssetPath {
     pub fn from_asset_key(key: &str) -> Self {
-        let mut iter = key.split("/").peekable();
-        if let Some(first_segment) = iter.peek() {
-            if *first_segment == "" {
-                iter.next();
-            }
-        }
-        Self(iter.map(|segment| segment.to_string()).collect())
+        Self(
+            key.split("/")
+                .filter(|segment| *segment != "")
+                .map(|segment| segment.to_string())
+                .collect(),
+        )
     }
 
     pub fn reconstruct_asset_key(&self) -> AssetKey {
@@ -883,22 +882,6 @@ impl State {
             Vec::new()
         }
     }
-
-    fn _dependent_paths_v2(&self, path: AssetPath) -> Vec<AssetPath> {
-        if self
-            .assets
-            .get(&path.reconstruct_asset_key())
-            .and_then(|asset| asset.is_aliased)
-            .unwrap_or(DEFAULT_ALIAS_ENABLED)
-        {
-            _aliased_by_v2(&path)
-                .into_iter()
-                .filter(|k| !self.assets.contains_key(&k.reconstruct_asset_key()))
-                .collect()
-        } else {
-            Vec::new()
-        }
-    }
 }
 
 impl From<State> for StableState {
@@ -1068,47 +1051,6 @@ fn aliases_of_key(key: &AssetKey) -> Vec<AssetKey> {
     }
 }
 
-/// determines possible alternate lookup keys for a given key in order of most likely to least likely
-fn _aliases_of_v2(key: &AssetPath) -> Vec<AssetPath> {
-    let AssetPath(key) = key;
-    if let Some(last) = key.last() {
-        if last == "" {
-            // map /path/to/my/asset/ to
-            //     /path/to/my/asset
-            //  or /path/to/my/asset.html
-            //  or /path/to/my/asset/index.html
-            let no_slash = Vec::from(&key[..key.len() - 1]);
-            let mut with_html = no_slash.clone();
-            with_html.push(format!("{}.html", last));
-            let mut with_index = no_slash.clone();
-            with_index.push("index.html".to_string());
-            if let Some(second_last) = no_slash.last() {
-                let mut with_html = Vec::from(&key[..key.len() - 2]);
-                with_html.push(format!("{}.html", second_last));
-                vec![no_slash, with_html, with_index]
-                    .into_iter()
-                    .map(|path| path.into())
-                    .collect()
-            } else {
-                vec![no_slash.into(), with_index.into()]
-            }
-        } else if !last.ends_with(".html") {
-            // map /path/to/my/asset to
-            //     /path/to/my/asset.html
-            //  or /path/to/my/asset/index.html
-            let mut with_html = Vec::from(&key[..key.len() - 1]);
-            with_html.push(format!("{}.html", last));
-            let mut with_index = key.clone();
-            with_index.push("index.html".to_string());
-            vec![with_html.into(), with_index.into()]
-        } else {
-            Vec::new()
-        }
-    } else {
-        Vec::new()
-    }
-}
-
 // Determines possible original keys in case the supplied key is being aliaseded to.
 // Sort-of a reverse operation of `alias_of`
 fn aliased_by_v1(key: &AssetKey) -> Vec<AssetKey> {
@@ -1125,61 +1067,6 @@ fn aliased_by_v1(key: &AssetKey) -> Vec<AssetKey> {
         ]
     } else if key.ends_with(".html") {
         vec![key[..(key.len() - 5)].to_string()]
-    } else {
-        Vec::new()
-    }
-}
-
-// Determines possible original keys in case the supplied key is being aliaseded to.
-// Sort-of a reverse operation of `alias_of_v2`
-fn _aliased_by_v2(AssetPath(key): &AssetPath) -> Vec<AssetPath> {
-    if let Some(last) = key.last() {
-        if last == "index.html" {
-            //    /path/to/my/asset/index.html is aliased by
-            //    /path/to/my/asset/index      (case 'index')
-            // or /path/to/my/asset.html       (case 'parent_with_html')
-            // or /path/to/my/asset/           (case 'parent_with_slash')
-            // or /path/to/my/asset            (called 'parent')
-            let root = &key[..key.len() - 1];
-            let parent: Option<Vec<AssetKey>> = if root.len() == 0 {
-                None
-            } else {
-                Some(root.into())
-            };
-            let mut index: Vec<AssetKey> = root.into();
-            index.push("index".to_string());
-            let mut parent_with_slash: Vec<AssetKey> = root.into();
-            parent_with_slash.push("".to_string());
-            let parent_with_html = if let Some(second_last) = root.last() {
-                let mut parent_with_html = Vec::from(&key[..key.len() - 2]);
-                parent_with_html.push(format!("{}.html", second_last));
-                Some(parent_with_html)
-            } else {
-                None
-            };
-
-            let mut output = Vec::new();
-            output.push(index.into());
-            if let Some(parent_with_html) = parent_with_html {
-                output.push(parent_with_html.into());
-            }
-            output.push(parent_with_slash.into());
-            if let Some(parent) = parent {
-                output.push(parent.into());
-            }
-            output
-        } else if last.ends_with(".html") {
-            //    /path/to/my/asset.html is aliased by
-            //    /path/to/my/asset/     (called 'parent_with_slash')
-            // or /path/to/my/asset      (called 'without_html')
-            let mut without_html = Vec::from(&key[..key.len() - 1]);
-            let mut parent_with_slash = without_html.clone();
-            without_html.push(last[..last.len() - 5].into());
-            parent_with_slash.push("".to_string());
-            vec![without_html.into(), parent_with_slash.into()]
-        } else {
-            Vec::new()
-        }
     } else {
         Vec::new()
     }
