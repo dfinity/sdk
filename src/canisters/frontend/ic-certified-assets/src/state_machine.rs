@@ -20,6 +20,7 @@ use ic_response_verification::hash::{representation_independent_hash, Value};
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
+use serde_cbor::{ser::IoWrite, Serializer};
 use sha2::Digest;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -217,17 +218,16 @@ impl AssetHashPath {
     }
 
     pub fn expr_path(&self) -> String {
-        format!(
-            "/{}",
-            self.0
-                .iter()
-                .map(|key| match key {
-                    NestedTreeKey::String(k) => k.clone(),
-                    NestedTreeKey::Bytes(b) => hex::encode(b),
-                })
-                .collect::<Vec<String>>()
-                .join("/")
-        )
+        let strings = self
+            .0
+            .iter()
+            .map(|key| match key {
+                NestedTreeKey::String(k) => k.clone(),
+                NestedTreeKey::Bytes(b) => hex::encode(b),
+            })
+            .collect::<Vec<String>>();
+        let cbor = serialize_cbor_self_describing(&strings);
+        base64::encode(cbor)
     }
 }
 
@@ -1215,4 +1215,19 @@ pub fn witness_to_header_v2(witness: HashTree, certificate: &[u8], expr_path: &s
             + expr_path
             + ":",
     )
+}
+
+fn serialize_cbor_self_describing<T>(value: &T) -> Vec<u8>
+where
+    T: serde::Serialize,
+{
+    let mut vec = Vec::new();
+    let mut binding = IoWrite::new(&mut vec);
+    let mut s = Serializer::new(&mut binding);
+    s.self_describe()
+        .expect("Cannot produce self-describing cbor.");
+    value
+        .serialize(&mut s)
+        .expect("Failed to serialize self-describing CBOR.");
+    vec
 }
