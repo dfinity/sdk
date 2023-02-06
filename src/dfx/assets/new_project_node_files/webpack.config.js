@@ -56,8 +56,11 @@ module.exports = {
       cache: false,
     }),
     new webpack.EnvironmentPlugin([
-      ...Object.keys(process.env).filter((key) => key.includes("CANISTER_ID")),
-      "DFX_NETWORK",
+      ...Object.keys(process.env).filter((key) => {
+        if (key.includes("CANISTER")) return true;
+        if (key.includes("DFX")) return true;
+        return false;
+      }),
     ]),
     new webpack.ProvidePlugin({
       Buffer: [require.resolve("buffer/"), "Buffer"],
