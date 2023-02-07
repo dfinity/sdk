@@ -921,6 +921,7 @@ dependencies = [
  "lazy_static",
  "proptest",
  "ring",
+ "schemars",
  "sec1",
  "serde",
  "serde_json",

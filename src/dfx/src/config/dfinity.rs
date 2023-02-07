@@ -2,7 +2,6 @@
 use crate::config::dfinity::MetadataVisibility::Public;
 use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
 use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
-use crate::util::{PossiblyStr, SerdeVec};
 use dfx_core::config::directories::get_config_dfx_dir_path;
 use dfx_core::error::dfx_config::DfxConfigError;
 use dfx_core::error::dfx_config::DfxConfigError::{
@@ -27,6 +26,7 @@ use dfx_core::error::structured_file::StructuredFileError::{
     DeserializeJsonFileFailed, ReadJsonFileFailed,
 };
 use dfx_core::json::save_json_file;
+use dfx_core::json::structure::{PossiblyStr, SerdeVec};
 
 use byte_unit::Byte;
 use candid::Principal;
