@@ -66,14 +66,8 @@ impl AssetEncoding {
                     .into_iter()
                     .map(|segment| NestedTreeKey::String(segment))
                     .collect();
-                path.insert(
-                    0,
-                    NestedTreeKey::Bytes(b"http_expr".iter().map(|b| b.clone()).collect()),
-                );
+                path.insert(0, NestedTreeKey::String("http_expr".to_string()));
                 path.push(NestedTreeKey::String("<$>".to_string()));
-                // path.push(NestedTreeKey::Bytes(
-                //     b"<$>".iter().map(|b| b.clone()).collect(),
-                // ));
                 path.push(NestedTreeKey::Bytes(ce.expression_hash.clone()));
                 path.push(response_hash.to_string().into());
                 Some(AssetHashPath(path))
@@ -176,12 +170,13 @@ where
 
 impl AssetPath {
     pub fn from_asset_key(key: &str) -> Self {
-        Self(
-            key.split("/")
-                .filter(|segment| *segment != "")
-                .map(|segment| segment.to_string())
-                .collect(),
-        )
+        let mut iter = key.split("/").peekable();
+        if let Some(first_segment) = iter.peek() {
+            if *first_segment == "" {
+                iter.next();
+            }
+        }
+        Self(iter.map(|segment| segment.to_string()).collect())
     }
 
     pub fn reconstruct_asset_key(&self) -> AssetKey {
@@ -190,7 +185,7 @@ impl AssetPath {
 
     pub fn asset_hash_path_v1(&self) -> AssetHashPath {
         AssetHashPath(vec![
-            NestedTreeKey::Bytes(b"http_assets".iter().map(|b| b.clone()).collect()),
+            NestedTreeKey::String("http_assets".to_string()),
             NestedTreeKey::String(self.reconstruct_asset_key()),
         ])
     }
@@ -202,13 +197,7 @@ impl AssetPath {
             .map(|segment| NestedTreeKey::String(segment.into()))
             .collect();
         hash_path.push(NestedTreeKey::String("<$>".to_string()));
-        // hash_path.push(NestedTreeKey::Bytes(
-        //     b"<$>".iter().map(|b| b.clone()).collect(),
-        // ));
-        hash_path.insert(
-            0,
-            NestedTreeKey::Bytes(b"http_expr".iter().map(|b| b.clone()).collect()),
-        );
+        hash_path.insert(0, NestedTreeKey::String("http_expr".to_string()));
         AssetHashPath(hash_path)
     }
 }
