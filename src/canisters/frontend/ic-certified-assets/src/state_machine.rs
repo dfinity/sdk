@@ -70,9 +70,10 @@ impl AssetEncoding {
                     0,
                     NestedTreeKey::Bytes(b"http_expr".iter().map(|b| b.clone()).collect()),
                 );
-                path.push(NestedTreeKey::Bytes(
-                    b"<$>".iter().map(|b| b.clone()).collect(),
-                ));
+                path.push(NestedTreeKey::String("<$>".to_string()));
+                // path.push(NestedTreeKey::Bytes(
+                //     b"<$>".iter().map(|b| b.clone()).collect(),
+                // ));
                 path.push(NestedTreeKey::Bytes(ce.expression_hash.clone()));
                 path.push(response_hash.to_string().into());
                 Some(AssetHashPath(path))
@@ -200,9 +201,10 @@ impl AssetPath {
             .iter()
             .map(|segment| NestedTreeKey::String(segment.into()))
             .collect();
-        hash_path.push(NestedTreeKey::Bytes(
-            b"<$>".iter().map(|b| b.clone()).collect(),
-        ));
+        hash_path.push(NestedTreeKey::String("<$>".to_string()));
+        // hash_path.push(NestedTreeKey::Bytes(
+        //     b"<$>".iter().map(|b| b.clone()).collect(),
+        // ));
         hash_path.insert(
             0,
             NestedTreeKey::Bytes(b"http_expr".iter().map(|b| b.clone()).collect()),
@@ -633,8 +635,6 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        println!("Path is {}", path);
-
         let (asset_hash_path, index_hash_path) = if req.get_certificate_version() == 1 {
             let path = AssetPath::from_asset_key(path);
             let v1_path = path.asset_hash_path_v1();
@@ -674,12 +674,9 @@ impl State {
                 None
             };
 
-        println!("redirect cert: {:?}", &index_redirect_certificate);
-
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
                 if !asset.allow_raw_access() && req.is_raw_domain() {
-                    println!("redirecting from raw");
                     return req.redirect_from_raw_to_certified_domain();
                 }
                 for enc_name in encodings.iter() {
@@ -1089,6 +1086,7 @@ pub fn witness_to_header_v1(witness: HashTree, certificate: &[u8]) -> HeaderFiel
 pub fn witness_to_header_v2(witness: HashTree, certificate: &[u8], expr_path: &str) -> HeaderField {
     let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
     serializer.self_describe().unwrap();
+    println!("Witness: {:?}", &witness);
     witness.serialize(&mut serializer).unwrap();
 
     (
