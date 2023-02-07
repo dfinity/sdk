@@ -133,9 +133,9 @@ pub enum BatchOperationKind {
 
 /// Apply all of the operations in the batch, and then remove the batch.
 #[derive(CandidType, Debug)]
-pub struct CommitBatchArguments<'a> {
+pub struct CommitBatchArguments {
     /// The batch to commit.
-    pub batch_id: &'a Nat,
+    pub batch_id: Nat,
 
     /// The operations to apply atomically.
     pub operations: Vec<BatchOperationKind>,
