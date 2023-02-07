@@ -1,5 +1,7 @@
 # DFX
 
+Test PR to see if automation is failing
+
 ## Getting Started
 
 `dfx` is the command-line interface for managing your Internet Computer project and the best place to start.
@@ -10,7 +12,7 @@ You can install `dfx` a few different ways.
 
 #### via `curl` (recommended)
 
-``` bash
+```bash
 sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
 ```
 
@@ -24,7 +26,7 @@ Find a release for your architecture [here](https://github.com/dfinity/sdk/relea
 
 Once `dfx` is installed, get acquainted with its capabilities by entering.
 
-``` bash
+```bash
 dfx help
 ```
 
@@ -36,7 +38,7 @@ See our contributing guidelines [here](.github/CONTRIBUTING.md).
 
 Building `dfx` is very simple:
 
-``` bash
+```bash
 cargo build
 ```
 
@@ -102,22 +104,23 @@ make sure the installer actually downloads and installs the new DFX release the
    job for new builds, whenever there's a new build it will download the output
    (the CD script) and execute it.
 
-
 ## Troubleshooting
+
 This section provides solutions to problems you might encounter when using `dfx`
 
 ### Project Reset
 
 This command will remove the build directory and restart your replica:
 
-``` bash
+```bash
 dfx stop && dfx start --clean --background
 ```
 
 ### Using Internet Identity Locally
+
 You can deploy the Internet Identity canister into your replica alongside your project by cloning https://github.com/dfinity/internet-identity. From the `internet-identity` directory, run the following command:
 
-``` bash
+```bash
 II_ENV=development dfx deploy --no-wallet --argument '(null)'
 ```
 
