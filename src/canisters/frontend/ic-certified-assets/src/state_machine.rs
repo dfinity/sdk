@@ -205,7 +205,7 @@ impl AssetPath {
         ));
         hash_path.insert(
             0,
-            NestedTreeKey::Bytes(b"http_assets".iter().map(|b| b.clone()).collect()),
+            NestedTreeKey::Bytes(b"http_expr".iter().map(|b| b.clone()).collect()),
         );
         AssetHashPath(hash_path)
     }
