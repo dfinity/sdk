@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-#![warn(clippy::should_implement_trait)] // for from_str.  why now?
+#![allow(clippy::should_implement_trait)] // for from_str.  why now?
 
 use crate::config::directories::get_config_dfx_dir_path;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
