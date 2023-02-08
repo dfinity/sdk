@@ -132,7 +132,7 @@ teardown() {
     assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity alice
     assert_eq '()'
     assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
-    assert_match 'Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.\n(blob "XWV")'
+    assert_match '(blob "XWV")$'
 }
 
 @test "after renaming an identity, the renamed identity is still initializer" {
@@ -158,7 +158,7 @@ teardown() {
     assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})' --identity bob
     assert_eq '()'
     assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
-    assert_match 'Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.\n(blob "hello")'
+    assert_match '(blob "hello")$'
 }
 
 @test "using an unencrypted identity on mainnet provokes a warning" {

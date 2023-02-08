@@ -131,7 +131,7 @@ teardown() {
 
     assert_command dfx canister call "$WALLET" wallet_call \
         "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-    assert_match 'Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.\n(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
+    assert_match '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })$'  # True in DIDL.
 }
 
 @test "forward user call through wallet: deploy" {
@@ -147,7 +147,7 @@ teardown() {
     assert_command dfx canister call e2e_project_backend amInitializer
     assert_command dfx canister call "$WALLET" wallet_call \
         "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-    assert_match 'Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.\n(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
+    assert_match '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })$'  # True in DIDL.
 }
 
 @test "a 64-bit wallet can still be called in the 128-bit context" {
