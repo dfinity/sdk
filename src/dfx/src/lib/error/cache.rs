@@ -10,7 +10,7 @@ pub enum CacheError {
     FindCacheDirectoryFailed(PathBuf),
 
     #[error(transparent)]
-    NoHomeInEnvironment(#[from] dfx_core::error::foundation::FoundationError),
+    FoundationError(#[from] dfx_core::error::foundation::FoundationError),
 
     #[error("Unknown version '{0}'.")]
     UnknownVersion(String),

@@ -3,9 +3,9 @@ use crate::lib::error::{CacheError, DfxError, DfxResult};
 use crate::util;
 #[cfg(windows)]
 use dfx_core::config::directories::project_dirs;
-use dfx_core::error::foundation::FoundationError;
 
 use anyhow::{bail, Context};
+use dfx_core::foundation::get_user_home;
 use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
@@ -77,7 +77,7 @@ pub fn get_cache_root() -> Result<PathBuf, CacheError> {
     // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
     let p = {
-        let home = std::env::var_os("HOME").ok_or_else(FoundationError::NoHomeInEnvironment)?;
+        let home = get_user_home()?;
         let root = cache_root.unwrap_or(home);
         PathBuf::from(root).join(".cache").join("dfinity")
     };
