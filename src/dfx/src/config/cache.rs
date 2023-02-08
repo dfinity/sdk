@@ -76,8 +76,7 @@ pub fn get_cache_root() -> Result<PathBuf, CacheError> {
     // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
     let p = {
-        let home = std::env::var_os("HOME")
-            .ok_or_else(|| CacheError::NoHomeInEnvironment())?;
+        let home = std::env::var_os("HOME").ok_or_else(CacheError::NoHomeInEnvironment)?;
         let root = cache_root.unwrap_or(home);
         PathBuf::from(root).join(".cache").join("dfinity")
     };
