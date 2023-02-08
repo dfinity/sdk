@@ -10,7 +10,7 @@ Added validate_grant_permission() and validate_revoke_permission() methods per S
 
 ### Frontend canister
 
-- Module hash: c56a45c59d4cb463082716151561b6b87ab1903fd1bcc4a0b7a643ca428850fb
+- Module hash: 98863747bb8b1366ae5e3c5721bfe08ce6b7480fe4c3864d4fec3d9827255480
 - https://github.com/dfinity/sdk/pull/2958
 
 # 0.13.0

@@ -53,7 +53,10 @@ async fn grant_permission(arg: GrantPermissionArguments) {
 #[update]
 #[candid_method(update)]
 async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<String, String> {
-    Ok(format!("{:?}", arg))
+    Ok(format!(
+        "grant {} permission to principal {}",
+        arg.permission, arg.to_principal
+    ))
 }
 
 #[update]
@@ -92,7 +95,10 @@ async fn revoke_permission(arg: RevokePermissionArguments) {
 #[update]
 #[candid_method(update)]
 async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<String, String> {
-    Ok(format!("{:?}", arg))
+    Ok(format!(
+        "revoke {} permission from principal {}",
+        arg.permission, arg.of_principal
+    ))
 }
 
 #[query(manual_reply = true)]
