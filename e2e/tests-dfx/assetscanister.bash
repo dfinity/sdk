@@ -481,10 +481,10 @@ check_permission_failure() {
     dfx build
     dfx canister install e2e_project_frontend
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/binary/noise.txt";accept_encodings=vec{"identity"}})' --output idl
     assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
+    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})' --output idl
     assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
 
     assert_command dfx canister call --update e2e_project_frontend store '(record{key="AA"; content_type="text/plain"; content_encoding="identity"; content=blob "hello, world!"})'
@@ -492,16 +492,16 @@ check_permission_failure() {
     assert_command dfx canister call --update e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
     assert_eq '()'
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
+    assert_command dfx canister call --query e2e_project_frontend get '(record{key="B";accept_encodings=vec{"identity"}})' --output idl
     assert_eq '(blob "XWV")'
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("AA")' --output idl
+    assert_command dfx canister call --query e2e_project_frontend get '(record{key="AA";accept_encodings=vec{"identity"}})' --output idl
     assert_eq '(blob "hello, world!")'
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
+    assert_command dfx canister call --query e2e_project_frontend get '(record{key="B";accept_encodings=vec{"identity"}})' --output idl
     assert_eq '(blob "XWV")'
 
-    assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("C")'
+    assert_command_fail dfx canister call --query e2e_project_frontend get '(record{key="C";accept_encodings=vec{"identity"}})'
 }
 
 @test "asset canister supports http requests" {
