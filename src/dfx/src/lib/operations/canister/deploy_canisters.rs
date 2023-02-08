@@ -1,4 +1,3 @@
-use crate::config::dfinity::Config;
 use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -9,6 +8,7 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::config::model::dfinity::Config;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;

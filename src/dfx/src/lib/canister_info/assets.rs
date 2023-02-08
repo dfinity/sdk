@@ -1,6 +1,6 @@
-use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
+use dfx_core::config::model::dfinity::CanisterTypeProperties;
 
 use anyhow::{bail, Context};
 use fn_error_context::context;
