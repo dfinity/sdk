@@ -1029,9 +1029,23 @@ mod certificate_expression {
                 .with_header("Access-Control-Allow-Origin", "*")],
         );
 
+        let v1_response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert!(
+            lookup_header(&v1_response, "ic-certificateexpression").is_none(),
+            "superfluous ic-certificateexpression header detected in cert v1"
+        );
+
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
                 .build(),
             &[],
             unused_callback(),

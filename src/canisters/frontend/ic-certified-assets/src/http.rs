@@ -143,8 +143,9 @@ impl HttpResponse {
         certificate_header: Option<HeaderField>,
         callback: Func,
         etags: Vec<Hash>,
+        cert_version: u8,
     ) -> HttpResponse {
-        let mut headers = asset.get_headers_for_asset(enc_name);
+        let mut headers = asset.get_headers_for_asset(enc_name, cert_version);
         if let Some(head) = certificate_header {
             headers.insert(head.0, head.1);
         }
