@@ -56,7 +56,7 @@ pub struct AssetEncoding {
     pub certified: bool,
     pub sha256: [u8; 32],
     pub ic_ce: Option<IcCertificateExpression>,
-    pub response_hash: Option<String>,
+    pub response_hash: Option<Vec<u8>>,
 }
 impl AssetEncoding {
     fn asset_hash_path_v2(&self, AssetPath(path): AssetPath) -> Option<AssetHashPath> {
@@ -69,7 +69,7 @@ impl AssetEncoding {
                 path.insert(0, NestedTreeKey::String("http_expr".to_string()));
                 path.push(NestedTreeKey::String("<$>".to_string()));
                 path.push(NestedTreeKey::Bytes(ce.expression_hash.clone()));
-                path.push(response_hash.to_string().into());
+                path.push(response_hash.as_slice().into());
                 Some(AssetHashPath(path))
             } else {
                 None
@@ -239,6 +239,12 @@ impl AsRef<[u8]> for NestedTreeKey {
 impl From<&str> for NestedTreeKey {
     fn from(s: &str) -> Self {
         Self::String(s.into())
+    }
+}
+
+impl From<&[u8]> for NestedTreeKey {
+    fn from(slice: &[u8]) -> Self {
+        Self::Bytes(slice.iter().map(|b| b.clone()).collect())
     }
 }
 
@@ -1010,8 +1016,11 @@ fn on_asset_change(
             .map(|(k, v)| (k, Value::String(v)))
             .collect();
             let header_hash = representation_independent_hash(&encoding_headers);
-            let new_response_hash = format!("{:02x?}{:02x?}", &header_hash, &enc.sha256);
-            enc.response_hash = Some(new_response_hash);
+            enc.response_hash = Some(
+                [header_hash.as_slice(), enc.sha256.as_slice()]
+                    .concat()
+                    .into(),
+            );
 
             for (key, v1_path) in keys_to_insert_hash_for {
                 let key_path = AssetPath::from_asset_key(&key);
