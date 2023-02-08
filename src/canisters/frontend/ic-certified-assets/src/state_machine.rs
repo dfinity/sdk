@@ -1005,7 +1005,7 @@ fn on_asset_change(
             ..
         } = asset;
         if let Some(enc) = encodings.get_mut(enc_name) {
-            let encoding_headers: Vec<(String, Value)> = build_headers(
+            let mut encoding_headers: Vec<(String, Value)> = build_headers(
                 headers.as_ref().map(|h| h.iter()),
                 max_age,
                 &*content_type,
@@ -1015,6 +1015,10 @@ fn on_asset_change(
             .into_iter()
             .map(|(k, v)| (k, Value::String(v)))
             .collect();
+            encoding_headers.push((
+                ":ic-cert-status".to_string(),
+                Value::String(200.to_string()),
+            )); //todo replace with nice version that also precomputes 304 etag responses
             let header_hash = representation_independent_hash(&encoding_headers);
             let response_hash =
                 sha2::Sha256::digest(&[header_hash.as_ref(), enc.sha256.as_ref()].concat()).into();
