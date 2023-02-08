@@ -6,7 +6,7 @@ use thiserror::Error;
 pub enum ExtensionError {
     // errors related to extension directory management
     #[error("Cannot find cache directory '{0}': {1}")]
-    FindCacheDirectoryFailed(std::path::PathBuf, anyhow::Error),
+    FindCacheDirectoryFailed(std::path::PathBuf, crate::lib::error::CacheError),
 
     #[error("Cannot get extensions directory: {0}")]
     EnsureExtensionDirExistsFailed(dfx_core::error::io::IoError),

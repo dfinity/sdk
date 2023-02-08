@@ -21,7 +21,7 @@ const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
 
 pub trait Cache {
     fn version_str(&self) -> String;
-    fn is_installed(&self) -> DfxResult<bool>;
+    fn is_installed(&self) -> Result<bool, CacheError>;
     fn install(&self) -> DfxResult;
     fn force_install(&self) -> DfxResult;
     fn delete(&self) -> DfxResult;
@@ -47,7 +47,7 @@ impl Cache for DiskBasedCache {
         format!("{}", self.version)
     }
 
-    fn is_installed(&self) -> DfxResult<bool> {
+    fn is_installed(&self) -> Result<bool, CacheError> {
         is_version_installed(&self.version_str())
     }
 
@@ -71,14 +71,13 @@ impl Cache for DiskBasedCache {
     }
 }
 
-#[context("Failed to get cache root.")]
-pub fn get_cache_root() -> DfxResult<PathBuf> {
+pub fn get_cache_root() -> Result<PathBuf, CacheError> {
     let cache_root = std::env::var_os("DFX_CACHE_ROOT");
     // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
     let p = {
         let home = std::env::var_os("HOME")
-            .ok_or_else(|| DfxError::new(CacheError::NoHomeInEnvironment()))?;
+            .ok_or_else(|| CacheError::NoHomeInEnvironment())?;
         let root = cache_root.unwrap_or(home);
         PathBuf::from(root).join(".cache").join("dfinity")
     };
@@ -89,39 +88,36 @@ pub fn get_cache_root() -> DfxResult<PathBuf> {
     };
     if !p.exists() {
         if let Err(_e) = std::fs::create_dir_all(&p) {
-            return Err(DfxError::new(CacheError::CreateCacheDirectoryFailed(p)));
+            return Err(CacheError::CreateCacheDirectoryFailed(p));
         }
     } else if !p.is_dir() {
-        return Err(DfxError::new(CacheError::FindCacheDirectoryFailed(p)));
+        return Err(CacheError::FindCacheDirectoryFailed(p));
     }
     Ok(p)
 }
 
 /// Return the binary cache root. It constructs it if not present
 /// already.
-#[context("Failed to get path to binary cache root.")]
-pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
+pub fn get_bin_cache_root() -> Result<PathBuf, CacheError> {
     let p = get_cache_root()?.join("versions");
 
     if !p.exists() {
         if let Err(_e) = std::fs::create_dir_all(&p) {
-            return Err(DfxError::new(CacheError::CreateCacheDirectoryFailed(p)));
+            return Err(CacheError::CreateCacheDirectoryFailed(p));
         }
     } else if !p.is_dir() {
-        return Err(DfxError::new(CacheError::FindCacheDirectoryFailed(p)));
+        return Err(CacheError::FindCacheDirectoryFailed(p));
     }
 
     Ok(p)
 }
 
-#[context("Failed to get path to binary cache for version '{}'.", v)]
-pub fn get_bin_cache(v: &str) -> DfxResult<PathBuf> {
+pub fn get_bin_cache(v: &str) -> Result<PathBuf, CacheError> {
     let root = get_bin_cache_root()?;
     Ok(root.join(v))
 }
 
-#[context("Failed to determine if cache is installed for version '{}'.", v)]
-pub fn is_version_installed(v: &str) -> DfxResult<bool> {
+pub fn is_version_installed(v: &str) -> Result<bool, CacheError> {
     get_bin_cache(v).map(|c| c.is_dir())
 }
 
