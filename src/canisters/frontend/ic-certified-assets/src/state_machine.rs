@@ -38,6 +38,8 @@ const INDEX_FILE: &str = "/index.html";
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
 
+const STATUS_CODES_TO_CERTIFY: [u16; 2] = [200, 304];
+
 type AssetHashes = NestedTree<NestedTreeKey, Vec<u8>>;
 type Timestamp = Int;
 
@@ -56,15 +58,24 @@ pub struct AssetEncoding {
     pub certified: bool,
     pub sha256: [u8; 32],
     pub ic_ce: Option<IcCertificateExpression>,
-    pub response_hash: Option<[u8; 32]>,
+    pub response_hashes: Option<HashMap<u16, [u8; 32]>>,
 }
+
 impl AssetEncoding {
-    fn asset_hash_path_v2(&self, AssetPath(path): AssetPath) -> Option<AssetHashPath> {
+    fn asset_hash_path_v2(
+        &self,
+        AssetPath(path): &AssetPath,
+        status_code: u16,
+    ) -> Option<AssetHashPath> {
         if let Some(ce) = self.ic_ce.as_ref() {
-            if let Some(response_hash) = self.response_hash.as_ref() {
+            if let Some(response_hash) = self
+                .response_hashes
+                .as_ref()
+                .and_then(|map| map.get(&status_code))
+            {
                 let mut path: Vec<NestedTreeKey> = path
                     .into_iter()
-                    .map(|segment| NestedTreeKey::String(segment))
+                    .map(|segment| NestedTreeKey::String(segment.into()))
                     .collect();
                 path.insert(0, NestedTreeKey::String("http_expr".to_string()));
                 path.push(NestedTreeKey::String("<$>".to_string()));
@@ -399,8 +410,8 @@ impl State {
             certified: false,
             total_length,
             sha256,
-            ic_ce: None,         // set by on_asset_change
-            response_hash: None, // set by on_asset_change
+            ic_ce: None,           // set by on_asset_change
+            response_hashes: None, // set by on_asset_change
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
@@ -1015,20 +1026,43 @@ fn on_asset_change(
             .into_iter()
             .map(|(k, v)| (k, Value::String(v)))
             .collect();
-            encoding_headers.push((
-                ":ic-cert-status".to_string(),
-                Value::String(200.to_string()),
-            )); //todo replace with nice version that also precomputes 304 etag responses
+            let mut response_hashes = HashMap::new();
+            encoding_headers.insert(0, (":ic-cert-status".to_string(), Value::Number(200)));
+
+            // add HTTP 200
             let header_hash = representation_independent_hash(&encoding_headers);
-            let response_hash =
+            let response_hash_200: [u8; 32] =
                 sha2::Sha256::digest(&[header_hash.as_ref(), enc.sha256.as_ref()].concat()).into();
-            enc.response_hash = Some(response_hash);
+            response_hashes.insert(200, response_hash_200);
+            println!("RIH'd headers: {:?}", &encoding_headers);
+            println!("body sha256: {}", hex::encode(&enc.sha256));
+            println!("response hash: {}", hex::encode(&response_hash_200));
+
+            // add HTTP 304
+            encoding_headers
+                .get_mut(0)
+                .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
+            let header_hash = representation_independent_hash(&encoding_headers);
+            let emtpy_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
+            let response_hash_304: [u8; 32] =
+                sha2::Sha256::digest(&[header_hash.as_ref(), emtpy_body_hash.as_ref()].concat())
+                    .into();
+            response_hashes.insert(304, response_hash_304);
+
+            enc.response_hashes = Some(response_hashes);
 
             for (key, v1_path) in keys_to_insert_hash_for {
                 let key_path = AssetPath::from_asset_key(&key);
                 asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
-                if let Some(hash_path) = enc.asset_hash_path_v2(key_path) {
-                    asset_hashes.insert(hash_path.as_vec(), Vec::new());
+                for status_code in STATUS_CODES_TO_CERTIFY {
+                    if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
+                        asset_hashes.insert(hash_path.as_vec(), Vec::new());
+                    } else {
+                        unreachable!(
+                            "Could not create a hash path for a status code {} and key {} - did you forget to add a response hash for this status code?",
+                            status_code, &key
+                        );
+                    }
                 }
             }
             enc.certified = true;
