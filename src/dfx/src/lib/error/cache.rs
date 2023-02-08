@@ -9,10 +9,8 @@ pub enum CacheError {
     #[error("Cannot find cache directory at '{0}'.")]
     FindCacheDirectoryFailed(PathBuf),
 
-    // Windows paths do not require environment variables (and are found by dirs-next, which has its own errors)
-    #[cfg(not(windows))]
-    #[error("Cannot find home directory.")]
-    NoHomeInEnvironment(),
+    #[error(transparent)]
+    FoundationError(#[from] dfx_core::error::foundation::FoundationError),
 
     #[error("Unknown version '{0}'.")]
     UnknownVersion(String),
