@@ -126,13 +126,13 @@ teardown() {
     assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity bob
     assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity default
     assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
-    assert_command_fail dfx canister call e2e_project_frontend get '(record{key="B";accept_encodings=vec{"identity"}})'
+    assert_command_fail dfx canister call e2e_project_frontend retrieve '("B")'
 
     # but alice, the initializer, can store assets:
     assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity alice
     assert_eq '()'
-    assert_command dfx canister call --output idl e2e_project_frontend get '(record{key="B";accept_encodings=vec{"identity"}})'
-    assert_eq '(blob "XWV")'
+    assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
+    assert_match 'Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.\n(blob "XWV")'
 }
 
 @test "after renaming an identity, the renamed identity is still initializer" {
@@ -157,8 +157,8 @@ teardown() {
 
     assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})' --identity bob
     assert_eq '()'
-    assert_command dfx canister call --output idl e2e_project_frontend get '(record{key="B";accept_encodings=vec{"identity"}})'
-    assert_eq '(blob "hello")'
+    assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
+    assert_match 'Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.\n(blob "hello")'
 }
 
 @test "using an unencrypted identity on mainnet provokes a warning" {
