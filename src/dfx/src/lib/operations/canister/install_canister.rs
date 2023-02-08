@@ -207,7 +207,7 @@ pub async fn install_canister(
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent).await?;
+        post_install_store_assets(canister_info, agent, log).await?;
     }
     if !canister_info.get_post_install().is_empty() {
         let config = env.get_config();

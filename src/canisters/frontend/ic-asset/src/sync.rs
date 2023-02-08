@@ -1,6 +1,6 @@
 use crate::asset_canister::batch::{commit_batch, create_batch};
 use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind};
+use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
 use crate::asset_config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
@@ -10,30 +10,49 @@ use crate::operations::{
 use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
 use anyhow::{bail, Context};
 use ic_utils::Canister;
+use slog::{info, warn, Logger};
 use std::collections::HashMap;
 use std::path::Path;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(canister: &Canister<'_>, dirs: &[&Path]) -> anyhow::Result<()> {
-    let asset_descriptors = gather_asset_descriptors(dirs)?;
+pub async fn upload_content_and_assemble_sync_operations(
+    canister: &Canister<'_>,
+    dirs: &[&Path],
+    logger: &Logger,
+) -> anyhow::Result<CommitBatchArguments> {
+    let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let container_assets = list_assets(canister).await?;
 
-    println!("Starting batch.");
+    info!(logger, "Starting batch.");
 
     let batch_id = create_batch(canister).await?;
 
-    println!("Staging contents of new and changed assets:");
+    info!(logger, "Staging contents of new and changed assets:");
 
-    let project_assets =
-        make_project_assets(canister, &batch_id, asset_descriptors, &container_assets).await?;
+    let project_assets = make_project_assets(
+        canister,
+        &batch_id,
+        asset_descriptors,
+        &container_assets,
+        logger,
+    )
+    .await?;
 
     let operations = assemble_synchronization_operations(project_assets, container_assets);
+    Ok(CommitBatchArguments {
+        batch_id,
+        operations,
+    })
+}
 
-    println!("Committing batch.");
+/// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
+    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
 
-    commit_batch(canister, &batch_id, operations).await?;
+    info!(logger, "Committing batch.");
+    commit_batch(canister, arg).await?;
 
     Ok(())
 }
@@ -51,7 +70,10 @@ fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
     }
 }
 
-fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescriptor>> {
+fn gather_asset_descriptors(
+    dirs: &[&Path],
+    logger: &Logger,
+) -> anyhow::Result<Vec<AssetDescriptor>> {
     let mut asset_descriptors: HashMap<String, AssetDescriptor> = HashMap::new();
     for dir in dirs {
         let dir = dir.canonicalize().with_context(|| {
@@ -114,14 +136,15 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
         }
 
         for (config_path, rules) in configuration.get_unused_configs() {
-            println!(
-                "WARNING: {count} unmatched configuration{s} in {path}/.ic-assets.json config file:",
-                count=rules.len(),
-                s=if rules.len() > 1 { "s" } else { "" },
-                path=config_path.display()
+            warn!(
+                logger,
+                "{count} unmatched configuration{s} in {path}/.ic-assets.json config file:",
+                count = rules.len(),
+                s = if rules.len() > 1 { "s" } else { "" },
+                path = config_path.display()
             );
             for rule in rules {
-                println!("{}", serde_json::to_string_pretty(&rule).unwrap());
+                warn!(logger, "{}", serde_json::to_string_pretty(&rule).unwrap());
             }
         }
     }
@@ -149,13 +172,18 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     use crate::asset_config::{CacheConfig, HeadersConfig};
 
-    use super::{gather_asset_descriptors, AssetDescriptor};
+    use super::AssetDescriptor;
     use std::{
         collections::HashMap,
         fs,
         path::{Path, PathBuf},
     };
     use tempfile::{Builder, TempDir};
+
+    fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescriptor>> {
+        let logger = slog::Logger::root(slog::Discard, slog::o!());
+        super::gather_asset_descriptors(dirs, &logger)
+    }
 
     impl AssetDescriptor {
         fn default_from_path(assets_dir: &Path, relative_path: &str) -> Self {
