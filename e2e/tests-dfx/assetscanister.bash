@@ -33,6 +33,34 @@ check_permission_failure() {
         assert_contains "$expected"
     fi
 }
+
+@test "validation methods" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity use controller
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+
+  assert_command dfx identity new prepare --storage-mode plaintext
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+
+  assert_command dfx canister call e2e_project_frontend validate_grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })"
+  assert_match 'Ok = "GrantPermissionArguments { to_principal: Principal { len: 29, bytes: \[.*\] }, permission: Prepare }"'
+
+  assert_command dfx canister call e2e_project_frontend validate_grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity prepare
+  assert_match 'Ok = "GrantPermissionArguments { to_principal: Principal { len: 29, bytes: \[.*\] }, permission: Prepare }"'
+
+  assert_command dfx canister call e2e_project_frontend validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Commit }; })"
+  assert_match 'Ok = "RevokePermissionArguments { of_principal: Principal { len: 29, bytes: \[.*\] }, permission: Commit }"'
+
+  FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
+  rm .dfx/local/canister_ids.json
+  assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
+  assert_contains "Canister $FE_CANISTER_ID trapped explicitly"
+}
+
 @test "access control - fine-grained" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller

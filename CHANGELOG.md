@@ -2,6 +2,19 @@
 
 # UNRELEASED
 
+## Asset Canister
+
+Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: c56a45c59d4cb463082716151561b6b87ab1903fd1bcc4a0b7a643ca428850fb
+- https://github.com/dfinity/sdk/pull/2958
+
+# 0.13.0
+
 ## DFX
 
 ### feat: Add dfx sns download

@@ -52,6 +52,12 @@ async fn grant_permission(arg: GrantPermissionArguments) {
 
 #[update]
 #[candid_method(update)]
+async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<String, String> {
+    Ok(format!("{:?}", arg))
+}
+
+#[update]
+#[candid_method(update)]
 async fn deauthorize(other: Principal) {
     let check_access_result = if other == caller() {
         // this isn't "ManagePermissions" because these legacy methods only
@@ -81,6 +87,12 @@ async fn revoke_permission(arg: RevokePermissionArguments) {
                 .revoke_permission(arg.of_principal, &arg.permission)
         }),
     }
+}
+
+#[update]
+#[candid_method(update)]
+async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<String, String> {
+    Ok(format!("{:?}", arg))
 }
 
 #[query(manual_reply = true)]
