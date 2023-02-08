@@ -56,7 +56,7 @@ pub struct AssetEncoding {
     pub certified: bool,
     pub sha256: [u8; 32],
     pub ic_ce: Option<IcCertificateExpression>,
-    pub response_hash: Option<Vec<u8>>,
+    pub response_hash: Option<[u8; 32]>,
 }
 impl AssetEncoding {
     fn asset_hash_path_v2(&self, AssetPath(path): AssetPath) -> Option<AssetHashPath> {
@@ -1016,11 +1016,9 @@ fn on_asset_change(
             .map(|(k, v)| (k, Value::String(v)))
             .collect();
             let header_hash = representation_independent_hash(&encoding_headers);
-            enc.response_hash = Some(
-                [header_hash.as_slice(), enc.sha256.as_slice()]
-                    .concat()
-                    .into(),
-            );
+            let response_hash =
+                sha2::Sha256::digest(&[header_hash.as_ref(), enc.sha256.as_ref()].concat()).into();
+            enc.response_hash = Some(response_hash);
 
             for (key, v1_path) in keys_to_insert_hash_for {
                 let key_path = AssetPath::from_asset_key(&key);
