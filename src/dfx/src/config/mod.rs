@@ -2,7 +2,6 @@ use lazy_static::lazy_static;
 use semver::Version;
 
 pub mod cache;
-pub mod dfinity;
 
 lazy_static! {
     // This expect cannot happen, we make sure that CARGO_PKG_VERSION is correct.

@@ -14,7 +14,6 @@ use rust_decimal::Decimal;
 use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
-use std::str::FromStr;
 use std::time::Duration;
 
 pub mod assets;

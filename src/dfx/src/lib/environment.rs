@@ -1,11 +1,11 @@
 use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::dfinity::{Config, NetworksConfig};
 use crate::config::{cache, dfx_version};
 use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
 use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
+use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::error::identity::IdentityError;
 use dfx_core::identity::identity_manager::IdentityManager;
 

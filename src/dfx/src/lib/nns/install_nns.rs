@@ -7,13 +7,13 @@
 #![warn(clippy::missing_docs_in_private_items)]
 
 use crate::config::cache::get_bin_cache;
-use crate::config::dfinity::ReplicaSubnetType;
 use crate::lib::environment::Environment;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
 use crate::util::blob_from_arguments;
 use crate::util::network::get_replica_urls;
+use dfx_core::config::model::dfinity::ReplicaSubnetType;
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
