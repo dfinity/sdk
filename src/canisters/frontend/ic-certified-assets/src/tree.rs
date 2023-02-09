@@ -166,7 +166,7 @@ fn nested_tree_operation() {
 
 #[test]
 fn nested_tree_actual() {
-    use crate::state_machine::{AssetHashPath, NestedTreeKey};
+    use crate::certification_types::{AssetHashPath, NestedTreeKey};
 
     let mut tree: NestedTree<NestedTreeKey, Vec<u8>> = NestedTree::new();
     let key = AssetHashPath(vec![

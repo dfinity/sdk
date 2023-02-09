@@ -1,4 +1,5 @@
 //! This module declares canister methods expected by the assets canister client.
+mod certification_types;
 pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;

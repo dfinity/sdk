@@ -19,6 +19,7 @@ ic-cdk-macros = "0.6.0"
 ic-certified-map = "0.3"
 num-traits = "0.2.14"
 ic-response-verification = {path = "../../../../../response-verification/packages/ic-response-verification"}
+# ic-response-verification = {git = "https://github.com/dfinity/response-verification"}
 serde = "1"
 serde_bytes = "0.11"
 serde_cbor = "0.11"

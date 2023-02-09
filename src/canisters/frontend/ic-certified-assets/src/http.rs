@@ -1,7 +1,9 @@
+use crate::certification_types::IcCertificateExpression;
 use crate::rc_bytes::RcBytes;
-use crate::state_machine::{Asset, AssetEncoding, IcCertificateExpression};
+use crate::state_machine::{Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
-use ic_certified_map::Hash;
+use ic_certified_map::{Hash, HashTree};
+use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 
@@ -226,4 +228,36 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding(
         ic_certificate_expression,
         expression_hash,
     }
+}
+
+pub fn witness_to_header_v1(witness: HashTree, certificate: &[u8]) -> HeaderField {
+    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+    serializer.self_describe().unwrap();
+    witness.serialize(&mut serializer).unwrap();
+    (
+        "IC-Certificate".to_string(),
+        String::from("certificate=:")
+            + &base64::encode(certificate)
+            + ":, tree=:"
+            + &base64::encode(&serializer.into_inner())
+            + ":",
+    )
+}
+
+pub fn witness_to_header_v2(witness: HashTree, certificate: &[u8], expr_path: &str) -> HeaderField {
+    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+    serializer.self_describe().unwrap();
+    witness.serialize(&mut serializer).unwrap();
+
+    (
+        "IC-Certificate".to_string(),
+        String::from("version=2, ")
+            + "certificate=:"
+            + &base64::encode(certificate)
+            + ":, tree=:"
+            + &base64::encode(&serializer.into_inner())
+            + ":, expr_path=:"
+            + expr_path
+            + ":",
+    )
 }
