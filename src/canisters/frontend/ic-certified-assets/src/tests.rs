@@ -1143,6 +1143,7 @@ mod certification_v2 {
         let time_now = 100_000_000_000;
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+        const UPDATED_BODY: &[u8] = b"<!DOCTYPE html><html>lots of content!</html>";
 
         create_assets(
             &mut state,
@@ -1178,5 +1179,30 @@ mod certification_v2 {
         assert!(!cert_header.contains("expr_path=::"), "expr_path is empty",);
 
         assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFggYqb51osZ8yEgbrtk+Z981k9J9Q0m4VEH/xmnuU6SDJqDAklodHRwX2V4cHKDAYIEWCDRvIWOXMQpSPmL/lqgpKwXi9R3P4NQ5gPAEBJOvFdbMoMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCDFaHrIHl7UaWlUtBt+VDFkwpI+dahytlBeV0Be5LB6GIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![UPDATED_BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        let cert_header = lookup_header(&response, "ic-certificate")
+            .expect("after update: ic-certificate header missing");
+
+        println!("Updated IC-Certificate: {}", cert_header);
+
+        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFgg1hasIZe9DV/qkwMJwOyFED/kYwg4LKtr0BWWcxuIqI6DAklodHRwX2V4cHKDAYIEWCAtSsSG8RTeJaOtMkmPsW6BSz0PNuAWtCkSvZHoWJ66dIMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCC8DBBYlQxiaVAOAV6uWwZ3un2feoZJc0MW5MYdsWFsLIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
     }
 }
