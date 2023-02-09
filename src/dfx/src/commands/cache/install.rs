@@ -1,5 +1,5 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxResult, DfxError};
 
 use clap::Parser;
 
@@ -9,5 +9,5 @@ use clap::Parser;
 pub struct CacheInstall {}
 
 pub fn exec(env: &dyn Environment, _opts: CacheInstall) -> DfxResult {
-    env.get_cache().force_install()
+    env.get_cache().force_install().map_err(DfxError::from)
 }
