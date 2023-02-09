@@ -1,5 +1,5 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxResult, DfxError};
+use crate::lib::error::{DfxError, DfxResult};
 
 use clap::Parser;
 

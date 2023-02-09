@@ -191,12 +191,12 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         dfx_core::fs::remove_dir_all(&p)?;
     }
 
-    if dfx_core::fs::rename(&temp_p, &p).is_ok() {
+    if dfx_core::fs::rename(temp_p, &p).is_ok() {
         if let Some(b) = b {
             b.finish_with_message(format!("Version v{} installed successfully.", v));
         }
     } else {
-        dfx_core::fs::remove_dir_all(&temp_p)?;
+        dfx_core::fs::remove_dir_all(temp_p)?;
         if let Some(b) = b {
             b.finish_with_message(format!("Version v{} was already installed.", v));
         }
@@ -251,13 +251,12 @@ pub fn list_versions() -> Result<Vec<Version>, CacheError> {
 pub fn call_cached_dfx(v: &Version) -> Result<ExitStatus, CacheError> {
     let v = format!("{}", v);
     let command_path = get_binary_path_from_version(&v, "dfx")?;
-    if command_path
-        == std::env::current_exe()?
-    {
+    if command_path == std::env::current_exe()? {
         return Err(CacheError::UnknownVersion(v));
     }
 
     std::process::Command::new(command_path)
         .args(std::env::args().skip(1))
-        .status().map_err(CacheError::StdIoError)
+        .status()
+        .map_err(CacheError::StdIoError)
 }
