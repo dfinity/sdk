@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
-
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
     CreateChunkArg, DeleteAssetArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
@@ -1065,7 +1064,7 @@ mod certificate_expression {
     }
 
     #[test]
-    fn ic_certificate_expression_gets_updated_on_asset_properpies_date() {
+    fn ic_certificate_expression_gets_updated_on_asset_properties_update() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 

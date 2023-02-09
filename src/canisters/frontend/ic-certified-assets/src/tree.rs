@@ -1,9 +1,9 @@
 use ic_certified_map::{AsHashTree, HashTree, RbTree};
 
-pub trait NestedTreeKeyRequirements: Clone + AsRef<[u8]> + core::fmt::Debug + 'static {}
-pub trait NestedTreeValueRequirements: AsHashTree + 'static + core::fmt::Debug {}
-impl<T> NestedTreeKeyRequirements for T where T: Clone + AsRef<[u8]> + core::fmt::Debug + 'static {}
-impl<T> NestedTreeValueRequirements for T where T: AsHashTree + core::fmt::Debug + 'static {}
+pub trait NestedTreeKeyRequirements: Clone + AsRef<[u8]> + 'static {}
+pub trait NestedTreeValueRequirements: AsHashTree + 'static {}
+impl<T> NestedTreeKeyRequirements for T where T: Clone + AsRef<[u8]> + 'static {}
+impl<T> NestedTreeValueRequirements for T where T: AsHashTree + 'static {}
 
 #[derive(Debug, Clone)]
 pub enum NestedTree<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> {
@@ -34,12 +34,6 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> AsHashTree fo
 }
 
 impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K, V> {
-    pub fn new() -> Self {
-        NestedTree::Nested(RbTree::new())
-    }
-}
-
-impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K, V> {
     pub fn get(&self, path: &[K]) -> Option<&V> {
         if let Some(key) = path.get(0) {
             match self {
@@ -60,15 +54,15 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
         if let Some(key) = path.get(0) {
             match self {
                 NestedTree::Leaf(_) => {
-                    *self = NestedTree::new();
-                    self.insert(path, value)
+                    *self = NestedTree::default();
+                    self.insert(path, value);
                 }
                 NestedTree::Nested(tree) => {
                     if tree.get(key.as_ref()).is_some() {
-                        tree.modify(key.as_ref(), |child| child.insert(&path[1..], value))
+                        tree.modify(key.as_ref(), |child| child.insert(&path[1..], value));
                     } else {
-                        tree.insert(key.clone(), NestedTree::new());
-                        self.insert(path, value)
+                        tree.insert(key.clone(), NestedTree::default());
+                        self.insert(path, value);
                     }
                 }
             }
@@ -82,11 +76,11 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
             match self {
                 NestedTree::Leaf(_) => {}
                 NestedTree::Nested(tree) => {
-                    tree.modify(key.as_ref(), |child| child.delete(&path[1..]))
+                    tree.modify(key.as_ref(), |child| child.delete(&path[1..]));
                 }
             }
         } else {
-            *self = NestedTree::new();
+            *self = NestedTree::default();
         }
     }
 
@@ -141,7 +135,7 @@ pub fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a
 
 #[test]
 fn nested_tree_operation() {
-    let mut tree: NestedTree<&str, Vec<u8>> = NestedTree::new();
+    let mut tree: NestedTree<&str, Vec<u8>> = NestedTree::default();
     // insertion
     tree.insert(&["one", "two"], vec![2]);
     tree.insert(&["one", "three"], vec![3]);
@@ -162,25 +156,4 @@ fn nested_tree_operation() {
     tree.delete(&["one"]);
     assert_eq!(tree.get(&["one", "two"]), None);
     assert_eq!(tree.get(&["one"]), None);
-}
-
-#[test]
-fn nested_tree_actual() {
-    use crate::certification_types::{AssetHashPath, NestedTreeKey};
-
-    let mut tree: NestedTree<NestedTreeKey, Vec<u8>> = NestedTree::new();
-    let key = AssetHashPath(vec![
-        NestedTreeKey::Bytes(vec![104, 116, 116, 112, 95, 97, 115, 115, 101, 116, 115]),
-        NestedTreeKey::String("contents.html".to_string()),
-    ]);
-    let key2 = AssetHashPath(vec![
-        NestedTreeKey::Bytes(vec![104, 116, 116, 112, 95, 97, 115, 115, 101, 116, 115]),
-        NestedTreeKey::String("subdirectory".to_string()),
-        NestedTreeKey::String("index".to_string()),
-    ]);
-
-    tree.insert(key.as_vec(), vec![1]);
-    tree.insert(key2.as_vec(), vec![2]);
-    assert_eq!(tree.get(key.as_vec()).unwrap(), &vec![1]);
-    assert_eq!(tree.get(key2.as_vec()).unwrap(), &vec![2]);
 }

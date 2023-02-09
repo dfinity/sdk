@@ -6,7 +6,7 @@
 
 use crate::{
     certification_types::{
-        AssetHashPath, AssetHashes, AssetPath, IcCertificateExpression, NestedTreeKey,
+        AssetHashes, AssetPath, HashTreePath, IcCertificateExpression, NestedTreeKey,
     },
     http::{
         build_ic_certificate_expression_from_headers_and_encoding, witness_to_header_v1,
@@ -61,7 +61,7 @@ impl AssetEncoding {
         &self,
         AssetPath(path): &AssetPath,
         status_code: u16,
-    ) -> Option<AssetHashPath> {
+    ) -> Option<HashTreePath> {
         if let Some(ce) = self.ic_ce.as_ref() {
             if let Some(response_hash) = self
                 .response_hashes
@@ -70,13 +70,13 @@ impl AssetEncoding {
             {
                 let mut path: Vec<NestedTreeKey> = path
                     .into_iter()
-                    .map(|segment| NestedTreeKey::String(segment.into()))
+                    .map(|segment| segment.as_str().into())
                     .collect();
-                path.insert(0, NestedTreeKey::String("http_expr".to_string()));
-                path.push(NestedTreeKey::String("<$>".to_string()));
-                path.push(NestedTreeKey::Bytes(ce.expression_hash.clone()));
+                path.insert(0, "http_expr".into());
+                path.push("<$>".into());
+                path.push(ce.expression_hash.as_slice().into());
                 path.push(response_hash.as_slice().into());
-                Some(AssetHashPath(path))
+                Some(path.into())
             } else {
                 None
             }
@@ -187,7 +187,7 @@ impl Asset {
         encoding_name: &str,
         cert_version: u8,
     ) -> HashMap<String, String> {
-        let ce = if cert_version == 2 {
+        let ce = if cert_version != 1 {
             self.encodings
                 .get(encoding_name)
                 .and_then(|e| e.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression))
@@ -209,7 +209,7 @@ impl State {
         self.assets
             .get(key)
             .or_else(|| {
-                let aliased = aliases_of_key(key)
+                let aliased = aliases_of(key)
                     .into_iter()
                     .find_map(|alias_key| self.assets.get(&alias_key));
                 if let Some(asset) = aliased {
@@ -275,7 +275,7 @@ impl State {
             return Err("encoding must have at least one chunk".to_string());
         }
 
-        let dependent_keys = self.dependent_keys_v1(&arg.key);
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -321,7 +321,7 @@ impl State {
     }
 
     pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
-        let dependent_keys = self.dependent_keys_v1(&arg.key);
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -336,8 +336,8 @@ impl State {
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
         if let Some(_) = self.assets.get(&arg.key) {
-            for dependent in self.dependent_keys_v1(&arg.key) {
-                let path = AssetPath::from_asset_key(&dependent);
+            for dependent in self.dependent_keys(&arg.key) {
+                let path = AssetPath::from(dependent);
                 self.asset_hashes.delete(path.asset_hash_path_v1().as_vec());
                 self.asset_hashes
                     .delete(path.asset_hash_path_root_v2().as_vec());
@@ -374,7 +374,7 @@ impl State {
     }
 
     pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
-        let dependent_keys = self.dependent_keys_v1(&arg.key);
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
         asset.is_aliased = arg.aliased;
@@ -542,18 +542,18 @@ impl State {
         req: HttpRequest,
     ) -> HttpResponse {
         let (asset_hash_path, index_hash_path) = if req.get_certificate_version() == 1 {
-            let path = AssetPath::from_asset_key(path);
+            let path = AssetPath::from(path);
             let v1_path = path.asset_hash_path_v1();
 
-            let index_path = AssetPath::from_asset_key(INDEX_FILE);
+            let index_path = AssetPath::from(INDEX_FILE);
             let v1_index = index_path.asset_hash_path_v1();
 
             (v1_path, v1_index)
         } else {
-            let path = AssetPath::from_asset_key(path);
+            let path = AssetPath::from(path);
             let v2_root_path = path.asset_hash_path_root_v2();
 
-            let index_path = AssetPath::from_asset_key(INDEX_FILE);
+            let index_path = AssetPath::from(INDEX_FILE);
             let v2_index_root = index_path.asset_hash_path_root_v2();
 
             (v2_root_path, v2_index_root)
@@ -752,7 +752,7 @@ impl State {
     }
 
     pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
-        let dependent_keys = self.dependent_keys_v1(&arg.key).clone();
+        let dependent_keys = self.dependent_keys(&arg.key).clone();
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -773,7 +773,7 @@ impl State {
     }
 
     // Returns keys that needs to be updated if the supplied key is changed.
-    fn dependent_keys_v1<'a>(&self, key: &AssetKey) -> Vec<AssetKey> {
+    fn dependent_keys<'a>(&self, key: &AssetKey) -> Vec<AssetKey> {
         if self
             .assets
             .get(key)
@@ -809,7 +809,7 @@ impl From<StableState> for State {
 
         let assets_keys: Vec<_> = state.assets.keys().cloned().collect();
         for key in assets_keys {
-            let dependent_keys = state.dependent_keys_v1(&key);
+            let dependent_keys = state.dependent_keys(&key);
             if let Some(asset) = state.assets.get_mut(&key) {
                 for enc in asset.encodings.values_mut() {
                     enc.certified = false;
@@ -855,7 +855,6 @@ fn on_asset_change(
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
 ) {
-    // update IC-CertificateExpression header value
     asset.update_ic_certificate_expressions();
 
     // If the most preferred encoding is present and certified,
@@ -874,7 +873,7 @@ fn on_asset_change(
     let mut keys_to_remove = dependent_keys.clone();
     keys_to_remove.push(key.to_string());
     for key in keys_to_remove {
-        let key_path = AssetPath::from_asset_key(&key);
+        let key_path = AssetPath::from(&key);
         asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
     }
     if asset.encodings.is_empty() {
@@ -904,7 +903,7 @@ fn on_asset_change(
     let keys_to_insert_hash_for: Vec<_> = keys_to_insert_hash_for
         .into_iter()
         .map(|key| {
-            let v1_hash_path = AssetPath::from_asset_key(&key).asset_hash_path_v1();
+            let v1_hash_path = AssetPath::from(&key).asset_hash_path_v1();
             (key, v1_hash_path)
         })
         .collect();
@@ -952,7 +951,7 @@ fn on_asset_change(
             enc.response_hashes = Some(response_hashes);
 
             for (key, v1_path) in keys_to_insert_hash_for {
-                let key_path = AssetPath::from_asset_key(&key);
+                let key_path = AssetPath::from(&key);
                 asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
                 for status_code in STATUS_CODES_TO_CERTIFY {
                     if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
@@ -972,7 +971,7 @@ fn on_asset_change(
 }
 
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
-fn aliases_of_key(key: &AssetKey) -> Vec<AssetKey> {
+fn aliases_of(key: &AssetKey) -> Vec<AssetKey> {
     if key.ends_with('/') {
         vec![format!("{}index.html", key)]
     } else if !key.ends_with(".html") {

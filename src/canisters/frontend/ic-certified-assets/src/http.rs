@@ -89,9 +89,9 @@ impl HttpRequest {
     }
 
     // Spec:
-    // If not set, version 1 is assumed.
-    // If available, use requested certificate version.
-    // If requested version is not available, use latest available version.
+    // If not set: assum version 1.
+    // If available: use requested certificate version.
+    // If requested version is not available: use latest available version.
     pub fn get_certificate_version(&self) -> u8 {
         if self.certificate_version.is_none() || self.certificate_version == Some(Nat::from(1)) {
             1
