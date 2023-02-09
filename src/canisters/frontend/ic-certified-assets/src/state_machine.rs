@@ -928,27 +928,32 @@ fn on_asset_change(
             .into_iter()
             .map(|(k, v)| (k, Value::String(v)))
             .collect();
-            let mut response_hashes = HashMap::new();
-            encoding_headers.insert(0, (":ic-cert-status".to_string(), Value::Number(200)));
 
-            // add HTTP 200
-            let header_hash = representation_independent_hash(&encoding_headers);
-            let response_hash_200: [u8; 32] =
-                sha2::Sha256::digest(&[header_hash.as_ref(), enc.sha256.as_ref()].concat()).into();
-            response_hashes.insert(200, response_hash_200);
+            let new_response_hashes = {
+                let mut response_hashes = HashMap::new();
+                encoding_headers.insert(0, (":ic-cert-status".to_string(), Value::Number(200)));
 
-            // add HTTP 304
-            encoding_headers
-                .get_mut(0)
-                .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
-            let header_hash = representation_independent_hash(&encoding_headers);
-            let emtpy_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
-            let response_hash_304: [u8; 32] =
-                sha2::Sha256::digest(&[header_hash.as_ref(), emtpy_body_hash.as_ref()].concat())
-                    .into();
-            response_hashes.insert(304, response_hash_304);
+                // add HTTP 200
+                let header_hash = representation_independent_hash(&encoding_headers);
+                let response_hash_200: [u8; 32] =
+                    sha2::Sha256::digest(&[header_hash.as_ref(), enc.sha256.as_ref()].concat())
+                        .into();
+                response_hashes.insert(200, response_hash_200);
 
-            enc.response_hashes = Some(response_hashes);
+                // add HTTP 304
+                encoding_headers
+                    .get_mut(0)
+                    .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
+                let header_hash = representation_independent_hash(&encoding_headers);
+                let emtpy_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
+                let response_hash_304: [u8; 32] = sha2::Sha256::digest(
+                    &[header_hash.as_ref(), emtpy_body_hash.as_ref()].concat(),
+                )
+                .into();
+                response_hashes.insert(304, response_hash_304);
+                response_hashes
+            };
+            enc.response_hashes = Some(new_response_hashes);
 
             for (key, v1_path) in keys_to_insert_hash_for {
                 let key_path = AssetPath::from(&key);
