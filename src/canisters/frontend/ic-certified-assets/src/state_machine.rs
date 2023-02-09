@@ -650,10 +650,6 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        ic_cdk::print(format!(
-            "request version: {:?}",
-            req.get_certificate_version()
-        ));
         let (asset_hash_path, index_hash_path) = if req.get_certificate_version() == 1 {
             let path = AssetPath::from_asset_key(path);
             let v1_path = path.asset_hash_path_v1();
@@ -730,7 +726,6 @@ impl State {
                 &asset_hash_path.expr_path(),
             )
         };
-        ic_cdk::print(format!("cert header: {:?}", &certificate_header));
 
         if let Ok(asset) = self.get_asset(&path.into()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
@@ -1051,13 +1046,6 @@ fn on_asset_change(
             let response_hash_200: [u8; 32] =
                 sha2::Sha256::digest(&[header_hash.as_ref(), enc.sha256.as_ref()].concat()).into();
             response_hashes.insert(200, response_hash_200);
-            ic_cdk::print(format!("RIH'd headers: {:?}", &encoding_headers));
-            ic_cdk::print(format!("header hash: {}", hex::encode(&header_hash)));
-            ic_cdk::print(format!("body sha256: {}", hex::encode(&enc.sha256)));
-            ic_cdk::print(format!(
-                "response hash: {}",
-                hex::encode(&response_hash_200)
-            ));
 
             // add HTTP 304
             encoding_headers
@@ -1141,7 +1129,6 @@ pub fn witness_to_header_v1(witness: HashTree, certificate: &[u8]) -> HeaderFiel
 pub fn witness_to_header_v2(witness: HashTree, certificate: &[u8], expr_path: &str) -> HeaderField {
     let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
     serializer.self_describe().unwrap();
-    println!("Witness: {:?}", &witness);
     witness.serialize(&mut serializer).unwrap();
 
     (

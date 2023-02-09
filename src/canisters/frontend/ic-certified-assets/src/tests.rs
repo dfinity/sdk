@@ -1009,7 +1009,7 @@ mod certificate_expression {
         let c = build_ic_certificate_expression_from_headers_and_encoding(&h, "not identity");
         assert_eq!(
             c.ic_certificate_expression,
-            r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
         );
     }
 
@@ -1058,7 +1058,7 @@ mod certificate_expression {
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-            r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
             "Missing ic-certifiedexpression header in response: {:#?}",
             response,
         );
@@ -1083,6 +1083,7 @@ mod certificate_expression {
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
                 .build(),
             &[],
             unused_callback(),
@@ -1095,7 +1096,7 @@ mod certificate_expression {
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-            r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
             "Missing ic-certificateexpression header in response: {:#?}",
             response,
         );
@@ -1114,6 +1115,7 @@ mod certificate_expression {
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
                 .build(),
             &[],
             unused_callback(),
@@ -1125,7 +1127,7 @@ mod certificate_expression {
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-            r#"default_certification(ValidationArgs{certification: Certification{request_certification: no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "custom-header"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "custom-header"]}}}})"#,
             "Missing ic-certifiedexpression header in response: {:#?}",
             response,
         );
@@ -1175,5 +1177,7 @@ mod certification_v2 {
         assert!(!cert_header.contains("tree=::"), "tree is empty",);
         assert!(cert_header.contains("expr_path=:"), "expr_path is missing",);
         assert!(!cert_header.contains("expr_path=::"), "expr_path is empty",);
+
+        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFggYqb51osZ8yEgbrtk+Z981k9J9Q0m4VEH/xmnuU6SDJqDAklodHRwX2V4cHKDAYIEWCDRvIWOXMQpSPmL/lqgpKwXi9R3P4NQ5gPAEBJOvFdbMoMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCDFaHrIHl7UaWlUtBt+VDFkwpI+dahytlBeV0Be5LB6GIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
     }
 }
