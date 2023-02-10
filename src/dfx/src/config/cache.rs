@@ -154,10 +154,14 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
         dfx_core::fs::create_dir_all(&temp_p)?;
 
-        let mut binary_cache_assets = util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheFailed)?;
+        let mut binary_cache_assets =
+            util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheFailed)?;
         // Write binaries and set them to be executable.
-        for file in binary_cache_assets.entries().map_err(CacheError::ReadBinaryCacheFailed)? {
-            let mut file = file?;
+        for file in binary_cache_assets
+            .entries()
+            .map_err(CacheError::ReadBinaryCacheEntriesFailed)?
+        {
+            let mut file = file.map_err(CacheError::ReadBinaryCacheEntryFailed)?;
 
             if file.header().entry_type().is_dir() {
                 continue;
@@ -235,7 +239,7 @@ pub fn list_versions() -> Result<Vec<Version>, CacheError> {
     let mut result: Vec<Version> = Vec::new();
 
     for entry in dfx_core::fs::read_dir(&root)? {
-        let entry = entry?;
+        let entry = entry.map_err(CacheError::ReadCacheEntryFailed)?;
         if let Some(version) = entry.file_name().to_str() {
             if version.starts_with('_') {
                 // temp directory for version being installed
@@ -257,5 +261,6 @@ pub fn call_cached_dfx(v: &Version) -> Result<ExitStatus, CacheError> {
 
     let cmd = std::process::Command::new(command_path)
         .args(std::env::args().skip(1));
-    dfx_core::process::execute_process(cmd).map_err(CacheError::ProcessError)
+    let result = dfx_core::process::execute_process(cmd)?;
+    Ok(result)
 }

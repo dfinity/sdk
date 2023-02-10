@@ -20,6 +20,15 @@ pub enum CacheError {
     #[error("Failed to read binary cache: '{0}'.")]
     ReadBinaryCacheFailed(std::io::Error),
 
+    #[error("Failed to iterate trough binary cache: '{0}'.")]
+    ReadBinaryCacheEntriesFailed(std::io::Error),
+
+    #[error("Failed to read binary cache entry: '{0}'.")]
+    ReadBinaryCacheEntryFailed(std::io::Error),
+
+    #[error("Failed to read entry in cache directory: '{0}'.")]
+    ReadCacheEntryFailed(std::io::Error),
+
     #[error(transparent)]
     IoError(#[from] dfx_core::error::io::IoError),
 
