@@ -3,6 +3,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IoErrorKind {
+    #[error("Failed to read archive path: {0}")]
+    ArchiveFileInvalidPath(std::io::Error),
+
     #[error("Failed to canonicalize {0}: {1}")]
     CanonicalizePathFailed(PathBuf, std::io::Error),
 
@@ -38,6 +41,9 @@ pub enum IoErrorKind {
 
     #[error("Failed to rename {0} to {1}: {2}")]
     RenameFailed(Box<PathBuf>, Box<PathBuf>, std::io::Error),
+
+    #[error("Failed to unpack archive in {0}: {1}")]
+    UnpackingArchiveFailed(PathBuf, std::io::Error),
 
     #[error("Failed to write to {0}: {1}")]
     WriteFileFailed(PathBuf, std::io::Error),

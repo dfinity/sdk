@@ -1,11 +1,12 @@
 pub mod composite;
 
-use crate::error::io::IoError;
 use crate::error::io::IoErrorKind::{
-    CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed,
-    ReadFileFailed, ReadPermissionsFailed, RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed,
-    RemoveFileFailed, RenameFailed, WriteFileFailed, WritePermissionsFailed,
+    ArchiveFileInvalidPath, CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed,
+    NoParent, ReadDirFailed, ReadFileFailed, ReadPermissionsFailed,
+    RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
+    UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
 };
+use crate::error::io::IoError;
 
 use std::fs::{Permissions, ReadDir};
 use std::path::{Path, PathBuf};
@@ -28,6 +29,14 @@ pub fn copy(from: &Path, to: &Path) -> Result<u64, IoError> {
 pub fn create_dir_all(path: &Path) -> Result<(), IoError> {
     std::fs::create_dir_all(path)
         .map_err(|err| IoError::new(CreateDirectoryFailed(path.to_path_buf(), err)))
+}
+
+pub fn get_archive_path(
+    archive: &tar::Entry<flate2::read::GzDecoder<&'static [u8]>>,
+) -> Result<PathBuf, IoError> {
+    let path = archive.path()
+        .map_err(|err| IoError::new(ArchiveFileInvalidPath(err)))?;
+    Ok(path.to_path_buf())
 }
 
 pub fn parent(path: &Path) -> Result<PathBuf, IoError> {
@@ -80,6 +89,19 @@ pub fn remove_file(path: &Path) -> Result<(), IoError> {
 pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), IoError> {
     std::fs::set_permissions(path, permissions)
         .map_err(|err| IoError::new(WritePermissionsFailed(path.to_path_buf(), err)))
+}
+
+pub fn tar_unpack_in<P: AsRef<Path>>(
+    path: P,
+    tar: &mut tar::Entry<flate2::read::GzDecoder<&'static [u8]>>,
+) -> Result<(), IoError> {
+    tar.unpack_in(&path).map_err(|e| {
+        IoError::new(UnpackingArchiveFailed(
+            path.as_ref().to_path_buf(),
+            e,
+        ))
+    })?;
+    Ok(())
 }
 
 pub fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(), IoError> {

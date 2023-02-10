@@ -6,6 +6,5 @@ pub enum FoundationError {
     NoHomeInEnvironment(),
 
     #[error("Failed to identify currently running executable: {0}")]
-    NoCurrentExe(std::io::Error)
-
+    NoCurrentExe(std::io::Error),
 }

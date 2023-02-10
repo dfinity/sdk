@@ -166,11 +166,12 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             if file.header().entry_type().is_dir() {
                 continue;
             }
-            file.unpack_in(temp_p.as_path())?;
+            dfx_core::fs::tar_unpack_in(temp_p.as_path(), &mut file)?;
             // On *nix we need to set the execute permission as the tgz doesn't include it
             #[cfg(unix)]
             {
-                let full_path = temp_p.join(file.path()?);
+                let archive_path = dfx_core::fs::get_archive_path(&file)?;
+                let full_path = temp_p.join(archive_path);
                 let mut perms = dfx_core::fs::read_permissions(full_path.as_path())?;
                 perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
                 dfx_core::fs::set_permissions(full_path.as_path(), perms)?;
@@ -259,8 +260,8 @@ pub fn call_cached_dfx(v: &Version) -> Result<ExitStatus, CacheError> {
         return Err(CacheError::UnknownVersion(v));
     }
 
-    let cmd = std::process::Command::new(command_path)
-        .args(std::env::args().skip(1));
+    let mut binding = std::process::Command::new(command_path);
+    let cmd = binding.args(std::env::args().skip(1));
     let result = dfx_core::process::execute_process(cmd)?;
     Ok(result)
 }
