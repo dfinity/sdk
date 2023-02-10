@@ -131,79 +131,78 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         return Ok(p);
     }
 
-    let parsed_version = Version::parse(v).map_err(CacheError::MalformedSemverVersion)?;
-    if parsed_version != *dfx_version() {
-        return Err(CacheError::UnknownVersion(v.to_owned()));
-    };
-    // Dismiss as fast as possible. We use the current_exe variable after an
-    // expensive step, and if this fails we can't continue anyway.
-    let current_exe = std::env::current_exe()?;
+    if Version::parse(v).map_err(CacheError::MalformedSemverVersion)? == *dfx_version() {
+        // Dismiss as fast as possible. We use the current_exe variable after an
+        // expensive step, and if this fails we can't continue anyway.
+        let current_exe = std::env::current_exe()?;
 
-    let b: Option<ProgressBar> = if atty::is(atty::Stream::Stderr) {
-        let b = ProgressBar::new_spinner();
-        b.set_draw_target(ProgressDrawTarget::stderr());
-        b.set_message(format!("Installing version {} of dfx...", v));
-        b.enable_steady_tick(80);
-        Some(b)
-    } else {
-        None
-    };
+        let b: Option<ProgressBar> = if atty::is(atty::Stream::Stderr) {
+            let b = ProgressBar::new_spinner();
+            b.set_draw_target(ProgressDrawTarget::stderr());
+            b.set_message(format!("Installing version {} of dfx...", v));
+            b.enable_steady_tick(80);
+            Some(b)
+        } else {
+            None
+        };
 
-    let rand_string: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(12)
-        .map(|byte| byte as char)
-        .collect();
-    let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
-    dfx_core::fs::create_dir_all(&temp_p)?;
+        let rand_string: String = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(12)
+            .map(|byte| byte as char)
+            .collect();
+        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
+        dfx_core::fs::create_dir_all(&temp_p)?;
 
-    let mut binary_cache_assets = util::assets::binary_cache()?;
-    // Write binaries and set them to be executable.
-    for file in binary_cache_assets.entries()? {
-        let mut file = file?;
+        let mut binary_cache_assets = util::assets::binary_cache()?;
+        // Write binaries and set them to be executable.
+        for file in binary_cache_assets.entries()? {
+            let mut file = file?;
 
-        if file.header().entry_type().is_dir() {
-            continue;
+            if file.header().entry_type().is_dir() {
+                continue;
+            }
+            file.unpack_in(temp_p.as_path())?;
+            // On *nix we need to set the execute permission as the tgz doesn't include it
+            #[cfg(unix)]
+            {
+                let full_path = temp_p.join(file.path()?);
+                let mut perms = dfx_core::fs::read_permissions(full_path.as_path())?;
+                perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
+                dfx_core::fs::set_permissions(full_path.as_path(), perms)?;
+            }
         }
-        file.unpack_in(temp_p)?;
+
+        // Copy our own binary in the cache.
+        let dfx = temp_p.join("dfx");
+        dfx_core::fs::write(&dfx, dfx_core::fs::read(&current_exe)?)?;
         // On *nix we need to set the execute permission as the tgz doesn't include it
         #[cfg(unix)]
         {
-            let full_path = temp_p.join(file.path()?);
-            let mut perms = dfx_core::fs::read_permissions(full_path.as_path())?;
+            let mut perms = dfx_core::fs::read_permissions(&dfx)?;
             perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-            dfx_core::fs::set_permissions(full_path.as_path(), perms)?;
+            dfx_core::fs::set_permissions(&dfx, perms)?;
         }
-    }
 
-    // Copy our own binary in the cache.
-    let dfx = temp_p.join("dfx");
-    dfx_core::fs::write(&dfx, dfx_core::fs::read(&current_exe)?)?;
-    // On *nix we need to set the execute permission as the tgz doesn't include it
-    #[cfg(unix)]
-    {
-        let mut perms = dfx_core::fs::read_permissions(&dfx)?;
-        perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-        dfx_core::fs::set_permissions(&dfx, perms)?;
-    }
-
-    // atomically install cache version into place
-    if force && p.exists() {
-        dfx_core::fs::remove_dir_all(&p)?;
-    }
-
-    if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
-        if let Some(b) = b {
-            b.finish_with_message(format!("Version v{} installed successfully.", v));
+        // atomically install cache version into place
+        if force && p.exists() {
+            dfx_core::fs::remove_dir_all(&p)?;
         }
+
+        if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
+            if let Some(b) = b {
+                b.finish_with_message(format!("Version v{} installed successfully.", v));
+            }
+        } else {
+            dfx_core::fs::remove_dir_all(temp_p.as_path())?;
+            if let Some(b) = b {
+                b.finish_with_message(format!("Version v{} was already installed.", v));
+            }
+        }
+        Ok(p)
     } else {
-        dfx_core::fs::remove_dir_all(temp_p.as_path())?;
-        if let Some(b) = b {
-            b.finish_with_message(format!("Version v{} was already installed.", v));
-        }
+        Err(CacheError::UnknownVersion(v.to_owned()))
     }
-
-    Ok(p)
 }
 
 pub fn get_binary_path_from_version(
