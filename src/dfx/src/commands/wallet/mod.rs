@@ -1,10 +1,10 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::NetworkOpt;
 
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use anyhow::Context;
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
@@ -90,7 +90,7 @@ where
         .to_string();
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
-    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name).await?;
+    let wallet = get_or_create_wallet_canister(env, network, &identity_name).await?;
 
     let out: O = wallet
         .query_(method)
@@ -127,6 +127,6 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
     fetch_root_key_if_needed(env).await?;
-    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name).await?;
+    let wallet = get_or_create_wallet_canister(env, network, &identity_name).await?;
     Ok(wallet)
 }

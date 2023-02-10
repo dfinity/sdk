@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use crate::config::dfinity::{ConfigInterface, TopLevelConfigNetworks};
 use crate::lib::error::DfxResult;
+use dfx_core::config::model::dfinity::{ConfigInterface, TopLevelConfigNetworks};
 
 use anyhow::Context;
 use clap::{arg_enum, Parser};

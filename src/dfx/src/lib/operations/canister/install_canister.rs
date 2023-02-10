@@ -1,9 +1,8 @@
-use crate::lib::builders::environment_variables;
+use crate::lib::builders::get_and_write_environment_variables;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::Identity;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
@@ -12,6 +11,7 @@ use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
 
+use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -27,6 +27,7 @@ use sha2::{Digest, Sha256};
 use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
+use std::path::Path;
 use std::process::{Command, Stdio};
 
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
@@ -41,6 +42,7 @@ pub async fn install_canister(
     upgrade_unchanged: bool,
     pool: Option<&CanisterPool>,
     skip_consent: bool,
+    env_file: Option<&Path>,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
@@ -182,7 +184,7 @@ pub async fn install_canister(
     }
     if canister_info.is_assets() {
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, env).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,
@@ -205,11 +207,17 @@ pub async fn install_canister(
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent).await?;
+        post_install_store_assets(canister_info, agent, log).await?;
     }
-
     if !canister_info.get_post_install().is_empty() {
-        run_post_install_tasks(env, canister_info, network, pool)?;
+        let config = env.get_config();
+        run_post_install_tasks(
+            env,
+            canister_info,
+            network,
+            pool,
+            env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
+        )?;
     }
 
     Ok(())
@@ -280,16 +288,18 @@ fn run_post_install_tasks(
     canister: &CanisterInfo,
     network: &NetworkDescriptor,
     pool: Option<&CanisterPool>,
+    env_file: Option<&Path>,
 ) -> DfxResult {
     let tmp;
     let pool = match pool {
         Some(pool) => pool,
         None => {
-            tmp = env
+            let deps = env
                 .get_config_or_anyhow()?
                 .get_config()
-                .get_canister_names_with_dependencies(Some(canister.get_name()))
-                .and_then(|deps| CanisterPool::load(env, false, &deps))
+                .get_canister_names_with_dependencies(Some(canister.get_name()))?;
+
+            tmp = CanisterPool::load(env, false, &deps)
                 .context("Error collecting canisters for post-install task")?;
             &tmp
         }
@@ -300,7 +310,7 @@ fn run_post_install_tasks(
         .map(|can| can.canister_id())
         .collect_vec();
     for task in canister.get_post_install() {
-        run_post_install_task(canister, task, network, pool, &dependencies)?;
+        run_post_install_task(canister, task, network, pool, &dependencies, env_file)?;
     }
     Ok(())
 }
@@ -312,6 +322,7 @@ fn run_post_install_task(
     network: &NetworkDescriptor,
     pool: &CanisterPool,
     dependencies: &[Principal],
+    env_file: Option<&Path>,
 ) -> DfxResult {
     let cwd = canister.get_workspace_root();
     let words = shell_words::split(task)
@@ -323,7 +334,8 @@ fn run_post_install_task(
         .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
     let mut command = Command::new(&canonicalized);
     command.args(&words[1..]);
-    let vars = environment_variables(canister, &network.name, pool, dependencies);
+    let vars =
+        get_and_write_environment_variables(canister, &network.name, pool, dependencies, env_file)?;
     for (key, val) in vars {
         command.env(&*key, val);
     }
@@ -397,7 +409,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                 .context("Failed to install wasm.")?;
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, env).await?;
             let install_args = CanisterInstall {
                 mode,
                 canister_id,
@@ -432,7 +444,7 @@ pub async fn install_wallet(
         .call_and_wait()
         .await
         .context("Failed to install wallet wasm.")?;
-    let wallet = Identity::build_wallet_canister(id, env).await?;
+    let wallet = build_wallet_canister(id, env).await?;
     wallet
         .wallet_store_wallet_wasm(wasm)
         .call_and_wait()

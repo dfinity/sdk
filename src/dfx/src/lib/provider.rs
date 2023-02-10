@@ -1,15 +1,16 @@
-use crate::config::dfinity::{
-    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
-    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
-};
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
-use crate::lib::identity::WALLET_CONFIG_FILENAME;
 use crate::lib::network::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::util::{self, expiry_duration};
+use dfx_core::config::directories::get_shared_network_data_directory;
+use dfx_core::config::model::dfinity::{
+    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
+    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
+};
+use dfx_core::identity::{ANONYMOUS_IDENTITY_NAME, WALLET_CONFIG_FILENAME};
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -196,7 +197,7 @@ fn create_url_based_network_descriptor(network_name: &str) -> Option<DfxResult<N
         // OS-friendly directory name for it.
         let name = util::network_to_pathcompat(network_name);
         let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
-        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)?;
         let network_type = NetworkTypeDescriptor::new(
             NetworkType::Ephemeral,
             &data_directory.join(WALLET_CONFIG_FILENAME),
@@ -267,7 +268,7 @@ fn create_shared_network_descriptor(
     };
 
     network.as_ref().map(|config_network| {
-        let data_directory = NetworksConfig::get_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)?;
 
         let ephemeral_wallet_config_path = data_directory.join(WALLET_CONFIG_FILENAME);
 
@@ -412,7 +413,27 @@ pub fn create_agent_environment<'a>(
         LocalBindDetermination::ApplyRunningWebserverPort,
     )?;
     let timeout = expiry_duration();
-    AgentEnvironment::new(env, network_descriptor, timeout)
+    AgentEnvironment::new(env, network_descriptor, timeout, None)
+}
+
+pub fn create_anonymous_agent_environment<'a>(
+    env: &'a (dyn Environment + 'a),
+    network: Option<String>,
+) -> DfxResult<AgentEnvironment<'a>> {
+    let network_descriptor = create_network_descriptor(
+        env.get_config(),
+        env.get_networks_config(),
+        network,
+        None,
+        LocalBindDetermination::ApplyRunningWebserverPort,
+    )?;
+    let timeout = expiry_duration();
+    AgentEnvironment::new(
+        env,
+        network_descriptor,
+        timeout,
+        Some(ANONYMOUS_IDENTITY_NAME),
+    )
 }
 
 #[context("Failed to parse supplied provider url {}.", s)]
@@ -469,12 +490,13 @@ pub async fn ping_and_wait(url: &str) -> DfxResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
-    use crate::config::dfinity::{
+    use dfx_core::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
+    use dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel;
+    use dfx_core::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
+    use dfx_core::config::model::dfinity::{
         to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
         ConfigDefaultsReplica, ReplicaLogLevel,
     };
-    use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
     use std::fs;
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::str::FromStr;
@@ -1005,7 +1027,7 @@ mod tests {
             canister_http_config,
             &ConfigDefaultsCanisterHttp {
                 enabled: true,
-                log_level: crate::lib::canister_http::adapter::config::HttpAdapterLogLevel::Debug
+                log_level: HttpAdapterLogLevel::Debug
             }
         );
     }

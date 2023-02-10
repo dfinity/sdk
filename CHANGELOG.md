@@ -2,12 +2,58 @@
 
 # UNRELEASED
 
+## Asset Canister
+
+Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 98863747bb8b1366ae5e3c5721bfe08ce6b7480fe4c3864d4fec3d9827255480
+- https://github.com/dfinity/sdk/pull/2958
+
+# 0.13.0
+
 ## DFX
+
+### feat: Add dfx sns download
+
+This allows users to download SNS canister WASMs.
 
 ### fix: fixed error text
 - `dfx nns install` had the wrong instructions for setting up the local replica type
 
 ### fix: creating an identity with `--force` no longer switches to the newly created identity
+
+### feat(frontend-canister)!: reworked to use permissions-based access control
+
+The permissions are as follows:
+- ManagePermissions: Can grant and revoke permissions to any principal.  Controllers implicitly have this permission.
+- Prepare: Can call create_batch and create_chunk
+- Commit: Can call commit_batch and methods that manipulate assets directly, as well as any method permitted by Prepare.
+
+For upgraded frontend canisters, all authorized principals will be granted the Commit permission.
+For newly deployed frontend canisters, the initializer (first deployer of the canister) will be granted the Commit permission.
+
+Added three new methods:
+- list_permitted: lists principals with a given permission.
+  - Callable by anyone.
+- grant_permission: grants a single permission to a principal
+  - Callable by Controllers and principals with the ManagePermissions permission.
+- revoke_permission: removes a single permission from a principal
+  - Any principal can revoke its own permissions.
+  - Only Controllers and principals with the ManagePermissions permission can revoke the permissions of other principals.
+
+Altered the behavior of the existing authorization-related methods to operate only on the "Commit" permission.  In this way, they are backwards-compatible.
+- authorize(principal): same as grant_permission(principal, Commit)
+- deauthorize(principal): same as revoke_permission(permission, Commit)
+- list_authorized(): same as list_permitted(Commit)
+
+### fix(frontend-canister)!: removed ability of some types of authorized principals to manage the ACL
+
+It used to be the case that any authorized principal could authorize and deauthorize any other principal.
+This is no longer the case.  See rules above for grant_permission and revoke_permission.
 
 ### feat(frontend-canister)!: default secure configuration for assets in frontend project template
 
@@ -40,6 +86,10 @@ At the present time, there are two ways to reconfigure an existing asset:
     ```
 
 ### feat(frontend-canister): pretty print asset properties when deploying assets to the canister
+
+### feat(frontend-canister): add take_ownership() method
+
+Callable only by a controller.  Clears list of authorized principals and adds the caller (controller) as the only authorized principal.
 
 ### feat(ic-ref):
 - `effective_canister_id` used for `provisional_create_canister_with_cycles` is passed as an command-line argument (defaults to `rwlgt-iiaaa-aaaaa-aaaaa-cai` if not provided or upon parse failure)
@@ -109,8 +159,8 @@ Updated candid to 0.8.4
 
 ### Frontend canister
 
-- Module hash: 9093294e28805eac1c8226b9d73cb0da02657ca1219ae951b655931e8a2f32b8
-- https://github.com/dfinity/sdk/pull/2824
+- Module hash: d12e4493878911c21364c550ca90b81be900ebde43e7956ae1873c51504a8757
+- https://github.com/dfinity/sdk/pull/2942
 
 ### ic-ref
 
@@ -118,13 +168,18 @@ Updated ic-ref to master commit `3cc51be5`
 
 ### Motoko
 
-Updated Motoko to 0.7.4
+Updated Motoko to 0.7.6
 
 ### Replica
 
-Updated replica to elected commit 997ab2e9cc49189302fe54c1e60709abfbeb1d42.
+Updated replica to elected commit b5a1a8c0e005216f2d945f538fc27163bafc3bf7.
 This incorporates the following executed proposals:
 
+- [100821](https://dashboard.internetcomputer.org/proposal/100821)
+- [97472](https://dashboard.internetcomputer.org/proposal/97472)
+- [96114](https://dashboard.internetcomputer.org/proposal/96114)
+- [94953](https://dashboard.internetcomputer.org/proposal/94953)
+- [94852](https://dashboard.internetcomputer.org/proposal/94852)
 - [93761](https://dashboard.internetcomputer.org/proposal/93761)
 - [93507](https://dashboard.internetcomputer.org/proposal/93507)
 - [92573](https://dashboard.internetcomputer.org/proposal/92573)

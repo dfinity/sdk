@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::rc_bytes::RcBytes;
-use candid::{CandidType, Deserialize, Nat};
+use candid::{CandidType, Deserialize, Nat, Principal};
 use serde_bytes::ByteBuf;
 
 pub type BatchId = Nat;
@@ -117,4 +117,38 @@ pub struct SetAssetPropertiesArguments {
     pub max_age: Option<Option<u64>>,
     pub headers: Option<Option<HashMap<String, String>>>,
     pub allow_raw_access: Option<Option<bool>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+pub enum Permission {
+    Commit,
+    ManagePermissions,
+    Prepare,
+}
+
+impl std::fmt::Display for Permission {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Permission::Commit => f.write_str("Commit"),
+            Permission::Prepare => f.write_str("Prepare"),
+            Permission::ManagePermissions => f.write_str("ManagePermissions"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct GrantPermissionArguments {
+    pub to_principal: Principal,
+    pub permission: Permission,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct RevokePermissionArguments {
+    pub of_principal: Principal,
+    pub permission: Permission,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ListPermittedArguments {
+    pub permission: Permission,
 }

@@ -1,5 +1,5 @@
-use crate::config::dfinity::ConfigInterface;
 use crate::lib::error::DfxResult;
+use dfx_core::config::model::dfinity::ConfigInterface;
 
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;

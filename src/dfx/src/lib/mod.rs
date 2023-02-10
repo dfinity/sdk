@@ -1,13 +1,11 @@
-pub mod bitcoin;
 pub mod builders;
 pub mod call_bundled;
-pub mod canister_http;
 pub mod canister_info;
-pub mod config;
 pub mod diagnosis;
 pub mod dist;
 pub mod environment;
 pub mod error;
+pub mod extension;
 pub mod ic_attributes;
 pub mod identity;
 pub mod info;

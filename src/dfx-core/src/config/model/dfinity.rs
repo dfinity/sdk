@@ -1,16 +1,37 @@
 #![allow(dead_code)]
-use crate::lib::bitcoin::adapter::config::BitcoinAdapterLogLevel;
-use crate::lib::canister_http::adapter::config::HttpAdapterLogLevel;
-use crate::lib::config::get_config_dfx_dir_path;
-use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::util::{project_dirs, PossiblyStr, SerdeVec};
-use crate::{error_invalid_argument, error_invalid_config, error_invalid_data};
+#![allow(clippy::should_implement_trait)] // for from_str.  why now?
 
-use crate::config::dfinity::MetadataVisibility::Public;
-use anyhow::{anyhow, Context};
+use crate::config::directories::get_config_dfx_dir_path;
+use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
+use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
+use crate::config::model::dfinity::MetadataVisibility::Public;
+use crate::error::dfx_config::DfxConfigError;
+use crate::error::dfx_config::DfxConfigError::{
+    CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
+    GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
+    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed,
+};
+use crate::error::load_dfx_config::LoadDfxConfigError;
+use crate::error::load_dfx_config::LoadDfxConfigError::{
+    DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
+};
+use crate::error::load_networks_config::LoadNetworksConfigError;
+use crate::error::load_networks_config::LoadNetworksConfigError::{
+    GetConfigPathFailed, LoadConfigFromFileFailed,
+};
+use crate::error::socket_addr_conversion::SocketAddrConversionError;
+use crate::error::socket_addr_conversion::SocketAddrConversionError::{
+    EmptyIterator, ParseSocketAddrFailed,
+};
+use crate::error::structured_file::StructuredFileError;
+use crate::error::structured_file::StructuredFileError::{
+    DeserializeJsonFileFailed, ReadJsonFileFailed,
+};
+use crate::json::save_json_file;
+use crate::json::structure::{PossiblyStr, SerdeVec};
+
 use byte_unit::Byte;
 use candid::Principal;
-use fn_error_context::context;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -575,6 +596,9 @@ pub struct ConfigInterface {
     /// Mapping between network names and their configurations.
     /// Networks 'ic' and 'local' are implicitly defined.
     pub networks: Option<BTreeMap<String, ConfigNetwork>>,
+
+    /// If set, environment variables will be output to this file (without overwriting any user-defined variables, if the file already exists).
+    pub output_env_file: Option<PathBuf>,
 }
 
 pub type TopLevelConfigNetworks = BTreeMap<String, ConfigNetwork>;
@@ -586,17 +610,13 @@ pub struct NetworksConfigInterface {
 
 impl ConfigCanistersCanister {}
 
-#[context("Failed to convert '{}' to a SocketAddress.", s)]
-pub fn to_socket_addr(s: &str) -> DfxResult<SocketAddr> {
+pub fn to_socket_addr(s: &str) -> Result<SocketAddr, SocketAddrConversionError> {
     match s.to_socket_addrs() {
         Ok(mut a) => match a.next() {
             Some(res) => Ok(res),
-            None => Err(DfxError::new(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Empty iterator",
-            ))),
+            None => Err(EmptyIterator(s.to_string())),
         },
-        Err(err) => Err(DfxError::new(err)),
+        Err(err) => Err(ParseSocketAddrFailed(s.to_string(), err)),
     }
 }
 
@@ -653,115 +673,115 @@ impl ConfigInterface {
 
     /// Return the names of the specified canister and all of its dependencies.
     /// If none specified, return the names of all canisters.
-    #[context("Failed to get canisters with their dependencies (for {}).", some_canister.unwrap_or("all canisters"))]
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
-    ) -> DfxResult<Vec<String>> {
-        let canister_map = self
-            .canisters
+    ) -> Result<Vec<String>, DfxConfigError> {
+        self.canisters
             .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
-
-        let canister_names = match some_canister {
-            Some(specific_canister) => {
-                let mut names = HashSet::new();
-                let mut path = vec![];
-                add_dependencies(canister_map, &mut names, &mut path, specific_canister)?;
-                names.into_iter().collect()
-            }
-            None => canister_map.keys().cloned().collect(),
-        };
-
-        Ok(canister_names)
+            .ok_or(CanistersFieldDoesNotExist())
+            .and_then(|canister_map| match some_canister {
+                Some(specific_canister) => {
+                    let mut names = HashSet::new();
+                    let mut path = vec![];
+                    add_dependencies(canister_map, &mut names, &mut path, specific_canister)
+                        .map(|_| names.into_iter().collect())
+                }
+                None => Ok(canister_map.keys().cloned().collect()),
+            })
+            .map_err(|cause| {
+                GetCanistersWithDependenciesFailed(some_canister.map(String::from), Box::new(cause))
+            })
     }
 
-    #[context(
-        "Failed to figure out if canister '{}' has a remote id on network '{}'.",
-        canister,
-        network
-    )]
     pub fn get_remote_canister_id(
         &self,
         canister: &str,
         network: &str,
-    ) -> DfxResult<Option<Principal>> {
+    ) -> Result<Option<Principal>, DfxConfigError> {
         let maybe_principal = self
-            .canisters
-            .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?
-            .get(canister)
-            .ok_or_else(|| error_invalid_argument!("Canister {} not found in dfx.json", canister))?
+            .get_canister_config(canister)
+            .map_err(|e| {
+                GetRemoteCanisterIdFailed(
+                    Box::new(canister.to_string()),
+                    Box::new(network.to_string()),
+                    Box::new(e),
+                )
+            })?
             .remote
             .as_ref()
             .and_then(|r| r.id.get(network))
             .copied();
+
         Ok(maybe_principal)
     }
 
-    #[context(
-        "Failed while determining if canister '{}' is remote on network '{}'.",
-        canister,
-        network
-    )]
-    pub fn is_remote_canister(&self, canister: &str, network: &str) -> DfxResult<bool> {
+    pub fn is_remote_canister(
+        &self,
+        canister: &str,
+        network: &str,
+    ) -> Result<bool, DfxConfigError> {
         Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
-    #[context("Failed to get compute allocation for '{}'.", canister_name)]
-    pub fn get_compute_allocation(&self, canister_name: &str) -> DfxResult<Option<u64>> {
+    pub fn get_compute_allocation(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<u64>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetComputeAllocationFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .compute_allocation
             .map(|x| x.0))
     }
 
-    #[context("Failed to get memory allocation for '{}'.", canister_name)]
-    pub fn get_memory_allocation(&self, canister_name: &str) -> DfxResult<Option<Byte>> {
+    pub fn get_memory_allocation(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Byte>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetMemoryAllocationFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .memory_allocation)
     }
 
-    #[context("Failed to get freezing threshold for '{}'.", canister_name)]
-    pub fn get_freezing_threshold(&self, canister_name: &str) -> DfxResult<Option<Duration>> {
+    pub fn get_freezing_threshold(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Duration>, DfxConfigError> {
         Ok(self
-            .get_canister_config(canister_name)?
+            .get_canister_config(canister_name)
+            .map_err(|e| GetFreezingThresholdFailed(canister_name.to_string(), Box::new(e)))?
             .initialization_values
             .freezing_threshold)
     }
 
-    fn get_canister_config(&self, canister_name: &str) -> DfxResult<&ConfigCanistersCanister> {
-        let canister_map = self
-            .canisters
+    fn get_canister_config(
+        &self,
+        canister_name: &str,
+    ) -> Result<&ConfigCanistersCanister, DfxConfigError> {
+        self.canisters
             .as_ref()
-            .ok_or_else(|| error_invalid_config!("No canisters in the configuration file."))?;
-
-        let canister_config = canister_map
+            .ok_or(CanistersFieldDoesNotExist())?
             .get(canister_name)
-            .with_context(|| format!("Cannot find canister '{canister_name}'."))?;
-        Ok(canister_config)
+            .ok_or_else(|| CanisterNotFound(canister_name.to_string()))
     }
 }
 
-#[context("Failed to add dependencies for canister '{}'.", canister_name)]
 fn add_dependencies(
     all_canisters: &BTreeMap<String, ConfigCanistersCanister>,
     names: &mut HashSet<String>,
     path: &mut Vec<String>,
     canister_name: &str,
-) -> DfxResult {
+) -> Result<(), DfxConfigError> {
     let inserted = names.insert(String::from(canister_name));
 
     if !inserted {
         return if path.contains(&String::from(canister_name)) {
             path.push(String::from(canister_name));
-            Err(DfxError::new(BuildError::DependencyError(format!(
-                "Found circular dependency: {}",
-                path.join(" -> ")
-            ))))
+            Err(CanisterCircularDependency(path.clone()))
         } else {
             Ok(())
         };
@@ -769,7 +789,7 @@ fn add_dependencies(
 
     let canister_config = all_canisters
         .get(canister_name)
-        .ok_or_else(|| anyhow!("Cannot find canister '{}'.", canister_name))?;
+        .ok_or_else(|| CanisterNotFound(canister_name.to_string()))?;
 
     path.push(String::from(canister_name));
 
@@ -792,14 +812,8 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
-    #[context("Failed to resolve config path from {}.", working_dir.to_string_lossy())]
-    fn resolve_config_path(working_dir: &Path) -> DfxResult<Option<PathBuf>> {
-        let mut curr = PathBuf::from(working_dir).canonicalize().with_context(|| {
-            format!(
-                "Failed to canonicalize working dir path {:}.",
-                working_dir.to_string_lossy()
-            )
-        })?;
+    fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, LoadDfxConfigError> {
+        let mut curr = crate::fs::canonicalize(working_dir).map_err(ResolveConfigPathFailed)?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
                 return Ok(Some(curr.join(CONFIG_FILE_NAME)));
@@ -816,40 +830,37 @@ impl Config {
         Ok(None)
     }
 
-    #[context("Failed to load config from {}.", path.to_string_lossy())]
-    fn from_file(path: &Path) -> DfxResult<Config> {
-        let content = std::fs::read(path)
-            .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
-        Ok(Config::from_slice(path.to_path_buf(), &content)?)
+    fn from_file(path: &Path) -> Result<Config, StructuredFileError> {
+        let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
+        Config::from_slice(path.to_path_buf(), &content)
     }
 
-    #[context("Failed to read config from directory {}.", working_dir.to_string_lossy())]
-    pub fn from_dir(working_dir: &Path) -> DfxResult<Option<Config>> {
+    pub fn from_dir(working_dir: &Path) -> Result<Option<Config>, LoadDfxConfigError> {
         let path = Config::resolve_config_path(working_dir)?;
-        let maybe_config = path.map(|path| Config::from_file(&path)).transpose()?;
-        Ok(maybe_config)
+        path.map(|path| Config::from_file(&path))
+            .transpose()
+            .map_err(LoadFromFileFailed)
     }
 
-    #[context("Failed to read config from current working directory.")]
-    pub fn from_current_dir() -> DfxResult<Option<Config>> {
-        Config::from_dir(
-            &std::env::current_dir().context("Failed to determine current working dir.")?,
-        )
+    pub fn from_current_dir() -> Result<Option<Config>, LoadDfxConfigError> {
+        Config::from_dir(&std::env::current_dir().map_err(DetermineCurrentWorkingDirFailed)?)
     }
 
-    fn from_slice(path: PathBuf, content: &[u8]) -> std::io::Result<Config> {
-        let config = serde_json::from_slice(content)?;
-        let json = serde_json::from_slice(content)?;
+    fn from_slice(path: PathBuf, content: &[u8]) -> Result<Config, StructuredFileError> {
+        let config = serde_json::from_slice(content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
+        let json = serde_json::from_slice(content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
         Ok(Config { path, json, config })
     }
 
     /// Create a configuration from a string.
-    pub fn from_str(content: &str) -> std::io::Result<Config> {
+    pub fn from_str(content: &str) -> Result<Config, StructuredFileError> {
         Config::from_slice(PathBuf::from("-"), content.as_bytes())
     }
 
     #[cfg(test)]
-    pub fn from_str_and_path(path: PathBuf, content: &str) -> std::io::Result<Config> {
+    pub fn from_str_and_path(path: PathBuf, content: &str) -> Result<Config, StructuredFileError> {
         Config::from_slice(path, content.as_bytes())
     }
 
@@ -878,13 +889,8 @@ impl Config {
         )
     }
 
-    pub fn save(&self) -> DfxResult {
-        let json_pretty = serde_json::to_string_pretty(&self.json)
-            .map_err(|e| error_invalid_data!("Failed to serialize dfx.json: {}", e))?;
-        std::fs::write(&self.path, json_pretty).with_context(|| {
-            format!("Failed to write config to {}.", self.path.to_string_lossy())
-        })?;
-        Ok(())
+    pub fn save(&self) -> Result<(), StructuredFileError> {
+        save_json_file(&self.path, &self.json)
     }
 }
 
@@ -972,21 +978,13 @@ impl NetworksConfig {
     pub fn get_interface(&self) -> &NetworksConfigInterface {
         &self.networks_config
     }
-    #[context("Failed to determine shared network data directory.")]
-    pub fn get_network_data_directory(network: &str) -> DfxResult<PathBuf> {
-        Ok(project_dirs()?
-            .data_local_dir()
-            .join("network")
-            .join(network))
-    }
 
-    #[context("Failed to read shared networks configuration.")]
-    pub fn new() -> DfxResult<NetworksConfig> {
-        let dir = get_config_dfx_dir_path()?;
+    pub fn new() -> Result<NetworksConfig, LoadNetworksConfigError> {
+        let dir = get_config_dfx_dir_path().map_err(GetConfigPathFailed)?;
 
         let path = dir.join("networks.json");
         if path.exists() {
-            NetworksConfig::from_file(&path)
+            NetworksConfig::from_file(&path).map_err(LoadConfigFromFileFailed)
         } else {
             Ok(NetworksConfig {
                 path,
@@ -998,14 +996,14 @@ impl NetworksConfig {
         }
     }
 
-    #[context("Failed to read shared configuration from {}.", path.to_string_lossy())]
-    fn from_file(path: &Path) -> DfxResult<NetworksConfig> {
-        let content = std::fs::read(path)
-            .with_context(|| format!("Failed to read {}.", path.to_string_lossy()))?;
+    fn from_file(path: &Path) -> Result<NetworksConfig, StructuredFileError> {
+        let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
 
-        let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)?;
+        let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
         let networks_config = NetworksConfigInterface { networks };
-        let json = serde_json::from_slice(&content)?;
+        let json = serde_json::from_slice(&content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
         let path = PathBuf::from(path);
         Ok(NetworksConfig {
             path,

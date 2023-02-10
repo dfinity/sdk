@@ -3,12 +3,14 @@ use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::{environment::Environment, identity::Identity, named_canister};
+use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::NetworkOpt;
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use anyhow::{anyhow, bail, Context};
@@ -71,6 +73,10 @@ pub struct DeployOpts {
     #[clap(long, conflicts_with("wallet"))]
     no_wallet: bool,
 
+    /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
+    #[clap(long)]
+    output_env_file: Option<PathBuf>,
+
     /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
     /// so this is not recommended outside of CI.
     #[clap(long, short)]
@@ -90,6 +96,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .transpose()
         .map_err(|err| anyhow!(err))
         .context("Failed to parse InstallMode.")?;
+    let config = env.get_config_or_anyhow()?;
+    let env_file = opts
+        .output_env_file
+        .or_else(|| config.get_config().output_env_file.clone());
 
     let with_cycles = opts.with_cycles.as_deref();
 
@@ -106,10 +116,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let call_sender = runtime.block_on(call_sender(&env, &opts.wallet))?;
+    let call_sender = runtime.block_on(call_sender(&opts.wallet))?;
     let proxy_sender;
     let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
-        let wallet = runtime.block_on(Identity::get_or_create_wallet_canister(
+        let wallet = runtime.block_on(get_or_create_wallet_canister(
             &env,
             env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
@@ -132,6 +142,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         &call_sender,
         create_call_sender,
         opts.yes,
+        env_file,
     ))?;
 
     display_urls(&env)

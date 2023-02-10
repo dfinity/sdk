@@ -1,7 +1,6 @@
 //! Code for the command line: `dfx nns import`
 use std::collections::BTreeMap;
 
-use crate::config::dfinity::Config;
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
 use crate::lib::models::canister_id_store::CanisterIds;
@@ -12,6 +11,7 @@ use crate::lib::project::import::{
 };
 use crate::lib::project::network_mappings::get_network_mappings;
 use crate::Environment;
+use dfx_core::config::model::dfinity::Config;
 
 use clap::Parser;
 use slog::{info, Logger};

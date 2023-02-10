@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::asset_canister::method_names::{COMMIT_BATCH, CREATE_BATCH};
 use crate::asset_canister::protocol::{
-    BatchOperationKind, CommitBatchArguments, CreateBatchRequest, CreateBatchResponse,
+    CommitBatchArguments, CreateBatchRequest, CreateBatchResponse,
 };
 use crate::retryable::retryable;
 use anyhow::bail;
@@ -44,8 +44,7 @@ pub(crate) async fn create_batch(canister: &Canister<'_>) -> anyhow::Result<Nat>
 
 pub(crate) async fn commit_batch(
     canister: &Canister<'_>,
-    batch_id: &Nat,
-    operations: Vec<BatchOperationKind>,
+    arg: CommitBatchArguments,
 ) -> anyhow::Result<()> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
@@ -54,10 +53,6 @@ pub(crate) async fn commit_batch(
         .with_max_elapsed_time(Some(Duration::from_secs(300)))
         .build();
 
-    let arg = CommitBatchArguments {
-        batch_id,
-        operations,
-    };
     loop {
         match canister
             .update_(COMMIT_BATCH)

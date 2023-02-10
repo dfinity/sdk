@@ -830,7 +830,6 @@ dependencies = [
  "atty",
  "backoff",
  "base64",
- "bip32",
  "byte-unit",
  "bytes",
  "candid",
@@ -850,7 +849,6 @@ dependencies = [
  "handlebars",
  "hex",
  "humantime",
- "humantime-serde",
  "hyper-rustls",
  "ic-agent",
  "ic-asset",
@@ -860,7 +858,6 @@ dependencies = [
  "indicatif",
  "itertools 0.10.5",
  "junction",
- "k256",
  "keyring",
  "lazy_static",
  "mime",
@@ -897,7 +894,6 @@ dependencies = [
  "term",
  "thiserror",
  "time",
- "tiny-bip39",
  "tokio",
  "toml",
  "url",
@@ -913,12 +909,27 @@ dependencies = [
  "aes-gcm",
  "argon2",
  "bip32",
+ "byte-unit",
+ "candid",
+ "dialoguer",
+ "directories-next",
+ "hex",
+ "humantime-serde",
  "ic-agent",
+ "ic-identity-hsm",
+ "k256",
  "keyring",
+ "lazy_static",
+ "proptest",
+ "ring",
+ "schemars",
  "sec1",
  "serde",
  "serde_json",
+ "slog",
+ "tempfile",
  "thiserror",
+ "tiny-bip39",
 ]
 
 [[package]]
@@ -1692,6 +1703,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "sha2 0.10.6",
+ "slog",
  "tempfile",
  "tokio",
  "walkdir",
@@ -1883,6 +1895,9 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
+ "slog",
+ "slog-async",
+ "slog-term",
  "thiserror",
  "time",
  "tokio",
@@ -3336,6 +3351,9 @@ name = "semver"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e25dfac463d778e353db5be2449d1cce89bd6fd23c9f1ea21310ce6e5a1b29c4"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "serde"

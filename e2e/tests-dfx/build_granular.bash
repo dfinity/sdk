@@ -78,7 +78,7 @@ teardown() {
     dfx_start
     dfx canister create --all
     assert_command_fail dfx build canister_e
-    assert_match "The dependency analyzer failed: Found circular dependency: canister_e -> canister_d -> canister_e"
+    assert_match "Circular canister dependencies: canister_e -> canister_d -> canister_e"
 }
 
 @test "multiple non-cyclic dependency paths to the same canister are ok" {
