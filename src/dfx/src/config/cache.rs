@@ -6,12 +6,13 @@ use dfx_core::config::directories::project_dirs;
 
 use dfx_core::foundation::get_user_home;
 use indicatif::{ProgressBar, ProgressDrawTarget};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use semver::Version;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::ExitStatus;
-use tempfile;
 
 // POSIX permissions for files in the cache.
 #[cfg(unix)]
@@ -148,9 +149,13 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         None
     };
 
-    let bin_cache_path = get_bin_cache_root()?;
-    let tempdir = tempfile::tempdir_in(bin_cache_path)?;
-    let temp_p = tempdir.path();
+    let rand_string: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(12)
+        .map(|byte| byte as char)
+        .collect();
+    let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
+    dfx_core::fs::create_dir_all(&temp_p)?;
 
     let mut binary_cache_assets = util::assets::binary_cache()?;
     // Write binaries and set them to be executable.
@@ -187,12 +192,12 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         dfx_core::fs::remove_dir_all(&p)?;
     }
 
-    if dfx_core::fs::rename(temp_p, &p).is_ok() {
+    if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
         if let Some(b) = b {
             b.finish_with_message(format!("Version v{} installed successfully.", v));
         }
     } else {
-        dfx_core::fs::remove_dir_all(temp_p)?;
+        dfx_core::fs::remove_dir_all(temp_p.as_path())?;
         if let Some(b) = b {
             b.finish_with_message(format!("Version v{} was already installed.", v));
         }
