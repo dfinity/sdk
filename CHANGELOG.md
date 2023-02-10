@@ -4,14 +4,20 @@
 
 ## Asset Canister
 
+### Access control
+
 Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
+
+### Asset certification
+
+Add support for new certification logic that allows certifying headers.
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 98863747bb8b1366ae5e3c5721bfe08ce6b7480fe4c3864d4fec3d9827255480
-- https://github.com/dfinity/sdk/pull/2958
+- Module hash: TODO
+- https://github.com/dfinity/sdk/pull/2960
 
 # 0.13.0
 
