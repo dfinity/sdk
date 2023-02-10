@@ -134,7 +134,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
     if Version::parse(v).map_err(CacheError::MalformedSemverVersion)? == *dfx_version() {
         // Dismiss as fast as possible. We use the current_exe variable after an
         // expensive step, and if this fails we can't continue anyway.
-        let current_exe = std::env::current_exe()?;
+        let current_exe = dfx_core::foundation::get_current_exe()?;
 
         let b: Option<ProgressBar> = if atty::is(atty::Stream::Stderr) {
             let b = ProgressBar::new_spinner();
@@ -154,9 +154,9 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
         dfx_core::fs::create_dir_all(&temp_p)?;
 
-        let mut binary_cache_assets = util::assets::binary_cache()?;
+        let mut binary_cache_assets = util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheFailed)?;
         // Write binaries and set them to be executable.
-        for file in binary_cache_assets.entries()? {
+        for file in binary_cache_assets.entries().map_err(CacheError::ReadBinaryCacheFailed)? {
             let mut file = file?;
 
             if file.header().entry_type().is_dir() {
@@ -251,12 +251,11 @@ pub fn list_versions() -> Result<Vec<Version>, CacheError> {
 pub fn call_cached_dfx(v: &Version) -> Result<ExitStatus, CacheError> {
     let v = format!("{}", v);
     let command_path = get_binary_path_from_version(&v, "dfx")?;
-    if command_path == std::env::current_exe()? {
+    if command_path == dfx_core::foundation::get_current_exe()? {
         return Err(CacheError::UnknownVersion(v));
     }
 
-    std::process::Command::new(command_path)
-        .args(std::env::args().skip(1))
-        .status()
-        .map_err(CacheError::StdIoError)
+    let cmd = std::process::Command::new(command_path)
+        .args(std::env::args().skip(1));
+    dfx_core::process::execute_process(cmd).map_err(CacheError::ProcessError)
 }

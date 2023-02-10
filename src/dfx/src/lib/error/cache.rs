@@ -14,12 +14,15 @@ pub enum CacheError {
     #[error("Unknown version '{0}'.")]
     UnknownVersion(String),
 
-    #[error(transparent)]
-    IoError(#[from] dfx_core::error::io::IoError),
-
     #[error("Failed to parse version from '{0}'.")]
     MalformedSemverVersion(semver::Error),
 
+    #[error("Failed to read binary cache: '{0}'.")]
+    ReadBinaryCacheFailed(std::io::Error),
+
     #[error(transparent)]
-    StdIoError(#[from] std::io::Error),
+    IoError(#[from] dfx_core::error::io::IoError),
+
+    #[error(transparent)]
+    ProcessError(#[from] dfx_core::error::process::ProcessError),
 }
