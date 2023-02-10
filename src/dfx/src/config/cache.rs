@@ -83,9 +83,7 @@ pub fn get_cache_root() -> Result<PathBuf, CacheError> {
         None => project_dirs()?.cache_dir().to_owned(),
     };
     if !p.exists() {
-        if let Err(_e) = dfx_core::fs::create_dir_all(&p) {
-            return Err(CacheError::CreateCacheDirectoryFailed(p));
-        }
+        dfx_core::fs::create_dir_all(&p).map_err(CacheError::CreateCacheDirectoryFailed)?;
     } else if !p.is_dir() {
         return Err(CacheError::FindCacheDirectoryFailed(p));
     }
@@ -98,9 +96,7 @@ pub fn get_bin_cache_root() -> Result<PathBuf, CacheError> {
     let p = get_cache_root()?.join("versions");
 
     if !p.exists() {
-        if let Err(_e) = dfx_core::fs::create_dir_all(&p) {
-            return Err(CacheError::CreateCacheDirectoryFailed(p));
-        }
+        dfx_core::fs::create_dir_all(&p).map_err(CacheError::CreateCacheDirectoryFailed)?;
     } else if !p.is_dir() {
         return Err(CacheError::FindCacheDirectoryFailed(p));
     }
