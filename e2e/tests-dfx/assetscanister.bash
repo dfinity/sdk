@@ -58,7 +58,7 @@ check_permission_failure() {
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
   assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
-  assert_contains "trapped"
+  assert_contains "FlyBeFree not found"
 }
 
 @test "access control - fine-grained" {
