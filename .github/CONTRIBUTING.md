@@ -30,13 +30,9 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
 
 #### Setup
 
-1. Install bats and bats-support 0.3.0. See the CI provisioning scripts for examples:
+1. Install `bats`. See the CI provisioning scripts for examples:
     - [Linux](../scripts/workflows/provision-linux.sh)
     - [Darwin](../scripts/workflows/provision-darwin.sh)
-1. Export `BATSLIB` to your bats-support directory, typically:
-    ``` bash
-    $ export BATSLIB=/usr/local/lib/bats-support
-    ```
 1. Build dfx and add its target directory to your path:
     ``` bash
     sdk $ cargo build
@@ -48,7 +44,11 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
     export utils="$(pwd)/e2e/utils"
     export assets="$(pwd)/e2e/assets"
     ```
-1. Install `jq`.
+1. Install `jq` and `sponge`.
+1. Download all of this repository' submodules (which includes `bats-suppor`)
+    ```bash
+    git submodule update --init --recursive
+    ```
 
 #### Running End-to-End Tests
 
