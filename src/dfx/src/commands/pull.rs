@@ -3,7 +3,7 @@ use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::environment::AgentEnvironment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_URL};
+use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_URL, DFX_WASM_HASH};
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, provider::create_agent_environment};
@@ -139,21 +139,35 @@ async fn download_canister_wasm(
 ) -> DfxResult {
     info!(logger, "Downloading wasm of canister {canister_id}...");
 
-    // wasm will be downloaded to $HOME/.cache/dfinity/wasms/{canister_id}/canister.wasm
-    let wasm_dir = get_cache_root()?
-        .join("wasms")
-        .join(canister_id.to_string());
-    let wasm_path = wasm_dir.join("canister.wasm");
-
-    std::fs::create_dir_all(&wasm_dir)
-        .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
-    // always download and overwrite existing file.
-    let mut wasm_file = std::fs::File::create(&wasm_path)
-        .with_context(|| format!("Failed to create file at {:?}", &wasm_path))?;
-
     let agent = agent_env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    // 1. Try fetch `dfx:wasm_hash`
+    let wasm_hash = match agent
+        .read_state_canister_metadata(canister_id, DFX_WASM_HASH)
+        .await
+    {
+        Ok(data) => {
+            let s = String::from_utf8(data)?;
+            reqwest::Url::parse(&s)?
+        }
+        Err(agent_error) => match agent_error {
+            AgentError::HttpError(ref e) => {
+                let content = String::from_utf8(e.content.clone())?;
+                if content.starts_with("Custom section") {
+                    bail!(
+                        "`{}` metadata not found in canister {canister_id}.",
+                        DFX_WASM_HASH
+                    );
+                } else {
+                    bail!(agent_error);
+                }
+            }
+            _ => bail!(agent_error),
+        },
+    };
+
     let url = match agent
         .read_state_canister_metadata(canister_id, DFX_WASM_URL)
         .await
@@ -210,7 +224,21 @@ async fn download_canister_wasm(
         }
     }
 
-    wasm_file.write_all(&content)?;
+    let mut f = tempfile::tempfile()?;
+
+    f.write_all(&content)?;
+
+    // wasm will be downloaded to $HOME/.cache/dfinity/wasms/{canister_id}/canister.wasm
+    let wasm_dir = get_cache_root()?
+        .join("wasms")
+        .join(canister_id.to_string());
+    let wasm_path = wasm_dir.join("canister.wasm");
+
+    std::fs::create_dir_all(&wasm_dir)
+        .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
+    // always download and overwrite existing file.
+    let mut wasm_file = std::fs::File::create(&wasm_path)
+        .with_context(|| format!("Failed to create file at {:?}", &wasm_path))?;
 
     Ok(())
 }
