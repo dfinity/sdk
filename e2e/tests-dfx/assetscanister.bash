@@ -53,7 +53,7 @@ check_permission_failure() {
   assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"'
 
   assert_command dfx canister call e2e_project_frontend validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Commit }; })"
-  assert_contains 'O = "revoke Commit permission from principal '"$PREPARE_PRINCIPAL"'"'
+  assert_contains 'Ok = "revoke Commit permission from principal '"$PREPARE_PRINCIPAL"'"'
 
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
@@ -85,7 +85,7 @@ check_permission_failure() {
 
   # initialization: the deploying controller has Commit permissions, no one else has permissions
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
-  assert_eq "(vec {)"
+  assert_eq "(vec {})"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_eq "(
   vec {
@@ -123,7 +123,7 @@ check_permission_failure() {
   assert_contains "$CONTROLLER_PRINCIPAL"
   assert_contains "$COMMIT_PRINCIPAL"
 
-  assert_command dfx canister call e2e_project_frontend list_permitted '(recod { permission = variant { Prepare }; })'
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
   assert_eq "(
   vec {
     principal \"$PREPARE_PRINCIPAL\";
@@ -160,7 +160,7 @@ check_permission_failure() {
   args='(record { key="/a.txt"; content_type="text/plain" })'
   assert_command      dfx canister call e2e_project_frontend create_asset "$args"
   assert_command      dfx canister call e2e_project_frontend create_asset "$args" --identity commit
-  assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --idntity prepare
+  assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity prepare
   assert_contains "Caller does not have Commit permission"
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity manage-permissions
   assert_contains "Caller does not have Commit permission"

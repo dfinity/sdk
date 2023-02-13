@@ -40,7 +40,7 @@ teardown() {
     assert_command dfx canister call multiply_deps mul '(3)'
     assert_match '(9 : nat)'
     assert_command dfx canister call rust_deps read
-    assert_match '(9  nat)'
+    assert_match '(9 : nat)'
 }
 
 @test "rust canister can have nonstandard target dir location" {

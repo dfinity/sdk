@@ -29,7 +29,7 @@ teardown() {
     jq -n '.local.bind="localhost:'"$PORT"'"' >"$E2E_NETWORKS_JSON"
 
     assert_command dfx deploy
-    assert_match "e2e_project_kend: http://$CANDID_UI_ID.localhost:$PORT/\?id=$APP_ID"
+    assert_match "e2e_project_backend: http://$CANDID_UI_ID.localhost:$PORT/\?id=$APP_ID"
     assert_match "e2e_project_frontend: http://$ASSETS_ID.localhost:$PORT/"
 }
 
@@ -67,7 +67,7 @@ teardown() {
 }
 
 @test "dfx uses .ic-assets.json file provided in src/__project_name__frontend/src" {
-    echo '[{"match": "*", "hears": {"x-key": "x-value"}}]' > src/e2e_project_frontend/src/.ic-assets.json
+    echo '[{"match": "*", "headers": {"x-key": "x-value"}}]' > src/e2e_project_frontend/src/.ic-assets.json
 
     dfx_start
     dfx canister create --all
