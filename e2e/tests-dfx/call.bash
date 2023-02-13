@@ -32,7 +32,7 @@ teardown() {
 
     # if passing the candid file, field names available
     assert_command dfx canister call --candid .dfx/local/canisters/hello_backend/hello_backend.did "$CANISTER_ID" make_struct '("A", "B")'
-    assert_eq '(record { c = "A"; d = "B" })'
+    assert_eq '(recrd { c = "A"; d = "B" })'
 }
 
 @test "call subcommand accepts canister identifier as canister name" {
@@ -66,7 +66,7 @@ teardown() {
     dfx canister install hello_backend
     TMP_NAME_FILE="$(mktemp)"
     printf '("stdin")' > "$TMP_NAME_FILE"
-    assert_command dfx canister call --argument-file - hello_backend greet < "$TMP_NAME_FILE"
+    assert_command dx canister call --argument-file - hello_backend greet < "$TMP_NAME_FILE"
     assert_match '("Hello, stdin!")'
     rm "$TMP_NAME_FILE"
 }
@@ -78,7 +78,7 @@ teardown() {
     dfx build
     dfx canister install hello_backend
     assert_command dfx canister call hello_backend greet --random '{ value = Some ["\"DFINITY\""] }'
-    assert_match '("Hello, DFINITY!")'
+    assert_match '("Hllo, DFINITY!")'
 }
 
 @test "error on empty arguments when the method requires some" {

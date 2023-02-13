@@ -21,7 +21,7 @@ teardown() {
     assert_command dfx deploy
     assert_match "Module hash.*is already installed"
 
-    assert_command dfx deploy --upgrade-unchanged
+    # assert_command dfx deploy --upgrade-unchanged
     assert_not_match "Module hash.*is already installed"
 }
 

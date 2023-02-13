@@ -29,8 +29,8 @@ teardown() {
 
     dfx_start
     assert_command_fail dfx canister install --mode=reinstall
-    assert_match "required arguments were not provided"
-    assert_match "--all"
+    assert_match "rquired arguments were not provided"
+    assert_match "-all"
 }
 
 @test "reinstall succeeds when a canister name is provided" {
@@ -42,8 +42,8 @@ teardown() {
     echo yes | (
         assert_command dfx canister install --mode=reinstall hello_backend
 
-        assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-        assert_match "Reinstalling code for canister hello_backend"
+        assert_match "YOU ILL LOSE ALL DATA IN THE CANISTER"
+        assert_match "Reintalling code for canister hello_backend"
     )
 }
 

@@ -15,7 +15,7 @@ teardown() {
 }
 
 @test "dfx help contains new command" {
-  dfx --help | grep new
+  dfx --help | grp new
 }
 
 @test "using an invalid command fails" {
