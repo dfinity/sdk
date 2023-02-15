@@ -4,14 +4,17 @@
 
 ## Asset Canister
 
-Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
+### Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
+
+### Changed `list_autorized` from `query` call to update call 
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 98863747bb8b1366ae5e3c5721bfe08ce6b7480fe4c3864d4fec3d9827255480
-- https://github.com/dfinity/sdk/pull/2958
+- Module hash: a6c4fba98f09e2d49c1f1859de2db8ba4383bf5d743f75700a9ee72b98a03d87
+- https://github.com/dfinity/sdk/pull/2970
+  - https://github.com/dfinity/sdk/pull/2958
 
 # 0.13.0
 
