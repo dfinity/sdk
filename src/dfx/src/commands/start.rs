@@ -13,8 +13,8 @@ use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::ReplicaConfig;
-use crate::lib::{bitcoin, canister_http};
 use crate::util::get_reusable_socket_addr;
+use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
 
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
@@ -497,7 +497,7 @@ pub fn configure_btc_adapter_if_enabled(
     local_server_descriptor: &LocalServerDescriptor,
     config_path: &Path,
     uds_holder_path: &Path,
-) -> DfxResult<Option<bitcoin::adapter::Config>> {
+) -> DfxResult<Option<bitcoin_adapter::Config>> {
     if !local_server_descriptor.bitcoin.enabled {
         return Ok(None);
     };
@@ -507,7 +507,7 @@ pub fn configure_btc_adapter_if_enabled(
     let nodes = if let Some(ref nodes) = local_server_descriptor.bitcoin.nodes {
         nodes.clone()
     } else {
-        bitcoin::adapter::config::default_nodes()
+        bitcoin_adapter::default_nodes()
     };
 
     let config = write_btc_adapter_config(uds_holder_path, config_path, nodes, log_level)?;
@@ -550,11 +550,11 @@ fn write_btc_adapter_config(
     uds_holder_path: &Path,
     config_path: &Path,
     nodes: Vec<SocketAddr>,
-    log_level: bitcoin::adapter::config::BitcoinAdapterLogLevel,
-) -> DfxResult<bitcoin::adapter::Config> {
+    log_level: bitcoin_adapter::BitcoinAdapterLogLevel,
+) -> DfxResult<bitcoin_adapter::Config> {
     let socket_path = get_persistent_socket_path(uds_holder_path, "ic-btc-adapter-socket")?;
 
-    let adapter_config = bitcoin::adapter::Config::new(nodes, socket_path, log_level);
+    let adapter_config = bitcoin_adapter::Config::new(nodes, socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize btc adapter configuration to json")?;
@@ -579,7 +579,7 @@ pub fn configure_canister_http_adapter_if_enabled(
     local_server_descriptor: &LocalServerDescriptor,
     config_path: &Path,
     uds_holder_path: &Path,
-) -> DfxResult<Option<canister_http::adapter::Config>> {
+) -> DfxResult<Option<canister_http_adapter::Config>> {
     if !local_server_descriptor.canister_http.enabled {
         return Ok(None);
     };
@@ -588,7 +588,7 @@ pub fn configure_canister_http_adapter_if_enabled(
         get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
 
     let log_level = local_server_descriptor.canister_http.log_level;
-    let adapter_config = canister_http::adapter::Config::new(socket_path, log_level);
+    let adapter_config = canister_http_adapter::Config::new(socket_path, log_level);
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;

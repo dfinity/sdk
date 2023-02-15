@@ -33,16 +33,22 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
 1. Install bats and bats-support 0.3.0. See the CI provisioning scripts for examples:
     - [Linux](../scripts/workflows/provision-linux.sh)
     - [Darwin](../scripts/workflows/provision-darwin.sh)
-2. Export `BATSLIB` to your bats-support directory, typically:
+1. Export `BATSLIB` to your bats-support directory, typically:
     ``` bash
     $ export BATSLIB=/usr/local/lib/bats-support
     ```
-3. Build dfx and add its target directory to your path:
+1. Build dfx and add its target directory to your path:
     ``` bash
     sdk $ cargo build
     sdk $ export PATH="$(pwd)/target/debug:$PATH"
     ```
-4. Install `jq`.
+1. Set up the environment variables required by the e2e tests:
+    ``` bash
+    export archive="$(pwd)/e2e/archive"
+    export utils="$(pwd)/e2e/utils"
+    export assets="$(pwd)/e2e/assets"
+    ```
+1. Install `jq`.
 
 #### Running End-to-End Tests
 

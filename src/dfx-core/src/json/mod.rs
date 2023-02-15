@@ -1,3 +1,5 @@
+pub mod structure;
+
 use crate::error::structured_file::StructuredFileError;
 use crate::error::structured_file::StructuredFileError::ReadJsonFileFailed;
 use crate::error::structured_file::StructuredFileError::{

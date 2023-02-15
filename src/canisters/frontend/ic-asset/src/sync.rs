@@ -1,6 +1,6 @@
 use crate::asset_canister::batch::{commit_batch, create_batch};
 use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind};
+use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
 use crate::asset_config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
@@ -16,7 +16,11 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
+pub async fn upload_content_and_assemble_sync_operations(
+    canister: &Canister<'_>,
+    dirs: &[&Path],
+    logger: &Logger,
+) -> anyhow::Result<CommitBatchArguments> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let container_assets = list_assets(canister).await?;
@@ -37,10 +41,18 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
     .await?;
 
     let operations = assemble_synchronization_operations(project_assets, container_assets);
+    Ok(CommitBatchArguments {
+        batch_id,
+        operations,
+    })
+}
+
+/// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
+    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
 
     info!(logger, "Committing batch.");
-
-    commit_batch(canister, &batch_id, operations).await?;
+    commit_batch(canister, arg).await?;
 
     Ok(())
 }

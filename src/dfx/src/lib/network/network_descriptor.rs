@@ -1,7 +1,7 @@
-use crate::config::dfinity::NetworkType;
-use crate::config::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
 use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::config::model::dfinity::NetworkType;
+use dfx_core::config::model::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
 
 use anyhow::bail;
 use std::path::{Path, PathBuf};

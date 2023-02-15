@@ -1,13 +1,13 @@
 use crate::config::cache::get_cache_root;
-use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::environment::AgentEnvironment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_URL, DFX_WASM_HASH};
+use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_HASH, DFX_WASM_URL};
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, provider::create_agent_environment};
 use crate::NetworkOpt;
+use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
 
