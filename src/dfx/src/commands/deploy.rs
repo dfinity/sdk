@@ -81,6 +81,10 @@ pub struct DeployOpts {
     /// so this is not recommended outside of CI.
     #[clap(long, short)]
     yes: bool,
+
+    /// Skips upgrading the asset canister, to only install the assets themselves.
+    #[clap(long)]
+    no_asset_upgrade: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -143,6 +147,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         create_call_sender,
         opts.yes,
         env_file,
+        !opts.no_asset_upgrade,
     ))?;
 
     display_urls(&env)
