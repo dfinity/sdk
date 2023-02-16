@@ -171,7 +171,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_file_exists "$WASM_CACHE/r7inp-6aaaa-aaaaa-aaabq-cai/canister.wasm"
 
     # sad path 1: wasm hash doesn't match on chain
-    rm -r "$WASM_CACHE/"
+    rm -r "${WASM_CACHE:?}/"
     cd ../onchain
     cp src/onchain_b/main.wasm ../www/a.wasm 
 
@@ -181,7 +181,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_file_exists "$WASM_CACHE/ryjl3-tyaaa-aaaaa-aaaba-cai/canister.wasm"
 
     # sad path 2: url server doesn't have the file
-    rm -r "$WASM_CACHE/"
+    rm -r "${WASM_CACHE:?}/"
     rm ../www/a.wasm
 
     assert_command_fail dfx pull dep1
