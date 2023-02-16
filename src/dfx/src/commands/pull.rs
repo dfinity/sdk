@@ -87,7 +87,7 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
     })
 }
 
-#[context("Failed while fetch and parse `dfx:deps` metadata from canister {canister_id}.")]
+#[context("Failed to fetch and parse `dfx:deps` metadata from canister {canister_id}.")]
 async fn fetch_deps_to_pull(
     agent: &Agent,
     logger: &Logger,
@@ -122,7 +122,7 @@ async fn fetch_deps_to_pull(
     Ok(())
 }
 
-#[context("Failed while download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai.")]
+#[context("Failed to download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai.")]
 async fn download_canister_wasm(
     agent_env: &AgentEnvironment<'_>,
     logger: &Logger,

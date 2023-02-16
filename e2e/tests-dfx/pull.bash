@@ -88,7 +88,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 
     cd ../app
     assert_command_fail dfx pull
-    assert_contains "Failed while fetch and parse \`dfx:deps\` metadata from canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_contains "Canister rrkah-fqaaa-aaaaa-aaaaq-cai has no module."
 
     cd ../onchain
@@ -97,7 +97,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 
     cd ../app
     assert_command_fail dfx pull
-    assert_contains "Failed while fetch and parse \`dfx:deps\` metadata from canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_contains "Canister rrkah-fqaaa-aaaaa-aaaaq-cai not found."
 
     # 3. sad path: if dependency metadata cannot be read (wrong format)
@@ -109,7 +109,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 
     cd ../app
     assert_command_fail dfx pull
-    assert_contains "Failed while fetch and parse \`dfx:deps\` metadata from canister ryjl3-tyaaa-aaaaa-aaaba-cai."
+    assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister ryjl3-tyaaa-aaaaa-aaaba-cai."
     assert_contains "Failed to parse \`dfx:deps\` entry: rrkah-fqaaa-aaaaa-aaaaq-cai. Expected \`name:Principal\`."
 }
 
@@ -177,7 +177,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 
     cd ../app
     assert_command_fail dfx pull dep1
-    assert_contains "Failed while download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "Failed to download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_file_exists "$WASM_CACHE/ryjl3-tyaaa-aaaaa-aaaba-cai/canister.wasm"
 
     # sad path 2: url server doesn't have the file
@@ -185,5 +185,5 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     rm ../www/a.wasm
 
     assert_command_fail dfx pull dep1
-    assert_contains "Failed while download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "Failed to download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 }
