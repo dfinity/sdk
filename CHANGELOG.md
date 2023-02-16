@@ -8,6 +8,12 @@
 
 ### Changed `list_autorized` from `query` call to update call 
 
+## DFX 
+
+### feat: Add DFX_ASSETS_WASM
+
+Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
+
 ## Dependencies
 
 ### Frontend canister
