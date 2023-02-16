@@ -71,16 +71,22 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
             }
         }
 
+        let mut any_download_fail = false;
+
         for canister_id in pulled_canisters {
             if let Err(e) = download_canister_wasm(&agent_env, logger, canister_id).await {
                 warn!(
                     logger,
                     "Failed to download wasm of canister {canister_id}. {e}"
                 );
+                any_download_fail = true;
             }
         }
 
-        Ok(())
+        match any_download_fail {
+            true => Err(anyhow!("Some wasm download(s) failed.")),
+            false => Ok(()),
+        }
     })
 }
 
@@ -93,45 +99,21 @@ async fn fetch_deps_to_pull(
 ) -> DfxResult {
     info!(logger, "Pulling canister {canister_id}...");
 
-    match agent
-        .read_state_canister_metadata(canister_id, DFX_DEPS)
-        .await
-    {
-        Ok(data) => {
-            let data = String::from_utf8(data)?;
-            for entry in data.split_terminator(';') {
-                match entry.split_once(':') {
-                    Some((_, p)) => {
-                        let canister_id = Principal::from_text(p)
-                            .with_context(|| format!("`{p}` is not a valid Principal."))?;
-                        canisters_to_pull.push_back(canister_id);
-                    }
-                    None => bail!(
-                        "Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "
-                    ),
-                }
+    let deps_raw = fetch_metatdata(agent, canister_id, DFX_DEPS).await?;
+    let deps = String::from_utf8(deps_raw)?;
+    for entry in deps.split_terminator(';') {
+        match entry.split_once(':') {
+            Some((_, p)) => {
+                let canister_id = Principal::from_text(p)
+                    .with_context(|| format!("`{p}` is not a valid Principal."))?;
+                canisters_to_pull.push_back(canister_id);
             }
-            Ok(())
+            None => bail!("Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "),
         }
-        Err(agent_error) => match agent_error {
-            AgentError::HttpError(ref e) => {
-                let content = String::from_utf8(e.content.clone())?;
-                if content.starts_with("Custom section") {
-                    warn!(
-                        logger,
-                        "`{}` metadata not found in canister {canister_id}.", DFX_DEPS
-                    );
-                    Ok(())
-                } else {
-                    Err(anyhow!(agent_error))
-                }
-            }
-            _ => Err(anyhow!(agent_error)),
-        },
     }
+    Ok(())
 }
 
-#[context("Failed while download wasm of canister {canister_id}.")]
 async fn download_canister_wasm(
     agent_env: &AgentEnvironment<'_>,
     logger: &Logger,
@@ -143,102 +125,104 @@ async fn download_canister_wasm(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    // 1. Try fetch `dfx:wasm_hash`
-    let wasm_hash = match agent
-        .read_state_canister_metadata(canister_id, DFX_WASM_HASH)
-        .await
-    {
-        Ok(data) => {
-            let s = String::from_utf8(data)?;
-            reqwest::Url::parse(&s)?
-        }
-        Err(agent_error) => match agent_error {
-            AgentError::HttpError(ref e) => {
-                let content = String::from_utf8(e.content.clone())?;
-                if content.starts_with("Custom section") {
-                    bail!(
-                        "`{}` metadata not found in canister {canister_id}.",
-                        DFX_WASM_HASH
-                    );
-                } else {
-                    bail!(agent_error);
+    // try fetch `dfx:wasm_hash`. If not available, get the hash of the on chain canister.
+    let hash_on_chain = match fetch_metatdata(agent, canister_id, DFX_WASM_HASH).await {
+        Ok(wasm_hash) => wasm_hash,
+        Err(_) => {
+            let canister_status =
+                get_canister_status(agent_env, canister_id, &CallSender::SelectedId).await?;
+            match canister_status.module_hash {
+                Some(hash_on_chain) => hash_on_chain,
+                None => {
+                    bail!("Canister {canister_id} doesn't have module hash. Perhaps it's not installed.");
                 }
             }
-            _ => bail!(agent_error),
-        },
+        }
     };
 
-    let url = match agent
-        .read_state_canister_metadata(canister_id, DFX_WASM_URL)
-        .await
-    {
-        Ok(data) => {
-            let s = String::from_utf8(data)?;
-            reqwest::Url::parse(&s)?
-        }
-        Err(agent_error) => match agent_error {
-            AgentError::HttpError(ref e) => {
-                let content = String::from_utf8(e.content.clone())?;
-                if content.starts_with("Custom section") {
-                    bail!(
-                        "`{}` metadata not found in canister {canister_id}.",
-                        DFX_WASM_URL
-                    );
-                } else {
-                    bail!(agent_error);
-                }
-            }
-            _ => bail!(agent_error),
-        },
-    };
-    let response = reqwest::get(url.clone()).await?;
-    let status = response.status();
-    if status.is_client_error() || status.is_server_error() {
-        bail!("Failed to download wasm from url: {url}.\n  StatusCode: {status}");
-    }
-    let content = response.bytes().await?;
-
-    let canister_status =
-        get_canister_status(agent_env, canister_id, &CallSender::SelectedId).await?;
-    match canister_status.module_hash {
-        Some(hash_on_chain) => {
-            let mut hasher = Sha256::new();
-            hasher.update(&content);
-            let hash_wasm = hasher.finalize();
-            if hash_wasm.as_slice() != hash_on_chain {
-                warn!(
-                    logger,
-                    "The hash of downloaded wasm doesn't match the canister on chain.
-              wasm:     {}
-              on chain: {}",
-                    hex::encode(hash_wasm.as_slice()),
-                    hex::encode(&hash_on_chain)
-                );
-            }
-        }
-        None => {
-            warn!(
-                logger,
-                "Canister {canister_id} doesn't have module hash. Perhaps it's not installed."
-            );
-        }
-    }
-
-    let mut f = tempfile::tempfile()?;
-
-    f.write_all(&content)?;
-
-    // wasm will be downloaded to $HOME/.cache/dfinity/wasms/{canister_id}/canister.wasm
+    // target $HOME/.cache/dfinity/wasms/{canister_id}/canister.wasm
     let wasm_dir = get_cache_root()?
         .join("wasms")
         .join(canister_id.to_string());
     let wasm_path = wasm_dir.join("canister.wasm");
 
+    // skip download if cache hit
+    if wasm_path.exists() {
+        let bytes = std::fs::read(&wasm_path)?;
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes);
+        let hash_cache = hasher.finalize();
+
+        if hash_cache.as_slice() == hash_on_chain {
+            info!(logger, "The canister wasm found in cache.");
+            return Ok(());
+        }
+    }
+
+    // fetch `dfx:wasm_url`
+    let wasm_url_raw = fetch_metatdata(agent, canister_id, DFX_WASM_URL).await?;
+    let wasm_url_str = String::from_utf8(wasm_url_raw)?;
+    let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
+
+    // download
+    let response = reqwest::get(wasm_url.clone()).await?;
+    let status = response.status();
+    if status.is_client_error() || status.is_server_error() {
+        bail!("Failed to download wasm from url: {wasm_url}.\n  StatusCode: {status}");
+    }
+    let content = response.bytes().await?;
+
+    // hash check
+    let mut hasher = Sha256::new();
+    hasher.update(&content);
+    let hash_download = hasher.finalize();
+    if hash_download.as_slice() != hash_on_chain {
+        bail!(
+            "Hash mismatch.
+  on chain: {}
+  download: {}",
+            hex::encode(hash_on_chain),
+            hex::encode(hash_download.as_slice())
+        );
+    }
+
+    // write to a tempfile
+    let mut f = tempfile::NamedTempFile::new()?;
+    f.write_all(&content)?;
+
+    // move tempfile to target
     std::fs::create_dir_all(&wasm_dir)
         .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
-    // always download and overwrite existing file.
-    let mut wasm_file = std::fs::File::create(&wasm_path)
-        .with_context(|| format!("Failed to create file at {:?}", &wasm_path))?;
+    std::fs::rename(f.path(), &wasm_path)
+        .with_context(|| format!("Failed to move tempfile to {:?}", &wasm_path))?;
 
     Ok(())
+}
+
+#[context("Failed to fetch metadata {metadata} of canister {canister_id}.")]
+async fn fetch_metatdata(
+    agent: &Agent,
+    canister_id: Principal,
+    metadata: &str,
+) -> DfxResult<Vec<u8>> {
+    match agent
+        .read_state_canister_metadata(canister_id, metadata)
+        .await
+    {
+        Ok(data) => Ok(data),
+        Err(agent_error) => match agent_error {
+            AgentError::HttpError(ref e) => {
+                let content = String::from_utf8(e.content.clone())?;
+                if content.starts_with("Custom section") {
+                    bail!(
+                        "`{}` metadata not found in canister {canister_id}.",
+                        metadata
+                    );
+                } else {
+                    bail!(agent_error);
+                }
+            }
+            _ => bail!(agent_error),
+        },
+    }
 }
