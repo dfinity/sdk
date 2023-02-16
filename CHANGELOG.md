@@ -6,6 +6,12 @@
 
 Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
 
+## DFX 
+
+### feat: Add DFX_ASSETS_WASM
+
+Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
+
 ## Dependencies
 
 ### Frontend canister
