@@ -101,10 +101,10 @@ async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<St
     ))
 }
 
-#[query(manual_reply = true)]
-#[candid_method(query)]
-fn list_authorized() -> ManualReply<Vec<Principal>> {
-    STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&Permission::Commit)))
+#[update]
+#[candid_method(update)]
+fn list_authorized() -> Vec<Principal> {
+    STATE.with(|s| s.borrow().list_permitted(&Permission::Commit).to_vec())
 }
 
 #[query(manual_reply = true)]

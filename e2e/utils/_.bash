@@ -315,12 +315,21 @@ use_wallet_wasm() {
     export DFX_WALLET_WASM="${archive}/wallet/$1/wallet.wasm"
 }
 
+use_asset_wasm() {
+    # shellcheck disable=SC2154
+    export DFX_ASSETS_WASM="${archive}/frontend/$1/assetstorage.wasm.gz"
+}
+
 wallet_sha() {
     shasum -a 256 "${archive}/wallet/$1/wallet.wasm" | awk '{ print $1 }'
 }
 
 use_default_wallet_wasm() {
     unset DFX_WALLET_WASM
+}
+
+use_default_asset_wasm() {
+    unset DFX_ASSETS_WASM
 }
 
 get_webserver_port() {
