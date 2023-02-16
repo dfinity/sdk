@@ -75,10 +75,7 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
 
         for canister_id in pulled_canisters {
             if let Err(e) = download_canister_wasm(&agent_env, logger, canister_id).await {
-                warn!(
-                    logger,
-                    "Failed to download wasm of canister {canister_id}. {e}"
-                );
+                warn!(logger, "{e}");
                 any_download_fail = true;
             }
         }
@@ -99,21 +96,33 @@ async fn fetch_deps_to_pull(
 ) -> DfxResult {
     info!(logger, "Pulling canister {canister_id}...");
 
-    let deps_raw = fetch_metatdata(agent, canister_id, DFX_DEPS).await?;
-    let deps = String::from_utf8(deps_raw)?;
-    for entry in deps.split_terminator(';') {
-        match entry.split_once(':') {
-            Some((_, p)) => {
-                let canister_id = Principal::from_text(p)
-                    .with_context(|| format!("`{p}` is not a valid Principal."))?;
-                canisters_to_pull.push_back(canister_id);
+    match fetch_metatdata(agent, canister_id, DFX_DEPS).await {
+        Ok(deps_raw) => {
+            let deps = String::from_utf8(deps_raw)?;
+            for entry in deps.split_terminator(';') {
+                match entry.split_once(':') {
+                    Some((_, p)) => {
+                        let canister_id = Principal::from_text(p)
+                            .with_context(|| format!("`{p}` is not a valid Principal."))?;
+                        canisters_to_pull.push_back(canister_id);
+                    }
+                    None => bail!(
+                        "Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "
+                    ),
+                }
             }
-            None => bail!("Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "),
+        }
+        Err(_) => {
+            warn!(
+                logger,
+                "{DFX_DEPS} metadata not found in canister {canister_id}."
+            );
         }
     }
     Ok(())
 }
 
+#[context("Failed while download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai.")]
 async fn download_canister_wasm(
     agent_env: &AgentEnvironment<'_>,
     logger: &Logger,
