@@ -216,7 +216,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_a/main.wasm # to be deployed
     ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_a/custom.wasm # to be download
-    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:wasm_hash" -d "`sha256sum src/onchain_a/custom.wasm | cut -d " " -f 1`" -v public
+    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:wasm_hash" -d "$(sha256sum src/onchain_a/custom.wasm | cut -d " " -f 1)" -v public
 
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_b/main.wasm
     ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
