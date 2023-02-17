@@ -139,7 +139,14 @@ async fn download_canister_wasm(
 
     // try fetch `dfx:wasm_hash`. If not available, get the hash of the on chain canister.
     let hash_on_chain = match fetch_metatdata(agent, canister_id, DFX_WASM_HASH).await {
-        Ok(Some(wasm_hash)) => wasm_hash,
+        Ok(Some(wasm_hash_raw)) => {
+            let wasm_hash_str = String::from_utf8(wasm_hash_raw)?;
+            info!(
+                logger,
+                "Canister {canister_id} specified a custom hash: {wasm_hash_str}"
+            );
+            hex::decode(wasm_hash_str)?
+        }
         Ok(None) => {
             let canister_status =
                 get_canister_status(agent_env, canister_id, &CallSender::SelectedId).await?;
