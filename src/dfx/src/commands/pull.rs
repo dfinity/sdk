@@ -75,7 +75,10 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
 
         for canister_id in pulled_canisters {
             if let Err(e) = download_canister_wasm(&agent_env, logger, canister_id).await {
-                warn!(logger, "{e}");
+                warn!(
+                    logger,
+                    "Failed to download wasm of canister {canister_id}.\n{e}"
+                );
                 any_download_fail = true;
             }
         }
@@ -125,7 +128,6 @@ async fn fetch_deps_to_pull(
     Ok(())
 }
 
-#[context("Failed to download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai.")]
 async fn download_canister_wasm(
     agent_env: &AgentEnvironment<'_>,
     logger: &Logger,
@@ -176,7 +178,7 @@ async fn download_canister_wasm(
         let hash_cache = hasher.finalize();
 
         if hash_cache.as_slice() == hash_on_chain {
-            info!(logger, "The canister wasm found in cache.");
+            info!(logger, "The canister wasm was found in the cache.");
             return Ok(());
         }
     }

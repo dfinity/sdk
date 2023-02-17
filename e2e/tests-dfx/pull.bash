@@ -167,7 +167,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_file_not_exists "$WASM_CACHE/r7inp-6aaaa-aaaaa-aaabq-cai/canister.wasm"
 
     assert_command dfx pull # if not specify canister name, all pull type canisters (dep1, dep2) will be pulled
-    assert_contains "The canister wasm found in cache." # a, b were downloaded before
+    assert_contains "The canister wasm was found in the cache." # a, b were downloaded before
     assert_file_exists "$WASM_CACHE/r7inp-6aaaa-aaaaa-aaabq-cai/canister.wasm"
 
     # sad path 1: wasm hash doesn't match on chain
@@ -178,6 +178,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     cd ../app
     assert_command_fail dfx pull dep1
     assert_contains "Failed to download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "Hash mismatch."
     assert_file_exists "$WASM_CACHE/ryjl3-tyaaa-aaaaa-aaaba-cai/canister.wasm"
 
     # sad path 2: url server doesn't have the file
@@ -186,6 +187,7 @@ WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 
     assert_command_fail dfx pull dep1
     assert_contains "Failed to download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "Failed to download wasm from url:"
 }
 
 
