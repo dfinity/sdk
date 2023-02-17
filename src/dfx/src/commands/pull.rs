@@ -97,7 +97,7 @@ async fn fetch_deps_to_pull(
     info!(logger, "Pulling canister {canister_id}...");
 
     match fetch_metatdata(agent, canister_id, DFX_DEPS).await {
-        Ok(deps_raw) => {
+        Ok(Some(deps_raw)) => {
             let deps = String::from_utf8(deps_raw)?;
             for entry in deps.split_terminator(';') {
                 match entry.split_once(':') {
@@ -112,11 +112,14 @@ async fn fetch_deps_to_pull(
                 }
             }
         }
-        Err(_) => {
+        Ok(None) => {
             warn!(
                 logger,
-                "{DFX_DEPS} metadata not found in canister {canister_id}."
+                "`{DFX_DEPS}` metadata not found in canister {canister_id}."
             );
+        }
+        Err(e) => {
+            bail!(e);
         }
     }
     Ok(())
@@ -136,8 +139,8 @@ async fn download_canister_wasm(
 
     // try fetch `dfx:wasm_hash`. If not available, get the hash of the on chain canister.
     let hash_on_chain = match fetch_metatdata(agent, canister_id, DFX_WASM_HASH).await {
-        Ok(wasm_hash) => wasm_hash,
-        Err(_) => {
+        Ok(Some(wasm_hash)) => wasm_hash,
+        Ok(None) => {
             let canister_status =
                 get_canister_status(agent_env, canister_id, &CallSender::SelectedId).await?;
             match canister_status.module_hash {
@@ -146,6 +149,9 @@ async fn download_canister_wasm(
                     bail!("Canister {canister_id} doesn't have module hash. Perhaps it's not installed.");
                 }
             }
+        }
+        Err(e) => {
+            bail!(e);
         }
     };
 
@@ -169,7 +175,9 @@ async fn download_canister_wasm(
     }
 
     // fetch `dfx:wasm_url`
-    let wasm_url_raw = fetch_metatdata(agent, canister_id, DFX_WASM_URL).await?;
+    let wasm_url_raw = fetch_metatdata(agent, canister_id, DFX_WASM_URL)
+        .await?
+        .ok_or_else(|| anyhow!("`{DFX_WASM_URL}` metadata not found in canister {canister_id}."))?;
     let wasm_url_str = String::from_utf8(wasm_url_raw)?;
     let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
 
@@ -213,20 +221,17 @@ async fn fetch_metatdata(
     agent: &Agent,
     canister_id: Principal,
     metadata: &str,
-) -> DfxResult<Vec<u8>> {
+) -> DfxResult<Option<Vec<u8>>> {
     match agent
         .read_state_canister_metadata(canister_id, metadata)
         .await
     {
-        Ok(data) => Ok(data),
+        Ok(data) => Ok(Some(data)),
         Err(agent_error) => match agent_error {
             AgentError::HttpError(ref e) => {
                 let content = String::from_utf8(e.content.clone())?;
                 if content.starts_with("Custom section") {
-                    bail!(
-                        "`{}` metadata not found in canister {canister_id}.",
-                        metadata
-                    );
+                    Ok(None)
                 } else {
                     bail!(agent_error);
                 }
