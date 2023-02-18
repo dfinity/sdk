@@ -43,6 +43,7 @@ pub async fn install_canister(
     pool: Option<&CanisterPool>,
     skip_consent: bool,
     env_file: Option<&Path>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
@@ -114,7 +115,7 @@ pub async fn install_canister(
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
-    } else {
+    } else if assets_upgrade || canister_info.is_assets() {
         install_canister_wasm(
             env,
             agent,
