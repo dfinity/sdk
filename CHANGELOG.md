@@ -30,6 +30,8 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ## DFX
 
+### feat: dfx pull can download wasm
+
 ### feat: Add dfx sns download
 
 This allows users to download SNS canister WASMs.
