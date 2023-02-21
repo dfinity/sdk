@@ -8,7 +8,11 @@
 
 ### Changed `list_autorized` from `query` call to update call 
 
-## DFX 
+## DFX
+
+### fix: Make `build` field optional in dfx.json
+
+The `build` field in custom canisters was already optional in code, but this fixes it in the schema.
 
 ### feat: Add DFX_ASSETS_WASM
 
