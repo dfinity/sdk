@@ -2,11 +2,7 @@
 
 # UNRELEASED
 
-## Asset Canister
-
-Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
-
-## DFX 
+## DFX
 
 ### feat: --no-asset-upgrade
 
@@ -15,6 +11,14 @@ By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister ins
 ### feat: Add DFX_ASSETS_WASM
 
 Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
+
+### feat: dfx pull can download wasm
+
+# 0.13.1
+
+## Asset Canister
+
+Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
 
 ## Dependencies
 
@@ -26,8 +30,6 @@ Added the ability to configure the WASM module used for assets canisters through
 # 0.13.0
 
 ## DFX
-
-### feat: dfx pull can download wasm
 
 ### feat: Add dfx sns download
 
