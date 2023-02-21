@@ -45,7 +45,7 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
     export assets="$(pwd)/e2e/assets"
     ```
 1. Install `jq` and `sponge`.
-1. Download all of this repository' submodules (which includes `bats-suppor`)
+1. Download all of this repository' submodules (which includes `bats-support`)
     ```bash
     git submodule update --init --recursive
     ```
