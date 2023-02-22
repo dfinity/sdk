@@ -37,7 +37,7 @@ pub struct CliOpts {
     logfile: Option<String>,
 
     /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
-    #[clap(long, global(true))]
+    #[clap(long, env("DFX_IDENTITY"), global(true))]
     identity: Option<String>,
 
     /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
@@ -180,9 +180,7 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 fn main() {
     let cli_opts = CliOpts::parse();
     let (verbose_level, log) = setup_logging(&cli_opts);
-    let identity = cli_opts
-        .identity
-        .or_else(|| std::env::var("DFX_IDENTITY").ok());
+    let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
     let command = cli_opts.command;
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
