@@ -2,11 +2,9 @@
 
 # UNRELEASED
 
-## Asset Canister
+## DFX
 
-### Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
-
-### Changed `list_autorized` from `query` call to update call 
+### feat: --no-asset-upgrade
 
 ## DFX
 
@@ -14,17 +12,26 @@
 
 The `build` field in custom canisters was already optional in code, but this fixes it in the schema.
 
+By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister install`, you can ensure that the asset canister itself is not upgraded, but instead only the assets themselves are installed.
+
 ### feat: Add DFX_ASSETS_WASM
 
 Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
+
+### feat: dfx pull can download wasm
+
+# 0.13.1
+
+## Asset Canister
+
+Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: a6c4fba98f09e2d49c1f1859de2db8ba4383bf5d743f75700a9ee72b98a03d87
-- https://github.com/dfinity/sdk/pull/2970
-  - https://github.com/dfinity/sdk/pull/2958
+- Module hash: 98863747bb8b1366ae5e3c5721bfe08ce6b7480fe4c3864d4fec3d9827255480
+- https://github.com/dfinity/sdk/pull/2958
 
 # 0.13.0
 

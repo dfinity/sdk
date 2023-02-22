@@ -171,7 +171,7 @@ service: {
 
   authorize: (principal) -> ();
   deauthorize: (principal) -> ();
-  list_authorized: () -> (vec principal);
+  list_authorized: () -> (vec principal) query;
   grant_permission: (GrantPermission) -> ();
   revoke_permission: (RevokePermission) -> ();
   list_permitted: (ListPermitted) -> (vec principal) query;

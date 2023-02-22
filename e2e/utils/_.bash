@@ -1,5 +1,5 @@
 set -e
-load "${BATSLIB}/load.bash"
+load ../utils/bats-support/load
 load ../utils/assertions
 load ../utils/webserver
 
