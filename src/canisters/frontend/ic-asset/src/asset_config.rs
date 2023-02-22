@@ -58,7 +58,7 @@ pub struct AssetConfigRule {
     enable_aliasing: Option<bool>,
     #[serde(skip_serializing)]
     used: bool,
-    /// Redirects the traffic from .raw.ic0.app domain to .ic0.app
+    /// Redirects the traffic from .raw.icp0.io domain to .icp0.io
     #[serde(skip_serializing_if = "Option::is_none")]
     allow_raw_access: Option<bool>,
 }

@@ -43,4 +43,4 @@ proposal_reject_cost_e8s: 100000000
 token_name: "maxs awesome TESAT"
 token_symbol: TESAT
 transaction_fee_e8s: 10000
-url: https://nns.ic0.app
+url: https://nns.icp0.io
