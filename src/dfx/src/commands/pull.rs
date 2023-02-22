@@ -17,7 +17,7 @@ use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use sha2::{Digest, Sha256};
-use slog::{info, warn, Logger};
+use slog::{error, info, warn, Logger};
 use tokio::runtime::Runtime;
 
 /// Pull canisters upon which the project depends
@@ -75,7 +75,7 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
 
         for canister_id in pulled_canisters {
             if let Err(e) = download_canister_wasm(&agent_env, logger, canister_id).await {
-                warn!(
+                error!(
                     logger,
                     "Failed to download wasm of canister {canister_id}.\n{e}"
                 );

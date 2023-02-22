@@ -70,17 +70,28 @@ teardown() {
 
     ## 1.2. pull onchain canisters in "app" project
     cd ../app
-    assert_command_fail dfx pull dep1
+    assert_command_fail dfx pull dep1 # the overall pull fail but succeed to fetch and parse `dfx:deps` recursively
     assert_contains "Pulling canister ryjl3-tyaaa-aaaaa-aaaba-cai...
 Pulling canister rrkah-fqaaa-aaaaa-aaaaq-cai...
 WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
+    assert_contains "ERROR: Failed to download wasm of canister ryjl3-tyaaa-aaaaa-aaaba-cai.
+\`dfx:wasm_url\` metadata not found in canister ryjl3-tyaaa-aaaaa-aaaba-cai."
+    assert_contains "ERROR: Failed to download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai.
+\`dfx:wasm_url\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 
-    assert_command_fail dfx pull # if not specify canister name, all pull type canisters (dep1, dep2) will be pulled
+    ## 1.3. if not specify canister name, all pull type canisters (dep1, dep2) will be pulled
+    assert_command_fail dfx pull # the overall pull fail but succeed to fetch and parse `dfx:deps` recursively
     assert_contains "Pulling canister ryjl3-tyaaa-aaaaa-aaaba-cai...
 Pulling canister r7inp-6aaaa-aaaaa-aaabq-cai...
 Pulling canister rrkah-fqaaa-aaaaa-aaaaq-cai...
 WARN: \`dfx:deps\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
     assert_occurs 1 "Pulling canister rrkah-fqaaa-aaaaa-aaaaq-cai..." # common dependency onchain_a is pulled only once
+    assert_contains "ERROR: Failed to download wasm of canister ryjl3-tyaaa-aaaaa-aaaba-cai.
+\`dfx:wasm_url\` metadata not found in canister ryjl3-tyaaa-aaaaa-aaaba-cai."
+    assert_contains "ERROR: Failed to download wasm of canister r7inp-6aaaa-aaaaa-aaabq-cai.
+\`dfx:wasm_url\` metadata not found in canister r7inp-6aaaa-aaaaa-aaabq-cai."
+    assert_contains "ERROR: Failed to download wasm of canister rrkah-fqaaa-aaaaa-aaaaq-cai.
+\`dfx:wasm_url\` metadata not found in canister rrkah-fqaaa-aaaaa-aaaaq-cai."
 
     # 2. sad path: if the canister is not present on-chain
     cd ../onchain
