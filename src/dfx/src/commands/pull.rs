@@ -212,13 +212,11 @@ async fn download_canister_wasm(
         );
     }
 
-    // write to a tempfile
-    let mut f = tempfile::NamedTempFile::new()?;
-    f.write_all(&content)?;
-
-    // move tempfile to target
+    // write to a tempfile then rename
     std::fs::create_dir_all(&wasm_dir)
         .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
+    let mut f = tempfile::NamedTempFile::new_in(&wasm_dir)?;
+    f.write_all(&content)?;
     std::fs::rename(f.path(), &wasm_path)
         .with_context(|| format!("Failed to move tempfile to {:?}", &wasm_path))?;
 
