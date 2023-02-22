@@ -27,6 +27,9 @@ pub enum IoErrorKind {
     #[error("Failed to read permissions of {0}: {1}")]
     ReadPermissionsFailed(PathBuf, std::io::Error),
 
+    #[error("Failed to read {0} as string: {1}")]
+    ReadToStringFailed(PathBuf, std::io::Error),
+
     #[error("Failed to remove directory {0}: {1}")]
     RemoveDirectoryFailed(PathBuf, std::io::Error),
 
