@@ -1,4 +1,3 @@
-use crate::config::dfinity::Config;
 use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -9,6 +8,7 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::config::model::dfinity::Config;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -33,6 +33,7 @@ pub async fn deploy_canisters(
     create_call_sender: &CallSender,
     skip_consent: bool,
     env_file: Option<PathBuf>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -108,6 +109,7 @@ pub async fn deploy_canisters(
         pool,
         skip_consent,
         env_file.as_deref(),
+        assets_upgrade,
     )
     .await?;
 
@@ -226,6 +228,7 @@ async fn install_canisters(
     pool: CanisterPool,
     skip_consent: bool,
     env_file: Option<&Path>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -264,6 +267,7 @@ async fn install_canisters(
             Some(&pool),
             skip_consent,
             env_file,
+            assets_upgrade,
         )
         .await?;
     }

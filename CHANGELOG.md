@@ -9,6 +9,33 @@
 - Updates the starter project for env vars to use the new `dfx build` & `dfx deploy` environment variables
 - Changes the format of the canister id env vars to be `CANISTER_ID_<canister_name_uppercase>`, for the frontend declaraction file to be consistent with the dfx environment variables. `CANISTER_ID` as both a prefix and suffix are supported for backwards compatibility.
 
+### feat: --no-asset-upgrade
+
+By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister install`, you can ensure that the asset canister itself is not upgraded, but instead only the assets themselves are installed.
+
+### feat: Add DFX_ASSETS_WASM
+
+Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
+
+### feat: dfx pull can download wasm
+
+# 0.13.1
+
+## Asset Canister
+
+Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 98863747bb8b1366ae5e3c5721bfe08ce6b7480fe4c3864d4fec3d9827255480
+- https://github.com/dfinity/sdk/pull/2958
+
+# 0.13.0
+
+## DFX
+
 ### feat: Add dfx sns download
 
 This allows users to download SNS canister WASMs.

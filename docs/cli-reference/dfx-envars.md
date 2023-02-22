@@ -39,3 +39,7 @@ The `.cache/dfinity/uninstall.sh` script uses this environment variable to ident
 Use the `DFX_VERSION` environment variable to identify a specific version of the SDK that you want to install.
 
     DFX_VERSION=0.10.0 sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+
+## DFX_MOC_PATH
+
+Use the `DFX_MOC_PATH` environment variable to use a different version of the Motoko compiler than the one bundled with a given dfx version.

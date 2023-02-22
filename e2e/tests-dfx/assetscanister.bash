@@ -33,6 +33,34 @@ check_permission_failure() {
         assert_contains "$expected"
     fi
 }
+
+@test "validation methods" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity use controller
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+
+  assert_command dfx identity new prepare --storage-mode plaintext
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+
+  assert_command dfx canister call e2e_project_frontend validate_grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })"
+  assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"'
+
+  assert_command dfx canister call e2e_project_frontend validate_grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity prepare
+  assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"'
+
+  assert_command dfx canister call e2e_project_frontend validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Commit }; })"
+  assert_contains 'Ok = "revoke Commit permission from principal '"$PREPARE_PRINCIPAL"'"'
+
+  FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
+  rm .dfx/local/canister_ids.json
+  assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
+  assert_contains "trapped"
+}
+
 @test "access control - fine-grained" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller
@@ -1119,4 +1147,16 @@ WARN: {
 
     assert_command dfx deploy
     assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
+}
+
+@test "uses selected canister wasm" {
+    dfx_start
+    use_asset_wasm 0.12.1
+    assert_command dfx deploy
+    assert_command dfx canister info e2e_project_frontend
+    assert_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+    use_default_asset_wasm
+    assert_command dfx deploy
+    assert_command dfx canister info e2e_project_frontend
+    assert_not_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
 }

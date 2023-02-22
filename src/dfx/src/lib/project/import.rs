@@ -1,7 +1,7 @@
-use crate::config::dfinity::Config;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store;
 use crate::lib::models::canister_id_store::CanisterIds;
+use dfx_core::config::model::dfinity::Config;
 
 use anyhow::{anyhow, Context};
 use fn_error_context::context;
