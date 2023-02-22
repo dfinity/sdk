@@ -4,6 +4,10 @@
 
 ## DFX
 
+### chore: change the default Internet Computer gateway domain to `icp0.io`
+By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`. 
+Canisters communicating with `ic0.app` will continue to function nominally.
+
 ### feat: --no-asset-upgrade
 
 By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister install`, you can ensure that the asset canister itself is not upgraded, but instead only the assets themselves are installed.
