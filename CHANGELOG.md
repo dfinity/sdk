@@ -10,7 +10,7 @@ By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister ins
 
 ### feat: Get identity from env var if present
 
-The identity may be specified using the environment variable `DFX_DENTITY`.
+The identity may be specified using the environment variable `DFX_IDENTITY`.
 
 ### feat: Add DFX_ASSETS_WASM
 
