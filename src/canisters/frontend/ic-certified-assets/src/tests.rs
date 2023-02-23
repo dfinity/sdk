@@ -915,42 +915,42 @@ mod allow_raw_access {
         state.create_test_asset(
             AssetBuilder::new("/page.html", "text/html").with_allow_raw_access(Some(false)),
         );
-        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/page");
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/page");
         dbg!(&response);
         assert_eq!(response.status_code, 308);
         assert_eq!(
             lookup_header(&response, "Location").unwrap(),
-            "https://a-b-c.ic0.app/page"
+            "https://a-b-c.icp0.io/page"
         );
 
         state.create_test_asset(AssetBuilder::new("/page2.html", "text/html"));
-        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/page2");
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/page2");
         dbg!(&response);
         assert_eq!(response.status_code, 308);
         assert_eq!(
             lookup_header(&response, "Location").unwrap(),
-            "https://a-b-c.ic0.app/page2"
+            "https://a-b-c.icp0.io/page2"
         );
 
         state.create_test_asset(AssetBuilder::new("/index.html", "text/html"));
-        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/");
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/");
         dbg!(&response);
         assert_eq!(response.status_code, 308);
         assert_eq!(
             lookup_header(&response, "Location").unwrap(),
-            "https://a-b-c.ic0.app/"
+            "https://a-b-c.icp0.io/"
         );
 
         let mut state = State::default();
         state.create_test_asset(
             AssetBuilder::new("/index.html", "text/html").with_allow_raw_access(Some(false)),
         );
-        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/");
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/");
         dbg!(&response);
         assert_eq!(response.status_code, 308);
         assert_eq!(
             lookup_header(&response, "Location").unwrap(),
-            "https://a-b-c.ic0.app/"
+            "https://a-b-c.icp0.io/"
         );
     }
 
@@ -962,7 +962,7 @@ mod allow_raw_access {
                 .with_encoding("identity", vec![FILE_BODY])
                 .with_allow_raw_access(Some(true)),
         );
-        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/blog.html");
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/blog.html");
         dbg!(&response);
         assert_eq!(response.status_code, 200);
 
@@ -972,7 +972,7 @@ mod allow_raw_access {
                 .with_encoding("identity", vec![FILE_BODY])
                 .with_allow_raw_access(Some(true)),
         );
-        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/index.html");
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/index.html");
         dbg!(&response);
         assert_eq!(response.status_code, 200);
 

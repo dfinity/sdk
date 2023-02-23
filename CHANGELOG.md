@@ -4,6 +4,10 @@
 
 ## DFX
 
+### chore: change the default Internet Computer gateway domain to `icp0.io`
+By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`. 
+Canisters communicating with `ic0.app` will continue to function nominally.
+
 ### feat: --no-asset-upgrade
 
 By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister install`, you can ensure that the asset canister itself is not upgraded, but instead only the assets themselves are installed.
@@ -17,6 +21,13 @@ The identity may be specified using the environment variable `DFX_IDENTITY`.
 Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
 
 ### feat: dfx pull can download wasm
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: d1cbabf457079ffe17bf3460648efa37ae86d678862a73ba2b8bbc9cebcb0f49
+- https://github.com/dfinity/sdk/pull/2982
 
 # 0.13.1
 
