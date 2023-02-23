@@ -242,6 +242,7 @@ pub enum CanisterTypeProperties {
         /// Commands that are executed in order to produce this canister's WASM module.
         /// Expected to produce the WASM in the path specified by the 'wasm' field.
         /// No build commands are allowed if the `wasm` field is a URL.
+        #[schemars(default)]
         build: SerdeVec<String>,
     },
     /// # Motoko-Specific Properties

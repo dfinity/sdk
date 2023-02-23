@@ -10,6 +10,12 @@ Canisters communicating with `ic0.app` will continue to function nominally.
 
 ### feat: --no-asset-upgrade
 
+## DFX
+
+### fix: Make `build` field optional in dfx.json
+
+The `build` field in custom canisters was already optional in code, but this fixes it in the schema.
+
 By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister install`, you can ensure that the asset canister itself is not upgraded, but instead only the assets themselves are installed.
 
 ### feat: Get identity from env var if present
