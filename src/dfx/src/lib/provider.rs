@@ -12,7 +12,7 @@ use dfx_core::config::model::dfinity::{
 };
 use dfx_core::error::network_config::NetworkConfigError;
 use dfx_core::error::network_config::NetworkConfigError::{
-    NoProvidersForNetwork, ParseProviderUrlFailed,
+    NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed, ReadWebserverPortFailed,
 };
 use dfx_core::identity::{ANONYMOUS_IDENTITY_NAME, WALLET_CONFIG_FILENAME};
 
@@ -348,7 +348,7 @@ fn get_local_bind_address(
     local_bind_determination: &LocalBindDetermination,
     data_directory: &Path,
     default_local_bind: &str,
-) -> DfxResult<String> {
+) -> Result<String, NetworkConfigError> {
     match local_bind_determination {
         LocalBindDetermination::AsConfigured => Ok(local_provider
             .bind
@@ -364,29 +364,21 @@ fn get_running_webserver_bind_address(
     data_directory: &Path,
     local_provider: &ConfigLocalProvider,
     default_local_bind: &str,
-) -> DfxResult<String> {
+) -> Result<String, NetworkConfigError> {
     let local_bind = local_provider
         .bind
         .clone()
         .unwrap_or_else(|| default_local_bind.to_string());
     let path = data_directory.join("webserver-port");
     if path.exists() {
-        let s = std::fs::read_to_string(&path).with_context(|| {
-            format!(
-                "Unable to read webserver port from {}",
-                path.to_string_lossy()
-            )
-        })?;
+        let s = dfx_core::fs::read_to_string(&path).map_err(ReadWebserverPortFailed)?;
         let s = s.trim();
         if s.is_empty() {
             Ok(local_bind)
         } else {
-            let port = s.parse::<u16>().with_context(|| {
-                format!(
-                    "Unable to read contents of {} as a port value",
-                    path.to_string_lossy()
-                )
-            })?;
+            let port = s
+                .parse::<u16>()
+                .map_err(|e| ParsePortValueFailed(Box::new(path), Box::new(e)))?;
             // converting to a socket address, and then setting the port,
             // will unfortunately transform "localhost:port" to "[::1]:{port}",
             // which the agent fails to connect with.
