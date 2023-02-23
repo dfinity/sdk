@@ -1,10 +1,9 @@
-use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use crate::util::{self, expiry_duration};
+use crate::util;
 use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
@@ -12,19 +11,17 @@ use dfx_core::config::model::dfinity::{
 };
 use dfx_core::error::network_config::NetworkConfigError;
 use dfx_core::error::network_config::NetworkConfigError::{
-    NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed, ReadWebserverPortFailed,
+    NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed,
+    ReadWebserverPortFailed,
 };
-use dfx_core::identity::{ANONYMOUS_IDENTITY_NAME, WALLET_CONFIG_FILENAME};
+use dfx_core::identity::WALLET_CONFIG_FILENAME;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::anyhow;
 use fn_error_context::context;
-use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
-use ic_agent::Agent;
 use lazy_static::lazy_static;
 use slog::{debug, info, warn, Logger};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
 use url::Url;
 
 lazy_static! {
@@ -38,13 +35,12 @@ fn set_network_context(network: Option<String>) {
     *n = Some(name);
 }
 
-#[context("Failed to get network context.")]
-pub fn get_network_context() -> DfxResult<String> {
+pub fn get_network_context() -> Result<String, NetworkConfigError> {
     NETWORK_CONTEXT
         .read()
         .unwrap()
         .clone()
-        .ok_or_else(|| anyhow!("Cannot find network context."))
+        .ok_or(NoNetworkContext())
 }
 
 pub enum LocalBindDetermination {
@@ -393,42 +389,6 @@ fn get_running_webserver_bind_address(
     }
 }
 
-#[context("Failed to create AgentEnvironment.")]
-pub fn create_agent_environment<'a>(
-    env: &'a (dyn Environment + 'a),
-    network: Option<String>,
-) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = create_network_descriptor(
-        env.get_config(),
-        env.get_networks_config(),
-        network,
-        None,
-        LocalBindDetermination::ApplyRunningWebserverPort,
-    )?;
-    let timeout = expiry_duration();
-    AgentEnvironment::new(env, network_descriptor, timeout, None)
-}
-
-pub fn create_anonymous_agent_environment<'a>(
-    env: &'a (dyn Environment + 'a),
-    network: Option<String>,
-) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = create_network_descriptor(
-        env.get_config(),
-        env.get_networks_config(),
-        network,
-        None,
-        LocalBindDetermination::ApplyRunningWebserverPort,
-    )?;
-    let timeout = expiry_duration();
-    AgentEnvironment::new(
-        env,
-        network_descriptor,
-        timeout,
-        Some(ANONYMOUS_IDENTITY_NAME),
-    )
-}
-
 pub fn command_line_provider_to_url(s: &str) -> Result<String, NetworkConfigError> {
     match parse_provider_url(s) {
         Ok(url) => Ok(url),
@@ -443,40 +403,6 @@ pub fn parse_provider_url(url: &str) -> Result<String, NetworkConfigError> {
     Url::parse(url)
         .map(|_| String::from(url))
         .map_err(|e| ParseProviderUrlFailed(Box::new(url.to_string()), e))
-}
-
-pub async fn ping_and_wait(url: &str) -> DfxResult {
-    let agent = Agent::builder()
-        .with_transport(
-            ReqwestHttpReplicaV2Transport::create(url)
-                .with_context(|| format!("Failed to create replica transport from url {url}.",))?,
-        )
-        .build()
-        .with_context(|| format!("Failed to build agent with url {url}."))?;
-    let mut retries = 0;
-    loop {
-        let status = agent.status().await;
-        match status {
-            Ok(status) => {
-                let healthy = match &status.replica_health_status {
-                    Some(status) if status == "healthy" => true,
-                    None => true, // emulator doesn't report replica_health_status
-                    _ => false,
-                };
-                if healthy {
-                    break;
-                }
-            }
-            Err(e) => {
-                if retries >= 60 {
-                    bail!(e);
-                }
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                retries += 1;
-            }
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

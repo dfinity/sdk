@@ -368,9 +368,11 @@ fn replica_start_thread(
                     .build()
                     .unwrap()
                     .block_on(async move {
-                        crate::lib::provider::ping_and_wait(&format!("http://localhost:{port}"))
-                            .await
-                            .unwrap();
+                        crate::lib::replica::status::ping_and_wait(&format!(
+                            "http://localhost:{port}"
+                        ))
+                        .await
+                        .unwrap();
                         info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
                     })
             });

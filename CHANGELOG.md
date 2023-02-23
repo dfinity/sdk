@@ -4,20 +4,37 @@
 
 ## DFX
 
+
 ### feat: updates the dfx new starter project for env vars
 
 - Updates the starter project for env vars to use the new `dfx build` & `dfx deploy` environment variables
 - Changes the format of the canister id env vars to be `CANISTER_ID_<canister_name_uppercase>`, for the frontend declaraction file to be consistent with the dfx environment variables. `CANISTER_ID` as both a prefix and suffix are supported for backwards compatibility.
 
+### chore: change the default Internet Computer gateway domain to `icp0.io`
+By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`. 
+Canisters communicating with `ic0.app` will continue to function nominally.
+
+
 ### feat: --no-asset-upgrade
 
 By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister install`, you can ensure that the asset canister itself is not upgraded, but instead only the assets themselves are installed.
+
+### feat: Get identity from env var if present
+
+The identity may be specified using the environment variable `DFX_IDENTITY`.
 
 ### feat: Add DFX_ASSETS_WASM
 
 Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
 
 ### feat: dfx pull can download wasm
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: d1cbabf457079ffe17bf3460648efa37ae86d678862a73ba2b8bbc9cebcb0f49
+- https://github.com/dfinity/sdk/pull/2982
 
 # 0.13.1
 

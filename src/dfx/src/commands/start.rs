@@ -67,7 +67,7 @@ pub struct StartOpts {
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
     // wait for frontend to come up
-    runtime.block_on(async { crate::lib::provider::ping_and_wait(frontend_url).await })?;
+    runtime.block_on(async { crate::lib::replica::status::ping_and_wait(frontend_url).await })?;
     Ok(())
 }
 

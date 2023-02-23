@@ -1,6 +1,6 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::call_sender;
-use crate::lib::provider::create_agent_environment;
 use crate::{lib::environment::Environment, NetworkOpt};
 
 use clap::{Parser, Subcommand};
