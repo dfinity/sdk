@@ -1,10 +1,9 @@
-use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use crate::util::{self, expiry_duration};
+use crate::util;
 use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
@@ -14,7 +13,7 @@ use dfx_core::error::network_config::NetworkConfigError;
 use dfx_core::error::network_config::NetworkConfigError::{
     NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed, ReadWebserverPortFailed,
 };
-use dfx_core::identity::{ANONYMOUS_IDENTITY_NAME, WALLET_CONFIG_FILENAME};
+use dfx_core::identity::WALLET_CONFIG_FILENAME;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -391,42 +390,6 @@ fn get_running_webserver_bind_address(
     } else {
         Ok(local_bind)
     }
-}
-
-#[context("Failed to create AgentEnvironment.")]
-pub fn create_agent_environment<'a>(
-    env: &'a (dyn Environment + 'a),
-    network: Option<String>,
-) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = create_network_descriptor(
-        env.get_config(),
-        env.get_networks_config(),
-        network,
-        None,
-        LocalBindDetermination::ApplyRunningWebserverPort,
-    )?;
-    let timeout = expiry_duration();
-    AgentEnvironment::new(env, network_descriptor, timeout, None)
-}
-
-pub fn create_anonymous_agent_environment<'a>(
-    env: &'a (dyn Environment + 'a),
-    network: Option<String>,
-) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = create_network_descriptor(
-        env.get_config(),
-        env.get_networks_config(),
-        network,
-        None,
-        LocalBindDetermination::ApplyRunningWebserverPort,
-    )?;
-    let timeout = expiry_duration();
-    AgentEnvironment::new(
-        env,
-        network_descriptor,
-        timeout,
-        Some(ANONYMOUS_IDENTITY_NAME),
-    )
 }
 
 pub fn command_line_provider_to_url(s: &str) -> Result<String, NetworkConfigError> {

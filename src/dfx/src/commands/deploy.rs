@@ -1,7 +1,7 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::operations::canister::deploy_canisters;
-use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;

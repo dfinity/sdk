@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
+use crate::lib::agent::create_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::create_agent_environment;
 use crate::NetworkOpt;
 
 use clap::Parser;
