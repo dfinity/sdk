@@ -18,6 +18,13 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### feat: dfx pull can download wasm
 
+## Dependencies
+
+### Frontend canister
+
+- Module hash: d1cbabf457079ffe17bf3460648efa37ae86d678862a73ba2b8bbc9cebcb0f49
+- https://github.com/dfinity/sdk/pull/2982
+
 # 0.13.1
 
 ## Asset Canister
