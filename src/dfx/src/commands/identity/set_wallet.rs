@@ -1,9 +1,9 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::wallet::{build_wallet_canister, set_wallet_id};
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::create_agent_environment;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;

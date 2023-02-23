@@ -1,3 +1,4 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{
@@ -7,7 +8,6 @@ use crate::lib::ledger_types::{
 };
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
-use crate::lib::provider::create_agent_environment;
 use crate::NetworkOpt;
 
 use anyhow::{anyhow, bail, Context};

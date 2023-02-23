@@ -90,7 +90,7 @@ teardown() {
 
     jq '.networks.actuallylocal.providers=[]' dfx.json | sponge dfx.json
     assert_command_fail dfx canister create --all --network actuallylocal
-    assert_match "Cannot find providers for network"
+    assert_match "Did not find any providers for network 'actuallylocal'"
 }
 
 @test "create fails with network parameter when network does not exist" {

@@ -1,3 +1,4 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -8,7 +9,6 @@ use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
     deposit_cycles, start_canister, stop_canister, update_settings,
 };
-use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;

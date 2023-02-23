@@ -1,16 +1,20 @@
-use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use crate::util::{self, expiry_duration};
+use crate::util;
 use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
     DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
-use dfx_core::identity::{ANONYMOUS_IDENTITY_NAME, WALLET_CONFIG_FILENAME};
+use dfx_core::error::network_config::NetworkConfigError;
+use dfx_core::error::network_config::NetworkConfigError::{
+    NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed,
+    ReadWebserverPortFailed,
+};
+use dfx_core::identity::WALLET_CONFIG_FILENAME;
 
 use anyhow::{anyhow, bail, Context};
 use fn_error_context::context;
@@ -34,13 +38,12 @@ fn set_network_context(network: Option<String>) {
     *n = Some(name);
 }
 
-#[context("Failed to get network context.")]
-pub fn get_network_context() -> DfxResult<String> {
+pub fn get_network_context() -> Result<String, NetworkConfigError> {
     NETWORK_CONTEXT
         .read()
         .unwrap()
         .clone()
-        .ok_or_else(|| anyhow!("Cannot find network context."))
+        .ok_or(NoNetworkContext())
 }
 
 pub enum LocalBindDetermination {
@@ -70,12 +73,9 @@ fn config_network_to_network_descriptor(
                     .providers
                     .iter()
                     .map(|provider| parse_provider_url(provider))
-                    .collect::<DfxResult<_>>()
+                    .collect::<Result<_, NetworkConfigError>>()
             } else {
-                Err(anyhow!(
-                    "Cannot find providers for network \"{}\"",
-                    network_name
-                ))
+                Err(NoProvidersForNetwork(network_name.to_string()))
             }?;
             let is_ic = NetworkDescriptor::is_ic(network_name, &providers);
             Ok(NetworkDescriptor {
@@ -347,7 +347,7 @@ fn get_local_bind_address(
     local_bind_determination: &LocalBindDetermination,
     data_directory: &Path,
     default_local_bind: &str,
-) -> DfxResult<String> {
+) -> Result<String, NetworkConfigError> {
     match local_bind_determination {
         LocalBindDetermination::AsConfigured => Ok(local_provider
             .bind
@@ -363,29 +363,21 @@ fn get_running_webserver_bind_address(
     data_directory: &Path,
     local_provider: &ConfigLocalProvider,
     default_local_bind: &str,
-) -> DfxResult<String> {
+) -> Result<String, NetworkConfigError> {
     let local_bind = local_provider
         .bind
         .clone()
         .unwrap_or_else(|| default_local_bind.to_string());
     let path = data_directory.join("webserver-port");
     if path.exists() {
-        let s = std::fs::read_to_string(&path).with_context(|| {
-            format!(
-                "Unable to read webserver port from {}",
-                path.to_string_lossy()
-            )
-        })?;
+        let s = dfx_core::fs::read_to_string(&path).map_err(ReadWebserverPortFailed)?;
         let s = s.trim();
         if s.is_empty() {
             Ok(local_bind)
         } else {
-            let port = s.parse::<u16>().with_context(|| {
-                format!(
-                    "Unable to read contents of {} as a port value",
-                    path.to_string_lossy()
-                )
-            })?;
+            let port = s
+                .parse::<u16>()
+                .map_err(|e| ParsePortValueFailed(Box::new(path), Box::new(e)))?;
             // converting to a socket address, and then setting the port,
             // will unfortunately transform "localhost:port" to "[::1]:{port}",
             // which the agent fails to connect with.
@@ -400,44 +392,7 @@ fn get_running_webserver_bind_address(
     }
 }
 
-#[context("Failed to create AgentEnvironment.")]
-pub fn create_agent_environment<'a>(
-    env: &'a (dyn Environment + 'a),
-    network: Option<String>,
-) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = create_network_descriptor(
-        env.get_config(),
-        env.get_networks_config(),
-        network,
-        None,
-        LocalBindDetermination::ApplyRunningWebserverPort,
-    )?;
-    let timeout = expiry_duration();
-    AgentEnvironment::new(env, network_descriptor, timeout, None)
-}
-
-pub fn create_anonymous_agent_environment<'a>(
-    env: &'a (dyn Environment + 'a),
-    network: Option<String>,
-) -> DfxResult<AgentEnvironment<'a>> {
-    let network_descriptor = create_network_descriptor(
-        env.get_config(),
-        env.get_networks_config(),
-        network,
-        None,
-        LocalBindDetermination::ApplyRunningWebserverPort,
-    )?;
-    let timeout = expiry_duration();
-    AgentEnvironment::new(
-        env,
-        network_descriptor,
-        timeout,
-        Some(ANONYMOUS_IDENTITY_NAME),
-    )
-}
-
-#[context("Failed to parse supplied provider url {}.", s)]
-pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
+pub fn command_line_provider_to_url(s: &str) -> Result<String, NetworkConfigError> {
     match parse_provider_url(s) {
         Ok(url) => Ok(url),
         Err(original_error) => {
@@ -447,10 +402,10 @@ pub fn command_line_provider_to_url(s: &str) -> DfxResult<String> {
     }
 }
 
-pub fn parse_provider_url(url: &str) -> DfxResult<String> {
+pub fn parse_provider_url(url: &str) -> Result<String, NetworkConfigError> {
     Url::parse(url)
         .map(|_| String::from(url))
-        .with_context(|| format!("Cannot parse provider URL {}.", url))
+        .map_err(|e| ParseProviderUrlFailed(Box::new(url.to_string()), e))
 }
 
 pub async fn ping_and_wait(url: &str) -> DfxResult {

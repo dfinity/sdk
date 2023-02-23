@@ -5,7 +5,7 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_HASH, DFX_WASM_URL};
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::{environment::Environment, provider::create_agent_environment};
+use crate::lib::{agent::create_agent_environment, environment::Environment};
 use crate::NetworkOpt;
 use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -17,7 +17,7 @@ use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use sha2::{Digest, Sha256};
-use slog::{info, warn, Logger};
+use slog::{error, info, warn, Logger};
 use tokio::runtime::Runtime;
 
 /// Pull canisters upon which the project depends
@@ -75,7 +75,7 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
 
         for canister_id in pulled_canisters {
             if let Err(e) = download_canister_wasm(&agent_env, logger, canister_id).await {
-                warn!(
+                error!(
                     logger,
                     "Failed to download wasm of canister {canister_id}.\n{e}"
                 );
@@ -212,13 +212,11 @@ async fn download_canister_wasm(
         );
     }
 
-    // write to a tempfile
-    let mut f = tempfile::NamedTempFile::new()?;
-    f.write_all(&content)?;
-
-    // move tempfile to target
+    // write to a tempfile then rename
     std::fs::create_dir_all(&wasm_dir)
         .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
+    let mut f = tempfile::NamedTempFile::new_in(&wasm_dir)?;
+    f.write_all(&content)?;
     std::fs::rename(f.path(), &wasm_path)
         .with_context(|| format!("Failed to move tempfile to {:?}", &wasm_path))?;
 
