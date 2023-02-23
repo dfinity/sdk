@@ -43,7 +43,7 @@ pub fn get_network_context() -> Result<String, NetworkConfigError> {
         .read()
         .unwrap()
         .clone()
-        .ok_or_else(|| NoNetworkContext())
+        .ok_or(NoNetworkContext())
 }
 
 pub enum LocalBindDetermination {
