@@ -1,17 +1,14 @@
-use crate::lib::error::DfxResult;
 use dfx_core::config::model::bitcoin_adapter;
 use dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use dfx_core::config::model::dfinity::{
-    to_socket_addr, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
+    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
+    ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
     DEFAULT_SHARED_LOCAL_BIND,
 };
-use dfx_core::config::model::dfinity::{
-    ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
-    ConfigDefaultsReplica,
+use dfx_core::error::network_config::{
+    NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
 
-use anyhow::Context;
-use fn_error_context::context;
 use slog::{debug, Logger};
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
@@ -52,7 +49,6 @@ impl LocalNetworkScopeDescriptor {
 }
 
 impl LocalServerDescriptor {
-    #[context("Failed to construct local server descriptor.")]
     pub(crate) fn new(
         data_directory: PathBuf,
         bind: String,
@@ -62,9 +58,8 @@ impl LocalServerDescriptor {
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
         legacy_pid_path: Option<PathBuf>,
-    ) -> DfxResult<Self> {
-        let bind_address =
-            to_socket_addr(&bind).context("Failed to convert 'bind' field to a SocketAddress")?;
+    ) -> Result<Self, NetworkConfigError> {
+        let bind_address = to_socket_addr(&bind).map_err(ParseBindAddressFailed)?;
         Ok(LocalServerDescriptor {
             data_directory,
             bind_address,
