@@ -14,6 +14,7 @@ use tokio::runtime::Runtime;
 use crate::{
     commands::ledger::{create_canister::MEMO_CREATE_CANISTER, notify_create, transfer_cmc},
     lib::{
+        agent::create_agent_environment,
         environment::Environment,
         error::DfxResult,
         identity::wallet::{set_wallet_id, wallet_canister_id},
@@ -26,7 +27,6 @@ use crate::{
             canister::install_wallet,
             ledger::{balance, xdr_permyriad_per_icp},
         },
-        provider::create_agent_environment,
     },
     util::assets::wallet_wasm,
 };

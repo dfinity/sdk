@@ -1,3 +1,4 @@
+pub mod agent;
 pub mod builders;
 pub mod call_bundled;
 pub mod canister_info;
