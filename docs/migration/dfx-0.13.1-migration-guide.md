@@ -1,4 +1,4 @@
-# 0.13.1 Migration Guide - Environment Variables
+# 0.13.2 Migration Guide - Environment Variables
 
 This is not an immediate breaking change, but there will be a standardization around environment variables. Backwards compatibility will be supported until 0.15.0, but we recommend updating your projects to use the new environment variables.
 
