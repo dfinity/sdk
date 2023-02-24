@@ -4,7 +4,8 @@ This is not an immediate breaking change, but there will be a standardization ar
 
 ## Context
 
-Previously, `webpack.config.js` included an `initCanisterEnv` that parsed canister*ids.json files and mapped them to environment variables. The pattern used there was `<CANISTER_NAME_UPPERCASE>_CANISTER_ID`. This was not consistent with the pattern used in the `dfx` internals, which used `CANISTER_ID*<canister*name_case_agnostic>`. This was confusing for users, and since uppercase environment variables is a best practice, we have decided to standardize on the `CANISTER_ID*<CANISTER_NAME_UPPERCASE>` pattern across the board.
+Previously, `webpack.config.js` included an `initCanisterEnv` that parsed canister*ids.json files and mapped them to environment variables. The pattern used there was `<CANISTER_NAME_UPPERCASE>_CANISTER_ID`. This was not consistent with the pattern used in the `dfx` internals, which used `CANISTER_ID_<canister
+_name_case_agnostic>`. This was confusing for users, and since uppercase environment variables is a best practice, we have decided to standardize on the `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` pattern across the board.
 
 ## Changes
 
