@@ -17,7 +17,7 @@ pub enum NetworkConfigError {
     #[error("The '{0}' network must be a local network.")]
     NetworkMustBeLocal(String),
 
-    #[error("Compute network not found: {0}")]
+    #[error("Network not found: {0}")]
     NetworkNotFound(String),
 
     #[error("Cannot find network context.")]
