@@ -2,6 +2,44 @@
 
 # UNRELEASED
 
+## DFX
+
+### chore: change the default Internet Computer gateway domain to `icp0.io`
+By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`. 
+Canisters communicating with `ic0.app` will continue to function nominally.
+
+### feat: --no-asset-upgrade
+
+### fix: Make `build` field optional in dfx.json
+
+The `build` field in custom canisters was already optional in code, but this fixes it in the schema.
+
+By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister install`, you can ensure that the asset canister itself is not upgraded, but instead only the assets themselves are installed.
+
+### feat: Get identity from env var if present
+
+The identity may be specified using the environment variable `DFX_IDENTITY`.
+
+### feat: Add DFX_ASSETS_WASM
+
+Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
+
+### feat: dfx pull can download wasm
+
+## Asset Canister
+
+Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 492760e045212d3711a3a1aaa561d0d12c77f6c6043fdf71058799ea64e95620
+- https://github.com/dfinity/sdk/pull/2987
+- https://github.com/dfinity/sdk/pull/2982
+
+# 0.13.1
+
 ## Asset Canister
 
 Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.

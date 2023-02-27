@@ -1,9 +1,11 @@
-use crate::lib::error::DfxResult;
 use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::config::model::dfinity::NetworkType;
 use dfx_core::config::model::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
+use dfx_core::error::network_config::NetworkConfigError;
+use dfx_core::error::network_config::NetworkConfigError::{
+    NetworkHasNoProviders, NetworkMustBeLocal,
+};
 
-use anyhow::bail;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -62,20 +64,17 @@ impl NetworkDescriptor {
     }
 
     /// Return the first provider in the list
-    pub fn first_provider(&self) -> DfxResult<&str> {
+    pub fn first_provider(&self) -> Result<&str, NetworkConfigError> {
         match self.providers.first() {
             Some(provider) => Ok(provider),
-            None => bail!(
-                "Network '{}' does not specify any network providers.",
-                self.name
-            ),
+            None => Err(NetworkHasNoProviders(self.name.clone())),
         }
     }
 
-    pub fn local_server_descriptor(&self) -> DfxResult<&LocalServerDescriptor> {
+    pub fn local_server_descriptor(&self) -> Result<&LocalServerDescriptor, NetworkConfigError> {
         match &self.local_server_descriptor {
             Some(p) => Ok(p),
-            None => bail!("The '{}' network must be a local network", self.name),
+            None => Err(NetworkMustBeLocal(self.name.clone())),
         }
     }
 }
