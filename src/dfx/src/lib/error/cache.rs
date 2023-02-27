@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CacheError {
-    #[error("Cannot create cache directory at '{0}'.")]
+    #[error("Cannot create cache directory: {0}.")]
     CreateCacheDirectoryFailed(dfx_core::error::io::IoError),
 
     #[error("Cannot find cache directory at '{0}'.")]
