@@ -17,7 +17,7 @@ pub enum CacheError {
     #[error("Failed to parse version from '{0}'.")]
     MalformedSemverVersion(semver::Error),
 
-    #[error("Failed to read binary cache: '{0}'.")]
+    #[error("Failed to read binary cache: {0}")]
     ReadBinaryCacheFailed(std::io::Error),
 
     #[error("Failed to iterate through binary cache: {0}")]
