@@ -3,7 +3,7 @@ pub mod composite;
 use crate::error::io::IoError;
 use crate::error::io::IoErrorKind::{
     ArchiveFileInvalidPath, CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed,
-    NoParent, ReadDirFailed, ReadFileFailed, ReadPermissionsFailed,
+    NoParent, ReadDirFailed, ReadFileFailed, ReadPermissionsFailed, ReadToStringFailed
     RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
     UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
 };
@@ -49,6 +49,11 @@ pub fn parent(path: &Path) -> Result<PathBuf, IoError> {
 
 pub fn read(path: &Path) -> Result<Vec<u8>, IoError> {
     std::fs::read(path).map_err(|err| IoError::new(ReadFileFailed(path.to_path_buf(), err)))
+}
+
+pub fn read_to_string(path: &Path) -> Result<String, IoError> {
+    std::fs::read_to_string(path)
+        .map_err(|err| IoError::new(ReadToStringFailed(path.to_path_buf(), err)))
 }
 
 pub fn read_dir(path: &Path) -> Result<ReadDir, IoError> {

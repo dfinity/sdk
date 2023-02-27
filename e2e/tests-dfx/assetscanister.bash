@@ -55,6 +55,9 @@ check_permission_failure() {
   assert_command dfx canister call e2e_project_frontend validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Commit }; })"
   assert_contains 'Ok = "revoke Commit permission from principal '"$PREPARE_PRINCIPAL"'"'
 
+  assert_command dfx canister call e2e_project_frontend validate_take_ownership "()"
+  assert_contains 'Ok = "revoke all permissions, then gives the caller Commit permissions"'
+
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
   assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
@@ -1147,4 +1150,16 @@ WARN: {
 
     assert_command dfx deploy
     assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
+}
+
+@test "uses selected canister wasm" {
+    dfx_start
+    use_asset_wasm 0.12.1
+    assert_command dfx deploy
+    assert_command dfx canister info e2e_project_frontend
+    assert_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+    use_default_asset_wasm
+    assert_command dfx deploy
+    assert_command dfx canister info e2e_project_frontend
+    assert_not_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
 }

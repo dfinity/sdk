@@ -932,6 +932,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tiny-bip39",
+ "url",
 ]
 
 [[package]]

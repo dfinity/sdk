@@ -122,6 +122,11 @@ async fn take_ownership() {
         Ok(_) => STATE.with(|s| s.borrow_mut().take_ownership(caller)),
     }
 }
+#[update]
+#[candid_method(update)]
+async fn validate_take_ownership() -> Result<String, String> {
+    Ok("revoke all permissions, then gives the caller Commit permissions".to_string())
+}
 
 #[query]
 #[candid_method(query)]

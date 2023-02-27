@@ -11,7 +11,7 @@ use ic_agent::{agent, Agent, Identity};
 use crate::commands::upload::upload;
 use std::path::PathBuf;
 
-const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
+const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
 
 #[derive(Parser)]
 #[clap(
