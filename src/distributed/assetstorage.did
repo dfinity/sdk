@@ -185,4 +185,5 @@ service: {
 
   validate_grant_permission: (GrantPermission) -> (ValidationResult);
   validate_revoke_permission: (RevokePermission) -> (ValidationResult);
+  validate_take_ownership: () -> (ValidationResult);
 }
