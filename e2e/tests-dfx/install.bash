@@ -64,7 +64,7 @@ teardown() {
 
     assert_command_fail dfx canister install --all --network nosuch
 
-    assert_match "ComputeNetworkNotFound.*nosuch"
+    assert_match "Network not found.*nosuch"
 }
 
 @test "install succeeds with arbitrary wasm" {
