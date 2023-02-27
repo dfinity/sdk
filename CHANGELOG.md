@@ -10,7 +10,10 @@ Canisters communicating with `ic0.app` will continue to function nominally.
 
 ### feat: --no-asset-upgrade
 
-## DFX
+### fix: `dfx generate` no longer requires non-Motoko canisters to have a canister ID
+Previously, non-Motoko canisters required that the canister was created before `dfx generate` could be called.
+This requirement is now lifted for all canisters except for canisters of type `"motoko"` or canisters that are listed in (transitive) dependencies of a canister of type `"motoko"`.
+It is planned to lift this requirement for Motoko canisters as well, but this requires more work.
 
 ### fix: Make `build` field optional in dfx.json
 
