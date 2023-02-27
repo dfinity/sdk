@@ -2,7 +2,6 @@ use crate::lib::network::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
 use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use crate::util;
 use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
@@ -14,6 +13,7 @@ use dfx_core::error::network_config::NetworkConfigError::{
     ParseProviderUrlFailed, ReadWebserverPortFailed,
 };
 use dfx_core::identity::WALLET_CONFIG_FILENAME;
+use dfx_core::util;
 
 use lazy_static::lazy_static;
 use slog::{debug, info, warn, Logger};
