@@ -38,6 +38,10 @@ Added `validate_take_ownership()` method so that an SNS is able to add a custom 
 - https://github.com/dfinity/sdk/pull/2987
 - https://github.com/dfinity/sdk/pull/2982
 
+### Motoko
+
+Updated Motoko to 0.8.3
+
 # 0.13.1
 
 ## Asset Canister
