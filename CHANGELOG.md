@@ -35,7 +35,7 @@ Added `validate_take_ownership()` method so that an SNS is able to add a custom 
 ### Frontend canister
 
 - Module hash: 492760e045212d3711a3a1aaa561d0d12c77f6c6043fdf71058799ea64e95620
-- https://github.com/dfinity/sdk/pull/????
+- https://github.com/dfinity/sdk/pull/2987
 - https://github.com/dfinity/sdk/pull/2982
 
 # 0.13.1
