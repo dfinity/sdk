@@ -29,6 +29,6 @@ slog = { version = "2.5.2", features = ["max_level_trace"] }
 slog-async = "2.4.0"
 slog-term = "2.9.0"
 time = { version = "0.3.9", features = ["formatting", "local-offset"] }
-tokio = { version = "1.23.1", features = ["full", "rt"] }
+tokio = { version = "1.24.2", features = ["full", "rt"] }
 thiserror = "1.0.24"
 walkdir = "2.3.1"
