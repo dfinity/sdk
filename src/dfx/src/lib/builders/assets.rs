@@ -7,8 +7,8 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;

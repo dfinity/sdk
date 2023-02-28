@@ -9,10 +9,10 @@ use crate::commands::start::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::id::write_network_id;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 use dfx_core::config::model::dfinity::DEFAULT_REPLICA_PORT;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 
 use anyhow::Context;
 use clap::Parser;
