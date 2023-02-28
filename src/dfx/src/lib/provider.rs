@@ -1,12 +1,12 @@
-use crate::lib::network::local_server_descriptor::{
-    LocalNetworkScopeDescriptor, LocalServerDescriptor,
-};
-use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::config::directories::get_shared_network_data_directory;
 use dfx_core::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
     DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
+use dfx_core::config::model::local_server_descriptor::{
+    LocalNetworkScopeDescriptor, LocalServerDescriptor,
+};
+use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::network_config::NetworkConfigError;
 use dfx_core::error::network_config::NetworkConfigError::{
     NetworkNotFound, NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed,
