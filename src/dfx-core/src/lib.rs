@@ -5,4 +5,5 @@ pub mod fs;
 pub mod identity;
 pub mod json;
 pub mod network;
+pub mod process;
 pub mod util;
