@@ -3,7 +3,7 @@ pub mod composite;
 use crate::error::io::IoError;
 use crate::error::io::IoErrorKind::{
     ArchiveFileInvalidPath, CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed,
-    NoParent, ReadDirFailed, ReadFileFailed, ReadPermissionsFailed, ReadToStringFailed
+    NoParent, ReadDirFailed, ReadFileFailed, ReadPermissionsFailed, ReadToStringFailed,
     RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
     UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
 };

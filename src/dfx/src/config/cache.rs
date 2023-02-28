@@ -131,7 +131,9 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         return Ok(p);
     }
 
-    if Version::parse(v).map_err(CacheError::MalformedSemverVersion)? == *dfx_version() {
+    if Version::parse(v).map_err(|e| CacheError::MalformedSemverString(v.to_string(), e))?
+        == *dfx_version()
+    {
         // Dismiss as fast as possible. We use the current_exe variable after an
         // expensive step, and if this fails we can't continue anyway.
         let current_exe = dfx_core::foundation::get_current_exe()?;
@@ -206,7 +208,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         }
         Ok(p)
     } else {
-        Err(CacheError::UnknownVersion(v.to_owned()))
+        Err(CacheError::InvalidCacheForDfxVersion(v.to_owned()))
     }
 }
 
@@ -246,7 +248,10 @@ pub fn list_versions() -> Result<Vec<Version>, CacheError> {
                 // temp directory for version being installed
                 continue;
             }
-            result.push(Version::parse(version).map_err(CacheError::MalformedSemverVersion)?);
+            result.push(
+                Version::parse(version)
+                    .map_err(|e| CacheError::MalformedSemverString(version.to_string(), e))?,
+            );
         }
     }
 
@@ -257,7 +262,7 @@ pub fn call_cached_dfx(v: &Version) -> Result<ExitStatus, CacheError> {
     let v = format!("{}", v);
     let command_path = get_binary_path_from_version(&v, "dfx")?;
     if command_path == dfx_core::foundation::get_current_exe()? {
-        return Err(CacheError::UnknownVersion(v));
+        return Err(CacheError::InvalidCacheForDfxVersion(v));
     }
 
     let mut binding = std::process::Command::new(command_path);
