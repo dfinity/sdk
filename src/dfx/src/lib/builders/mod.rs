@@ -3,9 +3,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::provider::get_network_context;
 use crate::util::check_candid_file;
 use dfx_core::config::model::dfinity::{Config, Profile};
+use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 
 use anyhow::{bail, Context};

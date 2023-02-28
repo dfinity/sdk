@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::get_network_context;
+use dfx_core::network::provider::get_network_context;
 
 use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, bail, Context};

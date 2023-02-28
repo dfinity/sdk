@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::bail;
 use clap::Parser;
