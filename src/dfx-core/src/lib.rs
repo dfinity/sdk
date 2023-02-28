@@ -4,5 +4,5 @@ pub mod foundation;
 pub mod fs;
 pub mod identity;
 pub mod json;
-pub mod process; // TODO(mnl): take a second look
+pub mod process;
 pub mod util;
