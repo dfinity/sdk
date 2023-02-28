@@ -24,7 +24,7 @@ pub enum CacheError {
     MalformedSemverString(String, semver::Error),
 
     #[error("Failed to read binary cache: {0}")]
-    ReadBinaryCacheFailed(std::io::Error),
+    ReadBinaryCacheStoreFailed(std::io::Error),
 
     #[error("Failed to iterate through binary cache: {0}")]
     ReadBinaryCacheEntriesFailed(std::io::Error),

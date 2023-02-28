@@ -157,7 +157,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         dfx_core::fs::create_dir_all(&temp_p)?;
 
         let mut binary_cache_assets =
-            util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheFailed)?;
+            util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheStoreFailed)?;
         // Write binaries and set them to be executable.
         for file in binary_cache_assets
             .entries()
