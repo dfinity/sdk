@@ -856,12 +856,16 @@ impl Config {
     }
 
     /// Create a configuration from a string.
-    pub fn from_str(content: &str) -> Result<Config, StructuredFileError> {
+    #[cfg(test)]
+    pub(crate) fn from_str(content: &str) -> Result<Config, StructuredFileError> {
         Config::from_slice(PathBuf::from("-"), content.as_bytes())
     }
 
     #[cfg(test)]
-    pub fn from_str_and_path(path: PathBuf, content: &str) -> Result<Config, StructuredFileError> {
+    pub(crate) fn from_str_and_path(
+        path: PathBuf,
+        content: &str,
+    ) -> Result<Config, StructuredFileError> {
         Config::from_slice(path, content.as_bytes())
     }
 

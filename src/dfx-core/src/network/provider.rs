@@ -1,19 +1,19 @@
-use dfx_core::config::directories::get_shared_network_data_directory;
-use dfx_core::config::model::dfinity::{
+use crate::config::directories::get_shared_network_data_directory;
+use crate::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
     DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
-use dfx_core::config::model::local_server_descriptor::{
+use crate::config::model::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
-use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use dfx_core::error::network_config::NetworkConfigError;
-use dfx_core::error::network_config::NetworkConfigError::{
+use crate::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use crate::error::network_config::NetworkConfigError;
+use crate::error::network_config::NetworkConfigError::{
     NetworkNotFound, NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed,
     ParseProviderUrlFailed, ReadWebserverPortFailed,
 };
-use dfx_core::identity::WALLET_CONFIG_FILENAME;
-use dfx_core::util;
+use crate::identity::WALLET_CONFIG_FILENAME;
+use crate::util;
 
 use lazy_static::lazy_static;
 use slog::{debug, info, warn, Logger};
@@ -364,7 +364,7 @@ fn get_running_webserver_bind_address(
         .unwrap_or_else(|| default_local_bind.to_string());
     let path = data_directory.join("webserver-port");
     if path.exists() {
-        let s = dfx_core::fs::read_to_string(&path).map_err(ReadWebserverPortFailed)?;
+        let s = crate::fs::read_to_string(&path).map_err(ReadWebserverPortFailed)?;
         let s = s.trim();
         if s.is_empty() {
             Ok(local_bind)
@@ -405,10 +405,10 @@ pub fn parse_provider_url(url: &str) -> Result<String, NetworkConfigError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfx_core::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
-    use dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel;
-    use dfx_core::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
-    use dfx_core::config::model::dfinity::{
+    use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
+    use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
+    use crate::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
+    use crate::config::model::dfinity::{
         to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
         ConfigDefaultsReplica, ReplicaLogLevel,
     };
