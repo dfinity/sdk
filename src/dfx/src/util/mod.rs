@@ -60,10 +60,6 @@ pub fn expiry_duration() -> Duration {
     Duration::from_secs(60 * 5)
 }
 
-pub fn network_to_pathcompat(network_name: &str) -> String {
-    network_name.replace(|c: char| !c.is_ascii_alphanumeric(), "_")
-}
-
 /// Deserialize and print return values from canister method.
 #[context("Failed to deserialize idl blob: Invalid data.")]
 pub fn print_idl_blob(
