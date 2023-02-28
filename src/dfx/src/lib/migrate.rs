@@ -13,10 +13,11 @@ use itertools::Itertools;
 
 use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister::install_wallet;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use super::{
     environment::Environment, error::DfxResult, models::canister_id_store::CanisterIdStore,
-    network::network_descriptor::NetworkDescriptor, root_key::fetch_root_key_if_needed,
+    root_key::fetch_root_key_if_needed,
 };
 
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {

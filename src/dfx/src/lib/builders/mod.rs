@@ -2,11 +2,11 @@ use crate::config::dfx_version_str;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use dfx_core::config::model::dfinity::{Config, Profile};
-
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::provider::get_network_context;
-use crate::util::{self, check_candid_file};
+use crate::util::check_candid_file;
+use dfx_core::config::model::dfinity::{Config, Profile};
+use dfx_core::util;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;

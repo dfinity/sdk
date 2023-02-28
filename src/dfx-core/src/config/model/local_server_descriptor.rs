@@ -1,11 +1,11 @@
-use dfx_core::config::model::bitcoin_adapter;
-use dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel;
-use dfx_core::config::model::dfinity::{
+use crate::config::model::bitcoin_adapter;
+use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
+use crate::config::model::dfinity::{
     to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
     ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
     DEFAULT_SHARED_LOCAL_BIND,
 };
-use dfx_core::error::network_config::{
+use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
 
@@ -49,7 +49,7 @@ impl LocalNetworkScopeDescriptor {
 }
 
 impl LocalServerDescriptor {
-    pub(crate) fn new(
+    pub fn new(
         data_directory: PathBuf,
         bind: String,
         bitcoin: ConfigDefaultsBitcoin,
@@ -169,14 +169,14 @@ impl LocalServerDescriptor {
 }
 
 impl LocalServerDescriptor {
-    pub(crate) fn with_bind_address(self, bind_address: SocketAddr) -> Self {
+    pub fn with_bind_address(self, bind_address: SocketAddr) -> Self {
         Self {
             bind_address,
             ..self
         }
     }
 
-    pub(crate) fn with_replica_port(self, port: u16) -> Self {
+    pub fn with_replica_port(self, port: u16) -> Self {
         let replica = ConfigDefaultsReplica {
             port: Some(port),
             ..self.replica
@@ -184,7 +184,7 @@ impl LocalServerDescriptor {
         Self { replica, ..self }
     }
 
-    pub(crate) fn with_bitcoin_enabled(self) -> LocalServerDescriptor {
+    pub fn with_bitcoin_enabled(self) -> LocalServerDescriptor {
         let bitcoin = ConfigDefaultsBitcoin {
             enabled: true,
             ..self.bitcoin
@@ -192,7 +192,7 @@ impl LocalServerDescriptor {
         Self { bitcoin, ..self }
     }
 
-    pub(crate) fn with_bitcoin_nodes(self, nodes: Vec<SocketAddr>) -> LocalServerDescriptor {
+    pub fn with_bitcoin_nodes(self, nodes: Vec<SocketAddr>) -> LocalServerDescriptor {
         let bitcoin = ConfigDefaultsBitcoin {
             nodes: Some(nodes),
             ..self.bitcoin
@@ -200,7 +200,7 @@ impl LocalServerDescriptor {
         Self { bitcoin, ..self }
     }
 
-    pub(crate) fn with_bootstrap_ip(self, ip: IpAddr) -> LocalServerDescriptor {
+    pub fn with_bootstrap_ip(self, ip: IpAddr) -> LocalServerDescriptor {
         let bootstrap = ConfigDefaultsBootstrap {
             ip,
             ..self.bootstrap
@@ -208,7 +208,7 @@ impl LocalServerDescriptor {
         Self { bootstrap, ..self }
     }
 
-    pub(crate) fn with_bootstrap_port(self, port: u16) -> LocalServerDescriptor {
+    pub fn with_bootstrap_port(self, port: u16) -> LocalServerDescriptor {
         let bootstrap = ConfigDefaultsBootstrap {
             port,
             ..self.bootstrap
@@ -216,7 +216,7 @@ impl LocalServerDescriptor {
         Self { bootstrap, ..self }
     }
 
-    pub(crate) fn with_bootstrap_timeout(self, timeout: u64) -> LocalServerDescriptor {
+    pub fn with_bootstrap_timeout(self, timeout: u64) -> LocalServerDescriptor {
         let bootstrap = ConfigDefaultsBootstrap {
             timeout,
             ..self.bootstrap

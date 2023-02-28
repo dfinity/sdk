@@ -2,11 +2,11 @@ use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::util::get_reusable_socket_addr;
 use crate::util::network::get_replica_urls;
 use crate::NetworkOpt;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;

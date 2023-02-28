@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use fn_error_context::context;
 use slog::{info, Logger};

@@ -67,7 +67,7 @@ teardown() {
 @test "create fails with incorrect network" {
     dfx_start
     assert_command_fail dfx canister create --all --network nosuch
-    assert_match "ComputeNetworkNotFound"
+    assert_match "Network not found"
 }
 
 @test "create succeeds when requested network is configured" {
