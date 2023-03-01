@@ -4,7 +4,12 @@
 
 ## DFX
 
+### fix: update Rust canister template.
+
+`ic-cdk-timers` is included in the dependencies.
+
 ### chore: change the default Internet Computer gateway domain to `icp0.io`
+
 By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`. 
 Canisters communicating with `ic0.app` will continue to function nominally.
 
