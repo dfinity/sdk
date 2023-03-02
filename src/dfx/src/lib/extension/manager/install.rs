@@ -101,14 +101,14 @@ impl ExtensionManager {
         }
 
         if let Some(install_as) = install_as {
-            let install_as = self.get_extension_directory(install_as);
             // rename the binary
             dfx_core::fs::rename(
                 temp_dir.path().join(extension_name).as_path(),
                 temp_dir.path().join(&install_as).as_path(),
             )?;
             // and directory
-            dfx_core::fs::rename(temp_dir.path(), &install_as)?;
+            let install_as_dir = self.get_extension_directory(install_as);
+            dfx_core::fs::rename(temp_dir.path(), &install_as_dir)?;
         } else {
             let extension_dir = self.dir.join(extension_name);
             dfx_core::fs::rename(temp_dir.path(), &extension_dir)?;
