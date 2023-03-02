@@ -2,12 +2,12 @@ use std::time::Duration;
 
 use crate::lib::environment::{create_agent, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::provider::{
+use crate::util::expiry_duration;
+use dfx_core::identity::Identity;
+use dfx_core::network::provider::{
     command_line_provider_to_url, create_network_descriptor, get_network_context,
     LocalBindDetermination,
 };
-use crate::util::expiry_duration;
-use dfx_core::identity::Identity;
 
 use anyhow::{bail, Context};
 use clap::Parser;

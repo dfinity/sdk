@@ -4,7 +4,12 @@
 
 ## DFX
 
+### fix: update Rust canister template.
+
+`ic-cdk-timers` is included in the dependencies.
+
 ### chore: change the default Internet Computer gateway domain to `icp0.io`
+
 By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`. 
 Canisters communicating with `ic0.app` will continue to function nominally.
 
@@ -31,12 +36,21 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### feat: dfx pull can download wasm
 
+## Asset Canister
+
+Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
+
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: d1cbabf457079ffe17bf3460648efa37ae86d678862a73ba2b8bbc9cebcb0f49
+- Module hash: 492760e045212d3711a3a1aaa561d0d12c77f6c6043fdf71058799ea64e95620
+- https://github.com/dfinity/sdk/pull/2987
 - https://github.com/dfinity/sdk/pull/2982
+
+### Motoko
+
+Updated Motoko to 0.8.3
 
 # 0.13.1
 

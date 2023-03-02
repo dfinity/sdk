@@ -1,23 +1,20 @@
-use crate::lib::error::DfxResult;
-use crate::lib::network::local_server_descriptor::{
-    LocalNetworkScopeDescriptor, LocalServerDescriptor,
-};
-use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use crate::util;
-use dfx_core::config::directories::get_shared_network_data_directory;
-use dfx_core::config::model::dfinity::{
+use crate::config::directories::get_shared_network_data_directory;
+use crate::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
     DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
-use dfx_core::error::network_config::NetworkConfigError;
-use dfx_core::error::network_config::NetworkConfigError::{
-    NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed,
-    ReadWebserverPortFailed,
+use crate::config::model::local_server_descriptor::{
+    LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
-use dfx_core::identity::WALLET_CONFIG_FILENAME;
+use crate::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use crate::error::network_config::NetworkConfigError;
+use crate::error::network_config::NetworkConfigError::{
+    NetworkNotFound, NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed,
+    ParseProviderUrlFailed, ReadWebserverPortFailed,
+};
+use crate::identity::WALLET_CONFIG_FILENAME;
+use crate::util;
 
-use anyhow::anyhow;
-use fn_error_context::context;
 use lazy_static::lazy_static;
 use slog::{debug, info, warn, Logger};
 use std::path::{Path, PathBuf};
@@ -51,7 +48,6 @@ pub enum LocalBindDetermination {
     ApplyRunningWebserverPort,
 }
 
-#[context("Failed to get network descriptor for network '{}.", network_name)]
 fn config_network_to_network_descriptor(
     network_name: &str,
     config_network: &ConfigNetwork,
@@ -62,7 +58,7 @@ fn config_network_to_network_descriptor(
     local_bind_determination: &LocalBindDetermination,
     default_local_bind: &str,
     legacy_pid_path: Option<PathBuf>,
-) -> DfxResult<NetworkDescriptor> {
+) -> Result<NetworkDescriptor, NetworkConfigError> {
     match config_network {
         ConfigNetwork::ConfigNetworkProvider(network_provider) => {
             let providers = if !network_provider.providers.is_empty() {
@@ -139,14 +135,13 @@ fn config_network_to_network_descriptor(
     }
 }
 
-#[context("Failed to get network descriptor.")]
 pub fn create_network_descriptor(
     project_config: Option<Arc<Config>>,
     shared_config: Arc<NetworksConfig>,
     network: Option<String>,
     logger: Option<Logger>,
     local_bind_determination: LocalBindDetermination,
-) -> DfxResult<NetworkDescriptor> {
+) -> Result<NetworkDescriptor, NetworkConfigError> {
     let logger = (logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
 
     set_network_context(network);
@@ -170,13 +165,13 @@ pub fn create_network_descriptor(
             )
         })
         .or_else(|| create_url_based_network_descriptor(&network_name))
-        .unwrap_or_else(|| Err(anyhow!("ComputeNetworkNotFound({})", network_name)))
+        .unwrap_or(Err(NetworkNotFound(network_name)))
 }
 
 fn create_mainnet_network_descriptor(
     network_name: &str,
     logger: &Logger,
-) -> Option<DfxResult<NetworkDescriptor>> {
+) -> Option<Result<NetworkDescriptor, NetworkConfigError>> {
     if network_name == "ic" {
         info!(
             logger,
@@ -188,7 +183,9 @@ fn create_mainnet_network_descriptor(
     }
 }
 
-fn create_url_based_network_descriptor(network_name: &str) -> Option<DfxResult<NetworkDescriptor>> {
+fn create_url_based_network_descriptor(
+    network_name: &str,
+) -> Option<Result<NetworkDescriptor, NetworkConfigError>> {
     parse_provider_url(network_name).ok().map(|url| {
         // Replace any non-ascii-alphanumeric characters with `_`, to create an
         // OS-friendly directory name for it.
@@ -214,7 +211,7 @@ fn create_shared_network_descriptor(
     shared_config: Arc<NetworksConfig>,
     local_bind_determination: &LocalBindDetermination,
     logger: &Logger,
-) -> Option<DfxResult<NetworkDescriptor>> {
+) -> Option<Result<NetworkDescriptor, NetworkConfigError>> {
     let shared_config_file_exists = shared_config.get_path().is_file();
     let shared_config_display_path = shared_config.get_path().display();
     let network = shared_config.get_interface().get_network(network_name);
@@ -289,7 +286,7 @@ fn create_project_network_descriptor(
     project_config: Option<Arc<Config>>,
     local_bind_determination: &LocalBindDetermination,
     logger: &Logger,
-) -> Option<DfxResult<NetworkDescriptor>> {
+) -> Option<Result<NetworkDescriptor, NetworkConfigError>> {
     if let Some(config) = project_config {
         if let Some(config_network) = config.get_config().get_network(network_name) {
             info!(
@@ -367,7 +364,7 @@ fn get_running_webserver_bind_address(
         .unwrap_or_else(|| default_local_bind.to_string());
     let path = data_directory.join("webserver-port");
     if path.exists() {
-        let s = dfx_core::fs::read_to_string(&path).map_err(ReadWebserverPortFailed)?;
+        let s = crate::fs::read_to_string(&path).map_err(ReadWebserverPortFailed)?;
         let s = s.trim();
         if s.is_empty() {
             Ok(local_bind)
@@ -408,10 +405,10 @@ pub fn parse_provider_url(url: &str) -> Result<String, NetworkConfigError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dfx_core::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
-    use dfx_core::config::model::canister_http_adapter::HttpAdapterLogLevel;
-    use dfx_core::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
-    use dfx_core::config::model::dfinity::{
+    use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
+    use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
+    use crate::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
+    use crate::config::model::dfinity::{
         to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
         ConfigDefaultsReplica, ReplicaLogLevel,
     };

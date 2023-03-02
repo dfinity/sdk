@@ -4,10 +4,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::package_arguments::{self, PackageArguments};
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use dfx_core::config::model::dfinity::{
     ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME,
 };
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;

@@ -55,6 +55,9 @@ check_permission_failure() {
   assert_command dfx canister call e2e_project_frontend validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Commit }; })"
   assert_contains 'Ok = "revoke Commit permission from principal '"$PREPARE_PRINCIPAL"'"'
 
+  assert_command dfx canister call e2e_project_frontend validate_take_ownership "()"
+  assert_contains 'Ok = "revoke all permissions, then gives the caller Commit permissions"'
+
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
   assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
