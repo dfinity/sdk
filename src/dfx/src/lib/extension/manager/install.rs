@@ -104,7 +104,7 @@ impl ExtensionManager {
             // rename the binary
             dfx_core::fs::rename(
                 temp_dir.path().join(extension_name).as_path(),
-                temp_dir.path().join(&install_as).as_path(),
+                temp_dir.path().join(install_as).as_path(),
             )?;
             // and directory
             let install_as_dir = self.get_extension_directory(install_as);
