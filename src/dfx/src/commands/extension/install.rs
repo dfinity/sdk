@@ -16,6 +16,17 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
     let spinner = env.new_spinner(format!("Installing extension: {}", opts.name).into());
     let mgr = env.new_extension_manager()?;
     mgr.install_extension(&opts.name, opts.install_as.as_deref())?;
-    spinner.finish_with_message(format!("Extension '{}' installed successfully", opts.name).into());
+    spinner.finish_with_message(
+        format!(
+            "Extension '{}' installed successfully{}",
+            opts.name,
+            if opts.install_as.is_some() {
+                format!(", and is available as '{}'", opts.install_as.unwrap())
+            } else {
+                "".to_string()
+            }
+        )
+        .into(),
+    );
     Ok(())
 }
