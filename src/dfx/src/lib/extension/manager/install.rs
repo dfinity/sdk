@@ -12,16 +12,18 @@ use std::io::Cursor;
 use std::os::unix::fs::PermissionsExt;
 
 impl ExtensionManager {
-<<<<<<< HEAD
-    pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
-=======
     pub fn install_extension(
         &self,
         extension_name: &str,
-        external_manifest_url: Option<&str>,
+        install_as: Option<&str>,
     ) -> Result<(), ExtensionError> {
->>>>>>> 5d351902 (revert `install_as`-related functionality (tb introduced in another PR))
-        if self.get_extension_directory(extension_name).exists() {
+        if let Some(install_as) = install_as {
+            if self.get_extension_directory(install_as).exists() {
+                return Err(ExtensionError::ExtensionAlreadyInstalled(
+                    install_as.to_string(),
+                ));
+            }
+        } else if self.get_extension_directory(extension_name).exists() {
             return Err(ExtensionError::ExtensionAlreadyInstalled(
                 extension_name.to_string(),
             ));
@@ -31,14 +33,7 @@ impl ExtensionManager {
 
         let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
 
-<<<<<<< HEAD
-=======
-        let archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
-
-        let temp_dir = self.extract_archive_to_tempdir(archive, download_url)?;
-
->>>>>>> 5d351902 (revert `install_as`-related functionality (tb introduced in another PR))
-        self.finalize_installation(extension_name, temp_dir)?;
+        self.finalize_installation(extension_name, temp_dir, install_as)?;
 
         Ok(())
     }
@@ -57,7 +52,7 @@ impl ExtensionManager {
         let manifest = ExtensionCompatibilityMatrix::fetch()?;
         let dfx_version = self.dfx_version_strip_semver();
         let extension_version =
-            manifest.find_latest_compatible_extension_version(extension_name, dfx_version)?;
+            manifest.find_latest_compatible_extension_version(extension_name, &dfx_version)?;
         let download_url = format!(
             "https://github.com/dfinity/dfx-extensions/releases/download/{name}-{version}/{name}-{version}-{platform}-{arch}.tar.gz",
             name = extension_name,
@@ -97,6 +92,7 @@ impl ExtensionManager {
         &self,
         extension_name: &str,
         temp_dir: TempDir,
+        install_as: Option<&str>,
     ) -> Result<(), ExtensionError> {
         #[cfg(not(target_os = "windows"))]
         {
@@ -104,12 +100,19 @@ impl ExtensionManager {
             dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
         }
 
-        let extension_dir = self.dir.join(extension_name);
-        dfx_core::fs::rename(temp_dir.path(), &extension_dir)?;
-<<<<<<< HEAD
-=======
-
->>>>>>> 5d351902 (revert `install_as`-related functionality (tb introduced in another PR))
+        if let Some(install_as) = install_as {
+            let install_as = self.get_extension_directory(install_as);
+            // rename the binary
+            dfx_core::fs::rename(
+                temp_dir.path().join(extension_name).as_path(),
+                temp_dir.path().join(&install_as).as_path(),
+            )?;
+            // and directory
+            dfx_core::fs::rename(temp_dir.path(), &install_as)?;
+        } else {
+            let extension_dir = self.dir.join(extension_name);
+            dfx_core::fs::rename(temp_dir.path(), &extension_dir)?;
+        }
         Ok(())
     }
 }

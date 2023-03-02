@@ -37,9 +37,9 @@ impl ExtensionCompatibilityMatrix {
     pub fn find_latest_compatible_extension_version(
         &self,
         extension_name: &str,
-        dfx_version: Version,
+        dfx_version: &Version,
     ) -> Result<Version, ExtensionError> {
-        let manifests = self.0.get(&dfx_version).ok_or_else(|| {
+        let manifests = self.0.get(dfx_version).ok_or_else(|| {
             ExtensionError::DfxVersionNotFoundInCompatibilityJson(dfx_version.clone())
         })?;
 
