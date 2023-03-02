@@ -12,7 +12,15 @@ use std::io::Cursor;
 use std::os::unix::fs::PermissionsExt;
 
 impl ExtensionManager {
+<<<<<<< HEAD
     pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
+=======
+    pub fn install_extension(
+        &self,
+        extension_name: &str,
+        external_manifest_url: Option<&str>,
+    ) -> Result<(), ExtensionError> {
+>>>>>>> 5d351902 (revert `install_as`-related functionality (tb introduced in another PR))
         if self.get_extension_directory(extension_name).exists() {
             return Err(ExtensionError::ExtensionAlreadyInstalled(
                 extension_name.to_string(),
@@ -23,6 +31,13 @@ impl ExtensionManager {
 
         let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
 
+<<<<<<< HEAD
+=======
+        let archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
+
+        let temp_dir = self.extract_archive_to_tempdir(archive, download_url)?;
+
+>>>>>>> 5d351902 (revert `install_as`-related functionality (tb introduced in another PR))
         self.finalize_installation(extension_name, temp_dir)?;
 
         Ok(())
@@ -91,6 +106,10 @@ impl ExtensionManager {
 
         let extension_dir = self.dir.join(extension_name);
         dfx_core::fs::rename(temp_dir.path(), &extension_dir)?;
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5d351902 (revert `install_as`-related functionality (tb introduced in another PR))
         Ok(())
     }
 }
