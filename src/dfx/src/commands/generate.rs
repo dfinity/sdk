@@ -57,7 +57,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     let mut build_dependees = Vec::new();
     for canister in canister_pool_load.get_canister_list() {
         let canister_name = canister.get_name();
-        if let Some(info) = canister_pool_load.get_first_canister_with_name(&canister_name) {
+        if let Some(info) = canister_pool_load.get_first_canister_with_name(canister_name) {
             if info.get_info().is_motoko() {
                 for dependent_canister in config
                     .get_config()
