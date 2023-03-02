@@ -42,6 +42,13 @@
         "$ref": "#/definitions/ConfigNetwork"
       }
     },
+    "output_env_file": {
+      "description": "If set, environment variables will be output to this file (without overwriting any user-defined variables, if the file already exists).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "profile": {
       "anyOf": [
         {
@@ -227,7 +234,6 @@
           "title": "Custom-Specific Properties",
           "type": "object",
           "required": [
-            "build",
             "candid",
             "type",
             "wasm"
@@ -236,6 +242,7 @@
             "build": {
               "title": "Build Commands",
               "description": "Commands that are executed in order to produce this canister's WASM module. Expected to produce the WASM in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
+              "default": [],
               "allOf": [
                 {
                   "$ref": "#/definitions/SerdeVec_for_String"
@@ -429,7 +436,7 @@
         },
         "id": {
           "title": "Network to Remote ID Mapping",
-          "description": "This field contains mappings from network names to remote canister IDs (Principals). For all networks listed here, this canister is considered 'remote'.  If the '__default' network is set, the canister is considered remote for all networks.",
+          "description": "This field contains mappings from network names to remote canister IDs (Principals). For all networks listed here, this canister is considered 'remote'.",
           "type": "object",
           "additionalProperties": {
             "type": "string"

@@ -67,7 +67,7 @@ teardown() {
 @test "create fails with incorrect network" {
     dfx_start
     assert_command_fail dfx canister create --all --network nosuch
-    assert_match "ComputeNetworkNotFound"
+    assert_match "Network not found"
 }
 
 @test "create succeeds when requested network is configured" {
@@ -90,7 +90,7 @@ teardown() {
 
     jq '.networks.actuallylocal.providers=[]' dfx.json | sponge dfx.json
     assert_command_fail dfx canister create --all --network actuallylocal
-    assert_match "Cannot find providers for network"
+    assert_match "Did not find any providers for network 'actuallylocal'"
 }
 
 @test "create fails with network parameter when network does not exist" {

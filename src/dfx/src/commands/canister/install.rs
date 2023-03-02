@@ -59,6 +59,10 @@ pub struct CanisterInstallOpts {
     /// so this is not recommended outside of CI.
     #[clap(long, short)]
     yes: bool,
+
+    /// Skips upgrading the asset canister, to only install the assets themselves.
+    #[clap(long)]
+    no_asset_upgrade: bool,
 }
 
 pub async fn exec(
@@ -144,6 +148,7 @@ pub async fn exec(
                 None,
                 opts.yes,
                 env_file.as_deref(),
+                !opts.no_asset_upgrade,
             )
             .await
         }
@@ -186,6 +191,7 @@ pub async fn exec(
                     None,
                     opts.yes,
                     env_file.as_deref(),
+                    !opts.no_asset_upgrade,
                 )
                 .await?;
             }

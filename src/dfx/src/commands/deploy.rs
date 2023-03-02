@@ -1,18 +1,16 @@
+use crate::lib::agent::create_agent_environment;
+use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::{call_sender, CallSender};
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
+use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::deploy_canisters;
-use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::NetworkOpt;
-use std::collections::BTreeMap;
-use std::path::PathBuf;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
-use crate::lib::canister_info::CanisterInfo;
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
-use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
@@ -20,6 +18,8 @@ use console::Style;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
 use url::Host::Domain;
@@ -81,6 +81,10 @@ pub struct DeployOpts {
     /// so this is not recommended outside of CI.
     #[clap(long, short)]
     yes: bool,
+
+    /// Skips upgrading the asset canister, to only install the assets themselves.
+    #[clap(long)]
+    no_asset_upgrade: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -143,6 +147,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         create_call_sender,
         opts.yes,
         env_file,
+        !opts.no_asset_upgrade,
     ))?;
 
     display_urls(&env)
@@ -238,7 +243,7 @@ fn construct_ui_canister_url(
 ) -> DfxResult<Option<Url>> {
     if network.is_ic {
         let url = format!(
-            "https://{}.raw.ic0.app/?id={}",
+            "https://{}.raw.icp0.io/?id={}",
             MAINNET_CANDID_INTERFACE_PRINCIPAL, canister_id
         );
         let url = Url::parse(&url).with_context(|| {

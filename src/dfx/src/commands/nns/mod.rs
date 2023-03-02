@@ -1,8 +1,8 @@
 //! Code for the command line `dfx nns`.
 #![warn(clippy::missing_docs_in_private_items)]
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::create_agent_environment;
 
 use clap::Parser;
 use tokio::runtime::Runtime;

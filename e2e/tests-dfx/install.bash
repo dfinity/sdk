@@ -64,7 +64,7 @@ teardown() {
 
     assert_command_fail dfx canister install --all --network nosuch
 
-    assert_match "ComputeNetworkNotFound.*nosuch"
+    assert_match "Network not found.*nosuch"
 }
 
 @test "install succeeds with arbitrary wasm" {
@@ -170,4 +170,14 @@ teardown() {
     assert_command dfx build e2e_project_backend
     assert_command dfx canister install e2e_project_backend
     assert_command timeout -s9 20s dfx canister install e2e_project_backend --mode reinstall -y # if -y does not work, hangs without stdin
+}
+
+@test "--no-asset-upgrade skips asset upgrade" {
+    dfx_start
+    use_asset_wasm 0.12.1
+    dfx deploy
+    use_default_asset_wasm
+    assert_command dfx canister install e2e_project_frontend --mode upgrade --no-asset-upgrade
+    assert_command dfx canister info e2e_project_frontend
+    assert_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
 }

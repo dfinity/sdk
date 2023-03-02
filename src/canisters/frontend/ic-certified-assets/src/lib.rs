@@ -52,6 +52,15 @@ async fn grant_permission(arg: GrantPermissionArguments) {
 
 #[update]
 #[candid_method(update)]
+async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<String, String> {
+    Ok(format!(
+        "grant {} permission to principal {}",
+        arg.permission, arg.to_principal
+    ))
+}
+
+#[update]
+#[candid_method(update)]
 async fn deauthorize(other: Principal) {
     let check_access_result = if other == caller() {
         // this isn't "ManagePermissions" because these legacy methods only
@@ -83,6 +92,15 @@ async fn revoke_permission(arg: RevokePermissionArguments) {
     }
 }
 
+#[update]
+#[candid_method(update)]
+async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<String, String> {
+    Ok(format!(
+        "revoke {} permission from principal {}",
+        arg.permission, arg.of_principal
+    ))
+}
+
 #[query(manual_reply = true)]
 #[candid_method(query)]
 fn list_authorized() -> ManualReply<Vec<Principal>> {
@@ -103,6 +121,11 @@ async fn take_ownership() {
         Err(e) => trap(&e),
         Ok(_) => STATE.with(|s| s.borrow_mut().take_ownership(caller)),
     }
+}
+#[update]
+#[candid_method(update)]
+async fn validate_take_ownership() -> Result<String, String> {
+    Ok("revoke all permissions, then gives the caller Commit permissions".to_string())
 }
 
 #[query]

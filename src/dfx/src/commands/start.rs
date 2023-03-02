@@ -9,12 +9,12 @@ use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::id::write_network_id;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
@@ -67,7 +67,7 @@ pub struct StartOpts {
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
     // wait for frontend to come up
-    runtime.block_on(async { crate::lib::provider::ping_and_wait(frontend_url).await })?;
+    runtime.block_on(async { crate::lib::replica::status::ping_and_wait(frontend_url).await })?;
     Ok(())
 }
 

@@ -389,6 +389,22 @@ default'
     assert_eq '2vxsx-fae'
 }
 
+@test "identity use: is overridden by env var DFX_IDENTITY" {
+    assert_command dfx identity new dan
+    assert_command dfx identity new frank
+    assert_command dfx identity new alice
+    assert_command dfx identity use dan
+    assert_command dfx identity whoami
+    assert_eq 'dan'
+    DFX_IDENTITY=frank
+    export DFX_IDENTITY
+    assert_command dfx identity whoami
+    assert_eq 'frank'
+    assert_command dfx identity whoami --identity alice
+    assert_eq 'alice'
+}
+
+
 ##
 ## dfx identity whoami
 ##
