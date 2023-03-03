@@ -552,6 +552,31 @@ it's cherry season
 CHERRIES" "$stdout"
 }
 
+@test "asset canister can be upgraded when storing a lot of data" {
+    [ "$USE_IC_REF" ] && skip "skip for ic-ref" # this takes too long for ic-ref's wasm interpreter
+
+    # As a starting point for the load, we looked at OpenChat's usage. 
+    # As of 2023-02-10, they had 40MB of assets spread over 135 files.
+    # We'll use a bigger example (~3x in number of files, ~20x in total size) to add a safety margin.
+    local total_files=400
+    local file_size="2MB"
+    local canister_name=e2e_project_frontend
+    local asset_dir=src/e2e_project_frontend/assets
+    local last_archived_version=`ls -d --color=no $archive/frontend/ | sort -V | tail -1`
+   
+    for a in $(seq 1 $total_files); do
+        dd if=/dev/urandom of=$asset_dir/large-asset-$a.bin bs=$file_size count=1 &>/dev/null
+    done
+
+    dfx_start
+    dfx canister create --all
+    dfx build
+    use_asset_wasm $last_archived_version
+    assert_command dfx canister install $canister_name
+    use_default_asset_wasm
+    assert_command dfx deploy $canister_name --upgrade-unchanged
+}
+
 @test 'can store arbitrarily large files' {
     [ "$USE_IC_REF" ] && skip "skip for ic-ref" # this takes too long for ic-ref's wasm interpreter
 
