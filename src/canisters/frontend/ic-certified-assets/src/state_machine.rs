@@ -665,6 +665,7 @@ impl State {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
             allow_raw_access: asset.allow_raw_access,
+            is_aliased: asset.is_aliased,
         })
     }
 
