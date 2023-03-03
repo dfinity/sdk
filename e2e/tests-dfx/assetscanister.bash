@@ -899,6 +899,14 @@ CHERRIES" "$stdout"
     assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
+    # toggle aliasing on and off using `set_asset_properties`
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(false))  })'
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "404" "$stderr"
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+
     # redirect survives upgrade
     assert_command dfx deploy --upgrade-unchanged
     assert_match "is already installed"
@@ -970,6 +978,7 @@ CHERRIES" "$stdout"
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
     assert_match "test index file"
 
+    #
 }
 
 @test "asset configuration via .ic-assets.json5 - detect unused config" {
@@ -1064,7 +1073,8 @@ WARN: {
       {
         "match": "**/*",
         "cache": { "max_age": 2000 },
-        "headers": { "x-key": "x-value" }
+        "headers": { "x-key": "x-value" },
+        "enable_aliasing": true
       }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
@@ -1075,6 +1085,7 @@ WARN: {
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
+    is_aliased = opt true;
     allow_raw_access = opt false;
     max_age = opt (2_000 : nat64);
   },
@@ -1094,6 +1105,7 @@ WARN: {
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
+    is_aliased = opt true;
     allow_raw_access = opt false;
     max_age = opt (5 : nat64);
   },
@@ -1106,6 +1118,7 @@ WARN: {
     assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = opt true;
     allow_raw_access = opt false;
     max_age = opt (5 : nat64);
   },
@@ -1118,16 +1131,37 @@ WARN: {
     assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = opt true;
     allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
 )'
 
-    # set headers and max_age property to None and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null)})'
+    # set is_aliased property and read it back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; is_aliased=opt(opt(false))})'
     assert_contains '()'
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(record { headers = null; allow_raw_access = null; max_age = null })'
+    assert_contains '(
+  record {
+    headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = opt false;
+    allow_raw_access = opt true;
+    max_age = opt (5 : nat64);
+  },
+)'
+
+    # set all properties to None and read them back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null); is_aliased=opt(null)})'
+    assert_contains '()'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(
+  record {
+    headers = null;
+    is_aliased = null;
+    allow_raw_access = null;
+    max_age = null;
+  },
+)'
 }
 
 @test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
