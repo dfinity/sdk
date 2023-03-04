@@ -165,7 +165,7 @@ fn assemble_synchronization_operations(
     container_assets: HashMap<String, AssetDetails>,
     canister_asset_properties: HashMap<String, AssetProperties>,
 ) -> Vec<BatchOperationKind> {
-    let mut container_assets = container_assets;
+    let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
 

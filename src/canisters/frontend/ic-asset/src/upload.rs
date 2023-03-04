@@ -26,7 +26,7 @@ pub async fn upload(
         })
         .collect();
 
-    let container_assets = list_assets(canister).await?;
+    let canister_assets = list_assets(canister).await?;
 
     info!(logger, "Starting batch.");
 
@@ -38,12 +38,12 @@ pub async fn upload(
         canister,
         &batch_id,
         asset_descriptors,
-        &container_assets,
+        &canister_assets,
         logger,
     )
     .await?;
 
-    let operations = assemble_upload_operations(project_assets, container_assets);
+    let operations = assemble_upload_operations(project_assets, canister_assets);
 
     info!(logger, "Committing batch.");
 
@@ -59,9 +59,9 @@ pub async fn upload(
 
 fn assemble_upload_operations(
     project_assets: HashMap<String, ProjectAsset>,
-    container_assets: HashMap<String, AssetDetails>,
+    canister_assets: HashMap<String, AssetDetails>,
 ) -> Vec<BatchOperationKind> {
-    let mut container_assets = container_assets;
+    let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
 
