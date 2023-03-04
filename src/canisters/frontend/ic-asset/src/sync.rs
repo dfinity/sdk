@@ -1,11 +1,15 @@
+use crate::asset_canister::asset_properties::get_asset_properties;
 use crate::asset_canister::batch::{commit_batch, create_batch};
 use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
+use crate::asset_canister::protocol::{
+    AssetDetails, AssetProperties, BatchOperationKind, CommitBatchArguments,
+};
 use crate::asset_config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
 use crate::operations::{
     create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
+    update_properties,
 };
 use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
 use anyhow::{bail, Context};
@@ -23,7 +27,8 @@ pub async fn upload_content_and_assemble_sync_operations(
 ) -> anyhow::Result<CommitBatchArguments> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
-    let container_assets = list_assets(canister).await?;
+    let canister_assets = list_assets(canister).await?;
+    let canister_asset_properties = get_asset_properties(canister, &canister_assets).await?;
 
     info!(logger, "Starting batch.");
 
@@ -35,12 +40,16 @@ pub async fn upload_content_and_assemble_sync_operations(
         canister,
         &batch_id,
         asset_descriptors,
-        &container_assets,
+        &canister_assets,
         logger,
     )
     .await?;
 
-    let operations = assemble_synchronization_operations(project_assets, container_assets);
+    let operations = assemble_synchronization_operations(
+        project_assets,
+        canister_assets,
+        canister_asset_properties,
+    );
     Ok(CommitBatchArguments {
         batch_id,
         operations,
@@ -154,6 +163,7 @@ fn gather_asset_descriptors(
 fn assemble_synchronization_operations(
     project_assets: HashMap<String, ProjectAsset>,
     container_assets: HashMap<String, AssetDetails>,
+    canister_asset_properties: HashMap<String, AssetProperties>,
 ) -> Vec<BatchOperationKind> {
     let mut container_assets = container_assets;
 
@@ -162,7 +172,8 @@ fn assemble_synchronization_operations(
     delete_obsolete_assets(&mut operations, &project_assets, &mut container_assets);
     create_new_assets(&mut operations, &project_assets, &container_assets);
     unset_obsolete_encodings(&mut operations, &project_assets, &container_assets);
-    set_encodings(&mut operations, project_assets);
+    set_encodings(&mut operations, &project_assets);
+    update_properties(&mut operations, &project_assets, &canister_asset_properties);
 
     operations
 }

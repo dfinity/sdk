@@ -1,6 +1,6 @@
 use crate::asset_canister::protocol::{
-    AssetDetails, BatchOperationKind, CreateAssetArguments, DeleteAssetArguments,
-    SetAssetContentArguments, UnsetAssetContentArguments,
+    AssetDetails, AssetProperties, BatchOperationKind, CreateAssetArguments, DeleteAssetArguments,
+    SetAssetContentArguments, SetAssetPropertiesArguments, UnsetAssetContentArguments,
 };
 use crate::plumbing::ProjectAsset;
 use std::collections::HashMap;
@@ -106,10 +106,10 @@ pub(crate) fn unset_obsolete_encodings(
 
 pub(crate) fn set_encodings(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: HashMap<String, ProjectAsset>,
+    project_assets: &HashMap<String, ProjectAsset>,
 ) {
     for (key, project_asset) in project_assets {
-        for (content_encoding, v) in project_asset.encodings {
+        for (content_encoding, v) in project_asset.encodings.iter() {
             if v.already_in_place {
                 continue;
             }
@@ -117,9 +117,35 @@ pub(crate) fn set_encodings(
             operations.push(BatchOperationKind::SetAssetContent(
                 SetAssetContentArguments {
                     key: key.clone(),
-                    content_encoding,
-                    chunk_ids: v.chunk_ids,
-                    sha256: Some(v.sha256),
+                    content_encoding: content_encoding.clone(),
+                    chunk_ids: v.chunk_ids.clone(),
+                    sha256: Some(v.sha256.clone()),
+                },
+            ));
+        }
+    }
+}
+
+pub(crate) fn update_properties(
+    operations: &mut Vec<BatchOperationKind>,
+    project_assets: &HashMap<String, ProjectAsset>,
+    container_asset_properties: &HashMap<String, AssetProperties>,
+) {
+    for (key, project_asset) in project_assets {
+        let project_asset_properties = project_asset.asset_descriptor.config.clone();
+        let container_asset_properties = container_asset_properties.get(key);
+        if project_asset_properties.ne(container_asset_properties.unwrap()) {
+            operations.push(BatchOperationKind::SetAssetProperties(
+                SetAssetPropertiesArguments {
+                    key: key.clone(),
+                    max_age: Some(
+                        project_asset_properties
+                            .cache
+                            .as_ref()
+                            .and_then(|c| c.max_age),
+                    ),
+                    headers: Some(project_asset_properties.headers),
+                    allow_raw_access: Some(project_asset_properties.allow_raw_access),
                 },
             ));
         }

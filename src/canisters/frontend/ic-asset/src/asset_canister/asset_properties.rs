@@ -1,0 +1,29 @@
+use std::collections::HashMap;
+
+use ic_utils::call::SyncCall;
+use ic_utils::Canister;
+
+use crate::asset_canister::{
+    method_names::GET_ASSET_PROPERTIES,
+    protocol::{AssetDetails, AssetProperties, GetAssetProperties},
+};
+
+pub(crate) async fn get_asset_properties(
+    canister: &Canister<'_>,
+    canister_assets: &HashMap<String, AssetDetails>,
+) -> anyhow::Result<HashMap<String, AssetProperties>> {
+    let mut all_assets_properties = HashMap::new();
+    for (asset_id, _) in canister_assets {
+        let (asset_properties,): (AssetProperties,) = canister
+            .query_(GET_ASSET_PROPERTIES)
+            .with_arg(GetAssetProperties {
+                key: asset_id.clone(),
+            })
+            .build()
+            .call()
+            .await?;
+        all_assets_properties.insert(asset_id.clone(), asset_properties);
+    }
+
+    Ok(all_assets_properties)
+}

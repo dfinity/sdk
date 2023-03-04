@@ -42,6 +42,8 @@ type BatchOperationKind = variant {
   DeleteAsset: DeleteAssetArguments;
 
   Clear: ClearArguments;
+
+  SetAssetProperties: SetAssetPropertiesArguments;
 };
 
 type HeaderField = record { text; text; };

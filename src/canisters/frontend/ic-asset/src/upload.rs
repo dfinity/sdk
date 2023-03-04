@@ -68,7 +68,7 @@ fn assemble_upload_operations(
     delete_incompatible_assets(&mut operations, &project_assets, &mut container_assets);
     create_new_assets(&mut operations, &project_assets, &container_assets);
     unset_obsolete_encodings(&mut operations, &project_assets, &container_assets);
-    set_encodings(&mut operations, project_assets);
+    set_encodings(&mut operations, &project_assets);
 
     operations
 }

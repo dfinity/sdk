@@ -51,6 +51,7 @@ pub enum BatchOperation {
     UnsetAssetContent(UnsetAssetContentArguments),
     DeleteAsset(DeleteAssetArguments),
     Clear(ClearArguments),
+    SetAssetProperties(SetAssetPropertiesArguments),
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]

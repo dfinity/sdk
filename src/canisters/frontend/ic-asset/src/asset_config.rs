@@ -9,6 +9,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::asset_canister::protocol::AssetProperties;
+
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
@@ -935,5 +937,16 @@ mod with_tempdir {
             },
         );
         Ok(())
+    }
+}
+
+impl std::cmp::PartialEq<AssetProperties> for AssetConfig {
+    fn eq(&self, other: &AssetProperties) -> bool {
+        self.cache
+            .clone()
+            .map_or(CacheConfig::default().max_age, |v| v.max_age)
+            == other.max_age
+            && self.allow_raw_access == other.allow_raw_access
+            && self.headers == other.headers
     }
 }

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::asset_config::HeadersConfig;
 use candid::{CandidType, Nat};
 use serde::Deserialize;
@@ -111,6 +113,15 @@ pub struct DeleteAssetArguments {
 #[derive(CandidType, Debug)]
 pub struct ClearArguments {}
 
+/// TODO add comments
+#[derive(Debug, CandidType)]
+pub struct SetAssetPropertiesArguments {
+    pub key: String,
+    pub max_age: Option<Option<u64>>,
+    pub headers: Option<Option<HashMap<String, String>>>,
+    pub allow_raw_access: Option<Option<bool>>,
+}
+
 /// Batch operations that can be applied atomically.
 #[derive(CandidType, Debug)]
 #[allow(dead_code)]
@@ -129,6 +140,9 @@ pub enum BatchOperationKind {
 
     /// Clear all state from the asset canister.
     Clear(ClearArguments),
+
+    ///
+    SetAssetProperties(SetAssetPropertiesArguments),
 }
 
 /// Apply all of the operations in the batch, and then remove the batch.
@@ -139,4 +153,21 @@ pub struct CommitBatchArguments {
 
     /// The operations to apply atomically.
     pub operations: Vec<BatchOperationKind>,
+}
+
+/// TODO: comment
+#[derive(CandidType, Debug, Deserialize)]
+pub struct AssetProperties {
+    /// TODO: comment
+    pub max_age: Option<u64>,
+    /// TODO: comment
+    pub headers: Option<HashMap<String, String>>,
+    /// TODO: comment
+    pub allow_raw_access: Option<bool>,
+}
+
+/// TODO: comment
+#[derive(CandidType, Debug)]
+pub struct GetAssetProperties {
+    pub key: String,
 }

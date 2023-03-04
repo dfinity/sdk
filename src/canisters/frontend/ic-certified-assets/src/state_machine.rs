@@ -406,6 +406,7 @@ impl State {
                 BatchOperation::UnsetAssetContent(arg) => self.unset_asset_content(arg)?,
                 BatchOperation::DeleteAsset(arg) => self.delete_asset(arg),
                 BatchOperation::Clear(_) => self.clear(),
+                BatchOperation::SetAssetProperties(arg) => self.set_asset_properties(arg)?,
             }
         }
         self.batches.remove(&batch_id);
