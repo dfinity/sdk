@@ -13,7 +13,7 @@ pub(crate) async fn get_asset_properties(
     canister_assets: &HashMap<String, AssetDetails>,
 ) -> anyhow::Result<HashMap<String, AssetProperties>> {
     let mut all_assets_properties = HashMap::new();
-    for (asset_id, _) in canister_assets {
+    for asset_id in canister_assets.keys() {
         let (asset_properties,): (AssetProperties,) = canister
             .query_(GET_ASSET_PROPERTIES)
             .with_arg(GetAssetProperties {

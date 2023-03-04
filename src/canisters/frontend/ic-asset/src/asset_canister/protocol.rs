@@ -141,7 +141,7 @@ pub enum BatchOperationKind {
     /// Clear all state from the asset canister.
     Clear(ClearArguments),
 
-    ///
+    /// TODO comment
     SetAssetProperties(SetAssetPropertiesArguments),
 }
 

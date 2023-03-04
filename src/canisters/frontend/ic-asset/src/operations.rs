@@ -134,18 +134,24 @@ pub(crate) fn update_properties(
     for (key, project_asset) in project_assets {
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
         let canister_asset_properties = canister_asset_properties.get(key);
-        if project_asset_properties.ne(canister_asset_properties.unwrap()) {
+        if project_asset_properties.ne(&canister_asset_properties) {
             operations.push(BatchOperationKind::SetAssetProperties(
+                // SetAssetPropertiesArguments {
+                //     key: key.clone(),
+                //     max_age: Some(
+                //         project_asset_properties
+                //             .cache
+                //             .as_ref()
+                //             .and_then(|c| c.max_age),
+                //     ),
+                //     headers: Some(project_asset_properties.headers),
+                //     allow_raw_access: Some(project_asset_properties.allow_raw_access),
+                // },
                 SetAssetPropertiesArguments {
                     key: key.clone(),
-                    max_age: Some(
-                        project_asset_properties
-                            .cache
-                            .as_ref()
-                            .and_then(|c| c.max_age),
-                    ),
-                    headers: Some(project_asset_properties.headers),
-                    allow_raw_access: Some(project_asset_properties.allow_raw_access),
+                    max_age: None,
+                    headers: None,
+                    allow_raw_access: None,
                 },
             ));
         }
