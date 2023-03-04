@@ -129,12 +129,12 @@ pub(crate) fn set_encodings(
 pub(crate) fn update_properties(
     operations: &mut Vec<BatchOperationKind>,
     project_assets: &HashMap<String, ProjectAsset>,
-    container_asset_properties: &HashMap<String, AssetProperties>,
+    canister_asset_properties: &HashMap<String, AssetProperties>,
 ) {
     for (key, project_asset) in project_assets {
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
-        let container_asset_properties = container_asset_properties.get(key);
-        if project_asset_properties.ne(container_asset_properties.unwrap()) {
+        let canister_asset_properties = canister_asset_properties.get(key);
+        if project_asset_properties.ne(canister_asset_properties.unwrap()) {
             operations.push(BatchOperationKind::SetAssetProperties(
                 SetAssetPropertiesArguments {
                     key: key.clone(),

@@ -162,16 +162,16 @@ fn gather_asset_descriptors(
 
 fn assemble_synchronization_operations(
     project_assets: HashMap<String, ProjectAsset>,
-    container_assets: HashMap<String, AssetDetails>,
+    canister_assets: HashMap<String, AssetDetails>,
     canister_asset_properties: HashMap<String, AssetProperties>,
 ) -> Vec<BatchOperationKind> {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
 
-    delete_obsolete_assets(&mut operations, &project_assets, &mut container_assets);
-    create_new_assets(&mut operations, &project_assets, &container_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &container_assets);
+    delete_obsolete_assets(&mut operations, &project_assets, &mut canister_assets);
+    create_new_assets(&mut operations, &project_assets, &canister_assets);
+    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
     set_encodings(&mut operations, &project_assets);
     update_properties(&mut operations, &project_assets, &canister_asset_properties);
 

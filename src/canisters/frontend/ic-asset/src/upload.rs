@@ -65,9 +65,9 @@ fn assemble_upload_operations(
 
     let mut operations = vec![];
 
-    delete_incompatible_assets(&mut operations, &project_assets, &mut container_assets);
-    create_new_assets(&mut operations, &project_assets, &container_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &container_assets);
+    delete_incompatible_assets(&mut operations, &project_assets, &mut canister_assets);
+    create_new_assets(&mut operations, &project_assets, &canister_assets);
+    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
     set_encodings(&mut operations, &project_assets);
 
     operations
