@@ -34,6 +34,15 @@ check_permission_failure() {
     fi
 }
 
+@test "dfx deploy does not retry forever on permissions failure" {
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+  echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
+
+  assert_command dfx deploy --identity anonymous
+}
+
 @test "validation methods" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller
