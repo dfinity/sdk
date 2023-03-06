@@ -40,7 +40,8 @@ check_permission_failure() {
   assert_command dfx deploy
   echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
 
-  assert_command dfx deploy --identity anonymous
+  assert_command_fail dfx deploy --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
 }
 
 @test "validation methods" {
