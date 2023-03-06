@@ -15,6 +15,15 @@ pub(crate) fn retryable(agent_error: &AgentError) -> bool {
             reject_code,
             reject_message,
         } if *reject_code == 4 && reject_message.contains("is not authorized") => false,
+        AgentError::ReplicaError {
+            reject_code,
+            reject_message,
+        } if *reject_code == 4
+            && reject_message.contains("Caller does not have")
+            && reject_message.contains("permission") =>
+        {
+            false
+        }
         AgentError::HttpError(HttpErrorPayload {
             status,
             content_type: _,

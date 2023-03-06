@@ -36,6 +36,8 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### feat: dfx pull can download wasm
 
+### fix: dfx deploy and icx-asset no longer retry on permission failure
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
