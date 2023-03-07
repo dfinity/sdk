@@ -19,7 +19,7 @@ use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::convert::TryInto;
 
 /// The amount of time a batch is kept alive. Modifying the batch
@@ -107,18 +107,18 @@ pub struct State {
     next_batch_id: BatchId,
 
     // permissions
-    commit_principals: Vec<Principal>,
-    prepare_principals: Vec<Principal>,
-    manage_permissions_principals: Vec<Principal>,
+    commit_principals: BTreeSet<Principal>,
+    prepare_principals: BTreeSet<Principal>,
+    manage_permissions_principals: BTreeSet<Principal>,
 
     asset_hashes: AssetHashes,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StableStatePermissions {
-    commit: Vec<Principal>,
-    prepare: Vec<Principal>,
-    manage_permissions: Vec<Principal>,
+    commit: BTreeSet<Principal>,
+    prepare: BTreeSet<Principal>,
+    manage_permissions: BTreeSet<Principal>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -157,20 +157,15 @@ impl State {
 
     pub fn grant_permission(&mut self, principal: Principal, permission: &Permission) {
         let permitted = self.get_mut_permission_list(permission);
-        if !permitted.contains(&principal) {
-            permitted.push(principal);
-        }
+        permitted.insert(principal);
     }
 
     pub fn revoke_permission(&mut self, principal: Principal, permission: &Permission) {
         let permitted = self.get_mut_permission_list(permission);
-
-        if let Some(pos) = permitted.iter().position(|x| *x == principal) {
-            permitted.remove(pos);
-        }
+        permitted.remove(&principal);
     }
 
-    pub fn list_permitted(&self, permission: &Permission) -> &Vec<Principal> {
+    pub fn list_permitted(&self, permission: &Permission) -> &BTreeSet<Principal> {
         self.get_permission_list(permission)
     }
 
@@ -178,7 +173,7 @@ impl State {
         self.commit_principals.clear();
         self.prepare_principals.clear();
         self.manage_permissions_principals.clear();
-        self.commit_principals.push(controller);
+        self.commit_principals.insert(controller);
     }
 
     pub fn root_hash(&self) -> Hash {
@@ -300,7 +295,7 @@ impl State {
                 && self.has_permission(principal, &Permission::Commit))
     }
 
-    fn get_permission_list(&self, permission: &Permission) -> &Vec<Principal> {
+    fn get_permission_list(&self, permission: &Permission) -> &BTreeSet<Principal> {
         match permission {
             Permission::Commit => &self.commit_principals,
             Permission::Prepare => &self.prepare_principals,
@@ -308,7 +303,7 @@ impl State {
         }
     }
 
-    fn get_mut_permission_list(&mut self, permission: &Permission) -> &mut Vec<Principal> {
+    fn get_mut_permission_list(&mut self, permission: &Permission) -> &mut BTreeSet<Principal> {
         match permission {
             Permission::Commit => &mut self.commit_principals,
             Permission::Prepare => &mut self.prepare_principals,
@@ -729,7 +724,11 @@ impl From<StableState> for State {
                     permissions.manage_permissions,
                 )
             } else {
-                (stable_state.authorized, vec![], vec![])
+                (
+                    stable_state.authorized.into_iter().collect(),
+                    BTreeSet::new(),
+                    BTreeSet::new(),
+                )
             };
         let mut state = Self {
             commit_principals,
