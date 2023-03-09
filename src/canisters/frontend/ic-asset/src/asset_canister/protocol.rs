@@ -118,7 +118,7 @@ pub struct ClearArguments {}
 pub struct SetAssetPropertiesArguments {
     pub key: String,
     pub max_age: Option<Option<u64>>,
-    pub headers: Option<Option<HashMap<String, String>>>,
+    pub headers: Option<Option<Vec<(String, String)>>>,
     pub allow_raw_access: Option<Option<bool>>,
 }
 
@@ -141,7 +141,7 @@ pub enum BatchOperationKind {
     /// Clear all state from the asset canister.
     Clear(ClearArguments),
 
-    /// TODO comment
+    /// omment
     SetAssetProperties(SetAssetPropertiesArguments),
 }
 
@@ -156,7 +156,7 @@ pub struct CommitBatchArguments {
 }
 
 /// TODO: comment
-#[derive(CandidType, Debug, Deserialize)]
+#[derive(CandidType, Debug, Deserialize, Default)]
 pub struct AssetProperties {
     /// TODO: comment
     pub max_age: Option<u64>,

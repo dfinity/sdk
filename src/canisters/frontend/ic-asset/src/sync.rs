@@ -28,7 +28,9 @@ pub async fn upload_content_and_assemble_sync_operations(
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
-    let canister_asset_properties = get_asset_properties(canister, &canister_assets).await?;
+    // let canister_asset_properties = get_asset_properties(canister, &canister_assets).await?;
+    let mut canister_asset_properties = HashMap::new();
+    canister_asset_properties.insert("/index.html".to_string(), AssetProperties::default());
 
     info!(logger, "Starting batch.");
 
@@ -173,7 +175,7 @@ fn assemble_synchronization_operations(
     create_new_assets(&mut operations, &project_assets, &canister_assets);
     unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
     set_encodings(&mut operations, &project_assets);
-    update_properties(&mut operations, &project_assets, &canister_asset_properties);
+    // update_properties(&mut operations, &project_assets, &canister_asset_properties);
 
     operations
 }

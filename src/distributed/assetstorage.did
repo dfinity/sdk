@@ -38,12 +38,12 @@ type BatchOperationKind = variant {
   CreateAsset: CreateAssetArguments;
   SetAssetContent: SetAssetContentArguments;
 
+  SetAssetProperties: SetAssetPropertiesArguments;
+
   UnsetAssetContent: UnsetAssetContentArguments;
   DeleteAsset: DeleteAssetArguments;
 
   Clear: ClearArguments;
-
-  SetAssetProperties: SetAssetPropertiesArguments;
 };
 
 type HeaderField = record { text; text; };
