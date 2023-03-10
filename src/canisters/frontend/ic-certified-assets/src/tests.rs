@@ -538,7 +538,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "Access-Control-Allow-Origin".into(),
                 "*".into()
             )])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
     assert_eq!(
@@ -549,7 +550,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -561,7 +563,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )]))),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -572,7 +575,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -581,7 +585,8 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: Some(None),
             headers: Some(None),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -589,7 +594,8 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: None,
             headers: None,
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -601,7 +607,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )]))),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -612,7 +619,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -621,7 +629,8 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: None,
             headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -629,7 +638,8 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(1),
             headers: Some(HashMap::from([("new-header".into(), "value".into())])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -638,7 +648,8 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: Some(Some(2)),
             headers: None,
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -646,7 +657,27 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(2),
             headers: Some(HashMap::from([("new-header".into(), "value".into())])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(false))
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(2),
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            allow_raw_access: None,
+            is_aliased: Some(false)
         })
     );
 
@@ -655,7 +686,8 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: None,
             headers: Some(None),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: Some(None)
         })
         .is_ok());
     assert_eq!(
@@ -663,7 +695,8 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(2),
             headers: None,
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 }
@@ -731,7 +764,6 @@ fn support_aliases() {
     assert_eq!(subdirectory_index_alias_3.body.as_ref(), SUBDIR_INDEX_BODY);
 }
 
-#[ignore = "SDK-817 will enable this"]
 #[test]
 fn alias_enable_and_disable() {
     let mut state = State::default();
@@ -757,13 +789,15 @@ fn alias_enable_and_disable() {
     );
     assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
-    create_assets(
-        &mut state,
-        time_now,
-        vec![AssetBuilder::new("/contents.html", "text/html")
-            .with_encoding("identity", vec![FILE_BODY])
-            .with_aliasing(false)],
-    );
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/contents.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(false)),
+        })
+        .is_ok());
 
     let no_more_alias = state.http_request(
         RequestBuilder::get("/contents").build(),
@@ -787,6 +821,15 @@ fn alias_enable_and_disable() {
             .with_aliasing(true)],
     );
 
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/contents.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(true)),
+        })
+        .is_ok());
     let alias_add_html_again = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],

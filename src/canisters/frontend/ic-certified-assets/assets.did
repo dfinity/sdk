@@ -84,6 +84,7 @@ type SetAssetPropertiesArguments = record {
   max_age: opt opt nat64;
   headers: opt opt vec HeaderField;
   allow_raw_access: opt opt bool;
+  is_aliased: opt opt bool;
 };
 
 type Permission = variant {
@@ -180,7 +181,8 @@ service: {
   get_asset_properties : (key: Key) -> (record {
     max_age: opt nat64;
     headers: opt vec HeaderField;
-    allow_raw_access: opt bool; } ) query;
+    allow_raw_access: opt bool;
+    is_aliased: opt bool; } ) query;
   set_asset_properties: (SetAssetPropertiesArguments) -> ();
 
   validate_grant_permission: (GrantPermission) -> (ValidationResult);

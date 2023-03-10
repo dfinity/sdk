@@ -660,6 +660,7 @@ impl State {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
             allow_raw_access: asset.allow_raw_access,
+            is_aliased: asset.is_aliased,
         })
     }
 
@@ -677,6 +678,9 @@ impl State {
         }
         if let Some(allow_raw_access) = arg.allow_raw_access {
             asset.allow_raw_access = allow_raw_access
+        }
+        if let Some(is_aliased) = arg.is_aliased {
+            asset.is_aliased = is_aliased
         }
         Ok(())
     }

@@ -42,11 +42,14 @@ Added the ability to configure the WASM module used for assets canisters through
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
 
+Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
+
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 492760e045212d3711a3a1aaa561d0d12c77f6c6043fdf71058799ea64e95620
+- Module hash: 98863747bb8b1366ae5e3c5721bfe08ce6b7480fe4c3864d4fec3d9827255480
+- https://github.com/dfinity/sdk/pull/3001
 - https://github.com/dfinity/sdk/pull/2987
 - https://github.com/dfinity/sdk/pull/2982
 
