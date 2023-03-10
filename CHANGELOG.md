@@ -36,6 +36,8 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### feat: dfx pull can download wasm
 
+### fix: dfx deploy and icx-asset no longer retry on permission failure
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
@@ -46,7 +48,7 @@ Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
 
 ### Frontend canister
 
-- Module hash: 269ba9a08e6e9e4416c526af8ecc193dc60af417582add7c10200c16eb47f5ab
+- Module hash: 98863747bb8b1366ae5e3c5721bfe08ce6b7480fe4c3864d4fec3d9827255480
 - https://github.com/dfinity/sdk/pull/3001
 - https://github.com/dfinity/sdk/pull/2987
 - https://github.com/dfinity/sdk/pull/2982
