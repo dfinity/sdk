@@ -15,6 +15,103 @@ help()
    echo
 }
 
+update_changelog()
+{
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    CHANGELOG_PATH="$REPO_ROOT/CHANGELOG.md"
+    CHANGELOG_PATH_BACKUP="$REPO_ROOT/CHANGELOG.md.bak"
+    UNRELEASED_LOC=$(grep -nE "# UNRELEASED" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
+    DEPENDENCIES_LOC=$(grep -nE "## Dependencies" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
+    FRONTEND_CANISTER_LOC=$(grep -nE "### Frontend canister" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
+    MODULE_HASH_LOC=$(grep -nE "\- Module hash: [a-f0-9]{64}" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
+    LATEST_RELEASE_LOC=$(grep -nE "# \d+\.\d+\.\d+" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
+    LINE_ABOVE_LAST_RELEASE=$(($LATEST_RELEASE_LOC - 1))
+    NEW_WASM_CHECKSUM=$(shasum -a 256 "$REPO_ROOT/src/distributed/assetstorage.wasm.gz" | awk '{print $1}')
+
+    if ! command -v gh &> /dev/null
+    then
+        echo "gh could not be found (brew install gh)"
+        exit
+    fi
+    PR_NUMBER=$(gh pr view --json number --jq '.number')
+    if [ -z "$PR_NUMBER" ]
+    then
+        LINK_TO_PR="https://github.com/dfinity/sdk/pull/????"
+    else
+        LINK_TO_PR="https://github.com/dfinity/sdk/pull/$PR_NUMBER"
+    fi
+
+    if [ -z "$UNRELEASED_LOC" ] || [ "$UNRELEASED_LOC" -gt "$LATEST_RELEASE_LOC" ]; then
+        echo "No unreleased changes found in changelog or Unreleased section is not at the top of the changelog"
+        exit 1
+    fi
+
+    cp $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP
+
+    if [ "$DEPENDENCIES_LOC" -lt "$LATEST_RELEASE_LOC" ]; then
+        # Dependencies section is present just above the latest release
+        if [ "$FRONTEND_CANISTER_LOC" -lt "$LATEST_RELEASE_LOC" ]; then
+            # Frontend canister section is present in the Dependencies section.
+            # Adding the new wasm checksum.
+            # Let's make sure the link to the PR is there (or add it if it's missing).
+            awk 'NR==loc && $0~filter && $0~target{gsub(target,replacement)}1' \
+                loc="${MODULE_HASH_LOC}" \
+                filter="- Module hash: " \
+                target=": [a-f0-9]{64}" \
+                replacement=": ${NEW_WASM_CHECKSUM}" \
+                $CHANGELOG_PATH_BACKUP | sponge $CHANGELOG_PATH_BACKUP
+            # read line below MODULE_HASH_LOC and check if it contains LINK_TO_PR, if not, add it
+            if ! grep -q "$LINK_TO_PR" <(sed -n "$((MODULE_HASH_LOC+1))p" $CHANGELOG_PATH_BACKUP); then
+                awk 'NR==loc{print replacement}1' \
+                    loc=$((MODULE_HASH_LOC+1)) \
+                    replacement="- ${LINK_TO_PR}" \
+                    $CHANGELOG_PATH_BACKUP | sponge $CHANGELOG_PATH_BACKUP
+            fi
+
+        else
+            # Frontend canister section is not present in the Dependencies section.
+            # It needs to be added together with the new wasm checksum and the link to the PR
+            CONTENT="\n### Frontend canister\n\n- Module hash: ${NEW_WASM_CHECKSUM}\n- ${LINK_TO_PR}"
+            awk 'NR==loc {print content}1' \
+                content="$CONTENT" \
+                loc="$LINE_ABOVE_LAST_RELEASE" \
+                $CHANGELOG_PATH_BACKUP | sponge $CHANGELOG_PATH_BACKUP
+        fi
+    else
+        # Dependencies section is not present under Unreleased section.
+        # It needs to be added together with the Frontend canister section
+        # and the new wasm checksum and the link to the PR.
+        CONTENT="\n## Dependencies\n\n### Frontend canister\n\n- Module hash: ${NEW_WASM_CHECKSUM}\n- ${LINK_TO_PR}"
+        awk 'NR==loc {print content}1' \
+            content="$CONTENT" \
+            loc="$LINE_ABOVE_LAST_RELEASE" \
+            $CHANGELOG_PATH_BACKUP | sponge $CHANGELOG_PATH_BACKUP
+    fi
+
+    # Using git diff to get nice colorful output across all OSes.
+    if diff -q $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP &>/dev/null; then
+        echo "No changes to the changelog"
+        rm $CHANGELOG_PATH_BACKUP
+        exit 1
+    else
+        echo "Suggested Changelog updates:"
+        git diff --no-index $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP
+        echo
+    fi
+
+    read -p "Do you want to overwrite the changelog? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+        mv $CHANGELOG_PATH_BACKUP $CHANGELOG_PATH
+    else
+        echo "Aborting"
+        rm $CHANGELOG_PATH_BACKUP
+    fi
+}
+
+
+
 SCRIPT=$(readlink -f "${0}")
 SCRIPT_DIR=$(dirname "${SCRIPT}")
 cd "${SCRIPT_DIR}/.."
@@ -56,6 +153,8 @@ case ${1---help} in
         --build-arg=RUST_VERSION="$rust_version" ${registry_flag:+"$registry_flag"} \
         --platform linux/amd64 \
         --progress plain
+
+    update_changelog
     ;;
 
   --help | -h)
