@@ -11,6 +11,7 @@ help()
    echo "Options:"
    echo "  -d, --development-build    build canister using cargo"
    echo "  -r, --release-build        build canister using linux/amd64 docker image"
+   echo "  -c, --changelog            update CHANGELOG.md with latest release"
    echo "  -h, --help                 print this help message"
    echo
 }
@@ -34,9 +35,8 @@ update_changelog()
         exit
     fi
     PR_NUMBER=$(gh pr view --json number --jq '.number')
-    if [ -z "$PR_NUMBER" ]
-    then
-        LINK_TO_PR="https://github.com/dfinity/sdk/pull/????"
+    if [ -z "$PR_NUMBER" ]; then
+        LINK_TO_PR="https://github.com/dfinity/sdk/pull/????????????????????"
     else
         LINK_TO_PR="https://github.com/dfinity/sdk/pull/$PR_NUMBER"
     fi
@@ -153,7 +153,9 @@ case ${1---help} in
         --build-arg=RUST_VERSION="$rust_version" ${registry_flag:+"$registry_flag"} \
         --platform linux/amd64 \
         --progress plain
+    ;;
 
+  --changelog | -c)
     update_changelog
     ;;
 
