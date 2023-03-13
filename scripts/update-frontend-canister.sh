@@ -53,7 +53,6 @@ update_changelog()
         if [ "$FRONTEND_CANISTER_LOC" -lt "$LATEST_RELEASE_LOC" ]; then
             # Frontend canister section is present in the Dependencies section.
             # Adding the new wasm checksum.
-            # Let's make sure the link to the PR is there (or add it if it's missing).
             awk 'NR==loc && $0~filter && $0~target{gsub(target,replacement)}1' \
                 loc="${MODULE_HASH_LOC}" \
                 filter="- Module hash: " \
