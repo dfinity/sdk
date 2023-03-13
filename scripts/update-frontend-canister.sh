@@ -31,7 +31,7 @@ update_changelog()
 
     if ! command -v gh &> /dev/null
     then
-        echo "gh could not be found (brew install gh)"
+        echo "gh could not be found (brew install gh && gh auth login)"
         exit
     fi
     PR_NUMBER=$(gh pr view --json number --jq '.number')
