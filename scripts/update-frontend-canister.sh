@@ -96,8 +96,9 @@ update_changelog()
 
     echo "Suggested Changelog updates:"
     git diff -U8 --no-index $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP && echo
-    echo "Please review the suggested changes and apply them to CHANGELOG.md"
-    read -r -p "Do you want to overwrite the changelog? [y/N] " response
+    echo
+    echo "Please review the suggested changes before applying them to CHANGELOG.md"
+    read -r -p "Do you want to apply these changes to the changelog? [y/N] " response
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
     then
         mv $CHANGELOG_PATH_BACKUP $CHANGELOG_PATH
