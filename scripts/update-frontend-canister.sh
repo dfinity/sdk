@@ -152,6 +152,11 @@ case ${1---help} in
         --build-arg=RUST_VERSION="$rust_version" ${registry_flag:+"$registry_flag"} \
         --platform linux/amd64 \
         --progress plain
+    # check if its being run inside a github CI
+    # if no, then run the changelog update script
+    if [[ -z ${CI+x} ]]; then
+        update_changelog
+    fi
     ;;
 
   --changelog | -c)
