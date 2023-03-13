@@ -36,7 +36,7 @@ update_changelog()
     fi
     PR_NUMBER=$(gh pr view --json number --jq '.number')
     if [ -z "$PR_NUMBER" ]; then
-        LINK_TO_PR="https://github.com/dfinity/sdk/pull/????????????????????"
+        LINK_TO_PR="https://github.com/dfinity/sdk/pull/YOU-NEED-TO-OPEN-A-PR-FIRST"
     else
         LINK_TO_PR="https://github.com/dfinity/sdk/pull/$PR_NUMBER"
     fi
