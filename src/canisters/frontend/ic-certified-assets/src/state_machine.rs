@@ -126,6 +126,8 @@ pub struct StableState {
     authorized: Vec<Principal>, // ignored if permissions is Some(_)
     permissions: Option<StableStatePermissions>,
     stable_assets: HashMap<String, Asset>,
+
+    next_batch_id: Option<BatchId>,
 }
 
 impl Asset {
@@ -714,6 +716,7 @@ impl From<State> for StableState {
             authorized: vec![],
             permissions: Some(permissions),
             stable_assets: state.assets,
+            next_batch_id: Some(state.next_batch_id),
         }
     }
 }
@@ -739,6 +742,7 @@ impl From<StableState> for State {
             prepare_principals,
             manage_permissions_principals,
             assets: stable_state.stable_assets,
+            next_batch_id: stable_state.next_batch_id.unwrap_or(Nat::from(1)),
             ..Self::default()
         };
 
