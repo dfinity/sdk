@@ -1,6 +1,6 @@
 use crate::config::cache::Cache;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    set_perms_readwrite, BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
@@ -150,6 +150,7 @@ impl CanisterBuilder for AssetsBuilder {
         if idl_path.exists() {
             std::fs::rename(&idl_path, &idl_path_rename)
                 .with_context(|| format!("Failed to rename {}.", idl_path.to_string_lossy()))?;
+            set_perms_readwrite(&idl_path_rename)?;
         }
 
         Ok(idl_path_rename)

@@ -308,6 +308,24 @@ fn ensure_trailing_newline(s: String) -> String {
     }
 }
 
+pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
+    let mut perms = std::fs::metadata(file_path)
+        .with_context(|| {
+            format!(
+                "Failed to read file metadata for idl file {}.",
+                file_path.to_string_lossy()
+            )
+        })?
+        .permissions();
+    perms.set_readonly(false);
+    std::fs::set_permissions(&file_path, perms).with_context(|| {
+        format!(
+            "Failed to set file permissions for idl file {}.",
+            file_path.to_string_lossy()
+        )
+    })
+}
+
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
 
 pub fn get_and_write_environment_variables<'a>(
