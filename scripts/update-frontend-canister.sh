@@ -93,17 +93,16 @@ update_changelog()
         echo "No changes to the changelog"
         rm $CHANGELOG_PATH_BACKUP
         exit 1
-    else
-        echo "Suggested Changelog updates:"
-        git diff --no-index $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP
-        echo
     fi
 
-    read -p "Do you want to overwrite the changelog? [y/N] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]
+    echo "Suggested Changelog updates:"
+    git diff -U8 --no-index $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP && echo
+    echo "Please review the suggested changes and apply them to CHANGELOG.md"
+    read -r -p "Do you want to overwrite the changelog? [y/N] " response
+    if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
     then
         mv $CHANGELOG_PATH_BACKUP $CHANGELOG_PATH
+        echo "Changelog updated"
     else
         echo "Aborting"
         rm $CHANGELOG_PATH_BACKUP
