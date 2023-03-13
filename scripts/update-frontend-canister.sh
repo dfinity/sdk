@@ -42,7 +42,7 @@ update_changelog()
     fi
 
     if [ -z "$UNRELEASED_LOC" ] || [ "$UNRELEASED_LOC" -gt "$LATEST_RELEASE_LOC" ]; then
-        echo "No unreleased changes found in changelog or Unreleased section is not at the top of the changelog"
+        echo "No \"# Unreleased\" section found in changelog, or \"# Unreleased\" section is not at the top of the changelog"
         exit 1
     fi
 
