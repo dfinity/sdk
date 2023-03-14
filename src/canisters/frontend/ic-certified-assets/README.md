@@ -52,3 +52,5 @@ fn post_upgrade() {
 cd assets
 icx-asset --pem ~/.config/dfx/identity/default/identity.pem --replica https://icp0.io sync <canister_id> .
 ```
+
+dummy change to trigger the workflow  
