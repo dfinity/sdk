@@ -58,7 +58,7 @@ Added partial support for proposal-based asset updates:
 ### Frontend canister
 
 - Module hash: 70d2ca00ef904eaf14c616e861a486bd59f5008abb9fc37495f2429f58854d43
-- https://github.com/dfinity/sdk/pull/3018
+- https://github.com/dfinity/sdk/pull/3019
 - https://github.com/dfinity/sdk/pull/3016
 - https://github.com/dfinity/sdk/pull/3015
 - https://github.com/dfinity/sdk/pull/3001
