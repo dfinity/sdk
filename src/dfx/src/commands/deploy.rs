@@ -63,6 +63,12 @@ pub struct DeployOpts {
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
 
+    /// Attempts to create the canister with this Canister ID.
+    ///
+    /// This option only works with non-mainnet replica.
+    #[clap(long, value_name = "PRINCIPAL", requires = "canister-name")]
+    specified_id: Option<Principal>,
+
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
     #[clap(long)]
@@ -122,7 +128,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let call_sender = runtime.block_on(call_sender(&opts.wallet))?;
     let proxy_sender;
-    let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
+    let create_call_sender = if opts.specified_id.is_none()
+        && !opts.no_wallet
+        && !matches!(call_sender, CallSender::Wallet(_))
+    {
         let wallet = runtime.block_on(get_or_create_wallet_canister(
             &env,
             env.get_network_descriptor(),
@@ -143,6 +152,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         force_reinstall,
         opts.upgrade_unchanged,
         with_cycles,
+        opts.specified_id,
         &call_sender,
         create_call_sender,
         opts.yes,
