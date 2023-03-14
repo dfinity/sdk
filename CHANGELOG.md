@@ -4,6 +4,14 @@
 
 ## DFX
 
+### feat: specify id when provisional create canister
+
+When create canister on non-mainnet replica, you can now specify the canister ID.
+
+`dfx canister create <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
+`dfx deploy <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
 ### fix: update Rust canister template.
 
 `ic-cdk-timers` is included in the dependencies.
