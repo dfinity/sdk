@@ -117,6 +117,7 @@ pub async fn transfer(
     fee: ICPTs,
     from_subaccount: Option<Subaccount>,
     to: AccountIdBlob,
+    created_at_time: Option<u64>,
 ) -> DfxResult<BlockHeight> {
     let timestamp_nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -135,7 +136,7 @@ pub async fn transfer(
                     fee,
                     from_subaccount,
                     to,
-                    created_at_time: Some(TimeStamp { timestamp_nanos }),
+                    created_at_time: Some(TimeStamp { timestamp_nanos: created_at_time.unwrap_or(timestamp_nanos) }),
                 })
                 .context("Failed to encode arguments.")?,
             )
@@ -174,6 +175,7 @@ pub async fn transfer_cmc(
     fee: ICPTs,
     from_subaccount: Option<Subaccount>,
     to_principal: Principal,
+    created_at_time: Option<u64>,
 ) -> DfxResult<BlockHeight> {
     let to_subaccount = Subaccount::from(&to_principal);
     let to =
@@ -186,6 +188,7 @@ pub async fn transfer_cmc(
         fee,
         from_subaccount,
         to,
+        created_at_time,
     )
     .await
 }

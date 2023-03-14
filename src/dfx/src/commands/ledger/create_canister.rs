@@ -47,6 +47,10 @@ pub struct CreateCanisterOpts {
     #[clap(long, validator(icpts_amount_validator))]
     max_fee: Option<String>,
 
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction-deduplication, default is system-time. // https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    #[clap(long)]
+    created_at_time: Option<String>,
+
     /// Specify the optional subnet type to create the canister on. If no
     /// subnet type is provided, the canister will be created on a random
     /// default application subnet.
@@ -74,13 +78,21 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         )
     })?;
 
+    let created_at_time = opts
+        .created_at_time
+        .as_ref()
+        .map_or(Ok(None), |v| {
+            u64::from_str_radix(v, 10).map(|n| Some(n)).map_err(|err| anyhow!(err))
+        })
+        .context("Failed to parse nanoseconds created_at_time.")?;
+
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
 
-    let height = transfer_cmc(agent, memo, amount, fee, opts.from_subaccount, controller).await?;
+    let height = transfer_cmc(agent, memo, amount, fee, opts.from_subaccount, controller, created_at_time).await?;
     println!("Transfer sent at block height {height}");
     let result = notify_create(agent, controller, height, opts.subnet_type).await?;
 
