@@ -65,7 +65,7 @@ Added partial support for proposal-based asset updates:
 
 ### Motoko
 
-Updated Motoko to 0.8.3
+Updated Motoko to 0.8.4
 
 # 0.13.1
 
