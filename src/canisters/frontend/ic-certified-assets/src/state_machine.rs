@@ -94,6 +94,7 @@ pub struct Chunk {
 
 pub struct Batch {
     pub expires_at: Timestamp,
+    pub commit_batch_arguments: Option<CommitBatchArguments>,
 }
 
 #[derive(Default)]
@@ -126,6 +127,8 @@ pub struct StableState {
     authorized: Vec<Principal>, // ignored if permissions is Some(_)
     permissions: Option<StableStatePermissions>,
     stable_assets: HashMap<String, Asset>,
+
+    next_batch_id: Option<BatchId>,
 }
 
 impl Asset {
@@ -357,15 +360,17 @@ impl State {
             batch_id.clone(),
             Batch {
                 expires_at: Int::from(now + BATCH_EXPIRY_NANOS),
+                commit_batch_arguments: None,
             },
         );
         self.chunks.retain(|_, c| {
             self.batches
                 .get(&c.batch_id)
-                .map(|b| b.expires_at > now)
+                .map(|b| b.expires_at > now || b.commit_batch_arguments.is_some())
                 .unwrap_or(false)
         });
-        self.batches.retain(|_, b| b.expires_at > now);
+        self.batches
+            .retain(|_, b| b.expires_at > now || b.commit_batch_arguments.is_some());
 
         batch_id
     }
@@ -375,6 +380,9 @@ impl State {
             .batches
             .get_mut(&arg.batch_id)
             .ok_or_else(|| "batch not found".to_string())?;
+        if batch.commit_batch_arguments.is_some() {
+            return Err("batch has been proposed".to_string());
+        }
 
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
@@ -404,6 +412,18 @@ impl State {
             }
         }
         self.batches.remove(&batch_id);
+        Ok(())
+    }
+
+    pub fn propose_commit_batch(&mut self, arg: CommitBatchArguments) -> Result<(), String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+        if batch.commit_batch_arguments.is_some() {
+            return Err("batch already has proposed CommitBatchArguments".to_string());
+        };
+        batch.commit_batch_arguments = Some(arg);
         Ok(())
     }
 
@@ -660,6 +680,7 @@ impl State {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
             allow_raw_access: asset.allow_raw_access,
+            is_aliased: asset.is_aliased,
         })
     }
 
@@ -677,6 +698,9 @@ impl State {
         }
         if let Some(allow_raw_access) = arg.allow_raw_access {
             asset.allow_raw_access = allow_raw_access
+        }
+        if let Some(is_aliased) = arg.is_aliased {
+            asset.is_aliased = is_aliased
         }
         Ok(())
     }
@@ -710,6 +734,7 @@ impl From<State> for StableState {
             authorized: vec![],
             permissions: Some(permissions),
             stable_assets: state.assets,
+            next_batch_id: Some(state.next_batch_id),
         }
     }
 }
@@ -735,6 +760,7 @@ impl From<StableState> for State {
             prepare_principals,
             manage_permissions_principals,
             assets: stable_state.stable_assets,
+            next_batch_id: stable_state.next_batch_id.unwrap_or(Nat::from(1)),
             ..Self::default()
         };
 

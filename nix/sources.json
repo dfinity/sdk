@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "8124c2ef69892bf756d331f60f75f0aa79c7b0ca",
-        "sha256": "0r4jyms2nqycwmhysnssf9mjwxigavzg0fias6qgjf2wrjbppy61",
+        "rev": "eb28e72f183f62d51afbd532b16af9964a2b41e5",
+        "sha256": "1krhc6l7b64pmx878j4f9zvd4ladybdx6r5jggn3j3pk931qzzvz",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/8124c2ef69892bf756d331f60f75f0aa79c7b0ca.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/eb28e72f183f62d51afbd532b16af9964a2b41e5.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister_sandbox-x86_64-darwin": {
@@ -154,27 +154,27 @@
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
-        "sha256": "0q1fcpwf2yjnqw3kf14x4v72wp70g3ggnnsbwn23j26ggbx81fmk",
+        "sha256": "0gflzcsqwki6i7d883yiq3fwah1iiihm0n1c604yhq8fhijn8ykz",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.8.3/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.4/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.8.3"
+        "version": "0.8.4"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "1a5k7f2iadwak4n6sx8i8iq6gxwmngmqjbmll7gf54sa42q83305",
+        "sha256": "0di87lv0s2ji8c4nmw35f61rd3mqkg16r25x68jm801a9lag76wd",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.8.3/motoko-macos-0.8.3.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.4/motoko-macos-0.8.4.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
-        "version": "0.8.3"
+        "version": "0.8.4"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "0ygz7a3hhcw1036lc7wjnwzm6x2pdpq4mdpavvbfy0cfjbsc6iq6",
+        "sha256": "06ksady77fqxq4im2vzqf6rw3dg0lisl36qb78g19mgjwmhxcj99",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.8.3/motoko-linux64-0.8.3.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.4/motoko-linux64-0.8.4.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
-        "version": "0.8.3"
+        "version": "0.8.4"
     },
     "replica-x86_64-darwin": {
         "builtin": false,

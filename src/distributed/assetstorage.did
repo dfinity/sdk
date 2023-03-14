@@ -44,6 +44,11 @@ type BatchOperationKind = variant {
   Clear: ClearArguments;
 };
 
+type CommitBatchArguments = record {
+  batch_id: BatchId;
+  operations: vec BatchOperationKind
+};
+
 type HeaderField = record { text; text; };
 
 type HttpRequest = record {
@@ -84,6 +89,7 @@ type SetAssetPropertiesArguments = record {
   max_age: opt opt nat64;
   headers: opt opt vec HeaderField;
   allow_raw_access: opt opt bool;
+  is_aliased: opt opt bool;
 };
 
 type Permission = variant {
@@ -146,7 +152,10 @@ service: {
   create_chunk: (record { batch_id: BatchId; content: blob }) -> (record { chunk_id: ChunkId });
 
   // Perform all operations successfully, or reject
-  commit_batch: (record { batch_id: BatchId; operations: vec BatchOperationKind }) -> ();
+  commit_batch: (CommitBatchArguments) -> ();
+
+  // Save the batch operations for later commit
+  propose_commit_batch: (CommitBatchArguments) -> ();
 
   create_asset: (CreateAssetArguments) -> ();
   set_asset_content: (SetAssetContentArguments) -> ();
@@ -180,7 +189,8 @@ service: {
   get_asset_properties : (key: Key) -> (record {
     max_age: opt nat64;
     headers: opt vec HeaderField;
-    allow_raw_access: opt bool; } ) query;
+    allow_raw_access: opt bool;
+    is_aliased: opt bool; } ) query;
   set_asset_properties: (SetAssetPropertiesArguments) -> ();
 
   validate_grant_permission: (GrantPermission) -> (ValidationResult);

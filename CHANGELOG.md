@@ -42,17 +42,30 @@ Added the ability to configure the WASM module used for assets canisters through
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
 
+Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
+
+Added partial support for proposal-based asset updates:
+
+- Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
+  having the asset canister not reuse batch ids will make it easier to verify that a particular
+  batch has been proposed.
+- Added methods:
+  - propose_commit_batch() stores batch arguments for later commit
+
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 492760e045212d3711a3a1aaa561d0d12c77f6c6043fdf71058799ea64e95620
+- Module hash: fe2e627bf15f7ec7af20bbb40aa8c7e8cc2c8d39987f66221f64dc3506176e17
+- https://github.com/dfinity/sdk/pull/3016
+- https://github.com/dfinity/sdk/pull/3015
+- https://github.com/dfinity/sdk/pull/3001
 - https://github.com/dfinity/sdk/pull/2987
 - https://github.com/dfinity/sdk/pull/2982
 
 ### Motoko
 
-Updated Motoko to 0.8.3
+Updated Motoko to 0.8.4
 
 # 0.13.1
 

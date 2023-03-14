@@ -266,6 +266,90 @@ fn batches_are_dropped_after_timeout() {
 }
 
 #[test]
+fn can_propose_commit_batch_exactly_once() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1,
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+    match state.propose_commit_batch(args) {
+        Err(err) if err == "batch already has proposed CommitBatchArguments".to_string() => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    };
+}
+
+#[test]
+fn cannot_create_chunk_in_proposed_batch_() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    match state.create_chunk(
+        CreateChunkArg {
+            batch_id: batch_1,
+            content: ByteBuf::from(BODY.to_vec()),
+        },
+        time_now,
+    ) {
+        Err(err) if err == "batch has been proposed".to_string() => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn batches_with_proposed_commit_args_do_not_expire() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    let _chunk_1 = state
+        .create_chunk(
+            CreateChunkArg {
+                batch_id: batch_1.clone(),
+                content: ByteBuf::from(BODY.to_vec()),
+            },
+            time_now,
+        )
+        .unwrap();
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+
+    let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
+    let _batch_2 = state.create_batch(time_now);
+
+    match state.create_chunk(
+        CreateChunkArg {
+            batch_id: batch_1,
+            content: ByteBuf::from(BODY.to_vec()),
+        },
+        time_now,
+    ) {
+        Err(err) if err == "batch has been proposed".to_string() => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    }
+}
+
+#[test]
 fn returns_index_file_for_missing_assets() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
@@ -538,7 +622,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "Access-Control-Allow-Origin".into(),
                 "*".into()
             )])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
     assert_eq!(
@@ -549,7 +634,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -561,7 +647,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )]))),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -572,7 +659,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -581,7 +669,8 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: Some(None),
             headers: Some(None),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -589,7 +678,8 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: None,
             headers: None,
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -601,7 +691,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )]))),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -612,7 +703,8 @@ fn supports_getting_and_setting_asset_properties() {
                 "X-Content-Type-Options".into(),
                 "nosniff".into()
             )])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -621,7 +713,8 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: None,
             headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -629,7 +722,8 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(1),
             headers: Some(HashMap::from([("new-header".into(), "value".into())])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 
@@ -638,7 +732,8 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: Some(Some(2)),
             headers: None,
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
         .is_ok());
     assert_eq!(
@@ -646,7 +741,27 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(2),
             headers: Some(HashMap::from([("new-header".into(), "value".into())])),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(false))
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(2),
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            allow_raw_access: None,
+            is_aliased: Some(false)
         })
     );
 
@@ -655,7 +770,8 @@ fn supports_getting_and_setting_asset_properties() {
             key: "/max-age.html".into(),
             max_age: None,
             headers: Some(None),
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: Some(None)
         })
         .is_ok());
     assert_eq!(
@@ -663,7 +779,8 @@ fn supports_getting_and_setting_asset_properties() {
         Ok(AssetProperties {
             max_age: Some(2),
             headers: None,
-            allow_raw_access: None
+            allow_raw_access: None,
+            is_aliased: None
         })
     );
 }
@@ -731,7 +848,6 @@ fn support_aliases() {
     assert_eq!(subdirectory_index_alias_3.body.as_ref(), SUBDIR_INDEX_BODY);
 }
 
-#[ignore = "SDK-817 will enable this"]
 #[test]
 fn alias_enable_and_disable() {
     let mut state = State::default();
@@ -757,13 +873,15 @@ fn alias_enable_and_disable() {
     );
     assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
-    create_assets(
-        &mut state,
-        time_now,
-        vec![AssetBuilder::new("/contents.html", "text/html")
-            .with_encoding("identity", vec![FILE_BODY])
-            .with_aliasing(false)],
-    );
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/contents.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(false)),
+        })
+        .is_ok());
 
     let no_more_alias = state.http_request(
         RequestBuilder::get("/contents").build(),
@@ -787,6 +905,15 @@ fn alias_enable_and_disable() {
             .with_aliasing(true)],
     );
 
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/contents.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(true)),
+        })
+        .is_ok());
     let alias_add_html_again = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
