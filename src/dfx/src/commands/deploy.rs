@@ -66,6 +66,7 @@ pub struct DeployOpts {
     /// Attempts to create the canister with this Canister ID.
     ///
     /// This option only works with non-mainnet replica.
+    /// This option implies the --no-wallet flag.
     #[clap(long, value_name = "PRINCIPAL", requires = "canister-name")]
     specified_id: Option<Principal>,
 
