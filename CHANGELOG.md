@@ -76,6 +76,10 @@ Added partial support for proposal-based asset updates:
 
 Updated Motoko to 0.8.4
 
+### ic-ref
+
+Updated ic-ref to 0.0.1-ca6aca90
+
 # 0.13.1
 
 ## Asset Canister

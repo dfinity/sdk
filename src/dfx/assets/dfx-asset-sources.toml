@@ -2,8 +2,8 @@
 replica-rev = '21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1'
 
 [x86_64-darwin.ic-ref]
-url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-3cc51be5-x86_64-darwin.tar.gz'
-sha256 = 'b99a0922f98d8aaa057f9baead97980fcb08979204649e907087fd965768fbca'
+url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ca6aca90-x86_64-darwin.tar.gz'
+sha256 = 'a9f66cd5a9e8df3e05ffbf8bec9253754f2e0b051ca2d735db16a8ee98a9302c'
 
 [x86_64-darwin.icx-proxy]
 url = 'https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-macos.tar.gz'
@@ -56,8 +56,8 @@ url = 'https://github.com/dfinity/motoko/releases/download/0.8.4/motoko-base-lib
 sha256 = '05a5c5b49d1d8e8d7169b8d22bcef9e135c0b247bf0181dad8b244bf16771960'
 
 [x86_64-linux.ic-ref]
-url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-3cc51be5-x86_64-linux.tar.gz'
-sha256 = '0baa6d0b514769332aa9934bde09350b4785d174829601b7950097a31a69938b'
+url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ca6aca90-x86_64-linux.tar.gz'
+sha256 = '45faade9aaa0de586f0c2160c8510ead48cd3f9784978d165fd40fdf02012002'
 
 [x86_64-linux.icx-proxy]
 url = 'https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-linux.tar.gz'
