@@ -686,8 +686,8 @@ impl State {
                             if id_enc.certified {
                                 return HttpResponse::build_ok(
                                     asset,
-                                    enc_name,
-                                    enc,
+                                    "identity",
+                                    id_enc,
                                     path,
                                     index,
                                     Some(certificate_header),
