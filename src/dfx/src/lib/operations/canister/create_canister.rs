@@ -7,6 +7,7 @@ use dfx_core::network::provider::get_network_context;
 
 use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use fn_error_context::context;
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::AgentError;
@@ -25,6 +26,7 @@ pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
     with_cycles: Option<&str>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     settings: CanisterSettings,
 ) -> DfxResult {
@@ -80,6 +82,9 @@ pub async fn create_canister(
                         .create_canister()
                         .as_provisional_create_with_amount(cycles)
                         .with_effective_canister_id(env.get_effective_canister_id());
+                    if let Some(sid) = specified_id {
+                        builder = builder.as_provisional_create_with_specified_id(sid);
+                    }
                     if let Some(controllers) = settings.controllers {
                         for controller in controllers {
                             builder = builder.with_controller(controller);
