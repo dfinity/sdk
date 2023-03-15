@@ -36,10 +36,14 @@ update_changelog()
     fi
     PR_NUMBER=$(gh pr view --json number --jq '.number')
     if [ -z "$PR_NUMBER" ]; then
-        LINK_TO_PR="https://github.com/dfinity/sdk/pull/YOU-NEED-TO-OPEN-A-PR-FIRST"
-    else
-        LINK_TO_PR="https://github.com/dfinity/sdk/pull/$PR_NUMBER"
+        echo "Could not find PR number. We will help you create a new PR."
+        echo "! Please make sure you are on the correct branch."
+        echo "! Please make sure you've made at least one commit on this branch."
+        gh pr create --base "dfinity/sdk"
     fi
+
+    PR_NUMBER=$(gh pr view --json number --jq '.number')
+    LINK_TO_PR="https://github.com/dfinity/sdk/pull/$PR_NUMBER"
 
     if [ -z "$UNRELEASED_LOC" ] || [ "$UNRELEASED_LOC" -gt "$LATEST_RELEASE_LOC" ]; then
         echo "No \"# Unreleased\" section found in changelog, or \"# Unreleased\" section is not at the top of the changelog"
