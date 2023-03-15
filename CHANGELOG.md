@@ -51,12 +51,14 @@ Added partial support for proposal-based asset updates:
   batch has been proposed.
 - Added methods:
   - propose_commit_batch() stores batch arguments for later commit
+  - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: fe2e627bf15f7ec7af20bbb40aa8c7e8cc2c8d39987f66221f64dc3506176e17
+- Module hash: 70d2ca00ef904eaf14c616e861a486bd59f5008abb9fc37495f2429f58854d43
+- https://github.com/dfinity/sdk/pull/3019
 - https://github.com/dfinity/sdk/pull/3016
 - https://github.com/dfinity/sdk/pull/3015
 - https://github.com/dfinity/sdk/pull/3001

@@ -60,6 +60,11 @@ pub struct CommitBatchArguments {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct DeleteBatchArguments {
+    pub batch_id: BatchId,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StoreArg {
     pub key: Key,
     pub content_type: String,
