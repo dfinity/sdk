@@ -227,6 +227,26 @@ fn commit_batch(arg: CommitBatchArguments) {
     });
 }
 
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn propose_commit_batch(arg: CommitBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().propose_commit_batch(arg) {
+            trap(&msg);
+        }
+    });
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn delete_batch(arg: DeleteBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().delete_batch(arg) {
+            trap(&msg);
+        }
+    });
+}
+
 #[query]
 #[candid_method(query)]
 fn get(arg: GetArg) -> EncodedAsset {

@@ -44,15 +44,22 @@ Added `validate_take_ownership()` method so that an SNS is able to add a custom 
 
 Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
 
-Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
-having the asset canister not reuse batch ids will make it easier to verify that a particular
-batch has been proposed.
+Added partial support for proposal-based asset updates:
+
+- Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
+  having the asset canister not reuse batch ids will make it easier to verify that a particular
+  batch has been proposed.
+- Added methods:
+  - propose_commit_batch() stores batch arguments for later commit
+  - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 309d95726d26ac1fa595fb90fed056bac78a681eea4a53759338f1882839e731
+- Module hash: 70d2ca00ef904eaf14c616e861a486bd59f5008abb9fc37495f2429f58854d43
+- https://github.com/dfinity/sdk/pull/3019
+- https://github.com/dfinity/sdk/pull/3016
 - https://github.com/dfinity/sdk/pull/3015
 - https://github.com/dfinity/sdk/pull/3001
 - https://github.com/dfinity/sdk/pull/2987
@@ -60,7 +67,7 @@ batch has been proposed.
 
 ### Motoko
 
-Updated Motoko to 0.8.3
+Updated Motoko to 0.8.4
 
 # 0.13.1
 

@@ -4,7 +4,8 @@ use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
-    CreateChunkArg, DeleteAssetArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
+    CreateChunkArg, DeleteAssetArguments, DeleteBatchArguments, SetAssetContentArguments,
+    SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -263,6 +264,140 @@ fn batches_are_dropped_after_timeout() {
         Err(err) if err.contains("batch not found") => (),
         other => panic!("expected 'batch not found' error, got: {:?}", other),
     }
+}
+
+#[test]
+fn can_propose_commit_batch_exactly_once() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1,
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+    match state.propose_commit_batch(args) {
+        Err(err) if err == "batch already has proposed CommitBatchArguments".to_string() => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    };
+}
+
+#[test]
+fn cannot_create_chunk_in_proposed_batch_() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    match state.create_chunk(
+        CreateChunkArg {
+            batch_id: batch_1,
+            content: ByteBuf::from(BODY.to_vec()),
+        },
+        time_now,
+    ) {
+        Err(err) if err == "batch has been proposed".to_string() => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn batches_with_proposed_commit_args_do_not_expire() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    let _chunk_1 = state
+        .create_chunk(
+            CreateChunkArg {
+                batch_id: batch_1.clone(),
+                content: ByteBuf::from(BODY.to_vec()),
+            },
+            time_now,
+        )
+        .unwrap();
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+
+    let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
+    let _batch_2 = state.create_batch(time_now);
+
+    match state.create_chunk(
+        CreateChunkArg {
+            batch_id: batch_1,
+            content: ByteBuf::from(BODY.to_vec()),
+        },
+        time_now,
+    ) {
+        Err(err) if err == "batch has been proposed".to_string() => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn can_delete_proposed_batch() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+    let delete_args = DeleteBatchArguments {
+        batch_id: batch_1.clone(),
+    };
+    assert_eq!(Ok(()), state.delete_batch(delete_args.clone()));
+    assert_eq!(
+        Err("batch not found".to_string()),
+        state.delete_batch(delete_args)
+    );
+}
+
+#[test]
+fn can_delete_batch_with_chunks() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    let _chunk_1 = state
+        .create_chunk(
+            CreateChunkArg {
+                batch_id: batch_1.clone(),
+                content: ByteBuf::from(BODY.to_vec()),
+            },
+            time_now,
+        )
+        .unwrap();
+
+    let delete_args = DeleteBatchArguments {
+        batch_id: batch_1.clone(),
+    };
+    assert_eq!(Ok(()), state.delete_batch(delete_args.clone()));
+    assert_eq!(
+        Err("batch not found".to_string()),
+        state.delete_batch(delete_args)
+    );
 }
 
 #[test]
