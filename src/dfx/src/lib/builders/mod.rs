@@ -308,6 +308,7 @@ fn ensure_trailing_newline(s: String) -> String {
     }
 }
 
+/// Set the permission of the given file to be writeable.
 pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
     let mut perms = std::fs::metadata(file_path)
         .with_context(|| {
