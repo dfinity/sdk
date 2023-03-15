@@ -60,6 +60,7 @@ Added `api_version` endpoint. With upcoming changes we will introduce breaking c
 ### Frontend canister
 
 - Module hash: c8c4522fcb1013f5cb3ddb7f257c1e0cae8cf58f0875044e008f1137c8fdb748
+- https://github.com/dfinity/sdk/pull/3022
 - https://github.com/dfinity/sdk/pull/3019
 - https://github.com/dfinity/sdk/pull/3016
 - https://github.com/dfinity/sdk/pull/3015
