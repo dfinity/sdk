@@ -6,7 +6,7 @@
 
 ### feat: specify id when provisional create canister
 
-When create canister on non-mainnet replica, you can now specify the canister ID.
+When creating a canister on non-mainnet replica, you can now specify the canister ID.
 
 `dfx canister create <CANISTER_NAME> --specified-id <PRINCIPAL>`
 

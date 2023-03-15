@@ -96,7 +96,6 @@ pub async fn create_canister(
                         .with_optional_freezing_threshold(settings.freezing_threshold)
                         .call_and_wait()
                         .await;
-                    dbg!(&res);
                     if let Err(AgentError::HttpError(HttpErrorPayload { status, .. })) = &res {
                         if *status >= 400 && *status < 500 {
                             bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \

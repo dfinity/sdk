@@ -207,7 +207,7 @@ pub async fn exec(
                 .with_context(|| {
                     format!("Failed to read freezing threshold of {}.", canister_name)
                 })?;
-                // TODO: create for pull canisters with their mainnet ID
+                // TODO: create for pull canisters with their mainnet ID (SDK-794)
                 create_canister(
                     env,
                     canister_name,
