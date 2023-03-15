@@ -427,6 +427,14 @@ impl State {
         Ok(())
     }
 
+    pub fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {
+        if self.batches.remove(&arg.batch_id).is_none() {
+            return Err("batch not found".to_string());
+        }
+        self.chunks.retain(|_, c| c.batch_id != arg.batch_id);
+        Ok(())
+    }
+
     pub fn list_assets(&self) -> Vec<AssetDetails> {
         self.assets
             .iter()

@@ -29,6 +29,12 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
+#[query]
+#[candid_method(query)]
+fn api_version() -> u16 {
+    0
+}
+
 #[update]
 #[candid_method(update)]
 async fn authorize(other: Principal) {
@@ -232,6 +238,16 @@ fn commit_batch(arg: CommitBatchArguments) {
 fn propose_commit_batch(arg: CommitBatchArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().propose_commit_batch(arg) {
+            trap(&msg);
+        }
+    });
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn delete_batch(arg: DeleteBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().delete_batch(arg) {
             trap(&msg);
         }
     });

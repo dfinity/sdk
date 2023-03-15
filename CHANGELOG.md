@@ -59,13 +59,18 @@ Added partial support for proposal-based asset updates:
   batch has been proposed.
 - Added methods:
   - propose_commit_batch() stores batch arguments for later commit
+  - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
+
+Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister. 
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 876a1729a3fac503ee77887c7071cf0bcb9c967a61f2847e7335ccb8238536a7
+- Module hash: a6476d0619d523ca5934120437474623c89534ffab997793aa76be003fca2144
+- https://github.com/dfinity/sdk/pull/3022
 - https://github.com/dfinity/sdk/pull/3021
+- https://github.com/dfinity/sdk/pull/3019
 - https://github.com/dfinity/sdk/pull/3016
 - https://github.com/dfinity/sdk/pull/3015
 - https://github.com/dfinity/sdk/pull/3001
