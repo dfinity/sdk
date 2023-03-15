@@ -21,12 +21,12 @@ update_changelog()
     REPO_ROOT=$(git rev-parse --show-toplevel)
     CHANGELOG_PATH="$REPO_ROOT/CHANGELOG.md"
     CHANGELOG_PATH_BACKUP="$REPO_ROOT/CHANGELOG.md.bak"
-    UNRELEASED_LOC=$(grep -nE "# UNRELEASED" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
-    DEPENDENCIES_LOC=$(grep -nE "## Dependencies" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
-    FRONTEND_CANISTER_LOC=$(grep -nE "### Frontend canister" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
-    MODULE_HASH_LOC=$(grep -nE "\- Module hash: [a-f0-9]{64}" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
-    LATEST_RELEASE_LOC=$(grep -nE "# \d+\.\d+\.\d+" $CHANGELOG_PATH | head -n 1 | cut -f1 -d:)
-    LINE_ABOVE_LAST_RELEASE=$(($LATEST_RELEASE_LOC - 1))
+    UNRELEASED_LOC=$(grep -nE "# UNRELEASED" "$CHANGELOG_PATH" | head -n 1 | cut -f1 -d:)
+    DEPENDENCIES_LOC=$(grep -nE "## Dependencies" "$CHANGELOG_PATH" | head -n 1 | cut -f1 -d:)
+    FRONTEND_CANISTER_LOC=$(grep -nE "### Frontend canister" "$CHANGELOG_PATH" | head -n 1 | cut -f1 -d:)
+    MODULE_HASH_LOC=$(grep -nE "\- Module hash: [a-f0-9]{64}" "$CHANGELOG_PATH" | head -n 1 | cut -f1 -d:)
+    LATEST_RELEASE_LOC=$(grep -nE "# \d+\.\d+\.\d+" "$CHANGELOG_PATH" | head -n 1 | cut -f1 -d:)
+    LINE_ABOVE_LAST_RELEASE=$(("$LATEST_RELEASE_LOC" - 1))
     NEW_WASM_CHECKSUM=$(shasum -a 256 "$REPO_ROOT/src/distributed/assetstorage.wasm.gz" | awk '{print $1}')
 
     if ! command -v gh &> /dev/null
@@ -46,7 +46,7 @@ update_changelog()
         exit 1
     fi
 
-    cp $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP
+    cp "$CHANGELOG_PATH" "$CHANGELOG_PATH_BACKUP"
 
     if [ "$DEPENDENCIES_LOC" -lt "$LATEST_RELEASE_LOC" ]; then
         # Dependencies section is present just above the latest release
@@ -58,13 +58,13 @@ update_changelog()
                 filter="- Module hash: " \
                 target=": [a-f0-9]{64}" \
                 replacement=": ${NEW_WASM_CHECKSUM}" \
-                $CHANGELOG_PATH_BACKUP | sponge $CHANGELOG_PATH_BACKUP
+                "$CHANGELOG_PATH_BACKUP" | sponge "$CHANGELOG_PATH_BACKUP"
             # read line below MODULE_HASH_LOC and check if it contains LINK_TO_PR, if not, add it
-            if ! grep -q "$LINK_TO_PR" <(sed -n "$((MODULE_HASH_LOC+1))p" $CHANGELOG_PATH_BACKUP); then
+            if ! grep -q "$LINK_TO_PR" <(sed -n "$((MODULE_HASH_LOC+1))p" "$CHANGELOG_PATH_BACKUP"); then
                 awk 'NR==loc{print replacement}1' \
                     loc=$((MODULE_HASH_LOC+1)) \
                     replacement="- ${LINK_TO_PR}" \
-                    $CHANGELOG_PATH_BACKUP | sponge $CHANGELOG_PATH_BACKUP
+                    "$CHANGELOG_PATH_BACKUP" | sponge "$CHANGELOG_PATH_BACKUP"
             fi
 
         else
@@ -74,7 +74,7 @@ update_changelog()
             awk 'NR==loc {print content}1' \
                 content="$CONTENT" \
                 loc="$LINE_ABOVE_LAST_RELEASE" \
-                $CHANGELOG_PATH_BACKUP | sponge $CHANGELOG_PATH_BACKUP
+                "$CHANGELOG_PATH_BACKUP" | sponge "$CHANGELOG_PATH_BACKUP"
         fi
     else
         # Dependencies section is not present under Unreleased section.
@@ -84,28 +84,28 @@ update_changelog()
         awk 'NR==loc {print content}1' \
             content="$CONTENT" \
             loc="$LINE_ABOVE_LAST_RELEASE" \
-            $CHANGELOG_PATH_BACKUP | sponge $CHANGELOG_PATH_BACKUP
+            "$CHANGELOG_PATH_BACKUP" | sponge "$CHANGELOG_PATH_BACKUP"
     fi
 
     # Using git diff to get nice colorful output across all OSes.
-    if diff -q $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP &>/dev/null; then
+    if diff -q "$CHANGELOG_PATH" "$CHANGELOG_PATH_BACKUP" &>/dev/null; then
         echo "No changes to the changelog"
-        rm $CHANGELOG_PATH_BACKUP
+        rm "$CHANGELOG_PATH_BACKUP"
         exit 1
     fi
 
     echo "Suggested Changelog updates:"
-    git diff -U8 --no-index $CHANGELOG_PATH $CHANGELOG_PATH_BACKUP && echo
+    git diff -U8 --no-index "$CHANGELOG_PATH" "$CHANGELOG_PATH_BACKUP" && echo
     echo
     echo "Please review the suggested changes before applying them to CHANGELOG.md"
     read -r -p "Do you want to apply these changes to the changelog? [y/N] " response
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
     then
-        mv $CHANGELOG_PATH_BACKUP $CHANGELOG_PATH
+        mv "$CHANGELOG_PATH_BACKUP" "$CHANGELOG_PATH"
         echo "Changelog updated"
     else
         echo "Aborting"
-        rm $CHANGELOG_PATH_BACKUP
+        rm "$CHANGELOG_PATH_BACKUP"
     fi
 }
 
