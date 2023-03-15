@@ -1751,7 +1751,7 @@ dependencies = [
 [[package]]
 name = "ic-certification"
 version = "0.23.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=815ee1f#815ee1f523d498d8777a8941acf1a6042f959afc"
+source = "git+https://github.com/dfinity/agent-rs?rev=9d7be5ffe3570ab77dda1aa70ee530854e64cd1a#9d7be5ffe3570ab77dda1aa70ee530854e64cd1a"
 dependencies = [
  "hex",
  "sha2 0.10.6",
@@ -1812,12 +1812,13 @@ dependencies = [
 [[package]]
 name = "ic-response-verification"
 version = "0.0.0"
+source = "git+https://github.com/dfinity/response-verification#2efb3a1796500bc7b480eab80639b2301efb7a42"
 dependencies = [
  "base64",
  "candid",
  "flate2",
  "http",
- "ic-certification 0.23.0 (git+https://github.com/dfinity/agent-rs?rev=815ee1f)",
+ "ic-certification 0.23.0 (git+https://github.com/dfinity/agent-rs?rev=9d7be5ffe3570ab77dda1aa70ee530854e64cd1a)",
  "leb128",
  "log",
  "miracl_core_bls12381",
