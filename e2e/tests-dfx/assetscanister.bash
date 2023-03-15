@@ -1262,3 +1262,11 @@ WARN: {
     assert_command dfx canister info e2e_project_frontend
     assert_not_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
 }
+
+@test "api version endpoint" {
+    install_asset assetscanister
+    dfx_start
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project_frontend api_version '()'
+    assert_match '\([0-9]* : nat16\)'
+}

@@ -115,6 +115,8 @@ type ListPermitted = record { permission: Permission };
 type ValidationResult = variant { Ok : text; Err : text };
 
 service: {
+  api_version: () -> (nat16);
+
   get: (record {
     key: Key;
     accept_encodings: vec text;
