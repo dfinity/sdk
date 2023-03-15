@@ -29,6 +29,12 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
+#[query]
+#[candid_method(query)]
+fn api_version() -> u16 {
+    0
+}
+
 #[update]
 #[candid_method(update)]
 async fn authorize(other: Principal) {
