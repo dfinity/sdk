@@ -681,23 +681,6 @@ impl State {
                             etags,
                             req.get_certificate_version(),
                         );
-                    } else {
-                        // Find if identity is certified, if it's not.
-                        if let Some(id_enc) = asset.encodings.get("identity") {
-                            if id_enc.certified {
-                                return HttpResponse::build_ok(
-                                    asset,
-                                    "identity",
-                                    id_enc,
-                                    path,
-                                    index,
-                                    Some(certificate_header),
-                                    callback,
-                                    etags,
-                                    req.get_certificate_version(),
-                                );
-                            }
-                        }
                     }
                 }
             }
