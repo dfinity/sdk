@@ -75,6 +75,7 @@ impl AssetEncoding {
                 path.insert(0, "http_expr".into());
                 path.push("<$>".into());
                 path.push(ce.expression_hash.as_slice().into());
+                path.push("".into()); // no request certification - use empty node
                 path.push(response_hash.as_slice().into());
                 Some(path.into())
             } else {
