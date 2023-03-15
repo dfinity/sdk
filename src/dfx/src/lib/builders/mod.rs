@@ -319,7 +319,7 @@ pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
         })?
         .permissions();
     perms.set_readonly(false);
-    std::fs::set_permissions(&file_path, perms).with_context(|| {
+    std::fs::set_permissions(file_path, perms).with_context(|| {
         format!(
             "Failed to set file permissions for idl file {}.",
             file_path.to_string_lossy()
