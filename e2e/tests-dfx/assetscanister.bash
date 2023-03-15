@@ -24,14 +24,7 @@ create_batch() {
 }
 
 check_permission_failure() {
-    expected="$1"
-    # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
-    if [ "$USE_IC_REF" ]
-    then
-        assert_contains "canister did not respond"
-    else
-        assert_contains "$expected"
-    fi
+    assert_contains "$1"
 }
 
 @test "batch id persists through upgrade" {
