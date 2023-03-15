@@ -65,6 +65,12 @@ pub struct DeleteBatchArguments {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ComputeEvidenceArguments {
+    pub batch_id: BatchId,
+    pub max_iterations: Option<u16>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StoreArg {
     pub key: Key,
     pub content_type: String,
