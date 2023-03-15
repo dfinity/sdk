@@ -127,7 +127,7 @@ fn next_chunk_index(
                     operation_index,
                     chunk_index: chunk_index + 1,
                     hasher,
-                }
+                };
             }
         }
     }
