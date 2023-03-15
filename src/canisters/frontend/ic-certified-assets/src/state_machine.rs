@@ -919,18 +919,6 @@ fn on_asset_change(
 ) {
     asset.update_ic_certificate_expressions();
 
-    // If the most preferred encoding is present and certified,
-    // there is nothing to do.
-    for enc_name in ENCODING_CERTIFICATION_ORDER.iter() {
-        if let Some(enc) = asset.encodings.get(*enc_name) {
-            if enc.certified {
-                return;
-            } else {
-                break;
-            }
-        }
-    }
-
     // Clean up pre-existing paths for this asset
     let mut keys_to_remove = dependent_keys.clone();
     keys_to_remove.push(key.to_string());
@@ -941,9 +929,6 @@ fn on_asset_change(
     if asset.encodings.is_empty() {
         return;
     }
-
-    // An encoding with a higher priority was added, let's certify it
-    // instead.
 
     for enc in asset.encodings.values_mut() {
         enc.certified = false;
@@ -1017,7 +1002,7 @@ fn on_asset_change(
             };
             enc.response_hashes = Some(new_response_hashes);
 
-            for (key, v1_path) in keys_to_insert_hash_for {
+            for (key, v1_path) in &keys_to_insert_hash_for {
                 let key_path = AssetPath::from(&key);
                 asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
                 for status_code in STATUS_CODES_TO_CERTIFY {
@@ -1032,7 +1017,6 @@ fn on_asset_change(
                 }
             }
             enc.certified = true;
-            return;
         }
     }
 }

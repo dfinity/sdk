@@ -240,6 +240,45 @@ fn can_create_assets_using_batch_api() {
 }
 
 #[test]
+fn serve_correct_encoding() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY]),
+            AssetBuilder::new("/contents.html", "text/html").with_encoding("gzip", vec![GZIP_BODY]),
+        ],
+    );
+
+    let identity_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(identity_response.status_code, 200);
+    assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
+
+    let gzip_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(gzip_response.status_code, 200);
+    assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+}
+
+#[test]
 fn batches_are_dropped_after_timeout() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
