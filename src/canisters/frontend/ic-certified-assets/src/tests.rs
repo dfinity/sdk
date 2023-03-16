@@ -278,6 +278,18 @@ fn serve_correct_encoding() {
     );
     assert_eq!(gzip_response.status_code, 200);
     assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+
+    // V1 serves only the most important encoding - in this case "identity"
+    let v1_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip")
+            .with_certificate_version(1)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(v1_response.status_code, 200);
+    assert_eq!(v1_response.body.as_ref(), IDENTITY_BODY);
 }
 
 #[test]

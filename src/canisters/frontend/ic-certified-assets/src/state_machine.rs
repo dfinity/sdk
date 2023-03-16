@@ -663,24 +663,54 @@ impl State {
             )
         };
 
+        //todo
         if let Ok(asset) = self.get_asset(&path.into()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
             }
-            for enc_name in encodings.iter() {
-                if let Some(enc) = asset.encodings.get(enc_name) {
-                    if enc.certified {
-                        return HttpResponse::build_ok(
-                            asset,
-                            enc_name,
-                            enc,
-                            path,
-                            index,
-                            Some(certificate_header),
-                            callback,
-                            etags,
-                            req.get_certificate_version(),
-                        );
+            if req.get_certificate_version() == 1 {
+                // This is the same order used when setting the certified value
+                // V1 only supports certifying one encoding, so we just use the first one that exists in this order
+                let mut encoding_order: Vec<String> = ENCODING_CERTIFICATION_ORDER
+                    .iter()
+                    .map(|enc| enc.to_string())
+                    .collect();
+                if let Some(enc) = encodings.iter().next() {
+                    encoding_order.push(enc.clone());
+                }
+                for enc_name in encoding_order.iter() {
+                    if let Some(enc) = asset.encodings.get(enc_name) {
+                        if enc.certified {
+                            return HttpResponse::build_ok(
+                                asset,
+                                enc_name,
+                                enc,
+                                path,
+                                index,
+                                Some(certificate_header),
+                                callback,
+                                etags,
+                                1,
+                            );
+                        }
+                    }
+                }
+            } else {
+                for enc_name in encodings.iter() {
+                    if let Some(enc) = asset.encodings.get(enc_name) {
+                        if enc.certified {
+                            return HttpResponse::build_ok(
+                                asset,
+                                enc_name,
+                                enc,
+                                path,
+                                index,
+                                Some(certificate_header),
+                                callback,
+                                etags,
+                                req.get_certificate_version(),
+                            );
+                        }
                     }
                 }
             }
