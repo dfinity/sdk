@@ -1256,6 +1256,6 @@ mod certification_v2 {
 
         println!("Updated IC-Certificate: {}", cert_header);
 
-        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFggYqb51osZ8yEgbrtk+Z981k9J9Q0m4VEH/xmnuU6SDJqDAklodHRwX2V4cHKDAYIEWCB8ve5ZiB9SeCaYdKsv2ZfHSFZBomzvLxZtXtSxzg26iYMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCC8DBBYlQxiaVAOAV6uWwZ3un2feoZJc0MW5MYdsWFsLIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
+        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFgg1hasIZe9DV/qkwMJwOyFED/kYwg4LKtr0BWWcxuIqI6DAklodHRwX2V4cHKDAYIEWCB8ve5ZiB9SeCaYdKsv2ZfHSFZBomzvLxZtXtSxzg26iYMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCC8DBBYlQxiaVAOAV6uWwZ3un2feoZJc0MW5MYdsWFsLIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
     }
 }

@@ -937,6 +937,7 @@ fn on_asset_change(
     for key in keys_to_remove {
         let key_path = AssetPath::from(&key);
         asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
+        asset_hashes.delete(key_path.asset_hash_path_v1().as_vec());
     }
     if asset.encodings.is_empty() {
         return;
