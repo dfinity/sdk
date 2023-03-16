@@ -73,7 +73,7 @@ impl AssetEncoding {
                     .map(|segment| segment.as_str().into())
                     .collect();
                 path.insert(0, "http_expr".into());
-                path.push("<$>".into());
+                path.push("<$>".into()); // asset path terminator
                 path.push(ce.expression_hash.as_slice().into());
                 path.push("".into()); // no request certification - use empty node
                 path.push(response_hash.as_slice().into());
@@ -901,8 +901,6 @@ fn on_asset_change(
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
 ) {
-    asset.update_ic_certificate_expressions();
-
     // Clean up pre-existing paths for this asset
     let mut keys_to_remove = dependent_keys.clone();
     keys_to_remove.push(key.to_string());
@@ -918,6 +916,8 @@ fn on_asset_change(
         enc.certified = false;
     }
 
+    asset.update_ic_certificate_expressions();
+
     // Order of encodings: Follow ENCODING_CERTIFICATION_ORDER,
     // if none exist, we just pick the first existing encoding.
     let mut encoding_order: Vec<String> = ENCODING_CERTIFICATION_ORDER
@@ -928,7 +928,6 @@ fn on_asset_change(
         encoding_order.push(enc.clone());
     }
 
-    // Once v1 certification support removed: can move this to just before `enc.certified = true;` happens
     let mut keys_to_insert_hash_for = dependent_keys;
     keys_to_insert_hash_for.push(key.into());
     let keys_to_insert_hash_for: Vec<_> = keys_to_insert_hash_for
@@ -988,7 +987,10 @@ fn on_asset_change(
 
             for (key, v1_path) in &keys_to_insert_hash_for {
                 let key_path = AssetPath::from(&key);
-                asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
+                if asset_hashes.get(v1_path.as_vec()).is_none() {
+                    // v1 can only certify one encoding, therefore we only insert the first encoding
+                    asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
+                }
                 for status_code in STATUS_CODES_TO_CERTIFY {
                     if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
                         asset_hashes.insert(hash_path.as_vec(), Vec::new());
