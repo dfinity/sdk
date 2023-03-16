@@ -9,20 +9,33 @@ members = [
 ]
 default-members = ["src/dfx"]
 
+[workspace.package]
+authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
+edition = "2021"
+repository = "https://github.com/dfinity/sdk"
+rust-version = "1.65.0"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+candid = "0.8.4"
+ic-agent = "0.23.1"
+ic-identity-hsm = "0.23.1"
+ic-utils = "0.23.1"
+
 [patch.crates-io.ic-agent]
-version = "0.23.0"
+version = "0.23.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "4245c49575a74db680ec5707f23892046101afee"
+rev = "6d3ae396d94adf8749794834a572bbbbb79c75f3"
 
 [patch.crates-io.ic-identity-hsm]
-version = "0.23.0"
+version = "0.23.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "4245c49575a74db680ec5707f23892046101afee"
+rev = "6d3ae396d94adf8749794834a572bbbbb79c75f3"
 
 [patch.crates-io.ic-utils]
-version = "0.23.0"
+version = "0.23.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "4245c49575a74db680ec5707f23892046101afee"
+rev = "6d3ae396d94adf8749794834a572bbbbb79c75f3"
 
 [profile.release]
 panic = 'abort'
@@ -33,4 +46,3 @@ opt-level = 3
 
 [profile.release.package.ic-frontend-canister]
 opt-level = 'z'
-
