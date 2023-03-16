@@ -6,6 +6,7 @@ on:
       - '.github/**'
       - 'scripts/release.sh'
       - 'scripts/prepare-dfx-assets.sh'
+      - 'scripts/update-frontend-canister.sh'
   push:
     branches:
       - master
