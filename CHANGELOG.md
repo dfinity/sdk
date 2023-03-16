@@ -4,6 +4,8 @@
 
 ## DFX
 
+### fix: make sure assetstorage did file is created as writeable.
+
 ### fix: update Rust canister template.
 
 `ic-cdk-timers` is included in the dependencies.
