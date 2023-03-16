@@ -4,6 +4,14 @@
 
 ## DFX
 
+### feat: specify id when provisional create canister
+
+When creating a canister on non-mainnet replica, you can now specify the canister ID.
+
+`dfx canister create <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
+`dfx deploy <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
 ### fix: update Rust canister template.
 
 `ic-cdk-timers` is included in the dependencies.
@@ -46,15 +54,28 @@ Added `validate_take_ownership()` method so that an SNS is able to add a custom 
 
 Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
 
-Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
-having the asset canister not reuse batch ids will make it easier to verify that a particular
-batch has been proposed.
+Added partial support for proposal-based asset updates:
+
+- Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
+  having the asset canister not reuse batch ids will make it easier to verify that a particular
+  batch has been proposed.
+- Added methods:
+  - propose_commit_batch() stores batch arguments for later commit
+  - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
+  - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
+
+Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister. 
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 309d95726d26ac1fa595fb90fed056bac78a681eea4a53759338f1882839e731
+- Module hash: 1d170f9732b9c829a1484e7d68d74cf4a5447aa9df8b14df3c373cfda9e29ce0
+- https://github.com/dfinity/sdk/pull/3023
+- https://github.com/dfinity/sdk/pull/3022
+- https://github.com/dfinity/sdk/pull/3021
+- https://github.com/dfinity/sdk/pull/3019
+- https://github.com/dfinity/sdk/pull/3016
 - https://github.com/dfinity/sdk/pull/3015
 - https://github.com/dfinity/sdk/pull/3001
 - https://github.com/dfinity/sdk/pull/2987
@@ -62,7 +83,11 @@ batch has been proposed.
 
 ### Motoko
 
-Updated Motoko to 0.8.3
+Updated Motoko to 0.8.4
+
+### ic-ref
+
+Updated ic-ref to 0.0.1-ca6aca90
 
 # 0.13.1
 

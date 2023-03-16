@@ -1,4 +1,5 @@
 //! This module declares canister methods expected by the assets canister client.
+pub mod evidence;
 pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
@@ -23,10 +24,17 @@ use ic_cdk::api::{
     set_certified_data, time, trap,
 };
 use ic_cdk_macros::{query, update};
+use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
+}
+
+#[query]
+#[candid_method(query)]
+fn api_version() -> u16 {
+    0
 }
 
 #[update]
@@ -224,6 +232,35 @@ fn commit_batch(arg: CommitBatchArguments) {
             trap(&msg);
         }
         set_certified_data(&s.borrow().root_hash());
+    });
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn propose_commit_batch(arg: CommitBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().propose_commit_batch(arg) {
+            trap(&msg);
+        }
+    });
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
+    STATE.with(|s| match s.borrow_mut().compute_evidence(arg) {
+        Err(msg) => trap(&msg),
+        Ok(maybe_evidence) => maybe_evidence,
+    })
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn delete_batch(arg: DeleteBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().delete_batch(arg) {
+            trap(&msg);
+        }
     });
 }
 

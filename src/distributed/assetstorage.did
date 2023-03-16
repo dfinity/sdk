@@ -44,6 +44,20 @@ type BatchOperationKind = variant {
   Clear: ClearArguments;
 };
 
+type CommitBatchArguments = record {
+  batch_id: BatchId;
+  operations: vec BatchOperationKind
+};
+
+type ComputeEvidenceArguments = record {
+  batch_id: BatchId;
+  max_iterations: opt nat16
+};
+
+type DeleteBatchArguments = record {
+  batch_id: BatchId;
+};
+
 type HeaderField = record { text; text; };
 
 type HttpRequest = record {
@@ -106,6 +120,8 @@ type ListPermitted = record { permission: Permission };
 type ValidationResult = variant { Ok : text; Err : text };
 
 service: {
+  api_version: () -> (nat16) query;
+
   get: (record {
     key: Key;
     accept_encodings: vec text;
@@ -147,7 +163,16 @@ service: {
   create_chunk: (record { batch_id: BatchId; content: blob }) -> (record { chunk_id: ChunkId });
 
   // Perform all operations successfully, or reject
-  commit_batch: (record { batch_id: BatchId; operations: vec BatchOperationKind }) -> ();
+  commit_batch: (CommitBatchArguments) -> ();
+
+  // Save the batch operations for later commit
+  propose_commit_batch: (CommitBatchArguments) -> ();
+
+  // Compute a hash over the CommitBatchArguments.  Call until it returns Some(evidence).
+  compute_evidence: (ComputeEvidenceArguments) -> (opt blob);
+
+  // Delete a batch that has been created, or proposed for commit, but not yet committed
+  delete_batch: (DeleteBatchArguments) -> ();
 
   create_asset: (CreateAssetArguments) -> ();
   set_asset_content: (SetAssetContentArguments) -> ();
