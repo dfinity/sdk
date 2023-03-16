@@ -1,22 +1,27 @@
 [package]
 name = "dfx-core"
 version = "0.0.1"
-authors = ["DFINITY Team"]
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 aes-gcm = "0.9.4"
 argon2 = "0.4.0"
 bip32 = "0.4.0"
 byte-unit = { version = "4.0.14", features = ["serde"] }
-candid = { version = "0.8.2", features = [ "random" ] }
+candid = { workspace = true, features = ["random"] }
 dialoguer = "0.10.0"
 directories-next = "2.0.0"
-flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] }
-hex = {version = "0.4.2", features = ["serde"] }
+flate2 = { version = "1.0.11", default-features = false, features = [
+    "zlib-ng",
+] }
+hex = { version = "0.4.2", features = ["serde"] }
 humantime-serde = "1.1.1"
-ic-agent = { version = "0.23.0", features = ["reqwest"] }
-ic-identity-hsm = "0.23.0"
+ic-agent = { workspace = true, features = ["reqwest"] }
+ic-identity-hsm = { workspace = true }
 k256 = { version = "0.11.4", features = ["pem"] }
 keyring = "1.2.0"
 lazy_static = "1.4.0"

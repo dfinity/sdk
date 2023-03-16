@@ -41,7 +41,7 @@ pub struct CliOpts {
     identity: Option<String>,
 
     /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
-    #[clap(long, global(true))]
+    #[clap(long, global(true), value_name("PRINCIPAL"))]
     provisional_create_canister_effective_canister_id: Option<String>,
 
     #[clap(subcommand)]

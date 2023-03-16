@@ -5,6 +5,7 @@
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
 use crate::{
+    evidence::{EvidenceComputation, EvidenceComputation::Computed},
     http::{
         HeaderField, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
         StreamingCallbackToken,
@@ -34,6 +35,8 @@ const INDEX_FILE: &str = "/index.html";
 
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
+
+const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
 type AssetHashes = RbTree<Key, Hash>;
 type Timestamp = Int;
@@ -94,6 +97,8 @@ pub struct Chunk {
 
 pub struct Batch {
     pub expires_at: Timestamp,
+    pub commit_batch_arguments: Option<CommitBatchArguments>,
+    pub evidence_computation: Option<EvidenceComputation>,
 }
 
 #[derive(Default)]
@@ -359,15 +364,18 @@ impl State {
             batch_id.clone(),
             Batch {
                 expires_at: Int::from(now + BATCH_EXPIRY_NANOS),
+                commit_batch_arguments: None,
+                evidence_computation: None,
             },
         );
         self.chunks.retain(|_, c| {
             self.batches
                 .get(&c.batch_id)
-                .map(|b| b.expires_at > now)
+                .map(|b| b.expires_at > now || b.commit_batch_arguments.is_some())
                 .unwrap_or(false)
         });
-        self.batches.retain(|_, b| b.expires_at > now);
+        self.batches
+            .retain(|_, b| b.expires_at > now || b.commit_batch_arguments.is_some());
 
         batch_id
     }
@@ -377,6 +385,9 @@ impl State {
             .batches
             .get_mut(&arg.batch_id)
             .ok_or_else(|| "batch not found".to_string())?;
+        if batch.commit_batch_arguments.is_some() {
+            return Err("batch has been proposed".to_string());
+        }
 
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
@@ -406,6 +417,63 @@ impl State {
             }
         }
         self.batches.remove(&batch_id);
+        Ok(())
+    }
+
+    pub fn propose_commit_batch(&mut self, arg: CommitBatchArguments) -> Result<(), String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+        if batch.commit_batch_arguments.is_some() {
+            return Err("batch already has proposed CommitBatchArguments".to_string());
+        };
+        batch.commit_batch_arguments = Some(arg);
+        Ok(())
+    }
+
+    pub fn compute_evidence(
+        &mut self,
+        arg: ComputeEvidenceArguments,
+    ) -> Result<Option<ByteBuf>, String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+
+        let cba = batch
+            .commit_batch_arguments
+            .as_ref()
+            .expect("batch does not have CommitBatchArguments");
+
+        let max_iterations = arg
+            .max_iterations
+            .unwrap_or(DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS);
+
+        let mut ec = batch
+            .evidence_computation
+            .take()
+            .unwrap_or(EvidenceComputation::new());
+        for _ in 0..max_iterations {
+            ec = ec.advance(&cba, &self.chunks);
+            if matches!(ec, Computed(_)) {
+                break;
+            }
+        }
+        batch.evidence_computation = Some(ec);
+
+        if let Some(Computed(evidence)) = &batch.evidence_computation {
+            Ok(Some(evidence.clone()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {
+        if self.batches.remove(&arg.batch_id).is_none() {
+            return Err("batch not found".to_string());
+        }
+        self.chunks.retain(|_, c| c.batch_id != arg.batch_id);
         Ok(())
     }
 
