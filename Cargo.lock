@@ -821,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.12.1"
+version = "0.13.1"
 dependencies = [
  "actix",
  "aes-gcm",
@@ -913,6 +913,7 @@ dependencies = [
  "candid",
  "dialoguer",
  "directories-next",
+ "flate2",
  "hex",
  "humantime-serde",
  "ic-agent",
@@ -927,9 +928,11 @@ dependencies = [
  "serde",
  "serde_json",
  "slog",
+ "tar",
  "tempfile",
  "thiserror",
  "tiny-bip39",
+ "url",
 ]
 
 [[package]]
@@ -1152,6 +1155,27 @@ dependencies = [
  "log",
  "regex",
  "termcolor",
+]
+
+[[package]]
+name = "errno"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f639046355ee4f37944e44f60642c6f3a7efa3cf6b78c78a0d989a8ce6c396a1"
+dependencies = [
+ "errno-dragonfly",
+ "libc",
+ "winapi",
+]
+
+[[package]]
+name = "errno-dragonfly"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]
@@ -1643,8 +1667,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.23.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
+version = "0.23.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=6d3ae396d94adf8749794834a572bbbbb79c75f3#6d3ae396d94adf8749794834a572bbbbb79c75f3"
 dependencies = [
  "async-trait",
  "backoff",
@@ -1657,7 +1681,7 @@ dependencies = [
  "http",
  "http-body",
  "hyper-rustls",
- "ic-certification 0.23.0 (git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee)",
+ "ic-certification 0.23.1",
  "ic-verify-bls-signature",
  "k256",
  "leb128",
@@ -1740,20 +1764,20 @@ dependencies = [
 [[package]]
 name = "ic-certification"
 version = "0.23.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
+source = "git+https://github.com/dfinity/agent-rs?rev=9d7be5ffe3570ab77dda1aa70ee530854e64cd1a#9d7be5ffe3570ab77dda1aa70ee530854e64cd1a"
 dependencies = [
  "hex",
- "serde",
- "serde_bytes",
  "sha2 0.10.6",
 ]
 
 [[package]]
 name = "ic-certification"
-version = "0.23.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=9d7be5ffe3570ab77dda1aa70ee530854e64cd1a#9d7be5ffe3570ab77dda1aa70ee530854e64cd1a"
+version = "0.23.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=6d3ae396d94adf8749794834a572bbbbb79c75f3#6d3ae396d94adf8749794834a572bbbbb79c75f3"
 dependencies = [
  "hex",
+ "serde",
+ "serde_bytes",
  "sha2 0.10.6",
 ]
 
@@ -1768,6 +1792,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-certified-map",
  "ic-response-verification",
+ "itertools 0.10.5",
  "num-traits",
  "serde",
  "serde_bytes",
@@ -1797,8 +1822,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.23.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
+version = "0.23.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=6d3ae396d94adf8749794834a572bbbbb79c75f3#6d3ae396d94adf8749794834a572bbbbb79c75f3"
 dependencies = [
  "hex",
  "ic-agent",
@@ -1818,7 +1843,7 @@ dependencies = [
  "candid",
  "flate2",
  "http",
- "ic-certification 0.23.0 (git+https://github.com/dfinity/agent-rs?rev=9d7be5ffe3570ab77dda1aa70ee530854e64cd1a)",
+ "ic-certification 0.23.0",
  "leb128",
  "log",
  "miracl_core_bls12381",
@@ -1829,8 +1854,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.23.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=4245c49575a74db680ec5707f23892046101afee#4245c49575a74db680ec5707f23892046101afee"
+version = "0.23.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=6d3ae396d94adf8749794834a572bbbbb79c75f3#6d3ae396d94adf8749794834a572bbbbb79c75f3"
 dependencies = [
  "async-trait",
  "candid",
@@ -1950,6 +1975,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5bbe824c507c5da5956355e86a746d82e0e1464f65d862cc5e71da70e94b2c"
 dependencies = [
  "cfg-if 1.0.0",
+]
+
+[[package]]
+name = "io-lifetimes"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7d6c6f8c91b4b9ed43484ad1a938e393caf35960fce7f82a040497207bd8e9e"
+dependencies = [
+ "libc",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]
@@ -2138,6 +2173,12 @@ dependencies = [
  "cmake",
  "libc",
 ]
+
+[[package]]
+name = "linux-raw-sys"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
 
 [[package]]
 name = "lock_api"
@@ -3059,15 +3100,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
-name = "remove_dir_all"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
-dependencies = [
- "winapi",
-]
-
-[[package]]
 name = "reqwest"
 version = "0.11.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3167,6 +3199,20 @@ name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
+
+[[package]]
+name = "rustix"
+version = "0.36.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4fdebc4b395b7fbb9ab11e462e20ed9051e7b16e42d24042c776eca0ac81b03"
+dependencies = [
+ "bitflags",
+ "errno",
+ "io-lifetimes",
+ "libc",
+ "linux-raw-sys",
+ "windows-sys 0.42.0",
+]
 
 [[package]]
 name = "rustls"
@@ -3358,18 +3404,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.147"
+version = "1.0.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d193d69bae983fc11a79df82342761dfbf28a99fc8d203dca4c3c1b590948965"
+checksum = "71f2b4817415c6d4210bfe1c7bfcf4801b2d904cb4d0e1a8fdb651013c9e86b8"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_bytes"
-version = "0.11.7"
+version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfc50e8183eeeb6178dcb167ae34a8051d63535023ae38b5d8d12beae193d37b"
+checksum = "416bda436f9aab92e02c8e10d49a15ddd339cea90b6e340fe51ed97abb548294"
 dependencies = [
  "serde",
 ]
@@ -3386,9 +3432,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.147"
+version = "1.0.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f1d362ca8fc9c3e3a7484440752472d68a6caa98f1ab81d99b5dfe517cec852"
+checksum = "d071a94a3fac4aff69d023a7f411e33f40f3483f8c5190b1953822b6b76d7630"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3698,9 +3744,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.103"
+version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a864042229133ada95abf3b54fdc62ef5ccabe9515b64717bcb9a1919e59445d"
+checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3753,16 +3799,15 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.3.0"
+version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cdb1ef4eaeeaddc8fbd371e5017057064af0911902ef36b39801f67cc6d79e4"
+checksum = "af18f7ae1acd354b992402e9ec5864359d693cd8a79dcbef59f76891701c1e95"
 dependencies = [
  "cfg-if 1.0.0",
  "fastrand",
- "libc",
  "redox_syscall",
- "remove_dir_all",
- "winapi",
+ "rustix",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]
@@ -3803,18 +3848,18 @@ checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 
 [[package]]
 name = "thiserror"
-version = "1.0.38"
+version = "1.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a9cd18aa97d5c45c6603caea1da6628790b37f7a34b6ca89522331c5180fed0"
+checksum = "a5ab016db510546d856297882807df8da66a16fb8c4101cb8b30054b0d5b2d9c"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.38"
+version = "1.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fb327af4685e4d03fa8cbcf1716380da910eeb2bb8be417e7f9fd3fb164f36f"
+checksum = "5420d42e90af0c38c3290abcca25b9b3bdf379fc9f55c528f53a269d9c9a267e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3904,9 +3949,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.23.1"
+version = "1.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38a54aca0c15d014013256222ba0ebed095673f89345dd79119d912eb561b7a8"
+checksum = "597a12a59981d9e3c38d216785b0c37399f6e415e8d0712047620f189371b0bb"
 dependencies = [
  "autocfg",
  "bytes",

@@ -46,7 +46,7 @@ async fn make_project_asset_encoding(
     canister: &Canister<'_>,
     batch_id: &Nat,
     asset_descriptor: &AssetDescriptor,
-    container_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
     content_encoding: &str,
     semaphores: &Semaphores,
@@ -54,23 +54,23 @@ async fn make_project_asset_encoding(
 ) -> anyhow::Result<ProjectAssetEncoding> {
     let sha256 = content.sha256();
 
-    let already_in_place =
-        if let Some(container_asset) = container_assets.get(&asset_descriptor.key) {
-            if container_asset.content_type != content.media_type.to_string() {
-                false
-            } else if let Some(container_asset_encoding_sha256) = container_asset
-                .encodings
-                .iter()
-                .find(|details| details.content_encoding == content_encoding)
-                .and_then(|details| details.sha256.as_ref())
-            {
-                container_asset_encoding_sha256 == &sha256
-            } else {
-                false
-            }
+    let already_in_place = if let Some(canister_asset) = canister_assets.get(&asset_descriptor.key)
+    {
+        if canister_asset.content_type != content.media_type.to_string() {
+            false
+        } else if let Some(canister_asset_encoding_sha256) = canister_asset
+            .encodings
+            .iter()
+            .find(|details| details.content_encoding == content_encoding)
+            .and_then(|details| details.sha256.as_ref())
+        {
+            canister_asset_encoding_sha256 == &sha256
         } else {
             false
-        };
+        }
+    } else {
+        false
+    };
 
     let chunk_ids = if already_in_place {
         info!(
@@ -108,7 +108,7 @@ async fn make_encoding(
     canister: &Canister<'_>,
     batch_id: &Nat,
     asset_descriptor: &AssetDescriptor,
-    container_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
     encoder: &Option<ContentEncoder>,
     semaphores: &Semaphores,
@@ -120,7 +120,7 @@ async fn make_encoding(
                 canister,
                 batch_id,
                 asset_descriptor,
-                container_assets,
+                canister_assets,
                 content,
                 CONTENT_ENCODING_IDENTITY,
                 semaphores,
@@ -140,7 +140,7 @@ async fn make_encoding(
                     canister,
                     batch_id,
                     asset_descriptor,
-                    container_assets,
+                    canister_assets,
                     &encoded,
                     &content_encoding,
                     semaphores,
@@ -159,7 +159,7 @@ async fn make_encodings(
     canister: &Canister<'_>,
     batch_id: &Nat,
     asset_descriptor: &AssetDescriptor,
-    container_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
     semaphores: &Semaphores,
     logger: &Logger,
@@ -176,7 +176,7 @@ async fn make_encodings(
                 canister,
                 batch_id,
                 asset_descriptor,
-                container_assets,
+                canister_assets,
                 content,
                 maybe_encoder,
                 semaphores,
@@ -199,7 +199,7 @@ async fn make_project_asset(
     canister: &Canister<'_>,
     batch_id: &Nat,
     asset_descriptor: AssetDescriptor,
-    container_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &HashMap<String, AssetDetails>,
     semaphores: &Semaphores,
     logger: &Logger,
 ) -> anyhow::Result<ProjectAsset> {
@@ -218,7 +218,7 @@ async fn make_project_asset(
         canister,
         batch_id,
         &asset_descriptor,
-        container_assets,
+        canister_assets,
         &content,
         semaphores,
         logger,
@@ -236,7 +236,7 @@ pub(crate) async fn make_project_assets(
     canister: &Canister<'_>,
     batch_id: &Nat,
     asset_descriptors: Vec<AssetDescriptor>,
-    container_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &HashMap<String, AssetDetails>,
     logger: &Logger,
 ) -> anyhow::Result<HashMap<String, ProjectAsset>> {
     let semaphores = Semaphores::new();
@@ -248,7 +248,7 @@ pub(crate) async fn make_project_assets(
                 canister,
                 batch_id,
                 loc.clone(),
-                container_assets,
+                canister_assets,
                 &semaphores,
                 logger,
             )

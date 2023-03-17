@@ -3,15 +3,15 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::identity::wallet::build_wallet_canister;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::named_canister;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -43,6 +43,7 @@ pub async fn install_canister(
     pool: Option<&CanisterPool>,
     skip_consent: bool,
     env_file: Option<&Path>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
@@ -114,7 +115,7 @@ pub async fn install_canister(
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
-    } else {
+    } else if assets_upgrade || canister_info.is_assets() {
         install_canister_wasm(
             env,
             agent,

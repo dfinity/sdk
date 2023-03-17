@@ -60,6 +60,17 @@ pub struct CommitBatchArguments {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct DeleteBatchArguments {
+    pub batch_id: BatchId,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ComputeEvidenceArguments {
+    pub batch_id: BatchId,
+    pub max_iterations: Option<u16>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StoreArg {
     pub key: AssetKey,
     pub content_type: String,
@@ -109,6 +120,7 @@ pub struct AssetProperties {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
     pub allow_raw_access: Option<bool>,
+    pub is_aliased: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -117,6 +129,7 @@ pub struct SetAssetPropertiesArguments {
     pub max_age: Option<Option<u64>>,
     pub headers: Option<Option<HashMap<String, String>>>,
     pub allow_raw_access: Option<Option<bool>>,
+    pub is_aliased: Option<Option<bool>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]

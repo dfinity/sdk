@@ -37,11 +37,11 @@ pub struct CliOpts {
     logfile: Option<String>,
 
     /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
-    #[clap(long, global(true))]
+    #[clap(long, env("DFX_IDENTITY"), global(true))]
     identity: Option<String>,
 
     /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
-    #[clap(long, global(true))]
+    #[clap(long, global(true), value_name("PRINCIPAL"))]
     provisional_create_canister_effective_canister_id: Option<String>,
 
     #[clap(subcommand)]

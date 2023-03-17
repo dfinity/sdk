@@ -11,6 +11,7 @@ use crate::util::{blob_from_arguments, get_candid_init_type};
 use dfx_core::config::model::dfinity::Config;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
@@ -29,10 +30,12 @@ pub async fn deploy_canisters(
     force_reinstall: bool,
     upgrade_unchanged: bool,
     with_cycles: Option<&str>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     create_call_sender: &CallSender,
     skip_consent: bool,
     env_file: Option<PathBuf>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -81,6 +84,7 @@ pub async fn deploy_canisters(
         &canisters_to_load,
         &initial_canister_id_store,
         with_cycles,
+        specified_id,
         create_call_sender,
         &config,
     )
@@ -108,6 +112,7 @@ pub async fn deploy_canisters(
         pool,
         skip_consent,
         env_file.as_deref(),
+        assets_upgrade,
     )
     .await?;
 
@@ -135,6 +140,7 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     with_cycles: Option<&str>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     config: &Config,
 ) -> DfxResult {
@@ -179,6 +185,7 @@ async fn register_canisters(
                 env,
                 canister_name,
                 with_cycles,
+                specified_id,
                 call_sender,
                 CanisterSettings {
                     controllers,
@@ -226,6 +233,7 @@ async fn install_canisters(
     pool: CanisterPool,
     skip_consent: bool,
     env_file: Option<&Path>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -264,6 +272,7 @@ async fn install_canisters(
             Some(&pool),
             skip_consent,
             env_file,
+            assets_upgrade,
         )
         .await?;
     }

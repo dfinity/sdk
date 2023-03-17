@@ -1,22 +1,24 @@
 [package]
 name = "ic-certified-assets"
 version = "0.2.5"
-authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
 description = "Rust support for asset certification."
 documentation = "https://docs.rs/ic-certified-assets"
-repository = "https://github.com/dfinity/sdk"
-license = "Apache-2.0"
 categories = ["wasm", "filesystem", "data-structures"]
 keywords = ["internet-computer", "dfinity"]
 
 [dependencies]
 base64 = "0.13"
-candid = "0.8.2"
+candid = { workspace = true }
 hex = "0.4.3"
 ic-cdk = "0.6.0"
 ic-cdk-macros = "0.6.0"
 ic-certified-map = "0.3"
+itertools = "0.10.3"
 num-traits = "0.2.14"
 ic-response-verification = {git = "https://github.com/dfinity/response-verification"}
 serde = "1"

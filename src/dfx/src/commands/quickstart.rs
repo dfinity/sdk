@@ -1,5 +1,6 @@
 use anyhow::{bail, Context};
 use candid::Principal;
+use clap::Parser;
 use dialoguer::{Confirm, Input};
 use ic_agent::Agent;
 use ic_utils::interfaces::{
@@ -13,6 +14,7 @@ use tokio::runtime::Runtime;
 use crate::{
     commands::ledger::{create_canister::MEMO_CREATE_CANISTER, notify_create, transfer_cmc},
     lib::{
+        agent::create_agent_environment,
         environment::Environment,
         error::DfxResult,
         identity::wallet::{set_wallet_id, wallet_canister_id},
@@ -25,12 +27,21 @@ use crate::{
             canister::install_wallet,
             ledger::{balance, xdr_permyriad_per_icp},
         },
-        provider::create_agent_environment,
     },
     util::assets::wallet_wasm,
 };
 
-pub fn exec(env: &dyn Environment) -> DfxResult {
+/// Use the `dfx quickstart` command to perform initial one time setup for your identity and/or wallet. This command
+/// can be run anytime to repeat the setup process or to be used as an informational command, printing
+/// information about your ICP balance, current ICP to XDR conversion rate, and more.
+///
+/// If setup tasks remain, this command is equivalent to running `dfx identity set-wallet` (for importing) or
+/// `dfx ledger create-canister` followed by `dfx identity deploy-wallet` (for creating), though more steps may
+/// be added in future versions.
+#[derive(Parser)]
+pub struct QuickstartOpts;
+
+pub fn exec(env: &dyn Environment, _: QuickstartOpts) -> DfxResult {
     let env = create_agent_environment(env, Some("ic".to_string()))?;
     let agent = env.get_agent().expect("Unable to create agent");
     let ident = env.get_selected_identity().unwrap();
@@ -171,7 +182,7 @@ async fn step_interact_ledger(
     notify_spinner.set_message("Notifying the the cycles minting canister...");
     notify_spinner.enable_steady_tick(100);
     let res = notify_create(agent, ident_principal, height, None).await
-                        .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
+        .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
     let wallet = match res {
         Ok(principal) => principal,
         Err(NotifyError::Refunded {

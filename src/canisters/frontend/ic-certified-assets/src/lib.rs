@@ -1,5 +1,6 @@
 //! This module declares canister methods expected by the assets canister client.
 mod certification_types;
+pub mod evidence;
 pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
@@ -25,6 +26,7 @@ use ic_cdk::api::{
     set_certified_data, time, trap,
 };
 use ic_cdk_macros::{query, update};
+use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
 // #[link_section = "icp:public supported_certificate_versions"]
@@ -32,6 +34,12 @@ use std::cell::RefCell;
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
+}
+
+#[query]
+#[candid_method(query)]
+fn api_version() -> u16 {
+    0
 }
 
 #[update]
@@ -126,6 +134,11 @@ async fn take_ownership() {
         Err(e) => trap(&e),
         Ok(_) => STATE.with(|s| s.borrow_mut().take_ownership(caller)),
     }
+}
+#[update]
+#[candid_method(update)]
+async fn validate_take_ownership() -> Result<String, String> {
+    Ok("revoke all permissions, then gives the caller Commit permissions".to_string())
 }
 
 #[query]
@@ -224,6 +237,35 @@ fn commit_batch(arg: CommitBatchArguments) {
             trap(&msg);
         }
         set_certified_data(&s.borrow().root_hash());
+    });
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn propose_commit_batch(arg: CommitBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().propose_commit_batch(arg) {
+            trap(&msg);
+        }
+    });
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
+    STATE.with(|s| match s.borrow_mut().compute_evidence(arg) {
+        Err(msg) => trap(&msg),
+        Ok(maybe_evidence) => maybe_evidence,
+    })
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn delete_batch(arg: DeleteBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().delete_batch(arg) {
+            trap(&msg);
+        }
     });
 }
 

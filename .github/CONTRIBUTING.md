@@ -24,19 +24,15 @@ When you change `ic-certified-assets` code (or `ic-frontend-canister`), you must
 This is done via `./scripts/update-frontend-canister.sh --release-build`. You need to have Docker (buildx >=v0.8) installed and running.
 
 Then update `CHANGELOG.md` to include the newest sha2 hash (*not* git commit hash) and a link to your PR.
-If there is already an entry in the 'Unreleased' section, change it; if not, add a new one. See the example in [#2699](https://github.com/pull/2699/commits/c191ce5ac529de4499c50a0d2bc70ac6a3cb3afc).
+If there is already an entry in the 'Unreleased' section, change it; if not, add a new one. See the example in [#2699](https://github.com/pull/2699/commits/c191ce5ac529de4499c50a0d2bc70ac6a3cb3afc). This step can be automated by running `./scripts/update-frontend-canister.sh --changelog`.
 
 ### End-to-End Tests
 
 #### Setup
 
-1. Install bats and bats-support 0.3.0. See the CI provisioning scripts for examples:
+1. Install `bats`. See the CI provisioning scripts for examples:
     - [Linux](../scripts/workflows/provision-linux.sh)
     - [Darwin](../scripts/workflows/provision-darwin.sh)
-1. Export `BATSLIB` to your bats-support directory, typically:
-    ``` bash
-    $ export BATSLIB=/usr/local/lib/bats-support
-    ```
 1. Build dfx and add its target directory to your path:
     ``` bash
     sdk $ cargo build
@@ -48,7 +44,11 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
     export utils="$(pwd)/e2e/utils"
     export assets="$(pwd)/e2e/assets"
     ```
-1. Install `jq`.
+1. Install `jq` and `sponge`.
+1. Download all of this repository' submodules (which includes `bats-support`)
+    ```bash
+    git submodule update --init --recursive
+    ```
 
 #### Running End-to-End Tests
 

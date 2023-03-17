@@ -106,14 +106,14 @@ impl HttpRequest {
         #[cfg(test)]
         let canister_id = self.get_canister_id();
 
-        let location = format!("https://{canister_id}.ic0.app{path}", path = self.url);
+        let location = format!("https://{canister_id}.icp0.io{path}", path = self.url);
         HttpResponse::build_redirect(HTTP_REDIRECT_PERMANENT, location)
     }
 
     #[cfg(test)]
     pub fn get_canister_id(&self) -> &str {
         if let Some(host_header) = self.get_header_value("Host") {
-            if host_header.contains(".localhost") || host_header.contains(".app") {
+            if host_header.contains(".localhost") || host_header.contains(".io") {
                 return host_header.split('.').next().unwrap();
             } else if let Some(t) = self.url.split("canisterId=").nth(1) {
                 let x = t.split_once('&');

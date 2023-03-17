@@ -1,6 +1,6 @@
 use crate::lib::error::DfxResult;
-use crate::lib::network::local_server_descriptor::LocalNetworkScopeDescriptor;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use dfx_core::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use anyhow::Context;
 use fn_error_context::context;

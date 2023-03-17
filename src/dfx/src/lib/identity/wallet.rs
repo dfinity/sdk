@@ -1,10 +1,10 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::error::DfxResult;
-use crate::lib::network::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
 use dfx_core::config::directories::get_config_dfx_dir_path;
+use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
     EnsureWalletConfigDirFailed, GetWalletConfigPathFailed, SaveWalletConfigFailed,
@@ -43,7 +43,8 @@ pub async fn get_or_create_wallet(
                                         "To use an identity with a configured wallet you can do one of the following:\n\
                     - Run the command for a network where you have a wallet configured. To do so, add '--network <network name>' to your command.\n\
                     - Switch to an identity that has a wallet configured using 'dfx identity use <identity name>'.\n\
-                    - Configure a wallet for this identity/network combination: 'dfx identity set-wallet <wallet id> --network <network name>'.".to_string())).context("Wallet not configured.")
+                    - Configure a wallet for this identity/network combination: 'dfx identity set-wallet <wallet id> --network <network name>'.\n\
+                    - Or, if you're using mainnet, and you haven't set up a wallet yet: 'dfx quickstart'.".to_string())).context("Wallet not configured.")
             }
         }
         Some(principal) => Ok(principal),

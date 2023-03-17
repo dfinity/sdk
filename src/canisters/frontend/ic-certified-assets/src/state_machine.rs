@@ -8,6 +8,7 @@ use crate::{
     certification_types::{
         AssetHashes, AssetPath, HashTreePath, IcCertificateExpression, NestedTreeKey,
     },
+    evidence::{EvidenceComputation, EvidenceComputation::Computed},
     http::{
         build_ic_certificate_expression_from_headers_and_encoding, witness_to_header_v1,
         witness_to_header_v2, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
@@ -25,7 +26,7 @@ use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::convert::TryInto;
 
 /// The amount of time a batch is kept alive. Modifying the batch
@@ -42,6 +43,8 @@ const INDEX_FILE: &str = "/index.html";
 const DEFAULT_ALIAS_ENABLED: bool = true;
 
 const STATUS_CODES_TO_CERTIFY: [u16; 2] = [200, 304];
+
+const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
 type Timestamp = Int;
 
@@ -134,6 +137,8 @@ pub struct Chunk {
 
 pub struct Batch {
     pub expires_at: Timestamp,
+    pub commit_batch_arguments: Option<CommitBatchArguments>,
+    pub evidence_computation: Option<EvidenceComputation>,
 }
 
 #[derive(Default)]
@@ -147,18 +152,18 @@ pub struct State {
     next_batch_id: BatchId,
 
     // permissions
-    commit_principals: Vec<Principal>,
-    prepare_principals: Vec<Principal>,
-    manage_permissions_principals: Vec<Principal>,
+    commit_principals: BTreeSet<Principal>,
+    prepare_principals: BTreeSet<Principal>,
+    manage_permissions_principals: BTreeSet<Principal>,
 
     asset_hashes: AssetHashes,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StableStatePermissions {
-    commit: Vec<Principal>,
-    prepare: Vec<Principal>,
-    manage_permissions: Vec<Principal>,
+    commit: BTreeSet<Principal>,
+    prepare: BTreeSet<Principal>,
+    manage_permissions: BTreeSet<Principal>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -166,6 +171,8 @@ pub struct StableState {
     authorized: Vec<Principal>, // ignored if permissions is Some(_)
     permissions: Option<StableStatePermissions>,
     stable_assets: HashMap<String, Asset>,
+
+    next_batch_id: Option<BatchId>,
 }
 
 impl Asset {
@@ -239,20 +246,15 @@ impl State {
 
     pub fn grant_permission(&mut self, principal: Principal, permission: &Permission) {
         let permitted = self.get_mut_permission_list(permission);
-        if !permitted.contains(&principal) {
-            permitted.push(principal);
-        }
+        permitted.insert(principal);
     }
 
     pub fn revoke_permission(&mut self, principal: Principal, permission: &Permission) {
         let permitted = self.get_mut_permission_list(permission);
-
-        if let Some(pos) = permitted.iter().position(|x| *x == principal) {
-            permitted.remove(pos);
-        }
+        permitted.remove(&principal);
     }
 
-    pub fn list_permitted(&self, permission: &Permission) -> &Vec<Principal> {
+    pub fn list_permitted(&self, permission: &Permission) -> &BTreeSet<Principal> {
         self.get_permission_list(permission)
     }
 
@@ -260,7 +262,7 @@ impl State {
         self.commit_principals.clear();
         self.prepare_principals.clear();
         self.manage_permissions_principals.clear();
-        self.commit_principals.push(controller);
+        self.commit_principals.insert(controller);
     }
 
     pub fn root_hash(&self) -> Hash {
@@ -387,7 +389,7 @@ impl State {
                 && self.has_permission(principal, &Permission::Commit))
     }
 
-    fn get_permission_list(&self, permission: &Permission) -> &Vec<Principal> {
+    fn get_permission_list(&self, permission: &Permission) -> &BTreeSet<Principal> {
         match permission {
             Permission::Commit => &self.commit_principals,
             Permission::Prepare => &self.prepare_principals,
@@ -395,7 +397,7 @@ impl State {
         }
     }
 
-    fn get_mut_permission_list(&mut self, permission: &Permission) -> &mut Vec<Principal> {
+    fn get_mut_permission_list(&mut self, permission: &Permission) -> &mut BTreeSet<Principal> {
         match permission {
             Permission::Commit => &mut self.commit_principals,
             Permission::Prepare => &mut self.prepare_principals,
@@ -449,15 +451,18 @@ impl State {
             batch_id.clone(),
             Batch {
                 expires_at: Int::from(now + BATCH_EXPIRY_NANOS),
+                commit_batch_arguments: None,
+                evidence_computation: None,
             },
         );
         self.chunks.retain(|_, c| {
             self.batches
                 .get(&c.batch_id)
-                .map(|b| b.expires_at > now)
+                .map(|b| b.expires_at > now || b.commit_batch_arguments.is_some())
                 .unwrap_or(false)
         });
-        self.batches.retain(|_, b| b.expires_at > now);
+        self.batches
+            .retain(|_, b| b.expires_at > now || b.commit_batch_arguments.is_some());
 
         batch_id
     }
@@ -467,6 +472,9 @@ impl State {
             .batches
             .get_mut(&arg.batch_id)
             .ok_or_else(|| "batch not found".to_string())?;
+        if batch.commit_batch_arguments.is_some() {
+            return Err("batch has been proposed".to_string());
+        }
 
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
@@ -496,6 +504,63 @@ impl State {
             }
         }
         self.batches.remove(&batch_id);
+        Ok(())
+    }
+
+    pub fn propose_commit_batch(&mut self, arg: CommitBatchArguments) -> Result<(), String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+        if batch.commit_batch_arguments.is_some() {
+            return Err("batch already has proposed CommitBatchArguments".to_string());
+        };
+        batch.commit_batch_arguments = Some(arg);
+        Ok(())
+    }
+
+    pub fn compute_evidence(
+        &mut self,
+        arg: ComputeEvidenceArguments,
+    ) -> Result<Option<ByteBuf>, String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+
+        let cba = batch
+            .commit_batch_arguments
+            .as_ref()
+            .expect("batch does not have CommitBatchArguments");
+
+        let max_iterations = arg
+            .max_iterations
+            .unwrap_or(DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS);
+
+        let mut ec = batch
+            .evidence_computation
+            .take()
+            .unwrap_or(EvidenceComputation::new());
+        for _ in 0..max_iterations {
+            ec = ec.advance(&cba, &self.chunks);
+            if matches!(ec, Computed(_)) {
+                break;
+            }
+        }
+        batch.evidence_computation = Some(ec);
+
+        if let Some(Computed(evidence)) = &batch.evidence_computation {
+            Ok(Some(evidence.clone()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {
+        if self.batches.remove(&arg.batch_id).is_none() {
+            return Err("batch not found".to_string());
+        }
+        self.chunks.retain(|_, c| c.batch_id != arg.batch_id);
         Ok(())
     }
 
@@ -806,6 +871,7 @@ impl State {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
             allow_raw_access: asset.allow_raw_access,
+            is_aliased: asset.is_aliased,
         })
     }
 
@@ -826,7 +892,12 @@ impl State {
             asset.allow_raw_access = allow_raw_access
         }
 
+        if let Some(is_aliased) = arg.is_aliased {
+            asset.is_aliased = is_aliased
+        }
+
         on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+
         Ok(())
     }
 
@@ -859,6 +930,7 @@ impl From<State> for StableState {
             authorized: vec![],
             permissions: Some(permissions),
             stable_assets: state.assets,
+            next_batch_id: Some(state.next_batch_id),
         }
     }
 }
@@ -873,13 +945,18 @@ impl From<StableState> for State {
                     permissions.manage_permissions,
                 )
             } else {
-                (stable_state.authorized, vec![], vec![])
+                (
+                    stable_state.authorized.into_iter().collect(),
+                    BTreeSet::new(),
+                    BTreeSet::new(),
+                )
             };
         let mut state = Self {
             commit_principals,
             prepare_principals,
             manage_permissions_principals,
             assets: stable_state.stable_assets,
+            next_batch_id: stable_state.next_batch_id.unwrap_or(Nat::from(1)),
             ..Self::default()
         };
 
