@@ -949,15 +949,14 @@ fn on_asset_change(
 
     asset.update_ic_certificate_expressions();
 
-    // Order of encodings: Follow ENCODING_CERTIFICATION_ORDER,
-    // if none exist, we just pick the first existing encoding.
+    // Order of encodings is relevant for v1. Follow ENCODING_CERTIFICATION_ORDER,
+    // then follow the order of existing encodings.
+    // For v2, it is important to certify all encodings, therefore all encodings are added to the list.
     let mut encoding_order: Vec<String> = ENCODING_CERTIFICATION_ORDER
         .iter()
         .map(|enc| enc.to_string())
         .collect();
-    if let Some(enc) = asset.encodings.keys().next() {
-        encoding_order.push(enc.clone());
-    }
+    encoding_order.append(&mut asset.encodings.keys().map(|s| s.into()).collect());
 
     let mut keys_to_insert_hash_for = dependent_keys;
     keys_to_insert_hash_for.push(key.into());
@@ -970,6 +969,7 @@ fn on_asset_change(
         .collect();
 
     // Insert certified response values into hash_tree
+    // Once certification v1 support is removed, encoding_order.iter() can be replaced with asset.encodings.keys()
     for enc_name in encoding_order.iter() {
         let Asset {
             content_type,
