@@ -119,10 +119,12 @@ pub async fn transfer(
     to: AccountIdBlob,
     created_at_time: Option<u64>,
 ) -> DfxResult<BlockHeight> {
-    let timestamp_nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64;
+    let timestamp_nanos = created_at_time.unwrap_or(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64,
+    );
 
     let mut retry_policy = ExponentialBackoff::default();
 
@@ -136,7 +138,7 @@ pub async fn transfer(
                     fee,
                     from_subaccount,
                     to,
-                    created_at_time: Some(TimeStamp { timestamp_nanos: created_at_time.unwrap_or(timestamp_nanos) }),
+                    created_at_time: Some(TimeStamp { timestamp_nanos }),
                 })
                 .context("Failed to encode arguments.")?,
             )
