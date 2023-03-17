@@ -4,6 +4,8 @@
 
 ## DFX
 
+### fix: make sure assetstorage did file is created as writeable.
+
 ### feat: specify id when provisional create canister
 
 When creating a canister on non-mainnet replica, you can now specify the canister ID.
