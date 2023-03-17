@@ -88,6 +88,25 @@ impl AssetEncoding {
             None
         }
     }
+
+    fn not_found_hash_path(&self) -> Option<HashTreePath> {
+        if let Some(ce) = self.ic_ce.as_ref() {
+            if let Some(response_hash) = self.response_hashes.as_ref().and_then(|map| map.get(&200))
+            {
+                Some(HashTreePath::from(Vec::<NestedTreeKey>::from([
+                    "http_expr".into(),
+                    "<*>".into(), // 404 not found wildcard segment
+                    ce.expression_hash.as_slice().into(),
+                    "".into(), // no request certification - use empty node
+                    response_hash.as_slice().into(),
+                ])))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
@@ -651,31 +670,36 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        let (asset_hash_path, index_hash_path) = if req.get_certificate_version() == 1 {
+        let (asset_hash_path, not_found_hash_path) = if req.get_certificate_version() == 1 {
             let path = AssetPath::from(path);
             let v1_path = path.asset_hash_path_v1();
 
-            let index_path = AssetPath::from(INDEX_FILE);
-            let v1_index = index_path.asset_hash_path_v1();
+            let not_found_path = AssetPath::from(INDEX_FILE);
+            let v1_not_found = not_found_path.asset_hash_path_v1();
 
-            (v1_path, v1_index)
+            (v1_path, v1_not_found)
         } else {
             let path = AssetPath::from(path);
             let v2_root_path = path.asset_hash_path_root_v2();
 
-            let index_path = AssetPath::from(INDEX_FILE);
-            let v2_index_root = index_path.asset_hash_path_root_v2();
+            let v2_not_found_root = HashTreePath::from(Vec::from([
+                NestedTreeKey::String("http_expr".into()),
+                NestedTreeKey::String("<*>".into()),
+            ]));
 
-            (v2_root_path, v2_index_root)
+            (v2_root_path, v2_not_found_root)
         };
 
         let index_redirect_certificate =
             if self.asset_hashes.get(asset_hash_path.as_vec()).is_none()
-                && self.asset_hashes.get(index_hash_path.as_vec()).is_some()
+                && self
+                    .asset_hashes
+                    .get(not_found_hash_path.as_vec())
+                    .is_some()
             {
                 let absence_proof = self.asset_hashes.witness(asset_hash_path.as_vec());
-                let index_proof = self.asset_hashes.witness(index_hash_path.as_vec());
-                let combined_proof = merge_hash_trees(absence_proof, index_proof);
+                let not_found_proof = self.asset_hashes.witness(not_found_hash_path.as_vec());
+                let combined_proof = merge_hash_trees(absence_proof, not_found_proof);
 
                 if req.get_certificate_version() == 1 {
                     Some(witness_to_header_v1(combined_proof, certificate))
@@ -691,7 +715,7 @@ impl State {
             };
 
         if let Some(certificate_header) = index_redirect_certificate {
-            if let Some(asset) = self.assets.get(INDEX_FILE) {
+            if let Ok(asset) = self.get_asset(&INDEX_FILE.to_string()) {
                 if !asset.allow_raw_access() && req.is_raw_domain() {
                     return req.redirect_from_raw_to_certified_domain();
                 }
@@ -728,7 +752,6 @@ impl State {
             )
         };
 
-        //todo
         if let Ok(asset) = self.get_asset(&path.into()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
@@ -1015,6 +1038,12 @@ fn on_asset_change(
         let key_path = AssetPath::from(&key);
         asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
         asset_hashes.delete(key_path.asset_hash_path_v1().as_vec());
+        if key == INDEX_FILE {
+            asset_hashes.delete(&[
+                NestedTreeKey::String("http_expr".into()),
+                NestedTreeKey::String("<*>".into()),
+            ]);
+        }
     }
     if asset.encodings.is_empty() {
         return;
@@ -1107,6 +1136,11 @@ fn on_asset_change(
                             "Could not create a hash path for a status code {} and key {} - did you forget to add a response hash for this status code?",
                             status_code, &key
                         );
+                    }
+                }
+                if key == INDEX_FILE {
+                    if let Some(not_found_hash_path) = enc.not_found_hash_path() {
+                        asset_hashes.insert(not_found_hash_path.as_vec(), Vec::new());
                     }
                 }
             }
