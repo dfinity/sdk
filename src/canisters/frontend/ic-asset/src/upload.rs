@@ -5,9 +5,11 @@ use crate::batch_upload::{
     },
     plumbing::{make_project_assets, AssetDescriptor, ProjectAsset},
 };
-use crate::canister_api::batch::{commit_batch, create_batch};
-use crate::canister_api::list::list_assets;
-use crate::canister_api::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
+use crate::canister_api::methods::{
+    batch::{commit_batch, create_batch},
+    list::list_assets,
+};
+use crate::canister_api::types::{asset::AssetDetails, batch_upload::v0};
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -49,7 +51,7 @@ pub async fn upload(
 
     info!(logger, "Committing batch.");
 
-    let args = CommitBatchArguments {
+    let args = v0::CommitBatchArguments {
         batch_id,
         operations,
     };
@@ -62,7 +64,7 @@ pub async fn upload(
 fn assemble_upload_operations(
     project_assets: HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
-) -> Vec<BatchOperationKind> {
+) -> Vec<v0::BatchOperationKind> {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];

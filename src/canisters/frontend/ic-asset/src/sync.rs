@@ -8,9 +8,9 @@ use crate::batch_upload::{
     plumbing::{make_project_assets, AssetDescriptor, ProjectAsset},
 };
 use crate::canister_api::{
-    batch::{commit_batch, create_batch},
-    list::list_assets,
-    protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments},
+    methods::batch::{commit_batch, create_batch},
+    methods::list::list_assets,
+    types::{asset::AssetDetails, batch_upload::v0},
 };
 
 use anyhow::{bail, Context};
@@ -25,7 +25,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     canister: &Canister<'_>,
     dirs: &[&Path],
     logger: &Logger,
-) -> anyhow::Result<CommitBatchArguments> {
+) -> anyhow::Result<v0::CommitBatchArguments> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
@@ -46,7 +46,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     .await?;
 
     let operations = assemble_synchronization_operations(project_assets, canister_assets);
-    Ok(CommitBatchArguments {
+    Ok(v0::CommitBatchArguments {
         batch_id,
         operations,
     })
@@ -159,7 +159,7 @@ fn gather_asset_descriptors(
 fn assemble_synchronization_operations(
     project_assets: HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
-) -> Vec<BatchOperationKind> {
+) -> Vec<v0::BatchOperationKind> {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];

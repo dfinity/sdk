@@ -34,32 +34,6 @@ pub struct CreateChunkResponse {
     pub chunk_id: Nat,
 }
 
-/// Return a list of all assets in the canister.
-#[derive(CandidType, Debug)]
-pub struct ListAssetsRequest {}
-
-/// Information about a content encoding stored for an asset.
-#[derive(CandidType, Debug, Deserialize)]
-pub struct AssetEncodingDetails {
-    /// A content encoding, such as "gzip".
-    pub content_encoding: String,
-
-    /// By convention, the sha256 of the entire asset encoding.  This is calculated
-    /// by the asset uploader.  It is not generated or validated by the canister.
-    pub sha256: Option<Vec<u8>>,
-}
-
-/// Information about an asset stored in the canister.
-#[derive(CandidType, Debug, Deserialize)]
-pub struct AssetDetails {
-    /// The key identifies the asset.
-    pub key: String,
-    /// A list of the encodings stored for the asset.
-    pub encodings: Vec<AssetEncodingDetails>,
-    /// The MIME type of the asset.
-    pub content_type: String,
-}
-
 /// Create a new asset.  Has no effect if the asset already exists and the content type matches.
 /// Traps if the asset already exists but with a different content type.
 #[derive(CandidType, Debug)]
@@ -110,33 +84,3 @@ pub struct DeleteAssetArguments {
 /// Remove all assets, batches, and chunks, and reset the next batch and chunk IDs.
 #[derive(CandidType, Debug)]
 pub struct ClearArguments {}
-
-/// Batch operations that can be applied atomically.
-#[derive(CandidType, Debug)]
-#[allow(dead_code)]
-pub enum BatchOperationKind {
-    /// Create a new asset.
-    CreateAsset(CreateAssetArguments),
-
-    /// Assign content to an asset by encoding.
-    SetAssetContent(SetAssetContentArguments),
-
-    /// Remove content from an asset by encoding.
-    UnsetAssetContent(UnsetAssetContentArguments),
-
-    /// Remove an asset altogether.
-    DeleteAsset(DeleteAssetArguments),
-
-    /// Clear all state from the asset canister.
-    Clear(ClearArguments),
-}
-
-/// Apply all of the operations in the batch, and then remove the batch.
-#[derive(CandidType, Debug)]
-pub struct CommitBatchArguments {
-    /// The batch to commit.
-    pub batch_id: Nat,
-
-    /// The operations to apply atomically.
-    pub operations: Vec<BatchOperationKind>,
-}

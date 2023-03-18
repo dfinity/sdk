@@ -1,6 +1,6 @@
 use crate::canister_api::{
-    method_names::LIST,
-    protocol::{AssetDetails, ListAssetsRequest},
+    methods::method_names::LIST,
+    types::{asset::AssetDetails, list::ListAssetsRequest},
 };
 
 use ic_utils::call::SyncCall;

@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use crate::batch_upload::retryable::retryable;
 use crate::canister_api::{
-    method_names::{COMMIT_BATCH, CREATE_BATCH},
-    protocol::{CreateBatchRequest, CreateBatchResponse},
+    methods::method_names::{COMMIT_BATCH, CREATE_BATCH},
+    types::batch_upload::common::{CreateBatchRequest, CreateBatchResponse},
 };
 use anyhow::bail;
 use backoff::backoff::Backoff;

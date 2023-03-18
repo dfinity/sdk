@@ -1,7 +1,13 @@
 use crate::batch_upload::plumbing::ProjectAsset;
-use crate::canister_api::protocol::{
-    AssetDetails, BatchOperationKind, CreateAssetArguments, DeleteAssetArguments,
-    SetAssetContentArguments, UnsetAssetContentArguments,
+use crate::canister_api::types::{
+    asset::AssetDetails,
+    batch_upload::{
+        common::{
+            CreateAssetArguments, DeleteAssetArguments, SetAssetContentArguments,
+            UnsetAssetContentArguments,
+        },
+        v0::BatchOperationKind,
+    },
 };
 use std::collections::HashMap;
 
