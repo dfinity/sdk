@@ -1,4 +1,4 @@
-use crate::asset_config::HeadersConfig;
+use crate::asset::config::HeadersConfig;
 use candid::{CandidType, Nat};
 use serde::Deserialize;
 

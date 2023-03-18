@@ -1,8 +1,8 @@
-use crate::asset_canister::protocol::{
+use crate::batch_upload::plumbing::ProjectAsset;
+use crate::canister_api::protocol::{
     AssetDetails, BatchOperationKind, CreateAssetArguments, DeleteAssetArguments,
     SetAssetContentArguments, UnsetAssetContentArguments,
 };
-use crate::plumbing::ProjectAsset;
 use std::collections::HashMap;
 
 pub(crate) fn delete_obsolete_assets(

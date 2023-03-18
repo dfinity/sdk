@@ -31,9 +31,9 @@
     rustdoc::private_intra_doc_links
 )]
 
-mod asset;
-mod batch_upload;
-mod canister_api;
+pub(crate) mod asset;
+pub(crate) mod batch_upload;
+pub(crate) mod canister_api;
 mod sync;
 mod upload;
 

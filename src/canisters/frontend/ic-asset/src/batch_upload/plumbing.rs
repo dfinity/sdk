@@ -1,10 +1,9 @@
-use crate::asset_canister::protocol::AssetDetails;
-use crate::asset_config::AssetConfig;
-use crate::content::Content;
-use crate::content_encoder::ContentEncoder;
-
-use crate::asset_canister::chunk::create_chunk;
-use crate::semaphores::Semaphores;
+use crate::canister_api::{
+    protocol::AssetDetails,
+    chunk::create_chunk
+};
+use crate::asset::{config::AssetConfig, content::Content, content_encoder::ContentEncoder};
+use crate::batch_upload::semaphores::Semaphores;
 use candid::Nat;
 use futures::future::try_join_all;
 use futures::TryFutureExt;

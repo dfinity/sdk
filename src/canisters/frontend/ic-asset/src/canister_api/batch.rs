@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use crate::asset_canister::method_names::{COMMIT_BATCH, CREATE_BATCH};
-use crate::asset_canister::protocol::{
-    CommitBatchArguments, CreateBatchRequest, CreateBatchResponse,
+use crate::batch_upload::retryable::retryable;
+use crate::canister_api::{
+    method_names::{COMMIT_BATCH, CREATE_BATCH},
+    protocol::{CreateBatchRequest, CreateBatchResponse},
 };
-use crate::retryable::retryable;
 use anyhow::bail;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;

@@ -1,11 +1,13 @@
-use crate::asset_canister::batch::{commit_batch, create_batch};
-use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
-use crate::asset_config::AssetConfig;
-use crate::operations::{
-    create_new_assets, delete_incompatible_assets, set_encodings, unset_obsolete_encodings,
+use crate::asset::config::AssetConfig;
+use crate::batch_upload::{
+    operations::{
+        create_new_assets, delete_incompatible_assets, set_encodings, unset_obsolete_encodings,
+    },
+    plumbing::{make_project_assets, AssetDescriptor, ProjectAsset},
 };
-use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
+use crate::canister_api::batch::{commit_batch, create_batch};
+use crate::canister_api::list::list_assets;
+use crate::canister_api::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
