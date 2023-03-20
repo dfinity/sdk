@@ -1,4 +1,5 @@
 use crate::asset::content_encoder::ContentEncoder;
+
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use mime::Mime;

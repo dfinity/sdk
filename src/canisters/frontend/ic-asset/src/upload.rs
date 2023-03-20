@@ -1,13 +1,14 @@
 use crate::asset::config::AssetConfig;
 use crate::batch_upload;
+use crate::batch_upload::operations::AssetDeletionReason;
 use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
-use crate::batch_upload::v0::operations::DeleteAssetReason;
 use crate::canister_api;
 use crate::canister_api::methods::{
     api_version::api_version,
     batch::{commit_batch, create_batch},
     list::list_assets,
 };
+
 use anyhow::bail;
 use ic_utils::Canister;
 use slog::{info, Logger};
@@ -48,13 +49,12 @@ pub async fn upload(
 
     match api_version(canister).await {
         0 => {
-            let operations = batch_upload::v0::operations::assemble_batch_operation(
+            let operations = batch_upload::operations::v0::assemble_batch_operations(
                 project_assets,
                 canister_assets,
-                DeleteAssetReason::Incompatible,
+                AssetDeletionReason::Incompatible,
             );
             info!(logger, "Committing batch.");
-
             let args = canister_api::types::batch_upload::v0::CommitBatchArguments {
                 batch_id,
                 operations,

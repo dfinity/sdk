@@ -1,2 +1,2 @@
-pub(crate) mod types;
 pub(crate) mod methods;
+pub(crate) mod types;

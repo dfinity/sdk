@@ -1,20 +1,18 @@
 use crate::batch_upload::plumbing::ProjectAsset;
-use crate::canister_api::types::{
-    asset::AssetDetails,
-    batch_upload::{
-        common::{
-            CreateAssetArguments, DeleteAssetArguments, SetAssetContentArguments,
-            UnsetAssetContentArguments,
-        },
-        v0::BatchOperationKind,
-    },
+use crate::canister_api::types::asset::AssetDetails;
+use crate::canister_api::types::batch_upload::common::{
+    CreateAssetArguments, DeleteAssetArguments, SetAssetContentArguments,
+    UnsetAssetContentArguments,
 };
+use crate::canister_api::types::batch_upload::v0::BatchOperationKind;
 use std::collections::HashMap;
 
-pub(crate) fn assemble_batch_operation(
+use super::AssetDeletionReason;
+
+pub(crate) fn assemble_batch_operations(
     project_assets: HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
-    delete_asset_reason: DeleteAssetReason,
+    asset_deletion_reason: AssetDeletionReason,
 ) -> Vec<BatchOperationKind> {
     let mut canister_assets = canister_assets;
 
@@ -24,7 +22,7 @@ pub(crate) fn assemble_batch_operation(
         &mut operations,
         &project_assets,
         &mut canister_assets,
-        delete_asset_reason,
+        asset_deletion_reason,
     );
     create_new_assets(&mut operations, &project_assets, &canister_assets);
     unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
@@ -33,22 +31,17 @@ pub(crate) fn assemble_batch_operation(
     operations
 }
 
-pub(crate) enum DeleteAssetReason {
-    Obsolete,
-    Incompatible,
-}
-
 pub(crate) fn delete_assets(
     operations: &mut Vec<BatchOperationKind>,
     project_assets: &HashMap<String, ProjectAsset>,
     canister_assets: &mut HashMap<String, AssetDetails>,
-    reason: DeleteAssetReason,
+    reason: AssetDeletionReason,
 ) {
     let mut deleted_canister_assets = vec![];
     for (key, canister_asset) in canister_assets.iter() {
         let project_asset = project_assets.get(key);
         match reason {
-            DeleteAssetReason::Obsolete => {
+            AssetDeletionReason::Obsolete => {
                 if project_asset
                     .filter(|&x| x.media_type.to_string() == canister_asset.content_type)
                     .is_none()
@@ -59,7 +52,7 @@ pub(crate) fn delete_assets(
                     deleted_canister_assets.push(key.clone());
                 }
             }
-            DeleteAssetReason::Incompatible => {
+            AssetDeletionReason::Incompatible => {
                 if let Some(project_asset) = project_assets.get(key) {
                     if project_asset.media_type.to_string() != canister_asset.content_type {
                         operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
