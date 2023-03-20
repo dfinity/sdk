@@ -16,7 +16,7 @@ use slog::{info, warn, Logger};
 /// Creates a new identity.
 #[derive(Parser)]
 pub struct NewIdentityOpts {
-    /// The identity to create.
+    /// The name of the identity to create.
     new_identity: String,
 
     #[cfg_attr(

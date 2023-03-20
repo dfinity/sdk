@@ -24,14 +24,7 @@ create_batch() {
 }
 
 check_permission_failure() {
-    expected="$1"
-    # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
-    if [ "$USE_IC_REF" ]
-    then
-        assert_contains "canister did not respond"
-    else
-        assert_contains "$expected"
-    fi
+    assert_contains "$1"
 }
 
 @test "batch id persists through upgrade" {
@@ -252,6 +245,34 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity no-permissions
   assert_contains "Caller does not have Prepare permission"
   assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
+
+  # compute_evidence
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity commit
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args" --identity commit
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity prepare
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args" --identity prepare
+
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity manage-permissions
+  assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity anonymous
   assert_contains "Caller does not have Prepare permission"
 
   # revoking permissions

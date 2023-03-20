@@ -5,6 +5,7 @@
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
 use crate::{
+    evidence::{EvidenceComputation, EvidenceComputation::Computed},
     http::{
         HeaderField, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
         StreamingCallbackToken,
@@ -34,6 +35,8 @@ const INDEX_FILE: &str = "/index.html";
 
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
+
+const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
 type AssetHashes = RbTree<Key, Hash>;
 type Timestamp = Int;
@@ -95,6 +98,7 @@ pub struct Chunk {
 pub struct Batch {
     pub expires_at: Timestamp,
     pub commit_batch_arguments: Option<CommitBatchArguments>,
+    pub evidence_computation: Option<EvidenceComputation>,
 }
 
 #[derive(Default)]
@@ -361,6 +365,7 @@ impl State {
             Batch {
                 expires_at: Int::from(now + BATCH_EXPIRY_NANOS),
                 commit_batch_arguments: None,
+                evidence_computation: None,
             },
         );
         self.chunks.retain(|_, c| {
@@ -425,6 +430,43 @@ impl State {
         };
         batch.commit_batch_arguments = Some(arg);
         Ok(())
+    }
+
+    pub fn compute_evidence(
+        &mut self,
+        arg: ComputeEvidenceArguments,
+    ) -> Result<Option<ByteBuf>, String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+
+        let cba = batch
+            .commit_batch_arguments
+            .as_ref()
+            .expect("batch does not have CommitBatchArguments");
+
+        let max_iterations = arg
+            .max_iterations
+            .unwrap_or(DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS);
+
+        let mut ec = batch
+            .evidence_computation
+            .take()
+            .unwrap_or(EvidenceComputation::new());
+        for _ in 0..max_iterations {
+            ec = ec.advance(&cba, &self.chunks);
+            if matches!(ec, Computed(_)) {
+                break;
+            }
+        }
+        batch.evidence_computation = Some(ec);
+
+        if let Some(Computed(evidence)) = &batch.evidence_computation {
+            Ok(Some(evidence.clone()))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {

@@ -4,6 +4,16 @@
 
 ## DFX
 
+### fix: make sure assetstorage did file is created as writeable.
+
+### feat: specify id when provisional create canister
+
+When creating a canister on non-mainnet replica, you can now specify the canister ID.
+
+`dfx canister create <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
+`dfx deploy <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
 ### fix: update Rust canister template.
 
 `ic-cdk-timers` is included in the dependencies.
@@ -38,6 +48,8 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### fix: dfx deploy and icx-asset no longer retry on permission failure
 
+### chore: clarify `dfx identity new` help text
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
@@ -52,6 +64,7 @@ Added partial support for proposal-based asset updates:
 - Added methods:
   - propose_commit_batch() stores batch arguments for later commit
   - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
+  - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
 
 Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister. 
 
@@ -59,8 +72,10 @@ Added `api_version` endpoint. With upcoming changes we will introduce breaking c
 
 ### Frontend canister
 
-- Module hash: c8c4522fcb1013f5cb3ddb7f257c1e0cae8cf58f0875044e008f1137c8fdb748
+- Module hash: 1d170f9732b9c829a1484e7d68d74cf4a5447aa9df8b14df3c373cfda9e29ce0
+- https://github.com/dfinity/sdk/pull/3023
 - https://github.com/dfinity/sdk/pull/3022
+- https://github.com/dfinity/sdk/pull/3021
 - https://github.com/dfinity/sdk/pull/3019
 - https://github.com/dfinity/sdk/pull/3016
 - https://github.com/dfinity/sdk/pull/3015
@@ -71,6 +86,10 @@ Added `api_version` endpoint. With upcoming changes we will introduce breaking c
 ### Motoko
 
 Updated Motoko to 0.8.4
+
+### ic-ref
+
+Updated ic-ref to 0.0.1-ca6aca90
 
 # 0.13.1
 

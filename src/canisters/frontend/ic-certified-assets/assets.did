@@ -49,6 +49,11 @@ type CommitBatchArguments = record {
   operations: vec BatchOperationKind
 };
 
+type ComputeEvidenceArguments = record {
+  batch_id: BatchId;
+  max_iterations: opt nat16
+};
+
 type DeleteBatchArguments = record {
   batch_id: BatchId;
 };
@@ -162,6 +167,9 @@ service: {
 
   // Save the batch operations for later commit
   propose_commit_batch: (CommitBatchArguments) -> ();
+
+  // Compute a hash over the CommitBatchArguments.  Call until it returns Some(evidence).
+  compute_evidence: (ComputeEvidenceArguments) -> (opt blob);
 
   // Delete a batch that has been created, or proposed for commit, but not yet committed
   delete_batch: (DeleteBatchArguments) -> ();
