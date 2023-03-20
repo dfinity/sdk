@@ -1,16 +1,11 @@
 use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::batch_upload::operations::{
-    create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
-};
-use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
+use crate::batch_upload::operations::{assemble_batch_operations, AssetDeletionReason};
+use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
 use crate::canister_api::methods::batch::{commit_batch, create_batch};
 use crate::canister_api::methods::list::list_assets;
-use crate::canister_api::types::{
-    asset::AssetDetails,
-    batch_upload::{BatchOperationKind, CommitBatchArguments},
-};
+use crate::canister_api::types::batch_upload::CommitBatchArguments;
 use anyhow::{bail, Context};
 use ic_utils::Canister;
 use slog::{info, warn, Logger};
