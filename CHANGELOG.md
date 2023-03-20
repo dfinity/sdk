@@ -50,6 +50,8 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### chore: clarify `dfx identity new` help text
 
+### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
