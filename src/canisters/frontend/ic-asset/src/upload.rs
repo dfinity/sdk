@@ -1,15 +1,14 @@
 use crate::asset::config::AssetConfig;
-use crate::batch_upload::{
-    operations::{
-        create_new_assets, delete_incompatible_assets, set_encodings, unset_obsolete_encodings,
-    },
-    plumbing::{make_project_assets, AssetDescriptor, ProjectAsset},
-};
+use crate::batch_upload;
+use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
+use crate::batch_upload::v0::operations::DeleteAssetReason;
+use crate::canister_api;
 use crate::canister_api::methods::{
+    api_version::api_version,
     batch::{commit_batch, create_batch},
     list::list_assets,
 };
-use crate::canister_api::types::{asset::AssetDetails, batch_upload::v0};
+use anyhow::bail;
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -47,32 +46,23 @@ pub async fn upload(
     )
     .await?;
 
-    let operations = assemble_upload_operations(project_assets, canister_assets);
+    match api_version(canister).await {
+        0 => {
+            let operations = batch_upload::v0::operations::assemble_batch_operation(
+                project_assets,
+                canister_assets,
+                DeleteAssetReason::Incompatible,
+            );
+            info!(logger, "Committing batch.");
 
-    info!(logger, "Committing batch.");
-
-    let args = v0::CommitBatchArguments {
-        batch_id,
-        operations,
-    };
-
-    commit_batch(canister, args).await?;
+            let args = canister_api::types::batch_upload::v0::CommitBatchArguments {
+                batch_id,
+                operations,
+            };
+            commit_batch(canister, args).await?;
+        }
+        _ => bail!("unsupported API version"),
+    }
 
     Ok(())
-}
-
-fn assemble_upload_operations(
-    project_assets: HashMap<String, ProjectAsset>,
-    canister_assets: HashMap<String, AssetDetails>,
-) -> Vec<v0::BatchOperationKind> {
-    let mut canister_assets = canister_assets;
-
-    let mut operations = vec![];
-
-    delete_incompatible_assets(&mut operations, &project_assets, &mut canister_assets);
-    create_new_assets(&mut operations, &project_assets, &canister_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
-    set_encodings(&mut operations, project_assets);
-
-    operations
 }

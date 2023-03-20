@@ -1,17 +1,14 @@
 use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::batch_upload::{
-    operations::{
-        create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
-    },
-    plumbing::{make_project_assets, AssetDescriptor, ProjectAsset},
-};
+use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
+use crate::batch_upload::v0::operations::DeleteAssetReason;
+use crate::canister_api::methods::api_version::api_version;
 use crate::canister_api::{
     methods::batch::{commit_batch, create_batch},
     methods::list::list_assets,
-    types::{asset::AssetDetails, batch_upload::v0},
 };
+use crate::{batch_upload, canister_api};
 
 use anyhow::{bail, Context};
 use ic_utils::Canister;
@@ -21,11 +18,7 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn upload_content_and_assemble_sync_operations(
-    canister: &Canister<'_>,
-    dirs: &[&Path],
-    logger: &Logger,
-) -> anyhow::Result<v0::CommitBatchArguments> {
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
@@ -45,19 +38,23 @@ pub async fn upload_content_and_assemble_sync_operations(
     )
     .await?;
 
-    let operations = assemble_synchronization_operations(project_assets, canister_assets);
-    Ok(v0::CommitBatchArguments {
-        batch_id,
-        operations,
-    })
-}
+    match api_version(canister).await {
+        0 => {
+            let operations = batch_upload::v0::operations::assemble_batch_operation(
+                project_assets,
+                canister_assets,
+                DeleteAssetReason::Obsolete,
+            );
+            info!(logger, "Committing batch.");
 
-/// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
-    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
-
-    info!(logger, "Committing batch.");
-    commit_batch(canister, arg).await?;
+            let args = canister_api::types::batch_upload::v0::CommitBatchArguments {
+                batch_id,
+                operations,
+            };
+            commit_batch(canister, args).await?;
+        }
+        _ => bail!("unsupported API version"),
+    }
 
     Ok(())
 }
@@ -154,22 +151,6 @@ fn gather_asset_descriptors(
         }
     }
     Ok(asset_descriptors.into_values().collect())
-}
-
-fn assemble_synchronization_operations(
-    project_assets: HashMap<String, ProjectAsset>,
-    canister_assets: HashMap<String, AssetDetails>,
-) -> Vec<v0::BatchOperationKind> {
-    let mut canister_assets = canister_assets;
-
-    let mut operations = vec![];
-
-    delete_obsolete_assets(&mut operations, &project_assets, &mut canister_assets);
-    create_new_assets(&mut operations, &project_assets, &canister_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
-    set_encodings(&mut operations, project_assets);
-
-    operations
 }
 
 #[cfg(test)]
