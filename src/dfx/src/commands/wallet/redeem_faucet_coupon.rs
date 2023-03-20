@@ -44,6 +44,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         warn!(log, "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?");
     }
 
+    info!(log, "Redeeming coupon. This may take up to 30 seconds...");
     let wallet = get_wallet(env).await;
     match wallet {
         // identity has a wallet already - faucet should top up the wallet
