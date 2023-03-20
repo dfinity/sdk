@@ -1,19 +1,20 @@
+use candid::Nat;
+
 use crate::batch_upload::plumbing::ProjectAsset;
 use crate::canister_api::types::asset::AssetDetails;
 use crate::canister_api::types::batch_upload::common::{
     CreateAssetArguments, DeleteAssetArguments, SetAssetContentArguments,
     UnsetAssetContentArguments,
 };
-use crate::canister_api::types::batch_upload::v0::BatchOperationKind;
+use crate::canister_api::types::batch_upload::v0::{BatchOperationKind, CommitBatchArguments};
 use std::collections::HashMap;
-
-use super::AssetDeletionReason;
 
 pub(crate) fn assemble_batch_operations(
     project_assets: HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
-) -> Vec<BatchOperationKind> {
+    batch_id: Nat,
+) -> CommitBatchArguments {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
@@ -28,7 +29,15 @@ pub(crate) fn assemble_batch_operations(
     unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
     set_encodings(&mut operations, project_assets);
 
-    operations
+    CommitBatchArguments {
+        operations,
+        batch_id,
+    }
+}
+
+pub(crate) enum AssetDeletionReason {
+    Obsolete,
+    Incompatible,
 }
 
 pub(crate) fn delete_assets(

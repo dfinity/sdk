@@ -1,8 +1,9 @@
 use crate::asset::config::AssetConfig;
-use crate::batch_upload;
-use crate::batch_upload::operations::AssetDeletionReason;
-use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
-use crate::canister_api;
+use crate::batch_upload::{
+    self,
+    operations::AssetDeletionReason,
+    plumbing::{make_project_assets, AssetDescriptor},
+};
 use crate::canister_api::methods::{
     api_version::api_version,
     batch::{commit_batch, create_batch},
@@ -47,19 +48,17 @@ pub async fn upload(
     )
     .await?;
 
+    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
+        project_assets,
+        canister_assets,
+        AssetDeletionReason::Incompatible,
+        batch_id,
+    );
+
     match api_version(canister).await {
         0 => {
-            let operations = batch_upload::operations::v0::assemble_batch_operations(
-                project_assets,
-                canister_assets,
-                AssetDeletionReason::Incompatible,
-            );
             info!(logger, "Committing batch.");
-            let args = canister_api::types::batch_upload::v0::CommitBatchArguments {
-                batch_id,
-                operations,
-            };
-            commit_batch(canister, args).await?;
+            commit_batch(canister, commit_batch_args).await?;
         }
         _ => bail!("unsupported API version"),
     }

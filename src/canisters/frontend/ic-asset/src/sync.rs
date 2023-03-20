@@ -1,12 +1,17 @@
 use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::batch_upload::operations::AssetDeletionReason;
-use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
-use crate::canister_api::methods::api_version::api_version;
-use crate::canister_api::methods::batch::{commit_batch, create_batch};
-use crate::canister_api::methods::list::list_assets;
-use crate::{batch_upload, canister_api};
+use crate::batch_upload::{
+    self,
+    operations::AssetDeletionReason,
+    plumbing::{make_project_assets, AssetDescriptor},
+};
+use crate::canister_api::methods::{
+    api_version::api_version,
+    batch::{commit_batch, create_batch},
+    list::list_assets,
+};
+
 use anyhow::{bail, Context};
 use ic_utils::Canister;
 use slog::{info, warn, Logger};
@@ -35,21 +40,18 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
     )
     .await?;
 
+    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
+        project_assets,
+        canister_assets,
+        AssetDeletionReason::Obsolete,
+        batch_id,
+    );
+
     match api_version(canister).await {
-        0 => {
-            let operations = batch_upload::operations::v0::assemble_batch_operations(
-                project_assets,
-                canister_assets,
-                AssetDeletionReason::Obsolete,
-            );
+        0.. => {
             info!(logger, "Committing batch.");
-            let args = canister_api::types::batch_upload::v0::CommitBatchArguments {
-                batch_id,
-                operations,
-            };
-            commit_batch(canister, args).await?;
+            commit_batch(canister, commit_batch_args).await?;
         }
-        _ => bail!("unsupported API version"),
     }
 
     Ok(())
