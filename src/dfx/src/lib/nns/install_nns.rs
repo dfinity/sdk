@@ -512,6 +512,7 @@ pub struct IcNnsInitOpts {
 #[context("Failed to install NNS components.")]
 pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyhow::Result<()> {
     let mut cmd = std::process::Command::new(ic_nns_init_path);
+    cmd.arg("--pass-specified-id");
     cmd.arg("--url");
     cmd.arg(&opts.nns_url);
     cmd.arg("--wasm-dir");
