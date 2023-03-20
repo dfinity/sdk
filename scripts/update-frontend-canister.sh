@@ -26,7 +26,8 @@ update_changelog()
     FRONTEND_CANISTER_LOC=$(grep -nE "### Frontend canister" "$CHANGELOG_PATH" | head -n 1 | cut -f1 -d:)
     MODULE_HASH_LOC=$(grep -nE "\- Module hash: [a-f0-9]{64}" "$CHANGELOG_PATH" | head -n 1 | cut -f1 -d:)
     LATEST_RELEASE_LOC=$(grep -nE "# \d+\.\d+\.\d+" "$CHANGELOG_PATH" | head -n 1 | cut -f1 -d:)
-    LINE_ABOVE_LAST_RELEASE=$(("$LATEST_RELEASE_LOC" - 1))
+    # shellcheck disable=SC2004
+    LINE_ABOVE_LAST_RELEASE=$(($LATEST_RELEASE_LOC - 1))
     NEW_WASM_CHECKSUM=$(shasum -a 256 "$REPO_ROOT/src/distributed/assetstorage.wasm.gz" | awk '{print $1}')
 
     if ! command -v gh &> /dev/null
