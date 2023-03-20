@@ -38,4 +38,4 @@ for arg in "$@"; do
     fi
 done
 
-echo "Done. Don't forget to update CHANGELOG.adoc"
+echo "Done. Don't forget to update CHANGELOG.md"
