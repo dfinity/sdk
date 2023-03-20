@@ -6,42 +6,63 @@ use crate::canister_api::types::batch_upload::{
 };
 use std::collections::HashMap;
 
-pub(crate) fn delete_obsolete_assets(
+pub(crate) fn assemble_batch_operations(
+    project_assets: HashMap<String, ProjectAsset>,
+    canister_assets: HashMap<String, AssetDetails>,
+    asset_deletion_reason: AssetDeletionReason,
+) -> Vec<BatchOperationKind> {
+    let mut canister_assets = canister_assets;
+
+    let mut operations = vec![];
+
+    delete_assets(
+        &mut operations,
+        &project_assets,
+        &mut canister_assets,
+        asset_deletion_reason,
+    );
+    create_new_assets(&mut operations, &project_assets, &canister_assets);
+    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
+    set_encodings(&mut operations, project_assets);
+
+    operations
+}
+
+pub(crate) enum AssetDeletionReason {
+    Obsolete,
+    Incompatible,
+}
+
+pub(crate) fn delete_assets(
     operations: &mut Vec<BatchOperationKind>,
     project_assets: &HashMap<String, ProjectAsset>,
     canister_assets: &mut HashMap<String, AssetDetails>,
+    reason: AssetDeletionReason,
 ) {
     let mut deleted_canister_assets = vec![];
     for (key, canister_asset) in canister_assets.iter() {
         let project_asset = project_assets.get(key);
-        if project_asset
-            .filter(|&x| x.media_type.to_string() == canister_asset.content_type)
-            .is_none()
-        {
-            operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
-                key: key.clone(),
-            }));
-            deleted_canister_assets.push(key.clone());
-        }
-    }
-    for k in deleted_canister_assets {
-        canister_assets.remove(&k);
-    }
-}
-
-pub(crate) fn delete_incompatible_assets(
-    operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ProjectAsset>,
-    canister_assets: &mut HashMap<String, AssetDetails>,
-) {
-    let mut deleted_canister_assets = vec![];
-    for (key, canister_asset) in canister_assets.iter() {
-        if let Some(project_asset) = project_assets.get(key) {
-            if project_asset.media_type.to_string() != canister_asset.content_type {
-                operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
-                    key: key.clone(),
-                }));
-                deleted_canister_assets.push(key.clone());
+        match reason {
+            AssetDeletionReason::Obsolete => {
+                if project_asset
+                    .filter(|&x| x.media_type.to_string() == canister_asset.content_type)
+                    .is_none()
+                {
+                    operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
+                        key: key.clone(),
+                    }));
+                    deleted_canister_assets.push(key.clone());
+                }
+            }
+            AssetDeletionReason::Incompatible => {
+                if let Some(project_asset) = project_assets.get(key) {
+                    if project_asset.media_type.to_string() != canister_asset.content_type {
+                        operations.push(BatchOperationKind::DeleteAsset(DeleteAssetArguments {
+                            key: key.clone(),
+                        }));
+                        deleted_canister_assets.push(key.clone());
+                    }
+                }
             }
         }
     }
