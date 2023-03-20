@@ -1,9 +1,10 @@
-use crate::asset_canister::batch::{commit_batch, create_batch};
-use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::CommitBatchArguments;
-use crate::asset_config::AssetConfig;
-use crate::operations::{assemble_batch_operations, AssetDeletionReason};
-use crate::plumbing::{make_project_assets, AssetDescriptor};
+use crate::asset::config::AssetConfig;
+use crate::batch_upload::operations::{assemble_batch_operations, AssetDeletionReason};
+use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
+use crate::canister_api::methods::batch::{commit_batch, create_batch};
+use crate::canister_api::methods::list::list_assets;
+use crate::canister_api::types::batch_upload::CommitBatchArguments;
+
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;

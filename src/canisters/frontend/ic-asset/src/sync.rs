@@ -1,11 +1,11 @@
-use crate::asset_canister::batch::{commit_batch, create_batch};
-use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::CommitBatchArguments;
-use crate::asset_config::{
+use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::operations::{assemble_batch_operations, AssetDeletionReason};
-use crate::plumbing::{make_project_assets, AssetDescriptor};
+use crate::batch_upload::operations::{assemble_batch_operations, AssetDeletionReason};
+use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
+use crate::canister_api::methods::batch::{commit_batch, create_batch};
+use crate::canister_api::methods::list::list_assets;
+use crate::canister_api::types::batch_upload::CommitBatchArguments;
 use anyhow::{bail, Context};
 use ic_utils::Canister;
 use slog::{info, warn, Logger};
@@ -156,7 +156,7 @@ fn gather_asset_descriptors(
 #[cfg(test)]
 mod test_gathering_asset_descriptors_with_tempdir {
 
-    use crate::asset_config::{CacheConfig, HeadersConfig};
+    use crate::asset::config::{CacheConfig, HeadersConfig};
 
     use super::AssetDescriptor;
     use std::{
