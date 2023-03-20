@@ -61,7 +61,7 @@ pub async fn install_nns(
     env: &dyn Environment,
     agent: &Agent,
     ic_nns_init_path: &Path,
-    ledger_accounts: &Vec<String>,
+    ledger_accounts: &[String],
 ) -> anyhow::Result<()> {
     eprintln!("Checking out the environment...");
     verify_local_replica_type_is_system(env)?;
