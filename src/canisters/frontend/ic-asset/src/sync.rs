@@ -1,13 +1,11 @@
 use crate::asset_canister::batch::{commit_batch, create_batch};
 use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
+use crate::asset_canister::protocol::CommitBatchArguments;
 use crate::asset_config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::operations::{
-    create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
-};
-use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
+use crate::operations::{assemble_batch_operations, AssetDeletionReason};
+use crate::plumbing::{make_project_assets, AssetDescriptor};
 use anyhow::{bail, Context};
 use ic_utils::Canister;
 use slog::{info, warn, Logger};
@@ -40,7 +38,11 @@ pub async fn upload_content_and_assemble_sync_operations(
     )
     .await?;
 
-    let operations = assemble_synchronization_operations(project_assets, canister_assets);
+    let operations = assemble_batch_operations(
+        project_assets,
+        canister_assets,
+        AssetDeletionReason::Obsolete,
+    );
     Ok(CommitBatchArguments {
         batch_id,
         operations,
@@ -149,22 +151,6 @@ fn gather_asset_descriptors(
         }
     }
     Ok(asset_descriptors.into_values().collect())
-}
-
-fn assemble_synchronization_operations(
-    project_assets: HashMap<String, ProjectAsset>,
-    canister_assets: HashMap<String, AssetDetails>,
-) -> Vec<BatchOperationKind> {
-    let mut canister_assets = canister_assets;
-
-    let mut operations = vec![];
-
-    delete_obsolete_assets(&mut operations, &project_assets, &mut canister_assets);
-    create_new_assets(&mut operations, &project_assets, &canister_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
-    set_encodings(&mut operations, project_assets);
-
-    operations
 }
 
 #[cfg(test)]
