@@ -41,6 +41,8 @@ teardown() {
     dfx_start
     # nojwb-ieaaa-aaaaa-aaaaa-cai is the canister ID of (u64::MAX / 2 + 1)
     assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
+
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref" # ic-ref has different error code and message
     assert_match "Specified CanisterId nojwb-ieaaa-aaaaa-aaaaa-cai is not hosted by subnet"
 }
 
