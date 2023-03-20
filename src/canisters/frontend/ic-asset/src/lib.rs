@@ -31,14 +31,9 @@
     rustdoc::private_intra_doc_links
 )]
 
-mod asset_canister;
-mod asset_config;
-mod content;
-mod content_encoder;
-mod operations;
-mod plumbing;
-mod retryable;
-mod semaphores;
+mod asset;
+mod batch_upload;
+mod canister_api;
 mod sync;
 mod upload;
 

@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use crate::asset_canister::method_names::CREATE_CHUNK;
-use crate::asset_canister::protocol::{CreateChunkRequest, CreateChunkResponse};
-use crate::retryable::retryable;
-use crate::semaphores::Semaphores;
+use crate::batch_upload::retryable::retryable;
+use crate::batch_upload::semaphores::Semaphores;
+use crate::canister_api::methods::method_names::CREATE_CHUNK;
+use crate::canister_api::types::batch_upload::{CreateChunkRequest, CreateChunkResponse};
 use anyhow::bail;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
