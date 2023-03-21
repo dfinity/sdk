@@ -252,6 +252,29 @@ fn scaffold_frontend_code(
             project_name_str.to_uppercase(),
         );
 
+        let mut motoko_package_json_scripts = "";
+        let mut rust_package_json_scripts = "";
+
+        if variables.get("type").unwrap() == "motoko" {
+            motoko_package_json_scripts = "    \"sources\": \"mops sources\",
+            \"start:backend\": \"mo-dev --generate --deploy -y\",
+            \"start:frontend\": \"webpack serve --mode development --env development\",
+            \"start\": \"run-p start:frontend start:backend\",
+            \"postinstall\": \"mops install\",
+            \"test:motoko\": \"mo-test\"";
+        } else if variables.get("type").unwrap() == "rust" {
+            rust_package_json_scripts =
+                "    \"start\": \"webpack serve --mode development --env development\"";
+        }
+        variables.insert(
+            "motoko_scripts".to_string(),
+            motoko_package_json_scripts.to_string(),
+        );
+        variables.insert(
+            "rust_scripts".to_string(),
+            rust_package_json_scripts.to_string(),
+        );
+
         let mut new_project_node_files = assets::new_project_node_files()?;
         write_files_from_entries(
             log,
@@ -390,6 +413,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     let variables: BTreeMap<String, String> = [
         ("project_name".to_string(), project_name_str.to_string()),
         ("dfx_version".to_string(), version_str.clone()),
+        ("type".to_string(), opts.r#type.clone()),
         ("dot".to_string(), ".".to_string()),
     ]
     .iter()

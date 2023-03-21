@@ -16,3 +16,9 @@ src/declarations/
 # frontend code
 node_modules/
 dist/
+
+# backend code
+.mops
+
+# environment variables
+.env
