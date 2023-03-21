@@ -1,4 +1,4 @@
-use crate::config::cache::{self, DiskBasedCache};
+use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};

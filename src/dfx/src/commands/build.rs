@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::config::cache;
+use crate::config::cache::DiskBasedCache;
 use crate::lib::agent::create_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;

@@ -1,4 +1,4 @@
-use crate::config::cache;
+use crate::config::cache::DiskBasedCache;
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
