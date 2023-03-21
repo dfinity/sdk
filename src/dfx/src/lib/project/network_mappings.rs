@@ -1,23 +1,23 @@
-use crate::lib::error::DfxResult;
+use crate::lib::error::ProjectError;
 use crate::lib::project::import::ImportNetworkMapping;
 
-use anyhow::anyhow;
-
-pub fn get_network_mappings(input: &[String]) -> DfxResult<Vec<ImportNetworkMapping>> {
+pub fn get_network_mappings(input: &[String]) -> Result<Vec<ImportNetworkMapping>, ProjectError> {
     input
         .iter()
         .map(|v| {
             if let Some(index) = v.find('=') {
                 if index == 0 {
-                    Err(anyhow!(
-                        "malformed network mapping '{}': first network name is empty",
-                        &v
-                    ))
+                    Err(ProjectError::Dummy)
+                    // Err(anyhow!(
+                    //     "malformed network mapping '{}': first network name is empty",
+                    //     &v
+                    // ))
                 } else if index == v.len() - 1 {
-                    Err(anyhow!(
-                        "malformed network mapping '{}': second network name is empty",
-                        &v
-                    ))
+                    Err(ProjectError::Dummy)
+                    // Err(anyhow!(
+                    //     "malformed network mapping '{}': second network name is empty",
+                    //     &v
+                    // ))
                 } else {
                     Ok(ImportNetworkMapping {
                         network_name_in_this_project: v[..index].to_string(),

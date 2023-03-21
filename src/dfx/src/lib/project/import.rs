@@ -1,10 +1,8 @@
-use crate::lib::error::DfxResult;
+use crate::lib::error::ProjectError;
 use crate::lib::models::canister_id_store;
 use crate::lib::models::canister_id_store::CanisterIds;
 use dfx_core::config::model::dfinity::Config;
 
-use anyhow::{anyhow, Context};
-use fn_error_context::context;
 use hyper_rustls::ConfigBuilderExt;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
@@ -41,11 +39,11 @@ pub async fn import_canister_definitions(
     prefix: Option<&str>,
     import_only_canister_name: Option<String>,
     network_mappings: &[ImportNetworkMapping],
-) -> DfxResult {
+) -> Result<(), ProjectError> {
     let mut loader = Loader::new();
 
     let their_dfx_json_url = location_to_url(their_dfx_json_location)?;
-    let their_canister_ids_json_url = their_dfx_json_url.join("canister_ids.json")?;
+    let their_canister_ids_json_url = their_dfx_json_url.join("canister_ids.json").map_err(|_e| ProjectError::Dummy)?;
 
     let what = if let Some(ref name) = import_only_canister_name {
         format!("canister '{}'", name)
@@ -61,7 +59,7 @@ pub async fn import_canister_definitions(
 
     let our_project_root = config.get_project_root().to_path_buf();
     let candid_output_dir = our_project_root.join("candid");
-    fs::create_dir_all(candid_output_dir)?;
+    fs::create_dir_all(candid_output_dir).map_err(|_e| ProjectError::Dummy)?;
 
     let config_canisters_object = get_canisters_json_object(config)?;
 
@@ -102,7 +100,7 @@ pub async fn import_canister_definitions(
         }
     }
 
-    config.save()?;
+    config.save().map_err(|_e| ProjectError::Dummy)?;
 
     Ok(())
 }
@@ -115,9 +113,9 @@ async fn import_candid_definition(
     their_relative_candid: &str,
     our_canister_name: &str,
     our_canister: &mut Map<String, Value>,
-) -> DfxResult {
+) -> Result<(), ProjectError> {
     let our_relative_candid_path = format!("candid/{}.did", our_canister_name);
-    let their_candid_url = their_dfx_json_url.join(their_relative_candid)?;
+    let their_candid_url = their_dfx_json_url.join(their_relative_candid).map_err(|_e| ProjectError::Dummy)?;
     let our_candid_path_incl_project_root = our_project_root.join(&our_relative_candid_path);
     info!(
         logger,
@@ -126,12 +124,13 @@ async fn import_candid_definition(
         their_candid_url,
     );
     let candid_definition = loader.get_required_url_contents(&their_candid_url).await?;
-    fs::write(&our_candid_path_incl_project_root, candid_definition).with_context(|| {
-        format!(
-            "Failed to write {}",
-            our_candid_path_incl_project_root.display()
-        )
-    })?;
+    fs::write(&our_candid_path_incl_project_root, candid_definition).map_err(|_e| ProjectError::Dummy)?;
+    // .with_context(|| {
+    //     format!(
+    //         "Failed to write {}",
+    //         our_candid_path_incl_project_root.display()
+    //     )
+    // })?;
 
     our_canister.insert(
         "candid".to_string(),
@@ -140,13 +139,15 @@ async fn import_candid_definition(
     Ok(())
 }
 
-pub fn get_canisters_json_object(config: &mut Config) -> DfxResult<&mut Map<String, Value>> {
+pub fn get_canisters_json_object(config: &mut Config) -> Result<&mut Map<String, Value>, ProjectError> {
     let config_canisters_object = config
         .get_mut_json()
         .pointer_mut("/canisters")
-        .ok_or_else(|| anyhow!("dfx.json does not contain a canisters element"))?
+        // .ok_or_else(|| anyhow!("dfx.json does not contain a canisters element"))?
+        .ok_or_else(|| ProjectError::Dummy)?
         .as_object_mut()
-        .ok_or_else(|| anyhow!("dfx.json canisters element is not an object"))?;
+        // .ok_or_else(|| anyhow!("dfx.json canisters element is not an object"))?;
+        .ok_or_else(|| ProjectError::Dummy)?;
     Ok(config_canisters_object)
 }
 
@@ -156,7 +157,7 @@ pub fn set_remote_canister_ids(
     network_mappings: &[ImportNetworkMapping],
     their_canister_ids: &CanisterIds,
     canister: &mut Map<String, Value>,
-) -> DfxResult {
+) -> Result<(), ProjectError> {
     for network_mapping in network_mappings {
         let remote_canister_id = their_canister_ids
             .get(their_canister_name)
@@ -196,7 +197,7 @@ fn set_additional_fields(our_canister: &mut Map<String, Value>) {
 fn ensure_child_object<'a>(
     parent: &'a mut Map<String, Value>,
     name: &str,
-) -> DfxResult<&'a mut Map<String, Value>> {
+) -> Result<&'a mut Map<String, Value>, ProjectError> {
     if !parent.contains_key(name) {
         parent.insert(name.to_string(), Value::Object(Map::new()));
     }
@@ -204,16 +205,20 @@ fn ensure_child_object<'a>(
         .get_mut(name)
         .unwrap() // we just added it
         .as_object_mut()
-        .ok_or_else(|| anyhow!("{} is not a json object", name))
+        .ok_or_else(|| ProjectError::Dummy)
+        // .ok_or_else(|| anyhow!("{} is not a json object", name))
 }
 
-fn location_to_url(dfx_json_location: &str) -> DfxResult<Url> {
-    Url::parse(dfx_json_location).or_else(|url_error| {
-        let canonical = PathBuf::from_str(dfx_json_location)?.canonicalize()?;
+fn location_to_url(dfx_json_location: &str) -> Result<Url, ProjectError> {
+    Url::parse(dfx_json_location).or_else(|_url_error| {
+        let canonical = PathBuf::from_str(dfx_json_location).map_err(|_e| ProjectError::Dummy)?.canonicalize().map_err(|_e| ProjectError::Dummy)?;
 
-        Url::from_file_path(canonical).map_err(|_file_error_is_unit| {
-            anyhow!("Unable to parse as url ({}) or file", url_error)
-        })
+        Url::from_file_path(canonical).map_err(|_file_error_is_unit|
+                                               // {
+            // anyhow!("Unable to parse as url ({}) or file", url_error)
+        // }
+        ProjectError::Dummy
+        )
     })
 }
 
@@ -226,7 +231,7 @@ impl Loader {
         Loader { client: None }
     }
 
-    fn client(&mut self) -> DfxResult<&Client> {
+    fn client(&mut self) -> Result<&Client, ProjectError> {
         if self.client.is_none() {
             let tls_config = rustls::ClientConfig::builder()
                 .with_safe_defaults()
@@ -238,37 +243,37 @@ impl Loader {
 
             let client = reqwest::Client::builder()
                 .use_preconfigured_tls(tls_config)
-                .build()
-                .context("Could not create HTTP client.")?;
+                .build().map_err(|_e| ProjectError::Dummy)?;
+                // .context("Could not create HTTP client.")?;
             self.client = Some(client);
         }
         Ok(self.client.as_ref().unwrap())
     }
 
-    #[context("Failed to load project definition from {}", url)]
-    async fn load_project_definition(&mut self, url: &Url) -> DfxResult<DfxJsonProject> {
+    // #[context("Failed to load project definition from {}", url)]
+    async fn load_project_definition(&mut self, url: &Url) -> Result<DfxJsonProject, ProjectError> {
         let body = self.get_required_url_contents(url).await?;
-        let project = serde_json::from_slice(&body).context("failed to decode json")?;
+        let project = serde_json::from_slice(&body).map_err(|_e| ProjectError::Dummy)?;//.context("failed to decode json")?;
         Ok(project)
     }
 
-    #[context("Failed to load canister ids from {}", url)]
-    async fn load_canister_ids(&mut self, url: &Url) -> DfxResult<canister_id_store::CanisterIds> {
+    // #[context("Failed to load canister ids from {}", url)]
+    async fn load_canister_ids(&mut self, url: &Url) -> Result<canister_id_store::CanisterIds, ProjectError> {
         match self.get_optional_url_contents(url).await? {
             None => Ok(canister_id_store::CanisterIds::new()),
-            Some(body) => serde_json::from_slice(&body).context("failed to decode json"),
+            Some(body) => serde_json::from_slice(&body).map_err(|_x| ProjectError::Dummy)//.context("failed to decode json"),
         }
     }
 
-    #[context("Failed to get contents of url {}", & url)]
-    async fn get_required_url_contents(&mut self, url: &Url) -> DfxResult<Vec<u8>> {
+    // #[context("Failed to get contents of url {}", & url)]
+    async fn get_required_url_contents(&mut self, url: &Url) -> Result<Vec<u8>, ProjectError> {
         self.get_optional_url_contents(url)
-            .await?
-            .ok_or_else(|| anyhow!("Not found: {}", url))
+            .await.map_err(|e| e)?.ok_or_else(|| ProjectError::Dummy)
+            // .ok_or_else(|| anyhow!("Not found: {}", url))
     }
 
-    #[context("Failed to get contents of url {}", & url)]
-    async fn get_optional_url_contents(&mut self, url: &Url) -> DfxResult<Option<Vec<u8>>> {
+    // #[context("Failed to get contents of url {}", & url)]
+    async fn get_optional_url_contents(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
         if url.scheme() == "file" {
             Self::read_optional_file_contents(&PathBuf::from(url.path()))
         } else {
@@ -276,24 +281,24 @@ impl Loader {
         }
     }
 
-    #[context("Failed to get contents of file {}", path.display())]
-    fn read_optional_file_contents(path: &Path) -> DfxResult<Option<Vec<u8>>> {
+    // #[context("Failed to get contents of file {}", path.display())]
+    fn read_optional_file_contents(path: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
         if path.exists() {
-            let contents = fs::read(path)?;
+            let contents = fs::read(path).map_err(|_e| ProjectError::Dummy)?;
             Ok(Some(contents))
         } else {
             Ok(None)
         }
     }
 
-    #[context("Failed to get body from {}", &url)]
-    async fn get_optional_url_body(&mut self, url: &Url) -> DfxResult<Option<Vec<u8>>> {
+    // #[context("Failed to get body from {}", &url)]
+    async fn get_optional_url_body(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
         let client = self.client()?;
-        let response = client.get(url.clone()).send().await?;
+        let response = client.get(url.clone()).send().await.map_err(|_e| ProjectError::Dummy)?;
         if response.status() == StatusCode::NOT_FOUND {
             Ok(None)
         } else {
-            let body = response.error_for_status()?.bytes().await?;
+            let body = response.error_for_status().map_err(|_e| ProjectError::Dummy)?.bytes().await.map_err(|_e| ProjectError::Dummy)?;
             Ok(Some(body.into()))
         }
     }
