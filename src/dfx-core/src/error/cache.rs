@@ -3,16 +3,16 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum CacheError {
     #[error(transparent)]
-    FoundationError(#[from] dfx_core::error::foundation::FoundationError),
+    FoundationError(#[from] crate::error::foundation::FoundationError),
 
     #[error(transparent)]
-    IoError(#[from] dfx_core::error::io::IoError),
+    IoError(#[from] crate::error::io::IoError),
 
     #[error(transparent)]
-    ProcessError(#[from] dfx_core::error::process::ProcessError),
+    ProcessError(#[from] crate::error::process::ProcessError),
 
     #[error("Cannot create cache directory: {0}")]
-    CreateCacheDirectoryFailed(dfx_core::error::io::IoError),
+    CreateCacheDirectoryFailed(crate::error::io::IoError),
 
     #[error("Cannot find cache directory at '{0}'.")]
     FindCacheDirectoryFailed(std::path::PathBuf),
