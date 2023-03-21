@@ -1,4 +1,9 @@
-use crate::{error::cache::CacheError, foundation::get_user_home};
+#[cfg(windows)]
+use crate::config::directories::project_dirs;
+#[cfg(not(windows))]
+use crate::foundation::get_user_home;
+
+use crate::error::cache::CacheError;
 
 use semver::Version;
 
