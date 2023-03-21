@@ -30,7 +30,7 @@ where
     fn from(key: T) -> Self {
         let mut iter = key.as_ref().split("/").peekable();
         if let Some(first_segment) = iter.peek() {
-            // "/path/to/asset".split("/") produces an emtpy node before "path", therefore we need to skip it
+            // "/path/to/asset".split("/") produces an empty node before "path", therefore we need to skip it
             if *first_segment == "" {
                 iter.next();
             }

@@ -1112,9 +1112,9 @@ fn on_asset_change(
                     .get_mut(0)
                     .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
                 let header_hash = representation_independent_hash(&encoding_headers);
-                let emtpy_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
+                let empty_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
                 let response_hash_304: [u8; 32] = sha2::Sha256::digest(
-                    &[header_hash.as_ref(), emtpy_body_hash.as_ref()].concat(),
+                    &[header_hash.as_ref(), empty_body_hash.as_ref()].concat(),
                 )
                 .into();
                 response_hashes.insert(304, response_hash_304);
