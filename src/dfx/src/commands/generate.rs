@@ -1,3 +1,4 @@
+use crate::config::cache;
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
@@ -30,7 +31,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    env.get_cache().install()?;
+    cache::install_version(&env.get_cache().version_str(), false)?;
 
     // Option can be None which means generate types for all canisters
     let canisters_to_load = config

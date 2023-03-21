@@ -82,7 +82,7 @@ rust_decimal = "1.22.0"
 rustls = "0.20.4"
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
-semver = { version = "1.0.6", features = ["serde"] }
+semver = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde_bytes.workspace = true
 serde_cbor.workspace = true

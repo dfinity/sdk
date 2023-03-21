@@ -1,9 +1,7 @@
 pub mod build;
-pub mod cache;
 pub mod extension;
 
 pub use build::BuildError;
-pub use cache::CacheError;
 pub use dfx_core::error::identity::IdentityError;
 pub use extension::ExtensionError;
 
