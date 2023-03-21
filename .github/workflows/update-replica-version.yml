@@ -72,7 +72,7 @@ jobs:
         git commit -m "chore: update replica version to ${{ env.REPLICA_VERSION }}"
         git push origin chore-update-replica-${{ env.REPLICA_VERSION }} 
       
-    - name: create Pull Request, with CHANGELOG.adoc entry suggestion 
+    - name: create Pull Request, with CHANGELOG.md entry suggestion 
       uses: actions/github-script@v6
       with:
         github-token: ${{ secrets.NIV_UPDATER_TOKEN }} # act on behalf of https://github.com/dfinity-bot 

@@ -26,13 +26,17 @@ This is done via `./scripts/update-frontend-canister.sh --release-build`. You ne
 Then update `CHANGELOG.md` to include the newest sha2 hash (*not* git commit hash) and a link to your PR.
 If there is already an entry in the 'Unreleased' section, change it; if not, add a new one. See the example in [#2699](https://github.com/pull/2699/commits/c191ce5ac529de4499c50a0d2bc70ac6a3cb3afc). This step can be automated by running `./scripts/update-frontend-canister.sh --changelog`.
 
-### End-to-End Tests
+## End-to-End Tests
 
 #### Setup
 
-1. Install `bats`. See the CI provisioning scripts for examples:
+1. Install `bats`, `jq` and `sponge`. See the CI provisioning scripts for examples (search for the line with the comment `# Install Bats + moreutils.`):
     - [Linux](../scripts/workflows/provision-linux.sh)
     - [Darwin](../scripts/workflows/provision-darwin.sh)
+1. Download `bats-support` (which is included as this repository' submodule) 
+    ```bash
+    git submodule update --init --recursive
+    ```
 1. Build dfx and add its target directory to your path:
     ``` bash
     sdk $ cargo build
@@ -43,11 +47,6 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
     export archive="$(pwd)/e2e/archive"
     export utils="$(pwd)/e2e/utils"
     export assets="$(pwd)/e2e/assets"
-    ```
-1. Install `jq` and `sponge`.
-1. Download all of this repository' submodules (which includes `bats-support`)
-    ```bash
-    git submodule update --init --recursive
     ```
 
 #### Running End-to-End Tests
@@ -97,8 +96,8 @@ What that means is your PR title should start with one of the following prefix:
 - Head over to [the GitHub Action](https://github.com/dfinity/sdk/actions/workflows/update-replica-version.yml).
 - Click "Run workflow" button, choose appropriate options (you're probably fine with using defaults), and click "Run workflow" (the green one). 
 - Depending on the selected options, the workflow will run anything between 3 to 35 minutes. After that time, a new PR will be created.
-- The PR contains the content that needs to be pasted into CHANGELOG.adoc, as well as the link for editing the CHANGELOG.adoc directly on the branch of that PR.
-- After making changes to the CHANGELOG.adoc file, PR is ready for review.
+- The PR contains the content that needs to be pasted into CHANGELOG.md, as well as the link for editing the CHANGELOG.md directly on the branch of that PR.
+- After making changes to the CHANGELOG.md file, PR is ready for review.
 
 #### Locally
 To update the replica to a given $SHA from the dfinity repo, execute the following:
