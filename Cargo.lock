@@ -1813,7 +1813,7 @@ dependencies = [
  "http",
  "http-body",
  "hyper-rustls",
- "ic-certification 0.23.1",
+ "ic-certification 0.23.1 (git+https://github.com/dfinity/agent-rs.git?rev=6d3ae396d94adf8749794834a572bbbbb79c75f3)",
  "ic-verify-bls-signature",
  "k256",
  "leb128",
@@ -1895,8 +1895,9 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "0.23.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=9d7be5ffe3570ab77dda1aa70ee530854e64cd1a#9d7be5ffe3570ab77dda1aa70ee530854e64cd1a"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e9580095f8d8abb9f69b77c63756c68bd570bb9d9aa725c242c2fdc7abdb9d6"
 dependencies = [
  "hex",
  "sha2 0.10.6",
@@ -1968,14 +1969,15 @@ dependencies = [
 
 [[package]]
 name = "ic-response-verification"
-version = "0.0.0"
-source = "git+https://github.com/dfinity/response-verification#197baf748d41dac585d7962b607620d9e4b80db5"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f4e57f65dc2b5567f11e0508b3648518097fe9fcd443389eb0057b91a3c5acd"
 dependencies = [
  "base64 0.13.1",
  "candid",
  "flate2",
  "http",
- "ic-certification 0.23.0",
+ "ic-certification 0.23.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "leb128",
  "log",
  "miracl_core_bls12381",
