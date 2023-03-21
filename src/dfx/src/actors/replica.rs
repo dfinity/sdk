@@ -293,6 +293,7 @@ fn replica_start_thread(
             "Secp256k1:dfx_test_key",
             "--log-level",
             &config.log_level.as_ic_starter_string(),
+            "--use-specified-ids-allocation-range",
         ]);
         #[cfg(target_os = "macos")]
         cmd.args(["--consensus-pool-backend", "rocksdb"]);
