@@ -1,9 +1,11 @@
-use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::{cache, dfx_version};
+use crate::config::cache::DiskBasedCache;
+use crate::config::dfx_version;
 use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
 use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::progress_bar::ProgressBar;
+use dfx_core::config::cache::get_cache_root;
+use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::identity::IdentityError;
@@ -392,7 +394,7 @@ impl AgentClient {
 
     #[context("Failed to determine http auth path.")]
     fn http_auth_path() -> DfxResult<PathBuf> {
-        Ok(cache::get_cache_root()?.join("http_auth"))
+        Ok(get_cache_root()?.join("http_auth"))
     }
 
     // A connection is considered secure if it goes to an HTTPs scheme or if it's the
