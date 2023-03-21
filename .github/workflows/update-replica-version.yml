@@ -56,13 +56,8 @@ jobs:
 
     - name: update replica
       run: |
-        if [ ${{ github.event.inputs.updateNnsCanisters }} = true ]; then
-          echo "updating the replica and NNS canisters for e2e test"
-          scripts/update-replica.sh ${{ env.REPLICA_VERSION }} --update-nns
-        else
-          echo "updating the replica"
-          scripts/update-replica.sh ${{ env.REPLICA_VERSION }} 
-        fi
+        echo "updating the replica"
+        scripts/update-replica.sh ${{ env.REPLICA_VERSION }} 
 
     - name: setup git config, then create new branch and push new commit to it
       run: |

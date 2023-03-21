@@ -112,8 +112,6 @@ To update Motoko to a given $VERSION from the motoko and motoko-base repos, exec
 ``` bash
 # Requires niv to run. To install niv, run nix-env -iA nixpkgs.niv
 ./scripts/update-motoko.sh $VERSION
-# if you want to also update ledger canisters for e2e tests, use:
-./scripts/update-motoko.sh $VERSION --update-nns
 ```
 
 ### Licenses
