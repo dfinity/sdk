@@ -54,6 +54,7 @@ impl Cache for DiskBasedCache {
     }
 
     fn get_binary_command_path(&self, binary_name: &str) -> Result<PathBuf, CacheError> {
+        Self::install(&self.version_str())?;
         get_binary_path_from_version(&self.version_str(), binary_name)
     }
 
