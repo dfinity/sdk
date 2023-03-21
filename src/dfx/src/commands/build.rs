@@ -48,7 +48,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    cache::install_version(&env.get_cache().version_str(), false)?;
+    DiskBasedCache::install(&env.get_cache().version_str())?;
 
     let build_mode_check = opts.check;
 

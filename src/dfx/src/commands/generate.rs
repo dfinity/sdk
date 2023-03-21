@@ -31,7 +31,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    cache::install_version(&env.get_cache().version_str(), false)?;
+    DiskBasedCache::install(&env.get_cache().version_str())?;
 
     // Option can be None which means generate types for all canisters
     let canisters_to_load = config

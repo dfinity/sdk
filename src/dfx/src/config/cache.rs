@@ -31,6 +31,12 @@ impl DiskBasedCache {
             version: version.clone(),
         }
     }
+    pub fn install(version: &str) -> Result<(), CacheError> {
+        install_version(version, false).map(|_| {})
+    }
+    pub fn force_install(version: &str) -> Result<(), CacheError> {
+        install_version(version, true).map(|_| {})
+    }
 }
 
 #[allow(dead_code)]
@@ -52,7 +58,7 @@ impl Cache for DiskBasedCache {
     }
 
     fn get_binary_command(&self, binary_name: &str) -> Result<std::process::Command, CacheError> {
-        install_version(&self.version_str(), false)?;
+        Self::install(&self.version_str())?;
         binary_command_from_version(&self.version_str(), binary_name)
     }
 }

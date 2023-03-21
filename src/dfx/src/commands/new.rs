@@ -1,4 +1,4 @@
-use crate::config::cache;
+use crate::config::cache::{self, DiskBasedCache};
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
@@ -369,7 +369,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         warn_upgrade(log, latest_version.as_ref(), current_version);
     }
 
-    cache::install_version(&env.get_cache().version_str(), false)?;
+    DiskBasedCache::install(&env.get_cache().version_str())?;
 
     info!(
         log,
