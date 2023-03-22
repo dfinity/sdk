@@ -29,9 +29,9 @@ use ic_cdk_macros::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
-// #[cfg(target_arch = "wasm32")]
-// #[link_section = "icp:public supported_certificate_versions"]
-// pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
+#[cfg(target_arch = "wasm32")]
+#[link_section = "icp:public supported_certificate_versions"]
+pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());

@@ -76,13 +76,38 @@ Added partial support for proposal-based asset updates:
   - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
   - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
 
-Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister. 
+Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
+
+Added support for v2 asset certification. In comparison to v1, v2 asset certification not only certifies the http response body, but also the headers.
+
+Added canister metadata field `supported_certificate_versions`, which contains a comma-separated list of all asset certification protocol versions. You can query it e.g. using `dfx canister --network ic metadata <canister name or id> supported_certificate_versions`. In this release, the value of this metadata field value is `1,2` because certification v1 and v2 are supported.
+
+Fixed a bug in `http_request` that served assets with the wrong certificate. When using certification v1 (no explicit version defaults to v1, too), only the 'most important' encoding is certified because the protocol does not allow more than one encoding to be verified. Therefore, under certification v1, the asset canister now only serves this one, most important encoding. As a side effect, this also causes the following breaking change:
+
+### Breaking change
+
+As a consequence of the above bug fix, `http_request` no longer serves one of the requested encodings if all of the following is true:
+1. The request goes through the `http_request` method. This is also the case if you use HTTP to directly interface with the canister.
+2. The requested asset was uploaded in multiple encodings
+3. You use asset certification v1. No explicit certification version defaults to v1.
+4. The `Accept-Encoding` header only specifies encoding(s) that are not the 'most important' encoding
+  - The order of importance is from most important to least important: `"identity" > "gzip" > "compress" > "deflate" > "br" > a random available encoding`
+  - In practice, for almost every use case, the 'most important' encoding chosen is `identity`
+
+The following remediations are possible:
+- Teach the client to understand the 'most important' encoding
+- Use asset certification v2 (also works if no certificate is checked). To do so:
+  - Set the `certificate_version: opt nat;` field in the `HttpRequest` object to `2` if you use an agent or candid interface
+  - Set the `certificate-version` header to `2` if you use the HTTP interface
+- Do not upgrade the asset canister. Use `--no-asset-upgrade` if you deploy through dfx.
+- If you only need one asset encoding, do not upload any other encoding.
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: f490dea6cec0f8cf047d7ba1a44e434776b5e788a9b2cb45e27e71d54eaf571b
+- Module hash: TODO
+- https://github.com/dfinity/sdk/pull/2960
 - https://github.com/dfinity/sdk/pull/3034
 - https://github.com/dfinity/sdk/pull/3023
 - https://github.com/dfinity/sdk/pull/3022

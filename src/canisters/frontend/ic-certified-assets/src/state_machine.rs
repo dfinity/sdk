@@ -163,9 +163,11 @@ impl AssetEncoding {
         let response_hash_304: [u8; 32] =
             sha2::Sha256::digest(&[header_hash.as_ref(), empty_body_hash.as_ref()].concat()).into();
         response_hashes.insert(304, response_hash_304);
+
         debug_assert!(STATUS_CODES_TO_CERTIFY
             .iter()
             .all(|code| response_hashes.contains_key(code)));
+
         response_hashes
     }
 }
@@ -1133,10 +1135,10 @@ fn on_asset_change(
                 Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name));
 
             for key in &affected_keys {
-                let v1_path = AssetPath::from(&key).asset_hash_path_v1();
                 let key_path = AssetPath::from(&key);
+                let v1_path = key_path.asset_hash_path_v1();
                 if asset_hashes.get(v1_path.as_vec()).is_none() {
-                    // v1 can only certify one encoding, therefore we only insert the first encoding
+                    // v1 can only certify one encoding, therefore we only insert the first encoding as defined by encoding_certification_order()
                     asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
                 }
                 for status_code in STATUS_CODES_TO_CERTIFY {
