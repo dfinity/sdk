@@ -108,13 +108,13 @@ impl AssetEncoding {
         }
     }
 
-    fn update_response_hashes(
-        &mut self,
+    fn compute_response_hashes(
+        &self,
         headers: &Option<HashMap<String, String>>,
         max_age: &Option<u64>,
         content_type: &str,
         encoding_name: &str,
-    ) {
+    ) -> HashMap<u16, [u8; 32]> {
         let mut encoding_headers: Vec<(String, Value)> = build_headers(
             headers.as_ref().map(|h| h.iter()),
             max_age,
@@ -148,7 +148,7 @@ impl AssetEncoding {
             response_hashes.insert(304, response_hash_304);
             response_hashes
         };
-        self.response_hashes = Some(new_response_hashes);
+        new_response_hashes
     }
 }
 
@@ -1105,7 +1105,14 @@ fn on_asset_change(
         .iter()
         .map(|enc| enc.to_string())
         .collect();
-    encoding_order.append(&mut asset.encodings.keys().map(|s| s.into()).collect());
+    encoding_order.append(
+        &mut asset
+            .encodings
+            .keys()
+            .filter(|encoding| !ENCODING_CERTIFICATION_ORDER.contains(&encoding.as_str()))
+            .map(|s| s.into())
+            .collect(),
+    );
 
     let mut keys_to_insert_hash_for = dependent_keys;
     keys_to_insert_hash_for.push(key.into());
@@ -1128,7 +1135,8 @@ fn on_asset_change(
             ..
         } = asset;
         if let Some(enc) = encodings.get_mut(enc_name) {
-            enc.update_response_hashes(headers, max_age, content_type, enc_name);
+            enc.response_hashes =
+                Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name));
 
             for (key, v1_path) in &keys_to_insert_hash_for {
                 let key_path = AssetPath::from(&key);
