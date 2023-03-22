@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 
-use crate::asset_canister::{
-    method_names::GET_ASSET_PROPERTIES,
-    protocol::{AssetDetails, AssetProperties, GetAssetProperties},
+use crate::canister_api::{
+    methods::method_names::GET_ASSET_PROPERTIES,
+    types::asset::{AssetDetails, AssetProperties, GetAssetProperties},
 };
 
 pub(crate) async fn get_asset_properties(

@@ -1,9 +1,11 @@
-use crate::asset::config::HeadersConfig;
-use crate::canister_api::types::batch_upload::common::{
-    ClearArguments, CreateAssetArguments, DeleteAssetArguments, SetAssetContentArguments,
+use crate::canister_api::types::{
+    asset::SetAssetPropertiesArguments,
+    batch_upload::common::{
+        ClearArguments, CreateAssetArguments, DeleteAssetArguments, SetAssetContentArguments,
+        UnsetAssetContentArguments,
+    },
 };
 use candid::{CandidType, Nat};
-use serde::Deserialize;
 
 /// Batch operations that can be applied atomically.
 #[derive(CandidType, Debug)]

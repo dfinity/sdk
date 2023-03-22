@@ -1,4 +1,5 @@
 use crate::asset::config::AssetConfig;
+use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
@@ -9,10 +10,11 @@ use crate::canister_api::methods::{
     batch::{commit_batch, create_batch},
     list::list_assets,
 };
+use crate::canister_api::types::batch_upload::v0;
 
 use anyhow::anyhow;
 use ic_utils::Canister;
-use slog::{info, Logger};
+use slog::{info, warn, Logger};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -52,22 +54,29 @@ pub async fn upload(
         project_assets,
         canister_assets,
         AssetDeletionReason::Incompatible,
+        HashMap::new(),
         batch_id,
     );
 
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
     match canister_api_version {
-        0.. => {
-            // in the next PR:
-            // if BATCH_UPLOAD_API_VERSION == 1 {
-            //     let commit_batch_args = commit_batch_args.try_into::<v0::CommitBatchArguments>()?;
-            //     warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
-            // }
-            commit_batch(canister, commit_batch_args)
-                .await
-                .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+        0 => {
+            if BATCH_UPLOAD_API_VERSION == 1 {
+                let commit_batch_args_v0 = v0::CommitBatchArguments::try_from(commit_batch_args);
+                warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
+                commit_batch(canister, commit_batch_args_v0)
+                    .await
+                    .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+            } else {
+                commit_batch(canister, commit_batch_args)
+                    .await
+                    .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+            }
         }
+        1.. => commit_batch(canister, commit_batch_args)
+            .await
+            .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?,
     }
 
     Ok(())

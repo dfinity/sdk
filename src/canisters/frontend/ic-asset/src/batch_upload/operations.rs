@@ -1,21 +1,23 @@
 use candid::Nat;
 
 use crate::batch_upload::plumbing::ProjectAsset;
-use crate::canister_api::types::asset::{AssetDetails, AssetProperties};
+use crate::canister_api::types::asset::{
+    AssetDetails, AssetProperties, SetAssetPropertiesArguments,
+};
 use crate::canister_api::types::batch_upload::common::{
     CreateAssetArguments, DeleteAssetArguments, SetAssetContentArguments,
     UnsetAssetContentArguments,
 };
-use crate::canister_api::types::batch_upload::v0::{BatchOperationKind, CommitBatchArguments};
+use crate::canister_api::types::batch_upload::v1::{BatchOperationKind, CommitBatchArguments};
 use std::collections::HashMap;
 
-#[allow(dead_code)]
-pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 0;
+pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 1;
 
 pub(crate) fn assemble_batch_operations(
     project_assets: HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
+    canister_asset_properties: HashMap<String, AssetProperties>,
     batch_id: Nat,
 ) -> CommitBatchArguments {
     let mut canister_assets = canister_assets;
@@ -31,6 +33,7 @@ pub(crate) fn assemble_batch_operations(
     create_new_assets(&mut operations, &project_assets, &canister_assets);
     unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
     set_encodings(&mut operations, &project_assets);
+    update_properties(&mut operations, &project_assets, &canister_asset_properties);
 
     CommitBatchArguments {
         operations,
@@ -158,9 +161,8 @@ pub(crate) fn set_encodings(
     }
 }
 
-#[allow(dead_code)]
 pub(crate) fn update_properties(
-    // operations: &mut Vec<BatchOperationKind>,
+    operations: &mut Vec<BatchOperationKind>,
     project_assets: &HashMap<String, ProjectAsset>,
     canister_asset_properties: &HashMap<String, AssetProperties>,
 ) {
@@ -172,25 +174,26 @@ pub(crate) fn update_properties(
         let canister_asset_properties = canister_asset_properties.get(key);
         if project_asset_properties.ne(&canister_asset_properties) {
             println!("Updating properties for {}", key);
-            // operations.push(BatchOperationKind::SetAssetProperties(
-            //     // SetAssetPropertiesArguments {
-            //     //     key: key.clone(),
-            //     //     max_age: Some(
-            //     //         project_asset_properties
-            //     //             .cache
-            //     //             .as_ref()
-            //     //             .and_then(|c| c.max_age),
-            //     //     ),
-            //     //     headers: Some(project_asset_properties.headers),
-            //     //     allow_raw_access: Some(project_asset_properties.allow_raw_access),
-            //     // },
-            //     SetAssetContentArguments {
-            //         key: key.clone(),
-            //         max_age: None,
-            //         headers: None,
-            //         allow_raw_access: None,
-            //     },
-            // ));
+            operations.push(BatchOperationKind::SetAssetProperties(
+                SetAssetPropertiesArguments {
+                    key: key.clone(),
+                    max_age: Some(
+                        project_asset_properties
+                            .cache
+                            .as_ref()
+                            .and_then(|c| c.max_age),
+                    ),
+                    headers: Some(project_asset_properties.headers.map_or(None, |hm| {
+                        Some(
+                            hm.iter()
+                                .map(|(k, v)| (k.clone(), v.clone()))
+                                .collect::<Vec<_>>(),
+                        )
+                    })),
+
+                    allow_raw_access: Some(project_asset_properties.allow_raw_access),
+                },
+            ));
         }
     }
 }

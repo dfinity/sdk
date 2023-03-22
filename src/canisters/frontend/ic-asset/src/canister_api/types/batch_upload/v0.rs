@@ -30,3 +30,38 @@ pub struct CommitBatchArguments {
     /// The operations to apply atomically.
     pub operations: Vec<BatchOperationKind>,
 }
+
+// impl try_from for v0::BatchOperationKind from v1::BatchOperationKind
+impl TryFrom<super::v1::CommitBatchArguments> for CommitBatchArguments {
+    type Error = String;
+
+    fn try_from(value: super::v1::CommitBatchArguments) -> Result<Self, Self::Error> {
+        let mut operations = vec![];
+        for operation in value.operations {
+            let operation = match operation {
+                super::v1::BatchOperationKind::CreateAsset(args) => {
+                    BatchOperationKind::CreateAsset(args)
+                }
+                super::v1::BatchOperationKind::SetAssetContent(args) => {
+                    BatchOperationKind::SetAssetContent(args)
+                }
+                super::v1::BatchOperationKind::UnsetAssetContent(args) => {
+                    BatchOperationKind::UnsetAssetContent(args)
+                }
+                super::v1::BatchOperationKind::DeleteAsset(args) => {
+                    BatchOperationKind::DeleteAsset(args)
+                }
+                super::v1::BatchOperationKind::Clear(args) => BatchOperationKind::Clear(args),
+                super::v1::BatchOperationKind::SetAssetProperties(_) => {
+                    return Err("SetAssetProperties is not supported".to_string())
+                }
+            };
+            operations.push(operation);
+        }
+
+        Ok(Self {
+            batch_id: value.batch_id,
+            operations,
+        })
+    }
+}
