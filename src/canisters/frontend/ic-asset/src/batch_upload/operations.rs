@@ -185,12 +185,10 @@ pub(crate) fn update_properties(
                             .as_ref()
                             .and_then(|c| c.max_age),
                     ),
-                    headers: Some(project_asset_properties.headers.map_or(None, |hm| {
-                        Some(
-                            hm.iter()
-                                .map(|(k, v)| (k.clone(), v.clone()))
-                                .collect::<Vec<_>>(),
-                        )
+                    headers: Some(project_asset_properties.headers.map(|hm| {
+                        hm.iter()
+                            .map(|(k, v)| (k.clone(), v.clone()))
+                            .collect::<Vec<_>>()
                     })),
                     is_aliased: Some(project_asset_properties.enable_aliasing),
                     allow_raw_access: Some(project_asset_properties.allow_raw_access),
