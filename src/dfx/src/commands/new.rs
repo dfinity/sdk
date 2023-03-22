@@ -256,12 +256,12 @@ fn scaffold_frontend_code(
         let mut rust_package_json_scripts = "";
 
         if variables.get("type").unwrap() == "motoko" {
-            motoko_package_json_scripts = "    \"sources\": \"mops sources\",
-            \"start:backend\": \"mo-dev --generate --deploy -y\",
-            \"start:frontend\": \"webpack serve --mode development --env development\",
-            \"start\": \"run-p start:frontend start:backend\",
-            \"postinstall\": \"mops install\",
-            \"test:motoko\": \"mo-test\"";
+            motoko_package_json_scripts = "\"sources\": \"mops sources\",
+    \"start:backend\": \"mo-dev --generate --deploy -y\",
+    \"start:frontend\": \"webpack serve --mode development --env development\",
+    \"start\": \"run-p start:frontend start:backend\",
+    \"postinstall\": \"mops install\",
+    \"test:motoko\": \"mo-test\"";
         } else if variables.get("type").unwrap() == "rust" {
             rust_package_json_scripts =
                 "    \"start\": \"webpack serve --mode development --env development\"";
