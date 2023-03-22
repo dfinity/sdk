@@ -35,6 +35,25 @@ pub const BATCH_EXPIRY_NANOS: u64 = 300_000_000_000;
 
 /// The order in which we pick encodings for certification.
 const ENCODING_CERTIFICATION_ORDER: &[&str] = &["identity", "gzip", "compress", "deflate", "br"];
+// Order of encodings is relevant for v1. Follow ENCODING_CERTIFICATION_ORDER,
+// then follow the order of existing encodings.
+// For v2, it is important to certify all encodings, therefore all encodings are added to the list.
+// Once v1 support is removed, this function is no longer necessary
+fn encoding_certification_order<'a>(
+    actual_encodings: impl Iterator<Item = &'a String>,
+) -> Vec<String> {
+    let mut encoding_order: Vec<String> = ENCODING_CERTIFICATION_ORDER
+        .iter()
+        .map(|enc| enc.to_string())
+        .collect();
+    encoding_order.append(
+        &mut actual_encodings
+            .filter(|encoding| !ENCODING_CERTIFICATION_ORDER.contains(&encoding.as_str()))
+            .map(|s| s.into())
+            .collect(),
+    );
+    encoding_order
+}
 
 /// The file to serve if the requested file wasn't found.
 const INDEX_FILE: &str = "/index.html";
@@ -1098,22 +1117,6 @@ fn on_asset_change(
 
     asset.update_ic_certificate_expressions();
 
-    // Order of encodings is relevant for v1. Follow ENCODING_CERTIFICATION_ORDER,
-    // then follow the order of existing encodings.
-    // For v2, it is important to certify all encodings, therefore all encodings are added to the list.
-    let mut encoding_order: Vec<String> = ENCODING_CERTIFICATION_ORDER
-        .iter()
-        .map(|enc| enc.to_string())
-        .collect();
-    encoding_order.append(
-        &mut asset
-            .encodings
-            .keys()
-            .filter(|encoding| !ENCODING_CERTIFICATION_ORDER.contains(&encoding.as_str()))
-            .map(|s| s.into())
-            .collect(),
-    );
-
     let mut keys_to_insert_hash_for = dependent_keys;
     keys_to_insert_hash_for.push(key.into());
     let keys_to_insert_hash_for: Vec<_> = keys_to_insert_hash_for
@@ -1124,16 +1127,16 @@ fn on_asset_change(
         })
         .collect();
 
+    let Asset {
+        content_type,
+        encodings,
+        max_age,
+        headers,
+        ..
+    } = asset;
     // Insert certified response values into hash_tree
-    // Once certification v1 support is removed, encoding_order.iter() can be replaced with asset.encodings.keys()
-    for enc_name in encoding_order.iter() {
-        let Asset {
-            content_type,
-            encodings,
-            max_age,
-            headers,
-            ..
-        } = asset;
+    // Once certification v1 support is removed, encoding_certification_order().iter() can be replaced with asset.encodings.iter_mut()
+    for enc_name in encoding_certification_order(encodings.keys()).iter() {
         if let Some(enc) = encodings.get_mut(enc_name) {
             enc.response_hashes =
                 Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name));
