@@ -1093,11 +1093,12 @@ fn on_asset_change(
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
 ) {
+    let mut affected_keys = dependent_keys;
+    affected_keys.push(key.to_string());
+
     // Clean up pre-existing paths for this asset
-    let mut keys_to_remove = dependent_keys.clone();
-    keys_to_remove.push(key.to_string());
-    for key in keys_to_remove {
-        let key_path = AssetPath::from(&key);
+    for key in affected_keys.iter() {
+        let key_path = AssetPath::from(key);
         asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
         asset_hashes.delete(key_path.asset_hash_path_v1().as_vec());
         if key == INDEX_FILE {
@@ -1107,6 +1108,7 @@ fn on_asset_change(
             ]);
         }
     }
+
     if asset.encodings.is_empty() {
         return;
     }
@@ -1116,16 +1118,6 @@ fn on_asset_change(
     }
 
     asset.update_ic_certificate_expressions();
-
-    let mut keys_to_insert_hash_for = dependent_keys;
-    keys_to_insert_hash_for.push(key.into());
-    let keys_to_insert_hash_for: Vec<_> = keys_to_insert_hash_for
-        .into_iter()
-        .map(|key| {
-            let v1_hash_path = AssetPath::from(&key).asset_hash_path_v1();
-            (key, v1_hash_path)
-        })
-        .collect();
 
     let Asset {
         content_type,
@@ -1141,7 +1133,8 @@ fn on_asset_change(
             enc.response_hashes =
                 Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name));
 
-            for (key, v1_path) in &keys_to_insert_hash_for {
+            for key in &affected_keys {
+                let v1_path = AssetPath::from(&key).asset_hash_path_v1();
                 let key_path = AssetPath::from(&key);
                 if asset_hashes.get(v1_path.as_vec()).is_none() {
                     // v1 can only certify one encoding, therefore we only insert the first encoding
