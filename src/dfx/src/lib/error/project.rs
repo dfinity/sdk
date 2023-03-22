@@ -16,7 +16,7 @@ pub enum ProjectError {
     #[error("Invalid URL: {0}")]
     InvalidUrl(url::ParseError),
 
-    #[error("The key 'canisters' is missing dfx.json.")]
+    #[error("The key 'canisters' is missing in dfx.json.")]
     DfxJsonMissingCanisters,
 
     #[error("The 'canisters' value in dfx.json is not an object.")]
