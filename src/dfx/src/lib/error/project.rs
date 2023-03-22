@@ -8,32 +8,49 @@ pub enum ProjectError {
     #[error(transparent)]
     IoError(#[from] dfx_core::error::io::IoError),
 
-    // #[error(transparent)]
-    // ProcessError(#[from] dfx_core::error::process::ProcessError),
+    // Q: ok to handle Infallible?
+    #[error("Can't convert string '{0}' to path: {1}")]
+    ConvertingStringToPathFailed(String, std::convert::Infallible),
 
-    // #[error("Cannot create cache directory: {0}")]
-    // CreateCacheDirectoryFailed(dfx_core::error::io::IoError),
+    // Q: can also pass in a string, e.g. `format!("{}/{}", host, path)`
+    #[error("Invalid URL: {0}")]
+    InvalidUrl(url::ParseError),
 
-    // #[error("Cannot find cache directory at '{0}'.")]
-    // FindCacheDirectoryFailed(std::path::PathBuf),
+    #[error("The key 'canisters' is missing dfx.json.")]
+    DfxJsonMissingCanisters,
 
-    // #[error("Invalid cache for version '{0}'.")]
-    // InvalidCacheForDfxVersion(String),
+    #[error("The value behind the key 'canisters' in dfx.json is not an object.")]
+    DfxJsonCanistersNotObject,
+    // Q: combine these two errors into one?
+    // upper is a bit more specific because it menions dfx.json
+    // but lower is more general, however i dont know if it's dfx.json specific
+    #[error("The value behind the key '{0}' is not an JSON object.")]
+    NotJsonObject(String),
 
-    // #[error("Unable to parse '{0}' as Semantic Version: {1}")]
-    // MalformedSemverString(String, semver::Error),
+    #[error("Unable to parse as url or file: {0}")]
+    UnableToParseAsUrlOrFile(url::ParseError),
 
-    // #[error("Failed to read binary cache: {0}")]
-    // ReadBinaryCacheStoreFailed(std::io::Error),
+    #[error("Could not create HTTP client: {0}")]
+    CouldNotCreateHttpClient(reqwest::Error),
 
-    // #[error("Failed to iterate through binary cache: {0}")]
-    // ReadBinaryCacheEntriesFailed(std::io::Error),
+    #[error("Failed to load project definition from '{0}': {1}")]
+    FailedToLoadProjectDefinition(url::Url, serde_json::Error),
 
-    // #[error("Failed to read binary cache entry: {0}")]
-    // ReadBinaryCacheEntryFailed(std::io::Error),
+    #[error("Failed to load canister ids from '{0}': {1}")]
+    FailedToLoadCanisterIds(url::Url, serde_json::Error),
 
-    // #[error("Failed to read entry in cache directory: {0}")]
-    // ReadCacheEntryFailed(std::io::Error),
-    #[error("dummy {0}")]
-    Dummy(String),
+    #[error("Failed to get contents of URL '{0}'.")]
+    NotFound404(url::Url),
+
+    #[error("Failed to GET resource located at '{0}': {1}")]
+    FailedToGetResource(url::Url, reqwest::Error),
+
+    #[error("Failed to GET resource located at '{0}': {1}")]
+    GettingResourceReturnedHTTPError(url::Url, reqwest::Error),
+
+    #[error("Failed to get body from '{0}': {1}")]
+    FailedToGetBodyFromResponse(url::Url, reqwest::Error),
+
+    #[error("Malformed network mapping '{0}': {1} network name is empty")]
+    MalformedNetworkMapping(String, String),
 }

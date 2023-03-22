@@ -42,7 +42,7 @@ pub async fn import_canister_definitions(
     let mut loader = Loader::new();
 
     let their_dfx_json_url = location_to_url(their_dfx_json_location)?;
-    let their_canister_ids_json_url = their_dfx_json_url.join("canister_ids.json").map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
+    let their_canister_ids_json_url = their_dfx_json_url.join("canister_ids.json").map_err(ProjectError::InvalidUrl)?;
 
     let what = if let Some(ref name) = import_only_canister_name {
         format!("canister '{}'", name)
@@ -114,7 +114,7 @@ async fn import_candid_definition(
     our_canister: &mut Map<String, Value>,
 ) -> Result<(), ProjectError> {
     let our_relative_candid_path = format!("candid/{}.did", our_canister_name);
-    let their_candid_url = their_dfx_json_url.join(their_relative_candid).map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
+    let their_candid_url = their_dfx_json_url.join(their_relative_candid).map_err(ProjectError::InvalidUrl)?;
     let our_candid_path_incl_project_root = our_project_root.join(&our_relative_candid_path);
     info!(
         logger,
@@ -123,7 +123,7 @@ async fn import_candid_definition(
         their_candid_url,
     );
     let candid_definition = loader.get_required_url_contents(&their_candid_url).await?;
-    dfx_core::fs::write(&our_candid_path_incl_project_root, candid_definition)?;     // WAS: "Failed to write {}", our_candid_path_incl_project_root.display()
+    dfx_core::fs::write(&our_candid_path_incl_project_root, candid_definition)?;
 
     our_canister.insert(
         "candid".to_string(),
@@ -136,9 +136,9 @@ pub fn get_canisters_json_object(config: &mut Config) -> Result<&mut Map<String,
     let config_canisters_object = config
         .get_mut_json()
         .pointer_mut("/canisters")
-        .ok_or_else(|| ProjectError::Dummy(format!("dfx.json does not contain a canisters element")))?
+        .ok_or_else(|| ProjectError::DfxJsonMissingCanisters)?
         .as_object_mut()
-        .ok_or_else(|| ProjectError::Dummy(format!("dfx.json canisters element is not an object")))?;
+        .ok_or_else(|| ProjectError::DfxJsonCanistersNotObject)?;
     Ok(config_canisters_object)
 }
 
@@ -196,15 +196,16 @@ fn ensure_child_object<'a>(
         .get_mut(name)
         .unwrap() // we just added it
         .as_object_mut()
-        .ok_or_else(|| ProjectError::Dummy(format!("{} is not a json object", name)))
+        .ok_or_else(|| ProjectError::NotJsonObject(name.to_string()))
 }
 
 fn location_to_url(dfx_json_location: &str) -> Result<Url, ProjectError> {
-    Url::parse(dfx_json_location).or_else(|_url_error| {
-        let canonical = dfx_core::fs::canonicalize(&PathBuf::from_str(dfx_json_location).map_err(|_e| ProjectError::Dummy("TODO".to_string()))?)?;
+    Url::parse(dfx_json_location).or_else(|url_error| {
+        let path = PathBuf::from_str(dfx_json_location).map_err(|e| ProjectError::ConvertingStringToPathFailed(dfx_json_location.to_string(), e))?;
+        let canonical = dfx_core::fs::canonicalize(&path)?;
 
         Url::from_file_path(canonical).map_err(|_file_error_is_unit|
-        ProjectError::Dummy(format!("Unable to parse as url ({}) or file", _url_error))
+        ProjectError::UnableToParseAsUrlOrFile(url_error)
         )
     })
 }
@@ -230,7 +231,7 @@ impl Loader {
 
             let client = reqwest::Client::builder()
                 .use_preconfigured_tls(tls_config)
-                .build().map_err(|_e| ProjectError::Dummy("Could not create HTTP client.".to_string()))?;
+                .build().map_err(|e| ProjectError::CouldNotCreateHttpClient(e))?;
             self.client = Some(client);
         }
         Ok(self.client.as_ref().unwrap())
@@ -238,20 +239,20 @@ impl Loader {
 
     async fn load_project_definition(&mut self, url: &Url) -> Result<DfxJsonProject, ProjectError> {
         let body = self.get_required_url_contents(url).await?;
-        let project = serde_json::from_slice(&body).map_err(|_e| ProjectError::Dummy(format!("Failed to load project definition from {} ???? or failed to decode json", url)))?;
+        let project = serde_json::from_slice(&body).map_err(|e| ProjectError::FailedToLoadProjectDefinition(url.clone() ,e))?;
         Ok(project)
     }
 
     async fn load_canister_ids(&mut self, url: &Url) -> Result<canister_id_store::CanisterIds, ProjectError> {
         match self.get_optional_url_contents(url).await? {
             None => Ok(canister_id_store::CanisterIds::new()),
-            Some(body) => serde_json::from_slice(&body).map_err(|_x| ProjectError::Dummy(format!("failed to decode json ???? Failed to load canister ids from {}", url)))
+            Some(body) => serde_json::from_slice(&body).map_err(|e| ProjectError::FailedToLoadCanisterIds(url.clone(), e))
         }
     }
 
     async fn get_required_url_contents(&mut self, url: &Url) -> Result<Vec<u8>, ProjectError> {
         self.get_optional_url_contents(url)
-            .await?.ok_or_else(|| ProjectError::Dummy(format!("Not found: {0} ??? Failed to get contents of url {0}", &url)))
+            .await?.ok_or_else(|| ProjectError::NotFound404(url.clone()))
     }
 
     async fn get_optional_url_contents(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
@@ -273,11 +274,11 @@ impl Loader {
 
     async fn get_optional_url_body(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
         let client = self.client()?;
-        let response = client.get(url.clone()).send().await.map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
+        let response = client.get(url.clone()).send().await.map_err(|e| ProjectError::FailedToGetResource(url.clone(), e))?;
         if response.status() == StatusCode::NOT_FOUND {
             Ok(None)
         } else {
-            let body = response.error_for_status().map_err(|_e| ProjectError::Dummy("TODO".to_string()))?.bytes().await.map_err(|_e| ProjectError::Dummy(format!("Failed to get body from {}", &url)))?;
+            let body = response.error_for_status().map_err(|e| ProjectError::GettingResourceReturnedHTTPError(url.clone(), e))?.bytes().await.map_err(|e| ProjectError::FailedToGetBodyFromResponse(url.clone(), e))?;
             Ok(Some(body.into()))
         }
     }

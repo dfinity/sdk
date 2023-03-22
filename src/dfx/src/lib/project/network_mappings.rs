@@ -7,15 +7,15 @@ pub fn get_network_mappings(input: &[String]) -> Result<Vec<ImportNetworkMapping
         .map(|v| {
             if let Some(index) = v.find('=') {
                 if index == 0 {
-                    Err(ProjectError::Dummy(format!(
-                        "malformed network mapping '{}': first network name is empty",
-                        &v
-                    )))
+                    Err(ProjectError::MalformedNetworkMapping(
+                        v.to_string(),
+                        "first".to_string(),
+                    ))
                 } else if index == v.len() - 1 {
-                    Err(ProjectError::Dummy(format!(
-                        "malformed network mapping '{}': second network name is empty",
-                        &v
-                    )))
+                    Err(ProjectError::MalformedNetworkMapping(
+                        v.to_string(),
+                        "second".to_string(),
+                    ))
                 } else {
                     Ok(ImportNetworkMapping {
                         network_name_in_this_project: v[..index].to_string(),
@@ -77,13 +77,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "malformed network mapping '=defg': first network name is empty")]
+    #[should_panic(expected = "MalformedNetworkMapping(\"=defg\", \"first\")")]
     fn malformed_missing_first() {
         get_network_mappings(&["=defg".to_string()]).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "malformed network mapping 'abc=': second network name is empty")]
+    #[should_panic(expected = "MalformedNetworkMapping(\"abc=\", \"second\")")]
     fn malformed_missing_second() {
         get_network_mappings(&["abc=".to_string()]).unwrap();
     }
