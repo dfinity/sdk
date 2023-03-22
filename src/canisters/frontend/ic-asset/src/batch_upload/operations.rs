@@ -192,7 +192,7 @@ pub(crate) fn update_properties(
                                 .collect::<Vec<_>>(),
                         )
                     })),
-
+                    is_aliased: Some(project_asset_properties.enable_aliasing),
                     allow_raw_access: Some(project_asset_properties.allow_raw_access),
                 },
             ));
