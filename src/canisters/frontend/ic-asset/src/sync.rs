@@ -54,24 +54,19 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
 
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
-    match canister_api_version {
+    let response = match canister_api_version {
         0 => {
             if BATCH_UPLOAD_API_VERSION == 1 {
                 let commit_batch_args_v0 = v0::CommitBatchArguments::try_from(commit_batch_args);
                 warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
-                commit_batch(canister, commit_batch_args_v0)
-                    .await
-                    .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+                commit_batch(canister, commit_batch_args_v0).await
             } else {
-                commit_batch(canister, commit_batch_args)
-                    .await
-                    .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+                commit_batch(canister, commit_batch_args).await
             }
         }
-        1.. => commit_batch(canister, commit_batch_args)
-            .await
-            .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?,
-    }
+        1.. => commit_batch(canister, commit_batch_args).await,
+    };
+    response.map_err(|e| anyhow!("The API version of the canister (v{}) is incompatible with batch upload version (v{}): {}",canister_api_version,BATCH_UPLOAD_API_VERSION, e))?;
 
     Ok(())
 }
