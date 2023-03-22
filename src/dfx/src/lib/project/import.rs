@@ -42,7 +42,9 @@ pub async fn import_canister_definitions(
     let mut loader = Loader::new();
 
     let their_dfx_json_url = location_to_url(their_dfx_json_location)?;
-    let their_canister_ids_json_url = their_dfx_json_url.join("canister_ids.json").map_err(ProjectError::InvalidUrl)?;
+    let their_canister_ids_json_url = their_dfx_json_url
+        .join("canister_ids.json")
+        .map_err(ProjectError::InvalidUrl)?;
 
     let what = if let Some(ref name) = import_only_canister_name {
         format!("canister '{}'", name)
@@ -114,7 +116,9 @@ async fn import_candid_definition(
     our_canister: &mut Map<String, Value>,
 ) -> Result<(), ProjectError> {
     let our_relative_candid_path = format!("candid/{}.did", our_canister_name);
-    let their_candid_url = their_dfx_json_url.join(their_relative_candid).map_err(ProjectError::InvalidUrl)?;
+    let their_candid_url = their_dfx_json_url
+        .join(their_relative_candid)
+        .map_err(ProjectError::InvalidUrl)?;
     let our_candid_path_incl_project_root = our_project_root.join(&our_relative_candid_path);
     info!(
         logger,
@@ -132,13 +136,15 @@ async fn import_candid_definition(
     Ok(())
 }
 
-pub fn get_canisters_json_object(config: &mut Config) -> Result<&mut Map<String, Value>, ProjectError> {
+pub fn get_canisters_json_object(
+    config: &mut Config,
+) -> Result<&mut Map<String, Value>, ProjectError> {
     let config_canisters_object = config
         .get_mut_json()
         .pointer_mut("/canisters")
-        .ok_or_else(|| ProjectError::DfxJsonMissingCanisters)?
+        .ok_or(ProjectError::DfxJsonMissingCanisters)?
         .as_object_mut()
-        .ok_or_else(|| ProjectError::DfxJsonCanistersNotObject)?;
+        .ok_or(ProjectError::DfxJsonCanistersNotObject)?;
     Ok(config_canisters_object)
 }
 
@@ -201,12 +207,13 @@ fn ensure_child_object<'a>(
 
 fn location_to_url(dfx_json_location: &str) -> Result<Url, ProjectError> {
     Url::parse(dfx_json_location).or_else(|url_error| {
-        let path = PathBuf::from_str(dfx_json_location).map_err(|e| ProjectError::ConvertingStringToPathFailed(dfx_json_location.to_string(), e))?;
+        let path = PathBuf::from_str(dfx_json_location).map_err(|e| {
+            ProjectError::ConvertingStringToPathFailed(dfx_json_location.to_string(), e)
+        })?;
         let canonical = dfx_core::fs::canonicalize(&path)?;
 
-        Url::from_file_path(canonical).map_err(|_file_error_is_unit|
-        ProjectError::UnableToParseAsUrlOrFile(url_error)
-        )
+        Url::from_file_path(canonical)
+            .map_err(|_file_error_is_unit| ProjectError::UnableToParseAsUrlOrFile(url_error))
     })
 }
 
@@ -231,7 +238,8 @@ impl Loader {
 
             let client = reqwest::Client::builder()
                 .use_preconfigured_tls(tls_config)
-                .build().map_err(|e| ProjectError::CouldNotCreateHttpClient(e))?;
+                .build()
+                .map_err(ProjectError::CouldNotCreateHttpClient)?;
             self.client = Some(client);
         }
         Ok(self.client.as_ref().unwrap())
@@ -239,23 +247,32 @@ impl Loader {
 
     async fn load_project_definition(&mut self, url: &Url) -> Result<DfxJsonProject, ProjectError> {
         let body = self.get_required_url_contents(url).await?;
-        let project = serde_json::from_slice(&body).map_err(|e| ProjectError::FailedToLoadProjectDefinition(url.clone() ,e))?;
+        let project = serde_json::from_slice(&body)
+            .map_err(|e| ProjectError::FailedToLoadProjectDefinition(url.clone(), e))?;
         Ok(project)
     }
 
-    async fn load_canister_ids(&mut self, url: &Url) -> Result<canister_id_store::CanisterIds, ProjectError> {
+    async fn load_canister_ids(
+        &mut self,
+        url: &Url,
+    ) -> Result<canister_id_store::CanisterIds, ProjectError> {
         match self.get_optional_url_contents(url).await? {
             None => Ok(canister_id_store::CanisterIds::new()),
-            Some(body) => serde_json::from_slice(&body).map_err(|e| ProjectError::FailedToLoadCanisterIds(url.clone(), e))
+            Some(body) => serde_json::from_slice(&body)
+                .map_err(|e| ProjectError::FailedToLoadCanisterIds(url.clone(), e)),
         }
     }
 
     async fn get_required_url_contents(&mut self, url: &Url) -> Result<Vec<u8>, ProjectError> {
         self.get_optional_url_contents(url)
-            .await?.ok_or_else(|| ProjectError::NotFound404(url.clone()))
+            .await?
+            .ok_or_else(|| ProjectError::NotFound404(url.clone()))
     }
 
-    async fn get_optional_url_contents(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
+    async fn get_optional_url_contents(
+        &mut self,
+        url: &Url,
+    ) -> Result<Option<Vec<u8>>, ProjectError> {
         if url.scheme() == "file" {
             Self::read_optional_file_contents(&PathBuf::from(url.path()))
         } else {
@@ -274,11 +291,20 @@ impl Loader {
 
     async fn get_optional_url_body(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
         let client = self.client()?;
-        let response = client.get(url.clone()).send().await.map_err(|e| ProjectError::FailedToGetResource(url.clone(), e))?;
+        let response = client
+            .get(url.clone())
+            .send()
+            .await
+            .map_err(|e| ProjectError::FailedToGetResource(url.clone(), e))?;
         if response.status() == StatusCode::NOT_FOUND {
             Ok(None)
         } else {
-            let body = response.error_for_status().map_err(|e| ProjectError::GettingResourceReturnedHTTPError(url.clone(), e))?.bytes().await.map_err(|e| ProjectError::FailedToGetBodyFromResponse(url.clone(), e))?;
+            let body = response
+                .error_for_status()
+                .map_err(|e| ProjectError::GettingResourceReturnedHTTPError(url.clone(), e))?
+                .bytes()
+                .await
+                .map_err(|e| ProjectError::FailedToGetBodyFromResponse(url.clone(), e))?;
             Ok(Some(body.into()))
         }
     }
