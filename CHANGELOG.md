@@ -78,11 +78,17 @@ Added partial support for proposal-based asset updates:
 
 Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister. 
 
+Added support for API versioning of the asset canister in `ic-asset`.
+
+Added functionality which allows to set asset properties during `dfx deploy`, which means no longer you need to delete and re-deploy the assets to set the properties, yay! This change bumps the version of the API of the asset canister from `0` to `1`. 
+
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: f490dea6cec0f8cf047d7ba1a44e434776b5e788a9b2cb45e27e71d54eaf571b
+- API version: 1
+- Module hash: 7c5bc1c83bb86ae1c06d440e6170d129c61118b676dbf834ada862b3b4b65e5d
+- https://github.com/dfinity/sdk/pull/3002
 - https://github.com/dfinity/sdk/pull/3034
 - https://github.com/dfinity/sdk/pull/3023
 - https://github.com/dfinity/sdk/pull/3022
