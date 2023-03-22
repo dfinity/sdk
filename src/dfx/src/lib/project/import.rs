@@ -9,7 +9,6 @@ use serde::Deserialize;
 use serde_json::{Map, Value};
 use slog::{info, Logger};
 use std::collections::BTreeMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use url::Url;
@@ -59,7 +58,7 @@ pub async fn import_canister_definitions(
 
     let our_project_root = config.get_project_root().to_path_buf();
     let candid_output_dir = our_project_root.join("candid");
-    fs::create_dir_all(candid_output_dir).map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
+    dfx_core::fs::create_dir_all(&candid_output_dir)?;
 
     let config_canisters_object = get_canisters_json_object(config)?;
 
@@ -202,7 +201,7 @@ fn ensure_child_object<'a>(
 
 fn location_to_url(dfx_json_location: &str) -> Result<Url, ProjectError> {
     Url::parse(dfx_json_location).or_else(|_url_error| {
-        let canonical = PathBuf::from_str(dfx_json_location).map_err(|_e| ProjectError::Dummy("TODO".to_string()))?.canonicalize().map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
+        let canonical = dfx_core::fs::canonicalize(&PathBuf::from_str(dfx_json_location).map_err(|_e| ProjectError::Dummy("TODO".to_string()))?)?;
 
         Url::from_file_path(canonical).map_err(|_file_error_is_unit|
         ProjectError::Dummy(format!("Unable to parse as url ({}) or file", _url_error))
@@ -265,7 +264,7 @@ impl Loader {
 
     fn read_optional_file_contents(path: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
         if path.exists() {
-            let contents = fs::read(path).map_err(|_e| ProjectError::Dummy(format!("Failed to get contents of file {}", path.display())))?;
+            let contents = dfx_core::fs::read(path)?;
             Ok(Some(contents))
         } else {
             Ok(None)
