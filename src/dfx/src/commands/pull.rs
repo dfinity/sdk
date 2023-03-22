@@ -1,7 +1,9 @@
 use crate::lib::environment::AgentEnvironment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_HASH, DFX_WASM_URL};
+use crate::lib::metadata::names::{
+    CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
+};
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{agent::create_agent_environment, environment::Environment};
@@ -10,6 +12,7 @@ use dfx_core::config::cache::get_cache_root;
 use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
+use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -74,7 +77,7 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
         let mut any_download_fail = false;
 
         for canister_id in pulled_canisters {
-            if let Err(e) = download_canister_wasm(&agent_env, logger, canister_id).await {
+            if let Err(e) = download_canister_files(&agent_env, logger, canister_id).await {
                 error!(
                     logger,
                     "Failed to download wasm of canister {canister_id}.\n{e}"
@@ -128,7 +131,8 @@ async fn fetch_deps_to_pull(
     Ok(())
 }
 
-async fn download_canister_wasm(
+// download canister wasm, candid, init
+async fn download_canister_files(
     agent_env: &AgentEnvironment<'_>,
     logger: &Logger,
     canister_id: Principal,
@@ -164,11 +168,13 @@ async fn download_canister_wasm(
         }
     };
 
-    // target $HOME/.cache/dfinity/wasms/{canister_id}/canister.wasm
-    let wasm_dir = get_cache_root()?
+    // will save all files in $HOME/.cache/dfinity/wasms/{canister_id}/
+    let canister_dir = get_cache_root()?
         .join("wasms")
         .join(canister_id.to_string());
-    let wasm_path = wasm_dir.join("canister.wasm");
+
+    let wasm_file_name = "canister.wasm";
+    let wasm_path = canister_dir.join(wasm_file_name);
 
     // skip download if cache hit
     if wasm_path.exists() {
@@ -212,14 +218,44 @@ async fn download_canister_wasm(
         );
     }
 
-    // write to a tempfile then rename
-    std::fs::create_dir_all(&wasm_dir)
-        .with_context(|| format!("Failed to create dir at {:?}", &wasm_dir))?;
-    let mut f = tempfile::NamedTempFile::new_in(&wasm_dir)?;
-    f.write_all(&content)?;
-    std::fs::rename(f.path(), &wasm_path)
-        .with_context(|| format!("Failed to move tempfile to {:?}", &wasm_path))?;
+    std::fs::create_dir_all(&canister_dir)
+        .with_context(|| format!("Failed to create dir at {:?}", &canister_dir))?;
 
+    write_to_tempfile_then_rename(&content, &canister_dir, wasm_file_name)?;
+
+    // fetch `candid:service` and save in "canister.did"
+    let candid_bytes = fetch_metatdata(agent, canister_id, CANDID_SERVICE)
+        .await?
+        .ok_or_else(|| {
+            anyhow!("`{CANDID_SERVICE}` metadata not found in canister {canister_id}.")
+        })?;
+    write_to_tempfile_then_rename(&candid_bytes, &canister_dir, "canister.did")?;
+
+    // try fetch `dfx::init` and save in "init.txt"
+    match fetch_metatdata(agent, canister_id, DFX_INIT).await {
+        Ok(Some(init_bytes)) => {
+            write_to_tempfile_then_rename(&init_bytes, &canister_dir, "init.txt")?
+        }
+        Ok(None) => {
+            info!(
+                logger,
+                "Canister {canister_id} doesn't define `{DFX_INIT}` metadata."
+            )
+        }
+        Err(e) => {
+            bail!(e);
+        }
+    };
+
+    Ok(())
+}
+
+#[context("Failed to write to a tempfile in {} and rename it to {file_name}", dir.display())]
+fn write_to_tempfile_then_rename(content: &[u8], dir: &PathBuf, file_name: &str) -> DfxResult<()> {
+    let mut f = tempfile::NamedTempFile::new_in(dir)?;
+    f.write_all(content)?;
+    let path = dir.join(file_name);
+    std::fs::rename(f.path(), &path)?;
     Ok(())
 }
 
