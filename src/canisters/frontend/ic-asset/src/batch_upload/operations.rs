@@ -9,6 +9,9 @@ use crate::canister_api::types::batch_upload::common::{
 use crate::canister_api::types::batch_upload::v0::{BatchOperationKind, CommitBatchArguments};
 use std::collections::HashMap;
 
+#[allow(dead_code)]
+pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 0;
+
 pub(crate) fn assemble_batch_operations(
     project_assets: HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
