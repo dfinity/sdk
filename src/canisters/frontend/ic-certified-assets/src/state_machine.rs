@@ -1053,18 +1053,7 @@ fn on_asset_change(
     let mut affected_keys = dependent_keys;
     affected_keys.push(key.to_string());
 
-    // Clean up pre-existing paths for this asset
-    for key in affected_keys.iter() {
-        let key_path = AssetPath::from(key);
-        asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
-        asset_hashes.delete(key_path.asset_hash_path_v1().as_vec());
-        if key == INDEX_FILE {
-            asset_hashes.delete(&[
-                NestedTreeKey::String("http_expr".into()),
-                NestedTreeKey::String("<*>".into()),
-            ]);
-        }
-    }
+    delete_preexisting_asset_hashes(asset_hashes, &affected_keys);
 
     if asset.encodings.is_empty() {
         return;
@@ -1090,30 +1079,52 @@ fn on_asset_change(
             enc.response_hashes =
                 Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name));
 
-            for key in &affected_keys {
-                let key_path = AssetPath::from(&key);
-                let v1_path = key_path.asset_hash_path_v1();
-                if asset_hashes.get(v1_path.as_vec()).is_none() {
-                    // v1 can only certify one encoding, therefore we only insert the first encoding as defined by encoding_certification_order()
-                    asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
-                }
-                for status_code in STATUS_CODES_TO_CERTIFY {
-                    if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
-                        asset_hashes.insert(hash_path.as_vec(), Vec::new());
-                    } else {
-                        unreachable!(
-                            "Could not create a hash path for a status code {} and key {} - did you forget to add a response hash for this status code?",
-                            status_code, &key
-                        );
-                    }
-                }
-                if key == INDEX_FILE {
-                    if let Some(not_found_hash_path) = enc.not_found_hash_path() {
-                        asset_hashes.insert(not_found_hash_path.as_vec(), Vec::new());
-                    }
-                }
-            }
+            insert_new_response_hashes_for_encoding(asset_hashes, enc, &affected_keys);
             enc.certified = true;
+        }
+    }
+}
+
+fn delete_preexisting_asset_hashes(asset_hashes: &mut AssetHashes, affected_keys: &Vec<String>) {
+    for key in affected_keys.iter() {
+        let key_path = AssetPath::from(key);
+        asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
+        asset_hashes.delete(key_path.asset_hash_path_v1().as_vec());
+        if key == INDEX_FILE {
+            asset_hashes.delete(&[
+                NestedTreeKey::String("http_expr".into()),
+                NestedTreeKey::String("<*>".into()),
+            ]);
+        }
+    }
+}
+
+fn insert_new_response_hashes_for_encoding(
+    asset_hashes: &mut AssetHashes,
+    enc: &AssetEncoding,
+    affected_keys: &Vec<String>,
+) {
+    for key in affected_keys {
+        let key_path = AssetPath::from(&key);
+        let v1_path = key_path.asset_hash_path_v1();
+        if asset_hashes.get(v1_path.as_vec()).is_none() {
+            // v1 can only certify one encoding, therefore we only insert the first encoding as defined by encoding_certification_order()
+            asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
+        }
+        for status_code in STATUS_CODES_TO_CERTIFY {
+            if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
+                asset_hashes.insert(hash_path.as_vec(), Vec::new());
+            } else {
+                unreachable!(
+                    "Could not create a hash path for a status code {} and key {} - did you forget to add a response hash for this status code?",
+                    status_code, &key
+                );
+            }
+        }
+        if key == INDEX_FILE {
+            if let Some(not_found_hash_path) = enc.not_found_hash_path() {
+                asset_hashes.insert(not_found_hash_path.as_vec(), Vec::new());
+            }
         }
     }
 }
