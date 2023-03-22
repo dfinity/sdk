@@ -22,8 +22,8 @@ url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64
 sha256 = '9bc44e6cb015f8df65bd1ad965079bd3991c5d4d550530bbe6d5fe8356ead916'
 
 [x86_64-darwin.ic-nns-init]
-url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-nns-init.gz'
-sha256 = '828af4e1998bdd069f3212d6fc9e84e3fc5287bc00832649ac2494fcde4c4c23'
+url = 'https://download.dfinity.systems/ic/f24c7853befe4b85993f61d11df977a4fd721824/binaries/x86_64-darwin/ic-nns-init.gz'
+sha256 = 'e1ffb3fc09e7deac60edf344d338ee81c639f65b6a08249946d27dfa3af42dbd'
 
 [x86_64-darwin.ic-starter]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/sdk-release/x86_64-darwin/ic-starter.gz'
@@ -76,8 +76,8 @@ url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64
 sha256 = '4aca94385bf2e685761c80787202a24151ae942b46cd929ac1e10f6d4bba4555'
 
 [x86_64-linux.ic-nns-init]
-url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-linux/ic-nns-init.gz'
-sha256 = 'a0b4937d94890f6a594089ac906fb98780ead27528afbad17612c3745b39379a'
+url = 'https://download.dfinity.systems/ic/f24c7853befe4b85993f61d11df977a4fd721824/binaries/x86_64-linux/ic-nns-init.gz'
+sha256 = '4de144c8630d5ca46be067197412a9209c8cedde7be72423425743bb6b1c5175'
 
 [x86_64-linux.ic-starter]
 url = 'https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/sdk-release/x86_64-linux/ic-starter.gz'

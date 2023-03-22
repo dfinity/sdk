@@ -1,11 +1,10 @@
-use crate::asset_canister::batch::{commit_batch, create_batch};
-use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
-use crate::asset_config::AssetConfig;
-use crate::operations::{
-    create_new_assets, delete_incompatible_assets, set_encodings, unset_obsolete_encodings,
-};
-use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
+use crate::asset::config::AssetConfig;
+use crate::batch_upload::operations::{assemble_batch_operations, AssetDeletionReason};
+use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
+use crate::canister_api::methods::batch::{commit_batch, create_batch};
+use crate::canister_api::methods::list::list_assets;
+use crate::canister_api::types::batch_upload::CommitBatchArguments;
+
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -43,7 +42,11 @@ pub async fn upload(
     )
     .await?;
 
-    let operations = assemble_upload_operations(project_assets, canister_assets);
+    let operations = assemble_batch_operations(
+        project_assets,
+        canister_assets,
+        AssetDeletionReason::Incompatible,
+    );
 
     info!(logger, "Committing batch.");
 
@@ -55,20 +58,4 @@ pub async fn upload(
     commit_batch(canister, args).await?;
 
     Ok(())
-}
-
-fn assemble_upload_operations(
-    project_assets: HashMap<String, ProjectAsset>,
-    canister_assets: HashMap<String, AssetDetails>,
-) -> Vec<BatchOperationKind> {
-    let mut canister_assets = canister_assets;
-
-    let mut operations = vec![];
-
-    delete_incompatible_assets(&mut operations, &project_assets, &mut canister_assets);
-    create_new_assets(&mut operations, &project_assets, &canister_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
-    set_encodings(&mut operations, project_assets);
-
-    operations
 }

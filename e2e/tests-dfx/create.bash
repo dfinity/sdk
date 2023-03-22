@@ -21,26 +21,29 @@ teardown() {
 
 @test "create succeeds with --specified-id" {
     dfx_start
-    # the default local subnet host 2^20 canisters starting from index 0
-    # so the largest canister ID can be specified is n5n4y-3aaaa-aaaaa-p777q-cai (2^20 - 1)
     assert_command dfx canister create e2e_project_backend --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
     assert_command dfx canister id e2e_project_backend
     assert_match n5n4y-3aaaa-aaaaa-p777q-cai
 }
 
-@test "create fails when specify out of range canister ID" {
-    # This sad path shows that local replica limit the range of canister ID.
-    # Once we figure out how to config that range, we should modify this test case accordingly.
-
+@test "create succeeds when specify large canister ID" {
     # ic-ref defaults to have two subnets, each host 2^20 canisters
-    # so the following create command will not fail
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     
     dfx_start
-    # the default local subnet host 2^20 canisters starting from index 0
-    # so canister ID of 5v3p4-iyaaa-aaaaa-qaaaa-cai (2^20) is out of range
-    assert_command_fail dfx canister create e2e_project_backend --specified-id 5v3p4-iyaaa-aaaaa-qaaaa-cai
-    assert_match "Specified CanisterId 5v3p4-iyaaa-aaaaa-qaaaa-cai is not hosted by subnet"
+    # hhn2s-5l777-77777-7777q-cai is the canister ID of (u64::MAX / 2)
+    assert_command dfx canister create e2e_project_backend --specified-id hhn2s-5l777-77777-7777q-cai
+    assert_command dfx canister id e2e_project_backend
+    assert_match hhn2s-5l777-77777-7777q-cai
+}
+
+@test "create fails when specify out of range canister ID" {
+    dfx_start
+    # nojwb-ieaaa-aaaaa-aaaaa-cai is the canister ID of (u64::MAX / 2 + 1)
+    assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
+
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref" # ic-ref has different error code and message
+    assert_match "Specified CanisterId nojwb-ieaaa-aaaaa-aaaaa-cai is not hosted by subnet"
 }
 
 @test "create fails if set both --all and --specified-id" {

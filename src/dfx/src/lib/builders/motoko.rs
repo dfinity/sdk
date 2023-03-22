@@ -1,4 +1,3 @@
-use crate::config::cache::Cache;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -9,6 +8,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::CANDID_SERVICE;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
+use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 
 use anyhow::Context;

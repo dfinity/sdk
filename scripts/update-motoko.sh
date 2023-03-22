@@ -17,4 +17,4 @@ niv update motoko-x86_64-linux -a version=$VERSION
 echo "Writing asset sources"
 ./scripts/write-dfx-asset-sources.sh
 
-echo "Done. Don't forget to update CHANGELOG.adoc"
+echo "Done. Don't forget to update CHANGELOG.md"

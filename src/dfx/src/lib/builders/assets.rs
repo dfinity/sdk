@@ -1,4 +1,3 @@
-use crate::config::cache::Cache;
 use crate::lib::builders::{
     set_perms_readwrite, BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -8,6 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
+use dfx_core::config::cache::Cache;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, Context};
