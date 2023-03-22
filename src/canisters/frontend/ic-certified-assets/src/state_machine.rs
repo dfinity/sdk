@@ -107,6 +107,49 @@ impl AssetEncoding {
             None
         }
     }
+
+    fn update_response_hashes(
+        &mut self,
+        headers: &Option<HashMap<String, String>>,
+        max_age: &Option<u64>,
+        content_type: &str,
+        encoding_name: &str,
+    ) {
+        let mut encoding_headers: Vec<(String, Value)> = build_headers(
+            headers.as_ref().map(|h| h.iter()),
+            max_age,
+            content_type,
+            encoding_name,
+            self.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression),
+        )
+        .into_iter()
+        .map(|(k, v)| (k, Value::String(v)))
+        .collect();
+
+        let new_response_hashes = {
+            let mut response_hashes = HashMap::new();
+            encoding_headers.insert(0, (":ic-cert-status".to_string(), Value::Number(200)));
+
+            // add HTTP 200
+            let header_hash = representation_independent_hash(&encoding_headers);
+            let response_hash_200: [u8; 32] =
+                sha2::Sha256::digest(&[header_hash.as_ref(), self.sha256.as_ref()].concat()).into();
+            response_hashes.insert(200, response_hash_200);
+
+            // add HTTP 304
+            encoding_headers
+                .get_mut(0)
+                .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
+            let header_hash = representation_independent_hash(&encoding_headers);
+            let empty_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
+            let response_hash_304: [u8; 32] =
+                sha2::Sha256::digest(&[header_hash.as_ref(), empty_body_hash.as_ref()].concat())
+                    .into();
+            response_hashes.insert(304, response_hash_304);
+            response_hashes
+        };
+        self.response_hashes = Some(new_response_hashes);
+    }
 }
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
@@ -1085,42 +1128,7 @@ fn on_asset_change(
             ..
         } = asset;
         if let Some(enc) = encodings.get_mut(enc_name) {
-            let mut encoding_headers: Vec<(String, Value)> = build_headers(
-                headers.as_ref().map(|h| h.iter()),
-                max_age,
-                &*content_type,
-                enc_name,
-                enc.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression),
-            )
-            .into_iter()
-            .map(|(k, v)| (k, Value::String(v)))
-            .collect();
-
-            let new_response_hashes = {
-                let mut response_hashes = HashMap::new();
-                encoding_headers.insert(0, (":ic-cert-status".to_string(), Value::Number(200)));
-
-                // add HTTP 200
-                let header_hash = representation_independent_hash(&encoding_headers);
-                let response_hash_200: [u8; 32] =
-                    sha2::Sha256::digest(&[header_hash.as_ref(), enc.sha256.as_ref()].concat())
-                        .into();
-                response_hashes.insert(200, response_hash_200);
-
-                // add HTTP 304
-                encoding_headers
-                    .get_mut(0)
-                    .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
-                let header_hash = representation_independent_hash(&encoding_headers);
-                let empty_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
-                let response_hash_304: [u8; 32] = sha2::Sha256::digest(
-                    &[header_hash.as_ref(), empty_body_hash.as_ref()].concat(),
-                )
-                .into();
-                response_hashes.insert(304, response_hash_304);
-                response_hashes
-            };
-            enc.response_hashes = Some(new_response_hashes);
+            enc.update_response_hashes(headers, max_age, content_type, enc_name);
 
             for (key, v1_path) in &keys_to_insert_hash_for {
                 let key_path = AssetPath::from(&key);
