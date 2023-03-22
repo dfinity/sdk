@@ -45,7 +45,7 @@ pub enum ProjectError {
     #[error("Failed to GET resource located at '{0}': {1}")]
     FailedToGetResource(url::Url, reqwest::Error),
 
-    #[error("Failed to GET resource located at '{0}': {1}")]
+    #[error("Failed to GET resource located at '{0}', server returned an error: {1}")]
     GettingResourceReturnedHTTPError(url::Url, reqwest::Error),
 
     #[error("Failed to get body from '{0}': {1}")]
