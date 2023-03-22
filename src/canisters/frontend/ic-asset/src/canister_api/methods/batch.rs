@@ -2,13 +2,12 @@ use std::time::Duration;
 
 use crate::batch_upload::retryable::retryable;
 use crate::canister_api::methods::method_names::{COMMIT_BATCH, CREATE_BATCH};
-use crate::canister_api::types::batch_upload::{
-    CommitBatchArguments, CreateBatchRequest, CreateBatchResponse,
-};
+use crate::canister_api::types::batch_upload::common::{CreateBatchRequest, CreateBatchResponse};
+
 use anyhow::bail;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
-use candid::Nat;
+use candid::{CandidType, Nat};
 use ic_utils::Canister;
 
 pub(crate) async fn create_batch(canister: &Canister<'_>) -> anyhow::Result<Nat> {
@@ -42,9 +41,9 @@ pub(crate) async fn create_batch(canister: &Canister<'_>) -> anyhow::Result<Nat>
     Ok(result)
 }
 
-pub(crate) async fn commit_batch(
+pub(crate) async fn commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
-    arg: CommitBatchArguments,
+    arg: T, // CommitBatchArguments_{v0,v1,etc}
 ) -> anyhow::Result<()> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
