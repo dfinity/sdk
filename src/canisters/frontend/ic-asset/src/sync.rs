@@ -12,7 +12,7 @@ use crate::canister_api::methods::{
     list::list_assets,
 };
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use ic_utils::Canister;
 use slog::{info, warn, Logger};
 use std::collections::HashMap;
@@ -47,10 +47,18 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
         batch_id,
     );
 
-    match api_version(canister).await {
+    let canister_api_version = api_version(canister).await;
+    info!(logger, "Committing batch.");
+    match canister_api_version {
         0.. => {
-            info!(logger, "Committing batch.");
-            commit_batch(canister, commit_batch_args).await?;
+            // in the next PR:
+            // if BATCH_UPLOAD_API_VERSION == 1 {
+            //     let commit_batch_args = commit_batch_args.try_into::<v0::CommitBatchArguments>()?;
+            //     warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
+            // }
+            commit_batch(canister, commit_batch_args)
+                .await
+                .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
         }
     }
 
