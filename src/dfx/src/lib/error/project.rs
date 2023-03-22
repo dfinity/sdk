@@ -19,7 +19,7 @@ pub enum ProjectError {
     #[error("The key 'canisters' is missing dfx.json.")]
     DfxJsonMissingCanisters,
 
-    #[error("The value behind the key 'canisters' in dfx.json is not an object.")]
+    #[error("The 'canisters' value in dfx.json is not an object.")]
     DfxJsonCanistersNotObject,
     // Q: combine these two errors into one?
     // upper is a bit more specific because it menions dfx.json
