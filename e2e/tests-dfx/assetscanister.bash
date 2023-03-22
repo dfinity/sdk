@@ -1291,3 +1291,40 @@ WARN: {
     assert_command dfx canister call e2e_project_frontend api_version '()'
     assert_match '\([0-9]* : nat16\)'
 }
+
+@test "syncs asset properties when redeploying" {
+    install_asset assetscanister
+    dfx_start
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/text-with-newlines.txt")'
+    assert_contains '(
+  record {
+    headers = null;
+    is_aliased = null;
+    allow_raw_access = opt false;
+    max_age = null;
+  },
+)'
+
+    echo '[
+      {
+        "match": "**/*",
+        "cache": { "max_age": 2000 },
+        "headers": {
+          "x-header": "x-value"
+        },
+        "allow_raw_access": true,
+        "enable_aliasing": false
+      },
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/text-with-newlines.txt")'
+    assert_contains '(
+  record {
+    headers = opt vec { record { "x-header"; "x-value" } };
+    is_aliased = opt false;
+    allow_raw_access = opt true;
+    max_age = opt (2_000 : nat64);
+  },
+)'
+}
