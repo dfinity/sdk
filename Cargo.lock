@@ -925,6 +925,7 @@ dependencies = [
  "ring",
  "schemars",
  "sec1",
+ "semver",
  "serde",
  "serde_json",
  "slog",

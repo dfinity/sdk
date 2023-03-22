@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod config;
 pub mod dfx_config;
 pub mod encryption;

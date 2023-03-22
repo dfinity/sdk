@@ -14,6 +14,14 @@ When creating a canister on non-mainnet replica, you can now specify the caniste
 
 `dfx deploy <CANISTER_NAME> --specified-id <PRINCIPAL>`
 
+You can specify the ID in the range of `[0, u64::MAX / 2]`.
+If not specify the ID, the canister will be created in the range of `[u64::MAX / 2 + 1, u64::MAX]`. 
+This canister ID allocation behavior only applies to the replica, not the emulator (ic-ref).
+
+### feat: dfx nns install --ledger-accounts
+
+`dfx nns install` now takes an option `--ledger-accounts` to initialize the ledger canister with these accounts. 
+
 ### fix: update Rust canister template.
 
 `ic-cdk-timers` is included in the dependencies.
@@ -49,6 +57,8 @@ Added the ability to configure the WASM module used for assets canisters through
 ### fix: dfx deploy and icx-asset no longer retry on permission failure
 
 ### chore: clarify `dfx identity new` help text
+
+### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
 
 ## Asset Canister
 

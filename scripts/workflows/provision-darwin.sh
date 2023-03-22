@@ -7,6 +7,7 @@ export
 # Enter temporary directory.
 pushd /tmp
 
+# Install Bats + moreutils.
 brew install coreutils moreutils
 
 # Install Bats.
