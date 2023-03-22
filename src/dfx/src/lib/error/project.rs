@@ -2,11 +2,11 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ProjectError {
-    // #[error(transparent)]
-    // FoundationError(#[from] dfx_core::error::foundation::FoundationError),
+    #[error(transparent)]
+    StructuredFileError(#[from] dfx_core::error::structured_file::StructuredFileError),
 
-    // #[error(transparent)]
-    // IoError(#[from] dfx_core::error::io::IoError),
+    #[error(transparent)]
+    IoError(#[from] dfx_core::error::io::IoError),
 
     // #[error(transparent)]
     // ProcessError(#[from] dfx_core::error::process::ProcessError),
@@ -34,6 +34,6 @@ pub enum ProjectError {
 
     // #[error("Failed to read entry in cache directory: {0}")]
     // ReadCacheEntryFailed(std::io::Error),
-    #[error("dummy sucker")]
-    Dummy,
+    #[error("dummy {0}")]
+    Dummy(String),
 }

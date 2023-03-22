@@ -43,7 +43,7 @@ pub async fn import_canister_definitions(
     let mut loader = Loader::new();
 
     let their_dfx_json_url = location_to_url(their_dfx_json_location)?;
-    let their_canister_ids_json_url = their_dfx_json_url.join("canister_ids.json").map_err(|_e| ProjectError::Dummy)?;
+    let their_canister_ids_json_url = their_dfx_json_url.join("canister_ids.json").map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
 
     let what = if let Some(ref name) = import_only_canister_name {
         format!("canister '{}'", name)
@@ -59,7 +59,7 @@ pub async fn import_canister_definitions(
 
     let our_project_root = config.get_project_root().to_path_buf();
     let candid_output_dir = our_project_root.join("candid");
-    fs::create_dir_all(candid_output_dir).map_err(|_e| ProjectError::Dummy)?;
+    fs::create_dir_all(candid_output_dir).map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
 
     let config_canisters_object = get_canisters_json_object(config)?;
 
@@ -100,7 +100,7 @@ pub async fn import_canister_definitions(
         }
     }
 
-    config.save().map_err(|_e| ProjectError::Dummy)?;
+    config.save()?;
 
     Ok(())
 }
@@ -115,7 +115,7 @@ async fn import_candid_definition(
     our_canister: &mut Map<String, Value>,
 ) -> Result<(), ProjectError> {
     let our_relative_candid_path = format!("candid/{}.did", our_canister_name);
-    let their_candid_url = their_dfx_json_url.join(their_relative_candid).map_err(|_e| ProjectError::Dummy)?;
+    let their_candid_url = their_dfx_json_url.join(their_relative_candid).map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
     let our_candid_path_incl_project_root = our_project_root.join(&our_relative_candid_path);
     info!(
         logger,
@@ -124,13 +124,7 @@ async fn import_candid_definition(
         their_candid_url,
     );
     let candid_definition = loader.get_required_url_contents(&their_candid_url).await?;
-    fs::write(&our_candid_path_incl_project_root, candid_definition).map_err(|_e| ProjectError::Dummy)?;
-    // .with_context(|| {
-    //     format!(
-    //         "Failed to write {}",
-    //         our_candid_path_incl_project_root.display()
-    //     )
-    // })?;
+    dfx_core::fs::write(&our_candid_path_incl_project_root, candid_definition)?;     // WAS: "Failed to write {}", our_candid_path_incl_project_root.display()
 
     our_canister.insert(
         "candid".to_string(),
@@ -143,11 +137,9 @@ pub fn get_canisters_json_object(config: &mut Config) -> Result<&mut Map<String,
     let config_canisters_object = config
         .get_mut_json()
         .pointer_mut("/canisters")
-        // .ok_or_else(|| anyhow!("dfx.json does not contain a canisters element"))?
-        .ok_or_else(|| ProjectError::Dummy)?
+        .ok_or_else(|| ProjectError::Dummy(format!("dfx.json does not contain a canisters element")))?
         .as_object_mut()
-        // .ok_or_else(|| anyhow!("dfx.json canisters element is not an object"))?;
-        .ok_or_else(|| ProjectError::Dummy)?;
+        .ok_or_else(|| ProjectError::Dummy(format!("dfx.json canisters element is not an object")))?;
     Ok(config_canisters_object)
 }
 
@@ -205,19 +197,15 @@ fn ensure_child_object<'a>(
         .get_mut(name)
         .unwrap() // we just added it
         .as_object_mut()
-        .ok_or_else(|| ProjectError::Dummy)
-        // .ok_or_else(|| anyhow!("{} is not a json object", name))
+        .ok_or_else(|| ProjectError::Dummy(format!("{} is not a json object", name)))
 }
 
 fn location_to_url(dfx_json_location: &str) -> Result<Url, ProjectError> {
     Url::parse(dfx_json_location).or_else(|_url_error| {
-        let canonical = PathBuf::from_str(dfx_json_location).map_err(|_e| ProjectError::Dummy)?.canonicalize().map_err(|_e| ProjectError::Dummy)?;
+        let canonical = PathBuf::from_str(dfx_json_location).map_err(|_e| ProjectError::Dummy("TODO".to_string()))?.canonicalize().map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
 
         Url::from_file_path(canonical).map_err(|_file_error_is_unit|
-                                               // {
-            // anyhow!("Unable to parse as url ({}) or file", url_error)
-        // }
-        ProjectError::Dummy
+        ProjectError::Dummy(format!("Unable to parse as url ({}) or file", _url_error))
         )
     })
 }
@@ -243,36 +231,30 @@ impl Loader {
 
             let client = reqwest::Client::builder()
                 .use_preconfigured_tls(tls_config)
-                .build().map_err(|_e| ProjectError::Dummy)?;
-                // .context("Could not create HTTP client.")?;
+                .build().map_err(|_e| ProjectError::Dummy("Could not create HTTP client.".to_string()))?;
             self.client = Some(client);
         }
         Ok(self.client.as_ref().unwrap())
     }
 
-    // #[context("Failed to load project definition from {}", url)]
     async fn load_project_definition(&mut self, url: &Url) -> Result<DfxJsonProject, ProjectError> {
         let body = self.get_required_url_contents(url).await?;
-        let project = serde_json::from_slice(&body).map_err(|_e| ProjectError::Dummy)?;//.context("failed to decode json")?;
+        let project = serde_json::from_slice(&body).map_err(|_e| ProjectError::Dummy(format!("Failed to load project definition from {} ???? or failed to decode json", url)))?;
         Ok(project)
     }
 
-    // #[context("Failed to load canister ids from {}", url)]
     async fn load_canister_ids(&mut self, url: &Url) -> Result<canister_id_store::CanisterIds, ProjectError> {
         match self.get_optional_url_contents(url).await? {
             None => Ok(canister_id_store::CanisterIds::new()),
-            Some(body) => serde_json::from_slice(&body).map_err(|_x| ProjectError::Dummy)//.context("failed to decode json"),
+            Some(body) => serde_json::from_slice(&body).map_err(|_x| ProjectError::Dummy(format!("failed to decode json ???? Failed to load canister ids from {}", url)))
         }
     }
 
-    // #[context("Failed to get contents of url {}", & url)]
     async fn get_required_url_contents(&mut self, url: &Url) -> Result<Vec<u8>, ProjectError> {
         self.get_optional_url_contents(url)
-            .await.map_err(|e| e)?.ok_or_else(|| ProjectError::Dummy)
-            // .ok_or_else(|| anyhow!("Not found: {}", url))
+            .await?.ok_or_else(|| ProjectError::Dummy(format!("Not found: {0} ??? Failed to get contents of url {0}", &url)))
     }
 
-    // #[context("Failed to get contents of url {}", & url)]
     async fn get_optional_url_contents(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
         if url.scheme() == "file" {
             Self::read_optional_file_contents(&PathBuf::from(url.path()))
@@ -281,24 +263,22 @@ impl Loader {
         }
     }
 
-    // #[context("Failed to get contents of file {}", path.display())]
     fn read_optional_file_contents(path: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
         if path.exists() {
-            let contents = fs::read(path).map_err(|_e| ProjectError::Dummy)?;
+            let contents = fs::read(path).map_err(|_e| ProjectError::Dummy(format!("Failed to get contents of file {}", path.display())))?;
             Ok(Some(contents))
         } else {
             Ok(None)
         }
     }
 
-    // #[context("Failed to get body from {}", &url)]
     async fn get_optional_url_body(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
         let client = self.client()?;
-        let response = client.get(url.clone()).send().await.map_err(|_e| ProjectError::Dummy)?;
+        let response = client.get(url.clone()).send().await.map_err(|_e| ProjectError::Dummy("TODO".to_string()))?;
         if response.status() == StatusCode::NOT_FOUND {
             Ok(None)
         } else {
-            let body = response.error_for_status().map_err(|_e| ProjectError::Dummy)?.bytes().await.map_err(|_e| ProjectError::Dummy)?;
+            let body = response.error_for_status().map_err(|_e| ProjectError::Dummy("TODO".to_string()))?.bytes().await.map_err(|_e| ProjectError::Dummy(format!("Failed to get body from {}", &url)))?;
             Ok(Some(body.into()))
         }
     }
