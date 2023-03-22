@@ -145,29 +145,28 @@ impl AssetEncoding {
         .map(|(k, v)| (k, Value::String(v)))
         .collect();
 
-        let new_response_hashes = {
-            let mut response_hashes = HashMap::new();
-            encoding_headers.insert(0, (":ic-cert-status".to_string(), Value::Number(200)));
+        let mut response_hashes = HashMap::new();
+        encoding_headers.insert(0, (":ic-cert-status".to_string(), Value::Number(200)));
 
-            // add HTTP 200
-            let header_hash = representation_independent_hash(&encoding_headers);
-            let response_hash_200: [u8; 32] =
-                sha2::Sha256::digest(&[header_hash.as_ref(), self.sha256.as_ref()].concat()).into();
-            response_hashes.insert(200, response_hash_200);
+        // add HTTP 200
+        let header_hash = representation_independent_hash(&encoding_headers);
+        let response_hash_200: [u8; 32] =
+            sha2::Sha256::digest(&[header_hash.as_ref(), self.sha256.as_ref()].concat()).into();
+        response_hashes.insert(200, response_hash_200);
 
-            // add HTTP 304
-            encoding_headers
-                .get_mut(0)
-                .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
-            let header_hash = representation_independent_hash(&encoding_headers);
-            let empty_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
-            let response_hash_304: [u8; 32] =
-                sha2::Sha256::digest(&[header_hash.as_ref(), empty_body_hash.as_ref()].concat())
-                    .into();
-            response_hashes.insert(304, response_hash_304);
-            response_hashes
-        };
-        new_response_hashes
+        // add HTTP 304
+        encoding_headers
+            .get_mut(0)
+            .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
+        let header_hash = representation_independent_hash(&encoding_headers);
+        let empty_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
+        let response_hash_304: [u8; 32] =
+            sha2::Sha256::digest(&[header_hash.as_ref(), empty_body_hash.as_ref()].concat()).into();
+        response_hashes.insert(304, response_hash_304);
+        debug_assert!(STATUS_CODES_TO_CERTIFY
+            .iter()
+            .all(|code| response_hashes.contains_key(code)));
+        response_hashes
     }
 }
 
