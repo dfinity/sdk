@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::config::cache::DiskBasedCache;
 use crate::lib::agent::create_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
@@ -47,7 +48,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    env.get_cache().install()?;
+    DiskBasedCache::install(&env.get_cache().version_str())?;
 
     let build_mode_check = opts.check;
 

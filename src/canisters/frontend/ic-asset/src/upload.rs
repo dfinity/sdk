@@ -1,11 +1,16 @@
-use crate::asset_canister::batch::{commit_batch, create_batch};
-use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
-use crate::asset_config::AssetConfig;
-use crate::operations::{
-    create_new_assets, delete_incompatible_assets, set_encodings, unset_obsolete_encodings,
+use crate::asset::config::AssetConfig;
+use crate::batch_upload::{
+    self,
+    operations::AssetDeletionReason,
+    plumbing::{make_project_assets, AssetDescriptor},
 };
-use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
+use crate::canister_api::methods::{
+    api_version::api_version,
+    batch::{commit_batch, create_batch},
+    list::list_assets,
+};
+
+use anyhow::anyhow;
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -43,32 +48,27 @@ pub async fn upload(
     )
     .await?;
 
-    let operations = assemble_upload_operations(project_assets, canister_assets);
-
-    info!(logger, "Committing batch.");
-
-    let args = CommitBatchArguments {
+    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
+        project_assets,
+        canister_assets,
+        AssetDeletionReason::Incompatible,
         batch_id,
-        operations,
-    };
+    );
 
-    commit_batch(canister, args).await?;
+    let canister_api_version = api_version(canister).await;
+    info!(logger, "Committing batch.");
+    match canister_api_version {
+        0.. => {
+            // in the next PR:
+            // if BATCH_UPLOAD_API_VERSION == 1 {
+            //     let commit_batch_args = commit_batch_args.try_into::<v0::CommitBatchArguments>()?;
+            //     warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
+            // }
+            commit_batch(canister, commit_batch_args)
+                .await
+                .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+        }
+    }
 
     Ok(())
-}
-
-fn assemble_upload_operations(
-    project_assets: HashMap<String, ProjectAsset>,
-    canister_assets: HashMap<String, AssetDetails>,
-) -> Vec<BatchOperationKind> {
-    let mut canister_assets = canister_assets;
-
-    let mut operations = vec![];
-
-    delete_incompatible_assets(&mut operations, &project_assets, &mut canister_assets);
-    create_new_assets(&mut operations, &project_assets, &canister_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
-    set_encodings(&mut operations, &project_assets);
-
-    operations
 }
