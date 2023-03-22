@@ -1,6 +1,6 @@
 use crate::certification_types::IcCertificateExpression;
 use crate::rc_bytes::RcBytes;
-use crate::state_machine::{Asset, AssetEncoding};
+use crate::state_machine::{encoding_certification_order, Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
 use ic_certified_map::{Hash, HashTree};
 use serde::Serialize;
@@ -177,6 +177,77 @@ impl HttpResponse {
             body,
             streaming_strategy,
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn build_ok_from_requested_encodings(
+        asset: &Asset,
+        requested_encodings: Vec<String>,
+        key: &str,
+        chunk_index: usize,
+        certificate_header: Option<HeaderField>,
+        callback: Func,
+        etags: Vec<Hash>,
+        cert_version: u8,
+    ) -> HttpResponse {
+        for enc_name in requested_encodings.iter() {
+            if let Some(enc) = asset.encodings.get(enc_name) {
+                if enc.certified {
+                    return Self::build_ok(
+                        asset,
+                        enc_name,
+                        enc,
+                        key,
+                        chunk_index,
+                        certificate_header,
+                        callback,
+                        etags,
+                        cert_version,
+                    );
+                }
+            }
+        }
+
+        // None of the requested encodings are available with certification
+        // In v1, a first fall-back measure is to return a non-certified encoding, if requested
+        if cert_version == 1 {
+            for enc_name in requested_encodings.iter() {
+                if let Some(enc) = asset.encodings.get(enc_name) {
+                    return Self::build_ok(
+                        asset,
+                        enc_name,
+                        enc,
+                        key,
+                        chunk_index,
+                        None,
+                        callback,
+                        etags,
+                        cert_version,
+                    );
+                }
+            }
+        }
+
+        // None of the requested encodings are available - fall back to the best we have
+        for enc_name in encoding_certification_order(asset.encodings.keys()) {
+            if let Some(enc) = asset.encodings.get(&enc_name) {
+                // One encoding is always certified, therefore we can search for it
+                if enc.certified {
+                    return Self::build_ok(
+                        asset,
+                        &enc_name,
+                        enc,
+                        key,
+                        chunk_index,
+                        certificate_header,
+                        callback,
+                        etags,
+                        cert_version,
+                    );
+                }
+            }
+        }
+        unreachable!("No available encodings for requested asset.")
     }
 
     pub fn build_400(err_msg: &str) -> Self {

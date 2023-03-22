@@ -39,7 +39,7 @@ const ENCODING_CERTIFICATION_ORDER: &[&str] = &["identity", "gzip", "compress", 
 // then follow the order of existing encodings.
 // For v2, it is important to certify all encodings, therefore all encodings are added to the list.
 // Once v1 support is removed, this function is no longer necessary
-fn encoding_certification_order<'a>(
+pub fn encoding_certification_order<'a>(
     actual_encodings: impl Iterator<Item = &'a String>,
 ) -> Vec<String> {
     let mut encoding_order: Vec<String> = ENCODING_CERTIFICATION_ORDER
@@ -727,8 +727,8 @@ impl State {
         &self,
         certificate: &[u8],
         path: &str,
-        encodings: Vec<String>,
-        index: usize,
+        requested_encodings: Vec<String>,
+        chunk_index: usize,
         callback: Func,
         etags: Vec<Hash>,
         req: HttpRequest,
@@ -782,23 +782,16 @@ impl State {
                 if !asset.allow_raw_access() && req.is_raw_domain() {
                     return req.redirect_from_raw_to_certified_domain();
                 }
-                for enc_name in encodings.iter() {
-                    if let Some(enc) = asset.encodings.get(enc_name) {
-                        if enc.certified {
-                            return HttpResponse::build_ok(
-                                asset,
-                                enc_name,
-                                enc,
-                                INDEX_FILE,
-                                index,
-                                Some(certificate_header),
-                                callback,
-                                etags,
-                                req.get_certificate_version(),
-                            );
-                        }
-                    }
-                }
+                return HttpResponse::build_ok_from_requested_encodings(
+                    asset,
+                    requested_encodings,
+                    path,
+                    chunk_index,
+                    Some(certificate_header),
+                    callback,
+                    etags,
+                    req.get_certificate_version(),
+                );
             }
         }
 
@@ -819,52 +812,16 @@ impl State {
             if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
             }
-            if req.get_certificate_version() == 1 {
-                // This is the same order used when setting the certified value
-                // V1 only supports certifying one encoding, so we just use the first one that exists in this order
-                let mut encoding_order: Vec<String> = ENCODING_CERTIFICATION_ORDER
-                    .iter()
-                    .map(|enc| enc.to_string())
-                    .collect();
-                if let Some(enc) = encodings.iter().next() {
-                    encoding_order.push(enc.clone());
-                }
-                for enc_name in encoding_order.iter() {
-                    if let Some(enc) = asset.encodings.get(enc_name) {
-                        if enc.certified {
-                            return HttpResponse::build_ok(
-                                asset,
-                                enc_name,
-                                enc,
-                                path,
-                                index,
-                                Some(certificate_header),
-                                callback,
-                                etags,
-                                1,
-                            );
-                        }
-                    }
-                }
-            } else {
-                for enc_name in encodings.iter() {
-                    if let Some(enc) = asset.encodings.get(enc_name) {
-                        if enc.certified {
-                            return HttpResponse::build_ok(
-                                asset,
-                                enc_name,
-                                enc,
-                                path,
-                                index,
-                                Some(certificate_header),
-                                callback,
-                                etags,
-                                req.get_certificate_version(),
-                            );
-                        }
-                    }
-                }
-            }
+            return HttpResponse::build_ok_from_requested_encodings(
+                asset,
+                requested_encodings,
+                path,
+                chunk_index,
+                Some(certificate_header),
+                callback,
+                etags,
+                req.get_certificate_version(),
+            );
         }
 
         HttpResponse::build_404(certificate_header)
@@ -886,7 +843,6 @@ impl State {
                 }
             }
         }
-        encodings.push("identity".to_string());
 
         let path = match req.url.find('?') {
             Some(i) => &req.url[..i],
