@@ -9,7 +9,7 @@ use crate::batch_upload::{
 };
 use crate::canister_api::methods::{
     api_version::api_version,
-    asset_properties::get_asset_properties,
+    asset_properties::get_assets_properties,
     batch::{commit_batch, create_batch},
     list::list_assets,
 };
@@ -27,7 +27,7 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
-    let canister_asset_properties = get_asset_properties(canister, &canister_assets).await?;
+    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
 
     info!(logger, "Starting batch.");
 

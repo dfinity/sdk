@@ -9,7 +9,6 @@ use candid::{CandidType, Nat};
 
 /// Batch operations that can be applied atomically.
 #[derive(CandidType, Debug)]
-#[allow(dead_code)]
 pub enum BatchOperationKind {
     /// Create a new asset.
     CreateAsset(CreateAssetArguments),
@@ -24,9 +23,10 @@ pub enum BatchOperationKind {
     DeleteAsset(DeleteAssetArguments),
 
     /// Clear all state from the asset canister.
+    #[allow(dead_code)]
     Clear(ClearArguments),
 
-    /// omment
+    /// Set asset properties.
     SetAssetProperties(SetAssetPropertiesArguments),
 }
 

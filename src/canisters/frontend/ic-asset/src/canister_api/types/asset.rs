@@ -25,7 +25,18 @@ pub struct AssetDetails {
     pub content_type: String,
 }
 
-/// TODO add comments
+/// Information about the properties stored for an asset.
+#[derive(CandidType, Debug, Deserialize, Default)]
+pub struct AssetProperties {
+    /// Asset's cache max_age property
+    pub max_age: Option<u64>,
+    /// Asset's HTTP response headers
+    pub headers: Option<HashMap<String, String>>,
+    /// Asset's toggle for whether to serve the asset over .raw domain
+    pub allow_raw_access: Option<bool>,
+}
+
+/// Sets the asset with the given properties.
 #[derive(Debug, CandidType)]
 pub struct SetAssetPropertiesArguments {
     pub key: String,
@@ -34,18 +45,7 @@ pub struct SetAssetPropertiesArguments {
     pub allow_raw_access: Option<Option<bool>>,
 }
 
-/// TODO: comment
-#[derive(CandidType, Debug, Deserialize, Default)]
-pub struct AssetProperties {
-    /// TODO: comment
-    pub max_age: Option<u64>,
-    /// TODO: comment
-    pub headers: Option<HashMap<String, String>>,
-    /// TODO: comment
-    pub allow_raw_access: Option<bool>,
-}
-
-/// TODO: comment
+/// The arguments to the `get_asset_properties` method.
 #[derive(CandidType, Debug)]
 pub struct GetAssetProperties {
     pub key: String,

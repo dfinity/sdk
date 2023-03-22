@@ -167,12 +167,14 @@ pub(crate) fn update_properties(
     canister_asset_properties: &HashMap<String, AssetProperties>,
 ) {
     for (key, project_asset) in project_assets {
-        // TODO: if statement checking if the asset is already in the canister
-        // if it is, check if the properties are the same
-        // if its not, skip (proporties gonna be created in create_new_assets)
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
         let canister_asset_properties = canister_asset_properties.get(key);
-        if project_asset_properties.ne(&canister_asset_properties) {
+        // checking if the asset is already in the canister:
+        // - if it is: check if the properties are the same and skip if they are (saves cycles),
+        // - if its not: skip (proporties gonna be created in create_new_assets)
+        if canister_asset_properties.is_some()
+            && project_asset_properties.ne(&canister_asset_properties)
+        {
             println!("Updating properties for {}", key);
             operations.push(BatchOperationKind::SetAssetProperties(
                 SetAssetPropertiesArguments {
