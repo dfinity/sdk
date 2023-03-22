@@ -69,12 +69,16 @@ export_canister_ids() {
     export_canister_ids
 
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_a/main.wasm
+    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:deps" -d "" -v public
+    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "candid:service" -d "service : {}" -v public
 
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_b/main.wasm
     ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "dfx:deps" -d "onchain_a:$CANISTER_ID_A;" -v public
+    ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "candid:service" -d "service : {}" -v public
 
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_c/main.wasm
     ic-wasm src/onchain_c/main.wasm -o src/onchain_c/main.wasm metadata "dfx:deps" -d "onchain_a:$CANISTER_ID_A;" -v public
+    ic-wasm src/onchain_c/main.wasm -o src/onchain_c/main.wasm metadata "candid:service" -d "service : {}" -v public
 
     dfx deploy
 
