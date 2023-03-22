@@ -47,6 +47,4 @@ pub struct SetAssetPropertiesArguments {
 
 /// The arguments to the `get_asset_properties` method.
 #[derive(CandidType, Debug)]
-pub struct GetAssetProperties {
-    pub key: String,
-}
+pub struct GetAssetPropertiesArgument(pub String);

@@ -5,7 +5,7 @@ use ic_utils::Canister;
 
 use crate::canister_api::{
     methods::method_names::GET_ASSET_PROPERTIES,
-    types::asset::{AssetDetails, AssetProperties, GetAssetProperties},
+    types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
 };
 
 pub(crate) async fn get_assets_properties(
@@ -27,9 +27,7 @@ pub(crate) async fn get_asset_properties(
 ) -> anyhow::Result<AssetProperties> {
     let (asset_properties,): (AssetProperties,) = canister
         .query_(GET_ASSET_PROPERTIES)
-        .with_arg(GetAssetProperties {
-            key: asset_id.to_string(),
-        })
+        .with_arg(GetAssetPropertiesArgument(asset_id.to_string()))
         .build()
         .call()
         .await?;
