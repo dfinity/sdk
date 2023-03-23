@@ -12,24 +12,24 @@ categories = ["command-line-interface"]
 keywords = ["internet-computer", "agent", "icp", "dfinity", "asset"]
 
 [dependencies]
-anyhow = "1.0.34"
+anyhow.workspace = true
 candid = { workspace = true }
-clap = { version = "3.0.14", features = ["derive", "cargo"] }
+clap = { workspace = true, features = ["derive", "cargo"] }
 delay = "0.3.1"
-humantime = "2.0.1"
+humantime.workspace = true
 ic-agent = { workspace = true }
-ic-asset = { path = "../ic-asset" }
+ic-asset.workspace = true
 ic-utils = { workspace = true }
 libflate = "1.2.0"
-num-traits = "0.2"
-pem = "1.0.1"
-serde = "1.0.115"
-serde_bytes = "0.11.5"
-serde_json = "1.0.57"
-slog = { version = "2.5.2", features = ["max_level_trace"] }
-slog-async = "2.4.0"
-slog-term = "2.9.0"
-time = { version = "0.3.9", features = ["formatting", "local-offset"] }
-tokio = { version = "1.24.2", features = ["full", "rt"] }
-thiserror = "1.0.24"
-walkdir = "2.3.1"
+num-traits.workspace = true
+pem.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+serde_json.workspace = true
+slog = { workspace = true, features = ["max_level_trace"] }
+slog-async.workspace = true
+slog-term.workspace = true
+time = { workspace = true, features = ["formatting", "local-offset"] }
+tokio = { workspace = true, features = ["full", "rt"] }
+thiserror.workspace = true
+walkdir.workspace = true

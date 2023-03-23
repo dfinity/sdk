@@ -925,6 +925,7 @@ dependencies = [
  "ring",
  "schemars",
  "sec1",
+ "semver",
  "serde",
  "serde_json",
  "slog",
@@ -1787,7 +1788,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_cbor",
- "sha2 0.9.9",
+ "sha2 0.10.6",
 ]
 
 [[package]]

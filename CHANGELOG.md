@@ -14,6 +14,14 @@ When creating a canister on non-mainnet replica, you can now specify the caniste
 
 `dfx deploy <CANISTER_NAME> --specified-id <PRINCIPAL>`
 
+You can specify the ID in the range of `[0, u64::MAX / 2]`.
+If not specify the ID, the canister will be created in the range of `[u64::MAX / 2 + 1, u64::MAX]`. 
+This canister ID allocation behavior only applies to the replica, not the emulator (ic-ref).
+
+### feat: dfx nns install --ledger-accounts
+
+`dfx nns install` now takes an option `--ledger-accounts` to initialize the ledger canister with these accounts. 
+
 ### fix: update Rust canister template.
 
 `ic-cdk-timers` is included in the dependencies.
@@ -50,6 +58,10 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### feat: --created-at-time for the ledger functions: transfer, create-canister, and top-up
 
+### chore: clarify `dfx identity new` help text
+
+### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
@@ -72,7 +84,8 @@ Added `api_version` endpoint. With upcoming changes we will introduce breaking c
 
 ### Frontend canister
 
-- Module hash: 1d170f9732b9c829a1484e7d68d74cf4a5447aa9df8b14df3c373cfda9e29ce0
+- Module hash: f490dea6cec0f8cf047d7ba1a44e434776b5e788a9b2cb45e27e71d54eaf571b
+- https://github.com/dfinity/sdk/pull/3034
 - https://github.com/dfinity/sdk/pull/3023
 - https://github.com/dfinity/sdk/pull/3022
 - https://github.com/dfinity/sdk/pull/3021

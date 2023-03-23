@@ -1,5 +1,5 @@
-use crate::config::cache::Cache;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use dfx_core::config::cache::Cache;
 
 use anyhow::{anyhow, bail};
 use fn_error_context::context;
