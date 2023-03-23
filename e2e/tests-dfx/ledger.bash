@@ -39,6 +39,10 @@ teardown() {
     standard_teardown
 }
 
+current_time_nanoseconds() {
+    echo $(echo $EPOCHSECONDS)000000000
+}
+
 @test "ledger account-id" {
     dfx identity use alice
     assert_command dfx ledger account-id
@@ -82,6 +86,22 @@ teardown() {
     # 10100 - 100 - 0.0001 - 0.00000001 = 9999.99989999
     assert_command dfx ledger balance
     assert_match "999999999.99989999 ICP"
+    
+    # Transaction Deduplication
+    t=$(current_time_nanoseconds)
+    
+    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $t 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    assert_match "Transfer sent at BlockHeight:"
+    
+    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $(($t+1)) 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    assert_match "Transfer sent at BlockHeight:"
+    
+    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $t 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    assert_match "transaction is a duplicate of another transaction in block"
+    
+    assert_command dfx ledger transfer --icp 1 --memo 2 --created-at-time $t 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    assert_match "Transfer sent at BlockHeight:"
+    
 }
 
 @test "ledger subaccounts" {
@@ -133,6 +153,18 @@ tc_to_num() {
     balance_now=$(tc_to_num "$(dfx wallet balance)")
     
     (( balance_now - balance > 4000000000000 ))
+    
+    # Transaction Deduplication
+    t=$(current_time_nanoseconds)
+    
+    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $t
+    assert_match "Canister was topped up with"
+    
+    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $(($t+1))
+    assert_match "Canister was topped up with"
+    
+    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $t
+    assert_match "transaction is a duplicate of another transaction in block"
 }
 
 @test "ledger create-canister" {
@@ -140,6 +172,18 @@ tc_to_num() {
     assert_command dfx ledger create-canister --amount=100 --subnet-type "type1" "$(dfx identity get-principal)"
     assert_match "Transfer sent at block height 6"
     assert_match "Refunded at block height 7 with message: Provided subnet type type1 does not exist"
+    
+    # Transaction Deduplication
+    t=$(current_time_nanoseconds)
+    
+    assert_command dfx ledger create-canister --amount=100 --created-at-time $t "$(dfx identity get-principal)"
+    assert_match "Transfer sent at block height"
+    
+    assert_command dfx ledger create-canister --amount=100 --created-at-time $(($t+1)) "$(dfx identity get-principal)"
+    assert_match "Transfer sent at block height"
+    
+    assert_command dfx ledger create-canister --amount=100 --created-at-time $t "$(dfx identity get-principal)"
+    assert_match "transaction is a duplicate of another transaction in block"
 }
 
 @test "ledger show-subnet-types" {
