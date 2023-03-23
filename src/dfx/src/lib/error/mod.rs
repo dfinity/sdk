@@ -1,8 +1,10 @@
 pub mod build;
+pub mod canister_store_id;
 pub mod extension;
 pub mod project;
 
 pub use build::BuildError;
+pub use canister_store_id::CanisterStoreIdError;
 pub use dfx_core::error::identity::IdentityError;
 pub use extension::ExtensionError;
 pub use project::ProjectError;
