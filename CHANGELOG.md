@@ -78,7 +78,7 @@ Added partial support for proposal-based asset updates:
 
 Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
 
-Added support for v2 asset certification. In comparison to v1, v2 asset certification not only certifies the http response body, but also the headers.
+Added support for v2 asset certification. In comparison to v1, v2 asset certification not only certifies the http response body, but also the headers. The v2 spec is first published in [this PR](https://github.com/dfinity/interface-spec/pull/147)
 
 Added canister metadata field `supported_certificate_versions`, which contains a comma-separated list of all asset certification protocol versions. You can query it e.g. using `dfx canister --network ic metadata <canister name or id> supported_certificate_versions`. In this release, the value of this metadata field value is `1,2` because certification v1 and v2 are supported.
 
@@ -92,7 +92,7 @@ For completeness' sake, the new behavior is as follows:
 
 ### Frontend canister
 
-- Module hash: TODO
+- Module hash: 5ecf0843167119cf533fab2ba58dbd629b1e4cf69e7f29217e3823af0a16b82a
 - https://github.com/dfinity/sdk/pull/2960
 - https://github.com/dfinity/sdk/pull/3034
 - https://github.com/dfinity/sdk/pull/3023

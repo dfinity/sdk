@@ -38,7 +38,6 @@ const ENCODING_CERTIFICATION_ORDER: &[&str] = &["identity", "gzip", "compress", 
 // Order of encodings is relevant for v1. Follow ENCODING_CERTIFICATION_ORDER,
 // then follow the order of existing encodings.
 // For v2, it is important to certify all encodings, therefore all encodings are added to the list.
-// Once v1 support is removed, this function is no longer necessary
 pub fn encoding_certification_order<'a>(
     actual_encodings: impl Iterator<Item = &'a String>,
 ) -> Vec<String> {

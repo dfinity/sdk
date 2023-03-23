@@ -19,7 +19,7 @@ pub struct CertificateExpression {
 pub struct AssetPath(pub Vec<AssetKey>);
 
 /// AssetPath that is ready to be inserted into asset_hashes.
-/// E.g. `["http_expr", "foo", "index.html", "<$>", "<expr_hash>", "<response_hash>"]`
+/// E.g. `["http_expr", "foo", "index.html", "<$>", "<expr_hash>", "<request hash>", "<response_hash>"]`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HashTreePath(pub Vec<NestedTreeKey>);
 
