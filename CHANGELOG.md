@@ -117,20 +117,11 @@ Updated ic-ref to 0.0.1-ca6aca90
 
 ## Asset Canister
 
-### Access control
-
 Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.
-
-### Asset certification
-
-Add support for new certification logic that allows certifying headers.
 
 ## Dependencies
 
 ### Frontend canister
-
-- Module hash: TODO
-- https://github.com/dfinity/sdk/pull/2960
 
 # 0.13.0
 
