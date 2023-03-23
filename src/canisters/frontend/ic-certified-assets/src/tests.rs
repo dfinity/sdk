@@ -241,7 +241,87 @@ fn can_create_assets_using_batch_api() {
 }
 
 #[test]
-fn serve_correct_encoding() {
+fn serve_correct_encoding_v1() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY])
+                .with_encoding("gzip", vec![GZIP_BODY]),
+            AssetBuilder::new("/only-identity.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY]),
+            AssetBuilder::new("/no-encoding.html", "text/html"),
+        ],
+    );
+
+    // Most important encoding is returned with certificate
+    let identity_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(identity_response.status_code, 200);
+    assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
+
+    // If only uncertified encoding is accepted, return it without any certificate
+    let gzip_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(gzip_response.status_code, 200);
+    assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+    assert!(lookup_header(&gzip_response, "IC-Certificate").is_none());
+
+    // If no encoding matches, return most important encoding with certificate
+    let unknown_encoding_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "unknown")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(unknown_encoding_response.status_code, 200);
+    assert_eq!(unknown_encoding_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&unknown_encoding_response, "IC-Certificate").is_some());
+
+    let unknown_encoding_response_2 = state.http_request(
+        RequestBuilder::get("/only-identity.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(unknown_encoding_response_2.status_code, 200);
+    assert_eq!(unknown_encoding_response_2.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&unknown_encoding_response_2, "IC-Certificate").is_some());
+
+    // Serve 404 if the requested asset has no encoding uploaded at all
+    let no_encoding_response = state.http_request(
+        RequestBuilder::get("/no-encoding.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(no_encoding_response.status_code, 404);
+    assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
+}
+
+#[test]
+fn serve_correct_encoding_v2() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
@@ -259,26 +339,6 @@ fn serve_correct_encoding() {
         ],
     );
 
-    let v1_identity_response = state.http_request(
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "identity")
-            .build(),
-        &[],
-        unused_callback(),
-    );
-    assert_eq!(v1_identity_response.status_code, 200);
-    assert_eq!(v1_identity_response.body.as_ref(), IDENTITY_BODY);
-
-    let v1_gzip_response = state.http_request(
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "gzip")
-            .build(),
-        &[],
-        unused_callback(),
-    );
-    assert_eq!(v1_gzip_response.status_code, 200);
-    assert_eq!(v1_gzip_response.body.as_ref(), GZIP_BODY);
-
     let identity_response = state.http_request(
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "identity")
@@ -289,6 +349,7 @@ fn serve_correct_encoding() {
     );
     assert_eq!(identity_response.status_code, 200);
     assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
 
     let gzip_response = state.http_request(
         RequestBuilder::get("/contents.html")
@@ -300,16 +361,19 @@ fn serve_correct_encoding() {
     );
     assert_eq!(gzip_response.status_code, 200);
     assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+    assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
 
     let no_encoding_response = state.http_request(
         RequestBuilder::get("/no-encoding.html")
             .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
             .build(),
         &[],
         unused_callback(),
     );
     assert_eq!(no_encoding_response.status_code, 404);
     assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
+    assert!(lookup_header(&no_encoding_response, "IC-Certificate").is_some());
 }
 
 #[test]

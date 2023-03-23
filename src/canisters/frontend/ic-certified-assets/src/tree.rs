@@ -34,6 +34,7 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> AsHashTree fo
 }
 
 impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K, V> {
+    #[allow(dead_code)]
     pub fn get(&self, path: &[K]) -> Option<&V> {
         if let Some(key) = path.get(0) {
             match self {

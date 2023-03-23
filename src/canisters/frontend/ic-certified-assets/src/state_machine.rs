@@ -72,6 +72,8 @@ pub struct AssetEncoding {
     pub modified: Timestamp,
     pub content_chunks: Vec<RcBytes>,
     pub total_length: usize,
+    /// Valid as-is for v2.
+    /// For v1, also make sure that encoding name == asset.most_important_encoding_v1()
     pub certified: bool,
     pub sha256: [u8; 32],
     pub certificate_expression: Option<CertificateExpression>,
@@ -312,6 +314,16 @@ impl Asset {
             encoding_name.to_owned(),
             ce,
         )
+    }
+
+    // certification v1 only certifies the most important encoding
+    pub fn most_important_encoding_v1(&self) -> String {
+        for enc in encoding_certification_order(self.encodings.keys()).into_iter() {
+            if self.encodings.contains_key(&enc) {
+                return enc;
+            }
+        }
+        "no encoding found".to_string()
     }
 }
 
@@ -1078,6 +1090,7 @@ fn on_asset_change(
 
     asset.update_ic_certificate_expressions();
 
+    let most_important_encoding_v1 = asset.most_important_encoding_v1();
     let Asset {
         content_type,
         encodings,
@@ -1092,7 +1105,12 @@ fn on_asset_change(
             enc.response_hashes =
                 Some(enc.compute_response_hashes(headers, max_age, content_type, enc_name));
 
-            insert_new_response_hashes_for_encoding(asset_hashes, enc, &affected_keys);
+            insert_new_response_hashes_for_encoding(
+                asset_hashes,
+                enc,
+                &affected_keys,
+                enc_name == &most_important_encoding_v1,
+            );
             enc.certified = true;
         }
     }
@@ -1116,12 +1134,13 @@ fn insert_new_response_hashes_for_encoding(
     asset_hashes: &mut AssetHashes,
     enc: &AssetEncoding,
     affected_keys: &Vec<String>,
+    is_most_important_encoding: bool,
 ) {
     for key in affected_keys {
         let key_path = AssetPath::from(&key);
         let v1_path = key_path.asset_hash_path_v1();
-        if asset_hashes.get(v1_path.as_vec()).is_none() {
-            // v1 can only certify one encoding, therefore we only insert the first encoding as defined by encoding_certification_order()
+        if is_most_important_encoding {
+            // v1 can only certify one encoding, therefore we only certify the most important one
             asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
         }
         for status_code in STATUS_CODES_TO_CERTIFY {

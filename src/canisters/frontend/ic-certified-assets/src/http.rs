@@ -193,9 +193,18 @@ impl HttpResponse {
         etags: &Vec<Hash>,
         cert_version: u16,
     ) -> Option<HttpResponse> {
+        let most_important_v1 = asset.most_important_encoding_v1();
+
+        // Return a requested encoding that is certified
         for enc_name in requested_encodings.iter() {
             if let Some(enc) = asset.encodings.get(enc_name) {
                 if enc.certified {
+                    if cert_version == 1 {
+                        // In v1, only the most important encoding is certified.
+                        if enc_name != &most_important_v1 {
+                            continue;
+                        }
+                    }
                     return Some(Self::build_ok(
                         asset,
                         enc_name,
@@ -212,7 +221,7 @@ impl HttpResponse {
         }
 
         // None of the requested encodings are available with certification
-        // In v1, a first fall-back measure is to return a non-certified encoding, if requested
+        // In v1, a first fall-back measure is to return a non-certified encoding, if a requested encoding is available
         if cert_version == 1 {
             for enc_name in requested_encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
@@ -234,7 +243,10 @@ impl HttpResponse {
         // None of the requested encodings are available - fall back to the best we have
         for enc_name in encoding_certification_order(asset.encodings.keys()) {
             if let Some(enc) = asset.encodings.get(&enc_name) {
-                // One encoding is always certified, therefore we can search for it
+                // In v1, only the most important encoding is certified.
+                if enc_name != most_important_v1 {
+                    continue;
+                }
                 if enc.certified {
                     return Some(Self::build_ok(
                         asset,
