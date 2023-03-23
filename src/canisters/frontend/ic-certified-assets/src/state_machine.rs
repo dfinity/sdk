@@ -126,7 +126,31 @@ impl AssetEncoding {
         content_type: &str,
         encoding_name: &str,
     ) -> HashMap<u16, [u8; 32]> {
-        let mut encoding_headers: Vec<(String, Value)> = build_headers(
+        fn compute_response_hash(
+            base_headers: &Vec<(String, Value)>,
+            status_code: u16,
+            body_hash: &[u8; 32],
+        ) -> [u8; 32] {
+            // certification v2 spec:
+            // Response hash is the hash of the concatenation of
+            //   - representation-independent hash of headers
+            //   - hash of the response body
+            //
+            // The representation-independent hash of headers consist of
+            //    - all certified headers (here all headers), plus
+            //    - synthetic header `:ic-cert-status` with value <HTTP status code of response>
+
+            let mut headers = base_headers.clone();
+            headers.push((
+                ":ic-cert-status".to_string(),
+                Value::Number(status_code.into()),
+            ));
+            let header_hash = representation_independent_hash(&headers);
+            sha2::Sha256::digest(&[header_hash.as_ref(), body_hash].concat()).into()
+        }
+
+        // Collect all user-defined headers
+        let base_headers: Vec<(String, Value)> = build_headers(
             headers.as_ref().map(|h| h.iter()),
             max_age,
             content_type,
@@ -139,23 +163,15 @@ impl AssetEncoding {
         .map(|(k, v)| (k, Value::String(v)))
         .collect();
 
-        let mut response_hashes = HashMap::new();
-        encoding_headers.insert(0, (":ic-cert-status".to_string(), Value::Number(200)));
+        // HTTP 200
+        let response_hash_200 = compute_response_hash(&base_headers, 200, &self.sha256);
 
-        // add HTTP 200
-        let header_hash = representation_independent_hash(&encoding_headers);
-        let response_hash_200: [u8; 32] =
-            sha2::Sha256::digest(&[header_hash.as_ref(), self.sha256.as_ref()].concat()).into();
-        response_hashes.insert(200, response_hash_200);
-
-        // add HTTP 304
-        encoding_headers
-            .get_mut(0)
-            .map(|elem| *elem = (":ic-cert-status".to_string(), Value::Number(304)));
-        let header_hash = representation_independent_hash(&encoding_headers);
+        // HTTP 304
         let empty_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
-        let response_hash_304: [u8; 32] =
-            sha2::Sha256::digest(&[header_hash.as_ref(), empty_body_hash.as_ref()].concat()).into();
+        let response_hash_304 = compute_response_hash(&base_headers, 304, &empty_body_hash);
+
+        let mut response_hashes = HashMap::new();
+        response_hashes.insert(200, response_hash_200);
         response_hashes.insert(304, response_hash_304);
 
         debug_assert!(STATUS_CODES_TO_CERTIFY
