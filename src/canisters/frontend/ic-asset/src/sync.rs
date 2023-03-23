@@ -27,7 +27,9 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
-    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+    let canister_asset_properties = get_assets_properties(canister, &canister_assets)
+        .await
+        .unwrap_or(HashMap::new()); // older canisters don't have get_assets_properties method
 
     info!(logger, "Starting batch.");
 
