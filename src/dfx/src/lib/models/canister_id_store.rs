@@ -192,11 +192,7 @@ impl CanisterIdStore {
 }
 
 fn get_remote_ids(config: Option<Arc<Config>>) -> Option<CanisterIds> {
-    let config = if let Some(cfg) = config {
-        cfg
-    } else {
-        return None;
-    };
+    let config = config?;
     let config = config.get_config();
 
     let mut remote_ids = CanisterIds::new();
