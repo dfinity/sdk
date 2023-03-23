@@ -19,7 +19,7 @@ pub struct HttpRequest {
     pub url: String,
     pub headers: Vec<HeaderField>,
     pub body: ByteBuf,
-    pub certificate_version: Option<Nat>,
+    pub certificate_version: Option<u16>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -89,11 +89,11 @@ impl HttpRequest {
     }
 
     // Spec:
-    // If not set: assum version 1.
+    // If not set: assume version 1.
     // If available: use requested certificate version.
     // If requested version is not available: use latest available version.
-    pub fn get_certificate_version(&self) -> u8 {
-        if self.certificate_version.is_none() || self.certificate_version == Some(Nat::from(1)) {
+    pub fn get_certificate_version(&self) -> u16 {
+        if self.certificate_version.is_none() || self.certificate_version == Some(1) {
             1
         } else {
             2 // latest available
@@ -145,7 +145,7 @@ impl HttpResponse {
         certificate_header: Option<HeaderField>,
         callback: Func,
         etags: Vec<Hash>,
-        cert_version: u8,
+        cert_version: u16,
     ) -> HttpResponse {
         let mut headers = asset.get_headers_for_asset(enc_name, cert_version);
         if let Some(head) = certificate_header {
@@ -188,7 +188,7 @@ impl HttpResponse {
         certificate_header: Option<HeaderField>,
         callback: Func,
         etags: Vec<Hash>,
-        cert_version: u8,
+        cert_version: u16,
     ) -> HttpResponse {
         for enc_name in requested_encodings.iter() {
             if let Some(enc) = asset.encodings.get(enc_name) {

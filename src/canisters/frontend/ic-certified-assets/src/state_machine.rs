@@ -286,7 +286,7 @@ impl Asset {
     pub fn get_headers_for_asset(
         &self,
         encoding_name: &str,
-        cert_version: u8,
+        cert_version: u16,
     ) -> HashMap<String, String> {
         let ce = if cert_version != 1 {
             self.encodings

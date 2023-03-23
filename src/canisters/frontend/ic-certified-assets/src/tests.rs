@@ -8,7 +8,7 @@ use crate::types::{
     SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
-use candid::{Nat, Principal};
+use candid::Principal;
 use serde_bytes::ByteBuf;
 
 fn some_principal() -> Principal {
@@ -83,7 +83,7 @@ struct RequestBuilder {
     method: String,
     headers: Vec<(String, String)>,
     body: ByteBuf,
-    certificate_version: Option<Nat>,
+    certificate_version: Option<u16>,
 }
 
 impl RequestBuilder {
@@ -103,8 +103,8 @@ impl RequestBuilder {
         self
     }
 
-    fn with_certificate_version(mut self, version: impl Into<Nat>) -> Self {
-        self.certificate_version = Some(version.into());
+    fn with_certificate_version(mut self, version: u16) -> Self {
+        self.certificate_version = Some(version);
         self
     }
 
