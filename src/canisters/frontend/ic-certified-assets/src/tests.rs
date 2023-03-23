@@ -1324,6 +1324,11 @@ mod certificate_expression {
             c.expression,
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
         );
+        let c2 = build_ic_certificate_expression_from_headers_and_encoding(&h, "identity");
+        assert_eq!(
+            c2.expression,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "a", "b", "c"]}}}})"#
+        );
     }
 
     #[test]
