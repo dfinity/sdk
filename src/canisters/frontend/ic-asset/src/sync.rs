@@ -1,12 +1,18 @@
 use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::batch_upload::operations::{assemble_batch_operations, AssetDeletionReason};
-use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
-use crate::canister_api::methods::batch::{commit_batch, create_batch};
-use crate::canister_api::methods::list::list_assets;
-use crate::canister_api::types::batch_upload::CommitBatchArguments;
-use anyhow::{bail, Context};
+use crate::batch_upload::{
+    self,
+    operations::AssetDeletionReason,
+    plumbing::{make_project_assets, AssetDescriptor},
+};
+use crate::canister_api::methods::{
+    api_version::api_version,
+    batch::{commit_batch, create_batch},
+    list::list_assets,
+};
+
+use anyhow::{anyhow, bail, Context};
 use ic_utils::Canister;
 use slog::{info, warn, Logger};
 use std::collections::HashMap;
@@ -14,11 +20,7 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn upload_content_and_assemble_sync_operations(
-    canister: &Canister<'_>,
-    dirs: &[&Path],
-    logger: &Logger,
-) -> anyhow::Result<CommitBatchArguments> {
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
@@ -38,23 +40,27 @@ pub async fn upload_content_and_assemble_sync_operations(
     )
     .await?;
 
-    let operations = assemble_batch_operations(
+    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
         project_assets,
         canister_assets,
         AssetDeletionReason::Obsolete,
-    );
-    Ok(CommitBatchArguments {
         batch_id,
-        operations,
-    })
-}
+    );
 
-/// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
-    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
-
+    let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
-    commit_batch(canister, arg).await?;
+    match canister_api_version {
+        0.. => {
+            // in the next PR:
+            // if BATCH_UPLOAD_API_VERSION == 1 {
+            //     let commit_batch_args = commit_batch_args.try_into::<v0::CommitBatchArguments>()?;
+            //     warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
+            // }
+            commit_batch(canister, commit_batch_args)
+                .await
+                .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+        }
+    }
 
     Ok(())
 }
