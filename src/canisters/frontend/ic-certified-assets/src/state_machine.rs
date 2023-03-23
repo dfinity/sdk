@@ -748,11 +748,10 @@ impl State {
         };
 
         let index_redirect_certificate =
-            if self.asset_hashes.get(asset_hash_path.as_vec()).is_none()
+            if !self.asset_hashes.contains_path(asset_hash_path.as_vec())
                 && self
                     .asset_hashes
-                    .get(not_found_hash_path.as_vec())
-                    .is_some()
+                    .contains_path(not_found_hash_path.as_vec())
             {
                 let absence_proof = self.asset_hashes.witness(asset_hash_path.as_vec());
                 let not_found_proof = self.asset_hashes.witness(not_found_hash_path.as_vec());

@@ -50,6 +50,20 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
         }
     }
 
+    pub fn contains_path(&self, path: &[K]) -> bool {
+        if let Some(key) = path.get(0) {
+            match self {
+                NestedTree::Leaf(_) => false,
+                NestedTree::Nested(tree) => tree
+                    .get(key.as_ref())
+                    .map(|child| child.contains_path(&path[1..]))
+                    .unwrap_or(false),
+            }
+        } else {
+            matches!(self, NestedTree::Leaf(_))
+        }
+    }
+
     pub fn insert(&mut self, path: &[K], value: V) {
         if let Some(key) = path.get(0) {
             match self {
@@ -142,18 +156,26 @@ fn nested_tree_operation() {
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
     assert_eq!(tree.get(&["one", "two", "three"]), None);
     assert_eq!(tree.get(&["one"]), None);
+    assert_eq!(tree.contains_path(&["one", "two"]), true);
+    assert_eq!(tree.contains_path(&["one", "two", "three"]), false);
+    assert_eq!(tree.contains_path(&["one"]), false);
 
     // deleting non-existent key doesn't do anything
     tree.delete(&["one", "two", "three"]);
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
+    assert_eq!(tree.contains_path(&["one", "two"]), true);
 
     // deleting existing key works
     tree.delete(&["one", "three"]);
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
     assert_eq!(tree.get(&["one", "three"]), None);
+    assert_eq!(tree.contains_path(&["one", "two"]), true);
+    assert_eq!(tree.contains_path(&["one", "three"]), false);
 
     // deleting subtree works
     tree.delete(&["one"]);
     assert_eq!(tree.get(&["one", "two"]), None);
     assert_eq!(tree.get(&["one"]), None);
+    assert_eq!(tree.contains_path(&["one", "two"]), false);
+    assert_eq!(tree.contains_path(&["one"]), false);
 }
