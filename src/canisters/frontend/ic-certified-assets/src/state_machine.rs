@@ -84,47 +84,39 @@ impl AssetEncoding {
         AssetPath(path): &AssetPath,
         status_code: u16,
     ) -> Option<HashTreePath> {
-        if let Some(ce) = self.certificate_expression.as_ref() {
-            if let Some(response_hash) = self
-                .response_hashes
-                .as_ref()
-                .and_then(|map| map.get(&status_code))
-            {
-                let mut path: Vec<NestedTreeKey> = path
-                    .into_iter()
-                    .map(|segment| segment.as_str().into())
-                    .collect();
-                path.insert(0, "http_expr".into());
-                path.push("<$>".into()); // asset path terminator
-                path.push(ce.hash.as_slice().into());
-                path.push("".into()); // no request certification - use empty node
-                path.push(response_hash.as_slice().into());
-                Some(path.into())
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+        self.certificate_expression.as_ref().and_then(|ce| {
+            self.response_hashes.as_ref().and_then(|hashes| {
+                hashes.get(&status_code).and_then(|response_hash| {
+                    let mut path: Vec<NestedTreeKey> = path
+                        .into_iter()
+                        .map(|segment| segment.as_str().into())
+                        .collect();
+                    path.insert(0, "http_expr".into());
+                    path.push("<$>".into()); // asset path terminator
+                    path.push(ce.hash.as_slice().into());
+                    path.push("".into()); // no request certification - use empty node
+                    path.push(response_hash.as_slice().into());
+                    Some(path.into())
+                })
+            })
+        })
     }
 
     fn not_found_hash_path(&self) -> Option<HashTreePath> {
-        if let Some(ce) = self.certificate_expression.as_ref() {
-            if let Some(response_hash) = self.response_hashes.as_ref().and_then(|map| map.get(&200))
-            {
-                Some(HashTreePath::from(Vec::<NestedTreeKey>::from([
-                    "http_expr".into(),
-                    "<*>".into(), // 404 not found wildcard segment
-                    ce.hash.as_slice().into(),
-                    "".into(), // no request certification - use empty node
-                    response_hash.as_slice().into(),
-                ])))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+        self.certificate_expression.as_ref().and_then(|ce| {
+            self.response_hashes
+                .as_ref()
+                .and_then(|hashes| hashes.get(&200))
+                .and_then(|response_hash| {
+                    Some(HashTreePath::from(Vec::<NestedTreeKey>::from([
+                        "http_expr".into(),
+                        "<*>".into(), // 404 not found wildcard segment
+                        ce.hash.as_slice().into(),
+                        "".into(), // no request certification - use empty node
+                        response_hash.as_slice().into(),
+                    ])))
+                })
+        })
     }
 
     fn compute_response_hashes(
