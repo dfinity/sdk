@@ -7,7 +7,7 @@ use crate::{tree::NestedTree, types::AssetKey};
 pub type AssetHashes = NestedTree<NestedTreeKey, Vec<u8>>;
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
-pub struct IcCertificateExpression {
+pub struct CertificateExpression {
     pub expression: String,
     /// Hash of expression
     pub hash: Vec<u8>,

@@ -6,7 +6,7 @@
 
 use crate::{
     certification_types::{
-        AssetHashes, AssetPath, HashTreePath, IcCertificateExpression, NestedTreeKey,
+        AssetHashes, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,
     },
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
     http::{
@@ -74,7 +74,7 @@ pub struct AssetEncoding {
     pub total_length: usize,
     pub certified: bool,
     pub sha256: [u8; 32],
-    pub ic_ce: Option<IcCertificateExpression>,
+    pub certificate_expression: Option<CertificateExpression>,
     pub response_hashes: Option<HashMap<u16, [u8; 32]>>,
 }
 
@@ -84,7 +84,7 @@ impl AssetEncoding {
         AssetPath(path): &AssetPath,
         status_code: u16,
     ) -> Option<HashTreePath> {
-        if let Some(ce) = self.ic_ce.as_ref() {
+        if let Some(ce) = self.certificate_expression.as_ref() {
             if let Some(response_hash) = self
                 .response_hashes
                 .as_ref()
@@ -109,7 +109,7 @@ impl AssetEncoding {
     }
 
     fn not_found_hash_path(&self) -> Option<HashTreePath> {
-        if let Some(ce) = self.ic_ce.as_ref() {
+        if let Some(ce) = self.certificate_expression.as_ref() {
             if let Some(response_hash) = self.response_hashes.as_ref().and_then(|map| map.get(&200))
             {
                 Some(HashTreePath::from(Vec::<NestedTreeKey>::from([
@@ -139,7 +139,9 @@ impl AssetEncoding {
             max_age,
             content_type,
             encoding_name,
-            self.ic_ce.as_ref().map(|ce| &ce.expression),
+            self.certificate_expression
+                .as_ref()
+                .map(|ce| &ce.expression),
         )
         .into_iter()
         .map(|(k, v)| (k, Value::String(v)))
@@ -277,9 +279,9 @@ impl Asset {
 
         // update
         for (enc_name, encoding) in self.encodings.iter_mut() {
-            encoding.ic_ce = Some(build_ic_certificate_expression_from_headers_and_encoding(
-                &headers, enc_name,
-            ));
+            encoding.certificate_expression = Some(
+                build_ic_certificate_expression_from_headers_and_encoding(&headers, enc_name),
+            );
         }
     }
 
@@ -291,7 +293,7 @@ impl Asset {
         let ce = if cert_version != 1 {
             self.encodings
                 .get(encoding_name)
-                .and_then(|e| e.ic_ce.as_ref().map(|ce| &ce.expression))
+                .and_then(|e| e.certificate_expression.as_ref().map(|ce| &ce.expression))
         } else {
             None
         };
@@ -416,8 +418,8 @@ impl State {
             certified: false,
             total_length,
             sha256,
-            ic_ce: None,           // set by on_asset_change
-            response_hashes: None, // set by on_asset_change
+            certificate_expression: None, // set by on_asset_change
+            response_hashes: None,        // set by on_asset_change
         };
         asset.encodings.insert(arg.content_encoding, enc);
 

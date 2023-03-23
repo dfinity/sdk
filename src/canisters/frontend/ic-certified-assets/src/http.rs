@@ -1,4 +1,4 @@
-use crate::certification_types::IcCertificateExpression;
+use crate::certification_types::CertificateExpression;
 use crate::rc_bytes::RcBytes;
 use crate::state_machine::{encoding_certification_order, Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
@@ -281,7 +281,7 @@ impl HttpResponse {
 pub fn build_ic_certificate_expression_from_headers_and_encoding(
     headers: &[&str],
     encoding_name: &str,
-) -> IcCertificateExpression {
+) -> CertificateExpression {
     let mut headers = headers
         .iter()
         .map(|h| format!(", \"{}\"", h))
@@ -295,7 +295,7 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding(
     let expression_hash = sha2::Sha256::digest(ic_certificate_expression.as_bytes())
         .into_iter()
         .collect();
-    IcCertificateExpression {
+    CertificateExpression {
         expression: ic_certificate_expression,
         hash: expression_hash,
     }
