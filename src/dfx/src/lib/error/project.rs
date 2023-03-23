@@ -8,24 +8,17 @@ pub enum ProjectError {
     #[error(transparent)]
     IoError(#[from] dfx_core::error::io::IoError),
 
-    // Q: ok to handle Infallible?
     #[error("Can't convert string '{0}' to path: {1}")]
     ConvertingStringToPathFailed(String, std::convert::Infallible),
 
-    // Q: can also pass in a string, e.g. `format!("{}/{}", host, path)`
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(url::ParseError),
+    #[error("Tried joining '{0}' and '{1}', but they form an invalid URL: {2}")]
+    InvalidUrl(url::Url, String, url::ParseError),
 
     #[error("The key 'canisters' is missing in dfx.json.")]
     DfxJsonMissingCanisters,
 
-    #[error("The 'canisters' value in dfx.json is not an object.")]
-    DfxJsonCanistersNotObject,
-    // Q: combine these two errors into one?
-    // upper is a bit more specific because it menions dfx.json
-    // but lower is more general, however i dont know if it's dfx.json specific
-    #[error("The value behind the key '{0}' is not an JSON object.")]
-    NotJsonObject(String),
+    #[error("The '{0}' value in dfx.json is not an object.")]
+    ValueInDfxJsonIsNotJsonObject(String),
 
     #[error("Unable to parse as url or file: {0}")]
     UnableToParseAsUrlOrFile(url::ParseError),

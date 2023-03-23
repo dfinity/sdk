@@ -42,9 +42,14 @@ pub async fn import_canister_definitions(
     let mut loader = Loader::new();
 
     let their_dfx_json_url = location_to_url(their_dfx_json_location)?;
-    let their_canister_ids_json_url = their_dfx_json_url
-        .join("canister_ids.json")
-        .map_err(ProjectError::InvalidUrl)?;
+    let their_canister_ids_json_url =
+        their_dfx_json_url.join("canister_ids.json").map_err(|e| {
+            ProjectError::InvalidUrl(
+                their_dfx_json_url.clone(),
+                "canister_ids.json".to_string(),
+                e,
+            )
+        })?;
 
     let what = if let Some(ref name) = import_only_canister_name {
         format!("canister '{}'", name)
@@ -118,7 +123,13 @@ async fn import_candid_definition(
     let our_relative_candid_path = format!("candid/{}.did", our_canister_name);
     let their_candid_url = their_dfx_json_url
         .join(their_relative_candid)
-        .map_err(ProjectError::InvalidUrl)?;
+        .map_err(|e| {
+            ProjectError::InvalidUrl(
+                their_dfx_json_url.clone(),
+                their_relative_candid.to_string(),
+                e,
+            )
+        })?;
     let our_candid_path_incl_project_root = our_project_root.join(&our_relative_candid_path);
     info!(
         logger,
@@ -144,7 +155,7 @@ pub fn get_canisters_json_object(
         .pointer_mut("/canisters")
         .ok_or(ProjectError::DfxJsonMissingCanisters)?
         .as_object_mut()
-        .ok_or(ProjectError::DfxJsonCanistersNotObject)?;
+        .ok_or_else(|| ProjectError::ValueInDfxJsonIsNotJsonObject("/canisters".to_string()))?;
     Ok(config_canisters_object)
 }
 
@@ -202,7 +213,7 @@ fn ensure_child_object<'a>(
         .get_mut(name)
         .unwrap() // we just added it
         .as_object_mut()
-        .ok_or_else(|| ProjectError::NotJsonObject(name.to_string()))
+        .ok_or_else(|| ProjectError::ValueInDfxJsonIsNotJsonObject(name.to_string()))
 }
 
 fn location_to_url(dfx_json_location: &str) -> Result<Url, ProjectError> {
