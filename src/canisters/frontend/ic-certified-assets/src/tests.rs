@@ -1246,7 +1246,7 @@ mod certificate_expression {
         let h = ["a", "b", "c"].to_vec();
         let c = build_ic_certificate_expression_from_headers_and_encoding(&h, "not identity");
         assert_eq!(
-            c.ic_certificate_expression,
+            c.expression,
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
         );
     }

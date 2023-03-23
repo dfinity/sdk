@@ -96,7 +96,7 @@ impl AssetEncoding {
                     .collect();
                 path.insert(0, "http_expr".into());
                 path.push("<$>".into()); // asset path terminator
-                path.push(ce.expression_hash.as_slice().into());
+                path.push(ce.hash.as_slice().into());
                 path.push("".into()); // no request certification - use empty node
                 path.push(response_hash.as_slice().into());
                 Some(path.into())
@@ -115,7 +115,7 @@ impl AssetEncoding {
                 Some(HashTreePath::from(Vec::<NestedTreeKey>::from([
                     "http_expr".into(),
                     "<*>".into(), // 404 not found wildcard segment
-                    ce.expression_hash.as_slice().into(),
+                    ce.hash.as_slice().into(),
                     "".into(), // no request certification - use empty node
                     response_hash.as_slice().into(),
                 ])))
@@ -139,7 +139,7 @@ impl AssetEncoding {
             max_age,
             content_type,
             encoding_name,
-            self.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression),
+            self.ic_ce.as_ref().map(|ce| &ce.expression),
         )
         .into_iter()
         .map(|(k, v)| (k, Value::String(v)))
@@ -291,7 +291,7 @@ impl Asset {
         let ce = if cert_version != 1 {
             self.encodings
                 .get(encoding_name)
-                .and_then(|e| e.ic_ce.as_ref().map(|ce| &ce.ic_certificate_expression))
+                .and_then(|e| e.ic_ce.as_ref().map(|ce| &ce.expression))
         } else {
             None
         };

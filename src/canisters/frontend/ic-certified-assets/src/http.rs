@@ -296,8 +296,8 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding(
         .into_iter()
         .collect();
     IcCertificateExpression {
-        ic_certificate_expression,
-        expression_hash,
+        expression: ic_certificate_expression,
+        hash: expression_hash,
     }
 }
 

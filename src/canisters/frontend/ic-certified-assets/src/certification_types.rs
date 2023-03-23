@@ -8,9 +8,9 @@ pub type AssetHashes = NestedTree<NestedTreeKey, Vec<u8>>;
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct IcCertificateExpression {
-    pub ic_certificate_expression: String,
-    /// Hash of ic_certificate_expression
-    pub expression_hash: Vec<u8>,
+    pub expression: String,
+    /// Hash of expression
+    pub hash: Vec<u8>,
 }
 
 /// AssetKey that has been split into segments.
