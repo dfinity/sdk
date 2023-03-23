@@ -279,10 +279,10 @@ impl HttpResponse {
 }
 
 pub fn build_ic_certificate_expression_from_headers_and_encoding(
-    headers: &[&str],
+    header_names: &[&str],
     encoding_name: &str,
 ) -> CertificateExpression {
-    let mut headers = headers
+    let mut headers = header_names
         .iter()
         .map(|h| format!(", \"{}\"", h))
         .collect::<Vec<_>>()

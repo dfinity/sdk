@@ -258,21 +258,21 @@ impl Asset {
 
     fn update_ic_certificate_expressions(&mut self) {
         // gather all headers
-        let mut headers = vec![];
+        let mut header_names = vec![];
 
         if self.max_age.is_some() {
-            headers.push("cache-control");
+            header_names.push("cache-control");
         }
         if let Some(custom_headers) = &self.headers {
             for (k, _) in custom_headers.iter() {
-                headers.push(k);
+                header_names.push(k);
             }
         }
 
         // update
         for (enc_name, encoding) in self.encodings.iter_mut() {
             encoding.certificate_expression = Some(
-                build_ic_certificate_expression_from_headers_and_encoding(&headers, enc_name),
+                build_ic_certificate_expression_from_headers_and_encoding(&header_names, enc_name),
             );
         }
     }
@@ -435,7 +435,7 @@ impl State {
     }
 
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
-        if let Some(_) = self.assets.get(&arg.key) {
+        if self.assets.contains_key(&arg.key) {
             for dependent in self.dependent_keys(&arg.key) {
                 let path = AssetPath::from(dependent);
                 self.asset_hashes.delete(path.asset_hash_path_v1().as_vec());
@@ -1110,7 +1110,7 @@ fn insert_new_response_hashes_for_encoding(
                 asset_hashes.insert(hash_path.as_vec(), Vec::new());
             } else {
                 unreachable!(
-                    "Could not create a hash path for a status code {} and key {} - did you forget to add a response hash for this status code?",
+                    "Could not create a hash path for a status code {} and key {} - did you forget to compute a response hash for this status code?",
                     status_code, &key
                 );
             }
