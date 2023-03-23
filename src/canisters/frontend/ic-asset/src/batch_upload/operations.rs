@@ -175,7 +175,6 @@ pub(crate) fn update_properties(
         if canister_asset_properties.is_some()
             && project_asset_properties.ne(&canister_asset_properties)
         {
-            println!("Updating properties for {}", key);
             operations.push(BatchOperationKind::SetAssetProperties(
                 SetAssetPropertiesArguments {
                     key: key.clone(),
