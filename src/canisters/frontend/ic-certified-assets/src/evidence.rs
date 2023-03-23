@@ -22,7 +22,7 @@ const TAG_CREATE_ASSET: [u8; 1] = [4];
 const TAG_SET_ASSET_CONTENT: [u8; 1] = [5];
 const TAG_UNSET_ASSET_CONTENT: [u8; 1] = [6];
 const TAG_DELETE_ASSET: [u8; 1] = [7];
-const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [8];
+const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [9];
 const TAG_CLEAR: [u8; 1] = [8];
 
 pub enum EvidenceComputation {
