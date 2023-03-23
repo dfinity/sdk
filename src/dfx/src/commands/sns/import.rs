@@ -39,5 +39,6 @@ pub fn exec(env: &dyn Environment, opts: SnsImportOpts) -> DfxResult {
         None,
         None,
         &network_mappings,
-    ))
+    ))?;
+    Ok(())
 }

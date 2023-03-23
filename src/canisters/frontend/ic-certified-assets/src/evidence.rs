@@ -210,3 +210,23 @@ fn hash_headers(hasher: &mut Sha256, headers: Option<&HashMap<String, String>>) 
         hasher.update(TAG_NONE);
     }
 }
+
+#[test]
+fn tag_value_uniqueness() {
+    let tags = include_str!("evidence.rs")
+        .lines()
+        .filter(|l| l.starts_with("const TAG_"))
+        .map(|line| {
+            line.split(": [u8; 1] = [")
+                .nth(1)
+                .unwrap()
+                .trim_end_matches("];")
+                .parse::<u8>()
+                .unwrap()
+        });
+    assert_eq!(
+        tags.clone().count(),
+        tags.unique().count(),
+        "tag values must be unique"
+    );
+}
