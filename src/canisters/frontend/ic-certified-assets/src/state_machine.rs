@@ -770,21 +770,23 @@ impl State {
                 None
             };
 
-        if let Some(certificate_header) = index_redirect_certificate {
+        if let Some(certificate_header) = index_redirect_certificate.as_ref() {
             if let Ok(asset) = self.get_asset(&INDEX_FILE.to_string()) {
                 if !asset.allow_raw_access() && req.is_raw_domain() {
                     return req.redirect_from_raw_to_certified_domain();
                 }
-                return HttpResponse::build_ok_from_requested_encodings(
+                if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
                     asset,
-                    requested_encodings,
+                    &requested_encodings,
                     path,
                     chunk_index,
                     Some(certificate_header),
-                    callback,
-                    etags,
+                    &callback,
+                    &etags,
                     req.get_certificate_version(),
-                );
+                ) {
+                    return response;
+                }
             }
         }
 
@@ -805,16 +807,18 @@ impl State {
             if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
             }
-            return HttpResponse::build_ok_from_requested_encodings(
+            if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
                 asset,
-                requested_encodings,
+                &requested_encodings,
                 path,
                 chunk_index,
-                Some(certificate_header),
-                callback,
-                etags,
+                Some(&certificate_header),
+                &callback,
+                &etags,
                 req.get_certificate_version(),
-            );
+            ) {
+                return response;
+            }
         }
 
         HttpResponse::build_404(certificate_header)

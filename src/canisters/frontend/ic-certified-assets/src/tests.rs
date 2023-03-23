@@ -255,6 +255,7 @@ fn serve_correct_encoding() {
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![IDENTITY_BODY]),
             AssetBuilder::new("/contents.html", "text/html").with_encoding("gzip", vec![GZIP_BODY]),
+            AssetBuilder::new("/no-encoding.html", "text/html"),
         ],
     );
 
@@ -299,6 +300,16 @@ fn serve_correct_encoding() {
     );
     assert_eq!(gzip_response.status_code, 200);
     assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+
+    let no_encoding_response = state.http_request(
+        RequestBuilder::get("/no-encoding.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(no_encoding_response.status_code, 404);
+    assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
 }
 
 #[test]

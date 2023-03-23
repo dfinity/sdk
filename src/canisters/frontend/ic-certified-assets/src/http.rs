@@ -142,14 +142,14 @@ impl HttpResponse {
         enc: &AssetEncoding,
         key: &str,
         chunk_index: usize,
-        certificate_header: Option<HeaderField>,
-        callback: Func,
-        etags: Vec<Hash>,
+        certificate_header: Option<&HeaderField>,
+        callback: &Func,
+        etags: &Vec<Hash>,
         cert_version: u16,
     ) -> HttpResponse {
         let mut headers = asset.get_headers_for_asset(enc_name, cert_version);
         if let Some(head) = certificate_header {
-            headers.insert(head.0, head.1);
+            headers.insert(head.0.clone(), head.1.clone());
         }
 
         let streaming_strategy = StreamingCallbackToken::create_token(
@@ -159,7 +159,10 @@ impl HttpResponse {
             key,
             chunk_index,
         )
-        .map(|token| StreamingStrategy::Callback { callback, token });
+        .map(|token| StreamingStrategy::Callback {
+            callback: callback.clone(),
+            token,
+        });
 
         let (status_code, body) = if etags.contains(&enc.sha256) {
             (304, RcBytes::default())
@@ -182,18 +185,18 @@ impl HttpResponse {
     #[allow(clippy::too_many_arguments)]
     pub fn build_ok_from_requested_encodings(
         asset: &Asset,
-        requested_encodings: Vec<String>,
+        requested_encodings: &Vec<String>,
         key: &str,
         chunk_index: usize,
-        certificate_header: Option<HeaderField>,
-        callback: Func,
-        etags: Vec<Hash>,
+        certificate_header: Option<&HeaderField>,
+        callback: &Func,
+        etags: &Vec<Hash>,
         cert_version: u16,
-    ) -> HttpResponse {
+    ) -> Option<HttpResponse> {
         for enc_name in requested_encodings.iter() {
             if let Some(enc) = asset.encodings.get(enc_name) {
                 if enc.certified {
-                    return Self::build_ok(
+                    return Some(Self::build_ok(
                         asset,
                         enc_name,
                         enc,
@@ -203,7 +206,7 @@ impl HttpResponse {
                         callback,
                         etags,
                         cert_version,
-                    );
+                    ));
                 }
             }
         }
@@ -213,7 +216,7 @@ impl HttpResponse {
         if cert_version == 1 {
             for enc_name in requested_encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
-                    return Self::build_ok(
+                    return Some(Self::build_ok(
                         asset,
                         enc_name,
                         enc,
@@ -223,7 +226,7 @@ impl HttpResponse {
                         callback,
                         etags,
                         cert_version,
-                    );
+                    ));
                 }
             }
         }
@@ -233,7 +236,7 @@ impl HttpResponse {
             if let Some(enc) = asset.encodings.get(&enc_name) {
                 // One encoding is always certified, therefore we can search for it
                 if enc.certified {
-                    return Self::build_ok(
+                    return Some(Self::build_ok(
                         asset,
                         &enc_name,
                         enc,
@@ -243,11 +246,11 @@ impl HttpResponse {
                         callback,
                         etags,
                         cert_version,
-                    );
+                    ));
                 }
             }
         }
-        unreachable!("No available encodings for requested asset.")
+        None
     }
 
     pub fn build_400(err_msg: &str) -> Self {
