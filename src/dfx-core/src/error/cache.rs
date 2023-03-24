@@ -6,13 +6,13 @@ pub enum CacheError {
     FoundationError(#[from] crate::error::foundation::FoundationError),
 
     #[error(transparent)]
-    IoError(#[from] crate::error::io::IoError),
+    IoError(#[from] crate::error::fs::FsError),
 
     #[error(transparent)]
     ProcessError(#[from] crate::error::process::ProcessError),
 
     #[error("Cannot create cache directory: {0}")]
-    CreateCacheDirectoryFailed(crate::error::io::IoError),
+    CreateCacheDirectoryFailed(crate::error::fs::FsError),
 
     #[error("Cannot find cache directory at '{0}'.")]
     FindCacheDirectoryFailed(std::path::PathBuf),

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum IoErrorKind {
+pub enum FsErrorKind {
     #[error("Failed to read archive path: {0}")]
     ArchiveFileInvalidPath(std::io::Error),
 
@@ -57,19 +57,19 @@ pub enum IoErrorKind {
 
 #[derive(Error, Debug)]
 #[error(transparent)]
-pub struct IoError(pub Box<IoErrorKind>);
+pub struct FsError(pub Box<FsErrorKind>);
 
-impl IoError {
-    pub fn new(kind: IoErrorKind) -> Self {
-        IoError(Box::new(kind))
+impl FsError {
+    pub fn new(kind: FsErrorKind) -> Self {
+        FsError(Box::new(kind))
     }
 }
 
-impl<E> From<E> for IoError
+impl<E> From<E> for FsError
 where
-    IoErrorKind: From<E>,
+    FsErrorKind: From<E>,
 {
     fn from(err: E) -> Self {
-        IoError(Box::new(IoErrorKind::from(err)))
+        FsError(Box::new(FsErrorKind::from(err)))
     }
 }
