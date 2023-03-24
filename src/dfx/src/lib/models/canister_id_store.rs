@@ -3,9 +3,9 @@ use crate::lib::error::CanisterIdStoreError;
 use crate::lib::network::directory::ensure_cohesive_network_directory;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use dfx_core::error::unified_io::UnifiedIoError;
 
 use candid::Principal as CanisterId;
-use dfx_core::error::unified_io::UnifiedIoError;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
