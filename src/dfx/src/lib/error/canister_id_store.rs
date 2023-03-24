@@ -1,18 +1,12 @@
+use dfx_core::error::{
+    fs::FsError, structured_file::StructuredFileError, unified_io::UnifiedIoError,
+};
 use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum StructuredFileOrFilesystemError {
-    #[error(transparent)]
-    Io(#[from] dfx_core::error::io::IoError),
-
-    #[error(transparent)]
-    StructuredFile(#[from] dfx_core::error::structured_file::StructuredFileError),
-}
 
 #[derive(Error, Debug)]
 pub enum CanisterIdStoreError {
     #[error(transparent)]
-    StructuredFileOrFilesystem(#[from] StructuredFileOrFilesystemError),
+    StructuredFileOrFilesystem(#[from] UnifiedIoError),
 
     #[error(
         "Cannot find canister id. Please issue 'dfx canister create {canister_name}{network}'."
@@ -25,19 +19,31 @@ pub enum CanisterIdStoreError {
     #[error("Encountered error while loading canister id store for network '{network_descriptor_name}' - ensuring cohesive network directory failed: {cause}")]
     EnsureCohesiveNetworkDirectoryFailed {
         network_descriptor_name: String,
-        cause: StructuredFileOrFilesystemError,
+        cause: UnifiedIoError,
     },
 
     #[error("Failed to remove canister '{canister_name}' from id store: {cause}")]
     RemoveCanisterId {
         canister_name: String,
-        cause: StructuredFileOrFilesystemError,
+        cause: UnifiedIoError,
     },
 
     #[error("Failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store: {cause}")]
     AddCanisterId {
         canister_name: String,
         canister_id: String,
-        cause: StructuredFileOrFilesystemError,
+        cause: UnifiedIoError,
     },
+}
+
+impl From<FsError> for CanisterIdStoreError {
+    fn from(e: FsError) -> Self {
+        Into::<UnifiedIoError>::into(e).into()
+    }
+}
+
+impl From<StructuredFileError> for CanisterIdStoreError {
+    fn from(e: StructuredFileError) -> Self {
+        Into::<UnifiedIoError>::into(e).into()
+    }
 }

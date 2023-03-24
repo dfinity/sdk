@@ -1,6 +1,6 @@
 use dfx_core::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-use dfx_core::error::io::IoError;
+use dfx_core::error::fs::FsError;
 
 use std::path::Path;
 
@@ -11,7 +11,7 @@ use std::path::Path;
 pub fn ensure_cohesive_network_directory(
     network_descriptor: &NetworkDescriptor,
     directory: &Path,
-) -> Result<(), IoError> {
+) -> Result<(), FsError> {
     let scope = network_descriptor
         .local_server_descriptor
         .as_ref()

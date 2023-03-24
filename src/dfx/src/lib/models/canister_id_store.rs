@@ -1,11 +1,11 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::canister_id_store::StructuredFileOrFilesystemError;
 use crate::lib::error::CanisterIdStoreError;
 use crate::lib::network::directory::ensure_cohesive_network_directory;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 
 use candid::Principal as CanisterId;
+use dfx_core::error::unified_io::UnifiedIoError;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -64,8 +64,7 @@ impl CanisterIdStore {
         };
         let remote_ids = get_remote_ids(config);
         let ids = match &path {
-            Some(path) if path.is_file() => dfx_core::json::load_json_file(path)
-                .map_err(StructuredFileOrFilesystemError::from)?,
+            Some(path) if path.is_file() => dfx_core::json::load_json_file(path)?,
             _ => CanisterIds::new(),
         };
 
@@ -95,7 +94,7 @@ impl CanisterIdStore {
             .map(|(canister_name, _)| canister_name)
     }
 
-    pub fn save_ids(&self) -> Result<(), StructuredFileOrFilesystemError> {
+    pub fn save_ids(&self) -> Result<(), UnifiedIoError> {
         let path = self
             .path
             .as_ref()
