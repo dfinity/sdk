@@ -16,9 +16,9 @@ pub enum CanisterIdStoreError {
         network: String,
     },
 
-    #[error("Encountered error while loading canister id store for network '{network_descriptor_name}' - ensuring cohesive network directory failed: {cause}")]
+    #[error("Encountered error while loading canister id store for network '{network}' - ensuring cohesive network directory failed: {cause}")]
     EnsureCohesiveNetworkDirectoryFailed {
-        network_descriptor_name: String,
+        network: String,
         cause: UnifiedIoError,
     },
 
