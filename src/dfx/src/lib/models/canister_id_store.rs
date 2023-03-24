@@ -54,7 +54,7 @@ impl CanisterIdStore {
                     let dir = config.get_temp_path().join(name);
                     ensure_cohesive_network_directory(network_descriptor, &dir).map_err(|e| {
                         CanisterIdStoreError::EnsureCohesiveNetworkDirectoryFailed {
-                            network_descriptor_name: network_descriptor.name.clone(),
+                            network: network_descriptor.name.clone(),
                             cause: e.into(),
                         }
                     })?;
