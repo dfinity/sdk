@@ -3,9 +3,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum FsErrorKind {
-    #[error("Failed to read archive path: {0}")]
-    ArchiveFileInvalidPath(std::io::Error),
-
     #[error("Failed to canonicalize {0}: {1}")]
     CanonicalizePathFailed(PathBuf, std::io::Error),
 

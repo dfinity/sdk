@@ -1,11 +1,12 @@
 pub mod composite;
 
+use crate::error::archive::ArchiveError;
 use crate::error::fs::FsError;
 use crate::error::fs::FsErrorKind::{
-    ArchiveFileInvalidPath, CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed,
-    NoParent, ReadDirFailed, ReadFileFailed, ReadPermissionsFailed, ReadToStringFailed,
-    RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
-    UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
+    CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed,
+    ReadFileFailed, ReadPermissionsFailed, ReadToStringFailed, RemoveDirectoryAndContentsFailed,
+    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, UnpackingArchiveFailed, WriteFileFailed,
+    WritePermissionsFailed,
 };
 
 use std::fs::{Permissions, ReadDir};
@@ -33,10 +34,10 @@ pub fn create_dir_all(path: &Path) -> Result<(), FsError> {
 
 pub fn get_archive_path(
     archive: &tar::Entry<flate2::read::GzDecoder<&'static [u8]>>,
-) -> Result<PathBuf, FsError> {
+) -> Result<PathBuf, ArchiveError> {
     let path = archive
         .path()
-        .map_err(|err| FsError::new(ArchiveFileInvalidPath(err)))?;
+        .map_err(|err| ArchiveError::ArchiveFileInvalidPath(err))?;
     Ok(path.to_path_buf())
 }
 

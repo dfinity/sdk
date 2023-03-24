@@ -6,7 +6,7 @@ pub enum CacheError {
     FoundationError(#[from] crate::error::foundation::FoundationError),
 
     #[error(transparent)]
-    IoError(#[from] crate::error::fs::FsError),
+    UnifiedIo(#[from] crate::error::unified_io::UnifiedIoError),
 
     #[error(transparent)]
     ProcessError(#[from] crate::error::process::ProcessError),
