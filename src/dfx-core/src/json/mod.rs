@@ -3,12 +3,10 @@ pub mod structure;
 use crate::error::structured_file::StructuredFileError;
 use crate::error::structured_file::StructuredFileError::ReadJsonFileFailed;
 use crate::error::structured_file::StructuredFileError::{
-    DeserializeJsonContentFailed, DeserializeJsonFileFailed, PrettyPrintAsJsonFailed,
-    SerializeJsonFileFailed, WriteJsonFileFailed,
+    DeserializeJsonFileFailed, SerializeJsonFileFailed, WriteJsonFileFailed,
 };
 
 use serde::Serialize;
-use std::fmt::Debug;
 use std::path::Path;
 
 pub fn load_json_file<T: for<'a> serde::de::Deserialize<'a>>(
@@ -24,12 +22,4 @@ pub fn save_json_file<T: Serialize>(path: &Path, value: &T) -> Result<(), Struct
     let content = serde_json::to_string_pretty(&value)
         .map_err(|err| SerializeJsonFileFailed(Box::new(path.to_path_buf()), err))?;
     crate::fs::write(path, content).map_err(WriteJsonFileFailed)
-}
-
-pub fn pretty_print<T>(value: T) -> Result<String, StructuredFileError>
-where
-    T: Serialize + Debug,
-{
-    serde_json::to_string_pretty(&value)
-        .map_err(|e| PrettyPrintAsJsonFailed(format!("{:?}", value), e))
 }

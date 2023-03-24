@@ -15,7 +15,4 @@ pub enum StructuredFileError {
 
     #[error("Failed to write JSON file: {0}")]
     WriteJsonFileFailed(IoError),
-
-    #[error("Failed to pretty-print '{0}' as JSON: {1}")]
-    PrettyPrintAsJsonFailed(String, serde_json::Error),
 }
