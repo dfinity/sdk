@@ -150,7 +150,6 @@ pub async fn transfer(
                     .context("Failed to decode transfer response.")?;
                 match result {
                     Ok(block_height) => break block_height,
-                    Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
                     Err(transfer_err) => bail!(transfer_err),
                 }
             }

@@ -58,6 +58,10 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### feat: --created-at-time for the ledger functions: transfer, create-canister, and top-up
 
+### fix: ledger transfer duplicate transaction now returns an error.
+
+Before it was possible that a user could send 2 ledger transfers and both would show success but there would have been only 1 ledger transfer. 
+
 ### chore: clarify `dfx identity new` help text
 
 ### chore: Add a message that `redeem_faucet_coupon` may take a while to complete

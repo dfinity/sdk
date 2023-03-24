@@ -70,22 +70,22 @@ current_time_nanoseconds() {
     # 10100 - 100 - 0.0001 - 0.00000001 = 9999.99989999
     assert_command dfx ledger balance
     assert_match "999999999.99989999 ICP"
-    
+
     # Transaction Deduplication
     t=$(current_time_nanoseconds)
-    
+
     assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $t 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
     assert_match "Transfer sent at BlockHeight:"
-    
-    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $(($t+1)) 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+
+    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $((t+1)) 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
     assert_match "Transfer sent at BlockHeight:"
-    
-    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $t 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+
+    run dfx ledger transfer --icp 1 --memo 1 --created-at-time $t 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
     assert_match "transaction is a duplicate of another transaction in block"
-    
+
     assert_command dfx ledger transfer --icp 1 --memo 2 --created-at-time $t 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
     assert_match "Transfer sent at BlockHeight:"
-    
+
 }
 
 @test "ledger subaccounts" {
@@ -140,14 +140,14 @@ tc_to_num() {
     
     # Transaction Deduplication
     t=$(current_time_nanoseconds)
-    
+
     assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $t
     assert_match "Canister was topped up with"
-    
-    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $(($t+1))
+
+    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $((t+1))
     assert_match "Canister was topped up with"
-    
-    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $t
+
+    run dfx ledger top-up "$wallet" --icp 5 --created-at-time $t
     assert_match "transaction is a duplicate of another transaction in block"
 }
 
@@ -160,14 +160,14 @@ tc_to_num() {
     
     # Transaction Deduplication
     t=$(current_time_nanoseconds)
-    
+
     assert_command dfx ledger create-canister --amount=100 --created-at-time $t "$(dfx identity get-principal)"
     assert_match "Transfer sent at block height"
-    
-    assert_command dfx ledger create-canister --amount=100 --created-at-time $(($t+1)) "$(dfx identity get-principal)"
+
+    assert_command dfx ledger create-canister --amount=100 --created-at-time $((t+1)) "$(dfx identity get-principal)"
     assert_match "Transfer sent at block height"
-    
-    assert_command dfx ledger create-canister --amount=100 --created-at-time $t "$(dfx identity get-principal)"
+
+    run dfx ledger create-canister --amount=100 --created-at-time $t "$(dfx identity get-principal)"
     assert_match "transaction is a duplicate of another transaction in block"
 }
 
