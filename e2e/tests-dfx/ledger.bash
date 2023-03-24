@@ -24,7 +24,7 @@ teardown() {
 }
 
 current_time_nanoseconds() {
-    echo "$EPOCHSECONDS"000000000
+    echo "$(date +%s)"000000000
 }
 
 @test "ledger account-id" {
