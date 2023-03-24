@@ -3,7 +3,7 @@ use crate::config::directories::project_dirs;
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
 
-use crate::error::{cache::CacheError, unified_io::UnifiedIoError};
+use crate::error::cache::CacheError;
 
 use semver::Version;
 
@@ -68,7 +68,7 @@ pub fn delete_version(v: &str) -> Result<bool, CacheError> {
     }
 
     let root = get_bin_cache(v)?;
-    crate::fs::remove_dir_all(&root).map_err(UnifiedIoError::from)?;
+    crate::fs::remove_dir_all(&root)?;
 
     Ok(true)
 }
@@ -100,7 +100,7 @@ pub fn list_versions() -> Result<Vec<Version>, CacheError> {
     let root = get_bin_cache_root()?;
     let mut result: Vec<Version> = Vec::new();
 
-    for entry in crate::fs::read_dir(&root).map_err(UnifiedIoError::from)? {
+    for entry in crate::fs::read_dir(&root)? {
         let entry = entry.map_err(CacheError::ReadCacheEntryFailed)?;
         if let Some(version) = entry.file_name().to_str() {
             if version.starts_with('_') {

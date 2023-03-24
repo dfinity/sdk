@@ -1,5 +1,10 @@
 use thiserror::Error;
 
+use super::{
+    archive::ArchiveError, fs::FsError, structured_file::StructuredFileError,
+    unified_io::UnifiedIoError,
+};
+
 #[derive(Error, Debug)]
 pub enum CacheError {
     #[error(transparent)]
@@ -34,4 +39,22 @@ pub enum CacheError {
 
     #[error("Failed to read entry in cache directory: {0}")]
     ReadCacheEntryFailed(std::io::Error),
+}
+
+impl From<FsError> for CacheError {
+    fn from(err: FsError) -> Self {
+        Into::<UnifiedIoError>::into(err).into()
+    }
+}
+
+impl From<ArchiveError> for CacheError {
+    fn from(err: ArchiveError) -> Self {
+        Into::<UnifiedIoError>::into(err).into()
+    }
+}
+
+impl From<StructuredFileError> for CacheError {
+    fn from(err: StructuredFileError) -> Self {
+        Into::<UnifiedIoError>::into(err).into()
+    }
 }

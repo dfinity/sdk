@@ -113,8 +113,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             // On *nix we need to set the execute permission as the tgz doesn't include it
             #[cfg(unix)]
             {
-                let archive_path =
-                    dfx_core::fs::get_archive_path(&file).map_err(UnifiedIoError::from)?;
+                let archive_path = dfx_core::fs::get_archive_path(&file)?;
                 let full_path = temp_p.join(archive_path);
                 let mut perms = dfx_core::fs::read_permissions(full_path.as_path())
                     .map_err(UnifiedIoError::from)?;
