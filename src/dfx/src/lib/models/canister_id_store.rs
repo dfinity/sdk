@@ -65,7 +65,7 @@ impl CanisterIdStore {
         let remote_ids = get_remote_ids(config);
         let ids = match &path {
             Some(path) if path.is_file() => dfx_core::json::load_json_file(path)
-                .map_err(|e| StructuredFileOrFilesystemError::from(e))?,
+                .map_err(StructuredFileOrFilesystemError::from)?,
             _ => CanisterIds::new(),
         };
 
@@ -163,7 +163,7 @@ impl CanisterIdStore {
             .map_err(|e| CanisterIdStoreError::AddCanisterId {
                 canister_name: canister_name.to_string(),
                 canister_id: canister_id.to_string(),
-                cause: e.into(),
+                cause: e,
             })
     }
 
@@ -175,7 +175,7 @@ impl CanisterIdStore {
         self.save_ids()
             .map_err(|e| CanisterIdStoreError::RemoveCanisterId {
                 canister_name: canister_name.to_string(),
-                cause: e.into(),
+                cause: e,
             })
     }
 }
