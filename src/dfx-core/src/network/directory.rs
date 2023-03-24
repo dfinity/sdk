@@ -1,6 +1,6 @@
-use dfx_core::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-use dfx_core::error::fs::FsError;
+use crate::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
+use crate::config::model::network_descriptor::NetworkDescriptor;
+use crate::error::fs::FsError;
 
 use std::path::Path;
 
@@ -19,19 +19,19 @@ pub fn ensure_cohesive_network_directory(
 
     if let Some(LocalNetworkScopeDescriptor::Shared { network_id_path }) = &scope {
         if network_id_path.is_file() {
-            let network_id = dfx_core::fs::read_to_string(network_id_path)?;
+            let network_id = crate::fs::read_to_string(network_id_path)?;
             let project_network_id_path = directory.join("network-id");
             let reset = directory.is_dir()
                 && (!project_network_id_path.exists()
-                    || dfx_core::fs::read_to_string(&project_network_id_path)? != network_id);
+                    || crate::fs::read_to_string(&project_network_id_path)? != network_id);
 
             if reset {
-                dfx_core::fs::remove_dir_all(directory)?;
+                crate::fs::remove_dir_all(directory)?;
             };
 
             if !directory.exists() {
-                dfx_core::fs::create_dir_all(directory)?;
-                dfx_core::fs::write(&project_network_id_path, &network_id)?;
+                crate::fs::create_dir_all(directory)?;
+                crate::fs::write(&project_network_id_path, &network_id)?;
             }
         }
     }

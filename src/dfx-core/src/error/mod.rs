@@ -1,5 +1,6 @@
 pub mod archive;
 pub mod cache;
+pub mod canister_id_store;
 pub mod config;
 pub mod dfx_config;
 pub mod encryption;

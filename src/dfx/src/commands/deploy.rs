@@ -3,7 +3,6 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
@@ -168,7 +167,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let network: &NetworkDescriptor = env.get_network_descriptor();
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let mut frontend_urls = BTreeMap::new();
     let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();
