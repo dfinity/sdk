@@ -37,7 +37,7 @@ pub fn get_archive_path(
 ) -> Result<PathBuf, ArchiveError> {
     let path = archive
         .path()
-        .map_err(|err| ArchiveError::ArchiveFileInvalidPath(err))?;
+        .map_err(ArchiveError::ArchiveFileInvalidPath)?;
     Ok(path.to_path_buf())
 }
 
