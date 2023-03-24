@@ -26,12 +26,6 @@ pub fn save_json_file<T: Serialize>(path: &Path, value: &T) -> Result<(), Struct
     crate::fs::write(path, content).map_err(WriteJsonFileFailed)
 }
 
-pub fn load_json_string<T: for<'a> serde::de::Deserialize<'a>>(
-    data: &str,
-) -> Result<T, StructuredFileError> {
-    serde_json::from_str(data).map_err(DeserializeJsonContentFailed)
-}
-
 pub fn pretty_print<T>(value: T) -> Result<String, StructuredFileError>
 where
     T: Serialize + Debug,
