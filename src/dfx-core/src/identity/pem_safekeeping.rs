@@ -2,12 +2,12 @@ use super::identity_manager::EncryptionConfiguration;
 use super::IdentityConfiguration;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{DecryptContentFailed, HashPasswordFailed};
+use crate::error::fs::FsError;
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
     CannotSavePemContentForHsm, DecryptPemFileFailed, LoadPemFromKeyringFailed, ReadPemFileFailed,
     WritePemToKeyringFailed,
 };
-use crate::error::io::IoError;
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::keyring_mock;
 use crate::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
@@ -95,7 +95,7 @@ pub fn write_pem_to_file(
     write_pem_content(path, &pem_content).map_err(IdentityError::WritePemFileFailed)
 }
 
-fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), IoError> {
+fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), FsError> {
     let containing_folder = crate::fs::parent(path)?;
     crate::fs::create_dir_all(&containing_folder)?;
     crate::fs::write(path, pem_content)?;
