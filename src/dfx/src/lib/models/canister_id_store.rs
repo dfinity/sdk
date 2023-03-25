@@ -1,14 +1,12 @@
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::CanisterIdStoreError;
 use crate::lib::network::directory::ensure_cohesive_network_directory;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use dfx_core::error::unified_io::UnifiedIoError;
 
-use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
-use fn_error_context::context;
 use std::collections::BTreeMap;
-use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -35,16 +33,14 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     pub const DEFAULT: &'static str = "__default";
 
-    #[context("Failed to load canister id store.")]
-    pub fn for_env(env: &dyn Environment) -> DfxResult<Self> {
+    pub fn for_env(env: &dyn Environment) -> Result<Self, CanisterIdStoreError> {
         CanisterIdStore::new(env.get_network_descriptor(), env.get_config())
     }
 
-    #[context("Failed to load canister id store for network '{}'.", network_descriptor.name)]
     pub fn new(
         network_descriptor: &NetworkDescriptor,
         config: Option<Arc<Config>>,
-    ) -> DfxResult<Self> {
+    ) -> Result<Self, CanisterIdStoreError> {
         let path = match network_descriptor {
             NetworkDescriptor {
                 r#type: NetworkTypeDescriptor::Persistent,
@@ -56,14 +52,19 @@ impl CanisterIdStore {
                 None => None,
                 Some(config) => {
                     let dir = config.get_temp_path().join(name);
-                    ensure_cohesive_network_directory(network_descriptor, &dir)?;
+                    ensure_cohesive_network_directory(network_descriptor, &dir).map_err(|e| {
+                        CanisterIdStoreError::EnsureCohesiveNetworkDirectoryFailed {
+                            network: network_descriptor.name.clone(),
+                            cause: e.into(),
+                        }
+                    })?;
                     Some(dir.join("canister_ids.json"))
                 }
             },
         };
-        let remote_ids = get_remote_ids(config)?;
+        let remote_ids = get_remote_ids(config);
         let ids = match &path {
-            Some(path) if path.is_file() => CanisterIdStore::load_ids(path)?,
+            Some(path) if path.is_file() => dfx_core::json::load_json_file(path)?,
             _ => CanisterIds::new(),
         };
 
@@ -93,15 +94,7 @@ impl CanisterIdStore {
             .map(|(canister_name, _)| canister_name)
     }
 
-    #[context("Failed to load ids from storage at {}.", path.to_string_lossy())]
-    pub fn load_ids(path: &Path) -> DfxResult<CanisterIds> {
-        let content = std::fs::read_to_string(path)
-            .with_context(|| format!("Cannot read from file at '{}'.", path.display()))?;
-        serde_json::from_str(&content)
-            .with_context(|| format!("Cannot decode contents of file at '{}'.", path.display()))
-    }
-
-    pub fn save_ids(&self) -> DfxResult {
+    pub fn save_ids(&self) -> Result<(), UnifiedIoError> {
         let path = self
             .path
             .as_ref()
@@ -109,15 +102,9 @@ impl CanisterIdStore {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister ids")
             });
-        let content =
-            serde_json::to_string_pretty(&self.ids).context("Failed to serialize ids.")?;
-        let parent = path.parent().unwrap();
-        if !parent.exists() {
-            std::fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create {}.", parent.to_string_lossy()))?;
-        }
-        std::fs::write(path, content)
-            .with_context(|| format!("Cannot write to file at '{}'.", path.display()))
+        dfx_core::fs::composite::ensure_parent_dir_exists(path)?;
+        dfx_core::json::save_json_file(path, &self.ids)?;
+        Ok(())
     }
 
     pub fn find(&self, canister_name: &str) -> Option<CanisterId> {
@@ -138,24 +125,25 @@ impl CanisterIdStore {
             .and_then(|s| CanisterId::from_text(s).ok())
     }
 
-    #[context("Failed to determine id for canister '{}'.", canister_name)]
-    pub fn get(&self, canister_name: &str) -> DfxResult<CanisterId> {
+    pub fn get(&self, canister_name: &str) -> Result<CanisterId, CanisterIdStoreError> {
         self.find(canister_name).ok_or_else(|| {
             let network = if self.network_descriptor.name == "local" {
                 "".to_string()
             } else {
                 format!(" --network {}", self.network_descriptor.name)
             };
-            anyhow!("Cannot find canister id. Please issue 'dfx canister create {canister_name}{network}'.")
+            CanisterIdStoreError::CanisterIdNotFound {
+                canister_name: canister_name.to_string(),
+                network,
+            }
         })
     }
 
-    #[context(
-        "Failed to add canister with name '{}' and id '{}' to canister id store.",
-        canister_name,
-        canister_id
-    )]
-    pub fn add(&mut self, canister_name: &str, canister_id: &str) -> DfxResult<()> {
+    pub fn add(
+        &mut self,
+        canister_name: &str,
+        canister_id: &str,
+    ) -> Result<(), CanisterIdStoreError> {
         let network_name = &self.network_descriptor.name;
         match self.ids.get_mut(canister_name) {
             Some(network_name_to_canister_id) => {
@@ -171,25 +159,28 @@ impl CanisterIdStore {
             }
         }
         self.save_ids()
+            .map_err(|e| CanisterIdStoreError::AddCanisterId {
+                canister_name: canister_name.to_string(),
+                canister_id: canister_id.to_string(),
+                cause: e,
+            })
     }
 
-    #[context("Failed to remove canister {} from id store.", canister_name)]
-    pub fn remove(&mut self, canister_name: &str) -> DfxResult<()> {
+    pub fn remove(&mut self, canister_name: &str) -> Result<(), CanisterIdStoreError> {
         let network_name = &self.network_descriptor.name;
         if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
             network_name_to_canister_id.remove(network_name);
         }
         self.save_ids()
+            .map_err(|e| CanisterIdStoreError::RemoveCanisterId {
+                canister_name: canister_name.to_string(),
+                cause: e,
+            })
     }
 }
 
-#[context("Failed to get remote ids.")]
-fn get_remote_ids(config: Option<Arc<Config>>) -> DfxResult<Option<CanisterIds>> {
-    let config = if let Some(cfg) = config {
-        cfg
-    } else {
-        return Ok(None);
-    };
+fn get_remote_ids(config: Option<Arc<Config>>) -> Option<CanisterIds> {
+    let config = config?;
     let config = config.get_config();
 
     let mut remote_ids = CanisterIds::new();
@@ -215,9 +206,9 @@ fn get_remote_ids(config: Option<Arc<Config>>) -> DfxResult<Option<CanisterIds>>
             }
         }
     }
-    Ok(if remote_ids.is_empty() {
+    if remote_ids.is_empty() {
         None
     } else {
         Some(remote_ids)
-    })
+    }
 }
