@@ -89,16 +89,22 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
     )
     .await
     {
-        Ok(h) => h,
+        Ok(h) => {
+            println!("Transfer sent at block height {h}");
+            h
+        }
         Err(e) => match e.downcast::<TransferError>() {
             Ok(transfer_err) => match transfer_err {
-                TransferError::TxDuplicate { duplicate_of } => duplicate_of,
+                TransferError::TxDuplicate { duplicate_of } => {
+                    println!("{}", transfer_err);
+                    println!("using block {}", duplicate_of);
+                    duplicate_of
+                }
                 _ => bail!(transfer_err),
             },
             Err(e) => bail!(e),
         },
     };
-    println!("Transfer sent at block height {height}");
     let result = notify_top_up(agent, to, height).await?;
 
     match result {
