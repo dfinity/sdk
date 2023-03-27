@@ -1,4 +1,5 @@
 use crate::lib::builders::BuildConfig;
+use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -6,7 +7,7 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
-    ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+    ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
@@ -30,6 +31,7 @@ pub enum DeployMode {
     NormalDeploy,
     ForceReinstallSingleCanister(String),
     PrepareForProposal(String),
+    ComputeEvidence(String),
 }
 
 #[context("Failed while trying to deploy canisters.")]
@@ -58,7 +60,9 @@ pub async fn deploy_canisters(
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_deploy = match deploy_mode {
-        PrepareForProposal(canister_name) => vec![canister_name.clone()],
+        PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
+            vec![canister_name.clone()]
+        }
         ForceReinstallSingleCanister(canister_name) => {
             // don't force-reinstall the dependencies too.
             vec![String::from(canister_name)]
@@ -125,7 +129,10 @@ pub async fn deploy_canisters(
         }
         PrepareForProposal(canister_name) => {
             prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
-                .await?;
+                .await?
+        }
+        ComputeEvidence(canister_name) => {
+            compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
         }
     }
 
@@ -313,6 +320,47 @@ async fn prepare_assets_for_commit(
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
+
+    Ok(())
+}
+
+#[context("Failed to compute evidence.")]
+async fn compute_evidence(
+    env: &dyn Environment,
+    canister_id_store: &CanisterIdStore,
+    config: &Config,
+    canister_name: &str,
+) -> DfxResult {
+    let canister_id = canister_id_store.get(canister_name)?;
+    let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
+
+    if !canister_info.is_assets() {
+        bail!(
+            "Expected canister {} to be an asset canister.",
+            canister_name
+        );
+    }
+
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    let assets_canister_info = canister_info.as_info::<AssetsCanisterInfo>()?;
+    let source_paths = assets_canister_info.get_source_paths();
+    let source_paths: Vec<&Path> = source_paths.iter().map(|p| p.as_path()).collect::<_>();
+
+    let canister_id = canister_info
+        .get_canister_id()
+        .context("Could not find canister ID.")?;
+
+    let canister = ic_utils::Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(canister_id)
+        .build()
+        .context("Failed to build asset canister caller.")?;
+
+    let evidence = ic_asset::compute_evidence(&canister, &source_paths, env.get_logger()).await?;
+    println!("{}", evidence);
 
     Ok(())
 }
