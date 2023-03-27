@@ -9,6 +9,7 @@ use dfx_core::config::cache::{
 use dfx_core::config::directories::project_dirs;
 use dfx_core::error::cache::CacheError;
 
+use dfx_core::error::unified_io::UnifiedIoError;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -93,7 +94,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             .map(|byte| byte as char)
             .collect();
         let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
-        dfx_core::fs::create_dir_all(&temp_p)?;
+        dfx_core::fs::create_dir_all(&temp_p).map_err(UnifiedIoError::from)?;
 
         let mut binary_cache_assets =
             util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheStoreFailed)?;
@@ -107,32 +108,39 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             if file.header().entry_type().is_dir() {
                 continue;
             }
-            dfx_core::fs::tar_unpack_in(temp_p.as_path(), &mut file)?;
+            dfx_core::fs::tar_unpack_in(temp_p.as_path(), &mut file)
+                .map_err(UnifiedIoError::from)?;
             // On *nix we need to set the execute permission as the tgz doesn't include it
             #[cfg(unix)]
             {
                 let archive_path = dfx_core::fs::get_archive_path(&file)?;
                 let full_path = temp_p.join(archive_path);
-                let mut perms = dfx_core::fs::read_permissions(full_path.as_path())?;
+                let mut perms = dfx_core::fs::read_permissions(full_path.as_path())
+                    .map_err(UnifiedIoError::from)?;
                 perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-                dfx_core::fs::set_permissions(full_path.as_path(), perms)?;
+                dfx_core::fs::set_permissions(full_path.as_path(), perms)
+                    .map_err(UnifiedIoError::from)?;
             }
         }
 
         // Copy our own binary in the cache.
         let dfx = temp_p.join("dfx");
-        dfx_core::fs::write(&dfx, dfx_core::fs::read(&current_exe)?)?;
+        dfx_core::fs::write(
+            &dfx,
+            dfx_core::fs::read(&current_exe).map_err(UnifiedIoError::from)?,
+        )
+        .map_err(UnifiedIoError::from)?;
         // On *nix we need to set the execute permission as the tgz doesn't include it
         #[cfg(unix)]
         {
-            let mut perms = dfx_core::fs::read_permissions(&dfx)?;
+            let mut perms = dfx_core::fs::read_permissions(&dfx).map_err(UnifiedIoError::from)?;
             perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-            dfx_core::fs::set_permissions(&dfx, perms)?;
+            dfx_core::fs::set_permissions(&dfx, perms).map_err(UnifiedIoError::from)?;
         }
 
         // atomically install cache version into place
         if force && p.exists() {
-            dfx_core::fs::remove_dir_all(&p)?;
+            dfx_core::fs::remove_dir_all(&p).map_err(UnifiedIoError::from)?;
         }
 
         if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
@@ -140,7 +148,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
                 b.finish_with_message(format!("Version v{} installed successfully.", v));
             }
         } else {
-            dfx_core::fs::remove_dir_all(temp_p.as_path())?;
+            dfx_core::fs::remove_dir_all(temp_p.as_path()).map_err(UnifiedIoError::from)?;
             if let Some(b) = b {
                 b.finish_with_message(format!("Version v{} was already installed.", v));
             }

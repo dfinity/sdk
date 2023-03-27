@@ -6,7 +6,7 @@ pub enum ProjectError {
     StructuredFileError(#[from] dfx_core::error::structured_file::StructuredFileError),
 
     #[error(transparent)]
-    IoError(#[from] dfx_core::error::io::IoError),
+    IoError(#[from] dfx_core::error::fs::FsError),
 
     #[error("Can't convert string '{0}' to path: {1}")]
     ConvertingStringToPathFailed(String, std::convert::Infallible),
