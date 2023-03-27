@@ -4,7 +4,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum CanisterIdStoreError {
     #[error(transparent)]
-    StructuredFileOrFilesystem(#[from] UnifiedIoError),
+    UnifiedIoError(#[from] UnifiedIoError),
 
     #[error(
         "Cannot find canister id. Please issue 'dfx canister create {canister_name}{network}'."
