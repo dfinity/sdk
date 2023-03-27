@@ -1,6 +1,4 @@
-use dfx_core::error::{
-    fs::FsError, structured_file::StructuredFileError, unified_io::UnifiedIoError,
-};
+use crate::error::{fs::FsError, structured_file::StructuredFileError, unified_io::UnifiedIoError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]

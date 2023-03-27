@@ -4,7 +4,6 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::NetworkOpt;
 
 use anyhow::bail;
@@ -51,7 +50,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     let canister_pool_load = CanisterPool::load(&env, false, &canisters_to_load)?;
 
     // This is just to display an error if trying to generate before creating the canister(s).
-    let store = CanisterIdStore::for_env(&env)?;
+    let store = env.get_canister_id_store()?;
 
     // If generate for motoko canister, build first
     let mut build_before_generate = Vec::new();

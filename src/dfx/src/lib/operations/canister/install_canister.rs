@@ -6,10 +6,10 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::wallet::build_wallet_canister;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::named_canister;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, bail, Context};

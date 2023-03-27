@@ -3,7 +3,6 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::wallet::{build_wallet_canister, set_wallet_id};
-use crate::lib::models::canister_id_store::CanisterIdStore;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -42,7 +41,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         Ok(id) => id,
         Err(_) => {
             let config = env.get_config_or_anyhow()?;
-            let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
+            let canister_id = env.get_canister_id_store()?.get(canister_name)?;
             let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
             canister_info.get_canister_id()?
         }
