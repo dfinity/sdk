@@ -16,8 +16,7 @@ pub(crate) fn assemble_batch_operations(
     project_assets: HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
-    batch_id: Nat,
-) -> CommitBatchArguments {
+) -> Vec<BatchOperationKind> {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
@@ -32,6 +31,17 @@ pub(crate) fn assemble_batch_operations(
     unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
     set_encodings(&mut operations, project_assets);
 
+    operations
+}
+
+pub(crate) fn assemble_commit_batch_arguments(
+    project_assets: HashMap<String, ProjectAsset>,
+    canister_assets: HashMap<String, AssetDetails>,
+    asset_deletion_reason: AssetDeletionReason,
+    batch_id: Nat,
+) -> CommitBatchArguments {
+    let operations =
+        assemble_batch_operations(project_assets, canister_assets, asset_deletion_reason);
     CommitBatchArguments {
         operations,
         batch_id,
