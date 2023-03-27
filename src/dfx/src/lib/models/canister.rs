@@ -6,9 +6,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_URL};
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 
 use anyhow::{anyhow, bail, Context};
@@ -307,7 +307,7 @@ impl CanisterPool {
         let mut pool_helper = PoolConstructHelper {
             config: &config,
             builder_pool: BuilderPool::new(env)?,
-            canister_id_store: CanisterIdStore::for_env(env)?,
+            canister_id_store: env.get_canister_id_store()?,
             generate_cid,
             canisters_map: &mut canisters_map,
         };

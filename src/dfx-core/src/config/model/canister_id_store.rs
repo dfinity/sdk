@@ -1,9 +1,8 @@
-use crate::lib::environment::Environment;
-use crate::lib::error::CanisterIdStoreError;
-use crate::lib::network::directory::ensure_cohesive_network_directory;
-use dfx_core::config::model::dfinity::Config;
-use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use dfx_core::error::unified_io::UnifiedIoError;
+use crate::config::model::dfinity::Config;
+use crate::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use crate::error::canister_id_store::CanisterIdStoreError;
+use crate::error::unified_io::UnifiedIoError;
+use crate::network::directory::ensure_cohesive_network_directory;
 
 use candid::Principal as CanisterId;
 use std::collections::BTreeMap;
@@ -33,10 +32,6 @@ pub struct CanisterIdStore {
 impl CanisterIdStore {
     pub const DEFAULT: &'static str = "__default";
 
-    pub fn for_env(env: &dyn Environment) -> Result<Self, CanisterIdStoreError> {
-        CanisterIdStore::new(env.get_network_descriptor(), env.get_config())
-    }
-
     pub fn new(
         network_descriptor: &NetworkDescriptor,
         config: Option<Arc<Config>>,
@@ -64,7 +59,7 @@ impl CanisterIdStore {
         };
         let remote_ids = get_remote_ids(config);
         let ids = match &path {
-            Some(path) if path.is_file() => dfx_core::json::load_json_file(path)?,
+            Some(path) if path.is_file() => crate::json::load_json_file(path)?,
             _ => CanisterIds::new(),
         };
 
@@ -102,8 +97,8 @@ impl CanisterIdStore {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister ids")
             });
-        dfx_core::fs::composite::ensure_parent_dir_exists(path)?;
-        dfx_core::json::save_json_file(path, &self.ids)?;
+        crate::fs::composite::ensure_parent_dir_exists(path)?;
+        crate::json::save_json_file(path, &self.ids)?;
         Ok(())
     }
 

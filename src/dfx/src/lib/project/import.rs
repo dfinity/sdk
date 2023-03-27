@@ -1,6 +1,6 @@
 use crate::lib::error::ProjectError;
-use crate::lib::models::canister_id_store;
-use crate::lib::models::canister_id_store::CanisterIds;
+use dfx_core::config::model::canister_id_store;
+use dfx_core::config::model::canister_id_store::CanisterIds;
 use dfx_core::config::model::dfinity::Config;
 
 use hyper_rustls::ConfigBuilderExt;
