@@ -28,6 +28,7 @@ You can use the following option with the `dfx replica` command.
 |---------------------------|-------------------------------------------------------------------------------|
 | `--port port`             | Specifies the port the local canister execution environment should listen to. |
 | `--bitcoin-node host:port` | Specifies the address of a bitcoind node.  Implies `--enable-bitcoin`. |
+| `--artificial-delay milliseconds` | Specifies the delay that an update call should incur. Default: 600ms  |
 
 ## Examples
 

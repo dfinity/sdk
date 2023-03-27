@@ -45,6 +45,10 @@ pub struct ReplicaOpts {
     /// enable canister http requests
     #[clap(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
+
+    /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
+    #[clap(long, conflicts_with("emulator"), default_value = "600")]
+    artificial_delay: u32,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -53,6 +57,7 @@ fn get_config(
     local_server_descriptor: &LocalServerDescriptor,
     replica_port_path: PathBuf,
     state_root: &Path,
+    artificial_delay: u32,
 ) -> DfxResult<ReplicaConfig> {
     let config = &local_server_descriptor.replica;
     let port = config.port.unwrap_or(DEFAULT_REPLICA_PORT);
@@ -67,6 +72,7 @@ fn get_config(
         state_root,
         config.subnet_type.unwrap_or_default(),
         config.log_level.unwrap_or_default(),
+        artificial_delay,
     );
     replica_config.http_handler = http_handler;
 
@@ -84,6 +90,7 @@ pub fn exec(
         bitcoin_node,
         enable_bitcoin,
         enable_canister_http,
+        artificial_delay,
     }: ReplicaOpts,
 ) -> DfxResult {
     let system = actix::System::new();
@@ -161,7 +168,12 @@ pub fn exec(
     let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
-    let mut replica_config = get_config(local_server_descriptor, replica_port_path, &state_root)?;
+    let mut replica_config = get_config(
+        local_server_descriptor,
+        replica_port_path,
+        &state_root,
+        artificial_delay,
+    )?;
 
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;

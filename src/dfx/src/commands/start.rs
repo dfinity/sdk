@@ -62,6 +62,10 @@ pub struct StartOpts {
     /// enable canister http requests
     #[clap(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
+
+    /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
+    #[clap(long, conflicts_with("emulator"), default_value = "600")]
+    artificial_delay: u32,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -126,6 +130,7 @@ pub fn exec(
         bitcoin_node,
         enable_bitcoin,
         enable_canister_http,
+        artificial_delay,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -299,8 +304,9 @@ pub fn exec(
                 } else {
                     (None, None)
                 };
-            let mut replica_config = ReplicaConfig::new(&state_root, subnet_type, log_level)
-                .with_random_port(&replica_port_path);
+            let mut replica_config =
+                ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay)
+                    .with_random_port(&replica_port_path);
             if btc_adapter_config.is_some() {
                 replica_config = replica_config.with_btc_adapter_enabled();
                 if let Some(btc_adapter_socket) = btc_adapter_socket_path {

@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: --artificial-delay flag
+
+The local replica uses a 600ms delay by default when performing update calls. With `dfx start --artificial-delay <ms>`, you can decrease this value (e.g. 100ms) for faster integration tests, or increase it (e.g. 2500ms) to mimick mainnet latency for e.g. UI responsiveness checks.
+
 ### fix: make sure assetstorage did file is created as writeable.
 
 ### feat: specify id when provisional create canister
