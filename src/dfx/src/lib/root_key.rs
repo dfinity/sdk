@@ -1,13 +1,14 @@
 use crate::{lib::error::DfxResult, Environment};
-use dfx_core::error::root_key::FetchRootKeyError;
 use dfx_core::network::root_key;
+
+use anyhow::anyhow;
 
 pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
     let agent = env
         .get_agent()
-        .ok_or(FetchRootKeyError::CannotGetHttpClient)?;
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let network = env.get_network_descriptor();
-    root_key::fetch_root_key_if_needed(agent, network).await?;
+    root_key::fetch_root_key_when_local(agent, network).await?;
     Ok(())
 }
 
@@ -16,8 +17,8 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
 pub async fn fetch_root_key_or_anyhow(env: &dyn Environment) -> DfxResult {
     let agent = env
         .get_agent()
-        .ok_or(FetchRootKeyError::CannotGetHttpClient)?;
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let network = env.get_network_descriptor();
-    root_key::fetch_root_key_or_anyhow(agent, network).await?;
+    root_key::fetch_root_key_when_local_or_error(agent, network).await?;
     Ok(())
 }

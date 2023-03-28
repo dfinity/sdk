@@ -4,7 +4,7 @@ use crate::{
     config::model::network_descriptor::NetworkDescriptor, error::root_key::FetchRootKeyError,
 };
 
-pub async fn fetch_root_key_if_needed(
+pub async fn fetch_root_key_when_local(
     agent: &Agent,
     network: &NetworkDescriptor,
 ) -> Result<(), FetchRootKeyError> {
@@ -12,14 +12,12 @@ pub async fn fetch_root_key_if_needed(
         agent
             .fetch_root_key()
             .await
-            .map_err(FetchRootKeyError::ReplicaError)?;
+            .map_err(FetchRootKeyError::AgentError)?;
     }
     Ok(())
 }
 
-/// Fetches the root key of the local network.
-/// Returns an error if attempted to run on the real IC.
-pub async fn fetch_root_key_or_anyhow(
+pub async fn fetch_root_key_when_local_or_error(
     agent: &Agent,
     network: &NetworkDescriptor,
 ) -> Result<(), FetchRootKeyError> {
@@ -27,7 +25,7 @@ pub async fn fetch_root_key_or_anyhow(
         agent
             .fetch_root_key()
             .await
-            .map_err(FetchRootKeyError::ReplicaError)
+            .map_err(FetchRootKeyError::AgentError)
     } else {
         Err(FetchRootKeyError::NotLocal)
     }
