@@ -61,7 +61,11 @@ pub async fn exec(
     opts: CanisterStatusOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
-    fetch_root_key_if_needed(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+    let network = env.get_network_descriptor();
+    fetch_root_key_if_needed(&agent, &network).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
         canister_status(env, canister, call_sender).await

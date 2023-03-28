@@ -27,7 +27,9 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     let canister_id = Principal::from_text(callee_canister)
         .or_else(|_| canister_id_store.get(callee_canister))?;
 
-    fetch_root_key_if_needed(env).await?;
+    let network = env.get_network_descriptor();
+
+    fetch_root_key_if_needed(&agent, &network).await?;
     let controller_blob = match agent
         .read_state_canister_info(canister_id, "controllers")
         .await

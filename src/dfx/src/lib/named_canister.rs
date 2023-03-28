@@ -30,7 +30,11 @@ pub async fn install_ui_canister(
             network.name,
         ));
     }
-    fetch_root_key_if_needed(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+
+    fetch_root_key_if_needed(&agent, &network).await?;
     let mgr = ManagementCanister::create(
         env.get_agent()
             .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,

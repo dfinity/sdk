@@ -81,7 +81,12 @@ pub async fn create_wallet(
     name: &str,
     some_canister_id: Option<Principal>,
 ) -> DfxResult<Principal> {
-    fetch_root_key_if_needed(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+
+    let network = env.get_network_descriptor();
+    fetch_root_key_if_needed(&agent, &network).await?;
     let mgr = ManagementCanister::create(
         env.get_agent()
             .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,

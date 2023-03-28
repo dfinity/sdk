@@ -118,7 +118,13 @@ async fn deposit_minted_cycles(
 pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult {
     let cycles = cycles_to_fabricate(env, &opts).await?;
 
-    fetch_root_key_or_anyhow(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+
+    let network = env.get_network_descriptor();
+
+    fetch_root_key_or_anyhow(&agent, &network).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
         deposit_minted_cycles(env, canister, &CallSender::SelectedId, cycles).await

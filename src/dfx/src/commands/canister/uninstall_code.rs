@@ -7,6 +7,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use candid::Principal;
 use clap::Parser;
 use slog::info;
+use tokio::runtime::Runtime;
 
 /// Uninstalls a canister, removing its code and state.
 /// Does not delete the canister.
@@ -49,8 +50,13 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    fetch_root_key_if_needed(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+    let network = env.get_network_descriptor();
+    runtime.block_on(async { fetch_root_key_if_needed(&agent, &network).await })?;
 
     if let Some(canister) = opts.canister.as_deref() {
         uninstall_code(env, canister, call_sender).await

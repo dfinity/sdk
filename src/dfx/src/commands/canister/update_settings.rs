@@ -85,7 +85,12 @@ pub async fn exec(
         }
     }
 
-    fetch_root_key_if_needed(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+
+    let network = env.get_network_descriptor();
+    fetch_root_key_if_needed(&agent, &network).await?;
 
     let controllers: Option<DfxResult<Vec<_>>> = opts.set_controller.as_ref().map(|controllers| {
         let y: DfxResult<Vec<_>> = controllers

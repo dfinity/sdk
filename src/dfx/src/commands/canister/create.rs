@@ -75,7 +75,12 @@ pub async fn exec(
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
 
-    fetch_root_key_if_needed(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+
+    let network = env.get_network_descriptor();
+    fetch_root_key_if_needed(&agent, &network).await?;
 
     let with_cycles = opts.with_cycles.as_deref();
 

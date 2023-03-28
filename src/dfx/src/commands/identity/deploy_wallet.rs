@@ -19,14 +19,17 @@ pub struct DeployWalletOpts {
 pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<String>) -> DfxResult {
     let agent_env = create_agent_environment(env, network)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
+    let network = env.get_network_descriptor();
+    let agent = agent_env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
 
-    runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;
+    runtime.block_on(async { fetch_root_key_if_needed(&agent, &network).await })?;
 
     let identity_name = agent_env
         .get_selected_identity()
         .expect("No selected identity.")
         .to_string();
-    let network = agent_env.get_network_descriptor();
 
     let canister_id = opts.canister_id;
     match CanisterId::from_text(&canister_id) {

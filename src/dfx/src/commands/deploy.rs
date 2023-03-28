@@ -142,7 +142,12 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     } else {
         &call_sender
     };
-    runtime.block_on(fetch_root_key_if_needed(&env))?;
+    let network = env.get_network_descriptor();
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+
+    runtime.block_on(async { fetch_root_key_if_needed(&agent, &network).await })?;
 
     runtime.block_on(deploy_canisters(
         &env,

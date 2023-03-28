@@ -38,7 +38,9 @@ pub async fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult {
     let nns_url = get_and_check_replica_url(env)?;
     get_with_retries(&nns_url).await?;
 
-    fetch_root_key_if_needed(env).await?;
+    let network = env.get_network_descriptor();
+
+    fetch_root_key_if_needed(&agent, &network).await?;
 
     let ic_nns_init_path = env.get_cache().get_binary_command_path("ic-nns-init")?;
 

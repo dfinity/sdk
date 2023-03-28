@@ -80,7 +80,12 @@ pub async fn exec(
 
     let config = env.get_config_or_anyhow()?;
 
-    fetch_root_key_if_needed(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+
+    let network = env.get_network_descriptor();
+    fetch_root_key_if_needed(&agent, network).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
         deposit_cycles(env, canister, call_sender, cycles).await

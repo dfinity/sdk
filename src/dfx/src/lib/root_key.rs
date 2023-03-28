@@ -1,41 +1,33 @@
-use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::fetch_root_key::FetchRootKeyError;
 
-use anyhow::{anyhow, Context};
-use fn_error_context::context;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use ic_agent::Agent;
 
-#[context("Failed to fetch root key.")]
-pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-
-    if !env.get_network_descriptor().is_ic {
+pub async fn fetch_root_key_if_needed(
+    agent: &Agent,
+    network_descriptor: &NetworkDescriptor,
+) -> Result<(), FetchRootKeyError> {
+    if !network_descriptor.is_ic {
         agent
             .fetch_root_key()
             .await
-            .context("Encountered an error while trying to query the replica.")?;
+            .map_err(FetchRootKeyError::ReplicaError)?;
     }
     Ok(())
 }
 
 /// Fetches the root key of the local network.
 /// Returns an error if attempted to run on the real IC.
-#[context("Failed to fetch root key.")]
-pub async fn fetch_root_key_or_anyhow(env: &dyn Environment) -> DfxResult {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-
-    if !env.get_network_descriptor().is_ic {
+pub async fn fetch_root_key_or_anyhow(
+    agent: &Agent,
+    network_descriptor: &NetworkDescriptor,
+) -> Result<(), FetchRootKeyError> {
+    if !network_descriptor.is_ic {
         agent
             .fetch_root_key()
             .await
-            .context("Encountered an error while trying to query the local replica.")?;
-        Ok(())
+            .map_err(FetchRootKeyError::ReplicaError)
     } else {
-        Err(anyhow!(
-            "This command only runs on local instances. Cannot run this on the real IC."
-        ))
+        Err(FetchRootKeyError::NotLocal)
     }
 }

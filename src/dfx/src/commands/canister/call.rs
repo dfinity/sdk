@@ -269,7 +269,8 @@ pub async fn exec(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(env).await?;
+    let network = env.get_network_descriptor();
+    fetch_root_key_if_needed(&agent, &network).await?;
 
     // amount has been validated by cycle_amount_validator
     let cycles = opts

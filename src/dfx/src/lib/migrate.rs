@@ -17,12 +17,12 @@ use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_roo
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {
-    fetch_root_key_if_needed(env).await?;
-    let config = env.get_config_or_anyhow()?;
-    let config = config.get_config();
     let agent = env
         .get_agent()
         .expect("Could not get agent from environment");
+    fetch_root_key_if_needed(&agent, &network).await?;
+    let config = env.get_config_or_anyhow()?;
+    let config = config.get_config();
     let mut mgr = env.new_identity_manager()?;
     let ident = mgr.instantiate_selected_identity(env.get_logger())?;
     let mut did_migrate = false;

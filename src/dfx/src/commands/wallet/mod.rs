@@ -126,7 +126,11 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
         .to_string();
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
-    fetch_root_key_if_needed(env).await?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
+
+    fetch_root_key_if_needed(&agent, &network).await?;
     let wallet = get_or_create_wallet_canister(env, network, &identity_name).await?;
     Ok(wallet)
 }
