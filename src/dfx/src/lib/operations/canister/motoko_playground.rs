@@ -104,7 +104,7 @@ pub async fn authorize_asset_uploader(
     let call_arg = Encode!(&canister_info, &"authorize", &level_2_arg)?;
 
     let _ = agent
-        .update(&playground_cid, "callCanister")
+        .update(&playground_cid, "callForward")
         .with_arg(call_arg)
         .call_and_wait(waiter_with_timeout(expiry_duration()))
         .await
