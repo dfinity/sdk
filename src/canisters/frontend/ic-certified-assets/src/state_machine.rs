@@ -450,12 +450,9 @@ impl State {
             .max_iterations
             .unwrap_or(DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS);
 
-        let mut ec = batch
-            .evidence_computation
-            .take()
-            .unwrap_or(EvidenceComputation::new());
+        let mut ec = batch.evidence_computation.take().unwrap_or_default();
         for _ in 0..max_iterations {
-            ec = ec.advance(&cba, &self.chunks);
+            ec = ec.advance(cba, &self.chunks);
             if matches!(ec, Computed(_)) {
                 break;
             }
@@ -756,7 +753,7 @@ impl State {
     }
 
     // Returns keys that needs to be updated if the supplied key is changed.
-    fn dependent_keys<'a>(&self, key: &Key) -> Vec<Key> {
+    fn dependent_keys(&self, key: &Key) -> Vec<Key> {
         if self
             .assets
             .get(key)
@@ -810,7 +807,7 @@ impl From<StableState> for State {
             prepare_principals,
             manage_permissions_principals,
             assets: stable_state.stable_assets,
-            next_batch_id: stable_state.next_batch_id.unwrap_or(Nat::from(1)),
+            next_batch_id: stable_state.next_batch_id.unwrap_or_else(|| Nat::from(1)),
             ..Self::default()
         };
 

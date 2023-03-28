@@ -39,6 +39,12 @@ pub enum EvidenceComputation {
     Computed(ByteBuf),
 }
 
+impl Default for EvidenceComputation {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EvidenceComputation {
     pub fn new() -> Self {
         NextOperation {
@@ -143,49 +149,49 @@ fn hash_chunk_by_id(hasher: &mut Sha256, chunk_id: &ChunkId, chunks: &HashMap<Ch
     }
 }
 
-fn hash_create_asset(hasher: &mut Sha256, args: &CreateAssetArguments) -> () {
-    hasher.update(&TAG_CREATE_ASSET);
+fn hash_create_asset(hasher: &mut Sha256, args: &CreateAssetArguments) {
+    hasher.update(TAG_CREATE_ASSET);
     hasher.update(&args.key);
     hasher.update(&args.content_type);
     if let Some(max_age) = args.max_age {
-        hasher.update(&TAG_SOME);
-        hasher.update(&max_age.to_be_bytes());
+        hasher.update(TAG_SOME);
+        hasher.update(max_age.to_be_bytes());
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
     hash_headers(hasher, args.headers.as_ref());
     hash_opt_bool(hasher, args.allow_raw_access);
     hash_opt_bool(hasher, args.enable_aliasing);
 }
 
-fn hash_set_asset_content(hasher: &mut Sha256, args: &SetAssetContentArguments) -> () {
-    hasher.update(&TAG_SET_ASSET_CONTENT);
+fn hash_set_asset_content(hasher: &mut Sha256, args: &SetAssetContentArguments) {
+    hasher.update(TAG_SET_ASSET_CONTENT);
     hasher.update(&args.key);
     hasher.update(&args.content_encoding);
     hash_opt_bytebuf(hasher, args.sha256.as_ref());
 }
 
-fn hash_unset_asset_content(hasher: &mut Sha256, args: &UnsetAssetContentArguments) -> () {
-    hasher.update(&TAG_UNSET_ASSET_CONTENT);
+fn hash_unset_asset_content(hasher: &mut Sha256, args: &UnsetAssetContentArguments) {
+    hasher.update(TAG_UNSET_ASSET_CONTENT);
     hasher.update(&args.key);
     hasher.update(&args.content_encoding);
 }
 
-fn hash_delete_asset(hasher: &mut Sha256, args: &DeleteAssetArguments) -> () {
-    hasher.update(&TAG_DELETE_ASSET);
+fn hash_delete_asset(hasher: &mut Sha256, args: &DeleteAssetArguments) {
+    hasher.update(TAG_DELETE_ASSET);
     hasher.update(&args.key);
 }
 
-fn hash_clear(hasher: &mut Sha256, _args: &ClearArguments) -> () {
-    hasher.update(&TAG_CLEAR);
+fn hash_clear(hasher: &mut Sha256, _args: &ClearArguments) {
+    hasher.update(TAG_CLEAR);
 }
 
 fn hash_opt_bool(hasher: &mut Sha256, b: Option<bool>) {
     if let Some(b) = b {
-        hasher.update(&TAG_SOME);
-        hasher.update(if b { &TAG_TRUE } else { &TAG_FALSE });
+        hasher.update(TAG_SOME);
+        hasher.update(if b { TAG_TRUE } else { TAG_FALSE });
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
 }
 
