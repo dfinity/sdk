@@ -27,6 +27,6 @@ pub async fn fetch_root_key_when_local_or_error(
             .await
             .map_err(FetchRootKeyError::AgentError)
     } else {
-        Err(FetchRootKeyError::NotLocal)
+        Err(FetchRootKeyError::NetworkMustBeLocal)
     }
 }
