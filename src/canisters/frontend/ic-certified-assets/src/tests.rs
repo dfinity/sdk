@@ -279,7 +279,7 @@ fn can_propose_commit_batch_exactly_once() {
     };
     assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
     match state.propose_commit_batch(args) {
-        Err(err) if err == "batch already has proposed CommitBatchArguments".to_string() => {}
+        Err(err) if err == *"batch already has proposed CommitBatchArguments" => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     };
 }
@@ -295,7 +295,7 @@ fn cannot_create_chunk_in_proposed_batch_() {
         batch_id: batch_1.clone(),
         operations: vec![],
     };
-    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     match state.create_chunk(
@@ -305,7 +305,7 @@ fn cannot_create_chunk_in_proposed_batch_() {
         },
         time_now,
     ) {
-        Err(err) if err == "batch has been proposed".to_string() => {}
+        Err(err) if err == *"batch has been proposed" => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
 }
@@ -333,7 +333,7 @@ fn batches_with_proposed_commit_args_do_not_expire() {
         batch_id: batch_1.clone(),
         operations: vec![],
     };
-    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
 
     let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
     let _batch_2 = state.create_batch(time_now);
@@ -345,7 +345,7 @@ fn batches_with_proposed_commit_args_do_not_expire() {
         },
         time_now,
     ) {
-        Err(err) if err == "batch has been proposed".to_string() => {}
+        Err(err) if err == *"batch has been proposed" => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
 }
@@ -361,10 +361,8 @@ fn can_delete_proposed_batch() {
         batch_id: batch_1.clone(),
         operations: vec![],
     };
-    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
-    let delete_args = DeleteBatchArguments {
-        batch_id: batch_1.clone(),
-    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
+    let delete_args = DeleteBatchArguments { batch_id: batch_1 };
     assert_eq!(Ok(()), state.delete_batch(delete_args.clone()));
     assert_eq!(
         Err("batch not found".to_string()),
@@ -390,9 +388,7 @@ fn can_delete_batch_with_chunks() {
         )
         .unwrap();
 
-    let delete_args = DeleteBatchArguments {
-        batch_id: batch_1.clone(),
-    };
+    let delete_args = DeleteBatchArguments { batch_id: batch_1 };
     assert_eq!(Ok(()), state.delete_batch(delete_args.clone()));
     assert_eq!(
         Err("batch not found".to_string()),
@@ -1220,7 +1216,7 @@ mod evidence_computation {
         ));
         assert!(matches!(
             state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(1),
             }),
             Ok(Some(_))
@@ -1285,7 +1281,7 @@ mod evidence_computation {
         ));
         assert!(matches!(
             state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(1),
             }),
             Ok(Some(_))
@@ -1314,7 +1310,7 @@ mod evidence_computation {
         assert!(state.propose_commit_batch(cba).is_ok());
 
         let compute_args = ComputeEvidenceArguments {
-            batch_id: batch_id.clone(),
+            batch_id,
             max_iterations: Some(1),
         };
         assert!(state
@@ -1362,7 +1358,7 @@ mod evidence_computation {
             .is_none());
         assert!(state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_id.clone(),
+                batch_id,
                 max_iterations: Some(1),
             })
             .unwrap()
@@ -1383,7 +1379,7 @@ mod evidence_computation {
 
         assert!(state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_id.clone(),
+                batch_id,
                 max_iterations: Some(1),
             })
             .unwrap()
@@ -1412,7 +1408,7 @@ mod evidence_computation {
                 .is_ok());
             let evidence_1 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_1.clone(),
+                    batch_id: batch_1,
                     max_iterations: Some(3),
                 })
                 .unwrap()
@@ -1434,7 +1430,7 @@ mod evidence_computation {
                 .is_ok());
             let evidence_2 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_2.clone(),
+                    batch_id: batch_2,
                     max_iterations: Some(3),
                 })
                 .unwrap()
@@ -1463,7 +1459,7 @@ mod evidence_computation {
                 .is_ok());
             let evidence_1 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_1.clone(),
+                    batch_id: batch_1,
                     max_iterations: Some(3),
                 })
                 .unwrap()
@@ -1488,7 +1484,7 @@ mod evidence_computation {
                 .is_ok());
             let evidence_2 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_2.clone(),
+                    batch_id: batch_2,
                     max_iterations: Some(3),
                 })
                 .unwrap()
@@ -1518,7 +1514,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1540,7 +1536,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1570,7 +1566,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1592,7 +1588,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1622,7 +1618,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1645,7 +1641,7 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1667,7 +1663,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3.clone(),
+                batch_id: batch_3,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1699,7 +1695,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1721,7 +1717,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1744,7 +1740,7 @@ mod evidence_computation {
 
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3.clone(),
+                batch_id: batch_3,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1769,7 +1765,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_4 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_4.clone(),
+                batch_id: batch_4,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1804,7 +1800,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1827,7 +1823,7 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1849,7 +1845,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3.clone(),
+                batch_id: batch_3,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1881,7 +1877,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1904,7 +1900,7 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1926,7 +1922,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3.clone(),
+                batch_id: batch_3,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1956,7 +1952,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1976,7 +1972,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2004,7 +2000,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2024,7 +2020,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2057,14 +2053,14 @@ mod evidence_computation {
                 operations: vec![SetAssetContent(SetAssetContentArguments {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
-                    chunk_ids: vec![chunk_1.clone()],
+                    chunk_ids: vec![chunk_1],
                     sha256: None,
                 })],
             })
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2093,7 +2089,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2137,7 +2133,7 @@ mod evidence_computation {
                     operations: vec![SetAssetContent(SetAssetContentArguments {
                         key: "/1".to_string(),
                         content_encoding: "identity".to_string(),
-                        chunk_ids: vec![chunk_1.clone(), chunk_2],
+                        chunk_ids: vec![chunk_1, chunk_2],
                         sha256: None,
                     })],
                 })
@@ -2145,7 +2141,7 @@ mod evidence_computation {
         }
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(4),
             })
             .unwrap()
@@ -2185,7 +2181,7 @@ mod evidence_computation {
         }
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(4),
             })
             .unwrap()
@@ -2216,7 +2212,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2236,7 +2232,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2264,7 +2260,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2284,7 +2280,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2312,7 +2308,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2332,7 +2328,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2358,7 +2354,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2375,7 +2371,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2398,7 +2394,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2416,7 +2412,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
