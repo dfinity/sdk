@@ -3,8 +3,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister::{install_canister, install_canister_wasm};
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;

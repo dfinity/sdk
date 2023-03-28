@@ -1,8 +1,8 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, Context};
 use backoff::backoff::Backoff;

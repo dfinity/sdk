@@ -1,6 +1,6 @@
-use crate::lib::error::fetch_root_key::FetchRootKeyError;
+use crate::config::model::network_descriptor::NetworkDescriptor;
+use crate::error::root_key::FetchRootKeyError;
 
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use ic_agent::Agent;
 
 pub async fn fetch_root_key_if_needed(

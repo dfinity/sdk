@@ -3,8 +3,8 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, Decode, Principal};

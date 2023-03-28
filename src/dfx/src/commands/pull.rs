@@ -3,11 +3,11 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::metadata::names::{DFX_DEPS, DFX_WASM_HASH, DFX_WASM_URL};
 use crate::lib::operations::canister::get_canister_status;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{agent::create_agent_environment, environment::Environment};
 use crate::NetworkOpt;
 use dfx_core::config::cache::get_cache_root;
 use dfx_core::config::model::dfinity::CanisterTypeProperties;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
 

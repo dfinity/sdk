@@ -1,6 +1,6 @@
 use crate::lib::error::DfxResult;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::Environment;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;

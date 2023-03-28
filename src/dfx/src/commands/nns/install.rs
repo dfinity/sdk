@@ -4,8 +4,8 @@ use crate::Environment;
 use anyhow::anyhow;
 
 use crate::lib::nns::install_nns::{get_and_check_replica_url, get_with_retries, install_nns};
-use crate::lib::root_key::fetch_root_key_if_needed;
 use clap::Parser;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 /// Installs the NNS canisters, Internet Identity and the NNS frontend dapp
 ///

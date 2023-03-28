@@ -4,8 +4,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{Memo, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator, memo_validator};
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;

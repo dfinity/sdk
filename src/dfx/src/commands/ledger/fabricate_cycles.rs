@@ -2,11 +2,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister;
-use crate::lib::root_key::fetch_root_key_or_anyhow;
 use crate::util::clap::validators::{
     cycle_amount_validator, e8s_validator, icpts_amount_validator, trillion_cycle_amount_validator,
 };
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
+use dfx_core::network::root_key::fetch_root_key_or_anyhow;
 
 use candid::Principal;
 use clap::Parser;

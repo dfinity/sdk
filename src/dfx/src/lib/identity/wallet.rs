@@ -1,6 +1,5 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::error::DfxResult;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
 use dfx_core::config::directories::get_config_dfx_dir_path;
@@ -11,6 +10,7 @@ use dfx_core::error::wallet_config::WalletConfigError::{
 };
 use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap, WALLET_CONFIG_FILENAME};
 use dfx_core::json::save_json_file;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;

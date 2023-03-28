@@ -5,8 +5,8 @@ use crate::lib::ledger_types::{Memo, NotifyError};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;

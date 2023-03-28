@@ -3,9 +3,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};

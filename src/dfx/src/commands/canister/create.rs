@@ -6,13 +6,13 @@ use crate::lib::ic_attributes::{
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::create_canister;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::clap::validators::{
     compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
 };
 use dfx_core::error::identity::IdentityError;
 use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;

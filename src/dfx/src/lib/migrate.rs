@@ -13,8 +13,9 @@ use itertools::Itertools;
 
 use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister::install_wallet;
-use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
+use crate::lib::{environment::Environment, error::DfxResult};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {
     let agent = env

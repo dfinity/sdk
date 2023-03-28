@@ -2,9 +2,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister::install_wallet;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use anyhow::{anyhow, bail};
 use clap::Parser;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 

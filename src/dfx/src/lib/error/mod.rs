@@ -1,6 +1,5 @@
 pub mod build;
 pub mod extension;
-pub mod fetch_root_key;
 pub mod project;
 
 pub use build::BuildError;

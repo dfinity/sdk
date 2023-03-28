@@ -1,8 +1,8 @@
 use super::super::notify_create;
 use crate::lib::ledger_types::NotifyError;
-use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, error::DfxResult};
 use crate::util::clap::validators::e8s_validator;
+use dfx_core::network::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
