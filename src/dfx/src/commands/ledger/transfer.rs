@@ -76,7 +76,7 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let network = env.get_network_descriptor();
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     let canister_id = opts
         .ledger_canister_id

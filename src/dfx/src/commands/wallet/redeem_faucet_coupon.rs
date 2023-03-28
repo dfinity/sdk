@@ -38,7 +38,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let network = env.get_network_descriptor();
-    if fetch_root_key_if_needed(&agent, &network).await.is_err() {
+    if fetch_root_key_if_needed(agent, network).await.is_err() {
         bail!("Failed to connect to the local replica. Did you forget to use '--network ic'?");
     } else if !env.get_network_descriptor().is_ic {
         warn!(log, "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?");

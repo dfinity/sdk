@@ -73,7 +73,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     let height = transfer_cmc(agent, memo, amount, fee, opts.from_subaccount, to).await?;
     println!("Transfer sent at block height {height}");

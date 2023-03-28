@@ -29,7 +29,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     let network = env.get_network_descriptor();
 
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
     let controller_blob = match agent
         .read_state_canister_info(canister_id, "controllers")
         .await

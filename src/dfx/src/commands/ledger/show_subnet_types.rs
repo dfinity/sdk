@@ -24,7 +24,7 @@ pub async fn exec(env: &dyn Environment, opts: ShowSubnetTypesOpts) -> DfxResult
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     let network = env.get_network_descriptor();
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     let cycles_minting_canister_id = opts
         .cycles_minting_canister_id

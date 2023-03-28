@@ -31,7 +31,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterMetadataOpts) -> DfxResul
         .or_else(|_| canister_id_store.get(callee_canister))?;
 
     let network = env.get_network_descriptor();
-    runtime.block_on(async { fetch_root_key_if_needed(&agent, &network).await })?;
+    runtime.block_on(async { fetch_root_key_if_needed(agent, network).await })?;
 
     let metadata = agent
         .read_state_canister_metadata(canister_id, &opts.metadata_name)

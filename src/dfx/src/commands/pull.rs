@@ -43,7 +43,7 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
             .get_agent()
             .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-        fetch_root_key_if_needed(&agent, &network).await?;
+        fetch_root_key_if_needed(agent, network).await?;
 
         let config = agent_env.get_config_or_anyhow()?;
         let mut pull_canisters = BTreeMap::new();

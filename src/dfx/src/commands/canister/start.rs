@@ -53,7 +53,7 @@ pub async fn exec(
 
     let network = env.get_network_descriptor();
 
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
         start_canister(env, canister, call_sender).await

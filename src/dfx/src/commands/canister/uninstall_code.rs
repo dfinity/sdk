@@ -56,7 +56,7 @@ pub async fn exec(
         .get_agent()
         .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
     let network = env.get_network_descriptor();
-    runtime.block_on(async { fetch_root_key_if_needed(&agent, &network).await })?;
+    runtime.block_on(async { fetch_root_key_if_needed(agent, network).await })?;
 
     if let Some(canister) = opts.canister.as_deref() {
         uninstall_code(env, canister, call_sender).await

@@ -54,7 +54,7 @@ pub async fn exec(
         .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
 
     let network = env.get_network_descriptor();
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
         stop_canister(env, canister, call_sender).await

@@ -131,7 +131,7 @@ async fn delete_canister(
 
     let network = env.get_network_descriptor();
 
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     if let Some(target_canister_id) = target_canister_id {
         info!(
@@ -280,7 +280,7 @@ pub async fn exec(
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let network = env.get_network_descriptor();
 
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
         delete_canister(

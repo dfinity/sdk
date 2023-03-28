@@ -43,7 +43,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     let network = env.get_network_descriptor();
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     let callee_canister = opts.canister.as_str();
     let canister_id_store = env.get_canister_id_store()?;

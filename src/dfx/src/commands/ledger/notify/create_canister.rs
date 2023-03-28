@@ -40,7 +40,7 @@ pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
 
     let network = env.get_network_descriptor();
 
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
 
     let result = notify_create(agent, controller, block_height, opts.subnet_type).await?;
 

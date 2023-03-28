@@ -19,7 +19,7 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
         .get_agent()
         .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
     let network = env.get_network_descriptor();
-    runtime.block_on(async { fetch_root_key_if_needed(&agent, &network).await })?;
+    runtime.block_on(async { fetch_root_key_if_needed(agent, network).await })?;
 
     let identity_name = agent_env
         .get_selected_identity()

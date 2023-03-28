@@ -21,7 +21,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     let agent = env
         .get_agent()
         .expect("Could not get agent from environment");
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
     let config = env.get_config_or_anyhow()?;
     let config = config.get_config();
     let mut mgr = env.new_identity_manager()?;

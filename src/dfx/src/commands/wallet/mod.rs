@@ -130,7 +130,7 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
         .get_agent()
         .ok_or_else(|| anyhow::anyhow!("Cannot get HTTP client from environment."))?;
 
-    fetch_root_key_if_needed(&agent, &network).await?;
+    fetch_root_key_if_needed(agent, network).await?;
     let wallet = get_or_create_wallet_canister(env, network, &identity_name).await?;
     Ok(wallet)
 }
