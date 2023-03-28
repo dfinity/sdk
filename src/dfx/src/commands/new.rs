@@ -1,9 +1,10 @@
-use crate::config::dfinity::CONFIG_FILE_NAME;
+use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
 use crate::util::clap::validators::project_name_validator;
+use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
@@ -100,7 +101,7 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
             std::fs::create_dir_all(p)
                 .with_context(|| format!("Failed to create directory {}.", p.to_string_lossy()))?;
         }
-        std::fs::write(&path, content)
+        std::fs::write(path, content)
             .with_context(|| format!("Failed to write to {}.", path.to_string_lossy()))?;
     }
 
@@ -116,7 +117,7 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
     }
 
     if !dry_run {
-        std::fs::create_dir_all(&path)
+        std::fs::create_dir_all(path)
             .with_context(|| format!("Failed to create directory {}.", path.to_string_lossy()))?;
     }
 
@@ -368,7 +369,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         warn_upgrade(log, latest_version.as_ref(), current_version);
     }
 
-    env.get_cache().install()?;
+    DiskBasedCache::install(&env.get_cache().version_str())?;
 
     info!(
         log,

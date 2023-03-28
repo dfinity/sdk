@@ -16,9 +16,8 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::anyhow;
+use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::{self, JoinHandle};
@@ -95,22 +94,18 @@ impl Replica {
     }
 
     fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(100))
-            .timeout(Duration::from_secs(120))
-            .build();
-
-        waiter.start();
+        let mut retries = 0;
         loop {
             if let Ok(content) = std::fs::read_to_string(file_path) {
                 if let Ok(port) = content.parse::<u16>() {
                     return Ok(port);
                 }
             }
-            waiter
-                .wait()
-                .map_err(|err| anyhow!("Cannot start the replica: {:?}", err))?;
+            if retries >= 1200 {
+                bail!("Cannot start the replica: timed out");
+            }
+            std::thread::sleep(Duration::from_millis(100));
+            retries += 1;
         }
     }
 
@@ -133,6 +128,7 @@ impl Replica {
 
         let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
+        let artificial_delay = config.artificial_delay;
         let replica_path = self.config.replica_path.to_path_buf();
         let ic_starter_path = self.config.ic_starter_path.to_path_buf();
 
@@ -147,6 +143,7 @@ impl Replica {
                 ic_starter_path,
                 replica_path,
                 replica_pid_path,
+                artificial_delay,
                 addr,
                 receiver,
             ),
@@ -174,7 +171,7 @@ impl Replica {
 
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(PortReadySignal { port });
+            sub.do_send(PortReadySignal { port });
         }
     }
 }
@@ -184,12 +181,12 @@ impl Actor for Replica {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         if let Some(btc_adapter_ready_subscribe) = &self.config.btc_adapter_ready_subscribe {
-            let _ = btc_adapter_ready_subscribe
+            btc_adapter_ready_subscribe
                 .do_send(BtcAdapterReadySubscribe(ctx.address().recipient()));
             self.awaiting_btc_adapter_ready = true;
         }
         if let Some(subscribe) = &self.config.canister_http_adapter_ready_subscribe {
-            let _ = subscribe.do_send(CanisterHttpAdapterReadySubscribe(ctx.address().recipient()));
+            subscribe.do_send(CanisterHttpAdapterReadySubscribe(ctx.address().recipient()));
             self.awaiting_canister_http_adapter_ready = true;
         }
 
@@ -215,7 +212,7 @@ impl Handler<PortReadySubscribe> for Replica {
     fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
-            let _ = msg.0.do_send(PortReadySignal { port });
+            msg.0.do_send(PortReadySignal { port });
         }
 
         self.ready_subscribers.push(msg.0);
@@ -277,17 +274,11 @@ fn replica_start_thread(
     ic_starter_path: PathBuf,
     replica_path: PathBuf,
     replica_pid_path: PathBuf,
+    artificial_delay: u32,
     addr: Addr<Replica>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), 1.2)
-            .build();
-        waiter.start();
-
         // Start the process, then wait for the file.
         let ic_starter_path = ic_starter_path.as_os_str();
 
@@ -300,24 +291,25 @@ fn replica_start_thread(
             .args([
                 "--create-funds-whitelist",
                 r"\*",
-                "--consensus-pool-backend",
-                "rocksdb",
                 "--subnet-type",
                 &config.subnet_type.as_ic_starter_string(),
                 "--ecdsa-keyid",
                 "Secp256k1:dfx_test_key",
                 "--log-level",
                 &config.log_level.as_ic_starter_string(),
+                "--use-specified-ids-allocation-range",
             ]);
+        #[cfg(target_os = "macos")]
+        cmd.args(["--consensus-pool-backend", "rocksdb"]);
         if let Some(port) = port {
-            cmd.args(&["--http-port", &port.to_string()]);
+            cmd.args(["--http-port", &port.to_string()]);
         }
         // Enable canister sandboxing to be consistent with the mainnet.
         // The flag will be removed on the `ic-starter` side once this
         // change is rolled out without any issues.
-        cmd.args(&["--subnet-features", "canister_sandboxing"]);
+        cmd.args(["--subnet-features", "canister_sandboxing"]);
         if config.btc_adapter.enabled {
-            cmd.args(&["--subnet-features", "bitcoin_regtest"]);
+            cmd.args(["--subnet-features", "bitcoin_regtest"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
                 cmd.arg("--bitcoin-testnet-uds-path")
                     .arg(wsl_path(socket_path).unwrap());
@@ -325,10 +317,10 @@ fn replica_start_thread(
 
             // Show debug logs from the bitcoin canister.
             // This helps developers see, for example, the current tip height.
-            cmd.args(&["--debug-overrides", "ic_btc_canister::heartbeat"]);
+            cmd.args(["--debug-overrides", "ic_btc_canister::heartbeat"]);
         }
         if config.canister_http_adapter.enabled {
-            cmd.args(&["--subnet-features", "http_requests"]);
+            cmd.args(["--subnet-features", "http_requests"]);
             if let Some(socket_path) = config.canister_http_adapter.socket_path {
                 cmd.arg("--canister-http-uds-path")
                     .arg(wsl_path(socket_path).unwrap());
@@ -339,12 +331,12 @@ fn replica_start_thread(
             cmd.arg("--http-port-file")
                 .arg(wsl_path(write_port_to).unwrap());
         }
-        cmd.args(&[
+        cmd.args([
             "--initial-notary-delay-millis",
             // The intial notary delay is set to 2500ms in the replica's
             // default subnet configuration to help running tests.
             // For our production network, we actually set them to 600ms.
-            "600",
+            &format!("{artificial_delay}"),
         ]);
 
         // This should agree with the value at
@@ -378,9 +370,11 @@ fn replica_start_thread(
                     .build()
                     .unwrap()
                     .block_on(async move {
-                        crate::lib::provider::ping_and_wait(&format!("http://localhost:{port}"))
-                            .await
-                            .unwrap();
+                        crate::lib::replica::status::ping_and_wait(&format!(
+                            "http://localhost:{port}"
+                        ))
+                        .await
+                        .unwrap();
                         info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
                     })
             });
@@ -396,18 +390,15 @@ fn replica_start_thread(
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "Replica process failed.");
-                    // Reset waiter if last start was over 2 seconds ago, and do not wait.
-                    if std::time::Instant::now().duration_since(last_start)
-                        >= Duration::from_secs(2)
+                    // If it took less than two seconds to exit, wait a bit before trying again.
+                    if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
+                        std::thread::sleep(Duration::from_secs(2));
+                    } else {
                         debug!(
                             logger,
-                            "Last replica seemed to have been healthy, not waiting..."
+                            "Last ic-btc-adapter seemed to have been healthy, not waiting..."
                         );
-                        waiter.start();
-                    } else {
-                        // Wait before we start it again.
-                        let _ = waiter.wait();
                     }
                 }
             }

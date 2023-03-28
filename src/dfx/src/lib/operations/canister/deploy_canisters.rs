@@ -1,4 +1,3 @@
-use crate::config::dfinity::Config;
 use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -6,11 +5,13 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
+use dfx_core::config::model::dfinity::Config;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
@@ -18,7 +19,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::convert::TryFrom;
-use std::time::Duration;
+use std::path::{Path, PathBuf};
 
 #[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
@@ -28,18 +29,20 @@ pub async fn deploy_canisters(
     argument_type: Option<&str>,
     force_reinstall: bool,
     upgrade_unchanged: bool,
-    timeout: Duration,
     with_cycles: Option<&str>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     create_call_sender: &CallSender,
     skip_consent: bool,
+    env_file: Option<PathBuf>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
     let config = env
         .get_config()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
-    let initial_canister_id_store = CanisterIdStore::for_env(env)?;
+    let initial_canister_id_store = env.get_canister_id_store()?;
 
     let network = env.get_network_descriptor();
 
@@ -80,14 +83,21 @@ pub async fn deploy_canisters(
         env,
         &canisters_to_load,
         &initial_canister_id_store,
-        timeout,
         with_cycles,
+        specified_id,
         create_call_sender,
         &config,
     )
     .await?;
 
-    let pool = build_canisters(env, &canisters_to_load, &canisters_to_deploy, &config).await?;
+    let pool = build_canisters(
+        env,
+        &canisters_to_load,
+        &canisters_to_deploy,
+        &config,
+        env_file.clone(),
+    )
+    .await?;
 
     install_canisters(
         env,
@@ -98,10 +108,11 @@ pub async fn deploy_canisters(
         argument_type,
         force_reinstall,
         upgrade_unchanged,
-        timeout,
         call_sender,
         pool,
         skip_consent,
+        env_file.as_deref(),
+        assets_upgrade,
     )
     .await?;
 
@@ -128,8 +139,8 @@ async fn register_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
-    timeout: Duration,
     with_cycles: Option<&str>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     config: &Config,
 ) -> DfxResult {
@@ -173,8 +184,8 @@ async fn register_canisters(
             create_canister(
                 env,
                 canister_name,
-                timeout,
                 with_cycles,
+                specified_id,
                 call_sender,
                 CanisterSettings {
                     controllers,
@@ -195,14 +206,15 @@ async fn build_canisters(
     referenced_canisters: &[String],
     canisters_to_build: &[String],
     config: &Config,
+    env_file: Option<PathBuf>,
 ) -> DfxResult<CanisterPool> {
     let log = env.get_logger();
     info!(log, "Building canisters...");
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
-
-    let build_config =
-        BuildConfig::from_config(config)?.with_canisters_to_build(canisters_to_build.into());
+    let build_config = BuildConfig::from_config(config)?
+        .with_canisters_to_build(canisters_to_build.into())
+        .with_env_file(env_file);
     canister_pool.build_or_fail(log, &build_config).await?;
     Ok(canister_pool)
 }
@@ -217,10 +229,11 @@ async fn install_canisters(
     argument_type: Option<&str>,
     force_reinstall: bool,
     upgrade_unchanged: bool,
-    timeout: Duration,
     call_sender: &CallSender,
     pool: CanisterPool,
     skip_consent: bool,
+    env_file: Option<&Path>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -228,7 +241,7 @@ async fn install_canisters(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
 
     for canister_name in canister_names {
         let install_mode = if force_reinstall {
@@ -254,11 +267,12 @@ async fn install_canisters(
             &canister_info,
             &install_args,
             install_mode,
-            timeout,
             call_sender,
             upgrade_unchanged,
             Some(&pool),
             skip_consent,
+            env_file,
+            assets_upgrade,
         )
         .await?;
     }

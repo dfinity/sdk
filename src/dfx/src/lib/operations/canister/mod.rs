@@ -13,9 +13,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::Identity;
-use crate::lib::waiter::waiter_with_timeout;
 
+use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
@@ -25,7 +24,6 @@ use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
 use std::path::PathBuf;
-use std::time::Duration;
 
 #[context(
     "Failed to call update function '{}' regarding canister '{}'.",
@@ -37,7 +35,6 @@ async fn do_management_call<A, O>(
     destination_canister: Principal,
     method: &str,
     arg: A,
-    timeout: Duration,
     call_sender: &CallSender,
     cycles: u128,
 ) -> DfxResult<O>
@@ -56,12 +53,12 @@ where
                 .with_arg(arg)
                 .with_effective_canister_id(destination_canister)
                 .build()
-                .call_and_wait(waiter_with_timeout(timeout))
+                .call_and_wait()
                 .await
                 .context("Update call (without wallet) failed.")?
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, env).await?;
             let out: O = wallet
                 .call(
                     Principal::management_canister(),
@@ -69,7 +66,7 @@ where
                     Argument::from_candid((arg,)),
                     cycles,
                 )
-                .call_and_wait(waiter_with_timeout(timeout))
+                .call_and_wait()
                 .await
                 .context("Update call using wallet failed.")?;
             out
@@ -83,7 +80,6 @@ where
 pub async fn get_canister_status(
     env: &dyn Environment,
     canister_id: Principal,
-    timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult<StatusCallResult> {
     #[derive(CandidType)]
@@ -96,7 +92,6 @@ pub async fn get_canister_status(
         canister_id,
         MgmtMethod::CanisterStatus.as_ref(),
         In { canister_id },
-        timeout,
         call_sender,
         0,
     )
@@ -108,7 +103,6 @@ pub async fn get_canister_status(
 pub async fn start_canister(
     env: &dyn Environment,
     canister_id: Principal,
-    timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
     #[derive(CandidType)]
@@ -116,12 +110,11 @@ pub async fn start_canister(
         canister_id: Principal,
     }
 
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::StartCanister.as_ref(),
         In { canister_id },
-        timeout,
         call_sender,
         0,
     )
@@ -133,7 +126,6 @@ pub async fn start_canister(
 pub async fn stop_canister(
     env: &dyn Environment,
     canister_id: Principal,
-    timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
     #[derive(CandidType)]
@@ -141,12 +133,11 @@ pub async fn stop_canister(
         canister_id: Principal,
     }
 
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::StopCanister.as_ref(),
         In { canister_id },
-        timeout,
         call_sender,
         0,
     )
@@ -159,7 +150,6 @@ pub async fn update_settings(
     env: &dyn Environment,
     canister_id: Principal,
     settings: DfxCanisterSettings,
-    timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
     #[derive(candid::CandidType)]
@@ -167,7 +157,7 @@ pub async fn update_settings(
         canister_id: Principal,
         settings: CanisterSettings,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::UpdateSettings.as_ref(),
@@ -189,7 +179,6 @@ pub async fn update_settings(
                     .map(candid::Nat::from),
             },
         },
-        timeout,
         call_sender,
         0,
     )
@@ -201,19 +190,17 @@ pub async fn update_settings(
 pub async fn uninstall_code(
     env: &dyn Environment,
     canister_id: Principal,
-    timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::UninstallCode.as_ref(),
         In { canister_id },
-        timeout,
         call_sender,
         0,
     )
@@ -226,19 +213,17 @@ pub async fn uninstall_code(
 pub async fn delete_canister(
     env: &dyn Environment,
     canister_id: Principal,
-    timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::DeleteCanister.as_ref(),
         In { canister_id },
-        timeout,
         call_sender,
         0,
     )
@@ -251,7 +236,6 @@ pub async fn delete_canister(
 pub async fn deposit_cycles(
     env: &dyn Environment,
     canister_id: Principal,
-    timeout: Duration,
     call_sender: &CallSender,
     cycles: u128,
 ) -> DfxResult {
@@ -259,12 +243,11 @@ pub async fn deposit_cycles(
     struct In {
         canister_id: Principal,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::DepositCycles.as_ref(),
         In { canister_id },
-        timeout,
         call_sender,
         cycles,
     )
@@ -283,7 +266,6 @@ pub async fn deposit_cycles(
 pub async fn provisional_deposit_cycles(
     env: &dyn Environment,
     canister_id: Principal,
-    timeout: Duration,
     call_sender: &CallSender,
     cycles: u128,
 ) -> DfxResult {
@@ -292,7 +274,7 @@ pub async fn provisional_deposit_cycles(
         canister_id: Principal,
         amount: u128,
     }
-    let _: () = do_management_call(
+    do_management_call(
         env,
         canister_id,
         MgmtMethod::ProvisionalTopUpCanister.as_ref(),
@@ -300,7 +282,6 @@ pub async fn provisional_deposit_cycles(
             canister_id,
             amount: cycles,
         },
-        timeout,
         call_sender,
         0,
     )

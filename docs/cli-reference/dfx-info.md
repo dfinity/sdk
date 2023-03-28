@@ -17,14 +17,6 @@ These are the types of information that the `dfx info` command can display.
 | replica-rev         | The revision of the bundled replica.           |
 | webserver-port      | The local webserver (icx-proxy) port.          |
 
-## Flags
-
-You can use the following optional flags with the `dfx info` command.
-
-| Flag              | Description |
-|-------------------|-------------|
-| `-h`, `--help`    | Displays usage information. |
-
 ## Examples
 
 You can display the webserver port by running the following command:

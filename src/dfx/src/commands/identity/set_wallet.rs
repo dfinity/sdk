@@ -1,9 +1,8 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::identity::Identity;
-use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::create_agent_environment;
+use crate::lib::identity::wallet::{build_wallet_canister, set_wallet_id};
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -42,7 +41,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         Ok(id) => id,
         Err(_) => {
             let config = env.get_config_or_anyhow()?;
-            let canister_id = CanisterIdStore::for_env(env)?.get(canister_name)?;
+            let canister_id = env.get_canister_id_store()?.get(canister_name)?;
             let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
             canister_info.get_canister_id()?
         }
@@ -70,7 +69,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = Identity::build_wallet_canister(canister_id, env).await?;
+                let canister = build_wallet_canister(canister_id, env).await?;
                 let balance = canister.wallet_balance().await;
 
                 match balance {
@@ -100,7 +99,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
         network.name,
         canister_id
     );
-    Identity::set_wallet_id(network, &identity_name, canister_id)?;
+    set_wallet_id(network, &identity_name, canister_id)?;
     info!(log, "Wallet set successfully.");
 
     Ok(())

@@ -1,15 +1,15 @@
-use crate::config::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 use crate::lib::builders::{
-    custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
-    WasmBuildOutput,
+    custom_download, set_perms_readwrite, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder,
+    IdlBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_URL};
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
+use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
@@ -93,7 +93,7 @@ impl Canister {
     /// Get the build output of a build process. If the output isn't known at this time,
     /// will return [None].
     pub fn get_build_output(&self) -> Option<&BuildOutput> {
-        unsafe { (&*self.output.as_ptr()).as_ref() }
+        unsafe { (*self.output.as_ptr()).as_ref() }
     }
 
     #[context("Failed while trying to generate type declarations for '{}'.", self.info.get_name())]
@@ -307,7 +307,7 @@ impl CanisterPool {
         let mut pool_helper = PoolConstructHelper {
             config: &config,
             builder_pool: BuilderPool::new(env)?,
-            canister_id_store: CanisterIdStore::for_env(env)?,
+            canister_id_store: env.get_canister_id_store()?,
             generate_cid,
             canisters_map: &mut canisters_map,
         };
@@ -425,7 +425,7 @@ impl CanisterPool {
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
-                    std::fs::copy(&from, &to).with_context(|| {
+                    std::fs::copy(from, &to).with_context(|| {
                         format!(
                             "Failed to copy canister '{}' candid from {} to {}.",
                             canister.get_name(),
@@ -498,7 +498,7 @@ impl CanisterPool {
                     idl_file_path.parent().unwrap().to_string_lossy()
                 )
             })?;
-            std::fs::copy(&build_idl_path, &idl_file_path)
+            std::fs::copy(build_idl_path, &idl_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)
                 .with_context(|| {
@@ -508,22 +508,7 @@ impl CanisterPool {
                         idl_file_path.display()
                     )
                 })?;
-
-            let mut perms = std::fs::metadata(&idl_file_path)
-                .with_context(|| {
-                    format!(
-                        "Failed to read file metadata for idl file {}.",
-                        idl_file_path.to_string_lossy()
-                    )
-                })?
-                .permissions();
-            perms.set_readonly(false);
-            std::fs::set_permissions(&idl_file_path, perms).with_context(|| {
-                format!(
-                    "Failed to set file permissions for idl file {}.",
-                    idl_file_path.to_string_lossy()
-                )
-            })?;
+            set_perms_readwrite(&idl_file_path)?;
         }
 
         let WasmBuildOutput::File(build_wasm_path) = &build_output.wasm;
@@ -535,25 +520,10 @@ impl CanisterPool {
                     wasm_file_path.parent().unwrap().to_string_lossy()
                 )
             })?;
-            std::fs::copy(&build_wasm_path, &wasm_file_path)
+            std::fs::copy(build_wasm_path, &wasm_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)?;
-
-            let mut perms = std::fs::metadata(&wasm_file_path)
-                .with_context(|| {
-                    format!(
-                        "Failed to read file metadata for {}.",
-                        wasm_file_path.to_string_lossy()
-                    )
-                })?
-                .permissions();
-            perms.set_readonly(false);
-            std::fs::set_permissions(&wasm_file_path, perms).with_context(|| {
-                format!(
-                    "Failed to set file permissions for {}.",
-                    wasm_file_path.to_string_lossy()
-                )
-            })?;
+            set_perms_readwrite(&wasm_file_path)?;
         }
 
         canister.apply_metadata(self.get_logger())?;
@@ -570,9 +540,10 @@ impl CanisterPool {
                     idl_file_path.parent().unwrap().to_string_lossy()
                 )
             })?;
-            std::fs::copy(&build_idl_path, &idl_file_path)
+            std::fs::copy(build_idl_path, &idl_file_path)
                 .map(|_| {})
                 .map_err(DfxError::from)?;
+            set_perms_readwrite(&idl_file_path)?;
         }
 
         build_canister_js(&canister.canister_id(), &canister.info)?;

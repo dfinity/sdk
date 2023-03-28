@@ -1,10 +1,17 @@
-use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::dfinity::{Config, NetworksConfig};
-use crate::config::{cache, dfx_version};
+use crate::config::cache::DiskBasedCache;
+use crate::config::dfx_version;
+use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::progress_bar::ProgressBar;
+use dfx_core::config::cache::get_cache_root;
+use dfx_core::config::cache::Cache;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
+use dfx_core::config::model::dfinity::{Config, NetworksConfig};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::error::canister_id_store::CanisterIdStoreError;
+use dfx_core::error::identity::IdentityError;
+use dfx_core::identity::identity_manager::IdentityManager;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -48,6 +55,10 @@ pub trait Environment {
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
 
+    fn new_identity_manager(&self) -> Result<IdentityManager, IdentityError> {
+        IdentityManager::new(self.get_logger(), self.get_identity_override())
+    }
+
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
     fn log<'a>(&self, record: &Record<'a>) {
@@ -57,6 +68,14 @@ pub trait Environment {
     fn get_selected_identity(&self) -> Option<&String>;
 
     fn get_selected_identity_principal(&self) -> Option<Principal>;
+
+    fn get_effective_canister_id(&self) -> Principal;
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError>;
+
+    fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
+        CanisterIdStore::new(self.get_network_descriptor(), self.get_config())
+    }
 }
 
 pub struct EnvironmentImpl {
@@ -71,6 +90,8 @@ pub struct EnvironmentImpl {
     verbose_level: i64,
 
     identity_override: Option<String>,
+
+    effective_canister_id: Principal,
 }
 
 impl EnvironmentImpl {
@@ -119,6 +140,7 @@ impl EnvironmentImpl {
             logger: None,
             verbose_level: 0,
             identity_override: None,
+            effective_canister_id: Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
         })
     }
 
@@ -135,6 +157,19 @@ impl EnvironmentImpl {
     pub fn with_verbose_level(mut self, verbose_level: i64) -> Self {
         self.verbose_level = verbose_level;
         self
+    }
+
+    pub fn with_effective_canister_id(mut self, effective_canister_id: Option<String>) -> Self {
+        match effective_canister_id {
+            None => self,
+            Some(canister_id) => match Principal::from_text(canister_id) {
+                Ok(principal) => {
+                    self.effective_canister_id = principal;
+                    self
+                }
+                Err(_) => self,
+            },
+        }
     }
 }
 
@@ -215,6 +250,14 @@ impl Environment for EnvironmentImpl {
     fn get_selected_identity_principal(&self) -> Option<Principal> {
         None
     }
+
+    fn get_effective_canister_id(&self) -> Principal {
+        self.effective_canister_id
+    }
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
+        ExtensionManager::new(self)
+    }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -230,12 +273,17 @@ impl<'a> AgentEnvironment<'a> {
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
+        use_identity: Option<&str>,
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
-        let mut identity_manager = IdentityManager::new(backend)?;
-        let identity = identity_manager.instantiate_selected_identity(backend.get_logger())?;
+        let mut identity_manager = backend.new_identity_manager()?;
+        let identity = if let Some(identity_name) = use_identity {
+            identity_manager.instantiate_identity_from_name(identity_name, &logger)?
+        } else {
+            identity_manager.instantiate_selected_identity(&logger)?
+        };
         if network_descriptor.is_ic && identity.insecure {
-            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity create` \
+            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
         let url = network_descriptor.first_provider()?;
@@ -315,6 +363,14 @@ impl<'a> Environment for AgentEnvironment<'a> {
     fn get_selected_identity_principal(&self) -> Option<Principal> {
         self.identity_manager.get_selected_identity_principal()
     }
+
+    fn get_effective_canister_id(&self) -> Principal {
+        self.backend.get_effective_canister_id()
+    }
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
+        ExtensionManager::new(self.backend)
+    }
 }
 
 pub struct AgentClient {
@@ -344,7 +400,7 @@ impl AgentClient {
 
     #[context("Failed to determine http auth path.")]
     fn http_auth_path() -> DfxResult<PathBuf> {
-        Ok(cache::get_cache_root()?.join("http_auth"))
+        Ok(get_cache_root()?.join("http_auth"))
     }
 
     // A connection is considered secure if it goes to an HTTPs scheme or if it's the
@@ -382,7 +438,7 @@ impl AgentClient {
                         // For backward compatibility with previous versions of DFX, we still
                         // store the base64 encoding of `username:password`, but we decode it
                         // since the Agent requires username and password as separate fields.
-                        let pair = base64::decode(&token).unwrap();
+                        let pair = base64::decode(token).unwrap();
                         let pair = String::from_utf8_lossy(pair.as_slice());
                         let colon_pos = pair
                             .find(':')

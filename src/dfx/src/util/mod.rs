@@ -6,20 +6,15 @@ use anyhow::bail;
 use anyhow::Context;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
-use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
-use directories_next::ProjectDirs;
 use fn_error_context::context;
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
 use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
 use rust_decimal::Decimal;
-use schemars::JsonSchema;
-use serde::Serialize;
-use std::convert::TryFrom;
 use std::ffi::OsString;
-use std::fmt::Display;
+use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
 #[cfg(windows)]
 use std::path::{Component, Prefix};
@@ -77,10 +72,6 @@ pub fn expiry_duration() -> Duration {
     Duration::from_secs(60 * 5)
 }
 
-pub fn network_to_pathcompat(network_name: &str) -> String {
-    network_name.replace(|c: char| !c.is_ascii_alphanumeric(), "_")
-}
-
 /// Deserialize and print return values from canister method.
 #[context("Failed to deserialize idl blob: Invalid data.")]
 pub fn print_idl_blob(
@@ -122,7 +113,7 @@ pub async fn read_module_metadata(
     Some(
         String::from_utf8_lossy(
             &agent
-                .read_state_canister_metadata(canister_id, metadata, false)
+                .read_state_canister_metadata(canister_id, metadata)
                 .await
                 .ok()?,
         )
@@ -168,6 +159,19 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
     })
 }
 
+pub fn arguments_from_file(file_name: &str) -> DfxResult<String> {
+    if file_name == "-" {
+        let mut content = String::new();
+        stdin().read_to_string(&mut content).map_err(|e| {
+            error_invalid_argument!("Could not read arguments from stdin to string: {}", e)
+        })?;
+        Ok(content)
+    } else {
+        std::fs::read_to_string(file_name)
+            .map_err(|e| error_invalid_argument!("Could not read arguments file to string: {}", e))
+    }
+}
+
 #[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
     arguments: Option<&str>,
@@ -178,7 +182,7 @@ pub fn blob_from_arguments(
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
         "raw" => {
-            let bytes = hex::decode(&arguments.unwrap_or("")).map_err(|e| {
+            let bytes = hex::decode(arguments.unwrap_or("")).map_err(|e| {
                 error_invalid_argument!("Argument is not a valid hex string: {}", e)
             })?;
             Ok(bytes)
@@ -249,56 +253,6 @@ pub fn blob_from_arguments(
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
-#[serde(untagged)]
-pub enum SerdeVec<T> {
-    One(T),
-    Many(Vec<T>),
-}
-
-impl<T> SerdeVec<T> {
-    pub fn into_vec(self) -> Vec<T> {
-        match self {
-            Self::One(t) => vec![t],
-            Self::Many(ts) => ts,
-        }
-    }
-}
-
-impl<T> Default for SerdeVec<T> {
-    fn default() -> Self {
-        Self::Many(vec![])
-    }
-}
-
-#[derive(Serialize, serde::Deserialize)]
-#[serde(untagged)]
-enum PossiblyStrInner<T> {
-    NotStr(T),
-    Str(String),
-}
-
-#[derive(Serialize, Deserialize, Default, Copy, Clone, Debug, JsonSchema)]
-#[serde(try_from = "PossiblyStrInner<T>")]
-pub struct PossiblyStr<T>(pub T)
-where
-    T: FromStr,
-    T::Err: Display;
-
-impl<T> TryFrom<PossiblyStrInner<T>> for PossiblyStr<T>
-where
-    T: FromStr,
-    T::Err: Display,
-{
-    type Error = T::Err;
-    fn try_from(inner: PossiblyStrInner<T>) -> Result<Self, Self::Error> {
-        match inner {
-            PossiblyStrInner::NotStr(t) => Ok(Self(t)),
-            PossiblyStrInner::Str(str) => T::from_str(&str).map(Self),
-        }
-    }
-}
-
 pub fn format_as_trillions(amount: u128) -> String {
     const SCALE: u32 = 12; // trillion = 10^12
     const FRACTIONAL_PRECISION: u32 = 3;
@@ -358,13 +312,6 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .chars()
         .rev()
         .collect::<_>()
-}
-
-pub fn project_dirs() -> DfxResult<&'static ProjectDirs> {
-    lazy_static::lazy_static! {
-        static ref DIRS: Option<ProjectDirs> = ProjectDirs::from("org", "dfinity", "dfx");
-    }
-    DIRS.as_ref().context("Failed to resolve 'HOME' env var.")
 }
 
 /// Wraps a Linux-only command in a WSL invocation, if on Windows.

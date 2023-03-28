@@ -1,13 +1,13 @@
 #![allow(dead_code)]
-use crate::config::dfinity::{
-    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
-};
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::get_network_context;
-use crate::util;
+use dfx_core::config::model::dfinity::{
+    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
+};
+use dfx_core::network::provider::get_network_context;
+use dfx_core::util;
 
 use crate::lib::metadata::config::CanisterMetadataConfig;
 use anyhow::{anyhow, Context};
@@ -74,7 +74,9 @@ impl CanisterInfo {
         std::fs::create_dir_all(&build_root)
             .with_context(|| format!("Failed to create {}.", build_root.to_string_lossy()))?;
 
-        let canister_map = (&config.get_config().canisters)
+        let canister_map = config
+            .get_config()
+            .canisters
             .as_ref()
             .ok_or_else(|| anyhow!("No canisters in the configuration file."))?;
 

@@ -2,14 +2,12 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::Identity;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_exponential_backoff;
 use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
-use crate::util::{blob_from_arguments, expiry_duration, get_candid_type, print_idl_blob};
+use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
 
+use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
@@ -20,8 +18,6 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Canis
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
-use std::fs;
-use std::io::{stdin, Read};
 use std::option::Option;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -118,7 +114,7 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
     let (result,): (Result<CallResult, String>,) = builder
         .with_arg(args)
         .build()
-        .call_and_wait(waiter_with_exponential_backoff())
+        .call_and_wait()
         .await
         .context("Failed wallet call.")?;
     Ok(result.map_err(|err| anyhow!(err))?.r#return)
@@ -159,14 +155,14 @@ pub fn get_effective_canister_id(
         })?;
         match method_name {
             MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
-                return Err(DiagnosedError::new(
+                Err(DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",
                         method_name.as_ref()
                     ),
                     format!("The easiest way to call {} externally is to proxy this call through a wallet. Try calling this with 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
                     To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.", method_name.as_ref())
-                )).context("Method only callable by a canister.");
+                )).context("Method only callable by a canister.")
             }
             MgmtMethod::InstallCode => {
                 let install_args = candid::Decode!(arg_value, CanisterInstall)
@@ -214,7 +210,7 @@ pub async fn exec(
 ) -> DfxResult {
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
         Ok(id) => {
@@ -237,17 +233,10 @@ pub async fn exec(
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
-    let arguments_from_file: Option<String> = opts.argument_file.map(|filename| {
-        if filename == "-" {
-            let mut content = String::new();
-            stdin()
-                .read_to_string(&mut content)
-                .expect("Could not read arguments from stdin to string.");
-            content
-        } else {
-            fs::read_to_string(filename).expect("Could not read arguments file to string.")
-        }
-    });
+    let arguments_from_file = opts
+        .argument_file
+        .map(|v| arguments_from_file(&v))
+        .transpose()?;
     let arguments = opts.argument.as_deref();
     let arguments = arguments_from_file.as_deref().or(arguments);
 
@@ -282,8 +271,6 @@ pub async fn exec(
 
     fetch_root_key_if_needed(env).await?;
 
-    let timeout = expiry_duration();
-
     // amount has been validated by cycle_amount_validator
     let cycles = opts
         .with_cycles
@@ -313,7 +300,7 @@ pub async fn exec(
                     .context("Failed query call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, env).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -346,7 +333,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, env).await?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
@@ -370,13 +357,12 @@ pub async fn exec(
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
                     .with_arg(&arg_value)
-                    .expire_after(timeout)
-                    .call_and_wait(waiter_with_exponential_backoff())
+                    .call_and_wait()
                     .await
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, env).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

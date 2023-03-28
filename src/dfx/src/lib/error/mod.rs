@@ -1,10 +1,11 @@
 pub mod build;
-pub mod cache;
-pub mod identity;
+pub mod extension;
+pub mod project;
 
 pub use build::BuildError;
-pub use cache::CacheError;
-pub use identity::IdentityError;
+pub use dfx_core::error::identity::IdentityError;
+pub use extension::ExtensionError;
+pub use project::ProjectError;
 
 /// The type to represent DFX results.
 pub type DfxResult<T = ()> = anyhow::Result<T>;

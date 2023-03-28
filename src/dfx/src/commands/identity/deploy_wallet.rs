@@ -1,9 +1,9 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
-use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
+use crate::lib::identity::wallet::create_wallet;
 use anyhow::bail;
 use candid::Principal as CanisterId;
 use clap::Parser;
@@ -32,7 +32,7 @@ pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<Strin
     match CanisterId::from_text(&canister_id) {
         Ok(id) => {
             runtime.block_on(async {
-                Identity::create_wallet(&agent_env, network, &identity_name, Some(id)).await?;
+                create_wallet(&agent_env, network, &identity_name, Some(id)).await?;
                 DfxResult::Ok(())
             })?;
         }

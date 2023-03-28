@@ -1,5 +1,3 @@
-use crate::config::cache::Cache;
-use crate::config::dfinity::{MetadataVisibility, Profile};
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -10,6 +8,8 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::CANDID_SERVICE;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
+use dfx_core::config::cache::Cache;
+use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 
 use anyhow::Context;
 use candid::Principal as CanisterId;
@@ -61,8 +61,8 @@ impl CanisterBuilder for MotokoBuilder {
 
             result.insert(MotokoImport::Relative(file.to_path_buf()));
 
-            let mut command = Command::new(cache.get_binary_command_path("moc")?);
-            let command = command.arg("--print-deps").arg(&file);
+            let mut command = cache.get_binary_command("moc")?;
+            let command = command.arg("--print-deps").arg(file);
             let output = command
                 .output()
                 .with_context(|| format!("Error executing {:#?}", command))?;
@@ -130,7 +130,7 @@ impl CanisterBuilder for MotokoBuilder {
         })?;
         let cache = &self.cache;
         let idl_dir_path = &config.idl_root;
-        std::fs::create_dir_all(&idl_dir_path)
+        std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
         let package_arguments =
@@ -242,8 +242,8 @@ impl MotokoParams<'_> {
         cmd.arg(self.input);
         cmd.arg("-o").arg(self.output);
         match self.build_target {
-            BuildTarget::Release => cmd.args(&["-c", "--release"]),
-            BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
+            BuildTarget::Release => cmd.args(["-c", "--release"]),
+            BuildTarget::Debug => cmd.args(["-c", "--debug"]),
         };
         cmd.arg("--idl").arg("--stable-types");
         if self.candid_service_metadata_visibility == MetadataVisibility::Public {
@@ -253,7 +253,7 @@ impl MotokoParams<'_> {
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
             for (name, canister_id) in self.idl_map.iter() {
-                cmd.args(&["--actor-alias", name, canister_id]);
+                cmd.args(["--actor-alias", name, canister_id]);
             }
         };
         cmd.args(self.package_arguments);

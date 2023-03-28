@@ -6,13 +6,13 @@ use crate::commands::start::{
     apply_command_line_parameters, configure_btc_adapter_if_enabled,
     configure_canister_http_adapter_if_enabled, empty_writable_path,
 };
-use crate::config::dfinity::DEFAULT_REPLICA_PORT;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::id::write_network_id;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
+use dfx_core::config::model::dfinity::DEFAULT_REPLICA_PORT;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::Context;
 use clap::Parser;
@@ -45,6 +45,10 @@ pub struct ReplicaOpts {
     /// enable canister http requests
     #[clap(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
+
+    /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
+    #[clap(long, conflicts_with("emulator"), default_value = "600")]
+    artificial_delay: u32,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -53,6 +57,7 @@ fn get_config(
     local_server_descriptor: &LocalServerDescriptor,
     replica_port_path: PathBuf,
     state_root: &Path,
+    artificial_delay: u32,
 ) -> DfxResult<ReplicaConfig> {
     let config = &local_server_descriptor.replica;
     let port = config.port.unwrap_or(DEFAULT_REPLICA_PORT);
@@ -67,6 +72,7 @@ fn get_config(
         state_root,
         config.subnet_type.unwrap_or_default(),
         config.log_level.unwrap_or_default(),
+        artificial_delay,
     );
     replica_config.http_handler = http_handler;
 
@@ -84,6 +90,7 @@ pub fn exec(
         bitcoin_node,
         enable_bitcoin,
         enable_canister_http,
+        artificial_delay,
     }: ReplicaOpts,
 ) -> DfxResult {
     let system = actix::System::new();
@@ -109,7 +116,7 @@ pub fn exec(
     local_server_descriptor.describe(env.get_logger(), true, true);
 
     let temp_dir = &local_server_descriptor.data_directory;
-    create_dir_all(&temp_dir).with_context(|| {
+    create_dir_all(temp_dir).with_context(|| {
         format!(
             "Failed to create network temp directory {}.",
             temp_dir.to_string_lossy()
@@ -161,7 +168,12 @@ pub fn exec(
     let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
-    let mut replica_config = get_config(local_server_descriptor, replica_port_path, &state_root)?;
+    let mut replica_config = get_config(
+        local_server_descriptor,
+        replica_port_path,
+        &state_root,
+        artificial_delay,
+    )?;
 
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;

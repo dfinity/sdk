@@ -38,9 +38,7 @@ You can use the following optional flags with the `dfx nns import` command.
 
 | Flag                | Description                                    |
 |---------------------|------------------------------------------------|
-| `-h`, `--help`      | Displays usage information.                    |
 | `--network-mapping` | Renames networks when installing canister IDs. |
-| `-V`, `--version`   | Displays version information.                  |
 
 ### Examples
 
@@ -79,7 +77,7 @@ $ cat ~/.config/dfx/networks.json
 This is because:
 
 * The NNS canisters need to run on a system subnet.
-* Some canisters are comiled to run on only very specific canister IDs and hostname/port pairs.
+* Some canisters are compiled to run on only very specific canister IDs and hostname/port pairs.
 
 
 In addition, the local dfx server needs to be clean:
@@ -91,15 +89,6 @@ $ dfx nns install
 
 This is because NNS canisters need to be installed before any others.
 
-
-### Flags
-
-You can use the following optional flags with the `dfx nns install` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Examples
 

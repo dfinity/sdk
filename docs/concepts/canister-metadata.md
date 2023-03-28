@@ -97,6 +97,16 @@ A URL to download canister Wasm module which will be deployed locally.
 
 This section must be set explicitly.
 
+### `dfx:wasm_hash`
+
+SHA256 hash of the Wasm module to be downloaded from `dfx:wasm_url`.
+
+This section is optional. It is required when the Wasm module to be downloaded is different from the canister on chain.
+
+When this metadata is provided, it will be used to verify the integrity of the downloaded Wasm module.
+
+When it is not provided, the hash of the on chain canister will be used.
+
 ### `dfx:deps`
 
 A list of `name:ID` pairs of direct dependencies separated by semicolon.

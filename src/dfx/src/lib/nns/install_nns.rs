@@ -6,25 +6,24 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
-use crate::config::cache::get_bin_cache;
-use crate::config::dfinity::ReplicaSubnetType;
 use crate::lib::environment::Environment;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::blob_from_arguments;
-use crate::util::expiry_duration;
 use crate::util::network::get_replica_urls;
 use crate::util::wsl_cmd;
 use crate::util::wsl_path;
 use crate::util::wsl_url;
+use dfx_core::config::cache::get_bin_cache;
+use dfx_core::config::model::dfinity::ReplicaSubnetType;
 
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use flate2::bufread::GzDecoder;
 use fn_error_context::context;
 use futures_util::future::try_join_all;
-use garcon::{Delay, Waiter};
 use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -36,7 +35,6 @@ use std::io::Write;
 use std::path::Component;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use std::time::Duration;
 
 use self::canisters::{
     IcNnsInitCanister, SnsCanisterInstallation, StandardCanister, NNS_CORE, NNS_FRONTEND,
@@ -66,6 +64,7 @@ pub async fn install_nns(
     env: &dyn Environment,
     agent: &Agent,
     ic_nns_init_path: &Path,
+    ledger_accounts: &[String],
 ) -> anyhow::Result<()> {
     eprintln!("Checking out the environment...");
     verify_local_replica_type_is_system(env)?;
@@ -77,13 +76,15 @@ pub async fn install_nns(
 
     eprintln!("Installing the core backend wasm canisters...");
     download_nns_wasms(env).await?;
+    let mut test_accounts = vec![
+        canisters::ED25519_TEST_ACCOUNT.to_string(),
+        canisters::SECP256K1_TEST_ACCOUNT.to_string(),
+    ];
+    test_accounts.extend_from_slice(ledger_accounts);
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: nns_wasm_dir(env)?,
         nns_url: nns_url.to_string(),
-        test_accounts: vec![
-            canisters::ED25519_TEST_ACCOUNT.to_string(),
-            canisters::SECP256K1_TEST_ACCOUNT.to_string(),
-        ],
+        test_accounts,
         sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
@@ -103,9 +104,11 @@ pub async fn install_nns(
         let parsed_wasm_url = Url::parse(wasm_url)
             .with_context(|| format!("Could not parse url for {canister_name} wasm: {wasm_url}"))?;
         download(&parsed_wasm_url, &local_wasm_path).await?;
-        let installed_canister_id = install_canister(env, agent, canister_name, &local_wasm_path)
-            .await?
-            .to_text();
+        let specified_id = Principal::from_text(canister_id)?;
+        let installed_canister_id =
+            install_canister(env, agent, canister_name, &local_wasm_path, specified_id)
+                .await?
+                .to_text();
         if canister_id != &installed_canister_id {
             bail!("Canister '{canister_name}' was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
         }
@@ -199,7 +202,7 @@ async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<
             format!("Internal error: {canister_name} has an invalid canister ID: {canister_id}")
         })?;
         if agent
-            .read_state_canister_info(canister_principal, "module_hash", false)
+            .read_state_canister_info(canister_principal, "module_hash")
             .await
             .is_ok()
         {
@@ -270,21 +273,17 @@ Frontend canisters:
 /// Gets a URL, trying repeatedly until it is available.
 #[context("Failed to download after multiple tries: {}", url)]
 pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
-    /// The time between the first try and the second.
-    const RETRY_PAUSE: Duration = Duration::from_millis(200);
-    /// Intervals will increase exponentially until they reach this.
-    const MAX_RETRY_PAUSE: Duration = Duration::from_secs(5);
-
-    let mut waiter = Delay::builder()
-        .exponential_backoff_capped(RETRY_PAUSE, 1.4, MAX_RETRY_PAUSE)
-        .build();
+    let mut retry_policy = ExponentialBackoff::default();
 
     loop {
         match reqwest::get(url.clone()).await {
             Ok(response) => {
                 return Ok(response);
             }
-            Err(err) => waiter.wait().map_err(|_| err)?,
+            Err(err) => match retry_policy.next_backoff() {
+                Some(duration) => tokio::time::sleep(duration).await,
+                None => bail!(err),
+            },
         }
     }
 }
@@ -335,7 +334,7 @@ pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Res
                      "bind": "127.0.0.1:8080",
                      "type": "ephemeral",
                      "replica": {{
-                       "subnet_type": "application"
+                       "subnet_type": "system"
                      }}
                    }}
                  }}
@@ -447,7 +446,7 @@ pub async fn download_ic_repo_wasm(
 ) -> anyhow::Result<()> {
     fs::create_dir_all(wasm_dir)
         .with_context(|| format!("Failed to create wasm directory: '{}'", wasm_dir.display()))?;
-    let final_path = wasm_dir.join(&wasm_name);
+    let final_path = wasm_dir.join(wasm_name);
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
@@ -471,11 +470,22 @@ pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
             download_ic_repo_wasm(test_wasm_name, &ic_commit, wasm_dir).await?;
         }
     }
+    download_sns_wasms(env, &ic_commit, wasm_dir).await?;
+    Ok(())
+}
+
+/// Downloads all the core SNS wasms.
+#[context("Failed to download SNS wasm files.")]
+pub async fn download_sns_wasms(
+    _env: &dyn Environment,
+    ic_commit: &str,
+    wasms_dir: &Path,
+) -> anyhow::Result<()> {
     try_join_all(
         SNS_CANISTERS
             .iter()
             .map(|SnsCanisterInstallation { wasm_name, .. }| {
-                download_ic_repo_wasm(wasm_name, &ic_commit, wasm_dir)
+                download_ic_repo_wasm(wasm_name, ic_commit, wasms_dir)
             }),
     )
     .await?;
@@ -505,6 +515,7 @@ pub struct IcNnsInitOpts {
 #[context("Failed to install NNS components.")]
 pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyhow::Result<()> {
     let mut cmd = wsl_cmd(ic_nns_init_path);
+    cmd.arg("--pass-specified-id");
     cmd.arg("--url");
     cmd.arg(wsl_url(&opts.nns_url));
     cmd.arg("--wasm-dir");
@@ -656,21 +667,19 @@ pub async fn install_canister(
     agent: &Agent,
     canister_name: &str,
     wasm_path: &Path,
+    specified_id: Principal,
 ) -> anyhow::Result<Principal> {
     let mgr = ManagementCanister::create(agent);
     let builder = mgr
         .create_canister()
-        .as_provisional_create_with_amount(None);
+        .as_provisional_create_with_specified_id(specified_id);
 
-    let res = builder
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await;
+    let res = builder.call_and_wait().await;
     let canister_id: Principal = res.context("Canister creation call failed.")?.0;
     let canister_id_str = canister_id.to_text();
 
     let install_args = blob_from_arguments(None, None, None, &None)?;
     let install_mode = InstallMode::Install;
-    let timeout = expiry_duration();
     let call_sender = CallSender::SelectedId;
 
     install_canister_wasm(
@@ -680,9 +689,8 @@ pub async fn install_canister(
         Some(canister_name),
         &install_args,
         install_mode,
-        timeout,
         &call_sender,
-        fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
+        fs::read(wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
         true,
     )
     .await?;

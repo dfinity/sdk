@@ -1,7 +1,7 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::provider::create_agent_environment;
 use crate::util::check_candid_file;
 
 use anyhow::Context;
@@ -92,7 +92,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 };
 
                 if let Some(bindings_string) = bindings {
-                    std::fs::write(&main, &bindings_string).with_context(|| {
+                    std::fs::write(main, &bindings_string).with_context(|| {
                         format!("Failed to write bindings to {}.", main.display())
                     })?;
                     info!(

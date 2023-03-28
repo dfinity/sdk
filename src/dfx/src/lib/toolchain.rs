@@ -1,6 +1,6 @@
-use crate::config::cache;
 use crate::lib::dist;
 use crate::lib::error::{DfxError, DfxResult};
+use dfx_core::config::cache;
 
 use anyhow::{bail, Context};
 use directories_next::BaseDirs;

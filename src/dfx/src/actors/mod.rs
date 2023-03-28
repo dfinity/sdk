@@ -1,18 +1,18 @@
 use crate::actors;
+use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
+use crate::actors::btc_adapter::BtcAdapter;
+use crate::actors::canister_http_adapter::signals::CanisterHttpAdapterReadySubscribe;
+use crate::actors::canister_http_adapter::CanisterHttpAdapter;
 use crate::actors::emulator::Emulator;
+use crate::actors::icx_proxy::signals::PortReadySubscribe;
+use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use crate::actors::replica::Replica;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::ReplicaConfig;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 
-use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
-use crate::actors::btc_adapter::BtcAdapter;
-use crate::actors::canister_http_adapter::signals::CanisterHttpAdapterReadySubscribe;
-use crate::actors::canister_http_adapter::CanisterHttpAdapter;
-use crate::actors::icx_proxy::signals::PortReadySubscribe;
-use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use actix::{Actor, Addr, Recipient};
 use anyhow::Context;
 use fn_error_context::context;
@@ -130,7 +130,7 @@ fn setup_replica_env(
         // handing it over to the replica. If we read the file and it has
         // contents we shall assume it is due to our spawned replica
         // process.
-        std::fs::write(&replica_port_path, "").with_context(|| {
+        std::fs::write(replica_port_path, "").with_context(|| {
             format!(
                 "Failed to write/clear replica port file {}.",
                 replica_port_path.to_string_lossy()

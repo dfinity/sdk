@@ -4,14 +4,23 @@
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
-use crate::{rc_bytes::RcBytes, types::*, url_decode::url_decode};
+use crate::{
+    evidence::{EvidenceComputation, EvidenceComputation::Computed},
+    http::{
+        HeaderField, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+        StreamingCallbackToken,
+    },
+    rc_bytes::RcBytes,
+    types::*,
+    url_decode::url_decode,
+};
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash, HashTree, RbTree};
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::convert::TryInto;
 
 /// The amount of time a batch is kept alive. Modifying the batch
@@ -26,6 +35,8 @@ const INDEX_FILE: &str = "/index.html";
 
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
+
+const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
 type AssetHashes = RbTree<Key, Hash>;
 type Timestamp = Int;
@@ -46,6 +57,7 @@ pub struct Asset {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
     pub is_aliased: Option<bool>,
+    pub allow_raw_access: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -85,6 +97,8 @@ pub struct Chunk {
 
 pub struct Batch {
     pub expires_at: Timestamp,
+    pub commit_batch_arguments: Option<CommitBatchArguments>,
+    pub evidence_computation: Option<EvidenceComputation>,
 }
 
 #[derive(Default)]
@@ -97,15 +111,34 @@ pub struct State {
     batches: HashMap<BatchId, Batch>,
     next_batch_id: BatchId,
 
-    authorized: Vec<Principal>,
+    // permissions
+    commit_principals: BTreeSet<Principal>,
+    prepare_principals: BTreeSet<Principal>,
+    manage_permissions_principals: BTreeSet<Principal>,
 
     asset_hashes: AssetHashes,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct StableStatePermissions {
+    commit: BTreeSet<Principal>,
+    prepare: BTreeSet<Principal>,
+    manage_permissions: BTreeSet<Principal>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StableState {
-    authorized: Vec<Principal>,
+    authorized: Vec<Principal>, // ignored if permissions is Some(_)
+    permissions: Option<StableStatePermissions>,
     stable_assets: HashMap<String, Asset>,
+
+    next_batch_id: Option<BatchId>,
+}
+
+impl Asset {
+    fn allow_raw_access(&self) -> bool {
+        self.allow_raw_access.unwrap_or(false)
+    }
 }
 
 impl State {
@@ -129,18 +162,25 @@ impl State {
             .ok_or_else(|| "asset not found".to_string())
     }
 
-    pub fn authorize_unconditionally(&mut self, principal: Principal) {
-        if !self.is_authorized(&principal) {
-            self.authorized.push(principal);
-        }
+    pub fn grant_permission(&mut self, principal: Principal, permission: &Permission) {
+        let permitted = self.get_mut_permission_list(permission);
+        permitted.insert(principal);
     }
 
-    pub fn authorize(&mut self, caller: &Principal, other: Principal) -> Result<(), String> {
-        if !self.is_authorized(caller) {
-            return Err("the caller is not authorized".to_string());
-        }
-        self.authorize_unconditionally(other);
-        Ok(())
+    pub fn revoke_permission(&mut self, principal: Principal, permission: &Permission) {
+        let permitted = self.get_mut_permission_list(permission);
+        permitted.remove(&principal);
+    }
+
+    pub fn list_permitted(&self, permission: &Permission) -> &BTreeSet<Principal> {
+        self.get_permission_list(permission)
+    }
+
+    pub fn take_ownership(&mut self, controller: Principal) {
+        self.commit_principals.clear();
+        self.prepare_principals.clear();
+        self.manage_permissions_principals.clear();
+        self.commit_principals.insert(controller);
     }
 
     pub fn root_hash(&self) -> Hash {
@@ -162,6 +202,7 @@ impl State {
                     max_age: arg.max_age,
                     headers: arg.headers,
                     is_aliased: arg.enable_aliasing,
+                    allow_raw_access: arg.allow_raw_access,
                 },
             );
         }
@@ -250,8 +291,31 @@ impl State {
         self.next_chunk_id = Nat::from(1);
     }
 
-    pub fn is_authorized(&self, principal: &Principal) -> bool {
-        self.authorized.contains(principal)
+    pub fn has_permission(&self, principal: &Principal, permission: &Permission) -> bool {
+        let list = self.get_permission_list(permission);
+        list.contains(principal)
+    }
+
+    pub fn can(&self, principal: &Principal, permission: &Permission) -> bool {
+        self.has_permission(principal, permission)
+            || (*permission == Permission::Prepare
+                && self.has_permission(principal, &Permission::Commit))
+    }
+
+    fn get_permission_list(&self, permission: &Permission) -> &BTreeSet<Principal> {
+        match permission {
+            Permission::Commit => &self.commit_principals,
+            Permission::Prepare => &self.prepare_principals,
+            Permission::ManagePermissions => &self.manage_permissions_principals,
+        }
+    }
+
+    fn get_mut_permission_list(&mut self, permission: &Permission) -> &mut BTreeSet<Principal> {
+        match permission {
+            Permission::Commit => &mut self.commit_principals,
+            Permission::Prepare => &mut self.prepare_principals,
+            Permission::ManagePermissions => &mut self.manage_permissions_principals,
+        }
     }
 
     pub fn retrieve(&self, key: &Key) -> Result<RcBytes, String> {
@@ -300,15 +364,18 @@ impl State {
             batch_id.clone(),
             Batch {
                 expires_at: Int::from(now + BATCH_EXPIRY_NANOS),
+                commit_batch_arguments: None,
+                evidence_computation: None,
             },
         );
         self.chunks.retain(|_, c| {
             self.batches
                 .get(&c.batch_id)
-                .map(|b| b.expires_at > now)
+                .map(|b| b.expires_at > now || b.commit_batch_arguments.is_some())
                 .unwrap_or(false)
         });
-        self.batches.retain(|_, b| b.expires_at > now);
+        self.batches
+            .retain(|_, b| b.expires_at > now || b.commit_batch_arguments.is_some());
 
         batch_id
     }
@@ -318,6 +385,9 @@ impl State {
             .batches
             .get_mut(&arg.batch_id)
             .ok_or_else(|| "batch not found".to_string())?;
+        if batch.commit_batch_arguments.is_some() {
+            return Err("batch has been proposed".to_string());
+        }
 
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
@@ -347,6 +417,60 @@ impl State {
             }
         }
         self.batches.remove(&batch_id);
+        Ok(())
+    }
+
+    pub fn propose_commit_batch(&mut self, arg: CommitBatchArguments) -> Result<(), String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+        if batch.commit_batch_arguments.is_some() {
+            return Err("batch already has proposed CommitBatchArguments".to_string());
+        };
+        batch.commit_batch_arguments = Some(arg);
+        Ok(())
+    }
+
+    pub fn compute_evidence(
+        &mut self,
+        arg: ComputeEvidenceArguments,
+    ) -> Result<Option<ByteBuf>, String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+
+        let cba = batch
+            .commit_batch_arguments
+            .as_ref()
+            .expect("batch does not have CommitBatchArguments");
+
+        let max_iterations = arg
+            .max_iterations
+            .unwrap_or(DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS);
+
+        let mut ec = batch.evidence_computation.take().unwrap_or_default();
+        for _ in 0..max_iterations {
+            ec = ec.advance(cba, &self.chunks);
+            if matches!(ec, Computed(_)) {
+                break;
+            }
+        }
+        batch.evidence_computation = Some(ec);
+
+        if let Some(Computed(evidence)) = &batch.evidence_computation {
+            Ok(Some(evidence.clone()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {
+        if self.batches.remove(&arg.batch_id).is_none() {
+            return Err("batch not found".to_string());
+        }
+        self.chunks.retain(|_, c| c.batch_id != arg.batch_id);
         Ok(())
     }
 
@@ -435,6 +559,7 @@ impl State {
         index: usize,
         callback: Func,
         etags: Vec<Hash>,
+        req: HttpRequest,
     ) -> HttpResponse {
         let index_redirect_certificate = if self.asset_hashes.get(path.as_bytes()).is_none()
             && self.asset_hashes.get(INDEX_FILE.as_bytes()).is_some()
@@ -449,10 +574,13 @@ impl State {
 
         if let Some(certificate_header) = index_redirect_certificate {
             if let Some(asset) = self.assets.get(INDEX_FILE) {
+                if !asset.allow_raw_access() && req.is_raw_domain() {
+                    return req.redirect_from_raw_to_certified_domain();
+                }
                 for enc_name in encodings.iter() {
                     if let Some(enc) = asset.encodings.get(enc_name) {
                         if enc.certified {
-                            return build_ok(
+                            return HttpResponse::build_ok(
                                 asset,
                                 enc_name,
                                 enc,
@@ -472,10 +600,13 @@ impl State {
             witness_to_header(self.asset_hashes.witness(path.as_bytes()), certificate);
 
         if let Ok(asset) = self.get_asset(&path.into()) {
+            if !asset.allow_raw_access() && req.is_raw_domain() {
+                return req.redirect_from_raw_to_certified_domain();
+            }
             for enc_name in encodings.iter() {
                 if let Some(enc) = asset.encodings.get(enc_name) {
                     if enc.certified {
-                        return build_ok(
+                        return HttpResponse::build_ok(
                             asset,
                             enc_name,
                             enc,
@@ -489,7 +620,7 @@ impl State {
                         // Find if identity is certified, if it's not.
                         if let Some(id_enc) = asset.encodings.get("identity") {
                             if id_enc.certified {
-                                return build_ok(
+                                return HttpResponse::build_ok(
                                     asset,
                                     enc_name,
                                     enc,
@@ -506,7 +637,7 @@ impl State {
             }
         }
 
-        build_404(certificate_header)
+        HttpResponse::build_404(certificate_header)
     }
 
     pub fn http_request(
@@ -533,7 +664,9 @@ impl State {
         };
 
         match url_decode(path) {
-            Ok(path) => self.build_http_response(certificate, &path, encodings, 0, callback, etags),
+            Ok(path) => {
+                self.build_http_response(certificate, &path, encodings, 0, callback, etags, req)
+            }
             Err(err) => HttpResponse {
                 status_code: 400,
                 headers: vec![],
@@ -574,12 +707,53 @@ impl State {
 
         Ok(StreamingCallbackHttpResponse {
             body: enc.content_chunks[chunk_index].clone(),
-            token: create_token(asset, &content_encoding, enc, &key, chunk_index),
+            token: StreamingCallbackToken::create_token(
+                &content_encoding,
+                enc.content_chunks.len(),
+                enc.sha256,
+                &key,
+                chunk_index,
+            ),
         })
     }
 
+    pub fn get_asset_properties(&self, key: Key) -> Result<AssetProperties, String> {
+        let asset = self
+            .assets
+            .get(&key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        Ok(AssetProperties {
+            max_age: asset.max_age,
+            headers: asset.headers.clone(),
+            allow_raw_access: asset.allow_raw_access,
+            is_aliased: asset.is_aliased,
+        })
+    }
+
+    pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
+        let asset = self
+            .assets
+            .get_mut(&arg.key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        if let Some(headers) = arg.headers {
+            asset.headers = headers
+        }
+        if let Some(max_age) = arg.max_age {
+            asset.max_age = max_age
+        }
+        if let Some(allow_raw_access) = arg.allow_raw_access {
+            asset.allow_raw_access = allow_raw_access
+        }
+        if let Some(is_aliased) = arg.is_aliased {
+            asset.is_aliased = is_aliased
+        }
+        Ok(())
+    }
+
     // Returns keys that needs to be updated if the supplied key is changed.
-    fn dependent_keys<'a>(&self, key: &Key) -> Vec<Key> {
+    fn dependent_keys(&self, key: &Key) -> Vec<Key> {
         if self
             .assets
             .get(key)
@@ -598,22 +772,46 @@ impl State {
 
 impl From<State> for StableState {
     fn from(state: State) -> Self {
+        let permissions = StableStatePermissions {
+            commit: state.commit_principals,
+            prepare: state.prepare_principals,
+            manage_permissions: state.manage_permissions_principals,
+        };
         Self {
-            authorized: state.authorized,
+            authorized: vec![],
+            permissions: Some(permissions),
             stable_assets: state.assets,
+            next_batch_id: Some(state.next_batch_id),
         }
     }
 }
 
 impl From<StableState> for State {
     fn from(stable_state: StableState) -> Self {
+        let (commit_principals, prepare_principals, manage_permissions_principals) =
+            if let Some(permissions) = stable_state.permissions {
+                (
+                    permissions.commit,
+                    permissions.prepare,
+                    permissions.manage_permissions,
+                )
+            } else {
+                (
+                    stable_state.authorized.into_iter().collect(),
+                    BTreeSet::new(),
+                    BTreeSet::new(),
+                )
+            };
         let mut state = Self {
-            authorized: stable_state.authorized,
+            commit_principals,
+            prepare_principals,
+            manage_permissions_principals,
             assets: stable_state.stable_assets,
+            next_batch_id: stable_state.next_batch_id.unwrap_or_else(|| Nat::from(1)),
             ..Self::default()
         };
 
-        let assets_keys: Vec<_> = state.assets.keys().map(|key| key.clone()).collect();
+        let assets_keys: Vec<_> = state.assets.keys().cloned().collect();
         for key in assets_keys {
             let dependent_keys = state.dependent_keys(&key);
             if let Some(asset) = state.assets.get_mut(&key) {
@@ -738,85 +936,9 @@ fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a> {
     }
 }
 
-fn create_token(
-    _asset: &Asset,
-    enc_name: &str,
-    enc: &AssetEncoding,
-    key: &str,
-    chunk_index: usize,
-) -> Option<StreamingCallbackToken> {
-    if chunk_index + 1 >= enc.content_chunks.len() {
-        None
-    } else {
-        Some(StreamingCallbackToken {
-            key: key.to_string(),
-            content_encoding: enc_name.to_string(),
-            index: Nat::from(chunk_index + 1),
-            sha256: Some(ByteBuf::from(enc.sha256)),
-        })
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn build_ok(
-    asset: &Asset,
-    enc_name: &str,
-    enc: &AssetEncoding,
-    key: &str,
-    chunk_index: usize,
-    certificate_header: Option<HeaderField>,
-    callback: Func,
-    etags: Vec<Hash>,
-) -> HttpResponse {
-    let mut headers = HashMap::from([("content-type".to_string(), asset.content_type.to_string())]);
-    if enc_name != "identity" {
-        headers.insert("content-encoding".to_string(), enc_name.to_string());
-    }
-    if let Some(head) = certificate_header {
-        headers.insert(head.0, head.1);
-    }
-    if let Some(max_age) = asset.max_age {
-        headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
-    }
-    if let Some(arg_headers) = asset.headers.as_ref() {
-        for (k, v) in arg_headers {
-            headers.insert(k.to_owned().to_lowercase(), v.to_owned());
-        }
-    }
-
-    let streaming_strategy = create_token(asset, enc_name, enc, key, chunk_index)
-        .map(|token| StreamingStrategy::Callback { callback, token });
-
-    let (status_code, body) = if etags.contains(&enc.sha256) {
-        (304, RcBytes::default())
-    } else {
-        headers.insert(
-            "etag".to_string(),
-            format!("\"{}\"", hex::encode(enc.sha256)),
-        );
-        (200, enc.content_chunks[chunk_index].clone())
-    };
-
-    HttpResponse {
-        status_code,
-        headers: headers.into_iter().collect::<_>(),
-        body,
-        streaming_strategy,
-    }
-}
-
-fn build_404(certificate_header: HeaderField) -> HttpResponse {
-    HttpResponse {
-        status_code: 404,
-        headers: vec![certificate_header],
-        body: RcBytes::from(ByteBuf::from("not found")),
-        streaming_strategy: None,
-    }
-}
-
 // path like /path/to/my/asset should also be valid for /path/to/my/asset.html or /path/to/my/asset/index.html
 fn aliases_of(key: &Key) -> Vec<Key> {
-    if key.ends_with("/") {
+    if key.ends_with('/') {
         vec![format!("{}index.html", key)]
     } else if !key.ends_with(".html") {
         vec![format!("{}.html", key), format!("{}/index.html", key)]

@@ -3,18 +3,18 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
 };
-use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::Identity;
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::util::clap::validators::{
     compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
 };
-use crate::util::expiry_duration;
+use dfx_core::error::identity::IdentityError;
+use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use clap::Parser;
 use ic_agent::Identity as _;
@@ -35,6 +35,13 @@ pub struct CanisterCreateOpts {
     /// This amount is deducted from the wallet's cycle balance.
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
+
+    /// Attempts to create the canister with this Canister ID.
+    ///
+    /// This option only works with non-mainnet replica.
+    /// This option implies the --no-wallet flag.
+    #[clap(long, value_name = "PRINCIPAL", conflicts_with = "all")]
+    specified_id: Option<CanisterId>,
 
     /// Specifies the identity name or the principal of the new controller.
     #[clap(long, multiple_occurrences(true))]
@@ -67,7 +74,6 @@ pub async fn exec(
     mut call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
-    let timeout = expiry_duration();
 
     fetch_root_key_if_needed(env).await?;
 
@@ -77,8 +83,11 @@ pub async fn exec(
     let network = env.get_network_descriptor();
 
     let proxy_sender;
-    if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
-        let wallet = Identity::get_or_create_wallet_canister(
+    if opts.specified_id.is_none()
+        && !opts.no_wallet
+        && !matches!(call_sender, CallSender::Wallet(_))
+    {
+        let wallet = get_or_create_wallet_canister(
             env,
             env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
@@ -103,16 +112,16 @@ pub async fn exec(
                                 Ok(env.get_selected_identity_principal().unwrap())
                             } else {
                                 let identity_name = controller;
-                                IdentityManager::new(env)?
+                                env.new_identity_manager()?
                                     .instantiate_identity_from_name(identity_name, env.get_logger())
                                     .and_then(|identity| {
-                                        identity.sender().map_err(|err| anyhow!(err))
+                                        identity.sender().map_err(GetIdentityPrincipalFailed)
                                     })
                             }
                         }
                     },
                 )
-                .collect::<DfxResult<Vec<_>>>()
+                .collect::<Result<Vec<_>, IdentityError>>()
         })
         .transpose()
         .context("Failed to determine controllers.")?;
@@ -145,8 +154,8 @@ pub async fn exec(
         create_canister(
             env,
             canister_name,
-            timeout,
             with_cycles,
+            opts.specified_id,
             call_sender,
             CanisterSettings {
                 controllers,
@@ -198,11 +207,12 @@ pub async fn exec(
                 .with_context(|| {
                     format!("Failed to read freezing threshold of {}.", canister_name)
                 })?;
+                // TODO: create for pull canisters with their mainnet ID (SDK-794)
                 create_canister(
                     env,
                     canister_name,
-                    timeout,
                     with_cycles,
+                    None,
                     call_sender,
                     CanisterSettings {
                         controllers: controllers.clone(),

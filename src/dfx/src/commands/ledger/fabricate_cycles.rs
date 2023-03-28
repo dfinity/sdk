@@ -1,20 +1,17 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
 use crate::util::clap::validators::{
     cycle_amount_validator, e8s_validator, icpts_amount_validator, trillion_cycle_amount_validator,
 };
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
-use crate::util::expiry_duration;
 
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use slog::info;
-use std::time::Duration;
 
 use super::get_icpts_from_args;
 
@@ -91,20 +88,19 @@ pub struct FabricateCyclesOpts {
 async fn deposit_minted_cycles(
     env: &dyn Environment,
     canister: &str,
-    timeout: Duration,
     call_sender: &CallSender,
     cycles: u128,
 ) -> DfxResult {
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
     info!(log, "Fabricating {} cycles onto {}", cycles, canister,);
 
-    canister::provisional_deposit_cycles(env, canister_id, timeout, call_sender, cycles).await?;
+    canister::provisional_deposit_cycles(env, canister_id, call_sender, cycles).await?;
 
-    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await;
+    let status = canister::get_canister_status(env, canister_id, call_sender).await;
     if status.is_ok() {
         info!(
             log,
@@ -124,16 +120,13 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
 
     fetch_root_key_or_anyhow(env).await?;
 
-    let timeout = expiry_duration();
-
     if let Some(canister) = opts.canister.as_deref() {
-        deposit_minted_cycles(env, canister, timeout, &CallSender::SelectedId, cycles).await
+        deposit_minted_cycles(env, canister, &CallSender::SelectedId, cycles).await
     } else if opts.all {
         let config = env.get_config_or_anyhow()?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                deposit_minted_cycles(env, canister, timeout, &CallSender::SelectedId, cycles)
-                    .await?;
+                deposit_minted_cycles(env, canister, &CallSender::SelectedId, cycles).await?;
             }
         }
         Ok(())
