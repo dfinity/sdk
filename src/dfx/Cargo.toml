@@ -93,7 +93,7 @@ slog = { workspace = true, features = ["max_level_trace"] }
 slog-async.workspace = true
 slog-term.workspace = true
 supports-color = "1.3.0"
-sysinfo = "0.24.4"
+sysinfo = "0.28.4"
 tar.workspace = true
 tempfile.workspace = true
 term = "0.7.0"

@@ -14,7 +14,6 @@ pub trait Cache {
     fn is_installed(&self) -> Result<bool, CacheError>;
     fn delete(&self) -> Result<(), CacheError>;
     fn get_binary_command_path(&self, binary_name: &str) -> Result<PathBuf, CacheError>;
-    fn get_binary_command(&self, binary_name: &str) -> Result<std::process::Command, CacheError>;
 }
 
 pub fn get_cache_root() -> Result<PathBuf, CacheError> {
@@ -84,16 +83,6 @@ pub fn get_binary_path_from_version(
     }
 
     Ok(get_bin_cache(version)?.join(binary_name))
-}
-
-pub fn binary_command_from_version(
-    version: &str,
-    name: &str,
-) -> Result<std::process::Command, CacheError> {
-    let path = get_binary_path_from_version(version, name)?;
-    let cmd = std::process::Command::new(path);
-
-    Ok(cmd)
 }
 
 pub fn list_versions() -> Result<Vec<Version>, CacheError> {

@@ -2,8 +2,7 @@ use crate::config::dfx_version;
 use crate::util;
 use dfx_core;
 use dfx_core::config::cache::{
-    binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
-    is_version_installed, Cache,
+    delete_version, get_bin_cache, get_binary_path_from_version, is_version_installed, Cache,
 };
 use dfx_core::error::cache::CacheError;
 
@@ -55,11 +54,6 @@ impl Cache for DiskBasedCache {
     fn get_binary_command_path(&self, binary_name: &str) -> Result<PathBuf, CacheError> {
         Self::install(&self.version_str())?;
         get_binary_path_from_version(&self.version_str(), binary_name)
-    }
-
-    fn get_binary_command(&self, binary_name: &str) -> Result<std::process::Command, CacheError> {
-        Self::install(&self.version_str())?;
-        binary_command_from_version(&self.version_str(), binary_name)
     }
 }
 

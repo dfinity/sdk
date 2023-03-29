@@ -417,7 +417,7 @@ pub fn de_wsl_path(path: impl AsRef<Path> + Into<PathBuf>) -> PathBuf {
 
 #[cfg(windows)]
 pub fn wsl_distro() -> String {
-    std::env::var("DFX_WSL_DISTRO").unwrap_or("Ubuntu".to_string())
+    std::env::var("DFX_WSL_DISTRO").unwrap_or_else(|_| "Ubuntu".to_string())
 }
 
 pub fn wsl_url(url: &str) -> String {

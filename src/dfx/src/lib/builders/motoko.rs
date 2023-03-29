@@ -61,7 +61,7 @@ impl CanisterBuilder for MotokoBuilder {
 
             result.insert(MotokoImport::Relative(file.to_path_buf()));
 
-            let mut command = cache.get_binary_command("moc")?;
+            let mut command = Command::new(cache.get_binary_command_path("moc")?);
             let command = command.arg("--print-deps").arg(file);
             let output = command
                 .output()
