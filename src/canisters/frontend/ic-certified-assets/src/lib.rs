@@ -1,8 +1,10 @@
 //! This module declares canister methods expected by the assets canister client.
+mod certification_types;
 pub mod evidence;
 pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
+mod tree;
 pub mod types;
 mod url_decode;
 
@@ -26,6 +28,10 @@ use ic_cdk::api::{
 use ic_cdk_macros::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
+
+#[cfg(target_arch = "wasm32")]
+#[link_section = "icp:public supported_certificate_versions"]
+pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
@@ -138,7 +144,7 @@ async fn validate_take_ownership() -> Result<String, String> {
 
 #[query]
 #[candid_method(query)]
-fn retrieve(key: Key) -> RcBytes {
+fn retrieve(key: AssetKey) -> RcBytes {
     STATE.with(|s| match s.borrow().retrieve(&key) {
         Ok(bytes) => bytes,
         Err(msg) => trap(&msg),
@@ -325,7 +331,7 @@ fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCa
 
 #[query]
 #[candid_method(query)]
-fn get_asset_properties(key: Key) -> AssetProperties {
+fn get_asset_properties(key: AssetKey) -> AssetProperties {
     STATE.with(|s| {
         s.borrow()
             .get_asset_properties(key)

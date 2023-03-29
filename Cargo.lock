@@ -1682,7 +1682,7 @@ dependencies = [
  "http",
  "http-body",
  "hyper-rustls",
- "ic-certification",
+ "ic-certification 0.23.1",
  "ic-verify-bls-signature",
  "k256",
  "leb128",
@@ -1774,6 +1774,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-certification"
+version = "0.23.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "beb68e0ea2fe6b533ddab6ae2142274f9669acacbacd83ac64bb1cd268d33104"
+dependencies = [
+ "hex",
+ "sha2 0.10.6",
+]
+
+[[package]]
 name = "ic-certified-assets"
 version = "0.2.5"
 dependencies = [
@@ -1783,6 +1793,7 @@ dependencies = [
  "ic-cdk",
  "ic-cdk-macros",
  "ic-certified-map",
+ "ic-response-verification",
  "itertools 0.10.5",
  "num-traits",
  "serde",
@@ -1822,6 +1833,25 @@ dependencies = [
  "pkcs11",
  "sha2 0.10.6",
  "simple_asn1",
+ "thiserror",
+]
+
+[[package]]
+name = "ic-response-verification"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f4e57f65dc2b5567f11e0508b3648518097fe9fcd443389eb0057b91a3c5acd"
+dependencies = [
+ "base64",
+ "candid",
+ "flate2",
+ "http",
+ "ic-certification 0.23.2",
+ "leb128",
+ "log",
+ "miracl_core_bls12381",
+ "nom",
+ "sha2 0.10.6",
  "thiserror",
 ]
 
@@ -2254,6 +2284,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "miracl_core_bls12381"
+version = "4.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d07cbe42e2a8dd41df582fb8e00fc24d920b5561cc301fcb6d14e2e0434b500f"
+
+[[package]]
 name = "mockito"
 version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2508,9 +2544,9 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "openssl"
-version = "0.10.42"
+version = "0.10.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12fc0523e3bd51a692c8850d075d74dc062ccf251c0110668cbd921917118a13"
+checksum = "518915b97df115dd36109bfa429a48b8f737bd05508cf9588977b599648926d2"
 dependencies = [
  "bitflags",
  "cfg-if 1.0.0",
@@ -2549,9 +2585,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.77"
+version = "0.9.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b03b84c3b2d099b81f0953422b4d4ad58761589d0229b5506356afca05a3670a"
+checksum = "666416d899cf077260dac8698d60a60b435a46d57e82acb1be3d0dad87284e5b"
 dependencies = [
  "autocfg",
  "cc",

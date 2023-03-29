@@ -2,7 +2,6 @@ use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::sign::sign_transport::SignReplicaV2Transport;
 use crate::lib::sign::signed_message::SignedMessageV1;
@@ -84,7 +83,7 @@ pub async fn exec(
 
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
         Ok(id) => {
