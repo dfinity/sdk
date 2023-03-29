@@ -157,26 +157,26 @@ fn nested_tree_operation() {
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
     assert_eq!(tree.get(&["one", "two", "three"]), None);
     assert_eq!(tree.get(&["one"]), None);
-    assert_eq!(tree.contains_path(&["one", "two"]), true);
-    assert_eq!(tree.contains_path(&["one", "two", "three"]), false);
-    assert_eq!(tree.contains_path(&["one"]), false);
+    assert!(tree.contains_path(&["one", "two"]));
+    assert!(!tree.contains_path(&["one", "two", "three"]));
+    assert!(!tree.contains_path(&["one"]));
 
     // deleting non-existent key doesn't do anything
     tree.delete(&["one", "two", "three"]);
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
-    assert_eq!(tree.contains_path(&["one", "two"]), true);
+    assert!(tree.contains_path(&["one", "two"]));
 
     // deleting existing key works
     tree.delete(&["one", "three"]);
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
     assert_eq!(tree.get(&["one", "three"]), None);
-    assert_eq!(tree.contains_path(&["one", "two"]), true);
-    assert_eq!(tree.contains_path(&["one", "three"]), false);
+    assert!(tree.contains_path(&["one", "two"]));
+    assert!(!tree.contains_path(&["one", "three"]));
 
     // deleting subtree works
     tree.delete(&["one"]);
     assert_eq!(tree.get(&["one", "two"]), None);
     assert_eq!(tree.get(&["one"]), None);
-    assert_eq!(tree.contains_path(&["one", "two"]), false);
-    assert_eq!(tree.contains_path(&["one"]), false);
+    assert!(!tree.contains_path(&["one", "two"]));
+    assert!(!tree.contains_path(&["one"]));
 }

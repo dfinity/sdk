@@ -87,9 +87,9 @@ impl AssetEncoding {
     ) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
-                hashes.get(&status_code).and_then(|response_hash| {
+                hashes.get(&status_code).map(|response_hash| {
                     let mut path: Vec<NestedTreeKey> = path
-                        .into_iter()
+                        .iter()
                         .map(|segment| segment.as_str().into())
                         .collect();
                     path.insert(0, "http_expr".into());
@@ -97,7 +97,7 @@ impl AssetEncoding {
                     path.push(ce.hash.as_slice().into());
                     path.push("".into()); // no request certification - use empty node
                     path.push(response_hash.as_slice().into());
-                    Some(path.into())
+                    path.into()
                 })
             })
         })
@@ -128,7 +128,7 @@ impl AssetEncoding {
         encoding_name: &str,
     ) -> HashMap<u16, [u8; 32]> {
         fn compute_response_hash(
-            base_headers: &Vec<(String, Value)>,
+            base_headers: &[(String, Value)],
             status_code: u16,
             body_hash: &[u8; 32],
         ) -> [u8; 32] {
@@ -141,7 +141,7 @@ impl AssetEncoding {
             //    - all certified headers (here all headers), plus
             //    - synthetic header `:ic-cert-status` with value <HTTP status code of response>
 
-            let mut headers = base_headers.clone();
+            let mut headers = Vec::from(base_headers);
             headers.push((
                 ":ic-cert-status".to_string(),
                 Value::Number(status_code.into()),
@@ -168,7 +168,7 @@ impl AssetEncoding {
         let response_hash_200 = compute_response_hash(&base_headers, 200, &self.sha256);
 
         // HTTP 304
-        let empty_body_hash: [u8; 32] = sha2::Sha256::digest(&[]).into();
+        let empty_body_hash: [u8; 32] = sha2::Sha256::digest([]).into();
         let response_hash_304 = compute_response_hash(&base_headers, 304, &empty_body_hash);
 
         let mut response_hashes = HashMap::new();
@@ -939,7 +939,7 @@ impl State {
     }
 
     pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
-        let dependent_keys = self.dependent_keys(&arg.key).clone();
+        let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
             .get_mut(&arg.key)
@@ -965,7 +965,7 @@ impl State {
     }
 
     // Returns keys that needs to be updated if the supplied key is changed.
-    fn dependent_keys<'a>(&self, key: &AssetKey) -> Vec<AssetKey> {
+    fn dependent_keys(&self, key: &AssetKey) -> Vec<AssetKey> {
         if self
             .assets
             .get(key)
@@ -1039,7 +1039,7 @@ impl From<StableState> for State {
     }
 }
 
-fn build_headers<'a>(
+fn build_headers(
     custom_headers: Option<impl Iterator<Item = (impl Into<String>, impl Into<String>)>>,
     max_age: &Option<u64>,
     content_type: impl Into<String>,
@@ -1112,7 +1112,7 @@ fn on_asset_change(
     }
 }
 
-fn delete_preexisting_asset_hashes(asset_hashes: &mut AssetHashes, affected_keys: &Vec<String>) {
+fn delete_preexisting_asset_hashes(asset_hashes: &mut AssetHashes, affected_keys: &[String]) {
     for key in affected_keys.iter() {
         let key_path = AssetPath::from(key);
         asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());

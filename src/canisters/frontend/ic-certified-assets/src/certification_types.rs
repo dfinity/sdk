@@ -28,10 +28,10 @@ where
     T: AsRef<str>,
 {
     fn from(key: T) -> Self {
-        let mut iter = key.as_ref().split("/").peekable();
+        let mut iter = key.as_ref().split('/').peekable();
         if let Some(first_segment) = iter.peek() {
             // "/path/to/asset".split("/") produces an empty node before "path", therefore we need to skip it
-            if *first_segment == "" {
+            if first_segment.is_empty() {
                 iter.next();
             }
         }
@@ -112,7 +112,7 @@ impl From<&str> for NestedTreeKey {
 
 impl From<&[u8]> for NestedTreeKey {
     fn from(slice: &[u8]) -> Self {
-        Self::Bytes(slice.iter().map(|b| b.clone()).collect())
+        Self::Bytes(slice.to_vec())
     }
 }
 

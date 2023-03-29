@@ -185,7 +185,7 @@ impl HttpResponse {
     #[allow(clippy::too_many_arguments)]
     pub fn build_ok_from_requested_encodings(
         asset: &Asset,
-        requested_encodings: &Vec<String>,
+        requested_encodings: &[String],
         key: &str,
         chunk_index: usize,
         certificate_header: Option<&HeaderField>,
