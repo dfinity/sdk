@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use fn_error_context::context;
 use slog::{info, Logger};
@@ -47,7 +47,7 @@ pub fn get_running_replica_port(
 #[context("Failed to read port value from {}", path.to_string_lossy())]
 fn read_port_from(path: &Path) -> DfxResult<Option<u16>> {
     if path.exists() {
-        let s = std::fs::read_to_string(&path)?;
+        let s = std::fs::read_to_string(path)?;
         let s = s.trim();
         if s.is_empty() {
             Ok(None)

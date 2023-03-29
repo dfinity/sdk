@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
+use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister::install_wallet;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use anyhow::{anyhow, bail};
@@ -21,16 +21,15 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
 
-    let canister_id =
-        if let Some(principal) = Identity::wallet_canister_id(network, &identity_name)? {
-            principal
-        } else {
-            bail!(
-                "There is no wallet defined for identity '{}' on network '{}'.  Nothing to do.",
-                identity_name,
-                &network.name
-            );
-        };
+    let canister_id = if let Some(principal) = wallet_canister_id(network, &identity_name)? {
+        principal
+    } else {
+        bail!(
+            "There is no wallet defined for identity '{}' on network '{}'.  Nothing to do.",
+            identity_name,
+            &network.name
+        );
+    };
 
     let agent = env
         .get_agent()
@@ -38,7 +37,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
     match agent
-        .read_state_canister_info(canister_id, "module_hash", false)
+        .read_state_canister_info(canister_id, "module_hash")
         .await
     {
         // If the canister is empty, this path does not exist.

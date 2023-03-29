@@ -4,7 +4,15 @@ on:
   push:
     branches:
       - master
+    paths:
+      - src/distributed/assetstorage.wasm.gz
+      - src/canisters/frontend/ic-certified-assets/**
+      - src/canisters/frontend/ic-frontend-canister/**
   pull_request:
+    paths:
+      - src/distributed/assetstorage.wasm.gz
+      - src/canisters/frontend/ic-certified-assets/**
+      - src/canisters/frontend/ic-frontend-canister/**
 
 env:
   # When getting Rust dependencies, retry on network error:
@@ -19,13 +27,9 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
-      - name: Set up
-        run: |
-          rustup target add wasm32-unknown-unknown
-          cargo install --version 0.2.0 ic-wasm
       - name: Build frontend canister
         run: |
-          ./scripts/update-frontend-canister.sh
+          ./scripts/update-frontend-canister.sh --release-build
       - name: Artifact
         uses: actions/upload-artifact@v3
         with:
@@ -35,5 +39,6 @@ jobs:
         run: |
           if [ "$(git diff src/distributed/assetstorage.wasm.gz)" != "" ]
           then
+            echo "src/distributed/assetstorage.wasm.gz needs to be updated; run ./scripts/update-frontend-canister.sh --release-build"
             exit 1
           fi

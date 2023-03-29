@@ -6,6 +6,7 @@ on:
       - '.github/**'
       - 'scripts/release.sh'
       - 'scripts/prepare-dfx-assets.sh'
+      - 'scripts/update-frontend-canister.sh'
   push:
     branches:
       - master
@@ -36,4 +37,5 @@ jobs:
         run: $HOME/bin/shellcheck-v0.7.1/shellcheck e2e/**/*.*sh
       - name: Check release script
         run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/release.sh
-
+      - name: Check update-frontend-canister.sh script
+        run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/update-frontend-canister.sh

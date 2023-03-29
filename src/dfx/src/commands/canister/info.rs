@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
 use anyhow::{anyhow, bail, Context};
@@ -10,7 +9,7 @@ use ic_agent::AgentError;
 use serde_cbor::Value;
 use std::convert::TryFrom;
 
-/// Get the hash of a canister’s WASM module and its current controller.
+/// Get the hash of a canister’s WASM module and its current controllers.
 #[derive(Parser)]
 pub struct InfoOpts {
     /// Specifies the name or id of the canister to get its canister information.
@@ -23,14 +22,14 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     let callee_canister = opts.canister.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let canister_id = Principal::from_text(callee_canister)
         .or_else(|_| canister_id_store.get(callee_canister))?;
 
     fetch_root_key_if_needed(env).await?;
     let controller_blob = match agent
-        .read_state_canister_info(canister_id, "controllers", false)
+        .read_state_canister_info(canister_id, "controllers")
         .await
     {
         Err(AgentError::LookupPathUnknown(_) | AgentError::LookupPathAbsent(_)) => {
@@ -66,7 +65,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     .context("Failed to determine controllers.")?;
 
     let module_hash_hex = match agent
-        .read_state_canister_info(canister_id, "module_hash", false)
+        .read_state_canister_info(canister_id, "module_hash")
         .await
     {
         Ok(blob) => format!("0x{}", hex::encode(&blob)),

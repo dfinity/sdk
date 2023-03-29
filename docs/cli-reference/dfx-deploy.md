@@ -16,15 +16,6 @@ Note that you can only run this command from within the project directory struct
 dfx deploy [flag] [option] [canister_name]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx deploy` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ## Options
 
 You can use the following options with the `dfx deploy` command.
@@ -34,6 +25,7 @@ You can use the following options with the `dfx deploy` command.
 | `--network <network>`              | Overrides the environment to connect to. By default, the local canister execution environment is used.                                                                      |
 | `--argument <argument>`            | Specifies an argument using Candid syntax to pass to the canister during deployment. Note that this option requires you to define an actor class in the Motoko program. |
 | `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                            |
+| `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                 |
 
 ### Arguments
 

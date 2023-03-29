@@ -1,20 +1,18 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
 };
-use crate::lib::identity::identity_manager::IdentityManager;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{
     compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
 };
-use crate::util::expiry_duration;
+use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use clap::Parser;
 use fn_error_context::context;
@@ -31,6 +29,8 @@ pub struct UpdateSettingsOpts {
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
+    /// Can be specified more than once, indicating the canister will have multiple controllers.
+    /// If any controllers are set with this parameter, any other controllers will be removed.
     #[clap(long, multiple_occurrences(true))]
     set_controller: Option<Vec<String>>,
 
@@ -85,7 +85,6 @@ pub async fn exec(
         }
     }
 
-    let timeout = expiry_duration();
     fetch_root_key_if_needed(env).await?;
 
     let controllers: Option<DfxResult<Vec<_>>> = opts.set_controller.as_ref().map(|controllers| {
@@ -99,7 +98,7 @@ pub async fn exec(
         .transpose()
         .context("Failed to determine all new controllers given in --set-controller.")?;
 
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     if let Some(canister_name_or_id) = opts.canister.as_deref() {
         let config = env.get_config();
@@ -126,7 +125,7 @@ pub async fn exec(
             canister_name,
         )?;
         if let Some(added) = &opts.add_controller {
-            let status = get_canister_status(env, canister_id, timeout, call_sender).await?;
+            let status = get_canister_status(env, canister_id, call_sender).await?;
             let mut existing_controllers = status.settings.controllers;
             for s in added {
                 existing_controllers.push(controller_to_principal(env, s)?);
@@ -137,7 +136,7 @@ pub async fn exec(
             let controllers = if opts.add_controller.is_some() {
                 controllers.as_mut().unwrap()
             } else {
-                let status = get_canister_status(env, canister_id, timeout, call_sender).await?;
+                let status = get_canister_status(env, canister_id, call_sender).await?;
                 controllers.get_or_insert(status.settings.controllers)
             };
             let removed = removed
@@ -157,7 +156,7 @@ pub async fn exec(
             memory_allocation,
             freezing_threshold,
         };
-        update_settings(env, canister_id, settings, timeout, call_sender).await?;
+        update_settings(env, canister_id, settings, call_sender).await?;
         display_controller_update(&opts, canister_name_or_id);
     } else if opts.all {
         // Update all canister settings.
@@ -192,8 +191,7 @@ pub async fn exec(
                     format!("Failed to get freezing threshold for {}.", canister_name)
                 })?;
                 if let Some(added) = &opts.add_controller {
-                    let status =
-                        get_canister_status(env, canister_id, timeout, call_sender).await?;
+                    let status = get_canister_status(env, canister_id, call_sender).await?;
                     let mut existing_controllers = status.settings.controllers;
                     for s in added {
                         existing_controllers.push(controller_to_principal(env, s)?);
@@ -204,8 +202,7 @@ pub async fn exec(
                     let controllers = if opts.add_controller.is_some() {
                         controllers.as_mut().unwrap()
                     } else {
-                        let status =
-                            get_canister_status(env, canister_id, timeout, call_sender).await?;
+                        let status = get_canister_status(env, canister_id, call_sender).await?;
                         controllers.get_or_insert(status.settings.controllers)
                     };
                     let removed = removed
@@ -225,7 +222,7 @@ pub async fn exec(
                     memory_allocation,
                     freezing_threshold,
                 };
-                update_settings(env, canister_id, settings, timeout, call_sender).await?;
+                update_settings(env, canister_id, settings, call_sender).await?;
                 display_controller_update(&opts, canister_name);
             }
         }
@@ -246,9 +243,10 @@ fn controller_to_principal(env: &dyn Environment, controller: &str) -> DfxResult
                 Ok(env.get_selected_identity_principal().unwrap())
             } else {
                 let identity_name = controller;
-                IdentityManager::new(env)?
+                env.new_identity_manager()?
                     .instantiate_identity_from_name(identity_name, env.get_logger())
-                    .and_then(|identity| identity.sender().map_err(|err| anyhow!(err)))
+                    .and_then(|identity| identity.sender().map_err(GetIdentityPrincipalFailed))
+                    .map_err(DfxError::new)
             }
         }
     }

@@ -6,7 +6,9 @@
         },
         "dependent": {
             "main": "dependent.mo",
-            "dependencies": ["dependency"]
+            "dependencies": [
+                "dependency"
+            ]
         }
     },
     "networks": {

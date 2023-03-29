@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
+use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
-    BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments, CreateChunkArg,
-    DeleteAssetArguments, HttpRequest, HttpResponse, SetAssetContentArguments, StreamingStrategy,
+    AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
+    CreateChunkArg, DeleteAssetArguments, DeleteBatchArguments, SetAssetContentArguments,
+    SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -23,10 +25,11 @@ fn unused_callback() -> candid::Func {
 struct AssetBuilder {
     name: String,
     content_type: String,
-    max_age: Option<u64>,
     encodings: Vec<(String, Vec<ByteBuf>)>,
+    max_age: Option<u64>,
     headers: Option<HashMap<String, String>>,
     aliasing: Option<bool>,
+    allow_raw_access: Option<bool>,
 }
 
 impl AssetBuilder {
@@ -34,10 +37,11 @@ impl AssetBuilder {
         Self {
             name: name.as_ref().to_string(),
             content_type: content_type.as_ref().to_string(),
-            max_age: None,
             encodings: vec![],
+            max_age: None,
             headers: None,
             aliasing: None,
+            allow_raw_access: None,
         }
     }
 
@@ -65,6 +69,11 @@ impl AssetBuilder {
 
     fn with_aliasing(mut self, aliasing: bool) -> Self {
         self.aliasing = Some(aliasing);
+        self
+    }
+
+    fn with_allow_raw_access(mut self, allow_raw_access: Option<bool>) -> Self {
+        self.allow_raw_access = allow_raw_access;
         self
     }
 }
@@ -114,6 +123,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             max_age: asset.max_age,
             headers: asset.headers,
             enable_aliasing: asset.aliasing,
+            allow_raw_access: asset.allow_raw_access,
         }));
 
         for (enc, chunks) in asset.encodings {
@@ -160,7 +170,22 @@ fn lookup_header<'a>(response: &'a HttpResponse, header: &str) -> Option<&'a str
     response
         .headers
         .iter()
-        .find_map(|(h, v)| h.eq_ignore_ascii_case(header).then(|| v.as_str()))
+        .find_map(|(h, v)| h.eq_ignore_ascii_case(header).then_some(v.as_str()))
+}
+
+impl State {
+    fn fake_http_request(&self, host: &str, path: &str) -> HttpResponse {
+        let fake_cert = [0xca, 0xfe];
+        self.http_request(
+            RequestBuilder::get(path).with_header("Host", host).build(),
+            &fake_cert,
+            unused_callback(),
+        )
+    }
+
+    fn create_test_asset(&mut self, asset: AssetBuilder) {
+        create_assets(self, 100_000_000_000, vec![asset]);
+    }
 }
 
 #[test]
@@ -239,6 +264,136 @@ fn batches_are_dropped_after_timeout() {
         Err(err) if err.contains("batch not found") => (),
         other => panic!("expected 'batch not found' error, got: {:?}", other),
     }
+}
+
+#[test]
+fn can_propose_commit_batch_exactly_once() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1,
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+    match state.propose_commit_batch(args) {
+        Err(err) if err == *"batch already has proposed CommitBatchArguments" => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    };
+}
+
+#[test]
+fn cannot_create_chunk_in_proposed_batch_() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    match state.create_chunk(
+        CreateChunkArg {
+            batch_id: batch_1,
+            content: ByteBuf::from(BODY.to_vec()),
+        },
+        time_now,
+    ) {
+        Err(err) if err == *"batch has been proposed" => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn batches_with_proposed_commit_args_do_not_expire() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    let _chunk_1 = state
+        .create_chunk(
+            CreateChunkArg {
+                batch_id: batch_1.clone(),
+                content: ByteBuf::from(BODY.to_vec()),
+            },
+            time_now,
+        )
+        .unwrap();
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
+
+    let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
+    let _batch_2 = state.create_batch(time_now);
+
+    match state.create_chunk(
+        CreateChunkArg {
+            batch_id: batch_1,
+            content: ByteBuf::from(BODY.to_vec()),
+        },
+        time_now,
+    ) {
+        Err(err) if err == *"batch has been proposed" => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn can_delete_proposed_batch() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
+    let delete_args = DeleteBatchArguments { batch_id: batch_1 };
+    assert_eq!(Ok(()), state.delete_batch(delete_args.clone()));
+    assert_eq!(
+        Err("batch not found".to_string()),
+        state.delete_batch(delete_args)
+    );
+}
+
+#[test]
+fn can_delete_batch_with_chunks() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    let _chunk_1 = state
+        .create_chunk(
+            CreateChunkArg {
+                batch_id: batch_1.clone(),
+                content: ByteBuf::from(BODY.to_vec()),
+            },
+            time_now,
+        )
+        .unwrap();
+
+    let delete_args = DeleteBatchArguments { batch_id: batch_1 };
+    assert_eq!(Ok(()), state.delete_batch(delete_args.clone()));
+    assert_eq!(
+        Err("batch not found".to_string()),
+        state.delete_batch(delete_args)
+    );
 }
 
 #[test]
@@ -486,13 +641,204 @@ fn supports_custom_http_headers() {
 }
 
 #[test]
+fn supports_getting_and_setting_asset_properties() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_header("Access-Control-Allow-Origin", "*"),
+            AssetBuilder::new("/max-age.html", "text/html")
+                .with_max_age(604800)
+                .with_encoding("identity", vec![BODY])
+                .with_header("X-Content-Type-Options", "nosniff"),
+        ],
+    );
+
+    assert_eq!(
+        state.get_asset_properties("/contents.html".into()),
+        Ok(AssetProperties {
+            max_age: None,
+            headers: Some(HashMap::from([(
+                "Access-Control-Allow-Origin".into(),
+                "*".into()
+            )])),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(604800),
+            headers: Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )])),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: Some(Some(1)),
+            headers: Some(Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )]))),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(1),
+            headers: Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )])),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: Some(None),
+            headers: Some(None),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: Some(Some(1)),
+            headers: Some(Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )]))),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(1),
+            headers: Some(HashMap::from([(
+                "X-Content-Type-Options".into(),
+                "nosniff".into()
+            )])),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: None,
+            headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(1),
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: Some(Some(2)),
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: None
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(2),
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(false))
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(2),
+            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            allow_raw_access: None,
+            is_aliased: Some(false)
+        })
+    );
+
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/max-age.html".into(),
+            max_age: None,
+            headers: Some(None),
+            allow_raw_access: None,
+            is_aliased: Some(None)
+        })
+        .is_ok());
+    assert_eq!(
+        state.get_asset_properties("/max-age.html".into()),
+        Ok(AssetProperties {
+            max_age: Some(2),
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: None
+        })
+    );
+}
+
+#[test]
 fn support_aliases() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>index</html>";
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
-
     create_assets(
         &mut state,
         time_now,
@@ -549,7 +895,6 @@ fn support_aliases() {
     assert_eq!(subdirectory_index_alias_3.body.as_ref(), SUBDIR_INDEX_BODY);
 }
 
-#[ignore = "SDK-817 will enable this"]
 #[test]
 fn alias_enable_and_disable() {
     let mut state = State::default();
@@ -575,13 +920,15 @@ fn alias_enable_and_disable() {
     );
     assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
-    create_assets(
-        &mut state,
-        time_now,
-        vec![AssetBuilder::new("/contents.html", "text/html")
-            .with_encoding("identity", vec![FILE_BODY])
-            .with_aliasing(false)],
-    );
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/contents.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(false)),
+        })
+        .is_ok());
 
     let no_more_alias = state.http_request(
         RequestBuilder::get("/contents").build(),
@@ -605,6 +952,15 @@ fn alias_enable_and_disable() {
             .with_aliasing(true)],
     );
 
+    assert!(state
+        .set_asset_properties(SetAssetPropertiesArguments {
+            key: "/contents.html".into(),
+            max_age: None,
+            headers: None,
+            allow_raw_access: None,
+            is_aliased: Some(Some(true)),
+        })
+        .is_ok());
     let alias_add_html_again = state.http_request(
         RequestBuilder::get("/contents").build(),
         &[],
@@ -718,4 +1074,1350 @@ fn aliasing_name_clash() {
         unused_callback(),
     );
     assert_eq!(alias_accessible_again.body.as_ref(), FILE_BODY);
+}
+
+#[cfg(test)]
+mod allow_raw_access {
+    use super::*;
+
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    #[test]
+    fn redirects_from_raw_to_certified() {
+        let mut state = State::default();
+
+        state.create_test_asset(
+            AssetBuilder::new("/page.html", "text/html").with_allow_raw_access(Some(false)),
+        );
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/page");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.icp0.io/page"
+        );
+
+        state.create_test_asset(AssetBuilder::new("/page2.html", "text/html"));
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/page2");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.icp0.io/page2"
+        );
+
+        state.create_test_asset(AssetBuilder::new("/index.html", "text/html"));
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.icp0.io/"
+        );
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/index.html", "text/html").with_allow_raw_access(Some(false)),
+        );
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.icp0.io/"
+        );
+    }
+
+    #[test]
+    fn wont_redirect_from_raw_to_certified() {
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/blog.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY])
+                .with_allow_raw_access(Some(true)),
+        );
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/blog.html");
+        dbg!(&response);
+        assert_eq!(response.status_code, 200);
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/index.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY])
+                .with_allow_raw_access(Some(true)),
+        );
+        let response = state.fake_http_request("a-b-c.raw.icp0.io", "/index.html");
+        dbg!(&response);
+        assert_eq!(response.status_code, 200);
+
+        let mut state = State::default();
+        state.create_test_asset(
+            AssetBuilder::new("/index.html", "text/html")
+                .with_encoding("identity", vec![FILE_BODY])
+                .with_allow_raw_access(Some(true)),
+        );
+        let response = state.fake_http_request("a-b-c.localhost:4444", "/index.html");
+        dbg!(&response);
+        assert_eq!(response.status_code, 200);
+    }
+}
+
+#[cfg(test)]
+mod evidence_computation {
+    use super::*;
+    use crate::types::BatchOperation::SetAssetContent;
+    use crate::types::{ClearArguments, ComputeEvidenceArguments, UnsetAssetContentArguments};
+
+    #[test]
+    fn evidence_with_set_single_chunk_asset_content() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+        let chunk_1 = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_1.clone(),
+                    content: ByteBuf::from(BODY.to_vec()),
+                },
+                time_now,
+            )
+            .unwrap();
+
+        let create_asset = CreateAssetArguments {
+            key: "/a/b/c".to_string(),
+            content_type: "text/plain".to_string(),
+            max_age: None,
+            headers: None,
+            enable_aliasing: None,
+            allow_raw_access: None,
+        };
+        let set_asset_content = SetAssetContentArguments {
+            key: "/a/b/c".to_string(),
+            content_encoding: "identity".to_string(),
+            chunk_ids: vec![chunk_1],
+            sha256: None,
+        };
+        let cba = CommitBatchArguments {
+            batch_id: batch_1.clone(),
+            operations: vec![
+                BatchOperation::CreateAsset(create_asset),
+                BatchOperation::SetAssetContent(set_asset_content),
+            ],
+        };
+        assert!(state.propose_commit_batch(cba).is_ok());
+        assert!(matches!(
+            state.compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1.clone(),
+                max_iterations: Some(3),
+            }),
+            Ok(None)
+        ));
+        assert!(matches!(
+            state.compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(1),
+            }),
+            Ok(Some(_))
+        ));
+    }
+
+    #[test]
+    fn evidence_with_set_multiple_chunk_asset_content() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        const CHUNK_1_CONTENT: &[u8] = b"<!DOCTYPE html><html></html>";
+        const CHUNK_2_CONTENT: &[u8] = b"there is more content here";
+        let chunk_1 = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_1.clone(),
+                    content: ByteBuf::from(CHUNK_1_CONTENT.to_vec()),
+                },
+                time_now,
+            )
+            .unwrap();
+        let chunk_2 = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_1.clone(),
+                    content: ByteBuf::from(CHUNK_2_CONTENT.to_vec()),
+                },
+                time_now,
+            )
+            .unwrap();
+
+        let create_asset = CreateAssetArguments {
+            key: "/a/b/c".to_string(),
+            content_type: "text/plain".to_string(),
+            max_age: None,
+            headers: None,
+            enable_aliasing: None,
+            allow_raw_access: None,
+        };
+        let set_asset_content = SetAssetContentArguments {
+            key: "/a/b/c".to_string(),
+            content_encoding: "identity".to_string(),
+            chunk_ids: vec![chunk_1, chunk_2],
+            sha256: None,
+        };
+        let cba = CommitBatchArguments {
+            batch_id: batch_1.clone(),
+            operations: vec![
+                BatchOperation::CreateAsset(create_asset),
+                BatchOperation::SetAssetContent(set_asset_content),
+            ],
+        };
+        assert!(state.propose_commit_batch(cba).is_ok());
+        assert!(matches!(
+            state.compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1.clone(),
+                max_iterations: Some(4),
+            }),
+            Ok(None)
+        ));
+        assert!(matches!(
+            state.compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(1),
+            }),
+            Ok(Some(_))
+        ));
+    }
+
+    #[test]
+    fn evidence_with_create_asset() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_id = state.create_batch(time_now);
+        let create_asset = CreateAssetArguments {
+            key: "/a/b/c".to_string(),
+            content_type: "text/plain".to_string(),
+            max_age: None,
+            headers: None,
+            enable_aliasing: None,
+            allow_raw_access: None,
+        };
+        let cba = CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations: vec![BatchOperation::CreateAsset(create_asset)],
+        };
+
+        assert!(state.propose_commit_batch(cba).is_ok());
+
+        let compute_args = ComputeEvidenceArguments {
+            batch_id,
+            max_iterations: Some(1),
+        };
+        assert!(state
+            .compute_evidence(compute_args.clone())
+            .unwrap()
+            .is_none());
+        assert!(state.compute_evidence(compute_args).unwrap().is_some());
+    }
+
+    #[test]
+    fn evidence_with_set_empty_asset_content() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_id = state.create_batch(time_now);
+        let create_asset = CreateAssetArguments {
+            key: "/a/b/c".to_string(),
+            content_type: "text/plain".to_string(),
+            max_age: None,
+            headers: None,
+            enable_aliasing: None,
+            allow_raw_access: None,
+        };
+        let set_asset_content = SetAssetContentArguments {
+            key: "/a/b/c".to_string(),
+            content_encoding: "identity".to_string(),
+            chunk_ids: vec![],
+            sha256: None,
+        };
+        let cba = CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations: vec![
+                BatchOperation::CreateAsset(create_asset),
+                BatchOperation::SetAssetContent(set_asset_content),
+            ],
+        };
+        assert!(state.propose_commit_batch(cba).is_ok());
+
+        assert!(state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .is_none());
+        assert!(state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id,
+                max_iterations: Some(1),
+            })
+            .unwrap()
+            .is_some());
+    }
+
+    #[test]
+    fn evidence_with_no_operations() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_id = state.create_batch(time_now);
+        let cba = CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations: vec![],
+        };
+        assert!(state.propose_commit_batch(cba).is_ok());
+
+        assert!(state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id,
+                max_iterations: Some(1),
+            })
+            .unwrap()
+            .is_some());
+    }
+
+    #[test]
+    fn create_asset_same_fields_same_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        {
+            let batch_1 = state.create_batch(time_now);
+            assert!(state
+                .propose_commit_batch(CommitBatchArguments {
+                    batch_id: batch_1.clone(),
+                    operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                        key: "/a/b/c".to_string(),
+                        content_type: "".to_string(),
+                        max_age: None,
+                        headers: None,
+                        enable_aliasing: None,
+                        allow_raw_access: None,
+                    }),],
+                })
+                .is_ok());
+            let evidence_1 = state
+                .compute_evidence(ComputeEvidenceArguments {
+                    batch_id: batch_1,
+                    max_iterations: Some(3),
+                })
+                .unwrap()
+                .unwrap();
+
+            let batch_2 = state.create_batch(time_now);
+            assert!(state
+                .propose_commit_batch(CommitBatchArguments {
+                    batch_id: batch_2.clone(),
+                    operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                        key: "/a/b/c".to_string(),
+                        content_type: "".to_string(),
+                        max_age: None,
+                        headers: None,
+                        enable_aliasing: None,
+                        allow_raw_access: None,
+                    }),],
+                })
+                .is_ok());
+            let evidence_2 = state
+                .compute_evidence(ComputeEvidenceArguments {
+                    batch_id: batch_2,
+                    max_iterations: Some(3),
+                })
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(evidence_1, evidence_2);
+        }
+
+        {
+            let batch_1 = state.create_batch(time_now);
+            assert!(state
+                .propose_commit_batch(CommitBatchArguments {
+                    batch_id: batch_1.clone(),
+                    operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                        key: "/d".to_string(),
+                        content_type: "text/plain".to_string(),
+                        max_age: Some(98),
+                        headers: Some(HashMap::from([
+                            ("H1".to_string(), "V1".to_string()),
+                            ("H2".to_string(), "V2".to_string())
+                        ])),
+                        enable_aliasing: Some(true),
+                        allow_raw_access: Some(false),
+                    }),],
+                })
+                .is_ok());
+            let evidence_1 = state
+                .compute_evidence(ComputeEvidenceArguments {
+                    batch_id: batch_1,
+                    max_iterations: Some(3),
+                })
+                .unwrap()
+                .unwrap();
+
+            let batch_2 = state.create_batch(time_now);
+            assert!(state
+                .propose_commit_batch(CommitBatchArguments {
+                    batch_id: batch_2.clone(),
+                    operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                        key: "/d".to_string(),
+                        content_type: "text/plain".to_string(),
+                        max_age: Some(98),
+                        headers: Some(HashMap::from([
+                            ("H1".to_string(), "V1".to_string()),
+                            ("H2".to_string(), "V2".to_string())
+                        ])),
+                        enable_aliasing: Some(true),
+                        allow_raw_access: Some(false),
+                    }),],
+                })
+                .is_ok());
+            let evidence_2 = state
+                .compute_evidence(ComputeEvidenceArguments {
+                    batch_id: batch_2,
+                    max_iterations: Some(3),
+                })
+                .unwrap()
+                .unwrap();
+            assert_eq!(evidence_1, evidence_2);
+        }
+    }
+
+    #[test]
+    fn create_asset_arguments_key_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/a/b/c".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/d/e/f".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn create_asset_arguments_content_type_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "text/plain".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "application/octet-stream".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn create_asset_arguments_max_age_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: Some(32),
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_3 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_3.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: Some(987),
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_3 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_3,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+        assert_ne!(evidence_1, evidence_3);
+        assert_ne!(evidence_2, evidence_3);
+    }
+
+    #[test]
+    fn create_asset_arguments_headers_affect_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: Some(HashMap::from([("H1".to_string(), "V1".to_string()),])),
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: Some(HashMap::from([("H1".to_string(), "V2".to_string()),])),
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_3 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_3.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: Some(HashMap::from([("H2".to_string(), "V1".to_string()),])),
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+
+        let evidence_3 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_3,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_4 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_4.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: Some(HashMap::from([
+                        ("H1".to_string(), "V1".to_string()),
+                        ("H2".to_string(), "V2".to_string()),
+                    ])),
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_4 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_4,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+        assert_ne!(evidence_1, evidence_3);
+        assert_ne!(evidence_1, evidence_4);
+        assert_ne!(evidence_2, evidence_3);
+        assert_ne!(evidence_2, evidence_4);
+        assert_ne!(evidence_3, evidence_4);
+    }
+
+    #[test]
+    fn create_asset_arguments_enable_aliasing_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: Some(false),
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_3 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_3.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: Some(true),
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_3 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_3,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+        assert_ne!(evidence_1, evidence_3);
+        assert_ne!(evidence_2, evidence_3);
+    }
+
+    #[test]
+    fn create_asset_arguments_allow_raw_access_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                }),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: Some(false),
+                }),],
+            })
+            .is_ok());
+
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_3 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_3.clone(),
+                operations: vec![BatchOperation::CreateAsset(CreateAssetArguments {
+                    key: "/".to_string(),
+                    content_type: "".to_string(),
+                    max_age: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: Some(true),
+                }),],
+            })
+            .is_ok());
+        let evidence_3 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_3,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+        assert_ne!(evidence_1, evidence_3);
+        assert_ne!(evidence_2, evidence_3);
+    }
+
+    #[test]
+    fn set_asset_content_arguments_key_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/1".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![],
+                    sha256: None,
+                })],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/2".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![],
+                    sha256: None,
+                })],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn set_asset_content_arguments_content_encoding_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/1".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![],
+                    sha256: None,
+                })],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/1".to_string(),
+                    content_encoding: "gzip".to_string(),
+                    chunk_ids: vec![],
+                    sha256: None,
+                })],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn set_asset_content_arguments_chunk_contents_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const CHUNK_1_CONTENT: &[u8] = b"first batch chunk content";
+        const CHUNK_2_CONTENT: &[u8] = b"second batch chunk content";
+
+        let batch_1 = state.create_batch(time_now);
+        let chunk_1 = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_1.clone(),
+                    content: ByteBuf::from(CHUNK_1_CONTENT),
+                },
+                time_now,
+            )
+            .unwrap();
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/1".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![chunk_1],
+                    sha256: None,
+                })],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        let chunk_2 = state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_2.clone(),
+                    content: ByteBuf::from(CHUNK_2_CONTENT),
+                },
+                time_now,
+            )
+            .unwrap();
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/1".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![chunk_2],
+                    sha256: None,
+                })],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+    #[test]
+    fn set_asset_content_arguments_multiple_chunk_contents_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const CHUNK_1_CONTENT: &[u8] = b"first chunk, same for both";
+        const BATCH_1_CHUNK_2_CONTENT: &[u8] = b"first batch second chunk content";
+        const BATCH_2_CHUNK_2_CONTENT: &[u8] = b"second batch second chunk content";
+
+        let batch_1 = state.create_batch(time_now);
+        {
+            let chunk_1 = state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_1.clone(),
+                        content: ByteBuf::from(CHUNK_1_CONTENT),
+                    },
+                    time_now,
+                )
+                .unwrap();
+            let chunk_2 = state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_1.clone(),
+                        content: ByteBuf::from(BATCH_1_CHUNK_2_CONTENT),
+                    },
+                    time_now,
+                )
+                .unwrap();
+
+            assert!(state
+                .propose_commit_batch(CommitBatchArguments {
+                    batch_id: batch_1.clone(),
+                    operations: vec![SetAssetContent(SetAssetContentArguments {
+                        key: "/1".to_string(),
+                        content_encoding: "identity".to_string(),
+                        chunk_ids: vec![chunk_1, chunk_2],
+                        sha256: None,
+                    })],
+                })
+                .is_ok());
+        }
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(4),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        {
+            let chunk_1 = state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_2.clone(),
+                        content: ByteBuf::from(CHUNK_1_CONTENT),
+                    },
+                    time_now,
+                )
+                .unwrap();
+            let chunk_2 = state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_2.clone(),
+                        content: ByteBuf::from(BATCH_2_CHUNK_2_CONTENT),
+                    },
+                    time_now,
+                )
+                .unwrap();
+            assert!(state
+                .propose_commit_batch(CommitBatchArguments {
+                    batch_id: batch_2.clone(),
+                    operations: vec![SetAssetContent(SetAssetContentArguments {
+                        key: "/1".to_string(),
+                        content_encoding: "identity".to_string(),
+                        chunk_ids: vec![chunk_1, chunk_2],
+                        sha256: None,
+                    })],
+                })
+                .is_ok());
+        }
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(4),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn set_asset_content_arguments_sha256_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let sha256_1 = ByteBuf::from("01020304");
+        let sha256_2 = ByteBuf::from("09080706");
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/1".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![],
+                    sha256: Some(sha256_1),
+                })],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![SetAssetContent(SetAssetContentArguments {
+                    key: "/1".to_string(),
+                    content_encoding: "identity".to_string(),
+                    chunk_ids: vec![],
+                    sha256: Some(sha256_2),
+                })],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn unset_asset_content_arguments_key_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::UnsetAssetContent(
+                    UnsetAssetContentArguments {
+                        key: "/1".to_string(),
+                        content_encoding: "".to_string(),
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::UnsetAssetContent(
+                    UnsetAssetContentArguments {
+                        key: "/2".to_string(),
+                        content_encoding: "".to_string(),
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn unset_asset_content_arguments_content_encoding_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::UnsetAssetContent(
+                    UnsetAssetContentArguments {
+                        key: "/1".to_string(),
+                        content_encoding: "identity".to_string(),
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::UnsetAssetContent(
+                    UnsetAssetContentArguments {
+                        key: "/1".to_string(),
+                        content_encoding: "gzip".to_string(),
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn delete_asset_content_arguments_key_affects_evidence() {
+        // todo
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::DeleteAsset(DeleteAssetArguments {
+                    key: "/1".to_string(),
+                }),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::DeleteAsset(DeleteAssetArguments {
+                    key: "/2".to_string(),
+                }),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn clear_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::Clear(ClearArguments {}),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![
+                    BatchOperation::Clear(ClearArguments {}),
+                    BatchOperation::Clear(ClearArguments {})
+                ],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
 }

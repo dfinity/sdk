@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
 
 use clap::Parser;
 use slog::info;
@@ -21,7 +20,8 @@ pub fn exec(env: &dyn Environment, opts: RemoveOpts) -> DfxResult {
 
     let log = env.get_logger();
 
-    IdentityManager::new(env)?.remove(log, name, opts.drop_wallets, Some(log))?;
+    env.new_identity_manager()?
+        .remove(log, name, opts.drop_wallets, Some(log))?;
 
     info!(log, r#"Removed identity "{}"."#, name);
     Ok(())

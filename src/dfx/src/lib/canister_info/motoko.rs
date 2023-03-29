@@ -1,8 +1,8 @@
 use anyhow::{ensure, Context};
 
-use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
+use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use std::path::{Path, PathBuf};
 
 pub struct MotokoCanisterInfo {
@@ -65,7 +65,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let main_path = info
             .get_main_file()
             .context("`main` attribute is required on Motoko canisters in dfx.json")?;
-        let input_path = workspace_root.join(&main_path);
+        let input_path = workspace_root.join(main_path);
         let output_root = info.get_output_root().to_path_buf();
         let output_wasm_path = output_root.join(name).with_extension("wasm");
         let output_idl_path = if let Some(remote_candid) = info.get_remote_candid_if_remote() {

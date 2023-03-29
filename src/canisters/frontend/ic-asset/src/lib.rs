@@ -19,7 +19,8 @@
 //!     .with_canister_id(canister_id)
 //!     .with_agent(&agent)
 //!     .build()?;
-//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], Duration::from_secs(60)).await?;
+//! let logger = slog::Logger::root(slog::Discard, slog::o!());
+//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], &logger).await?;
 //! # Ok(())
 //! # }
 
@@ -30,16 +31,9 @@
     rustdoc::private_intra_doc_links
 )]
 
-mod asset_canister;
-mod asset_config;
-mod content;
-mod content_encoder;
-mod convenience;
-mod operations;
-mod params;
-mod plumbing;
-mod retryable;
-mod semaphores;
+mod asset;
+mod batch_upload;
+mod canister_api;
 mod sync;
 mod upload;
 

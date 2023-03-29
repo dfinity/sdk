@@ -1,23 +1,23 @@
-use crate::lib::builders::environment_variables;
+use crate::lib::builders::get_and_write_environment_variables;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::Identity;
+use crate::lib::identity::wallet::build_wallet_canister;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::named_canister;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util::assets::wallet_wasm;
-use crate::util::{expiry_duration, read_module_metadata};
+use crate::util::read_module_metadata;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use candid::Principal;
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
 use ic_agent::{Agent, AgentError};
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
@@ -28,8 +28,8 @@ use sha2::{Digest, Sha256};
 use slog::info;
 use std::collections::HashSet;
 use std::io::stdin;
+use std::path::Path;
 use std::process::{Command, Stdio};
-use std::time::Duration;
 
 use super::motoko_playground::playground_install_code;
 
@@ -41,11 +41,12 @@ pub async fn install_canister(
     canister_info: &CanisterInfo,
     args: impl FnOnce() -> DfxResult<Vec<u8>>,
     mode: Option<InstallMode>,
-    timeout: Duration,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
     pool: Option<&CanisterPool>,
     skip_consent: bool,
+    env_file: Option<&Path>,
+    assets_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let network = env.get_network_descriptor();
@@ -54,7 +55,7 @@ pub async fn install_canister(
     }
     let canister_id = canister_info.get_canister_id()?;
     let installed_module_hash = match agent
-        .read_state_canister_info(canister_id, "module_hash", false)
+        .read_state_canister_info(canister_id, "module_hash")
         .await
     {
         Ok(installed_module_hash) => Some(installed_module_hash),
@@ -117,7 +118,7 @@ pub async fn install_canister(
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
-    } else {
+    } else if assets_upgrade || canister_info.is_assets() {
         if let Some(new_timestamp) = install_canister_wasm(
             env,
             agent,
@@ -126,7 +127,6 @@ pub async fn install_canister(
             canister_id_store.get_timestamp(canister_info.get_name()),
             &args()?,
             mode,
-            timeout,
             call_sender,
             wasm_module,
             skip_consent,
@@ -140,15 +140,11 @@ pub async fn install_canister(
             )?;
         }
     }
-    let mut waiter = Delay::builder()
-        .with(Delay::count_timeout(30))
-        .exponential_backoff_capped(Duration::from_millis(500), 1.4, Duration::from_secs(5))
-        .build();
-    waiter.start();
+    let mut retry_policy = ExponentialBackoff::default();
     let mut times = 0;
     loop {
         match agent
-            .read_state_canister_info(canister_id, "module_hash", false)
+            .read_state_canister_info(canister_id, "module_hash")
             .await
         {
             Ok(reported_hash) => {
@@ -172,10 +168,11 @@ pub async fn install_canister(
                             "Waiting for module change to be reflected in system state tree..."
                         )
                     }
-                    waiter.async_wait().await
-                        .map_err(|_| anyhow!("Timed out waiting for the module to update to the new hash in the state tree. \
+                    let interval = retry_policy.next_backoff()
+                        .context("Timed out waiting for the module to update to the new hash in the state tree. \
                             Something may have gone wrong with the upload. \
-                            No post-installation tasks have been run, including asset uploads."))?;
+                            No post-installation tasks have been run, including asset uploads.")?;
+                    tokio::time::sleep(interval).await;
                 } else {
                     bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
                         It has likely been modified while this command is running. \
@@ -195,10 +192,11 @@ pub async fn install_canister(
                         "Waiting for module change to be reflected in system state tree..."
                     )
                 }
-                waiter.async_wait().await
-                    .map_err(|_| anyhow!("Timed out waiting for the module to update to the new hash in the state tree. \
+                let interval = retry_policy.next_backoff()
+                    .context("Timed out waiting for the module to update to the new hash in the state tree. \
                         Something may have gone wrong with the upload. \
-                        No post-installation tasks have been run, including asset uploads."))?;
+                        No post-installation tasks have been run, including asset uploads.")?;
+                tokio::time::sleep(interval).await;
             }
             Err(e) => bail!(e),
         }
@@ -218,7 +216,7 @@ pub async fn install_canister(
             .await?;
         }
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, env).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,
@@ -235,17 +233,23 @@ pub async fn install_canister(
                     Argument::from_candid((self_id,)),
                     0,
                 )
-                .call_and_wait(waiter_with_timeout(timeout))
+                .call_and_wait()
                 .await
                 .context("Failed to authorize your principal with the canister. You can still control the canister by using your wallet with the --wallet flag.")?;
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent, timeout).await?;
+        post_install_store_assets(canister_info, agent, log).await?;
     }
-
     if !canister_info.get_post_install().is_empty() {
-        run_post_install_tasks(env, canister_info, network, pool)?;
+        let config = env.get_config();
+        run_post_install_tasks(
+            env,
+            canister_info,
+            network,
+            pool,
+            env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
+        )?;
     }
 
     Ok(())
@@ -300,7 +304,7 @@ fn check_stable_compatibility(
         .get_binary_command("moc")?
         .arg("--stable-compatible")
         .arg(&deployed_stable_path)
-        .arg(&stable_path)
+        .arg(stable_path)
         .output()
         .context("Failed to run 'moc'.")?;
     Ok(if !output.status.success() {
@@ -316,16 +320,18 @@ fn run_post_install_tasks(
     canister: &CanisterInfo,
     network: &NetworkDescriptor,
     pool: Option<&CanisterPool>,
+    env_file: Option<&Path>,
 ) -> DfxResult {
     let tmp;
     let pool = match pool {
         Some(pool) => pool,
         None => {
-            tmp = env
+            let deps = env
                 .get_config_or_anyhow()?
                 .get_config()
-                .get_canister_names_with_dependencies(Some(canister.get_name()))
-                .and_then(|deps| CanisterPool::load(env, false, &deps))
+                .get_canister_names_with_dependencies(Some(canister.get_name()))?;
+
+            tmp = CanisterPool::load(env, false, &deps)
                 .context("Error collecting canisters for post-install task")?;
             &tmp
         }
@@ -336,7 +342,7 @@ fn run_post_install_tasks(
         .map(|can| can.canister_id())
         .collect_vec();
     for task in canister.get_post_install() {
-        run_post_install_task(canister, task, network, pool, &dependencies)?;
+        run_post_install_task(canister, task, network, pool, &dependencies, env_file)?;
     }
     Ok(())
 }
@@ -348,6 +354,7 @@ fn run_post_install_task(
     network: &NetworkDescriptor,
     pool: &CanisterPool,
     dependencies: &[Principal],
+    env_file: Option<&Path>,
 ) -> DfxResult {
     let cwd = canister.get_workspace_root();
     let words = shell_words::split(task)
@@ -359,7 +366,8 @@ fn run_post_install_task(
         .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
     let mut command = Command::new(&canonicalized);
     command.args(&words[1..]);
-    let vars = environment_variables(canister, &network.name, pool, dependencies);
+    let vars =
+        get_and_write_environment_variables(canister, &network.name, pool, dependencies, env_file)?;
     for (key, val) in vars {
         command.env(&*key, val);
     }
@@ -388,7 +396,6 @@ pub async fn install_canister_wasm(
     canister_timestamp: Option<candid::Int>,
     args: &[u8],
     mode: InstallMode,
-    timeout: Duration,
     call_sender: &CallSender,
     wasm_module: Vec<u8>,
     skip_consent: bool,
@@ -445,12 +452,12 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                 install_builder
                     .build()
                     .context("Failed to build call sender.")?
-                    .call_and_wait(waiter_with_timeout(timeout))
+                    .call_and_wait()
                     .await
                     .context("Failed to install wasm.")?;
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, env).await?;
                 let install_args = CanisterInstall {
                     mode,
                     canister_id,
@@ -464,7 +471,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                         Argument::from_candid((install_args,)),
                         0,
                     )
-                    .call_and_wait(waiter_with_timeout(timeout))
+                    .call_and_wait()
                     .await
                     .context("Failed during wasm installation call.")?;
             }
@@ -486,13 +493,13 @@ pub async fn install_wallet(
     let wasm = wallet_wasm(env.get_logger())?;
     mgmt.install_code(&id, &wasm)
         .with_mode(mode)
-        .call_and_wait(waiter_with_timeout(expiry_duration() * 2))
+        .call_and_wait()
         .await
         .context("Failed to install wallet wasm.")?;
-    let wallet = Identity::build_wallet_canister(id, env).await?;
+    let wallet = build_wallet_canister(id, env).await?;
     wallet
         .wallet_store_wallet_wasm(wasm)
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await
         .context("Failed to store wallet wasm in container.")?;
     Ok(())

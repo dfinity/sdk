@@ -2,10 +2,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{install_canister, install_canister_wasm};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::{blob_from_arguments, expiry_duration, get_candid_init_type};
+use crate::util::{blob_from_arguments, get_candid_init_type};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -52,10 +51,17 @@ pub struct CanisterInstallOpts {
     #[clap(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 
+    /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
+    output_env_file: Option<PathBuf>,
+
     /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
     /// so this is not recommended outside of CI.
     #[clap(long, short)]
     yes: bool,
+
+    /// Skips upgrading the asset canister, to only install the assets themselves.
+    #[clap(long)]
+    no_asset_upgrade: bool,
 }
 
 pub async fn exec(
@@ -66,7 +72,6 @@ pub async fn exec(
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let timeout = expiry_duration();
 
     fetch_root_key_if_needed(env).await?;
 
@@ -75,7 +80,7 @@ pub async fn exec(
     } else {
         Some(InstallMode::from_str(&opts.mode).map_err(|err| anyhow!(err))?)
     };
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
     let network = env.get_network_descriptor();
 
     if mode == Some(InstallMode::Reinstall) && (opts.canister.is_none() || opts.all) {
@@ -116,7 +121,6 @@ pub async fn exec(
                 canister_timestamp,
                 &install_args,
                 mode,
-                timeout,
                 call_sender,
                 fs::read(&wasm_path)
                     .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
@@ -127,6 +131,10 @@ pub async fn exec(
         } else {
             let canister_info = canister_info
                 .with_context(|| format!("Failed to load canister info for {}.", canister))?;
+            let config = config.unwrap();
+            let env_file = opts
+                .output_env_file
+                .or_else(|| config.get_config().output_env_file.clone());
             let idl_path = canister_info.get_build_idl_path();
             let init_type = get_candid_init_type(&idl_path);
             let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
@@ -137,11 +145,12 @@ pub async fn exec(
                 &canister_info,
                 &install_args,
                 mode,
-                timeout,
                 call_sender,
                 opts.upgrade_unchanged,
                 None,
                 opts.yes,
+                env_file.as_deref(),
+                !opts.no_asset_upgrade,
             )
             .await?;
             Ok(())
@@ -149,6 +158,9 @@ pub async fn exec(
     } else if opts.all {
         // Install all canisters.
         let config = env.get_config_or_anyhow()?;
+        let env_file = opts
+            .output_env_file
+            .or_else(|| config.get_config().output_env_file.clone());
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 let canister_is_remote = config
@@ -177,11 +189,12 @@ pub async fn exec(
                     &canister_info,
                     &install_args,
                     mode,
-                    timeout,
                     call_sender,
                     opts.upgrade_unchanged,
                     None,
                     opts.yes,
+                    env_file.as_deref(),
+                    !opts.no_asset_upgrade,
                 )
                 .await?;
             }

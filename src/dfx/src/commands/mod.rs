@@ -12,6 +12,7 @@ mod cache;
 mod canister;
 mod deploy;
 mod diagnose;
+mod extension;
 mod fix;
 mod generate;
 mod identity;
@@ -21,6 +22,7 @@ mod ledger;
 mod new;
 mod nns;
 mod ping;
+mod pull;
 mod quickstart;
 mod remote;
 mod replica;
@@ -43,6 +45,10 @@ pub enum Command {
     Deploy(deploy::DeployOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
+    // Extension(extension::ExtensionOpts),
+    // Executes an extension
+    // #[clap(external_subcommand)]
+    // ExtensionRun(Vec<std::ffi::OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
@@ -52,7 +58,9 @@ pub enum Command {
     New(new::NewOpts),
     Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
-    Quickstart,
+    #[clap(hide(true))]
+    Pull(pull::PullOpts),
+    Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
@@ -75,6 +83,8 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Deploy(v) => deploy::exec(env, v),
         Command::Diagnose(v) => diagnose::exec(env, v),
         Command::Fix(v) => fix::exec(env, v),
+        // Command::Extension(v) => extension::exec(env, v),
+        // Command::ExtensionRun(v) => extension::run::exec(env, v.into()),
         Command::Generate(v) => generate::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
         Command::Info(v) => {
@@ -86,7 +96,8 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::New(v) => new::exec(env, v),
         Command::Nns(v) => nns::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
-        Command::Quickstart => quickstart::exec(env),
+        Command::Pull(v) => pull::exec(env, v),
+        Command::Quickstart(v) => quickstart::exec(env, v),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
         Command::Schema(v) => schema::exec(v),

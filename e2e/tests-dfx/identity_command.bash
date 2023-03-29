@@ -19,11 +19,11 @@ teardown() {
     assert_command dfx identity new jose
     assert_command dfx identity new juana
 
-    PRINCPAL_ID_JOSE=$(dfx identity get-principal --identity jose)
-    PRINCPAL_ID_JUANA=$(dfx identity get-principal --identity juana)
+    PRINCIPAL_ID_JOSE=$(dfx identity get-principal --identity jose)
+    PRINCIPAL_ID_JUANA=$(dfx identity get-principal --identity juana)
 
-    if [ "$PRINCPAL_ID_JOSE" -eq "$PRINCPAL_ID_JUANA" ]; then
-      echo "IDs should not match: Jose '${PRINCPAL_ID_JOSE}' == Juana '${PRINCPAL_ID_JUANA}'..." | fail
+    if [ "$PRINCIPAL_ID_JOSE" -eq "$PRINCIPAL_ID_JUANA" ]; then
+      echo "IDs should not match: Jose '${PRINCIPAL_ID_JOSE}' == Juana '${PRINCIPAL_ID_JUANA}'..." | fail
     fi
 }
 
@@ -112,6 +112,15 @@ frank'
     assert_command dfx identity new --force alice
     PRINCIPAL_2="$(dfx identity get-principal)"
     assert_neq "$PRINCIPAL_1" "$PRINCIPAL_2"
+}
+
+@test "identity new: --force does not switch to created identity" {
+    # Was a bug: https://dfinity.atlassian.net/browse/SDK-911
+    assert_command dfx identity new --force alice
+    PRINCIPAL_ORIGINAL="$(dfx identity get-principal)"
+    assert_command dfx identity use alice
+    PRINCIPAL_ALICE="$(dfx identity get-principal)"
+    assert_neq "$PRINCIPAL_ORIGINAL" "$PRINCIPAL_ALICE"
 }
 
 @test "identity new: create an HSM-backed identity" {
@@ -380,6 +389,22 @@ default'
     assert_eq '2vxsx-fae'
 }
 
+@test "identity use: is overridden by env var DFX_IDENTITY" {
+    assert_command dfx identity new dan
+    assert_command dfx identity new frank
+    assert_command dfx identity new alice
+    assert_command dfx identity use dan
+    assert_command dfx identity whoami
+    assert_eq 'dan'
+    DFX_IDENTITY=frank
+    export DFX_IDENTITY
+    assert_command dfx identity whoami
+    assert_eq 'frank'
+    assert_command dfx identity whoami --identity alice
+    assert_eq 'alice'
+}
+
+
 ##
 ## dfx identity whoami
 ##
@@ -536,6 +561,9 @@ XXX
     assert_command dfx identity import alice2 --seed-file seed.txt --disable-encryption
     assert_command dfx identity get-principal --identity alice2
     assert_eq "$principal"
+    dfx identity export alice2 > export.pem
+    assert_command openssl asn1parse -in export.pem
+    assert_match ':secp256k1'
 }
 
 @test "identity: consistently imports a known seed phrase" {

@@ -1,12 +1,12 @@
-use crate::config::dfinity::{Config, Profile};
 use crate::config::dfx_version_str;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::provider::get_network_context;
-use crate::util::{self, check_candid_file};
+use crate::util::check_candid_file;
+use dfx_core::config::model::dfinity::{Config, Profile};
+use dfx_core::network::provider::get_network_context;
+use dfx_core::util;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
@@ -15,6 +15,8 @@ use handlebars::Handlebars;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
+use std::fmt::Write;
+use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -135,7 +137,7 @@ pub trait CanisterBuilder {
             );
         }
 
-        std::fs::create_dir_all(&generate_output_dir).with_context(|| {
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
             format!(
                 "Failed to create dir: {}",
                 generate_output_dir.to_string_lossy()
@@ -306,14 +308,35 @@ fn ensure_trailing_newline(s: String) -> String {
     }
 }
 
+/// Set the permission of the given file to be writeable.
+pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
+    let mut perms = std::fs::metadata(file_path)
+        .with_context(|| {
+            format!(
+                "Failed to read metadata for file {}.",
+                file_path.to_string_lossy()
+            )
+        })?
+        .permissions();
+    perms.set_readonly(false);
+    std::fs::set_permissions(file_path, perms).with_context(|| {
+        format!(
+            "Failed to set permissions for file {}.",
+            file_path.to_string_lossy()
+        )
+    })
+}
+
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
 
-pub fn environment_variables<'a>(
+pub fn get_and_write_environment_variables<'a>(
     info: &CanisterInfo,
     network_name: &'a str,
     pool: &'a CanisterPool,
     dependencies: &[CanisterId],
-) -> Vec<Env<'a>> {
+    write_path: Option<&Path>,
+) -> DfxResult<Vec<Env<'a>>> {
+    // should not return Err unless write_environment_variables does
     use Cow::*;
     let mut vars = vec![
         (
@@ -353,10 +376,51 @@ pub fn environment_variables<'a>(
     if let Some(path) = info.get_output_idl_path() {
         vars.push((Borrowed("CANISTER_CANDID_PATH"), Owned(path.into())))
     }
-    vars
+
+    if let Some(write_path) = write_path {
+        write_environment_variables(&vars, write_path)?;
+    }
+    Ok(vars)
 }
 
-#[derive(Clone)]
+fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult {
+    const START_TAG: &str = "\n# DFX CANISTER ENVIRONMENT VARIABLES";
+    const END_TAG: &str = "\n# END DFX CANISTER ENVIRONMENT VARIABLES";
+    let mut write_string = String::from(START_TAG);
+    for (var, val) in vars {
+        if let Some(val) = val.to_str() {
+            write!(write_string, "\n{var}='{val}'").unwrap();
+        }
+    }
+    write_string.push_str(END_TAG);
+    if write_path.try_exists()? {
+        // modify the existing file
+        let mut existing_file = fs::read_to_string(write_path)?;
+        let start_pos = existing_file.rfind(START_TAG);
+        if let Some(start_pos) = start_pos {
+            // the file exists and already contains our variables, modify only that section
+            let end_pos = existing_file[start_pos + START_TAG.len()..].find(END_TAG);
+            if let Some(end_pos) = end_pos {
+                // the section is correctly formed
+                let end_pos = end_pos + END_TAG.len() + start_pos + START_TAG.len();
+                existing_file.replace_range(start_pos..end_pos, &write_string);
+                fs::write(write_path, existing_file)?;
+                return Ok(());
+            } else {
+                // the file has been edited, so we don't know how much to delete, so we append instead
+            }
+        }
+        // append to the existing file
+        existing_file.push_str(&write_string);
+        fs::write(write_path, existing_file)?;
+    } else {
+        // no existing file, okay to clobber
+        fs::write(write_path, write_string)?;
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug)]
 pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
@@ -372,6 +436,8 @@ pub struct BuildConfig {
     /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
     /// If all canisters should be built, then this is None.
     pub canisters_to_build: Option<Vec<String>>,
+    /// If environment variables should be output to a `.env` file, `env_file` is set to its path.
+    pub env_file: Option<PathBuf>,
 }
 
 impl BuildConfig {
@@ -391,6 +457,7 @@ impl BuildConfig {
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
             canisters_to_build: None,
+            env_file: config_intf.output_env_file.clone(),
         })
     }
 
@@ -406,6 +473,10 @@ impl BuildConfig {
             canisters_to_build: Some(canisters),
             ..self
         }
+    }
+
+    pub fn with_env_file(self, env_file: Option<PathBuf>) -> Self {
+        Self { env_file, ..self }
     }
 }
 

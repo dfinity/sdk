@@ -3,8 +3,8 @@ use tokio::runtime::Runtime;
 
 use crate::{
     lib::{
-        environment::Environment, error::DfxResult, migrate::migrate,
-        provider::create_agent_environment,
+        agent::create_agent_environment, environment::Environment, error::DfxResult,
+        migrate::migrate,
     },
     NetworkOpt,
 };
@@ -18,7 +18,7 @@ pub struct DiagnoseOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: DiagnoseOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network)?;
+    let env = create_agent_environment(env, opts.network.to_network_name())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async { migrate(&env, env.get_network_descriptor(), false).await })?;
     Ok(())

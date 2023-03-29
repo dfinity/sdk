@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use crate::rc_bytes::RcBytes;
-use candid::{CandidType, Deserialize, Func, Nat};
+use candid::{CandidType, Deserialize, Nat, Principal};
 use serde_bytes::ByteBuf;
 
 pub type BatchId = Nat;
@@ -19,6 +19,7 @@ pub struct CreateAssetArguments {
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
     pub enable_aliasing: Option<bool>,
+    pub allow_raw_access: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -56,6 +57,17 @@ pub enum BatchOperation {
 pub struct CommitBatchArguments {
     pub batch_id: BatchId,
     pub operations: Vec<BatchOperation>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct DeleteBatchArguments {
+    pub batch_id: BatchId,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ComputeEvidenceArguments {
+    pub batch_id: BatchId,
+    pub max_iterations: Option<u16>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -102,45 +114,54 @@ pub struct CreateChunkArg {
 pub struct CreateChunkResponse {
     pub chunk_id: ChunkId,
 }
-// HTTP interface
 
-pub type HeaderField = (String, String);
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct HttpRequest {
-    pub method: String,
-    pub url: String,
-    pub headers: Vec<(String, String)>,
-    pub body: ByteBuf,
+#[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
+pub struct AssetProperties {
+    pub max_age: Option<u64>,
+    pub headers: Option<HashMap<String, String>>,
+    pub allow_raw_access: Option<bool>,
+    pub is_aliased: Option<bool>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct HttpResponse {
-    pub status_code: u16,
-    pub headers: Vec<HeaderField>,
-    pub body: RcBytes,
-    pub streaming_strategy: Option<StreamingStrategy>,
+pub struct SetAssetPropertiesArguments {
+    pub key: Key,
+    pub max_age: Option<Option<u64>>,
+    pub headers: Option<Option<HashMap<String, String>>>,
+    pub allow_raw_access: Option<Option<bool>>,
+    pub is_aliased: Option<Option<bool>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+pub enum Permission {
+    Commit,
+    ManagePermissions,
+    Prepare,
+}
+
+impl std::fmt::Display for Permission {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Permission::Commit => f.write_str("Commit"),
+            Permission::Prepare => f.write_str("Prepare"),
+            Permission::ManagePermissions => f.write_str("ManagePermissions"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StreamingCallbackToken {
-    pub key: String,
-    pub content_encoding: String,
-    pub index: Nat,
-    // We don't care about the sha, we just want to be backward compatible.
-    pub sha256: Option<ByteBuf>,
+pub struct GrantPermissionArguments {
+    pub to_principal: Principal,
+    pub permission: Permission,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub enum StreamingStrategy {
-    Callback {
-        callback: Func,
-        token: StreamingCallbackToken,
-    },
+pub struct RevokePermissionArguments {
+    pub of_principal: Principal,
+    pub permission: Permission,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StreamingCallbackHttpResponse {
-    pub body: RcBytes,
-    pub token: Option<StreamingCallbackToken>,
+pub struct ListPermittedArguments {
+    pub permission: Permission,
 }

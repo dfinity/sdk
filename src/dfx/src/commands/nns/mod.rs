@@ -1,9 +1,8 @@
 //! Code for the command line `dfx nns`.
 #![warn(clippy::missing_docs_in_private_items)]
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::create_agent_environment;
-use crate::NetworkOpt;
 
 use clap::Parser;
 use tokio::runtime::Runtime;
@@ -31,7 +30,7 @@ enum SubCommand {
 
 /// Executes `dfx nns` and its subcommands.
 pub fn exec(env: &dyn Environment, opts: NnsOpts) -> DfxResult {
-    let env = create_agent_environment(env, NetworkOpt::default())?;
+    let env = create_agent_environment(env, None)?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {

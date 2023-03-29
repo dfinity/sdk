@@ -9,11 +9,12 @@ use crate::lib::models::canister::CanisterPool;
 
 use crate::lib::wasm::file::is_wasm_format;
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use bytes::Bytes;
 use candid::Principal as CanisterId;
 use console::style;
 use fn_error_context::context;
-use garcon::{Delay, Waiter};
 use hyper_rustls::ConfigBuilderExt;
 use reqwest::{Client, StatusCode};
 use slog::info;
@@ -22,7 +23,6 @@ use std::fs;
 use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::Duration;
 use url::Url;
 
 /// Set of extras that can be specified in the dfx.json.
@@ -120,7 +120,13 @@ impl CanisterBuilder for CustomBuilder {
         } = CustomBuilderExtra::try_from(info, pool)?;
 
         let canister_id = info.get_canister_id().unwrap();
-        let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
+        let vars = super::get_and_write_environment_variables(
+            info,
+            &config.network_name,
+            pool,
+            &dependencies,
+            config.env_file.as_deref(),
+        )?;
 
         for command in build {
             info!(
@@ -245,7 +251,7 @@ pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxRes
 #[context("Failed to download {} to {}.", from, to.display())]
 async fn download_file(from: &Url, to: &Path) -> DfxResult {
     let parent_dir = to.parent().unwrap();
-    create_dir_all(&parent_dir).with_context(|| {
+    create_dir_all(parent_dir).with_context(|| {
         format!(
             "Failed to create output directory {}.",
             parent_dir.display()
@@ -262,24 +268,18 @@ async fn download_file(from: &Url, to: &Path) -> DfxResult {
         .build()
         .context("Could not create HTTP client.")?;
 
-    let mut waiter = Delay::builder()
-        .throttle(Duration::from_millis(1000))
-        .with(Delay::count_timeout(5))
-        .exponential_backoff_capped(Duration::from_millis(500), 1.4, Duration::from_secs(5))
-        .build();
-    waiter.start();
+    let mut retry_policy = ExponentialBackoff::default();
 
     let body = loop {
         match attempt_download(&client, from).await {
-            Ok(Some(body)) => break Ok(body),
+            Ok(Some(body)) => break body,
             Ok(None) => bail!("Not found: {}", from),
-            Err(request_error) => {
-                if let Err(_waiter_err) = waiter.async_wait().await {
-                    break Err(request_error);
-                }
-            }
+            Err(request_error) => match retry_policy.next_backoff() {
+                Some(duration) => tokio::time::sleep(duration).await,
+                None => bail!(request_error),
+            },
         }
-    }?;
+    };
 
     fs::write(to, body).with_context(|| format!("Failed to write {}", to.display()))?;
 

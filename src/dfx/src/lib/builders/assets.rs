@@ -1,19 +1,20 @@
-use crate::config::cache::Cache;
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    set_perms_readwrite, BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::util;
+use dfx_core::config::cache::Cache;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use flate2::read::GzDecoder;
 use fn_error_context::context;
+use slog::{o, Logger};
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -45,6 +46,7 @@ impl AssetsBuilderExtra {
 }
 pub struct AssetsBuilder {
     _cache: Arc<dyn Cache>,
+    logger: Logger,
 }
 
 impl AssetsBuilder {
@@ -52,6 +54,7 @@ impl AssetsBuilder {
     pub fn new(env: &dyn Environment) -> DfxResult<Self> {
         Ok(AssetsBuilder {
             _cache: env.get_cache(),
+            logger: env.get_logger().new(o!("module" => "assets")),
         })
     }
 }
@@ -102,6 +105,12 @@ impl CanisterBuilder for AssetsBuilder {
         let compressed_wasm_path = info
             .get_output_root()
             .join(Path::new("assetstorage.wasm.gz"));
+        let wasm_path = info
+            .get_output_root()
+            .join(Path::new("assetstorage.wasm.gz"));
+        unpack_did(info.get_output_root())?;
+        let canister_assets = util::assets::assets_wasm(&self.logger)?;
+        fs::write(&wasm_path, &canister_assets).context("Failed to write asset canister wasm")?;
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
         if config.network_is_playground {
             let zipped_wasm =
@@ -145,7 +154,13 @@ impl CanisterBuilder for AssetsBuilder {
             })
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
 
-        let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
+        let vars = super::get_and_write_environment_variables(
+            info,
+            &config.network_name,
+            pool,
+            &dependencies,
+            config.env_file.as_deref(),
+        )?;
 
         build_frontend(
             pool.get_logger(),
@@ -173,40 +188,7 @@ impl CanisterBuilder for AssetsBuilder {
             .as_ref()
             .context("`declarations.output` must not be None")?;
 
-        let mut canister_assets = util::assets::assetstorage_canister()
-            .context("Failed to load asset canister archive.")?;
-        for file in canister_assets
-            .entries()
-            .context("Failed to read asset canister archive entries.")?
-        {
-            let mut file = file.context("Failed to read asset canister archive entry.")?;
-
-            if file.header().entry_type().is_dir() {
-                continue;
-            }
-            // See https://github.com/alexcrichton/tar-rs/issues/261
-            fs::create_dir_all(&generate_output_dir).with_context(|| {
-                format!(
-                    "Failed to create {}.",
-                    generate_output_dir.to_string_lossy()
-                )
-            })?;
-
-            file.unpack_in(generate_output_dir.clone())
-                .with_context(|| {
-                    format!(
-                        "Failed to unpack archive content to {}.",
-                        generate_output_dir.to_string_lossy()
-                    )
-                })?;
-        }
-
-        // delete unpacked wasm file
-        let wasm_path = generate_output_dir.join(Path::new("assetstorage.wasm.gz"));
-        if wasm_path.exists() {
-            std::fs::remove_file(&wasm_path)
-                .with_context(|| format!("Failed to remove {}.", wasm_path.to_string_lossy()))?;
-        }
+        unpack_did(generate_output_dir)?;
 
         let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
         let idl_path_rename = generate_output_dir
@@ -216,10 +198,36 @@ impl CanisterBuilder for AssetsBuilder {
         if idl_path.exists() {
             std::fs::rename(&idl_path, &idl_path_rename)
                 .with_context(|| format!("Failed to rename {}.", idl_path.to_string_lossy()))?;
+            set_perms_readwrite(&idl_path_rename)?;
         }
 
         Ok(idl_path_rename)
     }
+}
+
+fn unpack_did(generate_output_dir: &Path) -> DfxResult<()> {
+    let mut canister_assets =
+        util::assets::assetstorage_canister().context("Failed to load asset canister archive.")?;
+    for file in canister_assets
+        .entries()
+        .context("Failed to read asset canister archive entries.")?
+    {
+        let mut file = file.context("Failed to read asset canister archive entry.")?;
+
+        if !file.header().entry_type().is_dir() && file.path()?.ends_with("assetstorage.did") {
+            // See https://github.com/alexcrichton/tar-rs/issues/261
+            fs::create_dir_all(generate_output_dir)
+                .with_context(|| format!("Failed to create {}.", generate_output_dir.display()))?;
+            file.unpack_in(generate_output_dir).with_context(|| {
+                format!(
+                    "Failed to unpack archive content to {}.",
+                    generate_output_dir.display()
+                )
+            })?;
+            break;
+        }
+    }
+    Ok(())
 }
 
 #[context("Failed to build frontend for network '{}'.", network_name)]
