@@ -11,9 +11,9 @@ use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
 use crate::util::blob_from_arguments;
-use crate::util::network::get_replica_urls;
 use dfx_core::config::cache::get_bin_cache;
 use dfx_core::config::model::dfinity::ReplicaSubnetType;
+use dfx_core::network::uri::get_replica_urls;
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -165,7 +165,7 @@ pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
             "dfx nns install can only deploy to the 'local' network."
         ));
     }
-    get_replica_urls(env, env.get_network_descriptor())?
+    get_replica_urls(env.get_logger(), env.get_network_descriptor())?
         .pop()
         .ok_or_else(|| {
             anyhow!("The list of replica URLs is empty; `dfx start` appears to be unhealthy.")

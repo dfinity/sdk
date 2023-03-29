@@ -16,4 +16,5 @@ pub mod root_key;
 pub mod socket_addr_conversion;
 pub mod structured_file;
 pub mod unified_io;
+pub mod uri;
 pub mod wallet_config;

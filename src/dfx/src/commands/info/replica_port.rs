@@ -1,7 +1,7 @@
 use crate::lib::error::DfxResult;
-use crate::util::network::get_running_replica_port;
 use crate::Environment;
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::network::uri::get_running_replica_port;
 
 use anyhow::bail;
 

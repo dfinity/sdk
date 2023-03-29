@@ -3,10 +3,10 @@ use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::get_reusable_socket_addr;
-use crate::util::network::get_replica_urls;
 use crate::NetworkOpt;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::network::uri::get_replica_urls;
 
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
@@ -66,7 +66,7 @@ pub fn exec(
 
     let icx_proxy_pid_file_path = local_server_descriptor.icx_proxy_pid_path();
 
-    let replica_urls = get_replica_urls(env, &network_descriptor)?;
+    let replica_urls = get_replica_urls(env.get_logger(), &network_descriptor)?;
 
     // Since the user may have provided port "0", we need to grab a dynamically
     // allocated port and construct a resuable SocketAddr which the actix
