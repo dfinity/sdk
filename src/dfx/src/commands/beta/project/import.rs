@@ -50,5 +50,6 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
             &network_mappings,
         )
         .await
-    })
+    })?;
+    Ok(())
 }

@@ -1,5 +1,6 @@
 use crate::canister_api::methods::method_names::LIST;
 use crate::canister_api::types::{asset::AssetDetails, list::ListAssetsRequest};
+
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 

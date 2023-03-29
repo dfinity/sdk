@@ -1,10 +1,16 @@
 use crate::asset::config::AssetConfig;
-use crate::batch_upload::operations::{assemble_batch_operations, AssetDeletionReason};
-use crate::batch_upload::plumbing::{make_project_assets, AssetDescriptor};
-use crate::canister_api::methods::batch::{commit_batch, create_batch};
-use crate::canister_api::methods::list::list_assets;
-use crate::canister_api::types::batch_upload::CommitBatchArguments;
+use crate::batch_upload::{
+    self,
+    operations::AssetDeletionReason,
+    plumbing::{make_project_assets, AssetDescriptor},
+};
+use crate::canister_api::methods::{
+    api_version::api_version,
+    batch::{commit_batch, create_batch},
+    list::list_assets,
+};
 
+use anyhow::anyhow;
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -42,20 +48,27 @@ pub async fn upload(
     )
     .await?;
 
-    let operations = assemble_batch_operations(
+    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
         project_assets,
         canister_assets,
         AssetDeletionReason::Incompatible,
+        batch_id,
     );
 
+    let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
-
-    let args = CommitBatchArguments {
-        batch_id,
-        operations,
-    };
-
-    commit_batch(canister, args).await?;
+    match canister_api_version {
+        0.. => {
+            // in the next PR:
+            // if BATCH_UPLOAD_API_VERSION == 1 {
+            //     let commit_batch_args = commit_batch_args.try_into::<v0::CommitBatchArguments>()?;
+            //     warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
+            // }
+            commit_batch(canister, commit_batch_args)
+                .await
+                .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+        }
+    }
 
     Ok(())
 }

@@ -1,5 +1,5 @@
 use crate::error::config::ConfigError;
-use crate::error::io::IoError;
+use crate::error::fs::FsError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 
 use std::num::ParseIntError;
@@ -36,5 +36,5 @@ pub enum NetworkConfigError {
     ParseProviderUrlFailed(Box<String>, url::ParseError),
 
     #[error("Failed to read webserver port: {0}")]
-    ReadWebserverPortFailed(IoError),
+    ReadWebserverPortFailed(FsError),
 }
