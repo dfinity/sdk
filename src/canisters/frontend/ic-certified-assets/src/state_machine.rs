@@ -88,10 +88,8 @@ impl AssetEncoding {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
                 hashes.get(&status_code).map(|response_hash| {
-                    let mut path: Vec<NestedTreeKey> = path
-                        .iter()
-                        .map(|segment| segment.as_str().into())
-                        .collect();
+                    let mut path: Vec<NestedTreeKey> =
+                        path.iter().map(|segment| segment.as_str().into()).collect();
                     path.insert(0, "http_expr".into());
                     path.push("<$>".into()); // asset path terminator
                     path.push(ce.hash.as_slice().into());
