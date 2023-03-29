@@ -144,7 +144,7 @@ impl HttpResponse {
         chunk_index: usize,
         certificate_header: Option<&HeaderField>,
         callback: &Func,
-        etags: &Vec<Hash>,
+        etags: &[Hash],
         cert_version: u16,
     ) -> HttpResponse {
         let mut headers = asset.get_headers_for_asset(enc_name, cert_version);
@@ -190,7 +190,7 @@ impl HttpResponse {
         chunk_index: usize,
         certificate_header: Option<&HeaderField>,
         callback: &Func,
-        etags: &Vec<Hash>,
+        etags: &[Hash],
         cert_version: u16,
     ) -> Option<HttpResponse> {
         let most_important_v1 = asset.most_important_encoding_v1();
@@ -310,10 +310,7 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding(
     let hash = sha2::Sha256::digest(expression.as_bytes())
         .into_iter()
         .collect();
-    CertificateExpression {
-        expression,
-        hash,
-    }
+    CertificateExpression { expression, hash }
 }
 
 pub fn witness_to_header_v1(witness: HashTree, certificate: &[u8]) -> HeaderField {
