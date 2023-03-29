@@ -306,13 +306,13 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding(
         headers = format!(", \"content-encoding\"{}", headers);
     }
 
-    let ic_certificate_expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
-    let expression_hash = sha2::Sha256::digest(ic_certificate_expression.as_bytes())
+    let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
+    let hash = sha2::Sha256::digest(expression.as_bytes())
         .into_iter()
         .collect();
     CertificateExpression {
-        expression: ic_certificate_expression,
-        hash: expression_hash,
+        expression,
+        hash,
     }
 }
 
