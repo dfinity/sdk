@@ -108,14 +108,14 @@ impl AssetEncoding {
             self.response_hashes
                 .as_ref()
                 .and_then(|hashes| hashes.get(&200))
-                .and_then(|response_hash| {
-                    Some(HashTreePath::from(Vec::<NestedTreeKey>::from([
+                .map(|response_hash| {
+                    HashTreePath::from(Vec::<NestedTreeKey>::from([
                         "http_expr".into(),
                         "<*>".into(), // 404 not found wildcard segment
                         ce.hash.as_slice().into(),
                         "".into(), // no request certification - use empty node
                         response_hash.as_slice().into(),
-                    ])))
+                    ]))
                 })
         })
     }
