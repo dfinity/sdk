@@ -10,7 +10,7 @@ rust-version.workspace = true
 [dependencies]
 aes-gcm.workspace = true
 argon2.workspace = true
-bip32 = "0.5.0"
+bip32 = "0.4.0"
 byte-unit = { workspace = true, features = ["serde"] }
 candid = { workspace = true, features = ["random"] }
 dialoguer = "0.10.0"
@@ -20,7 +20,7 @@ hex = { workspace = true, features = ["serde"] }
 humantime-serde = "1.1.1"
 ic-agent = { workspace = true, features = ["reqwest"] }
 ic-identity-hsm = { workspace = true }
-k256 = { version = "0.13.0", features = ["pem"] }
+k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
 lazy_static.workspace = true
 ring.workspace = true
