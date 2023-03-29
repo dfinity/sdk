@@ -277,8 +277,9 @@ fn define_replica_rev(replica_rev: &str) {
 }
 
 fn main() {
-    let sources: Sources = toml::from_slice(
-        &fs::read("assets/dfx-asset-sources.toml").expect("unable to read dfx-asset-sources.toml"),
+    let sources: Sources = toml::from_str(
+        &fs::read_to_string("assets/dfx-asset-sources.toml")
+            .expect("unable to read dfx-asset-sources.toml"),
     )
     .expect("unable to parse dfx-asset-sources.toml");
     define_replica_rev(&sources.replica_rev);
