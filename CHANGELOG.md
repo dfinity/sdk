@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: --artificial-delay flag
+
+The local replica uses a 600ms delay by default when performing update calls. With `dfx start --artificial-delay <ms>`, you can decrease this value (e.g. 100ms) for faster integration tests, or increase it (e.g. 2500ms) to mimick mainnet latency for e.g. UI responsiveness checks.
+
 ### fix: make sure assetstorage did file is created as writeable.
 
 ### feat: specify id when provisional create canister
@@ -82,7 +86,8 @@ Added `api_version` endpoint. With upcoming changes we will introduce breaking c
 
 ### Frontend canister
 
-- Module hash: f490dea6cec0f8cf047d7ba1a44e434776b5e788a9b2cb45e27e71d54eaf571b
+- Module hash: f83c469fcd52cbe595056f39d906cc1a52dafd9679740ff099e7b80223c332f8
+- https://github.com/dfinity/sdk/pull/3051
 - https://github.com/dfinity/sdk/pull/3034
 - https://github.com/dfinity/sdk/pull/3023
 - https://github.com/dfinity/sdk/pull/3022

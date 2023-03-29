@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators;
 use crate::util::print_idl_blob;
@@ -46,7 +45,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
 
     let callee_canister = opts.canister.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let canister_id = Principal::from_text(callee_canister)
         .or_else(|_| canister_id_store.get(callee_canister))?;
