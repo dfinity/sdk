@@ -3,8 +3,9 @@ use fn_error_context::context;
 use std::ffi::OsString;
 use std::path::Path;
 
-use crate::lib::call_bundled::call_bundled;
+use crate::lib::call_bundled::wsl_call_bundled;
 use crate::lib::error::DfxResult;
+use crate::util::wsl_path;
 use crate::Environment;
 
 /// Ceates an SNS configuration template.
@@ -13,9 +14,9 @@ pub fn create_config(env: &dyn Environment, path: &Path) -> DfxResult {
     let args = vec![
         OsString::from("init-config-file"),
         OsString::from("--init-config-file-path"),
-        OsString::from(path),
+        OsString::from(wsl_path(path)?),
         OsString::from("new"),
     ];
-    call_bundled(env, "sns", &args)?;
+    wsl_call_bundled(env, "sns", &args)?;
     Ok(())
 }

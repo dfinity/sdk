@@ -34,7 +34,7 @@ use std::fs;
 use std::io::Write;
 use std::path::Component;
 use std::path::{Path, PathBuf};
-use std::process::{self, Command};
+use std::process;
 
 use self::canisters::{
     IcNnsInitCanister, SnsCanisterInstallation, StandardCanister, NNS_CORE, NNS_FRONTEND,
@@ -618,7 +618,7 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
     {
         let sns_cli = bundled_binary(env, "sns")?;
         let wasm_path = nns_wasm_dir(env)?.join(wasm_name);
-        let mut command = Command::new(sns_cli);
+        let mut command = wsl_cmd(sns_cli);
         command
             .arg("add-sns-wasm-for-tests")
             .arg("--network")
@@ -626,7 +626,7 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
             .arg("--override-sns-wasm-canister-id-for-tests")
             .arg(canisters::NNS_SNS_WASM.canister_id)
             .arg("--wasm-file")
-            .arg(&wasm_path)
+            .arg(wsl_path(&wasm_path)?)
             .arg(upload_name);
         command
         .stdin(process::Stdio::null())

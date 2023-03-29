@@ -3,9 +3,10 @@ use anyhow::{anyhow, Context};
 use fn_error_context::context;
 use std::ffi::OsStr;
 use std::path::Path;
-use std::process::{self, Command};
+use std::process;
 
 use crate::lib::error::DfxResult;
+use crate::util::wsl_cmd;
 use crate::Environment;
 
 /// Calls a bundled command line tool.
@@ -14,7 +15,7 @@ use crate::Environment;
 /// - On success, returns stdout as a string.
 /// - On error, returns an error message including stdout and stderr.
 #[context("Failed to call sns CLI.")]
-pub fn call_bundled<S, I>(env: &dyn Environment, command: &str, args: I) -> DfxResult<String>
+pub fn wsl_call_bundled<S, I>(env: &dyn Environment, command: &str, args: I) -> DfxResult<String>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
@@ -23,7 +24,7 @@ where
         .get_cache()
         .get_binary_command_path(command)
         .with_context(|| format!("Could not find bundled binary '{command}'."))?;
-    let mut command = Command::new(&binary);
+    let mut command = wsl_cmd(&binary);
     command.args(args);
     // The sns command line tool itself calls dfx; it should call this dfx.
     // The sns command line tool should not rely on commands not packaged with dfx.

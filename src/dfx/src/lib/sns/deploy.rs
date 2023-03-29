@@ -4,8 +4,9 @@ use fn_error_context::context;
 use std::ffi::OsString;
 use std::path::Path;
 
-use crate::lib::call_bundled::call_bundled;
+use crate::lib::call_bundled::wsl_call_bundled;
 use crate::lib::error::DfxResult;
+use crate::util::wsl_path;
 use crate::Environment;
 
 /// Creates an SNS.  This requires funds but no proposal.
@@ -26,13 +27,13 @@ pub fn deploy_sns(env: &dyn Environment, path: &Path) -> DfxResult<String> {
     let args = vec![
         OsString::from("deploy"),
         OsString::from("--init-config-file"),
-        OsString::from(path),
+        OsString::from(wsl_path(path)?),
         OsString::from("--candid"),
-        OsString::from(did_file),
+        OsString::from(wsl_path(did_file)?),
         OsString::from("--save-to"),
-        OsString::from(canister_ids_file),
+        OsString::from(wsl_path(canister_ids_file)?),
     ];
-    call_bundled(env, "sns", &args).map(|stdout| {
+    wsl_call_bundled(env, "sns", &args).map(|stdout| {
         format!(
             "Deployed SNS:\nSNS config: {}\nCanister ID file: {}\n\n{}",
             path.display(),
