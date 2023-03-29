@@ -80,13 +80,24 @@ Added partial support for proposal-based asset updates:
   - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
   - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
 
-Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister. 
+Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
+
+Added support for v2 asset certification. In comparison to v1, v2 asset certification not only certifies the http response body, but also the headers. The v2 spec is first published in [this PR](https://github.com/dfinity/interface-spec/pull/147)
+
+Added canister metadata field `supported_certificate_versions`, which contains a comma-separated list of all asset certification protocol versions. You can query it e.g. using `dfx canister --network ic metadata <canister name or id> supported_certificate_versions`. In this release, the value of this metadata field value is `1,2` because certification v1 and v2 are supported.
+
+Fixed a bug in `http_request` that served assets with the wrong certificate. If no encoding specified in the `Accept-Encoding` header is available with a certificate, an available encoding is returned without a certificate (instead of a wrong certificate, which was the case previously). Otherwise, nothing changed.
+For completeness' sake, the new behavior is as follows:
+- If one of the encodings specified in the `Accept-Encoding` header is available with certification, it now is served with the correct certificate.
+- If no requested encoding is available with certification, one of the requested encodings is returned without a certificate (instead of a wrong certificate, which was the case previously).
+- If no encoding specified in the `Accept-Encoding` header is available, a certified encoding that is available is returned instead.
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: f83c469fcd52cbe595056f39d906cc1a52dafd9679740ff099e7b80223c332f8
+- Module hash: ca1f82908474b1c8cf3607ec846b92b051985e2b06c965a976775b3b317ccbde
+- https://github.com/dfinity/sdk/pull/2960
 - https://github.com/dfinity/sdk/pull/3051
 - https://github.com/dfinity/sdk/pull/3034
 - https://github.com/dfinity/sdk/pull/3023

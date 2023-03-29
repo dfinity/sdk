@@ -83,6 +83,7 @@ struct RequestBuilder {
     method: String,
     headers: Vec<(String, String)>,
     body: ByteBuf,
+    certificate_version: Option<u16>,
 }
 
 impl RequestBuilder {
@@ -92,6 +93,7 @@ impl RequestBuilder {
             method: "GET".to_string(),
             headers: vec![],
             body: ByteBuf::new(),
+            certificate_version: None,
         }
     }
 
@@ -101,12 +103,18 @@ impl RequestBuilder {
         self
     }
 
+    fn with_certificate_version(mut self, version: u16) -> Self {
+        self.certificate_version = Some(version);
+        self
+    }
+
     fn build(self) -> HttpRequest {
         HttpRequest {
             method: self.method,
             url: self.resource,
             headers: self.headers,
             body: self.body,
+            certificate_version: self.certificate_version,
         }
     }
 }
@@ -230,6 +238,142 @@ fn can_create_assets_using_batch_api() {
         expected,
         error_msg
     );
+}
+
+#[test]
+fn serve_correct_encoding_v1() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY])
+                .with_encoding("gzip", vec![GZIP_BODY]),
+            AssetBuilder::new("/only-identity.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY]),
+            AssetBuilder::new("/no-encoding.html", "text/html"),
+        ],
+    );
+
+    // Most important encoding is returned with certificate
+    let identity_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(identity_response.status_code, 200);
+    assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
+
+    // If only uncertified encoding is accepted, return it without any certificate
+    let gzip_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(gzip_response.status_code, 200);
+    assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+    assert!(lookup_header(&gzip_response, "IC-Certificate").is_none());
+
+    // If no encoding matches, return most important encoding with certificate
+    let unknown_encoding_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "unknown")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(unknown_encoding_response.status_code, 200);
+    assert_eq!(unknown_encoding_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&unknown_encoding_response, "IC-Certificate").is_some());
+
+    let unknown_encoding_response_2 = state.http_request(
+        RequestBuilder::get("/only-identity.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(unknown_encoding_response_2.status_code, 200);
+    assert_eq!(unknown_encoding_response_2.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&unknown_encoding_response_2, "IC-Certificate").is_some());
+
+    // Serve 404 if the requested asset has no encoding uploaded at all
+    let no_encoding_response = state.http_request(
+        RequestBuilder::get("/no-encoding.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(no_encoding_response.status_code, 404);
+    assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
+}
+
+#[test]
+fn serve_correct_encoding_v2() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY]),
+            AssetBuilder::new("/contents.html", "text/html").with_encoding("gzip", vec![GZIP_BODY]),
+            AssetBuilder::new("/no-encoding.html", "text/html"),
+        ],
+    );
+
+    let identity_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(identity_response.status_code, 200);
+    assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
+
+    let gzip_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip")
+            .with_certificate_version(2)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(gzip_response.status_code, 200);
+    assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+    assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
+
+    let no_encoding_response = state.http_request(
+        RequestBuilder::get("/no-encoding.html")
+            .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(no_encoding_response.status_code, 404);
+    assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
+    assert!(lookup_header(&no_encoding_response, "IC-Certificate").is_some());
 }
 
 #[test]
@@ -1159,6 +1303,223 @@ mod allow_raw_access {
         let response = state.fake_http_request("a-b-c.localhost:4444", "/index.html");
         dbg!(&response);
         assert_eq!(response.status_code, 200);
+    }
+}
+
+#[cfg(test)]
+mod certificate_expression {
+    use crate::http::build_ic_certificate_expression_from_headers_and_encoding;
+
+    use super::*;
+
+    #[test]
+    fn ic_certificate_expression_value_from_headers() {
+        let h = ["a", "b", "c"].to_vec();
+        let c = build_ic_certificate_expression_from_headers_and_encoding(&h, "not identity");
+        assert_eq!(
+            c.expression,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
+        );
+        let c2 = build_ic_certificate_expression_from_headers_and_encoding(&h, "identity");
+        assert_eq!(
+            c2.expression,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "a", "b", "c"]}}}})"#
+        );
+    }
+
+    #[test]
+    fn ic_certificate_expression_present_for_new_assets() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let v1_response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert!(
+            lookup_header(&v1_response, "ic-certificateexpression").is_none(),
+            "superfluous ic-certificateexpression header detected in cert v1"
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert!(
+            lookup_header(&response, "ic-certificateexpression").is_some(),
+            "Missing ic-certifiedexpression header in response: {:#?}",
+            response,
+        );
+        assert_eq!(
+            lookup_header(&response, "ic-certificateexpression").unwrap(),
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            "Missing ic-certifiedexpression header in response: {:#?}",
+            response,
+        );
+    }
+
+    #[test]
+    fn ic_certificate_expression_gets_updated_on_asset_properties_update() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("gzip", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert!(
+            lookup_header(&response, "ic-certificateexpression").is_some(),
+            "Missing ic-certificateexpression header in response: {:#?}",
+            response,
+        );
+        assert_eq!(
+            lookup_header(&response, "ic-certificateexpression").unwrap(),
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            "Missing ic-certificateexpression header in response: {:#?}",
+            response,
+        );
+
+        state
+            .set_asset_properties(SetAssetPropertiesArguments {
+                key: "/contents.html".into(),
+                max_age: Some(None),
+                headers: Some(Some(HashMap::from([(
+                    "custom-header".into(),
+                    "value".into(),
+                )]))),
+                allow_raw_access: None,
+                is_aliased: None,
+            })
+            .unwrap();
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+        assert!(
+            lookup_header(&response, "ic-certificateexpression").is_some(),
+            "Missing ic-certificateexpression header in response: {:#?}",
+            response,
+        );
+        assert_eq!(
+            lookup_header(&response, "ic-certificateexpression").unwrap(),
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "custom-header"]}}}})"#,
+            "Missing ic-certifiedexpression header in response: {:#?}",
+            response,
+        );
+    }
+}
+
+#[cfg(test)]
+mod certification_v2 {
+    use super::*;
+
+    #[test]
+    fn proper_header_structure() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+        const UPDATED_BODY: &[u8] = b"<!DOCTYPE html><html>lots of content!</html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        let cert_header =
+            lookup_header(&response, "ic-certificate").expect("ic-certificate header missing");
+
+        println!("IC-Certificate: {}", cert_header);
+
+        assert!(
+            cert_header.contains("version=2"),
+            "cert is missing version indicator or has wrong version",
+        );
+        assert!(cert_header.contains("certificate=:"), "cert is missing",);
+        assert!(cert_header.contains("tree=:"), "tree is missing",);
+        assert!(!cert_header.contains("tree=::"), "tree is empty",);
+        assert!(cert_header.contains("expr_path=:"), "expr_path is missing",);
+        assert!(!cert_header.contains("expr_path=::"), "expr_path is empty",);
+
+        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFggYqb51osZ8yEgbrtk+Z981k9J9Q0m4VEH/xmnuU6SDJqDAklodHRwX2V4cHKDAYIEWCA1sd2JIxN6F1cM5ZJxdJdNmNNEDXnePdxl5Yz/nMkXmIMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCDFaHrIHl7UaWlUtBt+VDFkwpI+dahytlBeV0Be5LB6GIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![UPDATED_BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        let cert_header = lookup_header(&response, "ic-certificate")
+            .expect("after update: ic-certificate header missing");
+
+        println!("Updated IC-Certificate: {}", cert_header);
+
+        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFgg1hasIZe9DV/qkwMJwOyFED/kYwg4LKtr0BWWcxuIqI6DAklodHRwX2V4cHKDAYIEWCB8ve5ZiB9SeCaYdKsv2ZfHSFZBomzvLxZtXtSxzg26iYMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCC8DBBYlQxiaVAOAV6uWwZ3un2feoZJc0MW5MYdsWFsLIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
     }
 }
 
