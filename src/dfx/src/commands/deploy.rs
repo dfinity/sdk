@@ -1,7 +1,6 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -9,6 +8,7 @@ use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::NetworkOpt;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -126,7 +126,9 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let call_sender = runtime.block_on(call_sender(&opts.wallet))?;
+    let call_sender = runtime
+        .block_on(CallSender::determine_which(&opts.wallet))
+        .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
     let proxy_sender;
     let create_call_sender = if opts.specified_id.is_none()
         && !opts.no_wallet

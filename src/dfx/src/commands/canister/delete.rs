@@ -2,7 +2,6 @@ use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::wallet::{build_wallet_canister, wallet_canister_id};
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
@@ -11,6 +10,7 @@ use crate::lib::operations::canister::{
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
+use dfx_core::identity::CallSender;
 
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;

@@ -1,10 +1,10 @@
 use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::sign::sign_transport::SignReplicaV2Transport;
 use crate::lib::sign::signed_message::SignedMessageV1;
+use dfx_core::identity::CallSender;
 
 use crate::util::clap::validators::file_or_stdin_validator;
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
