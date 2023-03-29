@@ -4,7 +4,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::{self};
+use crate::util;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 
 use anyhow::{anyhow, Context};
