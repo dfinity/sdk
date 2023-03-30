@@ -205,24 +205,24 @@ Found 3 dependencies:"
     assert_contains "The canister wasm was found in the cache." # a, b were downloaded before
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
 
-    # # sad path 1: wasm hash doesn't match on chain
-    # rm -r "${PULLED_DIR:?}/"
-    # cd ../onchain
-    # cp src/onchain_b/main.wasm ../www/a.wasm 
+    # sad path 1: wasm hash doesn't match on chain
+    rm -r "${PULLED_DIR:?}/"
+    cd ../onchain
+    cp src/onchain_b/main.wasm ../www/a.wasm 
 
-    # cd ../app
-    # assert_command_fail dfx pull dep1
-    # assert_contains "Failed to pull canister $CANISTER_ID_A."
-    # assert_contains "Hash mismatch."
-    # assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
+    cd ../app
+    assert_command_fail dfx pull dep1
+    assert_contains "Failed to pull canister $CANISTER_ID_A."
+    assert_contains "Hash mismatch."
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
 
-    # # sad path 2: url server doesn't have the file
-    # rm -r "${PULLED_DIR:?}/"
-    # rm ../www/a.wasm
+    # sad path 2: url server doesn't have the file
+    rm -r "${PULLED_DIR:?}/"
+    rm ../www/a.wasm
 
-    # assert_command_fail dfx pull dep1
-    # assert_contains "Failed to pull canister $CANISTER_ID_A."
-    # assert_contains "Failed to download wasm from url:"
+    assert_command_fail dfx pull dep1
+    assert_contains "Failed to pull canister $CANISTER_ID_A."
+    assert_contains "Failed to download wasm from url:"
 }
 
 
