@@ -25,7 +25,7 @@ pub fn get_replica_urls(
             return Ok(vec![url]);
         }
     }
-    get_providers(network_descriptor).map_err(|e| UriError::ReplicaUrlsError(e.to_string()))
+    get_providers(network_descriptor).map_err(|e| UriError::ReplicaUrlsError(Box::new(e)))
 }
 
 /// Gets the port of a local replica.
@@ -73,7 +73,7 @@ fn read_port_from(path: &Path) -> Result<Option<u16>, UriError> {
         } else {
             let port = s
                 .parse::<u16>()
-                .map_err(|e| UriError::PortReadError(path.to_string_lossy().to_string(), e))?;
+                .map_err(|e| UriError::PortReadError(path.to_path_buf(), e))?;
             Ok(Some(port))
         }
     } else {
