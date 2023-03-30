@@ -78,23 +78,14 @@ impl NetworkDescriptor {
     }
 
     pub fn replica_endpoints(&self) -> Result<Vec<Url>, NetworkConfigError> {
-        self.try_into()
-    }
-}
-
-impl TryFrom<&NetworkDescriptor> for Vec<Url> {
-    type Error = NetworkConfigError;
-
-    fn try_from(network_descriptor: &NetworkDescriptor) -> Result<Self, Self::Error> {
-        network_descriptor
-            .providers
+        self.providers
             .iter()
             .map(|s| {
                 Url::parse(s).map_err(|e| {
                     NetworkConfigError::ParseProviderUrlFailed(Box::new(s.to_string()), e)
                 })
             })
-            .collect::<Result<Self, Self::Error>>()
+            .collect()
     }
 }
 
