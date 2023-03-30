@@ -7,12 +7,12 @@
 #![warn(clippy::missing_docs_in_private_items)]
 
 use crate::lib::environment::Environment;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
 use crate::util::blob_from_arguments;
 use dfx_core::config::cache::get_bin_cache;
 use dfx_core::config::model::dfinity::ReplicaSubnetType;
+use dfx_core::identity::CallSender;
 use dfx_core::network::uri::get_replica_urls;
 
 use anyhow::{anyhow, bail, Context};
