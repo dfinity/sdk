@@ -12,7 +12,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, Context};
 use candid::utils::ArgumentDecoder;

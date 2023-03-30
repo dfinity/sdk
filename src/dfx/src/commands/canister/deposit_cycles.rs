@@ -1,9 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::cycle_amount_validator;
+use dfx_core::identity::CallSender;
 
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use anyhow::Context;

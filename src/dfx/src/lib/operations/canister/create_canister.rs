@@ -1,8 +1,8 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
 use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
 use dfx_core::network::provider::get_network_context;
 
 use anyhow::{anyhow, bail, Context};
