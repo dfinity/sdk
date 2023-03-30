@@ -4,13 +4,13 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
 };
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{
     compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
 };
 use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
+use dfx_core::identity::CallSender;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
