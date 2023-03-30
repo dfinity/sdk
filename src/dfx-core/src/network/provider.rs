@@ -171,7 +171,7 @@ pub fn create_network_descriptor(
                 &logger,
             )
         })
-        .or_else(|| create_default_network_from_name(&network_name, &logger).map(|n| Ok(n)))
+        .or_else(|| create_default_network_from_name(&network_name, &logger).map(Ok))
         .or_else(|| create_url_based_network_descriptor(&network_name))
         .unwrap_or(Err(NetworkNotFound(network_name)))
 }

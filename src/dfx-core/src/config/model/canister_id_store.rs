@@ -122,7 +122,7 @@ impl CanisterIdStore {
         println!(
             "Fetching timestamp for canister {}: {}",
             canister_name,
-            a.clone().unwrap_or(0.into())
+            a.clone().unwrap_or_else(|| 0.into())
         );
         a
     }

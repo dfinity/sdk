@@ -23,7 +23,7 @@ pub fn save_json_file<T: Serialize>(path: &Path, value: &T) -> Result<(), Struct
         .map_err(|err| SerializeJsonFileFailed(Box::new(path.to_path_buf()), err))?;
     if let Some(parent) = path.parent() {
         if !parent.exists() {
-            crate::fs::create_dir_all(parent).map_err(|e| WriteJsonFileFailed(e))?;
+            crate::fs::create_dir_all(parent).map_err(WriteJsonFileFailed)?;
         }
     }
     crate::fs::write(path, content).map_err(WriteJsonFileFailed)

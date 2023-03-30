@@ -47,10 +47,7 @@ pub async fn reserve_canister_with_playground(
     };
     let mut canister_id_store = env.get_canister_id_store()?;
     let (timestamp, nonce) = create_nonce();
-    let get_can_arg = Encode!(&GetCanisterIdArgs {
-        timestamp: timestamp,
-        nonce: nonce,
-    })?;
+    let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce })?;
     let result = agent
         .update(&playground_cid, "getCanisterId")
         .with_arg(get_can_arg)
@@ -133,7 +130,7 @@ pub async fn playground_install_code(
         arg,
         wasm_module,
         mode,
-        canister_id: canister_info.id.clone(),
+        canister_id: canister_info.id,
     };
     let encoded_arg = encode_args((canister_info, install_arg, false))?;
     let result = agent
@@ -153,8 +150,7 @@ fn create_nonce() -> (candid::Int, candid::Nat) {
         .unwrap()
         .as_millis();
     let timestamp = candid::Int::from(now * 1_000_000);
-    let out = proof_of_work(timestamp);
-    out
+    proof_of_work(timestamp)
 }
 
 const POW_DOMAIN: &str = "motoko-playground";
@@ -168,7 +164,7 @@ fn proof_of_work(timestamp: candid::Int) -> (candid::Int, candid::Nat) {
         if check_hash(hash) {
             return (timestamp, nonce);
         }
-        nonce = nonce + 1;
+        nonce += 1;
     }
 }
 
@@ -183,14 +179,14 @@ fn motoko_hash(s: &str) -> i64 {
             .overflowing_add(u32::from(c_val))
             .0;
     }
-    return hash.into();
+    hash.into()
 }
 
 fn to_utf16_code_point(c: char) -> u16 {
     let mut b = [0; 2];
     let result = c.encode_utf16(&mut b);
 
-    return result[0];
+    result[0]
 }
 
 fn check_hash(hash: i64) -> bool {
