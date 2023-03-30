@@ -273,7 +273,7 @@ impl CallSender {
         let sender = if let Some(id) = wallet {
             CallSender::Wallet(
                 Principal::from_text(id)
-                    .map_err(|e| IdentityError::ParsePrincipalFromIdFailed(id.clone(), e))?, // .with_context(|| format!(" {:?}.", id))?,
+                    .map_err(|e| IdentityError::ParsePrincipalFromIdFailed(id.clone(), e))?,
             )
         } else {
             CallSender::SelectedId
