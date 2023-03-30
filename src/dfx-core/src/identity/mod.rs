@@ -269,7 +269,7 @@ pub enum CallSender {
 // Determine whether the selected Identity
 // or the provided wallet canister ID should be the Sender of the call.
 impl CallSender {
-    pub async fn determine_which(wallet: &Option<String>) -> Result<Self, IdentityError> {
+    pub fn from(wallet: &Option<String>) -> Result<Self, IdentityError> {
         let sender = if let Some(id) = wallet {
             CallSender::Wallet(
                 Principal::from_text(id)

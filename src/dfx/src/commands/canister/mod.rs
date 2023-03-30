@@ -65,8 +65,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async {
-        let call_sender = CallSender::determine_which(&opts.wallet)
-            .await
+        let call_sender = CallSender::from(&opts.wallet)
             .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,

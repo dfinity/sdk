@@ -126,8 +126,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let call_sender = runtime
-        .block_on(CallSender::determine_which(&opts.wallet))
+    let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
     let proxy_sender;
     let create_call_sender = if opts.specified_id.is_none()
