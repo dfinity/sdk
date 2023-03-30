@@ -1002,6 +1002,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
+ "ic-utils",
  "k256",
  "keyring",
  "lazy_static",
