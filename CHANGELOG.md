@@ -98,7 +98,8 @@ For completeness' sake, the new behavior is as follows:
 
 ### Frontend canister
 
-- Module hash: b1ae8ac01f369dc742017be19e6f7028dd628fbc69dda0c1a5247699b8d8dee1
+- Module hash: 65e3e99401ec65d915a8d977274e1d507b541ab0d15007769d2bde213c55acff
+- https://github.com/dfinity/sdk/pull/3058
 - https://github.com/dfinity/sdk/pull/3057
 - https://github.com/dfinity/sdk/pull/2960
 - https://github.com/dfinity/sdk/pull/3051
