@@ -4,8 +4,8 @@ use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
-    CreateAssetArguments, CreateChunkArg, DeleteAssetArguments, DeleteBatchArguments,
-    SetAssetContentArguments, SetAssetPropertiesArguments,
+    ComputeEvidenceArguments, CreateAssetArguments, CreateChunkArg, DeleteAssetArguments,
+    DeleteBatchArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -155,11 +155,19 @@ fn create_assets_by_proposal(
         })
         .unwrap();
 
+    let evidence = state
+        .compute_evidence(ComputeEvidenceArguments {
+            batch_id: batch_id.clone(),
+            max_iterations: Some(100),
+        })
+        .unwrap()
+        .unwrap();
+
     state
         .commit_proposed_batch(
             CommitProposedBatchArguments {
                 batch_id: batch_id.clone(),
-                evidence: ByteBuf::new(), // todo
+                evidence,
             },
             time_now,
         )
