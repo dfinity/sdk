@@ -6,10 +6,21 @@ use std::num::ParseIntError;
 use std::path::PathBuf;
 use thiserror::Error;
 
+use crate::error::uri::UriError;
+
 #[derive(Error, Debug)]
 pub enum NetworkConfigError {
     #[error(transparent)]
     Config(#[from] ConfigError),
+
+    #[error(transparent)]
+    UriError(#[from] UriError),
+
+    #[error("Failed to get replica endpoint for network '{network_name}': {cause}")]
+    GettingReplicaUrlsFailed {
+        network_name: String,
+        cause: UriError,
+    },
 
     #[error("Network '{0}' does not specify any network providers.")]
     NetworkHasNoProviders(String),

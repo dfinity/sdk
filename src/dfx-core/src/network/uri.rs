@@ -4,7 +4,7 @@ use crate::{
     config::model::{
         local_server_descriptor::LocalServerDescriptor, network_descriptor::NetworkDescriptor,
     },
-    error::uri::UriError,
+    error::{network_config::NetworkConfigError, uri::UriError},
 };
 
 use slog::{info, Logger};
@@ -14,9 +14,10 @@ use url::Url;
 pub fn get_replica_urls(
     logger: &Logger,
     network_descriptor: &NetworkDescriptor,
-) -> Result<Vec<Url>, UriError> {
+) -> Result<Vec<Url>, NetworkConfigError> {
     if network_descriptor.name == "local" {
         let local_server_descriptor = network_descriptor.local_server_descriptor()?;
+
         if let Some(port) = get_running_replica_port(Some(logger), local_server_descriptor)? {
             let mut socket_addr = local_server_descriptor.bind_address;
             socket_addr.set_port(port);
@@ -25,7 +26,7 @@ pub fn get_replica_urls(
             return Ok(vec![url]);
         }
     }
-    get_providers(network_descriptor).map_err(|e| UriError::ReplicaUrlsError(Box::new(e)))
+    network_descriptor.replica_endpoints()
 }
 
 /// Gets the port of a local replica.
@@ -79,14 +80,4 @@ fn read_port_from(path: &Path) -> Result<Option<u16>, UriError> {
     } else {
         Ok(None)
     }
-}
-
-/// Gets the list of compute provider API endpoints.
-pub fn get_providers(network_descriptor: &NetworkDescriptor) -> Result<Vec<Url>, UriError> {
-    network_descriptor
-        .providers
-        .iter()
-        .map(|s| Url::parse(s).map_err(|e| UriError::UrlParseError(s.to_string(), e)))
-        .collect::<Result<Vec<Url>, UriError>>()
-        .map_err(|e| UriError::ProvidersError(network_descriptor.name.clone(), Box::new(e)))
 }

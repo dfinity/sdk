@@ -1,9 +1,10 @@
+use url::Url;
+
 use crate::config::model::dfinity::NetworkType;
 use crate::config::model::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
 use crate::config::model::local_server_descriptor::LocalServerDescriptor;
 use crate::error::network_config::NetworkConfigError;
 use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, NetworkMustBeLocal};
-
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -74,6 +75,26 @@ impl NetworkDescriptor {
             Some(p) => Ok(p),
             None => Err(NetworkMustBeLocal(self.name.clone())),
         }
+    }
+
+    pub fn replica_endpoints(&self) -> Result<Vec<Url>, NetworkConfigError> {
+        self.try_into()
+    }
+}
+
+impl TryFrom<&NetworkDescriptor> for Vec<Url> {
+    type Error = NetworkConfigError;
+
+    fn try_from(network_descriptor: &NetworkDescriptor) -> Result<Self, Self::Error> {
+        network_descriptor
+            .providers
+            .iter()
+            .map(|s| {
+                Url::parse(s).map_err(|e| {
+                    NetworkConfigError::ParseProviderUrlFailed(Box::new(s.to_string()), e)
+                })
+            })
+            .collect::<Result<Self, Self::Error>>()
     }
 }
 
