@@ -626,15 +626,9 @@ impl State {
         now: u64,
     ) -> Result<(), String> {
         self.validate_commit_proposed_batch_args(&arg)?;
-        let batch = self
-            .batches
-            .get_mut(&arg.batch_id)
-            .expect("batch not found");
-        if let Some(commit_batch_arguments) = batch.commit_batch_arguments.take() {
-            self.commit_batch(commit_batch_arguments, now)
-        } else {
-            Err("batch does not have CommitBatchArguments".to_string())
-        }
+        let batch = self.batches.get_mut(&arg.batch_id).unwrap();
+        let proposed_batch_arguments = batch.commit_batch_arguments.take().unwrap();
+        self.commit_batch(proposed_batch_arguments, now)
     }
 
     pub fn validate_commit_proposed_batch(
