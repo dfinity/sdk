@@ -209,13 +209,7 @@ async fn delete_canister(
                             cycles_to_withdraw,
                             dank_target_principal
                         );
-                        let wallet = build_wallet_canister(
-                            canister_id,
-                            env.get_agent().ok_or_else(|| {
-                                anyhow!("Cannot get HTTP client from environment.")
-                            })?,
-                        )
-                        .await?;
+                        let wallet = build_wallet_canister(canister_id, agent).await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
                             .call(

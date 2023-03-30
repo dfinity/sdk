@@ -83,10 +83,10 @@ pub async fn create_wallet(
     some_canister_id: Option<Principal>,
 ) -> DfxResult<Principal> {
     fetch_root_key_if_needed(env).await?;
-    let mgr = ManagementCanister::create(
-        env.get_agent()
-            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-    );
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let mgr = ManagementCanister::create(agent);
     info!(
         env.get_logger(),
         "Creating a wallet canister on the {} network.", network.name
@@ -125,12 +125,7 @@ pub async fn create_wallet(
         res => res.context("Failed while installing wasm.")?,
     }
 
-    let wallet = build_wallet_canister(
-        canister_id,
-        env.get_agent()
-            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-    )
-    .await?;
+    let wallet = build_wallet_canister(canister_id, agent).await?;
 
     wallet
         .wallet_store_wallet_wasm(wasm)
@@ -165,13 +160,12 @@ pub async fn get_or_create_wallet_canister<'env>(
     // without this async block, #[context] gives a spurious error
     async {
         let wallet_canister_id = get_or_create_wallet(env, network, name).await?;
-        build_wallet_canister(
-            wallet_canister_id,
-            env.get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-        )
-        .await
-        .map_err(Into::into)
+        let agent = env
+            .get_agent()
+            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+        build_wallet_canister(wallet_canister_id, agent)
+            .await
+            .map_err(Into::into)
     }
     .await
 }

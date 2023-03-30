@@ -105,12 +105,7 @@ pub async fn create_canister(
                     res.context("Canister creation call failed.")?.0
                 }
                 CallSender::Wallet(wallet_id) => {
-                    let wallet = build_wallet_canister(
-                        *wallet_id,
-                        env.get_agent()
-                            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-                    )
-                    .await?;
+                    let wallet = build_wallet_canister(*wallet_id, agent).await?;
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.map_or(
                         CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,

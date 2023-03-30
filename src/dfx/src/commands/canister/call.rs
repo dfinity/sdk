@@ -300,12 +300,7 @@ pub async fn exec(
                     .context("Failed query call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(
-                    *wallet_id,
-                    env.get_agent()
-                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-                )
-                .await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -338,12 +333,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(
-                    *wallet_id,
-                    env.get_agent()
-                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-                )
-                .await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
@@ -372,12 +362,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(
-                    *wallet_id,
-                    env.get_agent()
-                        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-                )
-                .await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

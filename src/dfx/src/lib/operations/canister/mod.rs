@@ -42,11 +42,11 @@ where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let out = match call_sender {
         CallSender::SelectedId => {
-            let agent = env
-                .get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
             let mgr = ManagementCanister::create(agent);
 
             mgr.update_(method)
@@ -58,12 +58,7 @@ where
                 .context("Update call (without wallet) failed.")?
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = build_wallet_canister(
-                *wallet_id,
-                env.get_agent()
-                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
-            )
-            .await?;
+            let wallet = build_wallet_canister(*wallet_id, agent).await?;
             let out: O = wallet
                 .call(
                     Principal::management_canister(),

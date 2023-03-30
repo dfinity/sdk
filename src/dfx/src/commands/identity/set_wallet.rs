@@ -70,7 +70,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = build_wallet_canister(canister_id, env.get_agent().ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?).await?;
+                let canister = build_wallet_canister(canister_id, agent).await?;
                 let balance = canister.wallet_balance().await;
 
                 match balance {
