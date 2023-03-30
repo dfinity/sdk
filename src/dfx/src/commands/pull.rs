@@ -5,14 +5,14 @@ use crate::lib::metadata::names::{
     CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
 };
 use crate::lib::operations::canister::get_canister_status;
+use crate::lib::pull::{PulledCanister, PulledDirectory};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{agent::create_agent_environment, environment::Environment};
 use crate::NetworkOpt;
-use dfx_core::config::cache::get_cache_root;
 use dfx_core::config::model::dfinity::CanisterTypeProperties;
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -38,6 +38,12 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.network)?;
     let logger = env.get_logger();
 
+    let pulled_dir = env
+        .get_config_or_anyhow()?
+        .get_project_root()
+        .to_path_buf()
+        .join("pulled");
+
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         fetch_root_key_if_needed(&agent_env).await?;
@@ -49,10 +55,19 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
         let config = agent_env.get_config_or_anyhow()?;
         let mut pull_canisters = BTreeMap::new();
 
+        let mut id_to_name = BTreeMap::new();
         if let Some(map) = &config.get_config().canisters {
             for (k, v) in map {
                 if let CanisterTypeProperties::Pull { id } = v.type_specific {
-                    pull_canisters.insert(k, id);
+                    match id_to_name.get(&id) {
+                        Some(other_name) => {
+                            bail!("Pull dependencies {other_name} and {k} have the same canister ID: {id}");
+                        },
+                        None => {
+                            pull_canisters.insert(k, id);
+                            id_to_name.insert(id,k);
+                        }
+                    }
                 }
             }
         };
@@ -65,31 +80,50 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
             None => pull_canisters.values().cloned().collect(),
         };
 
-        let mut pulled_canisters: BTreeSet<Principal> = BTreeSet::new();
+        let mut pulled_directory = PulledDirectory::default();
 
         while let Some(callee_canister) = canisters_to_pull.pop_front() {
-            if !pulled_canisters.contains(&callee_canister) {
-                pulled_canisters.insert(callee_canister);
-                fetch_deps_to_pull(agent, logger, callee_canister, &mut canisters_to_pull).await?;
+            if !pulled_directory.canisters.contains_key(&callee_canister) {
+                fetch_deps_to_pull(
+                    agent,
+                    logger,
+                    callee_canister,
+                    &mut canisters_to_pull,
+                    &mut pulled_directory,
+                )
+                .await?;
             }
         }
 
+
+        let mut message = String::new();
+        message.push_str(&format!("Found {} dependencies:", pulled_directory.canisters.len()));
+        for id in pulled_directory.canisters.keys() {
+            message.push('\n');
+            message.push_str(&id.to_text());
+        }
+
+        info!(logger, "{}", message);
+
         let mut any_download_fail = false;
 
-        for canister_id in pulled_canisters {
-            if let Err(e) = download_canister_files(&agent_env, logger, canister_id).await {
+        for (canister_id, pulled_canister) in pulled_directory.canisters.iter_mut() {
+            if let Err(e) = download_canister_files(&agent_env, logger, *canister_id, pulled_canister, &pulled_dir).await {
                 error!(
                     logger,
-                    "Failed to download wasm of canister {canister_id}.\n{e}"
+                    "Failed to pull canister {canister_id}.\n{e}"
                 );
                 any_download_fail = true;
             }
         }
 
-        match any_download_fail {
-            true => Err(anyhow!("Some wasm download(s) failed.")),
-            false => Ok(()),
+        if any_download_fail {
+            bail!("Failed when pulling canisters.");
         }
+
+        // let pulled_json_path = pulled_dir.join("pulled.json");
+        let content = serde_json::to_string_pretty(&pulled_directory)?;
+        write_to_tempfile_then_rename(content.as_bytes(), &pulled_dir, "pulled.json")
     })
 }
 
@@ -99,30 +133,46 @@ async fn fetch_deps_to_pull(
     logger: &Logger,
     canister_id: Principal,
     canisters_to_pull: &mut VecDeque<Principal>,
+    pulled_directory: &mut PulledDirectory,
 ) -> DfxResult {
-    info!(logger, "Pulling canister {canister_id}...");
+    info!(
+        logger,
+        "Resolving dependencies of canister {canister_id}..."
+    );
 
     match fetch_metatdata(agent, canister_id, DFX_DEPS).await {
         Ok(Some(deps_raw)) => {
-            let deps = String::from_utf8(deps_raw)?;
-            for entry in deps.split_terminator(';') {
+            let deps_str = String::from_utf8(deps_raw)?;
+            let mut deps = vec![];
+            for entry in deps_str.split_terminator(';') {
                 match entry.split_once(':') {
                     Some((_, p)) => {
-                        let canister_id = Principal::from_text(p)
+                        let dep_id = Principal::from_text(p)
                             .with_context(|| format!("`{p}` is not a valid Principal."))?;
-                        canisters_to_pull.push_back(canister_id);
+                        canisters_to_pull.push_back(dep_id);
+                        deps.push(dep_id);
                     }
                     None => bail!(
                         "Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "
                     ),
                 }
             }
+            pulled_directory.canisters.insert(
+                canister_id,
+                PulledCanister {
+                    deps,
+                    ..Default::default()
+                },
+            );
         }
         Ok(None) => {
             warn!(
                 logger,
                 "`{DFX_DEPS}` metadata not found in canister {canister_id}."
             );
+            pulled_directory
+                .canisters
+                .insert(canister_id, PulledCanister::default());
         }
         Err(e) => {
             bail!(e);
@@ -136,8 +186,10 @@ async fn download_canister_files(
     agent_env: &AgentEnvironment<'_>,
     logger: &Logger,
     canister_id: Principal,
+    pulled_canister: &mut PulledCanister,
+    pulled_dir: &Path,
 ) -> DfxResult {
-    info!(logger, "Downloading wasm of canister {canister_id}...");
+    info!(logger, "Pulling canister {canister_id}...");
 
     let agent = agent_env
         .get_agent()
@@ -168,10 +220,10 @@ async fn download_canister_files(
         }
     };
 
-    // will save all files in $HOME/.cache/dfinity/wasms/{canister_id}/
-    let canister_dir = get_cache_root()?
-        .join("wasms")
-        .join(canister_id.to_string());
+    pulled_canister.wasm_hash = hex::encode(&hash_on_chain);
+
+    // will save all files in $PROJECT_ROOT/pulled/{canister_id}/
+    let canister_dir = pulled_dir.join(canister_id.to_string());
 
     let wasm_file_name = "canister.wasm";
     let wasm_path = canister_dir.join(wasm_file_name);
@@ -195,6 +247,8 @@ async fn download_canister_files(
         .ok_or_else(|| anyhow!("`{DFX_WASM_URL}` metadata not found in canister {canister_id}."))?;
     let wasm_url_str = String::from_utf8(wasm_url_raw)?;
     let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
+
+    pulled_canister.wasm_url = Some(wasm_url_str);
 
     // download
     let response = reqwest::get(wasm_url.clone()).await?;
@@ -231,16 +285,18 @@ async fn download_canister_files(
         })?;
     write_to_tempfile_then_rename(&candid_bytes, &canister_dir, "canister.did")?;
 
-    // try fetch `dfx::init` and save in "init.txt"
+    // try fetch `dfx:init`
     match fetch_metatdata(agent, canister_id, DFX_INIT).await {
         Ok(Some(init_bytes)) => {
-            write_to_tempfile_then_rename(&init_bytes, &canister_dir, "init.txt")?
+            // write_to_tempfile_then_rename(&init_bytes, &canister_dir, "init.txt")?
+            pulled_canister.init = Some(String::from_utf8(init_bytes)?);
         }
         Ok(None) => {
             info!(
                 logger,
                 "Canister {canister_id} doesn't define `{DFX_INIT}` metadata."
-            )
+            );
+            pulled_canister.init = None;
         }
         Err(e) => {
             bail!(e);
