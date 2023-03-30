@@ -14,12 +14,12 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
+use dfx_core::canister::build_wallet_canister;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
@@ -58,7 +58,12 @@ where
                 .context("Update call (without wallet) failed.")?
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(
+                *wallet_id,
+                env.get_agent()
+                    .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?,
+            )
+            .await?;
             let out: O = wallet
                 .call(
                     Principal::management_canister(),

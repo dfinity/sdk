@@ -2,7 +2,8 @@ use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::identity::wallet::{build_wallet_canister, set_wallet_id};
+use crate::lib::identity::wallet::set_wallet_id;
+use dfx_core::canister::build_wallet_canister;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -69,7 +70,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = build_wallet_canister(canister_id, env).await?;
+                let canister = build_wallet_canister(canister_id, env.get_agent().ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?).await?;
                 let balance = canister.wallet_balance().await;
 
                 match balance {

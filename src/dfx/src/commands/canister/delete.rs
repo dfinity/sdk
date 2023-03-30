@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::wallet::{build_wallet_canister, wallet_canister_id};
+use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
     deposit_cycles, start_canister, stop_canister, update_settings,
@@ -11,6 +11,7 @@ use crate::lib::operations::canister::{
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
+use dfx_core::canister::build_wallet_canister;
 
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;
@@ -208,7 +209,13 @@ async fn delete_canister(
                             cycles_to_withdraw,
                             dank_target_principal
                         );
-                        let wallet = build_wallet_canister(canister_id, env).await?;
+                        let wallet = build_wallet_canister(
+                            canister_id,
+                            env.get_agent().ok_or_else(|| {
+                                anyhow!("Cannot get HTTP client from environment.")
+                            })?,
+                        )
+                        .await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
                             .call(
