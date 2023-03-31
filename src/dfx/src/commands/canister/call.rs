@@ -7,11 +7,11 @@ use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_valida
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
 use dfx_core::identity::CallSender;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
+use dfx_core::canister::build_wallet_canister;
 use fn_error_context::context;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
@@ -300,7 +300,7 @@ pub async fn exec(
                     .context("Failed query call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -333,7 +333,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
@@ -362,7 +362,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

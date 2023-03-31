@@ -1,3 +1,4 @@
+pub mod canister;
 pub mod config;
 pub mod error;
 pub mod foundation;
