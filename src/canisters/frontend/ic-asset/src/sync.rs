@@ -1,14 +1,18 @@
-use crate::asset_canister::batch::{commit_batch, create_batch};
-use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind, CommitBatchArguments};
-use crate::asset_config::{
+use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::operations::{
-    create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
+use crate::batch_upload::{
+    self,
+    operations::AssetDeletionReason,
+    plumbing::{make_project_assets, AssetDescriptor},
 };
-use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
-use anyhow::{bail, Context};
+use crate::canister_api::methods::{
+    api_version::api_version,
+    batch::{commit_batch, create_batch},
+    list::list_assets,
+};
+
+use anyhow::{anyhow, bail, Context};
 use ic_utils::Canister;
 use slog::{info, warn, Logger};
 use std::collections::HashMap;
@@ -16,14 +20,10 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn upload_content_and_assemble_sync_operations(
-    canister: &Canister<'_>,
-    dirs: &[&Path],
-    logger: &Logger,
-) -> anyhow::Result<CommitBatchArguments> {
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
-    let container_assets = list_assets(canister).await?;
+    let canister_assets = list_assets(canister).await?;
 
     info!(logger, "Starting batch.");
 
@@ -35,24 +35,32 @@ pub async fn upload_content_and_assemble_sync_operations(
         canister,
         &batch_id,
         asset_descriptors,
-        &container_assets,
+        &canister_assets,
         logger,
     )
     .await?;
 
-    let operations = assemble_synchronization_operations(project_assets, container_assets);
-    Ok(CommitBatchArguments {
+    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
+        project_assets,
+        canister_assets,
+        AssetDeletionReason::Obsolete,
         batch_id,
-        operations,
-    })
-}
+    );
 
-/// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
-    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
-
+    let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
-    commit_batch(canister, arg).await?;
+    match canister_api_version {
+        0.. => {
+            // in the next PR:
+            // if BATCH_UPLOAD_API_VERSION == 1 {
+            //     let commit_batch_args = commit_batch_args.try_into::<v0::CommitBatchArguments>()?;
+            //     warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
+            // }
+            commit_batch(canister, commit_batch_args)
+                .await
+                .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+        }
+    }
 
     Ok(())
 }
@@ -151,26 +159,10 @@ fn gather_asset_descriptors(
     Ok(asset_descriptors.into_values().collect())
 }
 
-fn assemble_synchronization_operations(
-    project_assets: HashMap<String, ProjectAsset>,
-    container_assets: HashMap<String, AssetDetails>,
-) -> Vec<BatchOperationKind> {
-    let mut container_assets = container_assets;
-
-    let mut operations = vec![];
-
-    delete_obsolete_assets(&mut operations, &project_assets, &mut container_assets);
-    create_new_assets(&mut operations, &project_assets, &container_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &container_assets);
-    set_encodings(&mut operations, project_assets);
-
-    operations
-}
-
 #[cfg(test)]
 mod test_gathering_asset_descriptors_with_tempdir {
 
-    use crate::asset_config::{CacheConfig, HeadersConfig};
+    use crate::asset::config::{CacheConfig, HeadersConfig};
 
     use super::AssetDescriptor;
     use std::{

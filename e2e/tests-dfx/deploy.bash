@@ -79,3 +79,17 @@ teardown() {
     assert_command dfx deploy
     assert_command dfx deploy importer --mode reinstall --yes
 }
+
+@test "deploy succeeds with --specified-id" {
+    dfx_start
+    assert_command dfx deploy hello_backend --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
+    assert_command dfx canister id hello_backend
+    assert_match n5n4y-3aaaa-aaaaa-p777q-cai
+}
+
+@test "deploy fails if --specified-id without canister_name" {
+    dfx_start
+    assert_command_fail dfx deploy --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
+    assert_match "error: The following required arguments were not provided:"
+    assert_match "<CANISTER_NAME>"
+} 

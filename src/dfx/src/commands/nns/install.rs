@@ -22,10 +22,14 @@ use clap::Parser;
 ///   This frontend is typically served at: <http://qhbym-qaaaa-aaaaa-aaafq-cai.localhost:8080>.
 #[derive(Parser)]
 #[clap(about)]
-pub struct InstallOpts {}
+pub struct InstallOpts {
+    /// Initialize ledger canister with these test accounts
+    #[clap(long, multiple_values(true))]
+    ledger_accounts: Vec<String>,
+}
 
 /// Executes `dfx nns install`.
-pub async fn exec(env: &dyn Environment, _opts: InstallOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -38,5 +42,5 @@ pub async fn exec(env: &dyn Environment, _opts: InstallOpts) -> DfxResult {
 
     let ic_nns_init_path = env.get_cache().get_binary_command_path("ic-nns-init")?;
 
-    install_nns(env, agent, &ic_nns_init_path).await
+    install_nns(env, agent, &ic_nns_init_path, &opts.ledger_accounts).await
 }

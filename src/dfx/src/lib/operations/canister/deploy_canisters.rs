@@ -3,14 +3,15 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
@@ -29,6 +30,7 @@ pub async fn deploy_canisters(
     force_reinstall: bool,
     upgrade_unchanged: bool,
     with_cycles: Option<&str>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     create_call_sender: &CallSender,
     skip_consent: bool,
@@ -40,7 +42,7 @@ pub async fn deploy_canisters(
     let config = env
         .get_config()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
-    let initial_canister_id_store = CanisterIdStore::for_env(env)?;
+    let initial_canister_id_store = env.get_canister_id_store()?;
 
     let network = env.get_network_descriptor();
 
@@ -82,6 +84,7 @@ pub async fn deploy_canisters(
         &canisters_to_load,
         &initial_canister_id_store,
         with_cycles,
+        specified_id,
         create_call_sender,
         &config,
     )
@@ -137,6 +140,7 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     with_cycles: Option<&str>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     config: &Config,
 ) -> DfxResult {
@@ -181,6 +185,7 @@ async fn register_canisters(
                 env,
                 canister_name,
                 with_cycles,
+                specified_id,
                 call_sender,
                 CanisterSettings {
                     controllers,
@@ -236,7 +241,7 @@ async fn install_canisters(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
 
     for canister_name in canister_names {
         let install_mode = if force_reinstall {

@@ -2,15 +2,15 @@ use crate::lib::builders::get_and_write_environment_variables;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::wallet::build_wallet_canister;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::named_canister;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
+use dfx_core::canister::build_wallet_canister;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -185,7 +185,7 @@ pub async fn install_canister(
     }
     if canister_info.is_assets() {
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, agent).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,
@@ -410,7 +410,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.");
                 .context("Failed to install wasm.")?;
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, agent).await?;
             let install_args = CanisterInstall {
                 mode,
                 canister_id,
@@ -445,7 +445,7 @@ pub async fn install_wallet(
         .call_and_wait()
         .await
         .context("Failed to install wallet wasm.")?;
-    let wallet = build_wallet_canister(id, env).await?;
+    let wallet = build_wallet_canister(id, agent).await?;
     wallet
         .wallet_store_wallet_wasm(wasm)
         .call_and_wait()

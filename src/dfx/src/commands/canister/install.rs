@@ -1,11 +1,10 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{install_canister, install_canister_wasm};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -81,7 +80,7 @@ pub async fn exec(
     } else {
         Some(InstallMode::from_str(&opts.mode).map_err(|err| anyhow!(err))?)
     };
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
     let network = env.get_network_descriptor();
 
     if mode == Some(InstallMode::Reinstall) && (opts.canister.is_none() || opts.all) {

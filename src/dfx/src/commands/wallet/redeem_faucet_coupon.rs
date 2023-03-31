@@ -3,7 +3,6 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
 
@@ -29,7 +28,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
     let log = env.get_logger();
 
     let faucet_principal = if let Some(alternative_faucet) = opts.faucet {
-        let canister_id_store = CanisterIdStore::for_env(env)?;
+        let canister_id_store = env.get_canister_id_store()?;
         Principal::from_text(&alternative_faucet)
             .or_else(|_| canister_id_store.get(&alternative_faucet))?
     } else {
@@ -44,6 +43,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         warn!(log, "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?");
     }
 
+    info!(log, "Redeeming coupon. This may take up to 30 seconds...");
     let wallet = get_wallet(env).await;
     match wallet {
         // identity has a wallet already - faucet should top up the wallet

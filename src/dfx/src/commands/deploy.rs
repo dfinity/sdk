@@ -1,15 +1,14 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::NetworkOpt;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -62,6 +61,13 @@ pub struct DeployOpts {
     /// This amount is deducted from the wallet's cycle balance.
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
+
+    /// Attempts to create the canister with this Canister ID.
+    ///
+    /// This option only works with non-mainnet replica.
+    /// This option implies the --no-wallet flag.
+    #[clap(long, value_name = "PRINCIPAL", requires = "canister-name")]
+    specified_id: Option<Principal>,
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
@@ -120,9 +126,13 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let call_sender = runtime.block_on(call_sender(&opts.wallet))?;
+    let call_sender = CallSender::from(&opts.wallet)
+        .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
     let proxy_sender;
-    let create_call_sender = if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
+    let create_call_sender = if opts.specified_id.is_none()
+        && !opts.no_wallet
+        && !matches!(call_sender, CallSender::Wallet(_))
+    {
         let wallet = runtime.block_on(get_or_create_wallet_canister(
             &env,
             env.get_network_descriptor(),
@@ -143,6 +153,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         force_reinstall,
         opts.upgrade_unchanged,
         with_cycles,
+        opts.specified_id,
         &call_sender,
         create_call_sender,
         opts.yes,
@@ -157,7 +168,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let network: &NetworkDescriptor = env.get_network_descriptor();
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let mut frontend_urls = BTreeMap::new();
     let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();

@@ -6,14 +6,14 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
-use crate::config::cache::get_bin_cache;
 use crate::lib::environment::Environment;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
 use crate::lib::operations::canister::install_canister_wasm;
 use crate::util::blob_from_arguments;
 use crate::util::network::get_replica_urls;
+use dfx_core::config::cache::get_bin_cache;
 use dfx_core::config::model::dfinity::ReplicaSubnetType;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -61,6 +61,7 @@ pub async fn install_nns(
     env: &dyn Environment,
     agent: &Agent,
     ic_nns_init_path: &Path,
+    ledger_accounts: &[String],
 ) -> anyhow::Result<()> {
     eprintln!("Checking out the environment...");
     verify_local_replica_type_is_system(env)?;
@@ -72,13 +73,15 @@ pub async fn install_nns(
 
     eprintln!("Installing the core backend wasm canisters...");
     download_nns_wasms(env).await?;
+    let mut test_accounts = vec![
+        canisters::ED25519_TEST_ACCOUNT.to_string(),
+        canisters::SECP256K1_TEST_ACCOUNT.to_string(),
+    ];
+    test_accounts.extend_from_slice(ledger_accounts);
     let ic_nns_init_opts = IcNnsInitOpts {
         wasm_dir: nns_wasm_dir(env)?,
         nns_url: nns_url.to_string(),
-        test_accounts: vec![
-            canisters::ED25519_TEST_ACCOUNT.to_string(),
-            canisters::SECP256K1_TEST_ACCOUNT.to_string(),
-        ],
+        test_accounts,
         sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
@@ -98,9 +101,11 @@ pub async fn install_nns(
         let parsed_wasm_url = Url::parse(wasm_url)
             .with_context(|| format!("Could not parse url for {canister_name} wasm: {wasm_url}"))?;
         download(&parsed_wasm_url, &local_wasm_path).await?;
-        let installed_canister_id = install_canister(env, agent, canister_name, &local_wasm_path)
-            .await?
-            .to_text();
+        let specified_id = Principal::from_text(canister_id)?;
+        let installed_canister_id =
+            install_canister(env, agent, canister_name, &local_wasm_path, specified_id)
+                .await?
+                .to_text();
         if canister_id != &installed_canister_id {
             bail!("Canister '{canister_name}' was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
         }
@@ -507,6 +512,7 @@ pub struct IcNnsInitOpts {
 #[context("Failed to install NNS components.")]
 pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyhow::Result<()> {
     let mut cmd = std::process::Command::new(ic_nns_init_path);
+    cmd.arg("--pass-specified-id");
     cmd.arg("--url");
     cmd.arg(&opts.nns_url);
     cmd.arg("--wasm-dir");
@@ -658,12 +664,12 @@ pub async fn install_canister(
     agent: &Agent,
     canister_name: &str,
     wasm_path: &Path,
+    specified_id: Principal,
 ) -> anyhow::Result<Principal> {
     let mgr = ManagementCanister::create(agent);
     let builder = mgr
         .create_canister()
-        .as_provisional_create_with_amount(None)
-        .with_effective_canister_id(env.get_effective_canister_id());
+        .as_provisional_create_with_specified_id(specified_id);
 
     let res = builder.call_and_wait().await;
     let canister_id: Principal = res.context("Canister creation call failed.")?.0;

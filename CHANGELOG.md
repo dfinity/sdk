@@ -4,6 +4,28 @@
 
 ## DFX
 
+### feat: --artificial-delay flag
+
+The local replica uses a 600ms delay by default when performing update calls. With `dfx start --artificial-delay <ms>`, you can decrease this value (e.g. 100ms) for faster integration tests, or increase it (e.g. 2500ms) to mimick mainnet latency for e.g. UI responsiveness checks.
+
+### fix: make sure assetstorage did file is created as writeable.
+
+### feat: specify id when provisional create canister
+
+When creating a canister on non-mainnet replica, you can now specify the canister ID.
+
+`dfx canister create <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
+`dfx deploy <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
+You can specify the ID in the range of `[0, u64::MAX / 2]`.
+If not specify the ID, the canister will be created in the range of `[u64::MAX / 2 + 1, u64::MAX]`. 
+This canister ID allocation behavior only applies to the replica, not the emulator (ic-ref).
+
+### feat: dfx nns install --ledger-accounts
+
+`dfx nns install` now takes an option `--ledger-accounts` to initialize the ledger canister with these accounts. 
+
 ### fix: update Rust canister template.
 
 `ic-cdk-timers` is included in the dependencies.
@@ -36,21 +58,66 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### feat: dfx pull can download wasm
 
+### fix: dfx deploy and icx-asset no longer retry on permission failure
+
+### chore: clarify `dfx identity new` help text
+
+### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
+
+Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
+
+Added partial support for proposal-based asset updates:
+
+- Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
+  having the asset canister not reuse batch ids will make it easier to verify that a particular
+  batch has been proposed.
+- Added methods:
+  - propose_commit_batch() stores batch arguments for later commit
+  - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
+  - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
+
+Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
+
+Added support for v2 asset certification. In comparison to v1, v2 asset certification not only certifies the http response body, but also the headers. The v2 spec is first published in [this PR](https://github.com/dfinity/interface-spec/pull/147)
+
+Added canister metadata field `supported_certificate_versions`, which contains a comma-separated list of all asset certification protocol versions. You can query it e.g. using `dfx canister --network ic metadata <canister name or id> supported_certificate_versions`. In this release, the value of this metadata field value is `1,2` because certification v1 and v2 are supported.
+
+Fixed a bug in `http_request` that served assets with the wrong certificate. If no encoding specified in the `Accept-Encoding` header is available with a certificate, an available encoding is returned without a certificate (instead of a wrong certificate, which was the case previously). Otherwise, nothing changed.
+For completeness' sake, the new behavior is as follows:
+- If one of the encodings specified in the `Accept-Encoding` header is available with certification, it now is served with the correct certificate.
+- If no requested encoding is available with certification, one of the requested encodings is returned without a certificate (instead of a wrong certificate, which was the case previously).
+- If no encoding specified in the `Accept-Encoding` header is available, a certified encoding that is available is returned instead.
 
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 492760e045212d3711a3a1aaa561d0d12c77f6c6043fdf71058799ea64e95620
+- Module hash: b1ae8ac01f369dc742017be19e6f7028dd628fbc69dda0c1a5247699b8d8dee1
+- https://github.com/dfinity/sdk/pull/3057
+- https://github.com/dfinity/sdk/pull/2960
+- https://github.com/dfinity/sdk/pull/3051
+- https://github.com/dfinity/sdk/pull/3034
+- https://github.com/dfinity/sdk/pull/3023
+- https://github.com/dfinity/sdk/pull/3022
+- https://github.com/dfinity/sdk/pull/3021
+- https://github.com/dfinity/sdk/pull/3019
+- https://github.com/dfinity/sdk/pull/3016
+- https://github.com/dfinity/sdk/pull/3015
+- https://github.com/dfinity/sdk/pull/3001
 - https://github.com/dfinity/sdk/pull/2987
 - https://github.com/dfinity/sdk/pull/2982
 
 ### Motoko
 
-Updated Motoko to 0.8.3
+Updated Motoko to 0.8.4
+
+### ic-ref
+
+Updated ic-ref to 0.0.1-ca6aca90
 
 # 0.13.1
 

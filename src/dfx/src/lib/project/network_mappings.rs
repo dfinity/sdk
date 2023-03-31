@@ -1,22 +1,20 @@
-use crate::lib::error::DfxResult;
+use crate::lib::error::ProjectError;
 use crate::lib::project::import::ImportNetworkMapping;
 
-use anyhow::anyhow;
-
-pub fn get_network_mappings(input: &[String]) -> DfxResult<Vec<ImportNetworkMapping>> {
+pub fn get_network_mappings(input: &[String]) -> Result<Vec<ImportNetworkMapping>, ProjectError> {
     input
         .iter()
         .map(|v| {
             if let Some(index) = v.find('=') {
                 if index == 0 {
-                    Err(anyhow!(
-                        "malformed network mapping '{}': first network name is empty",
-                        &v
+                    Err(ProjectError::MalformedNetworkMapping(
+                        v.to_string(),
+                        "first".to_string(),
                     ))
                 } else if index == v.len() - 1 {
-                    Err(anyhow!(
-                        "malformed network mapping '{}': second network name is empty",
-                        &v
+                    Err(ProjectError::MalformedNetworkMapping(
+                        v.to_string(),
+                        "second".to_string(),
                     ))
                 } else {
                     Ok(ImportNetworkMapping {
@@ -79,13 +77,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "malformed network mapping '=defg': first network name is empty")]
+    #[should_panic(expected = "MalformedNetworkMapping(\"=defg\", \"first\")")]
     fn malformed_missing_first() {
         get_network_mappings(&["=defg".to_string()]).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "malformed network mapping 'abc=': second network name is empty")]
+    #[should_panic(expected = "MalformedNetworkMapping(\"abc=\", \"second\")")]
     fn malformed_missing_second() {
         get_network_mappings(&["abc=".to_string()]).unwrap();
     }
