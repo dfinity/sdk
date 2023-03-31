@@ -14,7 +14,12 @@ get_from_latest_release_tarball() {
     local -r temp_dir=$(mktemp -d)
     curl -sL "$tarball_url" -o "${temp_dir}/release.tar.gz"
 
-    tar -xzf "$temp_dir/release.tar.gz" -C "$temp_dir" "*/$file_path"
+    if [ "$(uname)" == "Darwin" ]; then
+        tar -xzf "$temp_dir/release.tar.gz" -C "$temp_dir" "*/$file_path"
+    elif [ "$(uname)" == "Linux" ]; then
+        tar -xzf "$temp_dir/release.tar.gz" -C "$temp_dir" --wildcards "*/$file_path"
+    fi
+
     local -r file_name=$(basename "$file_path")
     local -r extracted_file=$(find "$temp_dir" -type f -name "$file_name")
     mv "$extracted_file" "$destination"
