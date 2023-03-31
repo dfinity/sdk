@@ -9,7 +9,7 @@ use crate::error::dfx_config::DfxConfigError;
 use crate::error::dfx_config::DfxConfigError::{
     CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
     GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
-    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed,
+    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed, PullCanistersSameId,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
@@ -768,6 +768,27 @@ impl ConfigInterface {
             .ok_or(CanistersFieldDoesNotExist())?
             .get(canister_name)
             .ok_or_else(|| CanisterNotFound(canister_name.to_string()))
+    }
+
+    pub fn get_pull_canisters(&self) -> Result<BTreeMap<String, Principal>, DfxConfigError> {
+        let mut res = BTreeMap::new();
+        let mut id_to_name: BTreeMap<Principal, &String> = BTreeMap::new();
+        if let Some(map) = &self.canisters {
+            for (k, v) in map {
+                if let CanisterTypeProperties::Pull { id } = v.type_specific {
+                    match id_to_name.get(&id) {
+                        Some(other_name) => {
+                            return Err(PullCanistersSameId(other_name.to_string(), k.clone(), id));
+                        }
+                        None => {
+                            res.insert(k.clone(), id);
+                            id_to_name.insert(id, k);
+                        }
+                    }
+                }
+            }
+        };
+        Ok(res)
     }
 }
 

@@ -9,10 +9,10 @@ use crate::lib::pull::{PulledCanister, PulledDirectory};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{agent::create_agent_environment, environment::Environment};
 use crate::NetworkOpt;
-use dfx_core::config::model::dfinity::CanisterTypeProperties;
-use std::collections::{BTreeMap, VecDeque};
+use dfx_core::config::cache::get_cache_root;
+use std::collections::VecDeque;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -26,10 +26,6 @@ use tokio::runtime::Runtime;
 /// Pull canisters upon which the project depends
 #[derive(Parser)]
 pub struct PullOpts {
-    /// Specifies the name of the canister you want to pull.
-    /// If you don’t specify a canister name, all pull type canisters defined in the dfx.json file are pulled.
-    canister_name: Option<String>,
-
     #[clap(flatten)]
     network: NetworkOpt,
 }
@@ -37,12 +33,6 @@ pub struct PullOpts {
 pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
     let agent_env = create_agent_environment(env, opts.network.network)?;
     let logger = env.get_logger();
-
-    let pulled_dir = env
-        .get_config_or_anyhow()?
-        .get_project_root()
-        .to_path_buf()
-        .join("pulled");
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
@@ -52,52 +42,34 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
             .get_agent()
             .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-        let config = agent_env.get_config_or_anyhow()?;
-        let mut pull_canisters = BTreeMap::new();
+        let pull_canisters_in_config = agent_env
+            .get_config_or_anyhow()?
+            .get_config()
+            .get_pull_canisters()?;
 
-        let mut id_to_name = BTreeMap::new();
-        if let Some(map) = &config.get_config().canisters {
-            for (k, v) in map {
-                if let CanisterTypeProperties::Pull { id } = v.type_specific {
-                    match id_to_name.get(&id) {
-                        Some(other_name) => {
-                            bail!("Pull dependencies {other_name} and {k} have the same canister ID: {id}");
-                        },
-                        None => {
-                            pull_canisters.insert(k, id);
-                            id_to_name.insert(id,k);
-                        }
-                    }
-                }
-            }
-        };
+        let mut canisters_to_resolve: VecDeque<Principal> =
+            pull_canisters_in_config.values().cloned().collect();
 
-        let mut canisters_to_pull: VecDeque<Principal> = match opts.canister_name {
-            Some(s) => match pull_canisters.get(&s) {
-                Some(v) => VecDeque::from([*v]),
-                None => bail!("There is no pull type canister \"{s}\" defined in dfx.json"),
-            },
-            None => pull_canisters.values().cloned().collect(),
-        };
+        let mut pulled_directory = PulledDirectory::with_named(pull_canisters_in_config);
 
-        let mut pulled_directory = PulledDirectory::default();
-
-        while let Some(callee_canister) = canisters_to_pull.pop_front() {
+        while let Some(callee_canister) = canisters_to_resolve.pop_front() {
             if !pulled_directory.canisters.contains_key(&callee_canister) {
                 fetch_deps_to_pull(
                     agent,
                     logger,
                     callee_canister,
-                    &mut canisters_to_pull,
+                    &mut canisters_to_resolve,
                     &mut pulled_directory,
                 )
                 .await?;
             }
         }
 
-
         let mut message = String::new();
-        message.push_str(&format!("Found {} dependencies:", pulled_directory.canisters.len()));
+        message.push_str(&format!(
+            "Found {} dependencies:",
+            pulled_directory.canisters.len()
+        ));
         for id in pulled_directory.canisters.keys() {
             message.push('\n');
             message.push_str(&id.to_text());
@@ -108,11 +80,10 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
         let mut any_download_fail = false;
 
         for (canister_id, pulled_canister) in pulled_directory.canisters.iter_mut() {
-            if let Err(e) = download_canister_files(&agent_env, logger, *canister_id, pulled_canister, &pulled_dir).await {
-                error!(
-                    logger,
-                    "Failed to pull canister {canister_id}.\n{e}"
-                );
+            if let Err(e) =
+                download_canister_files(&agent_env, logger, *canister_id, pulled_canister).await
+            {
+                error!(logger, "Failed to pull canister {canister_id}.\n{e}");
                 any_download_fail = true;
             }
         }
@@ -121,9 +92,10 @@ pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
             bail!("Failed when pulling canisters.");
         }
 
-        // let pulled_json_path = pulled_dir.join("pulled.json");
         let content = serde_json::to_string_pretty(&pulled_directory)?;
-        write_to_tempfile_then_rename(content.as_bytes(), &pulled_dir, "pulled.json")
+        let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
+        write_to_tempfile_then_rename(content.as_bytes(), &project_root, "pulled.json")?;
+        Ok(())
     })
 }
 
@@ -187,7 +159,6 @@ async fn download_canister_files(
     logger: &Logger,
     canister_id: Principal,
     pulled_canister: &mut PulledCanister,
-    pulled_dir: &Path,
 ) -> DfxResult {
     info!(logger, "Pulling canister {canister_id}...");
 
@@ -222,13 +193,18 @@ async fn download_canister_files(
 
     pulled_canister.wasm_hash = hex::encode(&hash_on_chain);
 
-    // will save all files in $PROJECT_ROOT/pulled/{canister_id}/
-    let canister_dir = pulled_dir.join(canister_id.to_string());
+    // will save wasm and candid in $(cache_root)/pulled/{canister_id}/
+    let canister_dir = get_cache_root()?
+        .join("pulled")
+        .join(canister_id.to_string());
+    std::fs::create_dir_all(&canister_dir)
+        .with_context(|| format!("Failed to create dir at {:?}", &canister_dir))?;
 
     let wasm_file_name = "canister.wasm";
     let wasm_path = canister_dir.join(wasm_file_name);
 
     // skip download if cache hit
+    let mut cache_hit = false;
     if wasm_path.exists() {
         let bytes = std::fs::read(&wasm_path)?;
         let mut hasher = Sha256::new();
@@ -236,46 +212,46 @@ async fn download_canister_files(
         let hash_cache = hasher.finalize();
 
         if hash_cache.as_slice() == hash_on_chain {
+            cache_hit = true;
             info!(logger, "The canister wasm was found in the cache.");
-            return Ok(());
         }
     }
+    if !cache_hit {
+        // fetch `dfx:wasm_url`
+        let wasm_url_raw = fetch_metatdata(agent, canister_id, DFX_WASM_URL)
+            .await?
+            .ok_or_else(|| {
+                anyhow!("`{DFX_WASM_URL}` metadata not found in canister {canister_id}.")
+            })?;
+        let wasm_url_str = String::from_utf8(wasm_url_raw)?;
+        let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
 
-    // fetch `dfx:wasm_url`
-    let wasm_url_raw = fetch_metatdata(agent, canister_id, DFX_WASM_URL)
-        .await?
-        .ok_or_else(|| anyhow!("`{DFX_WASM_URL}` metadata not found in canister {canister_id}."))?;
-    let wasm_url_str = String::from_utf8(wasm_url_raw)?;
-    let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
+        pulled_canister.wasm_url = Some(wasm_url_str);
 
-    pulled_canister.wasm_url = Some(wasm_url_str);
+        // download
+        let response = reqwest::get(wasm_url.clone()).await?;
+        let status = response.status();
+        if status.is_client_error() || status.is_server_error() {
+            bail!("Failed to download wasm from url: {wasm_url}.\n  StatusCode: {status}");
+        }
+        let content = response.bytes().await?;
 
-    // download
-    let response = reqwest::get(wasm_url.clone()).await?;
-    let status = response.status();
-    if status.is_client_error() || status.is_server_error() {
-        bail!("Failed to download wasm from url: {wasm_url}.\n  StatusCode: {status}");
+        // hash check
+        let mut hasher = Sha256::new();
+        hasher.update(&content);
+        let hash_download = hasher.finalize();
+        if hash_download.as_slice() != hash_on_chain {
+            bail!(
+                "Hash mismatch.
+on chain: {}
+download: {}",
+                hex::encode(hash_on_chain),
+                hex::encode(hash_download.as_slice())
+            );
+        }
+
+        write_to_tempfile_then_rename(&content, &canister_dir, wasm_file_name)?;
     }
-    let content = response.bytes().await?;
-
-    // hash check
-    let mut hasher = Sha256::new();
-    hasher.update(&content);
-    let hash_download = hasher.finalize();
-    if hash_download.as_slice() != hash_on_chain {
-        bail!(
-            "Hash mismatch.
-  on chain: {}
-  download: {}",
-            hex::encode(hash_on_chain),
-            hex::encode(hash_download.as_slice())
-        );
-    }
-
-    std::fs::create_dir_all(&canister_dir)
-        .with_context(|| format!("Failed to create dir at {:?}", &canister_dir))?;
-
-    write_to_tempfile_then_rename(&content, &canister_dir, wasm_file_name)?;
 
     // fetch `candid:service` and save in "canister.did"
     let candid_bytes = fetch_metatdata(agent, canister_id, CANDID_SERVICE)

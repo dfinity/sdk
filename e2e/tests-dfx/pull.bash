@@ -11,7 +11,7 @@ teardown() {
 
     dfx_stop
 
-    # standard_teardown
+    standard_teardown
 }
 
 export_canister_ids() {
@@ -90,16 +90,6 @@ export_canister_ids() {
     jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
     jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
 
-    assert_command_fail dfx pull dep1 # the overall pull fail but succeed to fetch and parse `dfx:deps` recursively
-    assert_contains "Resolving dependencies of canister $CANISTER_ID_B...
-Resolving dependencies of canister $CANISTER_ID_A...
-Found 2 dependencies:"
-    assert_contains "ERROR: Failed to pull canister $CANISTER_ID_B.
-\`dfx:wasm_url\` metadata not found in canister $CANISTER_ID_B."
-    assert_contains "ERROR: Failed to pull canister $CANISTER_ID_A.
-\`dfx:wasm_url\` metadata not found in canister $CANISTER_ID_A."
-
-    ## 1.3. if not specify canister name, all pull type canisters (dep1, dep2) will be pulled
     assert_command_fail dfx pull # the overall pull fail but succeed to fetch and parse `dfx:deps` recursively
     assert_contains "Resolving dependencies of canister $CANISTER_ID_B...
 Resolving dependencies of canister $CANISTER_ID_C...
@@ -144,10 +134,20 @@ Found 3 dependencies:"
     assert_contains "Failed to parse \`dfx:deps\` entry: $CANISTER_ID_A. Expected \`name:Principal\`."
 }
 
-@test "dfx pull can download wasm" {
+@test "dfx pull can download wasm and candid to shared cache" {
     # When ran with ic-ref, got following error:
     # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+
+    use_test_specific_cache_root # dfx pull will download files to cache
+
+    PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
 
     # system-wide local replica
     dfx_start
@@ -187,23 +187,20 @@ Found 3 dependencies:"
 
     # pull canisters in app project
     cd ../app
-    PULLED_DIR="$(pwd)/pulled"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-
     jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
     jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
 
-    assert_command dfx pull dep1
-    
+    assert_command dfx pull
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-
-    assert_command dfx pull # if not specify canister name, all pull type canisters (dep1, dep2) will be pulled
-    assert_contains "The canister wasm was found in the cache." # a, b were downloaded before
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
+    assert_file_exists "pulled.json"
+
+    assert_command dfx pull
+    assert_contains "The canister wasm was found in the cache." # cache hit
 
     # sad path 1: wasm hash doesn't match on chain
     rm -r "${PULLED_DIR:?}/"
@@ -211,7 +208,7 @@ Found 3 dependencies:"
     cp src/onchain_b/main.wasm ../www/a.wasm 
 
     cd ../app
-    assert_command_fail dfx pull dep1
+    assert_command_fail dfx pull
     assert_contains "Failed to pull canister $CANISTER_ID_A."
     assert_contains "Hash mismatch."
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
@@ -220,7 +217,7 @@ Found 3 dependencies:"
     rm -r "${PULLED_DIR:?}/"
     rm ../www/a.wasm
 
-    assert_command_fail dfx pull dep1
+    assert_command_fail dfx pull
     assert_contains "Failed to pull canister $CANISTER_ID_A."
     assert_contains "Failed to download wasm from url:"
 }
@@ -230,6 +227,16 @@ Found 3 dependencies:"
     # When ran with ic-ref, got following error:
     # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+
+    use_test_specific_cache_root # dfx pull will download files to cache
+
+    PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
 
     # system-wide local replica
     dfx_start
@@ -271,11 +278,6 @@ Found 3 dependencies:"
 
     # pull canisters in app project
     cd ../app
-    PULLED_DIR="$(pwd)/pulled"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-
     jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
     jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
 
@@ -285,4 +287,7 @@ Found 3 dependencies:"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
 }

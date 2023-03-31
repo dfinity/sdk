@@ -1,17 +1,16 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use candid::Principal;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledDirectory {
-    pub canisters: HashMap<Principal, PulledCanister>,
+    pub named: BTreeMap<String, Principal>,
+    pub canisters: BTreeMap<Principal, PulledCanister>,
 }
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledCanister {
-    // Direct pulled dependency has a name defined in dfx.json
-    pub name: Option<String>,
     // dfx:deps
     pub deps: Vec<Principal>,
     // dfx:wasm_url, once we can download wasm directly from IC, this field will be optional
@@ -22,4 +21,13 @@ pub struct PulledCanister {
     pub wasm_hash: String,
     // dfx:init
     pub init: Option<String>,
+}
+
+impl PulledDirectory {
+    pub fn with_named(named: BTreeMap<String, Principal>) -> Self {
+        Self {
+            named,
+            ..Default::default()
+        }
+    }
 }
