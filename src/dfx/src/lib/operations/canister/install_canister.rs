@@ -8,6 +8,7 @@ use crate::lib::named_canister;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
 use dfx_core::canister::build_wallet_canister;
+use dfx_core::cli::ask_for_consent;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
@@ -26,7 +27,6 @@ use itertools::Itertools;
 use sha2::{Digest, Sha256};
 use slog::info;
 use std::collections::HashSet;
-use std::io::stdin;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -76,11 +76,15 @@ pub async fn install_canister(
                 Ok(None) => (),
                 Ok(Some(err)) => {
                     let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err;
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(&msg).map_err(|e| {
+                        anyhow!("Refusing to install canister without approval: {e}")
+                    })?;
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during Candid interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(&msg).map_err(|e| {
+                        anyhow!("Refusing to install canister without approval: {e}")
+                    })?;
                 }
             }
         }
@@ -92,11 +96,15 @@ pub async fn install_canister(
                 Ok(None) => (),
                 Ok(Some(err)) => {
                     let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &err;
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(&msg).map_err(|e| {
+                        anyhow!("Refusing to install canister without approval: {e}")
+                    })?;
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(&msg).map_err(|e| {
+                        anyhow!("Refusing to install canister without approval: {e}")
+                    })?;
                 }
             }
         }
@@ -378,10 +386,11 @@ pub async fn install_canister_wasm(
         } + r#"
 This will OVERWRITE all the data and code in the canister.
 
-YOU WILL LOSE ALL DATA IN THE CANISTER.");
+YOU WILL LOSE ALL DATA IN THE CANISTER.
 
 "#;
-        ask_for_consent(&msg)?;
+        ask_for_consent(&msg)
+            .map_err(|e| anyhow!("Refusing to install canister without approval: {e}"))?;
     }
     let mode_str = match mode {
         InstallMode::Install => "Installing",
@@ -451,21 +460,5 @@ pub async fn install_wallet(
         .call_and_wait()
         .await
         .context("Failed to store wallet wasm in container.")?;
-    Ok(())
-}
-
-fn ask_for_consent(message: &str) -> DfxResult {
-    eprintln!("WARNING!");
-    eprintln!("{}", message);
-    eprintln!("Do you want to proceed? yes/No");
-    let mut input_string = String::new();
-    stdin()
-        .read_line(&mut input_string)
-        .map_err(|err| anyhow!(err))
-        .context("Unable to read input")?;
-    let input_string = input_string.trim_end();
-    if input_string != "yes" {
-        bail!("Refusing to install canister without approval");
-    }
     Ok(())
 }
