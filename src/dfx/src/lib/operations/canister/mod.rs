@@ -4,6 +4,7 @@ mod install_canister;
 
 pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
+pub use deploy_canisters::DeployMode;
 use fn_error_context::context;
 use ic_utils::Argument;
 pub use install_canister::{install_canister, install_canister_wasm, install_wallet};

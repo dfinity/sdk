@@ -3,6 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::deploy_canisters;
+use crate::lib::operations::canister::DeployMode::{ForceReinstallSingleCanister, NormalDeploy};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
@@ -113,15 +114,25 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let with_cycles = opts.with_cycles.as_deref();
 
-    let force_reinstall = match (mode, canister_name) {
-        (None, _) => false,
-        (Some(InstallMode::Reinstall), Some(_canister_name)) => true,
+    let deploy_mode = match (mode, canister_name) {
+        (Some(InstallMode::Reinstall), Some(canister_name)) => {
+            let network = env.get_network_descriptor();
+            if config
+                .get_config()
+                .is_remote_canister(canister_name, &network.name)?
+            {
+                bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
+                    canister_name, &network.name);
+            }
+            ForceReinstallSingleCanister(canister_name.to_string())
+        }
         (Some(InstallMode::Reinstall), None) => {
             bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister.");
         }
         (Some(_), _) => {
             unreachable!("The only valid option for --mode is --mode=reinstall");
         }
+        (None, _) => NormalDeploy,
     };
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
@@ -150,7 +161,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         canister_name,
         argument,
         argument_type,
-        force_reinstall,
+        &deploy_mode,
         opts.upgrade_unchanged,
         with_cycles,
         opts.specified_id,

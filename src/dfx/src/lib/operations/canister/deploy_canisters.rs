@@ -4,13 +4,14 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::operations::canister::deploy_canisters::DeployMode::ForceReinstallSingleCanister;
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use candid::Principal;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -21,13 +22,19 @@ use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum DeployMode {
+    NormalDeploy,
+    ForceReinstallSingleCanister(String),
+}
+
 #[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
     argument: Option<&str>,
     argument_type: Option<&str>,
-    force_reinstall: bool,
+    deploy_mode: &DeployMode,
     upgrade_unchanged: bool,
     with_cycles: Option<&str>,
     specified_id: Option<Principal>,
@@ -44,24 +51,14 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = env.get_canister_id_store()?;
 
-    let network = env.get_network_descriptor();
-
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
-    let canisters_to_deploy = if force_reinstall {
-        // don't force-reinstall the dependencies too.
-        match some_canister {
-            Some(canister_name) => {
-                if config.get_config().is_remote_canister(canister_name, &network.name)? {
-                    bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
-                    canister_name, &network.name);
-                }
-                vec!(String::from(canister_name))
-            },
-            None => bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."),
+    let canisters_to_deploy = match deploy_mode {
+        ForceReinstallSingleCanister(canister_name) => {
+            // don't force-reinstall the dependencies too.
+            vec![String::from(canister_name)]
         }
-    } else {
-        canisters_to_load
+        DeployMode::NormalDeploy => canisters_to_load
             .clone()
             .into_iter()
             .filter(|canister_name| {
@@ -70,7 +67,7 @@ pub async fn deploy_canisters(
                     .is_remote_canister(canister_name, &env.get_network_descriptor().name)
                     .unwrap_or(false)
             })
-            .collect()
+            .collect(),
     };
 
     if some_canister.is_some() {
@@ -98,6 +95,8 @@ pub async fn deploy_canisters(
         env_file.clone(),
     )
     .await?;
+
+    let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
 
     install_canisters(
         env,
