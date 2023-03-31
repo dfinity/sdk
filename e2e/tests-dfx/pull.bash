@@ -189,6 +189,7 @@ Found 3 dependencies:"
     cd ../app
     jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
     jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
+    assert_file_not_exists "pulled.json"
 
     assert_command dfx pull
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
@@ -280,6 +281,7 @@ Found 3 dependencies:"
     cd ../app
     jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
     jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
+    assert_file_not_exists "pulled.json"
 
     assert_command dfx pull
     assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
@@ -290,4 +292,5 @@ Found 3 dependencies:"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
+    assert_file_exists "pulled.json"
 }
