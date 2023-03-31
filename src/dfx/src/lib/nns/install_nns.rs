@@ -680,7 +680,6 @@ pub async fn install_canister(
     let call_sender = CallSender::SelectedId;
 
     install_canister_wasm(
-        env,
         agent,
         canister_id,
         Some(canister_name),
@@ -689,6 +688,7 @@ pub async fn install_canister(
         &call_sender,
         fs::read(wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
         true,
+        env.get_logger(),
     )
     .await?;
 
