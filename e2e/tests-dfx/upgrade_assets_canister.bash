@@ -21,13 +21,13 @@ teardown() {
     # As a starting point for the load, we looked at OpenChat's usage.
     # As of 2023-02-10, they had 40MB of assets spread over 135 files.
     # We'll use a bigger example (~3x in number of files, ~20x in total size) to add a safety margin.
-    local total_files=400
-    local file_size="2MB"
-    local canister_name=e2e_project_frontend
+    local -r total_files=400
+    local -r file_size="2MB"
+    local -r canister_name=e2e_project_frontend
 
-    local asset_dir="src/${canister_name}/assets"
+    local -r asset_dir="src/${canister_name}/assets"
     for a in $(seq 1 $total_files); do
-        dd if=/dev/urandom of=$asset_dir/large-asset-$a.bin bs=$file_size count=1 &>/dev/null
+        dd if=/dev/urandom of="${asset_dir}/large-asset-${a}.bin" bs="$file_size" count=1 &>/dev/null
     done
 
     dfx_start
@@ -35,9 +35,9 @@ teardown() {
     dfx build
 
     # Install the canister using the Wasm from the latest release
-    local release_asset_wasm_dir=$(mktemp -d)
+    local -r release_asset_wasm_dir=$(mktemp -d)
     get_from_latest_release_tarball src/distributed/assetstorage.wasm.gz "$release_asset_wasm_dir"
-    export DFX_ASSETS_WASM="$release_asset_wasm_dir/assetstorage.wasm.gz"
+    export DFX_ASSETS_WASM="${release_asset_wasm_dir}/assetstorage.wasm.gz"
     assert_command dfx canister install $canister_name
 
     use_default_asset_wasm

@@ -15,6 +15,6 @@ get_from_latest_release_tarball() {
     curl -sL "$tarball_url" -o "${temp_dir}/release.tar.gz"
 
     tar -xzf "$temp_dir/release.tar.gz" -C "$temp_dir" "*/$file_path"
-    local -r extracted_file=$(find "$temp_dir" -type f -name $(basename "$file_path"))
+    local -r extracted_file=$(find "$temp_dir" -type f -name "$(basename $file_path)")
     mv "$extracted_file" "$destination"
 }
