@@ -9,7 +9,7 @@ pub fn ask_for_consent(message: &str) -> Result<(), UserConsent> {
     let mut input_string = String::new();
     stdin()
         .read_line(&mut input_string)
-        .map_err(|err| UserConsent::ReadError(err))?;
+        .map_err(UserConsent::ReadError)?;
     let input_string = input_string.trim_end();
     if input_string != "yes" {
         return Err(UserConsent::Declined);
