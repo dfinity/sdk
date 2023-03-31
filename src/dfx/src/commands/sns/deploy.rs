@@ -20,6 +20,6 @@ pub fn exec(env: &dyn Environment, _opts: DeployOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let path = config.get_project_root().join(sns::CONFIG_FILE_NAME);
 
-    println!("{}", deploy_sns(env, &path)?);
+    println!("{}", deploy_sns(env.get_cache().as_ref(), &path)?);
     Ok(())
 }

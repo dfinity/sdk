@@ -35,12 +35,21 @@ pub async fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     // Wait for the server to be ready...
-    let nns_url = get_and_check_replica_url(env)?;
+    let nns_url = get_and_check_replica_url(env.get_network_descriptor(), env.get_logger())?;
     get_with_retries(&nns_url).await?;
 
     fetch_root_key_if_needed(env).await?;
 
     let ic_nns_init_path = env.get_cache().get_binary_command_path("ic-nns-init")?;
 
-    install_nns(env, agent, &ic_nns_init_path, &opts.ledger_accounts).await
+    install_nns(
+        agent,
+        env.get_network_descriptor(),
+        env.get_networks_config().as_ref(),
+        env.get_cache().as_ref(),
+        &ic_nns_init_path,
+        &opts.ledger_accounts,
+        env.get_logger(),
+    )
+    .await
 }
