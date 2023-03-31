@@ -11,7 +11,7 @@ teardown() {
 
     dfx_stop
 
-    standard_teardown
+    # standard_teardown
 }
 
 export_canister_ids() {
@@ -134,7 +134,7 @@ Found 3 dependencies:"
     assert_contains "Failed to parse \`dfx:deps\` entry: $CANISTER_ID_A. Expected \`name:Principal\`."
 }
 
-@test "dfx pull can download wasm and candid to shared cache" {
+@test "dfx pull can download wasm and candid to shared cache and generate pulled.json" {
     # When ran with ic-ref, got following error:
     # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
@@ -167,6 +167,7 @@ Found 3 dependencies:"
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_a/main.wasm
     ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
     ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "candid:service" -d "service : {}" -v public
+    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:init" -d "onchain_a needs no init inputs" -v public
 
     echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_b/main.wasm
     ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
@@ -198,7 +199,13 @@ Found 3 dependencies:"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
+
     assert_file_exists "pulled.json"
+    assert_eq $CANISTER_ID_B $(jq -r '.named.dep1' pulled.json)
+    assert_eq $CANISTER_ID_C $(jq -r '.named.dep2' pulled.json)
+    assert_eq 5 $(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ') # 3 canisters + 2 lines of '[' and ']'
+    assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".init' pulled.json
+    assert_match "onchain_a needs no init inputs"
 
     assert_command dfx pull
     assert_contains "The canister wasm was found in the cache." # cache hit
