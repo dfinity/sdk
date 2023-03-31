@@ -1,3 +1,4 @@
+use slog::Logger;
 use url::Url;
 
 use crate::config::model::dfinity::NetworkType;
@@ -5,6 +6,7 @@ use crate::config::model::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAIL
 use crate::config::model::local_server_descriptor::LocalServerDescriptor;
 use crate::error::network_config::NetworkConfigError;
 use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, NetworkMustBeLocal};
+use crate::error::uri::UriError;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -86,6 +88,25 @@ impl NetworkDescriptor {
                 })
             })
             .collect()
+    }
+
+    pub fn get_replica_urls(
+        &self,
+        logger: Option<&Logger>,
+    ) -> Result<Vec<Url>, NetworkConfigError> {
+        if self.name == "local" {
+            let local_server_descriptor = self.local_server_descriptor()?;
+
+            if let Some(port) = local_server_descriptor.get_running_replica_port(logger)? {
+                let mut socket_addr = local_server_descriptor.bind_address;
+                socket_addr.set_port(port);
+                let url = format!("http://{}", socket_addr);
+                let url =
+                    Url::parse(&url).map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
+                return Ok(vec![url]);
+            }
+        }
+        self.replica_endpoints()
     }
 }
 

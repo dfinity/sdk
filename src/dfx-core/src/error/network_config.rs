@@ -11,6 +11,9 @@ use crate::error::uri::UriError;
 #[derive(Error, Debug)]
 pub enum NetworkConfigError {
     #[error(transparent)]
+    FsError(#[from] crate::error::fs::FsError),
+
+    #[error(transparent)]
     Config(#[from] ConfigError),
 
     #[error(transparent)]

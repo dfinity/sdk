@@ -13,7 +13,6 @@ use crate::util::blob_from_arguments;
 use dfx_core::config::cache::get_bin_cache;
 use dfx_core::config::model::dfinity::ReplicaSubnetType;
 use dfx_core::identity::CallSender;
-use dfx_core::network::uri::get_replica_urls;
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -165,11 +164,12 @@ pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
             "dfx nns install can only deploy to the 'local' network."
         ));
     }
-    get_replica_urls(env.get_logger(), env.get_network_descriptor())?
-        .pop()
-        .ok_or_else(|| {
-            anyhow!("The list of replica URLs is empty; `dfx start` appears to be unhealthy.")
-        })
+    let mut urls = env
+        .get_network_descriptor()
+        .get_replica_urls(Some(env.get_logger()))?;
+    urls.pop().ok_or_else(|| {
+        anyhow!("The list of replica URLs is empty; `dfx start` appears to be unhealthy.")
+    })
 }
 
 /// Gets the subnet ID
