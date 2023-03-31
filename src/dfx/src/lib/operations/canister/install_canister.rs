@@ -386,10 +386,11 @@ pub async fn install_canister_wasm(
         } + r#"
 This will OVERWRITE all the data and code in the canister.
 
-YOU WILL LOSE ALL DATA IN THE CANISTER.");
+YOU WILL LOSE ALL DATA IN THE CANISTER.
 
 "#;
-        ask_for_consent(&msg).map_err(|e| anyhow!(e))?;
+        ask_for_consent(&msg)
+            .map_err(|e| anyhow!("Refusing to install canister without approval: {e}"))?;
     }
     let mode_str = match mode {
         InstallMode::Install => "Installing",
