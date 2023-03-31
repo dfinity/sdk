@@ -1,13 +1,13 @@
-use slog::Logger;
-use url::Url;
-
 use crate::config::model::dfinity::NetworkType;
 use crate::config::model::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
 use crate::config::model::local_server_descriptor::LocalServerDescriptor;
 use crate::error::network_config::NetworkConfigError;
 use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, NetworkMustBeLocal};
 use crate::error::uri::UriError;
+
+use slog::Logger;
 use std::path::{Path, PathBuf};
+use url::Url;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NetworkTypeDescriptor {
@@ -79,7 +79,7 @@ impl NetworkDescriptor {
         }
     }
 
-    pub fn replica_endpoints(&self) -> Result<Vec<Url>, NetworkConfigError> {
+    fn replica_endpoints(&self) -> Result<Vec<Url>, NetworkConfigError> {
         self.providers
             .iter()
             .map(|s| {

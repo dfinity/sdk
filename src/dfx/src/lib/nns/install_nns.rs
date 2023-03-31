@@ -164,12 +164,12 @@ pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
             "dfx nns install can only deploy to the 'local' network."
         ));
     }
-    let mut urls = env
-        .get_network_descriptor()
-        .get_replica_urls(Some(env.get_logger()))?;
-    urls.pop().ok_or_else(|| {
-        anyhow!("The list of replica URLs is empty; `dfx start` appears to be unhealthy.")
-    })
+    env.get_network_descriptor()
+        .get_replica_urls(Some(env.get_logger()))?
+        .pop()
+        .ok_or_else(|| {
+            anyhow!("The list of replica URLs is empty; `dfx start` appears to be unhealthy.")
+        })
 }
 
 /// Gets the subnet ID
