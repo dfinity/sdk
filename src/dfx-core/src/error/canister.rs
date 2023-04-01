@@ -11,6 +11,9 @@ pub enum CanisterBuilderError {
 
 #[derive(Error, Debug)]
 pub enum CanisterInstallError {
+    #[error("Refusing to install canister without approval: {0}")]
+    UserConsent(crate::error::cli::UserConsent),
+
     #[error(transparent)]
     CanisterBuilderError(#[from] CanisterBuilderError),
 
