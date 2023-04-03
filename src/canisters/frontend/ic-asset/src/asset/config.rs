@@ -650,7 +650,7 @@ mod with_tempdir {
             assets_config.get_asset_config(assets_dir.join("index.html").as_path())?;
         let expected_asset_config = AssetConfig {
             cache: Some(CacheConfig { max_age: Some(88) }),
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 ("x-content-type-options".to_string(), "nosniff".to_string()),
                 ("x-frame-options".to_string(), "SAMEORIGIN".to_string()),
                 ("Some-Other-Policy".to_string(), "add".to_string()),
