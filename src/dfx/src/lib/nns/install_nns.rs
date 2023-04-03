@@ -8,9 +8,8 @@
 
 use crate::lib::environment::Environment;
 use crate::lib::info::replica_rev;
-use crate::lib::operations::canister::install_canister_wasm;
 use crate::util::blob_from_arguments;
-use crate::util::network::get_replica_urls;
+use dfx_core::canister::install_canister_wasm;
 use dfx_core::config::cache::get_bin_cache;
 use dfx_core::config::model::dfinity::ReplicaSubnetType;
 use dfx_core::identity::CallSender;
@@ -165,7 +164,8 @@ pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
             "dfx nns install can only deploy to the 'local' network."
         ));
     }
-    get_replica_urls(env, env.get_network_descriptor())?
+    env.get_network_descriptor()
+        .get_replica_urls(Some(env.get_logger()))?
         .pop()
         .ok_or_else(|| {
             anyhow!("The list of replica URLs is empty; `dfx start` appears to be unhealthy.")
@@ -680,7 +680,6 @@ pub async fn install_canister(
     let call_sender = CallSender::SelectedId;
 
     install_canister_wasm(
-        env,
         agent,
         canister_id,
         Some(canister_name),
@@ -689,6 +688,7 @@ pub async fn install_canister(
         &call_sender,
         fs::read(wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
         true,
+        env.get_logger(),
     )
     .await?;
 
