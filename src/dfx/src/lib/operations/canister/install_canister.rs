@@ -76,11 +76,11 @@ pub async fn install_canister(
                 Ok(None) => (),
                 Ok(Some(err)) => {
                     let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err;
-                    ask_for_consent(&msg).map_err(|e| anyhow!(e))?;
+                    ask_for_consent(&msg)?;
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during Candid interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(&msg).map_err(|e| anyhow!(e))?;
+                    ask_for_consent(&msg)?;
                 }
             }
         }
@@ -92,11 +92,11 @@ pub async fn install_canister(
                 Ok(None) => (),
                 Ok(Some(err)) => {
                     let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &err;
-                    ask_for_consent(&msg).map_err(|e| anyhow!(e))?;
+                    ask_for_consent(&msg)?;
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(&msg).map_err(|e| anyhow!(e))?;
+                    ask_for_consent(&msg)?;
                 }
             }
         }
