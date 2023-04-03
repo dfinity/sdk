@@ -29,7 +29,6 @@ teardown() {
         file_size="2M"
     fi
 
-    local -r file_size="2MB"
     local -r canister_name=e2e_project_frontend
 
     local -r asset_dir="src/${canister_name}/assets"
