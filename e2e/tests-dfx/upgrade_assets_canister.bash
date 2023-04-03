@@ -27,7 +27,7 @@ teardown() {
 
     local -r asset_dir="src/${canister_name}/assets"
     for a in $(seq 1 $total_files); do
-        dd if=/dev/urandom of="${asset_dir}/large-asset-${a}.bin" bs="$file_size" count=1 &>/dev/null
+        dd if=/dev/urandom of="${asset_dir}/large-asset-${a}.bin" bs="$file_size" count=1 1>/dev/null
     done
 
     dfx_start
