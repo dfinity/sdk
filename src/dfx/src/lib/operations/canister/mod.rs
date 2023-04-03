@@ -4,6 +4,7 @@ mod install_canister;
 
 pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
+pub use deploy_canisters::DeployMode;
 pub use install_canister::{install_canister, install_wallet};
 
 use crate::lib::canister_info::CanisterInfo;
