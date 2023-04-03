@@ -1,10 +1,10 @@
 //! Code for the command line: `dfx nns install`
 use crate::lib::error::DfxResult;
+use crate::lib::nns::install_nns::{get_and_check_replica_url, get_with_retries, install_nns};
 use crate::Environment;
 use anyhow::anyhow;
+use dfx_core::network::root_key::fetch_root_key_when_local;
 
-use crate::lib::nns::install_nns::{get_and_check_replica_url, get_with_retries, install_nns};
-use crate::lib::root_key::fetch_root_key_if_needed;
 use clap::Parser;
 
 /// Installs the NNS canisters, Internet Identity and the NNS frontend dapp
@@ -33,23 +33,27 @@ pub async fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let network_descriptor = env.get_network_descriptor();
+    let networks_config = env.get_networks_config();
+    let logger = env.get_logger();
+    let cache = env.get_cache();
 
     // Wait for the server to be ready...
-    let nns_url = get_and_check_replica_url(env.get_network_descriptor(), env.get_logger())?;
+    let nns_url = get_and_check_replica_url(network_descriptor, logger)?;
     get_with_retries(&nns_url).await?;
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_when_local(agent, network_descriptor).await?;
 
-    let ic_nns_init_path = env.get_cache().get_binary_command_path("ic-nns-init")?;
+    let ic_nns_init_path = cache.get_binary_command_path("ic-nns-init")?;
 
     install_nns(
         agent,
-        env.get_network_descriptor(),
-        env.get_networks_config().as_ref(),
-        env.get_cache().as_ref(),
+        network_descriptor,
+        networks_config.as_ref(),
+        cache.as_ref(),
         &ic_nns_init_path,
         &opts.ledger_accounts,
-        env.get_logger(),
+        logger,
     )
     .await
 }

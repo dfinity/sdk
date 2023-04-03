@@ -34,7 +34,12 @@ pub fn exec(env: &dyn Environment, opts: NnsOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {
-            SubCommand::Import(v) => import::exec(&env, v).await,
+            /*logger, config*/ SubCommand::Import(v) => import::exec(&env, v).await,
+            /*agent,
+             * network_config,
+             * network_descriptor,
+             * logger,
+             * cache*/
             SubCommand::Install(v) => install::exec(&env, v).await,
         }
     })
