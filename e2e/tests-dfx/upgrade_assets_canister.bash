@@ -22,6 +22,13 @@ teardown() {
     # As of 2023-02-10, they had 40MB of assets spread over 135 files.
     # We'll use a bigger example (~3x in number of files, ~20x in total size) to add a safety margin.
     local -r total_files=400
+    local file_size
+    if [ "$(uname)" == "Darwin" ]; then
+        file_size="2m"
+    else
+        file_size="2M"
+    fi
+
     local -r file_size="2MB"
     local -r canister_name=e2e_project_frontend
 
