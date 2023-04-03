@@ -11,6 +11,7 @@ use ic_utils::{
 use slog::{info, Logger};
 
 use crate::{
+    cli::ask_for_consent,
     error::canister::{CanisterBuilderError, CanisterInstallError},
     identity::CallSender,
 };
@@ -50,10 +51,10 @@ pub async fn install_canister_wasm(
         } + r#"
 This will OVERWRITE all the data and code in the canister.
 
-YOU WILL LOSE ALL DATA IN THE CANISTER.");
+YOU WILL LOSE ALL DATA IN THE CANISTER.
 
 "#;
-        crate::cli::ask_for_consent(&msg).unwrap();
+        ask_for_consent(&msg).map_err(CanisterInstallError::UserConsent)?;
     }
     let mode_str = match mode {
         InstallMode::Install => "Installing",
