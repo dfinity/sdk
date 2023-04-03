@@ -1,4 +1,4 @@
-use crate::lib::environment::AgentEnvironment;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::metadata::names::{
@@ -7,8 +7,6 @@ use crate::lib::metadata::names::{
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::pull::{PulledCanister, PulledDirectory};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::{agent::create_agent_environment, environment::Environment};
-use crate::NetworkOpt;
 use dfx_core::config::cache::get_cache_root;
 use std::collections::VecDeque;
 use std::io::Write;
@@ -21,82 +19,72 @@ use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use sha2::{Digest, Sha256};
 use slog::{error, info, warn, Logger};
-use tokio::runtime::Runtime;
 
 /// Pull canisters upon which the project depends
 #[derive(Parser)]
-pub struct PullOpts {
-    #[clap(flatten)]
-    network: NetworkOpt,
-}
+pub struct DepsPullOpts {}
 
-pub fn exec(env: &dyn Environment, opts: PullOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.network)?;
+pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let logger = env.get_logger();
 
-    let runtime = Runtime::new().expect("Unable to create a runtime");
-    runtime.block_on(async {
-        fetch_root_key_if_needed(&agent_env).await?;
+    fetch_root_key_if_needed(env).await?;
 
-        let agent = agent_env
-            .get_agent()
-            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-        let pull_canisters_in_config = agent_env
-            .get_config_or_anyhow()?
-            .get_config()
-            .get_pull_canisters()?;
+    let pull_canisters_in_config = env
+        .get_config_or_anyhow()?
+        .get_config()
+        .get_pull_canisters()?;
 
-        let mut canisters_to_resolve: VecDeque<Principal> =
-            pull_canisters_in_config.values().cloned().collect();
+    let mut canisters_to_resolve: VecDeque<Principal> =
+        pull_canisters_in_config.values().cloned().collect();
 
-        let mut pulled_directory = PulledDirectory::with_named(pull_canisters_in_config);
+    let mut pulled_directory = PulledDirectory::with_named(pull_canisters_in_config);
 
-        while let Some(callee_canister) = canisters_to_resolve.pop_front() {
-            if !pulled_directory.canisters.contains_key(&callee_canister) {
-                fetch_deps_to_pull(
-                    agent,
-                    logger,
-                    callee_canister,
-                    &mut canisters_to_resolve,
-                    &mut pulled_directory,
-                )
-                .await?;
-            }
+    while let Some(callee_canister) = canisters_to_resolve.pop_front() {
+        if !pulled_directory.canisters.contains_key(&callee_canister) {
+            fetch_deps_to_pull(
+                agent,
+                logger,
+                callee_canister,
+                &mut canisters_to_resolve,
+                &mut pulled_directory,
+            )
+            .await?;
         }
+    }
 
-        let mut message = String::new();
-        message.push_str(&format!(
-            "Found {} dependencies:",
-            pulled_directory.canisters.len()
-        ));
-        for id in pulled_directory.canisters.keys() {
-            message.push('\n');
-            message.push_str(&id.to_text());
+    let mut message = String::new();
+    message.push_str(&format!(
+        "Found {} dependencies:",
+        pulled_directory.canisters.len()
+    ));
+    for id in pulled_directory.canisters.keys() {
+        message.push('\n');
+        message.push_str(&id.to_text());
+    }
+
+    info!(logger, "{}", message);
+
+    let mut any_download_fail = false;
+
+    for (canister_id, pulled_canister) in pulled_directory.canisters.iter_mut() {
+        if let Err(e) = download_canister_files(env, logger, *canister_id, pulled_canister).await {
+            error!(logger, "Failed to pull canister {canister_id}.\n{e}");
+            any_download_fail = true;
         }
+    }
 
-        info!(logger, "{}", message);
+    if any_download_fail {
+        bail!("Failed when pulling canisters.");
+    }
 
-        let mut any_download_fail = false;
-
-        for (canister_id, pulled_canister) in pulled_directory.canisters.iter_mut() {
-            if let Err(e) =
-                download_canister_files(&agent_env, logger, *canister_id, pulled_canister).await
-            {
-                error!(logger, "Failed to pull canister {canister_id}.\n{e}");
-                any_download_fail = true;
-            }
-        }
-
-        if any_download_fail {
-            bail!("Failed when pulling canisters.");
-        }
-
-        let content = serde_json::to_string_pretty(&pulled_directory)?;
-        let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
-        write_to_tempfile_then_rename(content.as_bytes(), &project_root, "pulled.json")?;
-        Ok(())
-    })
+    let content = serde_json::to_string_pretty(&pulled_directory)?;
+    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
+    write_to_tempfile_then_rename(content.as_bytes(), &project_root, "pulled.json")?;
+    Ok(())
 }
 
 #[context("Failed to fetch and parse `dfx:deps` metadata from canister {canister_id}.")]
@@ -155,14 +143,14 @@ async fn fetch_deps_to_pull(
 
 // download canister wasm, candid, init
 async fn download_canister_files(
-    agent_env: &AgentEnvironment<'_>,
+    env: &dyn Environment,
     logger: &Logger,
     canister_id: Principal,
     pulled_canister: &mut PulledCanister,
 ) -> DfxResult {
     info!(logger, "Pulling canister {canister_id}...");
 
-    let agent = agent_env
+    let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
@@ -178,7 +166,7 @@ async fn download_canister_files(
         }
         Ok(None) => {
             let canister_status =
-                get_canister_status(agent_env, canister_id, &CallSender::SelectedId).await?;
+                get_canister_status(env, canister_id, &CallSender::SelectedId).await?;
             match canister_status.module_hash {
                 Some(hash_on_chain) => hash_on_chain,
                 None => {
