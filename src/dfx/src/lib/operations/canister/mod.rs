@@ -4,14 +4,13 @@ mod install_canister;
 
 pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
-use fn_error_context::context;
-use ic_utils::Argument;
-pub use install_canister::{install_canister, install_canister_wasm, install_wallet};
+pub use install_canister::{install_canister, install_wallet};
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
+pub use dfx_core::canister::install_canister_wasm;
 use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, Context};
@@ -20,9 +19,11 @@ use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
+use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
+use ic_utils::Argument;
 use std::path::PathBuf;
 
 #[context(

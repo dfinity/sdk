@@ -8,8 +8,8 @@
 
 use crate::lib::environment::Environment;
 use crate::lib::info::replica_rev;
-use crate::lib::operations::canister::install_canister_wasm;
 use crate::util::blob_from_arguments;
+use dfx_core::canister::install_canister_wasm;
 use dfx_core::config::cache::get_bin_cache;
 use dfx_core::config::model::dfinity::ReplicaSubnetType;
 use dfx_core::identity::CallSender;
@@ -680,7 +680,6 @@ pub async fn install_canister(
     let call_sender = CallSender::SelectedId;
 
     install_canister_wasm(
-        env,
         agent,
         canister_id,
         Some(canister_name),
@@ -689,6 +688,7 @@ pub async fn install_canister(
         &call_sender,
         fs::read(wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
         true,
+        env.get_logger(),
     )
     .await?;
 
