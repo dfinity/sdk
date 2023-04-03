@@ -43,9 +43,9 @@ enum SubCommand {
 /// Executes `dfx sns` and its subcommands.
 pub fn exec(env: &dyn Environment, cmd: SnsOpts) -> DfxResult {
     match cmd.subcmd {
-        /*cache,  config*/ SubCommand::Config(v) => config::exec(env, v),
-        /*logger, config*/ SubCommand::Import(v) => import::exec(env, v),
-        /*cache,  config*/ SubCommand::Deploy(v) => deploy::exec(env, v),
-        /*no env needed */ SubCommand::Download(v) => download::exec(env, v),
+        SubCommand::Config(v) => config::exec(env, v),
+        SubCommand::Import(v) => import::exec(env, v),
+        SubCommand::Deploy(v) => deploy::exec(env, v),
+        SubCommand::Download(v) => download::exec(env, v),
     }
 }
