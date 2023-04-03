@@ -14,6 +14,7 @@ pub struct ValidateOpts {}
 pub fn exec(env: &dyn Environment, _opts: ValidateOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let path = config.get_project_root().join(sns::CONFIG_FILE_NAME);
+    let cache = env.get_cache();
 
-    validate_config(env, &path).map(|stdout| println!("{}", stdout))
+    validate_config(cache.as_ref(), &path).map(|stdout| println!("{}", stdout))
 }

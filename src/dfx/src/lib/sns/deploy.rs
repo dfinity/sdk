@@ -6,11 +6,11 @@ use std::path::Path;
 
 use crate::lib::call_bundled::call_bundled;
 use crate::lib::error::DfxResult;
-use crate::Environment;
+use dfx_core::config::cache::Cache;
 
 /// Creates an SNS.  This requires funds but no proposal.
 #[context("Failed to deploy SNS with config: {}", path.display())]
-pub fn deploy_sns(env: &dyn Environment, path: &Path) -> DfxResult<String> {
+pub fn deploy_sns(cache: &dyn Cache, path: &Path) -> DfxResult<String> {
     // Note: It MAY be possible to get the did file location using existing sdk methods.
     let did_file = "candid/nns-sns-wasm.did";
     if !Path::new(did_file).exists() {
@@ -32,7 +32,7 @@ pub fn deploy_sns(env: &dyn Environment, path: &Path) -> DfxResult<String> {
         OsString::from("--save-to"),
         OsString::from(canister_ids_file),
     ];
-    call_bundled(env, "sns", &args).map(|stdout| {
+    call_bundled(cache, "sns", &args).map(|stdout| {
         format!(
             "Deployed SNS:\nSNS config: {}\nCanister ID file: {}\n\n{}",
             path.display(),

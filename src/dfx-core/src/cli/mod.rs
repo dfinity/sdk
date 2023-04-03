@@ -1,6 +1,6 @@
-use std::io::stdin;
-
 use crate::error::cli::UserConsent;
+
+use std::io::stdin;
 
 pub fn ask_for_consent(message: &str) -> Result<(), UserConsent> {
     eprintln!("WARNING!");

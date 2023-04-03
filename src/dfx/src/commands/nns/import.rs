@@ -33,6 +33,7 @@ pub struct ImportOpts {
 pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let mut config = config.as_ref().clone();
+    let logger = env.get_logger();
 
     let network_mappings = get_network_mappings(&opts.network_mapping)?;
     let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
@@ -44,7 +45,7 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
         format!("{ic_project}/rs/nns/dfx.json")
     };
     import_canister_definitions(
-        env.get_logger(),
+        logger,
         &mut config,
         &dfx_url_str,
         Some("nns-"),
@@ -53,7 +54,7 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     )
     .await?;
 
-    set_local_nns_canister_ids(env.get_logger(), &mut config)
+    set_local_nns_canister_ids(logger, &mut config)
 }
 
 /// Sets local canister IDs
