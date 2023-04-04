@@ -26,6 +26,7 @@ You can use the following options with the `dfx deploy` command.
 | `--argument <argument>`            | Specifies an argument using Candid syntax to pass to the canister during deployment. Note that this option requires you to define an actor class in the Motoko program. |
 | `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                            |
 | `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                 |
+| `--by-proposal`                    | Upload proposed changed assets, but do not commit them.  Follow up by calling either commit_proposed_batch() or delete_batch().                                             |
 
 ### Arguments
 
