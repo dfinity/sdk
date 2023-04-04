@@ -3,8 +3,6 @@ use crate::lib::error::DfxResult;
 
 use anyhow::bail;
 use clap::Subcommand;
-#[allow(unused_imports)]
-use std::ffi::OsString;
 
 mod beta;
 mod bootstrap;

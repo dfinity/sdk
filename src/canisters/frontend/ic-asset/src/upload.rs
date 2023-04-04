@@ -1,4 +1,5 @@
 use crate::asset::config::AssetConfig;
+use crate::batch_upload::plumbing::ChunkUploadTarget;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
@@ -39,9 +40,13 @@ pub async fn upload(
 
     info!(logger, "Staging contents of new and changed assets:");
 
-    let project_assets = make_project_assets(
+    let chunk_upload_target = ChunkUploadTarget {
         canister,
-        &batch_id,
+        batch_id: &batch_id,
+    };
+
+    let project_assets = make_project_assets(
+        Some(&chunk_upload_target),
         asset_descriptors,
         &canister_assets,
         logger,
