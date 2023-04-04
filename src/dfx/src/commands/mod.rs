@@ -3,6 +3,8 @@ use crate::lib::error::DfxResult;
 
 use anyhow::bail;
 use clap::Subcommand;
+#[allow(unused_imports)]
+use std::ffi::OsString;
 
 mod beta;
 mod bootstrap;
@@ -45,9 +47,9 @@ pub enum Command {
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
     // Extension(extension::ExtensionOpts),
-    // Executes an extension
+    // // Executes an extension
     // #[clap(external_subcommand)]
-    // ExtensionRun(Vec<std::ffi::OsString>),
+    // ExtensionRun(Vec<OsString>), // remove "allow(unused_imports)" after this gets permanently enabled
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
