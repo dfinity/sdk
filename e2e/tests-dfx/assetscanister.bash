@@ -52,7 +52,7 @@ check_permission_failure() {
   assert_contains "Caller does not have Prepare permission"
 }
 
-@test "deploy --by-proposal happy path" {
+@test "deploy --by-proposal extravaganza" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity new prepare --storage-mode plaintext
   assert_command dfx identity new commit --storage-mode plaintext
@@ -63,19 +63,35 @@ check_permission_failure() {
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
   install_asset assetscanister
+  # Prep for a DeleteAsset operation
+  echo "to-be-deleted" >src/e2e_project_frontend/assets/to-be-deleted.txt
+  # Prep for an UnsetAssetContent operation
+  for i in $(seq 1 400); do
+    echo "some easily duplicate text $i" >>src/e2e_project_frontend/assets/notreally.js
+  done
+
   dfx_start
   assert_command dfx deploy --identity controller
 
   assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
   assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
 
+  # For a CreateAsset operation
   echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
-#  echo "file a b c" > 'src/e2e_project_frontend/assets/a_b_c.txt'
-#  echo "file x y z" > 'src/e2e_project_frontend/assets/x_y_z.txt'
+  # For a DeleteAsset operation
+  rm src/e2e_project_frontend/assets/to-be-deleted.txt
+  # For an UnsetAssetContent operation
+  echo "will not compress" >src/e2e_project_frontend/assets/notreally.js
+
+  # this includes some more files, so they have the possibility to be in a different order
+  # and require sorting in order to have a consistent hash.
+  echo "file a b c" > 'src/e2e_project_frontend/assets/a_b_c.txt'
+  echo "file x y z" > 'src/e2e_project_frontend/assets/x_y_z.txt'
+
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 44b61c14d0a060a051c3ca2bb7c7e370e9123d3bb61eac3a850d74233a6dd761.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence cc6b5aab7ed38606774878fb33c17fccd02983d8415fb27dfb8dae50dc099fb1.  Either commit it by proposal, or delete it."
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -83,15 +99,34 @@ check_permission_failure() {
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
   assert_contains "The requested URL returned error: 404"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\44\b6\1c\14\d0\a0\60\a0\51\c3\ca\2b\b7\c7\e3\70\e9\12\3d\3b\b6\1e\ac\3a\85\0d\74\23\3a\6d\d7\61" } )'
+  assert_command curl --fail -vv http://localhost:"$PORT"/to-be-deleted.txt?canisterId="$ID"
+
+  assert_command curl --fail -vv --output encoded-compressed-1.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_match "content-encoding: gzip"
+
+  wrong_commit_args='(record { batch_id = 2; evidence = blob "\cc\6b\5a\ab\7e\d3\86\06\77\48\78\fb\33\c1\7f\cc\d1\29\83\d8\41\5f\b2\7d\fb\8d\ae\50\dc\09\9f\b1" } )'
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$wrong_commit_args" --identity commit
+  assert_match "batch computed evidence .* does not match presented evidence"
+
+  commit_args='(record { batch_id = 2; evidence = blob "\cc\6b\5a\ab\7e\d3\86\06\77\48\78\fb\33\c1\7f\cc\d0\29\83\d8\41\5f\b2\7d\fb\8d\ae\50\dc\09\9f\b1" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 44b6"
+  assert_contains "commit proposed batch 2 with evidence cc6b"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
+
+  # show this asset was created and its content set
   assert_command curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
   # shellcheck disable=SC2154
   assert_match "200 OK" "$stderr"
   assert_match "new file content"
+
+  # show the DeleteAsset operation was applied
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/to-be-deleted.txt?canisterId="$ID"
+
+  # show the UnsetAssetContent was applied (gzip content encoding was removed)
+  assert_command curl --fail -vv -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_not_contains "content-encoding"
+  assert_eq "will not compress" "$stdout"
 }
 
 @test "deploy --by-proposal all assets" {
@@ -108,9 +143,6 @@ check_permission_failure() {
   dfx_start
   mkdir tmp
   mkdir tmp/assets
-
-  # this includes some more files, so they have the possibility to be in a different order
-  # and require sorting in order to have a consistent hash.
 
   mv src/e2e_project_frontend/assets/* tmp/assets/
 
