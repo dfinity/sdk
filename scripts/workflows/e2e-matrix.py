@@ -27,6 +27,8 @@ matrix = {
         {"backend": "ic-ref", "test": "dfx/new"},
         {"backend": "ic-ref", "test": "dfx/print"},
         {"backend": "ic-ref", "test": "dfx/signals"},
+        {"backend": "ic-ref", "test": "dfx/upgrade_assets_canister"},
+        {"backend": "replica", "os": "macos-11", "test": "dfx/upgrade_assets_canister"},
     ],
 }
 
