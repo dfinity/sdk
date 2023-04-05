@@ -51,6 +51,9 @@ pub enum ExtensionError {
     #[error(transparent)]
     Io(#[from] dfx_core::error::fs::FsError),
 
+    #[error("Platform '{0}' is not supported.")]
+    PlatformNotSupported(String),
+
     // errors related to uninstalling extensions
     #[error("Cannot uninstall extension: {0}")]
     InsufficientPermissionsToDeleteExtensionDirectory(dfx_core::error::fs::FsError),
