@@ -1,6 +1,6 @@
 # Print the latest dfx version available on GitHub releases
 get_latest_dfx_version() {
-    latest_version=$(curl -sL --retry 5 "https://api.github.com/repos/dfinity/sdk/releases/latest" | jq -r ".tag_name")
+    latest_version=$(curl -sL --retry 5 --retry-all-errors "https://api.github.com/repos/dfinity/sdk/releases/latest" | jq -r ".tag_name")
     echo "$latest_version"
 }
 
@@ -9,10 +9,10 @@ get_latest_dfx_version() {
 get_from_latest_release_tarball() {
     local -r file_path=$1
     local -r destination=$2
-    local -r tarball_url=$(curl -sL --retry 5 "https://api.github.com/repos/dfinity/sdk/releases/latest" | jq -r ".tarball_url")
+    local -r tarball_url=$(curl -sL --retry 5 --retry-all-errors "https://api.github.com/repos/dfinity/sdk/releases/latest" | jq -r ".tarball_url")
 
     local -r temp_dir=$(mktemp -d)
-    curl -sL --retry 5 "$tarball_url" -o "${temp_dir}/release.tar.gz"
+    curl -sL --retry 5 --retry-all-errors "$tarball_url" -o "${temp_dir}/release.tar.gz"
 
     if [ "$(uname)" == "Darwin" ]; then
         tar -xzf "$temp_dir/release.tar.gz" -C "$temp_dir" "*/$file_path"
