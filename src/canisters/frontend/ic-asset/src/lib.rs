@@ -37,5 +37,6 @@ mod canister_api;
 mod sync;
 mod upload;
 
+pub use sync::prepare_sync_for_proposal;
 pub use sync::sync;
 pub use upload::upload;
