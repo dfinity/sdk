@@ -1,11 +1,11 @@
 use crate::lib::error::extension::ExtensionError;
 use crate::lib::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
 
+use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
-use xz2::read::XzDecoder;
 
 use std::io::Cursor;
 #[cfg(not(target_os = "windows"))]
@@ -68,7 +68,7 @@ impl ExtensionManager {
             ExtensionError::CreateTemporaryDirectoryFailed(self.dir.to_path_buf(), e)
         })?;
 
-        let mut archive = Archive::new(XzDecoder::new(Cursor::new(bytes)));
+        let mut archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
         archive
             .unpack(temp_dir.path())
             .map_err(|e| ExtensionError::DecompressFailed(download_url, e))?;
@@ -104,7 +104,7 @@ fn get_extension_download_url(
     github_release_tag: &str,
     extension_archive_name: &str,
 ) -> Result<Url, ExtensionError> {
-    let download_url = format!("{DFINITY_DFX_EXTENSIONS_RELEASES_URL}/{github_release_tag}/{extension_archive_name}.tar.xz",);
+    let download_url = format!("{DFINITY_DFX_EXTENSIONS_RELEASES_URL}/{github_release_tag}/{extension_archive_name}.tar.gz",);
     Url::parse(&download_url)
         .map_err(|e| ExtensionError::MalformedExtensionDownloadUrl(download_url, e))
 }

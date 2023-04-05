@@ -108,7 +108,6 @@ url.workspace = true
 walkdir.workspace = true
 wasmparser = "0.87.0"
 which = "4.2.5"
-xz2 = "0.1"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"
