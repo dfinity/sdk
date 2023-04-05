@@ -55,7 +55,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     )
     .await?;
 
-    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
+    let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
         project_assets,
         canister_assets,
         AssetDeletionReason::Obsolete,
