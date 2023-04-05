@@ -12,7 +12,7 @@ get_from_latest_release_tarball() {
     local -r tarball_url=$(curl -sL --retry 5 --retry-all-errors "https://api.github.com/repos/dfinity/sdk/releases/latest" | jq -r ".tarball_url")
 
     local -r temp_dir=$(mktemp -d)
-    curl -sL --retry 5 --retry-all-errors "$tarball_url" -o "${temp_dir}/release.tar.gz"
+    curl -sL --retry 5 --retry-all-errors "$tarball_url" -o "${temp_dir}/release.tar.gz" || (echo "It's really curl that failed" && return 1)
 
     if [ "$(uname)" == "Darwin" ]; then
         tar -xzf "$temp_dir/release.tar.gz" -C "$temp_dir" "*/$file_path"
