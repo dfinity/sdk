@@ -190,7 +190,7 @@ Found 3 dependencies:"
     cd ../app
     jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
     jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
-    assert_file_not_exists "pulled.json"
+    assert_file_not_exists "deps/pulled.json"
 
     assert_command dfx deps pull
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
@@ -200,12 +200,14 @@ Found 3 dependencies:"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
 
+    cd deps
     assert_file_exists "pulled.json"
-    assert_eq $CANISTER_ID_B $(jq -r '.named.dep1' pulled.json)
-    assert_eq $CANISTER_ID_C $(jq -r '.named.dep2' pulled.json)
-    assert_eq 5 $(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ') # 3 canisters + 2 lines of '[' and ']'
+    assert_eq "$CANISTER_ID_B" "$(jq -r '.named.dep1' pulled.json)"
+    assert_eq "$CANISTER_ID_C" "$(jq -r '.named.dep2' pulled.json)"
+    assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
     assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".init' pulled.json
     assert_match "onchain_a needs no init inputs"
+    cd ../
 
     assert_command dfx deps pull
     assert_contains "The canister wasm was found in the cache." # cache hit
@@ -288,7 +290,7 @@ Found 3 dependencies:"
     cd ../app
     jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
     jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
-    assert_file_not_exists "pulled.json"
+    assert_file_not_exists "deps/pulled.json"
 
     assert_command dfx deps pull
     assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
@@ -299,5 +301,5 @@ Found 3 dependencies:"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
-    assert_file_exists "pulled.json"
+    assert_file_exists "deps/pulled.json"
 }

@@ -1,3 +1,7 @@
+use crate::commands::deps::{
+    get_pulled_candid_path, get_pulled_wasm_path, write_pulled_json, write_to_tempfile_then_rename,
+};
+use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
@@ -5,12 +9,9 @@ use crate::lib::metadata::names::{
     CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
 };
 use crate::lib::operations::canister::get_canister_status;
-use crate::lib::pull::{PulledCanister, PulledDirectory};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use dfx_core::config::cache::get_cache_root;
 use std::collections::VecDeque;
-use std::io::Write;
-use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -41,16 +42,16 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let mut canisters_to_resolve: VecDeque<Principal> =
         pull_canisters_in_config.values().cloned().collect();
 
-    let mut pulled_directory = PulledDirectory::with_named(pull_canisters_in_config);
+    let mut pulled_json = PulledJson::with_named(pull_canisters_in_config);
 
     while let Some(callee_canister) = canisters_to_resolve.pop_front() {
-        if !pulled_directory.canisters.contains_key(&callee_canister) {
+        if !pulled_json.canisters.contains_key(&callee_canister) {
             fetch_deps_to_pull(
                 agent,
                 logger,
                 callee_canister,
                 &mut canisters_to_resolve,
-                &mut pulled_directory,
+                &mut pulled_json,
             )
             .await?;
         }
@@ -59,9 +60,9 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let mut message = String::new();
     message.push_str(&format!(
         "Found {} dependencies:",
-        pulled_directory.canisters.len()
+        pulled_json.canisters.len()
     ));
-    for id in pulled_directory.canisters.keys() {
+    for id in pulled_json.canisters.keys() {
         message.push('\n');
         message.push_str(&id.to_text());
     }
@@ -70,7 +71,7 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
 
     let mut any_download_fail = false;
 
-    for (canister_id, pulled_canister) in pulled_directory.canisters.iter_mut() {
+    for (canister_id, pulled_canister) in pulled_json.canisters.iter_mut() {
         if let Err(e) = download_canister_files(env, logger, *canister_id, pulled_canister).await {
             error!(logger, "Failed to pull canister {canister_id}.\n{e}");
             any_download_fail = true;
@@ -81,9 +82,7 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
         bail!("Failed when pulling canisters.");
     }
 
-    let content = serde_json::to_string_pretty(&pulled_directory)?;
-    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
-    write_to_tempfile_then_rename(content.as_bytes(), &project_root, "pulled.json")?;
+    write_pulled_json(env, &pulled_json)?;
     Ok(())
 }
 
@@ -93,7 +92,7 @@ async fn fetch_deps_to_pull(
     logger: &Logger,
     canister_id: Principal,
     canisters_to_pull: &mut VecDeque<Principal>,
-    pulled_directory: &mut PulledDirectory,
+    pulled_json: &mut PulledJson,
 ) -> DfxResult {
     info!(
         logger,
@@ -117,7 +116,7 @@ async fn fetch_deps_to_pull(
                     ),
                 }
             }
-            pulled_directory.canisters.insert(
+            pulled_json.canisters.insert(
                 canister_id,
                 PulledCanister {
                     deps,
@@ -130,7 +129,7 @@ async fn fetch_deps_to_pull(
                 logger,
                 "`{DFX_DEPS}` metadata not found in canister {canister_id}."
             );
-            pulled_directory
+            pulled_json
                 .canisters
                 .insert(canister_id, PulledCanister::default());
         }
@@ -188,16 +187,13 @@ async fn download_canister_files(
     std::fs::create_dir_all(&canister_dir)
         .with_context(|| format!("Failed to create dir at {:?}", &canister_dir))?;
 
-    let wasm_file_name = "canister.wasm";
-    let wasm_path = canister_dir.join(wasm_file_name);
+    let wasm_path = get_pulled_wasm_path(canister_id)?;
 
     // skip download if cache hit
     let mut cache_hit = false;
     if wasm_path.exists() {
         let bytes = std::fs::read(&wasm_path)?;
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let hash_cache = hasher.finalize();
+        let hash_cache = Sha256::digest(bytes);
 
         if hash_cache.as_slice() == hash_on_chain {
             cache_hit = true;
@@ -238,7 +234,7 @@ download: {}",
             );
         }
 
-        write_to_tempfile_then_rename(&content, &canister_dir, wasm_file_name)?;
+        write_to_tempfile_then_rename(&content, &wasm_path)?;
     }
 
     // fetch `candid:service` and save in "canister.did"
@@ -247,7 +243,8 @@ download: {}",
         .ok_or_else(|| {
             anyhow!("`{CANDID_SERVICE}` metadata not found in canister {canister_id}.")
         })?;
-    write_to_tempfile_then_rename(&candid_bytes, &canister_dir, "canister.did")?;
+    let candid_path = get_pulled_candid_path(canister_id)?;
+    write_to_tempfile_then_rename(&candid_bytes, &candid_path)?;
 
     // try fetch `dfx:init`
     match fetch_metatdata(agent, canister_id, DFX_INIT).await {
@@ -267,15 +264,6 @@ download: {}",
         }
     };
 
-    Ok(())
-}
-
-#[context("Failed to write to a tempfile in {} and rename it to {file_name}", dir.display())]
-fn write_to_tempfile_then_rename(content: &[u8], dir: &PathBuf, file_name: &str) -> DfxResult<()> {
-    let mut f = tempfile::NamedTempFile::new_in(dir)?;
-    f.write_all(content)?;
-    let path = dir.join(file_name);
-    std::fs::rename(f.path(), &path)?;
     Ok(())
 }
 
