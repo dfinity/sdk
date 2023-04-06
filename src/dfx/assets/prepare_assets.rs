@@ -131,7 +131,7 @@ async fn download_binaries(
     for bin in [
         "ic-admin",
         "ic-btc-adapter",
-        "ic-canister-http-adapter",
+        "ic-https-outcalls-adapter",
         "ic-nns-init",
         "replica",
         "canister_sandbox",

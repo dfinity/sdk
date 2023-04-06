@@ -591,7 +591,7 @@ pub fn configure_canister_http_adapter_if_enabled(
     };
 
     let socket_path =
-        get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
+        get_persistent_socket_path(uds_holder_path, "ic-https-outcalls-adapter-socket")?;
 
     let log_level = local_server_descriptor.canister_http.log_level;
     let adapter_config = canister_http_adapter::Config::new(socket_path, log_level);

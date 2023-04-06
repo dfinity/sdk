@@ -220,7 +220,7 @@ set_local_network_bitcoin_enabled() {
     dfx_start --enable-bitcoin --enable-canister-http
 
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 
     install_asset greet
     assert_command dfx deploy
@@ -235,7 +235,7 @@ set_local_network_bitcoin_enabled() {
     dfx_bootstrap
 
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 
     install_asset greet
     assert_command dfx deploy

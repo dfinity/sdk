@@ -68,7 +68,7 @@ pub fn start_canister_http_adapter_actor(
 ) -> DfxResult<Addr<CanisterHttpAdapter>> {
     let adapter_path = env
         .get_cache()
-        .get_binary_command_path("ic-canister-http-adapter")?;
+        .get_binary_command_path("ic-https-outcalls-adapter")?;
 
     let actor_config = canister_http_adapter::Config {
         adapter_path,
