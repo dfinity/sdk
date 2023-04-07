@@ -125,7 +125,7 @@ For completeness' sake, the new behavior is as follows:
 
 ### Motoko
 
-Updated Motoko to 0.8.4
+Updated Motoko to 0.8.7
 
 ### ic-ref
 
