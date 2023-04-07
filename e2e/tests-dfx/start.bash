@@ -227,7 +227,7 @@ teardown() {
     assert_command dfx stop
 
     jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
@@ -241,7 +241,7 @@ teardown() {
     assert_command dfx stop
 
     jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
