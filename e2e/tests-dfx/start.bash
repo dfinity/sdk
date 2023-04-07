@@ -271,3 +271,34 @@ teardown() {
     run tail -2 stderr.txt
     assert_match "Hello, World! from DFINITY"
 }
+
+@test "modifying networks.json requires --clean on restart" {
+    dfx_start
+    dfx stop
+    assert_command dfx_start 
+    dfx stop
+    jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
+    dfx stop
+    assert_command dfx_start --clean
+}
+
+@test "project-local networks require --clean if dfx.json was updated" {
+    dfx_new
+    define_project_network
+    dfx_start
+    dfx stop
+    assert_command dfx_start
+    dfx stop
+    jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
+    assert_command dfx_start
+    dfx stop
+    jq '.local.replica.log_level="warning"' dfx.json | sponge dfx.json
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
+    dfx stop
+    assert_command dfx_start --clean
+}
