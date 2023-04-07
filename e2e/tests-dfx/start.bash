@@ -255,7 +255,7 @@ teardown() {
     assert_command dfx stop
 
     jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 

@@ -303,7 +303,7 @@ set_shared_local_network_canister_http_empty() {
     assert_command dfx stop
 
     jq '.networks.local.canister_http.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
