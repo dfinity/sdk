@@ -273,6 +273,7 @@ teardown() {
 }
 
 @test "modifying networks.json requires --clean on restart" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_start
     dfx stop
     assert_command dfx_start 
@@ -286,6 +287,7 @@ teardown() {
 }
 
 @test "project-local networks require --clean if dfx.json was updated" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_new
     define_project_network
     dfx_start
@@ -304,6 +306,7 @@ teardown() {
 }
 
 @test "flags count as configuration modification and require --clean" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_start
     dfx stop
     assert_command_fail dfx_start --enable-bitcoin
