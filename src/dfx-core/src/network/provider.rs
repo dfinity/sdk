@@ -19,6 +19,7 @@ use lazy_static::lazy_static;
 use slog::{debug, info, warn, Logger};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
+use std::time::SystemTime;
 use url::Url;
 
 lazy_static! {
@@ -58,6 +59,7 @@ fn config_network_to_network_descriptor(
     local_bind_determination: &LocalBindDetermination,
     default_local_bind: &str,
     legacy_pid_path: Option<PathBuf>,
+    modification_time: Option<SystemTime>,
 ) -> Result<NetworkDescriptor, NetworkConfigError> {
     match config_network {
         ConfigNetwork::ConfigNetworkProvider(network_provider) => {
@@ -123,6 +125,7 @@ fn config_network_to_network_descriptor(
                 replica,
                 local_scope,
                 legacy_pid_path,
+                modification_time,
             )?;
             Ok(NetworkDescriptor {
                 name: network_name.to_string(),
@@ -277,6 +280,7 @@ fn create_shared_network_descriptor(
             local_bind_determination,
             DEFAULT_SHARED_LOCAL_BIND,
             None,
+            shared_config.get_modification_time(),
         )
     })
 }
@@ -316,6 +320,7 @@ fn create_project_network_descriptor(
                 local_bind_determination,
                 DEFAULT_PROJECT_LOCAL_BIND,
                 legacy_pid_path,
+                config.get_modification_time(),
             ))
         } else {
             debug!(

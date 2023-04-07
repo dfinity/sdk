@@ -115,8 +115,9 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             {
                 let archive_path = dfx_core::fs::get_archive_path(&file)?;
                 let full_path = temp_p.join(archive_path);
-                let mut perms = dfx_core::fs::read_permissions(full_path.as_path())
-                    .map_err(UnifiedIoError::from)?;
+                let mut perms = dfx_core::fs::read_metadata(full_path.as_path())
+                    .map_err(UnifiedIoError::from)?
+                    .permissions();
                 perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
                 dfx_core::fs::set_permissions(full_path.as_path(), perms)
                     .map_err(UnifiedIoError::from)?;
@@ -133,7 +134,9 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         // On *nix we need to set the execute permission as the tgz doesn't include it
         #[cfg(unix)]
         {
-            let mut perms = dfx_core::fs::read_permissions(&dfx).map_err(UnifiedIoError::from)?;
+            let mut perms = dfx_core::fs::read_metadata(&dfx)
+                .map_err(UnifiedIoError::from)?
+                .permissions();
             perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
             dfx_core::fs::set_permissions(&dfx, perms).map_err(UnifiedIoError::from)?;
         }

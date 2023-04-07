@@ -66,6 +66,10 @@ pub struct StartOpts {
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
     #[clap(long, conflicts_with("emulator"), default_value = "600")]
     artificial_delay: u32,
+
+    /// Start even if the network config was modified.
+    #[clap(long)]
+    force: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -127,6 +131,7 @@ pub fn exec(
         background,
         emulator,
         clean,
+        force,
         bitcoin_node,
         enable_bitcoin,
         enable_canister_http,
@@ -174,6 +179,18 @@ pub fn exec(
     // clean up the state if it is necessary.
     if clean {
         clean_state(local_server_descriptor, env.get_project_temp_dir())?;
+    } else if !force {
+        let ic_config_modification_time = local_server_descriptor
+            .replicated_state_dir()
+            .join("ic.json5")
+            .metadata()
+            .and_then(|meta| meta.modified());
+        if matches!(
+            (local_server_descriptor.modification_time, ic_config_modification_time),
+            (Some(config), Ok(ic)) if config > ic,
+        ) {
+            bail!("The network configuration was changed. Rerun with `--clean`.")
+        }
     }
 
     let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;

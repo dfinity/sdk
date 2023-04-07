@@ -12,6 +12,7 @@ use crate::error::network_config::{
 use slog::{debug, info, Logger};
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalNetworkScopeDescriptor {
@@ -27,6 +28,7 @@ pub struct LocalServerDescriptor {
     ///     $HOME/.local/share/dfx/network/local
     ///     $APPDATA/dfx/network/local
     pub data_directory: PathBuf,
+    pub modification_time: Option<SystemTime>,
 
     pub bind_address: SocketAddr,
 
@@ -58,6 +60,7 @@ impl LocalServerDescriptor {
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
         legacy_pid_path: Option<PathBuf>,
+        modification_time: Option<SystemTime>,
     ) -> Result<Self, NetworkConfigError> {
         let bind_address = to_socket_addr(&bind).map_err(ParseBindAddressFailed)?;
         Ok(LocalServerDescriptor {
@@ -69,6 +72,7 @@ impl LocalServerDescriptor {
             replica,
             scope,
             legacy_pid_path,
+            modification_time,
         })
     }
 
