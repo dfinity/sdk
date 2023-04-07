@@ -179,18 +179,6 @@ pub fn exec(
     // clean up the state if it is necessary.
     if clean {
         clean_state(local_server_descriptor, env.get_project_temp_dir())?;
-    } else if !force {
-        let ic_config_modification_time = local_server_descriptor
-            .replicated_state_dir()
-            .join("ic.json5")
-            .metadata()
-            .and_then(|meta| meta.modified());
-        if matches!(
-            (local_server_descriptor.modification_time, ic_config_modification_time),
-            (Some(config), Ok(ic)) if config > ic,
-        ) {
-            bail!("The network configuration was changed. Rerun with `--clean`.")
-        }
     }
 
     let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;
@@ -336,6 +324,26 @@ pub fn exec(
                     replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
                 }
             }
+
+            let previous_config_path = replica_config_dir.join("replica-effective-config.json");
+
+            if !clean && !force {
+                if let Ok(previous_config) = fs::read(&previous_config_path) {
+                    let previous_config: ReplicaConfig = serde_json::from_slice(&previous_config)
+                        .context(
+                        "Failed to read previous replica configuration. Rerun with `--clean`.",
+                    )?;
+                    if previous_config != replica_config {
+                        bail!("The network configuration was changed. Rerun with `--clean`.");
+                    }
+                }
+            }
+
+            fs::write(
+                &previous_config_path,
+                &serde_json::to_vec(&replica_config).unwrap(),
+            )
+            .context("Failed to write replica configuration")?;
 
             let replica = start_replica_actor(
                 env,

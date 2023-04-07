@@ -4,12 +4,12 @@ use crate::error::archive::ArchiveError;
 use crate::error::fs::FsError;
 use crate::error::fs::FsErrorKind::{
     CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed,
-    ReadFileFailed, ReadMetadataFailed, ReadToStringFailed, RemoveDirectoryAndContentsFailed,
+    ReadFileFailed, ReadPermissionsFailed, ReadToStringFailed, RemoveDirectoryAndContentsFailed,
     RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, UnpackingArchiveFailed, WriteFileFailed,
     WritePermissionsFailed,
 };
 
-use std::fs::{Metadata, Permissions, ReadDir};
+use std::fs::{Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
 pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
@@ -72,8 +72,10 @@ pub fn rename(from: &Path, to: &Path) -> Result<(), FsError> {
     })
 }
 
-pub fn read_metadata(path: &Path) -> Result<Metadata, FsError> {
-    std::fs::metadata(path).map_err(|err| FsError::new(ReadMetadataFailed(path.to_path_buf(), err)))
+pub fn read_permissions(path: &Path) -> Result<Permissions, FsError> {
+    std::fs::metadata(path)
+        .map_err(|err| FsError::new(ReadPermissionsFailed(path.to_path_buf(), err)))
+        .map(|x| x.permissions())
 }
 
 pub fn remove_dir(path: &Path) -> Result<(), FsError> {

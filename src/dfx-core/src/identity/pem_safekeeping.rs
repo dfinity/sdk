@@ -100,7 +100,7 @@ fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), FsError> {
     crate::fs::create_dir_all(&containing_folder)?;
     crate::fs::write(path, pem_content)?;
 
-    let mut permissions = crate::fs::read_metadata(path)?.permissions();
+    let mut permissions = crate::fs::read_permissions(path)?;
 
     permissions.set_readonly(true);
     // On *nix, set the read permission to owner-only.

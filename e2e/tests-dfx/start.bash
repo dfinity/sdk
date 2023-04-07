@@ -295,10 +295,24 @@ teardown() {
     jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
     assert_command dfx_start
     dfx stop
-    jq '.local.replica.log_level="warning"' dfx.json | sponge dfx.json
+    jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
     assert_command_fail dfx_start
     assert_contains "The network configuration was changed. Rerun with \`--clean\`."
     assert_command dfx_start --force
     dfx stop
     assert_command dfx_start --clean
+}
+
+@test "flags count as configuration modification and require --clean" {
+    dfx_start
+    dfx stop
+    assert_command_fail dfx_start --enable-bitcoin
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --enable-bitcoin --clean
+    dfx stop
+    assert_command dfx_start --enable-bitcoin
+    dfx stop
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
 }

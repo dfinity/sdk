@@ -24,8 +24,8 @@ pub enum FsErrorKind {
     #[error("Failed to read {0}: {1}")]
     ReadFileFailed(PathBuf, std::io::Error),
 
-    #[error("Failed to read metadata of {0}: {1}")]
-    ReadMetadataFailed(PathBuf, std::io::Error),
+    #[error("Failed to read permissions of {0}: {1}")]
+    ReadPermissionsFailed(PathBuf, std::io::Error),
 
     #[error("Failed to read {0} as string: {1}")]
     ReadToStringFailed(PathBuf, std::io::Error),

@@ -41,7 +41,7 @@ use std::default::Default;
 use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
@@ -807,7 +807,6 @@ fn add_dependencies(
 pub struct Config {
     path: PathBuf,
     json: Value,
-    modification_time: Option<SystemTime>,
     // public interface to the config:
     pub config: ConfigInterface,
 }
@@ -833,11 +832,8 @@ impl Config {
     }
 
     fn from_file(path: &Path) -> Result<Config, StructuredFileError> {
-        let modification_time = crate::fs::read_metadata(path)
-            .ok()
-            .and_then(|meta| meta.modified().ok());
         let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
-        Config::from_slice(path.to_path_buf(), modification_time, &content)
+        Config::from_slice(path.to_path_buf(), &content)
     }
 
     pub fn from_dir(working_dir: &Path) -> Result<Option<Config>, LoadDfxConfigError> {
@@ -851,36 +847,26 @@ impl Config {
         Config::from_dir(&std::env::current_dir().map_err(DetermineCurrentWorkingDirFailed)?)
     }
 
-    fn from_slice(
-        path: PathBuf,
-        modification_time: Option<SystemTime>,
-        content: &[u8],
-    ) -> Result<Config, StructuredFileError> {
+    fn from_slice(path: PathBuf, content: &[u8]) -> Result<Config, StructuredFileError> {
         let config = serde_json::from_slice(content)
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
         let json = serde_json::from_slice(content)
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
-        Ok(Config {
-            path,
-            modification_time,
-            json,
-            config,
-        })
+        Ok(Config { path, json, config })
     }
 
     /// Create a configuration from a string.
     #[cfg(test)]
     pub(crate) fn from_str(content: &str) -> Result<Config, StructuredFileError> {
-        Config::from_slice(PathBuf::from("-"), None, content.as_bytes())
+        Config::from_slice(PathBuf::from("-"), content.as_bytes())
     }
 
     #[cfg(test)]
     pub(crate) fn from_str_and_path(
         path: PathBuf,
-        modification_time: Option<SystemTime>,
         content: &str,
     ) -> Result<Config, StructuredFileError> {
-        Config::from_slice(path, modification_time, content.as_bytes())
+        Config::from_slice(path, content.as_bytes())
     }
 
     pub fn get_path(&self) -> &PathBuf {
@@ -897,9 +883,6 @@ impl Config {
     }
     pub fn get_config(&self) -> &ConfigInterface {
         &self.config
-    }
-    pub fn get_modification_time(&self) -> Option<SystemTime> {
-        self.modification_time
     }
 
     pub fn get_project_root(&self) -> &Path {
@@ -991,7 +974,6 @@ pub struct NetworksConfig {
     json: Value,
     // public interface to the networsk config:
     networks_config: NetworksConfigInterface,
-    modification_time: Option<SystemTime>,
 }
 
 impl NetworksConfig {
@@ -1000,10 +982,6 @@ impl NetworksConfig {
     }
     pub fn get_interface(&self) -> &NetworksConfigInterface {
         &self.networks_config
-    }
-
-    pub fn get_modification_time(&self) -> Option<SystemTime> {
-        self.modification_time
     }
 
     pub fn new() -> Result<NetworksConfig, LoadNetworksConfigError> {
@@ -1019,15 +997,11 @@ impl NetworksConfig {
                 networks_config: NetworksConfigInterface {
                     networks: BTreeMap::new(),
                 },
-                modification_time: None,
             })
         }
     }
 
     fn from_file(path: &Path) -> Result<NetworksConfig, StructuredFileError> {
-        let modification_time = crate::fs::read_metadata(path)
-            .ok()
-            .and_then(|meta| meta.modified().ok());
         let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
 
         let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)
@@ -1040,7 +1014,6 @@ impl NetworksConfig {
             path,
             json,
             networks_config,
-            modification_time,
         })
     }
 }
