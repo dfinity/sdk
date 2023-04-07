@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix!: --clean required when network configuration changes
+
+If the network configuration file (or dfx.json for project-local networks) has changed since last time `dfx start` was run, `dfx start` will now error if you try to run it without `--clean`, to avoid spurious errors. You can provide the `--force` flag if you are sure you want to start it without cleaning state.
+
 ### feat: --artificial-delay flag
 
 The local replica uses a 600ms delay by default when performing update calls. With `dfx start --artificial-delay <ms>`, you can decrease this value (e.g. 100ms) for faster integration tests, or increase it (e.g. 2500ms) to mimick mainnet latency for e.g. UI responsiveness checks.
