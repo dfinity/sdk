@@ -3,12 +3,16 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::operations::canister::deploy_canisters::DeployMode::{
+    ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+};
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -21,13 +25,20 @@ use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum DeployMode {
+    NormalDeploy,
+    ForceReinstallSingleCanister(String),
+    PrepareForProposal(String),
+}
+
 #[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
     argument: Option<&str>,
     argument_type: Option<&str>,
-    force_reinstall: bool,
+    deploy_mode: &DeployMode,
     upgrade_unchanged: bool,
     with_cycles: Option<&str>,
     specified_id: Option<Principal>,
@@ -42,26 +53,17 @@ pub async fn deploy_canisters(
     let config = env
         .get_config()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
-    let initial_canister_id_store = CanisterIdStore::for_env(env)?;
-
-    let network = env.get_network_descriptor();
+    let initial_canister_id_store = env.get_canister_id_store()?;
 
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
-    let canisters_to_deploy = if force_reinstall {
-        // don't force-reinstall the dependencies too.
-        match some_canister {
-            Some(canister_name) => {
-                if config.get_config().is_remote_canister(canister_name, &network.name)? {
-                    bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
-                    canister_name, &network.name);
-                }
-                vec!(String::from(canister_name))
-            },
-            None => bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."),
+    let canisters_to_deploy = match deploy_mode {
+        PrepareForProposal(canister_name) => vec![canister_name.clone()],
+        ForceReinstallSingleCanister(canister_name) => {
+            // don't force-reinstall the dependencies too.
+            vec![String::from(canister_name)]
         }
-    } else {
-        canisters_to_load
+        NormalDeploy => canisters_to_load
             .clone()
             .into_iter()
             .filter(|canister_name| {
@@ -70,7 +72,7 @@ pub async fn deploy_canisters(
                     .is_remote_canister(canister_name, &env.get_network_descriptor().name)
                     .unwrap_or(false)
             })
-            .collect()
+            .collect(),
     };
 
     if some_canister.is_some() {
@@ -99,24 +101,33 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    install_canisters(
-        env,
-        &canisters_to_deploy,
-        &initial_canister_id_store,
-        &config,
-        argument,
-        argument_type,
-        force_reinstall,
-        upgrade_unchanged,
-        call_sender,
-        pool,
-        skip_consent,
-        env_file.as_deref(),
-        assets_upgrade,
-    )
-    .await?;
+    match deploy_mode {
+        NormalDeploy | ForceReinstallSingleCanister(_) => {
+            let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
+            install_canisters(
+                env,
+                &canisters_to_deploy,
+                &initial_canister_id_store,
+                &config,
+                argument,
+                argument_type,
+                force_reinstall,
+                upgrade_unchanged,
+                call_sender,
+                pool,
+                skip_consent,
+                env_file.as_deref(),
+                assets_upgrade,
+            )
+            .await?;
 
-    info!(log, "Deployed canisters.");
+            info!(log, "Deployed canisters.");
+        }
+        PrepareForProposal(canister_name) => {
+            prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
+                .await?;
+        }
+    }
 
     Ok(())
 }
@@ -241,7 +252,7 @@ async fn install_canisters(
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
 
     for canister_name in canister_names {
         let install_mode = if force_reinstall {
@@ -276,6 +287,32 @@ async fn install_canisters(
         )
         .await?;
     }
+
+    Ok(())
+}
+
+#[context("Failed to prepare assets for commit.")]
+async fn prepare_assets_for_commit(
+    env: &dyn Environment,
+    canister_id_store: &CanisterIdStore,
+    config: &Config,
+    canister_name: &str,
+) -> DfxResult {
+    let canister_id = canister_id_store.get(canister_name)?;
+    let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
+
+    if !canister_info.is_assets() {
+        bail!(
+            "Expected canister {} to be an asset canister.",
+            canister_name
+        );
+    }
+
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
 
     Ok(())
 }

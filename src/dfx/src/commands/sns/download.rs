@@ -20,8 +20,8 @@ pub struct SnsDownloadOpts {
 }
 
 /// Executes the command line `dfx sns import`.
-pub fn exec(env: &dyn Environment, opts: SnsDownloadOpts) -> DfxResult {
+pub fn exec(_env: &dyn Environment, opts: SnsDownloadOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
     let ic_commit = opts.ic_commit.unwrap_or_else(|| replica_rev().to_string());
-    runtime.block_on(download_sns_wasms(env, &ic_commit, &opts.wasms_dir))
+    runtime.block_on(download_sns_wasms(&ic_commit, &opts.wasms_dir))
 }

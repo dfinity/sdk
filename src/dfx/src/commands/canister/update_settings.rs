@@ -4,14 +4,13 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
 };
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{
     compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
 };
 use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
+use dfx_core::identity::CallSender;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
@@ -99,7 +98,7 @@ pub async fn exec(
         .transpose()
         .context("Failed to determine all new controllers given in --set-controller.")?;
 
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     if let Some(canister_name_or_id) = opts.canister.as_deref() {
         let config = env.get_config();

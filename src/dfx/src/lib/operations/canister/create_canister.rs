@@ -1,11 +1,10 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
+use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
 use dfx_core::network::provider::get_network_context;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
@@ -35,7 +34,7 @@ pub async fn create_canister(
 
     let config = env.get_config_or_anyhow()?;
 
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
 
     let network_name = get_network_context()?;
 
@@ -106,7 +105,7 @@ pub async fn create_canister(
                     res.context("Canister creation call failed.")?.0
                 }
                 CallSender::Wallet(wallet_id) => {
-                    let wallet = build_wallet_canister(*wallet_id, env).await?;
+                    let wallet = build_wallet_canister(*wallet_id, agent).await?;
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.map_or(
                         CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,

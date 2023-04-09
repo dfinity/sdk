@@ -9,20 +9,25 @@ use crate::Environment;
 use dfx_core::config::model::dfinity::NetworksConfig;
 
 use anyhow::Context;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
-#[derive(clap::ValueEnum, Clone, Debug)]
+#[derive(Subcommand, Clone, Debug)]
 enum InfoType {
+    /// Show the port of the local replica
     ReplicaPort,
+    /// Show the revision of the replica shipped with this dfx binary
     ReplicaRev,
+    /// Show the port of the webserver
     WebserverPort,
+    /// Show the path to network configuration file
     NetworksJsonPath,
 }
 
 #[derive(Parser)]
 #[clap(name("info"))]
+/// Get information about the replica shipped with dfx, path to networks.json, and network ports of running replica.
 pub struct InfoOpts {
-    #[clap(value_enum)]
+    #[clap(subcommand)]
     info_type: InfoType,
 }
 

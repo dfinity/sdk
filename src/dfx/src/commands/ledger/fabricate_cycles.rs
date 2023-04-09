@@ -1,13 +1,12 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
 use crate::util::clap::validators::{
     cycle_amount_validator, e8s_validator, icpts_amount_validator, trillion_cycle_amount_validator,
 };
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
+use dfx_core::identity::CallSender;
 
 use candid::Principal;
 use clap::Parser;
@@ -93,7 +92,7 @@ async fn deposit_minted_cycles(
     cycles: u128,
 ) -> DfxResult {
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 

@@ -12,7 +12,7 @@ pub(crate) async fn upload(
     logger: &Logger,
 ) -> support::Result {
     let key_map = get_key_map(&opts.files)?;
-    ic_asset::upload(canister, key_map, &logger).await?;
+    ic_asset::upload(canister, key_map, logger).await?;
     Ok(())
 }
 
