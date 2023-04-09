@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "6078097fb6a241b55fb1c80f60d54b02a3929225",
-        "sha256": "1mg32dzvyzphqvyjs2jrsgw2wmfp9lsq3gk6dff6pz2sm71iwlyk",
+        "rev": "e6600338c880d882655a3bf7e5085fde4bb95e1f",
+        "sha256": "0a4mh5nzxpvk234px94c5sx0q6swj2s3m6rjj4m8cwa92myj243m",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/6078097fb6a241b55fb1c80f60d54b02a3929225.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/e6600338c880d882655a3bf7e5085fde4bb95e1f.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister_sandbox-x86_64-darwin": {
