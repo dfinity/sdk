@@ -24,7 +24,7 @@ teardown() {
 }
 
 current_time_nanoseconds() {
-    echo "$(date +%s)"000000000
+    date +%s%N
 }
 
 @test "ledger account-id" {
@@ -50,7 +50,7 @@ current_time_nanoseconds() {
     assert_match "1000000000.00000000 ICP"
 
     assert_command dfx ledger transfer --amount 100 --memo 1 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 # to bob
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
 
     # The sender(alice) paid transaction fee which is 0.0001 ICP
     assert_command dfx ledger balance
@@ -64,7 +64,7 @@ current_time_nanoseconds() {
     assert_match "1000000100.00000000 ICP"
 
     assert_command dfx ledger transfer --icp 100 --e8s 1 --memo 2 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 # to alice
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
 
     # The sender(bob) paid transaction fee which is 0.0001 ICP
     # 10100 - 100 - 0.0001 - 0.00000001 = 9999.99989999
@@ -75,16 +75,16 @@ current_time_nanoseconds() {
     t=$(current_time_nanoseconds)
 
     assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
 
     assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $((t+1)) 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
 
-    run dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
     assert_match "transaction is a duplicate of another transaction in block"
 
     assert_command dfx ledger transfer --icp 1 --memo 2 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
 
 }
 
@@ -97,7 +97,7 @@ current_time_nanoseconds() {
     assert_command dfx ledger balance
     assert_match "1000000000.00000000 ICP"
     assert_command dfx ledger transfer --amount 100 --memo 1 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc # to bob+subacct 
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
     assert_command dfx ledger balance
     assert_match "999999899.99990000 ICP"
 
@@ -108,7 +108,7 @@ current_time_nanoseconds() {
     assert_match "1000000100.00000000 ICP"
     
     assert_command dfx ledger transfer --amount 100 --memo 2 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 --from-subaccount "$subacct" # to alice
-    assert_match "Transfer sent at BlockHeight"
+    assert_match "Transfer sent at block height"
     assert_command dfx ledger balance
     assert_match "1000000000.00000000 ICP"
     assert_command dfx ledger balance --subaccount "$subacct"

@@ -86,7 +86,7 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         .ledger_canister_id
         .unwrap_or(MAINNET_LEDGER_CANISTER_ID);
 
-    let block_height = transfer(
+    let _block_height = transfer(
         agent,
         &canister_id,
         memo,
@@ -97,8 +97,6 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         opts.created_at_time,
     )
     .await?;
-
-    println!("Transfer sent at BlockHeight: {}", block_height);
 
     Ok(())
 }

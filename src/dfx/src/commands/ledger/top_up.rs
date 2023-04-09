@@ -1,7 +1,7 @@
 use crate::commands::ledger::{get_icpts_from_args, notify_top_up, transfer_cmc};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::ledger_types::{Memo, NotifyError, TransferError};
+use crate::lib::ledger_types::{Memo, NotifyError};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 
@@ -78,7 +78,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
-    let height = match transfer_cmc(
+    let height = transfer_cmc(
         agent,
         memo,
         amount,
@@ -87,24 +87,8 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
         to,
         opts.created_at_time,
     )
-    .await
-    {
-        Ok(h) => {
-            println!("Transfer sent at block height {h}");
-            h
-        }
-        Err(e) => match e.downcast::<TransferError>() {
-            Ok(transfer_err) => match transfer_err {
-                TransferError::TxDuplicate { duplicate_of } => {
-                    println!("{}", transfer_err);
-                    println!("using block {}", duplicate_of);
-                    duplicate_of
-                }
-                _ => bail!(transfer_err),
-            },
-            Err(e) => bail!(e),
-        },
-    };
+    .await?;
+    println!("Using transfer at block height {height}");
     let result = notify_top_up(agent, to, height).await?;
 
     match result {

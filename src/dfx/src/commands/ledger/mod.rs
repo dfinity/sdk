@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{
     AccountIdBlob, BlockHeight, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult,
-    NotifyTopUpArg, NotifyTopUpResult, TimeStamp, TransferArgs, TransferResult,
+    NotifyTopUpArg, NotifyTopUpResult, TimeStamp, TransferArgs, TransferError, TransferResult,
     MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
 };
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
@@ -11,11 +11,14 @@ use crate::lib::nns_types::icpts::ICPTs;
 use crate::NetworkOpt;
 
 use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use candid::Principal;
 use candid::{Decode, Encode};
 use clap::Parser;
 use fn_error_context::context;
-use ic_agent::Agent;
+use ic_agent::agent_error::HttpErrorPayload;
+use ic_agent::{Agent, AgentError};
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
@@ -123,7 +126,9 @@ pub async fn transfer(
             .as_nanos() as u64,
     );
 
-    let block_height: BlockHeight = {
+    let mut retry_policy = ExponentialBackoff::default();
+
+    let block_height: BlockHeight = loop {
         match agent
             .update(canister_id, TRANSFER_METHOD)
             .with_arg(
@@ -144,12 +149,26 @@ pub async fn transfer(
                 let result = Decode!(&data, TransferResult)
                     .context("Failed to decode transfer response.")?;
                 match result {
-                    Ok(block_height) => block_height,
+                    Ok(block_height) => {
+                        println!("Transfer sent at block height {block_height}");
+                        break block_height;
+                    }
+                    Err(TransferError::TxDuplicate { duplicate_of }) => {
+                        println!("{}", TransferError::TxDuplicate { duplicate_of });
+                        break duplicate_of;
+                    }
                     Err(transfer_err) => bail!(transfer_err),
                 }
             }
-            Err(agent_err) => {
+            Err(agent_err) if !retryable(&agent_err) => {
                 bail!(agent_err);
+            }
+            Err(agent_err) => {
+                eprintln!("Waiting to retry after error: {:?}", &agent_err);
+                match retry_policy.next_backoff() {
+                    Some(duration) => tokio::time::sleep(duration).await,
+                    None => bail!(agent_err),
+                }
             }
         }
     };
@@ -225,4 +244,23 @@ pub async fn notify_top_up(
         .context("Notify call failed.")?;
     let result = Decode!(&result, NotifyTopUpResult).context("Failed to decode notify response")?;
     Ok(result)
+}
+
+fn retryable(agent_error: &AgentError) -> bool {
+    match agent_error {
+        AgentError::ReplicaError {
+            reject_code,
+            reject_message,
+        } if *reject_code == 5 && reject_message.contains("is out of cycles") => false,
+        AgentError::HttpError(HttpErrorPayload {
+            status,
+            content_type: _,
+            content: _,
+        }) if *status == 403 => {
+            // sometimes out of cycles looks like this
+            // assume any 403(unauthorized) is not retryable
+            false
+        }
+        _ => true,
+    }
 }
