@@ -93,6 +93,10 @@ check_permission_failure() {
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
   assert_contains "Proposed commit of batch 2 with evidence cc6b5aab7ed38606774878fb33c17fccd02983d8415fb27dfb8dae50dc099fb1.  Either commit it by proposal, or delete it."
 
+  assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
+  # shellcheck disable=SC2154
+  assert_eq "cc6b5aab7ed38606774878fb33c17fccd02983d8415fb27dfb8dae50dc099fb1" "$stdout"
+
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
 
@@ -157,6 +161,10 @@ check_permission_failure() {
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
   assert_contains "Proposed commit of batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200.  Either commit it by proposal, or delete it."
+
+  assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
+  # shellcheck disable=SC2154
+  assert_eq "1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200" "$stdout"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
