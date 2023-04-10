@@ -72,6 +72,12 @@ Uploads asset changes to an asset canister (propose_commit_batch()), but does no
 
 The SNS will call `commit_proposed_batch()` to commit the changes.  If the proposal fails, the caller of `dfx deploy --by-proposal` should call `delete_batch()`.
 
+### feat: dfx deploy <frontend canister name> --compute-evidence
+
+Builds the specified asset canister, determines the batch operations required to synchronize the assets, and computes a hash ("evidence") over those batch operations.  This evidence will match the evidence computed by `dfx deploy --by-proposal`, and which will be specified in the update proposal.
+
+No permissions are required to compute evidence, so this can be called with `--identity anonymous` or any other identity.
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
