@@ -41,10 +41,14 @@ pub(crate) struct ProjectAsset {
     pub(crate) encodings: HashMap<String, ProjectAssetEncoding>,
 }
 
+pub(crate) struct ChunkUploadTarget<'a> {
+    pub(crate) canister: &'a Canister<'a>,
+    pub(crate) batch_id: &'a Nat,
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn make_project_asset_encoding(
-    canister: &Canister<'_>,
-    batch_id: &Nat,
+    chunk_upload_target: Option<&ChunkUploadTarget<'_>>,
     asset_descriptor: &AssetDescriptor,
     canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
@@ -82,10 +86,10 @@ async fn make_project_asset_encoding(
             hex::encode(&sha256),
         );
         vec![]
-    } else {
+    } else if let Some(target) = chunk_upload_target {
         upload_content_chunks(
-            canister,
-            batch_id,
+            target.canister,
+            target.batch_id,
             asset_descriptor,
             content,
             &sha256,
@@ -94,6 +98,16 @@ async fn make_project_asset_encoding(
             logger,
         )
         .await?
+    } else {
+        info!(
+            logger,
+            "  {}{} ({} bytes) sha {} will be uploaded",
+            &asset_descriptor.key,
+            content_encoding_descriptive_suffix(content_encoding),
+            content.data.len(),
+            hex::encode(&sha256),
+        );
+        vec![]
     };
 
     Ok(ProjectAssetEncoding {
@@ -105,8 +119,7 @@ async fn make_project_asset_encoding(
 
 #[allow(clippy::too_many_arguments)]
 async fn make_encoding(
-    canister: &Canister<'_>,
-    batch_id: &Nat,
+    chunk_upload_target: Option<&ChunkUploadTarget<'_>>,
     asset_descriptor: &AssetDescriptor,
     canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
@@ -117,8 +130,7 @@ async fn make_encoding(
     match encoder {
         None => {
             let identity_asset_encoding = make_project_asset_encoding(
-                canister,
-                batch_id,
+                chunk_upload_target,
                 asset_descriptor,
                 canister_assets,
                 content,
@@ -137,8 +149,7 @@ async fn make_encoding(
             if encoded.data.len() < content.data.len() {
                 let content_encoding = format!("{}", encoder);
                 let project_asset_encoding = make_project_asset_encoding(
-                    canister,
-                    batch_id,
+                    chunk_upload_target,
                     asset_descriptor,
                     canister_assets,
                     &encoded,
@@ -156,8 +167,7 @@ async fn make_encoding(
 }
 
 async fn make_encodings(
-    canister: &Canister<'_>,
-    batch_id: &Nat,
+    chunk_upload_target: Option<&ChunkUploadTarget<'_>>,
     asset_descriptor: &AssetDescriptor,
     canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
@@ -173,8 +183,7 @@ async fn make_encodings(
         .iter()
         .map(|maybe_encoder| {
             make_encoding(
-                canister,
-                batch_id,
+                chunk_upload_target,
                 asset_descriptor,
                 canister_assets,
                 content,
@@ -196,8 +205,7 @@ async fn make_encodings(
 }
 
 async fn make_project_asset(
-    canister: &Canister<'_>,
-    batch_id: &Nat,
+    chunk_upload_target: Option<&ChunkUploadTarget<'_>>,
     asset_descriptor: AssetDescriptor,
     canister_assets: &HashMap<String, AssetDetails>,
     semaphores: &Semaphores,
@@ -215,8 +223,7 @@ async fn make_project_asset(
     let content = Content::load(&asset_descriptor.source)?;
 
     let encodings = make_encodings(
-        canister,
-        batch_id,
+        chunk_upload_target,
         &asset_descriptor,
         canister_assets,
         &content,
@@ -233,8 +240,7 @@ async fn make_project_asset(
 }
 
 pub(crate) async fn make_project_assets(
-    canister: &Canister<'_>,
-    batch_id: &Nat,
+    chunk_upload_target: Option<&ChunkUploadTarget<'_>>,
     asset_descriptors: Vec<AssetDescriptor>,
     canister_assets: &HashMap<String, AssetDetails>,
     logger: &Logger,
@@ -245,8 +251,7 @@ pub(crate) async fn make_project_assets(
         .iter()
         .map(|loc| {
             make_project_asset(
-                canister,
-                batch_id,
+                chunk_upload_target,
                 loc.clone(),
                 canister_assets,
                 &semaphores,

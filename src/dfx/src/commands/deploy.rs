@@ -4,7 +4,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::operations::canister::DeployMode::{
-    ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+    ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
@@ -96,8 +96,12 @@ pub struct DeployOpts {
     no_asset_upgrade: bool,
 
     /// Prepare (upload) assets for later commit by proposal.
-    #[clap(long)]
+    #[clap(long, conflicts_with("compute-evidence"))]
     by_proposal: bool,
+
+    /// Compute evidence and compare it against expected evidence
+    #[clap(long, conflicts_with("by-proposal"))]
+    compute_evidence: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -143,6 +147,12 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         }
         (None, Some(canister_name)) if opts.by_proposal => {
             PrepareForProposal(canister_name.to_string())
+        }
+        (None, None) if opts.compute_evidence => {
+            bail!("The --compute-evidence flag is only valid when deploying a single canister.");
+        }
+        (None, Some(canister_name)) if opts.compute_evidence => {
+            ComputeEvidence(canister_name.to_string())
         }
         (None, _) => NormalDeploy,
     };

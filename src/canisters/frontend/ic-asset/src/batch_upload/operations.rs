@@ -13,25 +13,35 @@ use std::collections::HashMap;
 pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 0;
 
 pub(crate) fn assemble_batch_operations(
-    project_assets: HashMap<String, ProjectAsset>,
+    project_assets: &HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
-    batch_id: Nat,
-) -> CommitBatchArguments {
+) -> Vec<BatchOperationKind> {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
 
     delete_assets(
         &mut operations,
-        &project_assets,
+        project_assets,
         &mut canister_assets,
         asset_deletion_reason,
     );
-    create_new_assets(&mut operations, &project_assets, &canister_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &canister_assets);
+    create_new_assets(&mut operations, project_assets, &canister_assets);
+    unset_obsolete_encodings(&mut operations, project_assets, &canister_assets);
     set_encodings(&mut operations, project_assets);
 
+    operations
+}
+
+pub(crate) fn assemble_commit_batch_arguments(
+    project_assets: HashMap<String, ProjectAsset>,
+    canister_assets: HashMap<String, AssetDetails>,
+    asset_deletion_reason: AssetDeletionReason,
+    batch_id: Nat,
+) -> CommitBatchArguments {
+    let operations =
+        assemble_batch_operations(&project_assets, canister_assets, asset_deletion_reason);
     CommitBatchArguments {
         operations,
         batch_id,
@@ -138,10 +148,10 @@ pub(crate) fn unset_obsolete_encodings(
 
 pub(crate) fn set_encodings(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: HashMap<String, ProjectAsset>,
+    project_assets: &HashMap<String, ProjectAsset>,
 ) {
     for (key, project_asset) in project_assets {
-        for (content_encoding, v) in project_asset.encodings {
+        for (content_encoding, v) in &project_asset.encodings {
             if v.already_in_place {
                 continue;
             }
@@ -149,9 +159,9 @@ pub(crate) fn set_encodings(
             operations.push(BatchOperationKind::SetAssetContent(
                 SetAssetContentArguments {
                     key: key.clone(),
-                    content_encoding,
-                    chunk_ids: v.chunk_ids,
-                    sha256: Some(v.sha256),
+                    content_encoding: content_encoding.clone(),
+                    chunk_ids: v.chunk_ids.clone(),
+                    sha256: Some(v.sha256.clone()),
                 },
             ));
         }
