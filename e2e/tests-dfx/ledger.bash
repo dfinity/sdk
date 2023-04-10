@@ -147,7 +147,7 @@ tc_to_num() {
     assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $((t+1))
     assert_match "Canister was topped up with"
 
-    run dfx ledger top-up "$wallet" --icp 5 --created-at-time "$t"
+    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time "$t"
     assert_match "transaction is a duplicate of another transaction in block"
 }
 
@@ -167,7 +167,7 @@ tc_to_num() {
     assert_command dfx ledger create-canister --amount=100 --created-at-time $((t+1)) "$(dfx identity get-principal)"
     assert_match "Transfer sent at block height"
 
-    run dfx ledger create-canister --amount=100 --created-at-time "$t" "$(dfx identity get-principal)"
+    assert_command dfx ledger create-canister --amount=100 --created-at-time "$t" "$(dfx identity get-principal)"
     assert_match "transaction is a duplicate of another transaction in block"
 }
 
