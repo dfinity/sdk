@@ -1,0 +1,59 @@
+{
+    "canisters": {
+        "a": {
+            "type": "motoko",
+            "main": "src/a.mo",
+            "pull_ready": true,
+            "metadata": [
+                {
+                    "name": "dfx:wasm_url",
+                    "content": "http://localhost:E2E_WEB_SERVER_PORT/a.wasm"
+                },
+                {
+                    "name": "dfx:init",
+                    "content": "Nat"
+                }
+            ]
+        },
+        "b": {
+            "type": "motoko",
+            "main": "src/b.mo",
+            "dependencies": [
+                "a"
+            ],
+            "pull_ready": true,
+            "metadata": [
+                {
+                    "name": "dfx:wasm_url",
+                    "content": "http://localhost:E2E_WEB_SERVER_PORT/b.wasm"
+                },
+                {
+                    "name": "dfx:deps",
+                    "content": "a:yofga-2qaaa-aaaaa-aabsq-cai"
+                }
+            ]
+        },
+        "c": {
+            "type": "motoko",
+            "main": "src/c.mo",
+            "dependencies": [
+                "a"
+            ],
+            "pull_ready": true,
+            "metadata": [
+                {
+                    "name": "dfx:wasm_url",
+                    "content": "http://localhost:E2E_WEB_SERVER_PORT/c.wasm"
+                },
+                {
+                    "name": "dfx:deps",
+                    "content": "a:yofga-2qaaa-aaaaa-aabsq-cai"
+                },
+                {
+                    "name": "dfx:init",
+                    "content": "Nat"
+                }
+            ]
+        }
+    }
+}

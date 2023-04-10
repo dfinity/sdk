@@ -25,27 +25,27 @@ export_canister_ids() {
 }
 
 @test "dfx build can write required metadata for pull" {
-    dfx_new
-    install_asset pull
-
     dfx_start
-    
+
+    install_asset deps
+
+    cd onchain
     dfx canister create --all
     assert_command dfx build
-    assert_command ic-wasm .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm metadata
+    assert_command ic-wasm .dfx/local/canisters/c/c.wasm metadata
     assert_match "icp:public candid:service"
     assert_match "icp:public dfx:deps"
     assert_match "icp:public dfx:init"
     assert_match "icp:public dfx:wasm_url"
 
-    assert_command ic-wasm .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm metadata dfx:deps
-    assert_match "dep1:rrkah-fqaaa-aaaaa-aaaaq-cai;dep2:ryjl3-tyaaa-aaaaa-aaaba-cai;"
+    assert_command ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx:deps
+    assert_match "a:yofga-2qaaa-aaaaa-aabsq-cai"
 
-    assert_command ic-wasm .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm metadata dfx:init
-    assert_match "NA"
+    assert_command ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx:init
+    assert_match "Nat"
 
-    assert_command ic-wasm .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm metadata dfx:wasm_url
-    assert_match "https://example.com/e2e_project.wasm"
+    assert_command ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx:wasm_url
+    assert_match "http://localhost:E2E_WEB_SERVER_PORT/c.wasm"
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
