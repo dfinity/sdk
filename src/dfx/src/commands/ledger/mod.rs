@@ -163,16 +163,14 @@ pub async fn transfer(
             Err(agent_err) if !retryable(&agent_err) => {
                 bail!(agent_err);
             }
-            Err(agent_err) => {
-                match retry_policy.next_backoff() {
-                    Some(duration) => {
-                        eprintln!("Waiting to retry after error: {:?}", &agent_err);
-                        tokio::time::sleep(duration).await;
-                        println!("Sending duplicate transaction");
-                    }
-                    None => bail!(agent_err),
+            Err(agent_err) => match retry_policy.next_backoff() {
+                Some(duration) => {
+                    eprintln!("Waiting to retry after error: {:?}", &agent_err);
+                    tokio::time::sleep(duration).await;
+                    println!("Sending duplicate transaction");
                 }
-            }
+                None => bail!(agent_err),
+            },
         }
     };
 
