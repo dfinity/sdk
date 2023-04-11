@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fs::read_to_string;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -87,7 +88,7 @@ fn validate_pulled(
 #[context("Failed to read pulled.json. Please (re)run `dfx deps pull`.")]
 fn read_pulled_json(env: &dyn Environment) -> DfxResult<PulledJson> {
     let pulled_json_path = get_pulled_json_path(env)?;
-    let pulled_json_str = std::fs::read_to_string(pulled_json_path)?;
+    let pulled_json_str = read_to_string(pulled_json_path)?;
     let pulled_json: PulledJson = serde_json::from_str::<PulledJson>(&pulled_json_str)?;
     Ok(pulled_json)
 }
@@ -106,10 +107,21 @@ fn get_pulled_json_path(env: &dyn Environment) -> DfxResult<PathBuf> {
     Ok(project_root.join("deps").join("pulled.json"))
 }
 
+#[context("Failed to create init.json")]
+fn create_init_json_if_not_existed(env: &dyn Environment) -> DfxResult {
+    let init_json_path = get_init_json_path(env)?;
+    if !init_json_path.exists() {
+        let init_json = InitJson::default();
+        let content = serde_json::to_string_pretty(&init_json)?;
+        write_to_tempfile_then_rename(content.as_bytes(), &init_json_path)?;
+    }
+    Ok(())
+}
+
 #[context("Failed to read init.json")]
 fn read_init_json(env: &dyn Environment) -> DfxResult<InitJson> {
     let init_json_path = get_init_json_path(env)?;
-    let init_json_str = std::fs::read_to_string(init_json_path)?;
+    let init_json_str = read_to_string(init_json_path)?;
     let init_json: InitJson = serde_json::from_str::<InitJson>(&init_json_str)?;
     Ok(init_json)
 }
@@ -136,12 +148,20 @@ fn get_pulled_wasm_path(canister_id: Principal) -> DfxResult<PathBuf> {
         .join("canister.wasm"))
 }
 
-#[context("Failed to get the path of pulled canister \"{canister_id}\"")]
-fn get_pulled_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
+#[context("Failed to get the service candid path of pulled canister \"{canister_id}\"")]
+fn get_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
     Ok(get_cache_root()?
         .join("pulled")
         .join(canister_id.to_text())
-        .join("canister.did"))
+        .join("service.did"))
+}
+
+#[context("Failed to get the args candid path of pulled canister \"{canister_id}\"")]
+fn get_args_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
+    Ok(get_cache_root()?
+        .join("pulled")
+        .join(canister_id.to_text())
+        .join("args.did"))
 }
 
 #[context("Failed to write to a tempfile then rename it to {}", path.display())]

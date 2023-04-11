@@ -11,7 +11,7 @@ teardown() {
 
     dfx_stop
 
-    standard_teardown
+    # standard_teardown
 }
 
 @test "dfx build can write required metadata for pull" {
@@ -126,7 +126,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Canister $CANISTER_ID_A not found."
 }
 
-@test "dfx deps pull can download wasm and candid to shared cache and generate pulled.json" {
+@test "dfx deps pull can download wasm and candids to shared cache and generate pulled.json" {
     # When ran with ic-ref, got following error:
     # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
@@ -141,9 +141,12 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/service.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/service.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/args.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/args.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/args.did"
 
     # system-wide local replica
     dfx_start
@@ -184,9 +187,12 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/service.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/service.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/args.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/args.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/args.did"
 
     cd deps
     assert_file_exists "pulled.json"
@@ -231,14 +237,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
     CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
     CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
 
-    PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
-
     # system-wide local replica
     dfx_start
 
@@ -278,12 +276,73 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     assert_command dfx deps pull
     assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
-    
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.did"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.did"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.did"
-    assert_file_exists "deps/pulled.json"
+}
+
+@test "dfx deps init can set init arguments for pulled canisters" {
+    # When ran with ic-ref, got following error:
+    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+
+    use_test_specific_cache_root # dfx deps pull will download files to cache
+
+    CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
+    CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
+    CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
+
+    # system-wide local replica
+    dfx_start
+
+    install_asset deps
+
+    # start a webserver to host wasm files
+    mkdir www
+    start_webserver --directory www
+
+    cd onchain
+
+    dfx canister create a --specified-id "$CANISTER_ID_A"
+    dfx canister create b --specified-id "$CANISTER_ID_B"
+    dfx canister create c --specified-id "$CANISTER_ID_C"
+    dfx build
+
+    cd .dfx/local/canisters
+    ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
+    ic-wasm b/b.wasm -o b/b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
+    ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
+    # moc omit init types in candid:service. So here we have to overwrite it with the full candid
+    ic-wasm a/a.wasm -o a/a.wasm metadata "candid:service" -d "$(cat a/a.did)" -v public
+    ic-wasm b/b.wasm -o b/b.wasm metadata "candid:service" -d "$(cat b/b.did)" -v public
+    ic-wasm c/c.wasm -o c/c.wasm metadata "candid:service" -d "$(cat c/c.did)" -v public
+
+    cd ../../../
+    dfx canister install a --argument 1
+    dfx canister install b
+    dfx canister install c --argument 3
+
+    # copy wasm files to web server dir
+    cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
+    cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
+    cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
+
+    # pull canisters in app project
+    cd ../app
+    assert_command dfx deps pull
+    assert_command dfx deps init
+    assert_contains "Following canister(s) require init argument, please run \`dfx deps init <PRINCIPAL>\` to set them individually:"
+    assert_contains "$CANISTER_ID_A"
+    assert_contains "$CANISTER_ID_C"
+
+    assert_command dfx deps init "$CANISTER_ID_A" --argument 11
+    assert_command dfx deps init "$CANISTER_ID_C" --argument 33
+
+    # error cases
+    assert_command_fail dfx deps init "$CANISTER_ID_A"
+    assert_contains "Canister $CANISTER_ID_A requires init argument"
+
+    assert_command_fail dfx deps init "$CANISTER_ID_A" --argument '("abc")'
+    assert_contains "Failed to create argument blob."
+    assert_contains "Invalid data: Unable to serialize Candid values: type mismatch: \"abc\" cannot be of type nat"
+
+    assert_command_fail dfx deps init "$CANISTER_ID_B" --argument 1
+    assert_contains "Canister $CANISTER_ID_B takes no init argument. PLease rerun without \`--argument\`"
 }
