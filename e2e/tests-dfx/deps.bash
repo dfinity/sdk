@@ -14,16 +14,6 @@ teardown() {
     standard_teardown
 }
 
-export_canister_ids() {
-    local a b c
-    a=$(dfx canister id onchain_a)
-    b=$(dfx canister id onchain_b)
-    c=$(dfx canister id onchain_c)
-    export CANISTER_ID_A="$a"
-    export CANISTER_ID_B="$b"
-    export CANISTER_ID_C="$c"
-}
-
 @test "dfx build can write required metadata for pull" {
     dfx_start
 
@@ -45,7 +35,7 @@ export_canister_ids() {
     assert_match "Nat"
 
     assert_command ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx:wasm_url
-    assert_match "http://localhost:E2E_WEB_SERVER_PORT/c.wasm"
+    assert_match "http://example.com/c.wasm"
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
@@ -55,7 +45,7 @@ export_canister_ids() {
     # system-wide local replica
     dfx_start
 
-    install_asset pullable
+    install_asset deps
 
     # 1. success path
     ## 1.1. prepare "onchain" canisters
@@ -63,49 +53,63 @@ export_canister_ids() {
     # b -> [a]
     # c -> [a]
     # app -> [a, b]
+    CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
+    CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
+    CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
+
     cd onchain
 
-    dfx canister create --all
-    export_canister_ids
+    dfx canister create a --specified-id "$CANISTER_ID_A"
+    dfx canister create b --specified-id "$CANISTER_ID_B"
+    dfx canister create c --specified-id "$CANISTER_ID_C"
 
-    echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_a/main.wasm
-    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:deps" -d "" -v public
-    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "candid:service" -d "service : {}" -v public
+    dfx deploy a --argument 1
+    dfx deploy b
+    dfx deploy c --argument 3
 
-    echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_b/main.wasm
-    ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "dfx:deps" -d "onchain_a:$CANISTER_ID_A;" -v public
-    ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "candid:service" -d "service : {}" -v public
-
-    echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_c/main.wasm
-    ic-wasm src/onchain_c/main.wasm -o src/onchain_c/main.wasm metadata "dfx:deps" -d "onchain_a:$CANISTER_ID_A;" -v public
-    ic-wasm src/onchain_c/main.wasm -o src/onchain_c/main.wasm metadata "candid:service" -d "service : {}" -v public
-
-    dfx deploy
-
-    assert_command dfx canister metadata "$CANISTER_ID_B" dfx:deps
-    assert_match "onchain_a:$CANISTER_ID_A;"
+    assert_command dfx canister metadata b dfx:deps
+    assert_match "a:$CANISTER_ID_A;"
 
     ## 1.2. pull onchain canisters in "app" project
     cd ../app
-    jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
-    jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
 
     assert_command_fail dfx deps pull # the overall pull fail but succeed to fetch and parse `dfx:deps` recursively
     assert_contains "Resolving dependencies of canister $CANISTER_ID_B...
 Resolving dependencies of canister $CANISTER_ID_C...
 Resolving dependencies of canister $CANISTER_ID_A...
-Found 3 dependencies:"
+Found 3 dependencies:
+yofga-2qaaa-aaaaa-aabsq-cai
+yhgn4-myaaa-aaaaa-aabta-cai
+yahli-baaaa-aaaaa-aabtq-cai"
     assert_occurs 1 "Resolving dependencies of canister $CANISTER_ID_A..." # common dependency onchain_a is pulled only once
-    assert_contains "ERROR: Failed to pull canister $CANISTER_ID_B.
-\`dfx:wasm_url\` metadata not found in canister $CANISTER_ID_B."
-    assert_contains "ERROR: Failed to pull canister $CANISTER_ID_C.
-\`dfx:wasm_url\` metadata not found in canister $CANISTER_ID_C."
-    assert_contains "ERROR: Failed to pull canister $CANISTER_ID_A.
-\`dfx:wasm_url\` metadata not found in canister $CANISTER_ID_A."
+    assert_contains "Pulling canister $CANISTER_ID_A...
+ERROR: Failed to pull canister $CANISTER_ID_A.
+Failed to download wasm from url: http://example.com/a.wasm."
+    assert_contains "Pulling canister $CANISTER_ID_B...
+ERROR: Failed to pull canister $CANISTER_ID_B.
+Failed to download wasm from url: http://example.com/b.wasm."
+    assert_contains "Pulling canister $CANISTER_ID_C...
+ERROR: Failed to pull canister $CANISTER_ID_C.
+Failed to download wasm from url: http://example.com/c.wasm."
 
-    # 2. sad path: if the canister is not present on-chain
+    # 2. sad path: if dependency metadata cannot be read (wrong format)
     cd ../onchain
-    dfx canister uninstall-code onchain_a
+    cd .dfx/local/canisters
+    ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:deps" -d "$CANISTER_ID_A;a" -v public
+    cd ../../../ # go back to root of "onchain" project
+    dfx canister install c --argument 3 --mode=reinstall --yes
+
+    cd ../app
+    assert_command_fail dfx deps pull
+    assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_C."
+    assert_contains "Failed to parse \`dfx:deps\` entry: $CANISTER_ID_A. Expected \`name:Principal\`."
+
+
+    # 3. sad path: if the canister is not present on-chain
+    cd ../onchain
+    dfx build c
+    dfx canister install c --argument 3 --mode=reinstall --yes # reinstall the correct canister c
+    dfx canister uninstall-code a
 
     cd ../app
     assert_command_fail dfx deps pull
@@ -113,25 +117,13 @@ Found 3 dependencies:"
     assert_contains "Canister $CANISTER_ID_A has no module."
 
     cd ../onchain
-    dfx canister stop onchain_a
-    dfx canister delete onchain_a
+    dfx canister stop a
+    dfx canister delete a
 
     cd ../app
     assert_command_fail dfx deps pull
     assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_A."
     assert_contains "Canister $CANISTER_ID_A not found."
-
-    # 3. sad path: if dependency metadata cannot be read (wrong format)
-    cd ../onchain
-    cd src/onchain_b
-    ic-wasm main.wasm -o main.wasm metadata "dfx:deps" -d "$CANISTER_ID_A;onchain_a" -v public
-    cd ../../ # go back to root of "onchain" project
-    dfx deploy
-
-    cd ../app
-    assert_command_fail dfx deps pull
-    assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_B."
-    assert_contains "Failed to parse \`dfx:deps\` entry: $CANISTER_ID_A. Expected \`name:Principal\`."
 }
 
 @test "dfx deps pull can download wasm and candid to shared cache and generate pulled.json" {

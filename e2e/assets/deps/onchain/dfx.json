@@ -7,7 +7,7 @@
             "metadata": [
                 {
                     "name": "dfx:wasm_url",
-                    "content": "http://localhost:E2E_WEB_SERVER_PORT/a.wasm"
+                    "content": "http://example.com/a.wasm"
                 },
                 {
                     "name": "dfx:init",
@@ -25,11 +25,11 @@
             "metadata": [
                 {
                     "name": "dfx:wasm_url",
-                    "content": "http://localhost:E2E_WEB_SERVER_PORT/b.wasm"
+                    "content": "http://example.com/b.wasm"
                 },
                 {
                     "name": "dfx:deps",
-                    "content": "a:yofga-2qaaa-aaaaa-aabsq-cai"
+                    "content": "a:yofga-2qaaa-aaaaa-aabsq-cai;"
                 }
             ]
         },
@@ -43,11 +43,11 @@
             "metadata": [
                 {
                     "name": "dfx:wasm_url",
-                    "content": "http://localhost:E2E_WEB_SERVER_PORT/c.wasm"
+                    "content": "http://example.com/c.wasm"
                 },
                 {
                     "name": "dfx:deps",
-                    "content": "a:yofga-2qaaa-aaaaa-aabsq-cai"
+                    "content": "a:yofga-2qaaa-aaaaa-aabsq-cai;"
                 },
                 {
                     "name": "dfx:init",
