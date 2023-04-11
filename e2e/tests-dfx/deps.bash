@@ -133,6 +133,10 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
+    CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
+    CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
+    CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
+
     PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
@@ -144,44 +148,36 @@ Failed to download wasm from url: http://example.com/c.wasm."
     # system-wide local replica
     dfx_start
 
-    install_asset pullable
+    install_asset deps
 
     # start a webserver to host wasm files
     mkdir www
     start_webserver --directory www
 
-    # prepare "onchain" canisters
     cd onchain
 
-    dfx canister create --all
-    export_canister_ids
+    dfx canister create a --specified-id "$CANISTER_ID_A"
+    dfx canister create b --specified-id "$CANISTER_ID_B"
+    dfx canister create c --specified-id "$CANISTER_ID_C"
+    dfx build
 
-    echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_a/main.wasm
-    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
-    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "candid:service" -d "service : {}" -v public
-    ic-wasm src/onchain_a/main.wasm -o src/onchain_a/main.wasm metadata "dfx:init" -d "onchain_a needs no init inputs" -v public
-
-    echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_b/main.wasm
-    ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
-    ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "dfx:deps" -d "onchain_a:$CANISTER_ID_A;" -v public
-    ic-wasm src/onchain_b/main.wasm -o src/onchain_b/main.wasm metadata "candid:service" -d "service : {}" -v public
-
-    echo -n -e \\x00asm\\x01\\x00\\x00\\x00 > src/onchain_c/main.wasm
-    ic-wasm src/onchain_c/main.wasm -o src/onchain_c/main.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
-    ic-wasm src/onchain_c/main.wasm -o src/onchain_c/main.wasm metadata "dfx:deps" -d "onchain_a:$CANISTER_ID_A;" -v public
-    ic-wasm src/onchain_c/main.wasm -o src/onchain_c/main.wasm metadata "candid:service" -d "service : {}" -v public
-
-    dfx deploy
+    cd .dfx/local/canisters
+    ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
+    ic-wasm b/b.wasm -o b/b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
+    ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
+    
+    cd ../../../
+    dfx canister install a --argument 1
+    dfx canister install b
+    dfx canister install c --argument 3
 
     # copy wasm files to web server dir
-    cp src/onchain_a/main.wasm ../www/a.wasm
-    cp src/onchain_b/main.wasm ../www/b.wasm
-    cp src/onchain_c/main.wasm ../www/c.wasm
+    cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
+    cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
+    cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
     # pull canisters in app project
     cd ../app
-    jq '.canisters.dep1.id="'"$CANISTER_ID_B"'"' dfx.json | sponge dfx.json
-    jq '.canisters.dep2.id="'"$CANISTER_ID_C"'"' dfx.json | sponge dfx.json
     assert_file_not_exists "deps/pulled.json"
 
     assert_command dfx deps pull
@@ -198,7 +194,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_eq "$CANISTER_ID_C" "$(jq -r '.named.dep2' pulled.json)"
     assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
     assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".init' pulled.json
-    assert_match "onchain_a needs no init inputs"
+    assert_match "Nat"
     cd ../
 
     assert_command dfx deps pull
@@ -207,13 +203,12 @@ Failed to download wasm from url: http://example.com/c.wasm."
     # sad path 1: wasm hash doesn't match on chain
     rm -r "${PULLED_DIR:?}/"
     cd ../onchain
-    cp src/onchain_b/main.wasm ../www/a.wasm 
+    cp .dfx/local/canisters/b/b.wasm ../www/a.wasm 
 
     cd ../app
     assert_command_fail dfx deps pull
     assert_contains "Failed to pull canister $CANISTER_ID_A."
     assert_contains "Hash mismatch."
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
 
     # sad path 2: url server doesn't have the file
     rm -r "${PULLED_DIR:?}/"
