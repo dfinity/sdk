@@ -124,7 +124,7 @@ assert_nns_canister_id_matches() {
     wasm_matches nns-ledger ledger-canister_notify-method.wasm
     wasm_matches nns-root root-canister.wasm
     wasm_matches nns-cycles-minting cycles-minting-canister.wasm
-    wasm_matches nns-lifeline lifeline.wasm
+    wasm_matches nns-lifeline lifeline_canister.wasm
     wasm_matches nns-genesis-token genesis-token-canister.wasm
     wasm_matches nns-sns-wasm sns-wasm-canister.wasm
     wasm_matches internet_identity internet_identity_dev.wasm
