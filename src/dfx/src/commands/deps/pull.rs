@@ -1,12 +1,12 @@
 use crate::commands::deps::{
-    get_pulled_wasm_path, get_service_candid_path, write_pulled_json, write_to_tempfile_then_rename, get_args_candid_path,
+    get_pulled_wasm_path, get_service_candid_path, write_pulled_json, write_to_tempfile_then_rename,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::metadata::names::{
-    CANDID_ARGS, CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
+    CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
 };
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -245,15 +245,6 @@ download: {}",
         })?;
     let service_candid_path = get_service_candid_path(canister_id)?;
     write_to_tempfile_then_rename(&service_candid_bytes, &service_candid_path)?;
-
-    // fetch `candid:service` and save it
-    let args_candid_bytes = fetch_metatdata(agent, canister_id, CANDID_ARGS)
-        .await?
-        .ok_or_else(|| {
-            anyhow!("`{CANDID_SERVICE}` metadata not found in canister {canister_id}.")
-        })?;
-    let args_candid_path = get_args_candid_path(canister_id)?;
-    write_to_tempfile_then_rename(&args_candid_bytes, &args_candid_path)?;
 
     // try fetch `dfx:init`
     match fetch_metatdata(agent, canister_id, DFX_INIT).await {

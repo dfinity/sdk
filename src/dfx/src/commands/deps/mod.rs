@@ -156,14 +156,6 @@ fn get_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
         .join("service.did"))
 }
 
-#[context("Failed to get the args candid path of pulled canister \"{canister_id}\"")]
-fn get_args_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
-    Ok(get_cache_root()?
-        .join("pulled")
-        .join(canister_id.to_text())
-        .join("args.did"))
-}
-
 #[context("Failed to write to a tempfile then rename it to {}", path.display())]
 fn write_to_tempfile_then_rename(content: &[u8], path: &PathBuf) -> DfxResult<()> {
     assert!(path.is_absolute());
