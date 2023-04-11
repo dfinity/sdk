@@ -1,4 +1,5 @@
 use crate::commands::deps::get_pulled_wasm_path;
+use crate::lib::deps::InitJson;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -17,6 +18,7 @@ use super::{get_pull_canisters_in_config, read_init_json, read_pulled_json, vali
 #[derive(Parser)]
 pub struct DepsInstallOpts {
     /// Specify the canister to install. You can specify its name (as defined in dfx.json) or Principal.
+    /// If not specified, all pulled canisters will be installed.
     canister: Option<String>,
 }
 
@@ -41,15 +43,11 @@ pub async fn exec(env: &dyn Environment, opts: DepsInstallOpts) -> DfxResult {
                     "The canister is not a valid Principal nor a name specified in dfx.json"
                 })?,
             };
-            let arg_raw = init_json.get_arg_raw(&canister_id)?;
-            create_canister(agent, logger, &canister_id).await?;
-            install_pulled_canister(agent, logger, &canister_id, arg_raw).await?;
+            create_and_install(agent, logger, &canister_id, &init_json).await?;
         }
         None => {
             for canister_id in pulled_json.canisters.keys() {
-                let arg_raw = init_json.get_arg_raw(canister_id)?;
-                create_canister(agent, logger, canister_id).await?;
-                install_pulled_canister(agent, logger, canister_id, arg_raw).await?;
+                create_and_install(agent, logger, canister_id, &init_json).await?;
             }
         }
     }
@@ -57,7 +55,20 @@ pub async fn exec(env: &dyn Environment, opts: DepsInstallOpts) -> DfxResult {
     Ok(())
 }
 
-#[context("Failed to create canster \"{}\"", canister_id)]
+#[context("Failed to create and install canster {}", canister_id)]
+async fn create_and_install(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: &Principal,
+    init_json: &InitJson,
+) -> DfxResult {
+    let arg_raw = init_json.get_arg_raw(canister_id)?;
+    create_canister(agent, logger, canister_id).await?;
+    install_pulled_canister(agent, logger, canister_id, arg_raw).await?;
+    Ok(())
+}
+
+#[context("Failed to create canster {}", canister_id)]
 async fn create_canister(agent: &Agent, logger: &Logger, canister_id: &Principal) -> DfxResult {
     info!(logger, "Creating canister: {canister_id}");
     let mgr = ManagementCanister::create(agent);
@@ -78,7 +89,7 @@ async fn create_canister(agent: &Agent, logger: &Logger, canister_id: &Principal
     }
 }
 
-#[context("Failed to install canster \"{}\"", canister_id)]
+#[context("Failed to install canster {}", canister_id)]
 async fn install_pulled_canister(
     agent: &Agent,
     logger: &Logger,

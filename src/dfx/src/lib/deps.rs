@@ -78,7 +78,10 @@ impl InitJson {
                 Some(s) => Ok(hex::decode(s)?),
                 None => Ok(vec![]),
             },
-            None => bail!("Failed to find {canister_id} entry in init.json."),
+            None => bail!(
+                "Failed to find {0} entry in init.json. Please run `dfx deps init {0}`.",
+                canister_id
+            ),
         }
     }
 }

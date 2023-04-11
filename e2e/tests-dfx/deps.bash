@@ -14,6 +14,10 @@ teardown() {
     # standard_teardown
 }
 
+CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
+CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
+CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
+
 @test "dfx build can write required metadata for pull" {
     dfx_start
 
@@ -53,9 +57,6 @@ teardown() {
     # b -> [a]
     # c -> [a]
     # app -> [a, b]
-    CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
-    CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
-    CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
 
     cd onchain
 
@@ -132,10 +133,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
-
-    CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
-    CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
-    CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
 
     PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
@@ -233,10 +230,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
-    CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
-    CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
-    CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
-
     # system-wide local replica
     dfx_start
 
@@ -284,10 +277,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
-
-    CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
-    CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
-    CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
 
     # system-wide local replica
     dfx_start
@@ -345,4 +334,83 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     assert_command_fail dfx deps init "$CANISTER_ID_B" --argument 1
     assert_contains "Canister $CANISTER_ID_B takes no init argument. PLease rerun without \`--argument\`"
+}
+
+@test "dfx deps install can install pulled canisters which set init arguments" {
+    # When ran with ic-ref, got following error:
+    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+
+    use_test_specific_cache_root # dfx deps pull will download files to cache
+
+    # system-wide local replica
+    dfx_start
+
+    install_asset deps
+
+    # start a webserver to host wasm files
+    mkdir www
+    start_webserver --directory www
+
+    cd onchain
+
+    dfx canister create a --specified-id "$CANISTER_ID_A"
+    dfx canister create b --specified-id "$CANISTER_ID_B"
+    dfx canister create c --specified-id "$CANISTER_ID_C"
+    dfx build
+
+    cd .dfx/local/canisters
+    ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
+    ic-wasm b/b.wasm -o b/b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
+    ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
+    # moc omit init types in candid:service. So here we have to overwrite it with the full candid
+    ic-wasm a/a.wasm -o a/a.wasm metadata "candid:service" -d "$(cat a/a.did)" -v public
+    ic-wasm b/b.wasm -o b/b.wasm metadata "candid:service" -d "$(cat b/b.did)" -v public
+    ic-wasm c/c.wasm -o c/c.wasm metadata "candid:service" -d "$(cat c/c.did)" -v public
+
+    cd ../../../
+    dfx canister install a --argument 1
+    dfx canister install b
+    dfx canister install c --argument 3
+
+    # copy wasm files to web server dir
+    cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
+    cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
+    cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
+
+    # pull canisters in app project
+    cd ../app
+    assert_command dfx deps pull
+    assert_command dfx deps init # b is set here
+    assert_command dfx deps init "$CANISTER_ID_A" --argument 11
+    assert_command dfx deps init "$CANISTER_ID_C" --argument 33
+
+    # install all
+    assert_command dfx deps install
+    assert_contains "Creating canister: $CANISTER_ID_A
+Installing canister: $CANISTER_ID_A"
+    assert_contains "Creating canister: $CANISTER_ID_B
+Installing canister: $CANISTER_ID_B"
+    assert_contains "Creating canister: $CANISTER_ID_C
+Installing canister: $CANISTER_ID_C"
+
+    # by name in dfx.json
+    assert_command dfx deps install dep1
+    assert_contains "Creating canister: $CANISTER_ID_B
+Installing canister: $CANISTER_ID_B"
+
+    # by canister id
+    assert_command dfx deps install $CANISTER_ID_A
+    assert_contains "Creating canister: $CANISTER_ID_A
+Installing canister: $CANISTER_ID_A"
+
+    # error cases
+    rm deps/init.json
+    assert_command_fail dfx deps install
+    assert_contains "Failed to read init.json"
+
+    assert_command dfx deps init # b is set here
+    assert_command_fail dfx deps install "$CANISTER_ID_A"
+    assert_contains "Failed to create and install canster $CANISTER_ID_A"
+    assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`."
 }
