@@ -161,7 +161,7 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
                 )
             })?
             .permissions();
-        permissions.set_mode(0o775); // FIXME Preserve existing permissions
+        permissions.set_mode(0o775); // FIXME Preserve existing permissions https://dfinity.atlassian.net/browse/SDK-1076
         fs::set_permissions(&current_exe_path, permissions).with_context(|| {
             format!(
                 "Failed to set metadata for {}.",
