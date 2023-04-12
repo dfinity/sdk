@@ -1,6 +1,5 @@
-use crate::commands::deps::{
-    copy_service_candid_to_project, get_pulled_wasm_path, get_service_candid_path,
-    save_pulled_json, write_to_tempfile_then_rename,
+use crate::lib::deps::{
+    copy_service_candid_to_project, get_pulled_wasm_path, get_service_candid_path, save_pulled_json,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
@@ -12,7 +11,10 @@ use crate::lib::metadata::names::{
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use dfx_core::config::cache::get_cache_root;
+use dfx_core::fs::composite::ensure_dir_exists;
 use std::collections::VecDeque;
+use std::io::Write;
+use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -296,4 +298,17 @@ async fn fetch_metatdata(
             _ => bail!(agent_error),
         },
     }
+}
+
+#[context("Failed to write to a tempfile then rename it to {}", path.display())]
+fn write_to_tempfile_then_rename(content: &[u8], path: &PathBuf) -> DfxResult {
+    assert!(path.is_absolute());
+    let dir = path
+        .parent()
+        .ok_or_else(|| anyhow!("Failed to get the parent dir from path"))?;
+    ensure_dir_exists(&dir)?;
+    let mut f = tempfile::NamedTempFile::new_in(dir)?;
+    f.write_all(content)?;
+    std::fs::rename(f.path(), path)?;
+    Ok(())
 }

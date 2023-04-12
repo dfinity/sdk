@@ -1,12 +1,16 @@
 use std::collections::BTreeSet;
 
 use crate::lib::deps::InitJson;
+use crate::lib::deps::{
+    get_pull_canisters_in_config, get_pulled_wasm_path, load_init_json, load_pulled_json,
+    validate_pulled,
+};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::{commands::deps::get_pulled_wasm_path, lib::operations::canister::create_canister};
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -15,8 +19,6 @@ use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::interfaces::{management_canister::builders::InstallMode, ManagementCanister};
 use slog::{info, Logger};
-
-use super::{get_pull_canisters_in_config, load_init_json, load_pulled_json, validate_pulled};
 
 /// Install pulled canisters.
 #[derive(Parser)]

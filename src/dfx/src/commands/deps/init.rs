@@ -1,3 +1,7 @@
+use crate::lib::deps::{
+    create_init_json_if_not_existed, get_pull_canisters_in_config, get_service_candid_path,
+    load_init_json, load_pulled_json, save_init_json, validate_pulled,
+};
 use crate::lib::error::DfxResult;
 use crate::util::blob_from_arguments;
 use crate::{lib::environment::Environment, util::get_candid_init_type};
@@ -6,11 +10,6 @@ use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use slog::{info, warn};
-
-use super::{
-    create_init_json_if_not_existed, get_pull_canisters_in_config, get_service_candid_path,
-    load_init_json, load_pulled_json, save_init_json, validate_pulled,
-};
 
 /// Set init argument for a pulled canister.
 #[derive(Parser)]

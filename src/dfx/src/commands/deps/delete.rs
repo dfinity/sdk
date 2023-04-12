@@ -1,3 +1,4 @@
+use crate::lib::deps::{get_pull_canisters_in_config, load_pulled_json, validate_pulled};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -9,8 +10,6 @@ use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::{call::AsyncCall, interfaces::ManagementCanister};
 use slog::{info, Logger};
-
-use super::{get_pull_canisters_in_config, load_pulled_json, validate_pulled};
 
 /// Install pulled canisters.
 #[derive(Parser)]
