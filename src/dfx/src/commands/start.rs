@@ -11,9 +11,11 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
+use candid::Deserialize;
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
+use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use actix::Recipient;
@@ -21,7 +23,9 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
+use serde::Serialize;
 use slog::{info, warn, Logger};
+use std::borrow::Cow;
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -214,6 +218,8 @@ pub fn exec(
         empty_writable_path(local_server_descriptor.icx_proxy_pid_path())?;
     let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
+    let previous_config_path = network_temp_dir.join("replica-effective-config.json");
+
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
@@ -275,6 +281,19 @@ pub fn exec(
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
+            let effective_config = CachedConfig {
+                replica_rev: env!("DFX_ASSET_REPLICA_REV").into(),
+                config: CachedReplicaConfig::Emulator,
+            };
+            if !clean && !force && previous_config_path.exists() {
+                let previous_config = load_json_file(&previous_config_path)
+                    .context("Failed to read replica configuration. Rerun with `--clean`.")?;
+                if effective_config != previous_config {
+                    bail!("The network configuration was changed. Rerun with `--clean`.")
+                }
+            }
+            save_json_file(&previous_config_path, &effective_config)
+                .context("Failed to write replica configuration")?;
             let emulator =
                 start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
             emulator.recipient()
@@ -325,25 +344,23 @@ pub fn exec(
                 }
             }
 
-            let previous_config_path = replica_config_dir.join("replica-effective-config.json");
+            let effective_config = CachedConfig {
+                config: CachedReplicaConfig::Replica {
+                    config: Cow::Borrowed(&replica_config),
+                },
+                replica_rev: env!("DFX_ASSET_REPLICA_REV").into(),
+            };
 
-            if !clean && !force {
-                if let Ok(previous_config) = fs::read(&previous_config_path) {
-                    let previous_config: ReplicaConfig = serde_json::from_slice(&previous_config)
-                        .context(
-                        "Failed to read previous replica configuration. Rerun with `--clean`.",
-                    )?;
-                    if previous_config != replica_config {
-                        bail!("The network configuration was changed. Rerun with `--clean`.");
-                    }
+            if !clean && !force && previous_config_path.exists() {
+                let previous_config = load_json_file(&previous_config_path)
+                    .context("Failed to read replica configuration. Rerun with `--clean`.")?;
+                if effective_config != previous_config {
+                    bail!("The network configuration was changed. Rerun with `--clean`.")
                 }
             }
 
-            fs::write(
-                &previous_config_path,
-                &serde_json::to_vec(&replica_config).unwrap(),
-            )
-            .context("Failed to write replica configuration")?;
+            save_json_file(&previous_config_path, &effective_config)
+                .context("Failed to write replica configuration")?;
 
             let replica = start_replica_actor(
                 env,
@@ -382,6 +399,20 @@ pub fn exec(
     }
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum CachedReplicaConfig<'a> {
+    Replica { config: Cow<'a, ReplicaConfig> },
+    Emulator,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+pub struct CachedConfig<'a> {
+    pub replica_rev: String,
+    #[serde(flatten)]
+    pub config: CachedReplicaConfig<'a>,
 }
 
 pub fn apply_command_line_parameters(
