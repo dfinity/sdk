@@ -940,19 +940,3 @@ mod with_tempdir {
         Ok(())
     }
 }
-
-// TODO
-impl std::cmp::PartialEq<Option<&AssetProperties>> for AssetConfig {
-    fn eq(&self, other: &Option<&AssetProperties>) -> bool {
-        if let Some(other) = other {
-            self.cache
-                .clone()
-                .map_or(CacheConfig::default().max_age, |v| v.max_age)
-                == other.max_age
-                && self.allow_raw_access == other.allow_raw_access
-            // && self.headers == other.headers.iter().collect::<_>()
-        } else {
-            false
-        }
-    }
-}

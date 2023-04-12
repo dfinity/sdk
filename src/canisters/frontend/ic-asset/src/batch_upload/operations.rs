@@ -1,5 +1,6 @@
 use candid::Nat;
 
+use crate::asset::config::CacheConfig;
 use crate::batch_upload::plumbing::ProjectAsset;
 use crate::canister_api::types::asset::{
     AssetDetails, AssetProperties, SetAssetPropertiesArguments,
@@ -9,7 +10,7 @@ use crate::canister_api::types::batch_upload::common::{
     UnsetAssetContentArguments,
 };
 use crate::canister_api::types::batch_upload::v1::{BatchOperationKind, CommitBatchArguments};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 1;
 
@@ -184,12 +185,27 @@ pub(crate) fn update_properties(
     for (key, project_asset) in project_assets {
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
         let canister_asset_properties = canister_asset_properties.get(key);
-        // checking if the asset is already in the canister:
-        // - if it is: check if the properties are the same and skip if they are (saves cycles),
-        // - if its not: skip (proporties gonna be created in create_new_assets)
-        if canister_asset_properties.is_some()
-            && project_asset_properties.ne(&canister_asset_properties)
-        {
+        // skip if the asset is not already in the canister, because
+        // proporties gonna be created during create_new_assets call
+        if canister_asset_properties.is_none() {
+            continue;
+        }
+        let canister_asset_properties = canister_asset_properties.unwrap();
+        let cache_is_different = project_asset_properties
+            .cache
+            .as_ref()
+            .map_or(None, |v| v.max_age)
+            != canister_asset_properties.max_age;
+        let headers_are_different = project_asset_properties.headers
+            != canister_asset_properties
+                .headers
+                .as_ref()
+                .map_or(None, |v| Some(BTreeMap::from_iter(v.clone().into_iter())));
+        let allow_raw_access_is_different =
+            project_asset_properties.allow_raw_access != canister_asset_properties.allow_raw_access;
+
+        // check if the properties are the same and skip if they are to save saves cycles
+        if cache_is_different || headers_are_different || allow_raw_access_is_different {
             operations.push(BatchOperationKind::SetAssetProperties(
                 SetAssetPropertiesArguments {
                     key: key.clone(),
