@@ -88,6 +88,19 @@ fn validate_pulled(
     Ok(())
 }
 
+fn get_deps_dir(env: &dyn Environment) -> DfxResult<PathBuf> {
+    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
+    Ok(project_root.join("deps"))
+}
+
+fn get_init_json_path(env: &dyn Environment) -> DfxResult<PathBuf> {
+    Ok(get_deps_dir(env)?.join("init.json"))
+}
+
+fn get_pulled_json_path(env: &dyn Environment) -> DfxResult<PathBuf> {
+    Ok(get_deps_dir(env)?.join("pulled.json"))
+}
+
 #[context("Failed to read pulled.json. Please (re)run `dfx deps pull`.")]
 fn read_pulled_json(env: &dyn Environment) -> DfxResult<PulledJson> {
     let pulled_json_path = get_pulled_json_path(env)?;
@@ -102,12 +115,6 @@ fn write_pulled_json(env: &dyn Environment, pulled_json: &PulledJson) -> DfxResu
     let content = serde_json::to_string_pretty(pulled_json)?;
     write_to_tempfile_then_rename(content.as_bytes(), &pulled_json_path)?;
     Ok(())
-}
-
-#[context("Failed to get the path of pulled.json")]
-fn get_pulled_json_path(env: &dyn Environment) -> DfxResult<PathBuf> {
-    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
-    Ok(project_root.join("deps").join("pulled.json"))
 }
 
 #[context("Failed to create init.json")]
@@ -137,12 +144,6 @@ fn write_init_json(env: &dyn Environment, init_json: &InitJson) -> DfxResult {
     Ok(())
 }
 
-#[context("Failed to get the path of init.json")]
-fn get_init_json_path(env: &dyn Environment) -> DfxResult<PathBuf> {
-    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
-    Ok(project_root.join("deps").join("init.json"))
-}
-
 #[context("Failed to get the path of pulled canister \"{canister_id}\"")]
 fn get_pulled_wasm_path(canister_id: Principal) -> DfxResult<PathBuf> {
     Ok(get_cache_root()?
@@ -159,8 +160,23 @@ fn get_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
         .join("service.did"))
 }
 
+#[context("Failed to copy candid path of pull dependency {name}")]
+fn copy_service_candid_to_project(
+    env: &dyn Environment,
+    name: &str,
+    canister_id: Principal,
+) -> DfxResult {
+    let service_candid_path = get_service_candid_path(canister_id)?;
+    let deps_dir = get_deps_dir(env)?;
+    std::fs::create_dir_all(&deps_dir)
+        .with_context(|| format!("Failed to create dir at {:?}", &deps_dir))?;
+    let path_in_project = deps_dir.join(format!("{name}.did"));
+    std::fs::copy(&service_candid_path, &path_in_project)?;
+    Ok(())
+}
+
 #[context("Failed to write to a tempfile then rename it to {}", path.display())]
-fn write_to_tempfile_then_rename(content: &[u8], path: &PathBuf) -> DfxResult<()> {
+fn write_to_tempfile_then_rename(content: &[u8], path: &PathBuf) -> DfxResult {
     assert!(path.is_absolute());
     let dir = path
         .parent()

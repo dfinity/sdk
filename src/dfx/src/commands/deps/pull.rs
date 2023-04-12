@@ -1,5 +1,6 @@
 use crate::commands::deps::{
-    get_pulled_wasm_path, get_service_candid_path, write_pulled_json, write_to_tempfile_then_rename,
+    copy_service_candid_to_project, get_pulled_wasm_path, get_service_candid_path,
+    write_pulled_json, write_to_tempfile_then_rename,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
@@ -42,7 +43,7 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let mut canisters_to_resolve: VecDeque<Principal> =
         pull_canisters_in_config.values().cloned().collect();
 
-    let mut pulled_json = PulledJson::with_named(pull_canisters_in_config);
+    let mut pulled_json = PulledJson::with_named(&pull_canisters_in_config);
 
     while let Some(callee_canister) = canisters_to_resolve.pop_front() {
         if !pulled_json.canisters.contains_key(&callee_canister) {
@@ -78,8 +79,13 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
         }
     }
 
-    if any_download_fail {
-        bail!("Failed when pulling canisters.");
+    match any_download_fail {
+        true => bail!("Failed when pulling canisters."),
+        false => {
+            for (name, canister_id) in &pull_canisters_in_config {
+                copy_service_candid_to_project(env, name, *canister_id)?;
+            }
+        }
     }
 
     write_pulled_json(env, &pulled_json)?;
