@@ -1,6 +1,5 @@
 use candid::Nat;
 
-
 use crate::batch_upload::plumbing::ProjectAsset;
 use crate::canister_api::types::asset::{
     AssetDetails, AssetProperties, SetAssetPropertiesArguments,
@@ -193,12 +192,14 @@ pub(crate) fn update_properties(
         let canister_asset_properties = canister_asset_properties.unwrap();
         let cache_is_different = project_asset_properties
             .cache
-            .as_ref().and_then(|v| v.max_age)
+            .as_ref()
+            .and_then(|v| v.max_age)
             != canister_asset_properties.max_age;
         let headers_are_different = project_asset_properties.headers
             != canister_asset_properties
                 .headers
-                .as_ref().map(|v| BTreeMap::from_iter(v.clone().into_iter()));
+                .as_ref()
+                .map(|v| BTreeMap::from_iter(v.clone().into_iter()));
         let allow_raw_access_is_different =
             project_asset_properties.allow_raw_access != canister_asset_properties.allow_raw_access;
 
