@@ -170,22 +170,22 @@ fn hash_headers(hasher: &mut Sha256, headers: Option<&BTreeMap<String, String>>)
     }
 }
 
-fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArguments) -> () {
-    hasher.update(&TAG_SET_ASSET_PROPERTIES);
+fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArguments) {
+    hasher.update(TAG_SET_ASSET_PROPERTIES);
     hasher.update(&args.key);
     if let Some(max_age) = args.max_age {
-        hasher.update(&TAG_SOME);
+        hasher.update(TAG_SOME);
         if let Some(max_age) = max_age {
-            hasher.update(&TAG_SOME);
-            hasher.update(&max_age.to_be_bytes());
+            hasher.update(TAG_SOME);
+            hasher.update(max_age.to_be_bytes());
         } else {
-            hasher.update(&TAG_NONE);
+            hasher.update(TAG_NONE);
         }
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
     if let Some(headers) = args.headers.as_ref() {
-        hasher.update(&TAG_SOME);
+        hasher.update(TAG_SOME);
         if let Some(h) = headers {
             let h = BTreeMap::from_iter(h.iter().map(|(k, v)| (k.to_string(), v.to_string())));
             hash_headers(hasher, Some(&h));
@@ -193,18 +193,18 @@ fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArgum
             hash_headers(hasher, None);
         }
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
     if let Some(allow_raw_access) = args.allow_raw_access {
-        hasher.update(&TAG_SOME);
+        hasher.update(TAG_SOME);
         hash_opt_bool(hasher, allow_raw_access);
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
     if let Some(enable_aliasing) = args.is_aliased {
-        hasher.update(&TAG_SOME);
+        hasher.update(TAG_SOME);
         hash_opt_bool(hasher, enable_aliasing);
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
 }

@@ -194,37 +194,37 @@ fn hash_clear(hasher: &mut Sha256, _args: &ClearArguments) {
     hasher.update(TAG_CLEAR);
 }
 
-fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArguments) -> () {
-    hasher.update(&TAG_SET_ASSET_PROPERTIES);
+fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArguments) {
+    hasher.update(TAG_SET_ASSET_PROPERTIES);
     hasher.update(&args.key);
     if let Some(max_age) = args.max_age {
-        hasher.update(&TAG_SOME);
+        hasher.update(TAG_SOME);
         if let Some(max_age) = max_age {
-            hasher.update(&TAG_SOME);
-            hasher.update(&max_age.to_be_bytes());
+            hasher.update(TAG_SOME);
+            hasher.update(max_age.to_be_bytes());
         } else {
-            hasher.update(&TAG_NONE);
+            hasher.update(TAG_NONE);
         }
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
     if let Some(headers) = args.headers.as_ref() {
-        hasher.update(&TAG_SOME);
+        hasher.update(TAG_SOME);
         hash_headers(hasher, headers.as_ref());
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
     if let Some(allow_raw_access) = args.allow_raw_access {
-        hasher.update(&TAG_SOME);
+        hasher.update(TAG_SOME);
         hash_opt_bool(hasher, allow_raw_access);
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
     if let Some(enable_aliasing) = args.is_aliased {
-        hasher.update(&TAG_SOME);
+        hasher.update(TAG_SOME);
         hash_opt_bool(hasher, enable_aliasing);
     } else {
-        hasher.update(&TAG_NONE);
+        hasher.update(TAG_NONE);
     }
 }
 
