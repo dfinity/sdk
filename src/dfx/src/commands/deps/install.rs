@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use crate::lib::deps::InitJson;
 use crate::lib::deps::{
     get_pull_canisters_in_config, get_pulled_wasm_path, load_init_json, load_pulled_json,
@@ -11,6 +9,8 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
+
+use std::collections::BTreeSet;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -30,11 +30,12 @@ pub struct DepsInstallOpts {
 
 pub async fn exec(env: &dyn Environment, opts: DepsInstallOpts) -> DfxResult {
     let logger = env.get_logger();
-    let pulled_json = load_pulled_json(env)?;
+    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
+    let pulled_json = load_pulled_json(&project_root)?;
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     validate_pulled(&pulled_json, &pull_canisters_in_config)?;
 
-    let init_json = load_init_json(env)?;
+    let init_json = load_init_json(&project_root)?;
 
     fetch_root_key_if_needed(env).await?;
     let agent = env

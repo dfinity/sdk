@@ -20,7 +20,8 @@ pub struct DepsDeleteOpts {
 
 pub async fn exec(env: &dyn Environment, opts: DepsDeleteOpts) -> DfxResult {
     let logger = env.get_logger();
-    let pulled_json = load_pulled_json(env)?;
+    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
+    let pulled_json = load_pulled_json(&project_root)?;
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     validate_pulled(&pulled_json, &pull_canisters_in_config)?;
 

@@ -1,5 +1,5 @@
 use crate::lib::deps::{
-    copy_service_candid_to_project, get_pulled_wasm_path, get_service_candid_path, save_pulled_json,
+    get_candid_path_in_project, get_pulled_wasm_path, get_service_candid_path, save_pulled_json, get_pull_canisters_in_config,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
@@ -11,7 +11,8 @@ use crate::lib::metadata::names::{
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use dfx_core::config::cache::get_cache_root;
-use dfx_core::fs::composite::ensure_dir_exists;
+use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
+
 use std::collections::VecDeque;
 use std::io::Write;
 use std::path::PathBuf;
@@ -30,6 +31,7 @@ pub struct DepsPullOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let logger = env.get_logger();
+    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
 
     fetch_root_key_if_needed(env).await?;
 
@@ -37,10 +39,7 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    let pull_canisters_in_config = env
-        .get_config_or_anyhow()?
-        .get_config()
-        .get_pull_canisters()?;
+    let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
 
     let mut canisters_to_resolve: VecDeque<Principal> =
         pull_canisters_in_config.values().cloned().collect();
@@ -85,12 +84,12 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
         true => bail!("Failed when pulling canisters."),
         false => {
             for (name, canister_id) in &pull_canisters_in_config {
-                copy_service_candid_to_project(env, name, *canister_id)?;
+                copy_service_candid_to_project(&project_root, name, *canister_id)?;
             }
         }
     }
 
-    save_pulled_json(env, &pulled_json)?;
+    save_pulled_json(&project_root, &pulled_json)?;
     Ok(())
 }
 
@@ -310,5 +309,18 @@ fn write_to_tempfile_then_rename(content: &[u8], path: &PathBuf) -> DfxResult {
     let mut f = tempfile::NamedTempFile::new_in(dir)?;
     f.write_all(content)?;
     std::fs::rename(f.path(), path)?;
+    Ok(())
+}
+
+#[context("Failed to copy candid path of pull dependency {name}")]
+pub fn copy_service_candid_to_project(
+    project_root: &PathBuf,
+    name: &str,
+    canister_id: Principal,
+) -> DfxResult {
+    let service_candid_path = get_service_candid_path(canister_id)?;
+    let path_in_project = get_candid_path_in_project(project_root, name);
+    ensure_parent_dir_exists(&path_in_project)?;
+    std::fs::copy(&service_candid_path, &path_in_project)?;
     Ok(())
 }

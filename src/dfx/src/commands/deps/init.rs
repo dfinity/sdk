@@ -29,13 +29,14 @@ pub struct DepsInitOpts {
 
 pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
     let logger = env.get_logger();
+    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
 
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
-    let pulled_json = load_pulled_json(env)?;
+    let pulled_json = load_pulled_json(&project_root)?;
     validate_pulled(&pulled_json, &pull_canisters_in_config)?;
 
-    create_init_json_if_not_existed(env)?;
-    let mut init_json = load_init_json(env)?;
+    create_init_json_if_not_existed(&project_root)?;
+    let mut init_json = load_init_json(&project_root)?;
 
     match opts.canister {
         Some(canister) => {
@@ -96,6 +97,6 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
         }
     }
 
-    save_init_json(env, &init_json)?;
+    save_init_json(&project_root, &init_json)?;
     Ok(())
 }
