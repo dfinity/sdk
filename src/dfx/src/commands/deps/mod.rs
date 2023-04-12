@@ -16,6 +16,7 @@ use fn_error_context::context;
 use sha2::{Digest, Sha256};
 use tokio::runtime::Runtime;
 
+mod delete;
 mod init;
 mod install;
 mod pull;
@@ -38,6 +39,7 @@ enum SubCommand {
     Pull(pull::DepsPullOpts),
     Init(init::DepsInitOpts),
     Install(install::DepsInstallOpts),
+    Delete(delete::DepsDeleteOpts),
 }
 
 /// Executes `dfx deps` and its subcommands.
@@ -49,6 +51,7 @@ pub fn exec(env: &dyn Environment, opts: DepsOpts) -> DfxResult {
             SubCommand::Pull(v) => pull::exec(&agent_env, v).await,
             SubCommand::Init(v) => init::exec(&agent_env, v).await,
             SubCommand::Install(v) => install::exec(&agent_env, v).await,
+            SubCommand::Delete(v) => delete::exec(&agent_env, v).await,
         }
     })
 }

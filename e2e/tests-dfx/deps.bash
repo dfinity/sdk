@@ -271,16 +271,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
 }
 
-@test "dfx deps init can set init arguments for pulled canisters" {
-    # When ran with ic-ref, got following error:
-    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
-    use_test_specific_cache_root # dfx deps pull will download files to cache
-
-    # system-wide local replica
-    dfx_start
-
+setup_onchain() {
     install_asset deps
 
     # start a webserver to host wasm files
@@ -312,6 +303,19 @@ Failed to download wasm from url: http://example.com/c.wasm."
     cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
     cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
     cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
+}
+
+@test "dfx deps init can set init arguments for pulled canisters" {
+    # When ran with ic-ref, got following error:
+    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+
+    use_test_specific_cache_root # dfx deps pull will download files to cache
+
+    # system-wide local replica
+    dfx_start
+
+    setup_onchain
 
     # pull canisters in app project
     cd ../app
@@ -346,37 +350,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     # system-wide local replica
     dfx_start
 
-    install_asset deps
-
-    # start a webserver to host wasm files
-    mkdir www
-    start_webserver --directory www
-
-    cd onchain
-
-    dfx canister create a --specified-id "$CANISTER_ID_A"
-    dfx canister create b --specified-id "$CANISTER_ID_B"
-    dfx canister create c --specified-id "$CANISTER_ID_C"
-    dfx build
-
-    cd .dfx/local/canisters
-    ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
-    ic-wasm b/b.wasm -o b/b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
-    ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
-    # moc omit init types in candid:service. So here we have to overwrite it with the full candid
-    ic-wasm a/a.wasm -o a/a.wasm metadata "candid:service" -d "$(cat a/a.did)" -v public
-    ic-wasm b/b.wasm -o b/b.wasm metadata "candid:service" -d "$(cat b/b.did)" -v public
-    ic-wasm c/c.wasm -o c/c.wasm metadata "candid:service" -d "$(cat c/c.did)" -v public
-
-    cd ../../../
-    dfx canister install a --argument 1
-    dfx canister install b
-    dfx canister install c --argument 3
-
-    # copy wasm files to web server dir
-    cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
-    cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
-    cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
+    setup_onchain
 
     # pull canisters in app project
     cd ../app
@@ -413,4 +387,38 @@ Installing canister: $CANISTER_ID_A"
     assert_command_fail dfx deps install "$CANISTER_ID_A"
     assert_contains "Failed to create and install canster $CANISTER_ID_A"
     assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`."
+}
+
+@test "dfx deps delete works" {
+    # When ran with ic-ref, got following error:
+    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+
+    use_test_specific_cache_root # dfx deps pull will download files to cache
+
+    # system-wide local replica
+    dfx_start
+
+    setup_onchain
+
+    # pull canisters in app project
+    cd ../app
+    assert_command dfx deps pull
+    assert_command dfx deps init # b is set here
+    assert_command dfx deps init "$CANISTER_ID_A" --argument 11
+    assert_command dfx deps init "$CANISTER_ID_C" --argument 33
+    assert_command dfx deps install
+    
+    # by name in dfx.json
+    assert_command dfx deps delete dep1
+    assert_contains "Deleting canister: $CANISTER_ID_B"
+
+    # by canister id
+    assert_command dfx deps delete "$CANISTER_ID_A"
+    assert_contains "Deleting canister: $CANISTER_ID_A"
+
+    # error case
+    CANISTER_ID_OTHER="rwlgt-iiaaa-aaaaa-aaaaa-cai"
+    assert_command_fail dfx deps delete "$CANISTER_ID_OTHER"
+    assert_contains "Canister $CANISTER_ID_OTHER is not a pulled dependency."
 }
