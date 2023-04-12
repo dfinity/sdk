@@ -403,6 +403,7 @@ pub fn exec(
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
 pub enum CachedReplicaConfig<'a> {
     Replica { config: Cow<'a, ReplicaConfig> },
     Emulator,
