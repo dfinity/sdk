@@ -1,15 +1,17 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::{call_sender, CallSender};
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::deploy_canisters;
+use crate::lib::operations::canister::DeployMode::{
+    ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::validators::cycle_amount_validator;
 use crate::NetworkOpt;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -92,6 +94,14 @@ pub struct DeployOpts {
     /// Skips upgrading the asset canister, to only install the assets themselves.
     #[clap(long)]
     no_asset_upgrade: bool,
+
+    /// Prepare (upload) assets for later commit by proposal.
+    #[clap(long, conflicts_with("compute-evidence"))]
+    by_proposal: bool,
+
+    /// Compute evidence and compare it against expected evidence
+    #[clap(long, conflicts_with("by-proposal"))]
+    compute_evidence: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -114,20 +124,43 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let with_cycles = opts.with_cycles.as_deref();
 
-    let force_reinstall = match (mode, canister_name) {
-        (None, _) => false,
-        (Some(InstallMode::Reinstall), Some(_canister_name)) => true,
+    let deploy_mode = match (mode, canister_name) {
+        (Some(InstallMode::Reinstall), Some(canister_name)) => {
+            let network = env.get_network_descriptor();
+            if config
+                .get_config()
+                .is_remote_canister(canister_name, &network.name)?
+            {
+                bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
+                    canister_name, &network.name);
+            }
+            ForceReinstallSingleCanister(canister_name.to_string())
+        }
         (Some(InstallMode::Reinstall), None) => {
             bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister.");
         }
         (Some(_), _) => {
             unreachable!("The only valid option for --mode is --mode=reinstall");
         }
+        (None, None) if opts.by_proposal => {
+            bail!("The --by-proposal flag is only valid when deploying a single canister.");
+        }
+        (None, Some(canister_name)) if opts.by_proposal => {
+            PrepareForProposal(canister_name.to_string())
+        }
+        (None, None) if opts.compute_evidence => {
+            bail!("The --compute-evidence flag is only valid when deploying a single canister.");
+        }
+        (None, Some(canister_name)) if opts.compute_evidence => {
+            ComputeEvidence(canister_name.to_string())
+        }
+        (None, _) => NormalDeploy,
     };
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let call_sender = runtime.block_on(call_sender(&opts.wallet))?;
+    let call_sender = CallSender::from(&opts.wallet)
+        .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
     let proxy_sender;
     let create_call_sender = if opts.specified_id.is_none()
         && !opts.no_wallet
@@ -150,7 +183,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         canister_name,
         argument,
         argument_type,
-        force_reinstall,
+        &deploy_mode,
         opts.upgrade_unchanged,
         with_cycles,
         opts.specified_id,
@@ -161,14 +194,17 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         !opts.no_asset_upgrade,
     ))?;
 
-    display_urls(&env)
+    if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {
+        display_urls(&env)?;
+    }
+    Ok(())
 }
 
 fn display_urls(env: &dyn Environment) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let network: &NetworkDescriptor = env.get_network_descriptor();
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let mut frontend_urls = BTreeMap::new();
     let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();

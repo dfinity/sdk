@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
-    AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
-    CreateChunkArg, DeleteAssetArguments, DeleteBatchArguments, SetAssetContentArguments,
-    SetAssetPropertiesArguments,
+    AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
+    ComputeEvidenceArguments, CreateAssetArguments, CreateChunkArg, DeleteAssetArguments,
+    DeleteBatchArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -83,6 +83,7 @@ struct RequestBuilder {
     method: String,
     headers: Vec<(String, String)>,
     body: ByteBuf,
+    certificate_version: Option<u16>,
 }
 
 impl RequestBuilder {
@@ -92,6 +93,7 @@ impl RequestBuilder {
             method: "GET".to_string(),
             headers: vec![],
             body: ByteBuf::new(),
+            certificate_version: None,
         }
     }
 
@@ -101,12 +103,18 @@ impl RequestBuilder {
         self
     }
 
+    fn with_certificate_version(mut self, version: u16) -> Self {
+        self.certificate_version = Some(version);
+        self
+    }
+
     fn build(self) -> HttpRequest {
         HttpRequest {
             method: self.method,
             url: self.resource,
             headers: self.headers,
             body: self.body,
+            certificate_version: self.certificate_version,
         }
     }
 }
@@ -114,6 +122,66 @@ impl RequestBuilder {
 fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) -> BatchId {
     let batch_id = state.create_batch(time_now);
 
+    let operations =
+        assemble_create_assets_and_set_contents_operations(state, time_now, assets, &batch_id);
+
+    state
+        .commit_batch(
+            CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations,
+            },
+            time_now,
+        )
+        .unwrap();
+
+    batch_id
+}
+
+fn create_assets_by_proposal(
+    state: &mut State,
+    time_now: u64,
+    assets: Vec<AssetBuilder>,
+) -> BatchId {
+    let batch_id = state.create_batch(time_now);
+
+    let operations =
+        assemble_create_assets_and_set_contents_operations(state, time_now, assets, &batch_id);
+
+    state
+        .propose_commit_batch(CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations,
+        })
+        .unwrap();
+
+    let evidence = state
+        .compute_evidence(ComputeEvidenceArguments {
+            batch_id: batch_id.clone(),
+            max_iterations: Some(100),
+        })
+        .unwrap()
+        .unwrap();
+
+    state
+        .commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id: batch_id.clone(),
+                evidence,
+            },
+            time_now,
+        )
+        .unwrap();
+
+    batch_id
+}
+
+fn assemble_create_assets_and_set_contents_operations(
+    state: &mut State,
+    time_now: u64,
+    assets: Vec<AssetBuilder>,
+    batch_id: &BatchId,
+) -> Vec<BatchOperation> {
     let mut operations = vec![];
 
     for asset in assets {
@@ -152,18 +220,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             }));
         }
     }
-
-    state
-        .commit_batch(
-            CommitBatchArguments {
-                batch_id: batch_id.clone(),
-                operations,
-            },
-            time_now,
-        )
-        .unwrap();
-
-    batch_id
+    operations
 }
 
 fn lookup_header<'a>(response: &'a HttpResponse, header: &str) -> Option<&'a str> {
@@ -196,6 +253,186 @@ fn can_create_assets_using_batch_api() {
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     let batch_id = create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY])],
+    );
+
+    let response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip,identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+
+    assert_eq!(response.status_code, 200);
+    assert_eq!(response.body.as_ref(), BODY);
+
+    // Try to update a completed batch.
+    let error_msg = state
+        .create_chunk(
+            CreateChunkArg {
+                batch_id,
+                content: ByteBuf::new(),
+            },
+            time_now,
+        )
+        .unwrap_err();
+
+    let expected = "batch not found";
+    assert!(
+        error_msg.contains(expected),
+        "expected '{}' error, got: {}",
+        expected,
+        error_msg
+    );
+}
+
+#[test]
+fn serve_correct_encoding_v1() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY])
+                .with_encoding("gzip", vec![GZIP_BODY]),
+            AssetBuilder::new("/only-identity.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY]),
+            AssetBuilder::new("/no-encoding.html", "text/html"),
+        ],
+    );
+
+    // Most important encoding is returned with certificate
+    let identity_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(identity_response.status_code, 200);
+    assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
+
+    // If only uncertified encoding is accepted, return it without any certificate
+    let gzip_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(gzip_response.status_code, 200);
+    assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+    assert!(lookup_header(&gzip_response, "IC-Certificate").is_none());
+
+    // If no encoding matches, return most important encoding with certificate
+    let unknown_encoding_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "unknown")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(unknown_encoding_response.status_code, 200);
+    assert_eq!(unknown_encoding_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&unknown_encoding_response, "IC-Certificate").is_some());
+
+    let unknown_encoding_response_2 = state.http_request(
+        RequestBuilder::get("/only-identity.html")
+            .with_header("Accept-Encoding", "gzip")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(unknown_encoding_response_2.status_code, 200);
+    assert_eq!(unknown_encoding_response_2.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&unknown_encoding_response_2, "IC-Certificate").is_some());
+
+    // Serve 404 if the requested asset has no encoding uploaded at all
+    let no_encoding_response = state.http_request(
+        RequestBuilder::get("/no-encoding.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(no_encoding_response.status_code, 404);
+    assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
+}
+
+#[test]
+fn serve_correct_encoding_v2() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![
+            AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![IDENTITY_BODY]),
+            AssetBuilder::new("/contents.html", "text/html").with_encoding("gzip", vec![GZIP_BODY]),
+            AssetBuilder::new("/no-encoding.html", "text/html"),
+        ],
+    );
+
+    let identity_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(identity_response.status_code, 200);
+    assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
+    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
+
+    let gzip_response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip")
+            .with_certificate_version(2)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(gzip_response.status_code, 200);
+    assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
+    assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
+
+    let no_encoding_response = state.http_request(
+        RequestBuilder::get("/no-encoding.html")
+            .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(no_encoding_response.status_code, 404);
+    assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
+    assert!(lookup_header(&no_encoding_response, "IC-Certificate").is_some());
+}
+
+#[test]
+fn can_create_assets_using_batch_proposal_api() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    let batch_id = create_assets_by_proposal(
         &mut state,
         time_now,
         vec![AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY])],
@@ -279,7 +516,7 @@ fn can_propose_commit_batch_exactly_once() {
     };
     assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
     match state.propose_commit_batch(args) {
-        Err(err) if err == "batch already has proposed CommitBatchArguments".to_string() => {}
+        Err(err) if err == *"batch already has proposed CommitBatchArguments" => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     };
 }
@@ -295,7 +532,7 @@ fn cannot_create_chunk_in_proposed_batch_() {
         batch_id: batch_1.clone(),
         operations: vec![],
     };
-    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     match state.create_chunk(
@@ -305,7 +542,7 @@ fn cannot_create_chunk_in_proposed_batch_() {
         },
         time_now,
     ) {
-        Err(err) if err == "batch has been proposed".to_string() => {}
+        Err(err) if err == *"batch has been proposed" => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
 }
@@ -333,7 +570,7 @@ fn batches_with_proposed_commit_args_do_not_expire() {
         batch_id: batch_1.clone(),
         operations: vec![],
     };
-    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
 
     let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
     let _batch_2 = state.create_batch(time_now);
@@ -345,7 +582,7 @@ fn batches_with_proposed_commit_args_do_not_expire() {
         },
         time_now,
     ) {
-        Err(err) if err == "batch has been proposed".to_string() => {}
+        Err(err) if err == *"batch has been proposed" => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
 }
@@ -361,10 +598,8 @@ fn can_delete_proposed_batch() {
         batch_id: batch_1.clone(),
         operations: vec![],
     };
-    assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
-    let delete_args = DeleteBatchArguments {
-        batch_id: batch_1.clone(),
-    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
+    let delete_args = DeleteBatchArguments { batch_id: batch_1 };
     assert_eq!(Ok(()), state.delete_batch(delete_args.clone()));
     assert_eq!(
         Err("batch not found".to_string()),
@@ -390,9 +625,7 @@ fn can_delete_batch_with_chunks() {
         )
         .unwrap();
 
-    let delete_args = DeleteBatchArguments {
-        batch_id: batch_1.clone(),
-    };
+    let delete_args = DeleteBatchArguments { batch_id: batch_1 };
     assert_eq!(Ok(()), state.delete_batch(delete_args.clone()));
     assert_eq!(
         Err("batch not found".to_string()),
@@ -1167,6 +1400,223 @@ mod allow_raw_access {
 }
 
 #[cfg(test)]
+mod certificate_expression {
+    use crate::http::build_ic_certificate_expression_from_headers_and_encoding;
+
+    use super::*;
+
+    #[test]
+    fn ic_certificate_expression_value_from_headers() {
+        let h = ["a", "b", "c"].to_vec();
+        let c = build_ic_certificate_expression_from_headers_and_encoding(&h, "not identity");
+        assert_eq!(
+            c.expression,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
+        );
+        let c2 = build_ic_certificate_expression_from_headers_and_encoding(&h, "identity");
+        assert_eq!(
+            c2.expression,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "a", "b", "c"]}}}})"#
+        );
+    }
+
+    #[test]
+    fn ic_certificate_expression_present_for_new_assets() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let v1_response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert!(
+            lookup_header(&v1_response, "ic-certificateexpression").is_none(),
+            "superfluous ic-certificateexpression header detected in cert v1"
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert!(
+            lookup_header(&response, "ic-certificateexpression").is_some(),
+            "Missing ic-certifiedexpression header in response: {:#?}",
+            response,
+        );
+        assert_eq!(
+            lookup_header(&response, "ic-certificateexpression").unwrap(),
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            "Missing ic-certifiedexpression header in response: {:#?}",
+            response,
+        );
+    }
+
+    #[test]
+    fn ic_certificate_expression_gets_updated_on_asset_properties_update() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("gzip", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        assert!(
+            lookup_header(&response, "ic-certificateexpression").is_some(),
+            "Missing ic-certificateexpression header in response: {:#?}",
+            response,
+        );
+        assert_eq!(
+            lookup_header(&response, "ic-certificateexpression").unwrap(),
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            "Missing ic-certificateexpression header in response: {:#?}",
+            response,
+        );
+
+        state
+            .set_asset_properties(SetAssetPropertiesArguments {
+                key: "/contents.html".into(),
+                max_age: Some(None),
+                headers: Some(Some(HashMap::from([(
+                    "custom-header".into(),
+                    "value".into(),
+                )]))),
+                allow_raw_access: None,
+                is_aliased: None,
+            })
+            .unwrap();
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+        assert!(
+            lookup_header(&response, "ic-certificateexpression").is_some(),
+            "Missing ic-certificateexpression header in response: {:#?}",
+            response,
+        );
+        assert_eq!(
+            lookup_header(&response, "ic-certificateexpression").unwrap(),
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "custom-header"]}}}})"#,
+            "Missing ic-certifiedexpression header in response: {:#?}",
+            response,
+        );
+    }
+}
+
+#[cfg(test)]
+mod certification_v2 {
+    use super::*;
+
+    #[test]
+    fn proper_header_structure() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+        const UPDATED_BODY: &[u8] = b"<!DOCTYPE html><html>lots of content!</html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        let cert_header =
+            lookup_header(&response, "ic-certificate").expect("ic-certificate header missing");
+
+        println!("IC-Certificate: {}", cert_header);
+
+        assert!(
+            cert_header.contains("version=2"),
+            "cert is missing version indicator or has wrong version",
+        );
+        assert!(cert_header.contains("certificate=:"), "cert is missing",);
+        assert!(cert_header.contains("tree=:"), "tree is missing",);
+        assert!(!cert_header.contains("tree=::"), "tree is empty",);
+        assert!(cert_header.contains("expr_path=:"), "expr_path is missing",);
+        assert!(!cert_header.contains("expr_path=::"), "expr_path is empty",);
+
+        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFggYqb51osZ8yEgbrtk+Z981k9J9Q0m4VEH/xmnuU6SDJqDAklodHRwX2V4cHKDAYIEWCA1sd2JIxN6F1cM5ZJxdJdNmNNEDXnePdxl5Yz/nMkXmIMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCDFaHrIHl7UaWlUtBt+VDFkwpI+dahytlBeV0Be5LB6GIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![UPDATED_BODY])
+                .with_max_age(604800)
+                .with_header("Access-Control-Allow-Origin", "*")],
+        );
+
+        let response = state.http_request(
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+            &[],
+            unused_callback(),
+        );
+
+        let cert_header = lookup_header(&response, "ic-certificate")
+            .expect("after update: ic-certificate header missing");
+
+        println!("Updated IC-Certificate: {}", cert_header);
+
+        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFgg1hasIZe9DV/qkwMJwOyFED/kYwg4LKtr0BWWcxuIqI6DAklodHRwX2V4cHKDAYIEWCB8ve5ZiB9SeCaYdKsv2ZfHSFZBomzvLxZtXtSxzg26iYMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCC8DBBYlQxiaVAOAV6uWwZ3un2feoZJc0MW5MYdsWFsLIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
+    }
+}
+
+#[cfg(test)]
 mod evidence_computation {
     use super::*;
     use crate::types::BatchOperation::SetAssetContent;
@@ -1220,7 +1670,7 @@ mod evidence_computation {
         ));
         assert!(matches!(
             state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(1),
             }),
             Ok(Some(_))
@@ -1285,7 +1735,7 @@ mod evidence_computation {
         ));
         assert!(matches!(
             state.compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(1),
             }),
             Ok(Some(_))
@@ -1314,7 +1764,7 @@ mod evidence_computation {
         assert!(state.propose_commit_batch(cba).is_ok());
 
         let compute_args = ComputeEvidenceArguments {
-            batch_id: batch_id.clone(),
+            batch_id,
             max_iterations: Some(1),
         };
         assert!(state
@@ -1362,7 +1812,7 @@ mod evidence_computation {
             .is_none());
         assert!(state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_id.clone(),
+                batch_id,
                 max_iterations: Some(1),
             })
             .unwrap()
@@ -1383,7 +1833,7 @@ mod evidence_computation {
 
         assert!(state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_id.clone(),
+                batch_id,
                 max_iterations: Some(1),
             })
             .unwrap()
@@ -1412,7 +1862,7 @@ mod evidence_computation {
                 .is_ok());
             let evidence_1 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_1.clone(),
+                    batch_id: batch_1,
                     max_iterations: Some(3),
                 })
                 .unwrap()
@@ -1434,7 +1884,7 @@ mod evidence_computation {
                 .is_ok());
             let evidence_2 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_2.clone(),
+                    batch_id: batch_2,
                     max_iterations: Some(3),
                 })
                 .unwrap()
@@ -1463,7 +1913,7 @@ mod evidence_computation {
                 .is_ok());
             let evidence_1 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_1.clone(),
+                    batch_id: batch_1,
                     max_iterations: Some(3),
                 })
                 .unwrap()
@@ -1488,7 +1938,7 @@ mod evidence_computation {
                 .is_ok());
             let evidence_2 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_2.clone(),
+                    batch_id: batch_2,
                     max_iterations: Some(3),
                 })
                 .unwrap()
@@ -1518,7 +1968,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1540,7 +1990,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1570,7 +2020,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1592,7 +2042,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1622,7 +2072,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1645,7 +2095,7 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1667,7 +2117,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3.clone(),
+                batch_id: batch_3,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1699,7 +2149,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1721,7 +2171,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1744,7 +2194,7 @@ mod evidence_computation {
 
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3.clone(),
+                batch_id: batch_3,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1769,7 +2219,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_4 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_4.clone(),
+                batch_id: batch_4,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1804,7 +2254,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1827,7 +2277,7 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1849,7 +2299,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3.clone(),
+                batch_id: batch_3,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1881,7 +2331,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1904,7 +2354,7 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1926,7 +2376,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3.clone(),
+                batch_id: batch_3,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1956,7 +2406,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -1976,7 +2426,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2004,7 +2454,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2024,7 +2474,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2057,14 +2507,14 @@ mod evidence_computation {
                 operations: vec![SetAssetContent(SetAssetContentArguments {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
-                    chunk_ids: vec![chunk_1.clone()],
+                    chunk_ids: vec![chunk_1],
                     sha256: None,
                 })],
             })
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2093,7 +2543,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2137,7 +2587,7 @@ mod evidence_computation {
                     operations: vec![SetAssetContent(SetAssetContentArguments {
                         key: "/1".to_string(),
                         content_encoding: "identity".to_string(),
-                        chunk_ids: vec![chunk_1.clone(), chunk_2],
+                        chunk_ids: vec![chunk_1, chunk_2],
                         sha256: None,
                     })],
                 })
@@ -2145,7 +2595,7 @@ mod evidence_computation {
         }
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(4),
             })
             .unwrap()
@@ -2185,7 +2635,7 @@ mod evidence_computation {
         }
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(4),
             })
             .unwrap()
@@ -2216,7 +2666,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2236,7 +2686,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2264,7 +2714,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2284,7 +2734,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2312,7 +2762,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2332,7 +2782,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2358,7 +2808,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2375,7 +2825,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2398,7 +2848,7 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1.clone(),
+                batch_id: batch_1,
                 max_iterations: Some(3),
             })
             .unwrap()
@@ -2416,12 +2866,182 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2.clone(),
+                batch_id: batch_2,
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
+    }
+}
+
+#[cfg(test)]
+mod validate_commit_proposed_batch {
+    use super::*;
+    use crate::types::ComputeEvidenceArguments;
+
+    #[test]
+    fn batch_not_found() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
+            batch_id: 1.into(),
+            evidence: Default::default(),
+        }) {
+            Err(err) if err.contains("batch not found") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+
+        match state.commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id: 1.into(),
+                evidence: Default::default(),
+            },
+            time_now,
+        ) {
+            Err(err) if err.contains("batch not found") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn no_commit_batch_arguments() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        let batch_id = state.create_batch(time_now);
+
+        match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
+            batch_id: batch_id.clone(),
+            evidence: Default::default(),
+        }) {
+            Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+
+        match state.commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id,
+                evidence: Default::default(),
+            },
+            time_now,
+        ) {
+            Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn evidence_not_computed() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        let batch_id = state.create_batch(time_now);
+
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![],
+            })
+            .is_ok());
+
+        match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
+            batch_id: batch_id.clone(),
+            evidence: Default::default(),
+        }) {
+            Err(err) if err.contains("batch does not have computed evidence") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+        match state.commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id,
+                evidence: Default::default(),
+            },
+            time_now,
+        ) {
+            Err(err) if err.contains("batch does not have computed evidence") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn evidence_does_not_match() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        let batch_id = state.create_batch(time_now);
+
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![],
+            })
+            .is_ok());
+
+        assert!(matches!(
+            state.compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: Some(1),
+            }),
+            Ok(Some(_))
+        ));
+
+        match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
+            batch_id: batch_id.clone(),
+            evidence: Default::default(),
+        }) {
+            Err(err) if err.contains("does not match presented evidence") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+
+        match state.commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id,
+                evidence: Default::default(),
+            },
+            time_now,
+        ) {
+            Err(err) if err.contains("does not match presented evidence") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn all_good() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        let batch_id = state.create_batch(time_now);
+
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![],
+            })
+            .is_ok());
+
+        let compute_evidence_result = state.compute_evidence(ComputeEvidenceArguments {
+            batch_id: batch_id.clone(),
+            max_iterations: Some(1),
+        });
+        assert!(matches!(compute_evidence_result, Ok(Some(_))));
+
+        let evidence = if let Ok(Some(computed_evidence)) = compute_evidence_result {
+            computed_evidence
+        } else {
+            unreachable!()
+        };
+
+        assert_eq!(state.validate_commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id: batch_id.clone(),
+                evidence: evidence.clone(),
+            },
+        ).unwrap(), "commit proposed batch 0 with evidence e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
+        state
+            .commit_proposed_batch(
+                CommitProposedBatchArguments { batch_id, evidence },
+                time_now,
+            )
+            .unwrap();
     }
 }

@@ -2,15 +2,16 @@ use crate::lib::builders::get_and_write_environment_variables;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::wallet::build_wallet_canister;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::named_canister;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
+use dfx_core::canister::{build_wallet_canister, install_canister_wasm};
+use dfx_core::cli::ask_for_consent;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -19,14 +20,13 @@ use candid::Principal;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
 use sha2::{Digest, Sha256};
 use slog::info;
 use std::collections::HashSet;
-use std::io::stdin;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -117,7 +117,6 @@ pub async fn install_canister(
         );
     } else if assets_upgrade || canister_info.is_assets() {
         install_canister_wasm(
-            env,
             agent,
             canister_id,
             Some(canister_info.get_name()),
@@ -126,6 +125,7 @@ pub async fn install_canister(
             call_sender,
             wasm_module,
             skip_consent,
+            env.get_logger(),
         )
         .await?;
     }
@@ -185,7 +185,7 @@ pub async fn install_canister(
     }
     if canister_info.is_assets() {
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, agent).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,
@@ -356,82 +356,6 @@ fn run_post_install_task(
     Ok(())
 }
 
-#[context("Failed to install wasm in canister '{}'.", canister_id)]
-pub async fn install_canister_wasm(
-    env: &dyn Environment,
-    agent: &Agent,
-    canister_id: Principal,
-    canister_name: Option<&str>,
-    args: &[u8],
-    mode: InstallMode,
-    call_sender: &CallSender,
-    wasm_module: Vec<u8>,
-    skip_consent: bool,
-) -> DfxResult {
-    let log = env.get_logger();
-    let mgr = ManagementCanister::create(agent);
-    if !skip_consent && mode == InstallMode::Reinstall {
-        let msg = if let Some(name) = canister_name {
-            format!("You are about to reinstall the {name} canister")
-        } else {
-            format!("You are about to reinstall the canister {canister_id}")
-        } + r#"
-This will OVERWRITE all the data and code in the canister.
-
-YOU WILL LOSE ALL DATA IN THE CANISTER.");
-
-"#;
-        ask_for_consent(&msg)?;
-    }
-    let mode_str = match mode {
-        InstallMode::Install => "Installing",
-        InstallMode::Reinstall => "Reinstalling",
-        InstallMode::Upgrade => "Upgrading",
-    };
-    if let Some(name) = canister_name {
-        info!(
-            log,
-            "{mode_str} code for canister {name}, with canister ID {canister_id}",
-        );
-    } else {
-        info!(log, "{mode_str} code for canister {canister_id}");
-    }
-    match call_sender {
-        CallSender::SelectedId => {
-            let install_builder = mgr
-                .install_code(&canister_id, &wasm_module)
-                .with_raw_arg(args.to_vec())
-                .with_mode(mode);
-            install_builder
-                .build()
-                .context("Failed to build call sender.")?
-                .call_and_wait()
-                .await
-                .context("Failed to install wasm.")?;
-        }
-        CallSender::Wallet(wallet_id) => {
-            let wallet = build_wallet_canister(*wallet_id, env).await?;
-            let install_args = CanisterInstall {
-                mode,
-                canister_id,
-                wasm_module,
-                arg: args.to_vec(),
-            };
-            wallet
-                .call(
-                    *mgr.canister_id_(),
-                    "install_code",
-                    Argument::from_candid((install_args,)),
-                    0,
-                )
-                .call_and_wait()
-                .await
-                .context("Failed during wasm installation call.")?;
-        }
-    }
-    Ok(())
-}
-
 pub async fn install_wallet(
     env: &dyn Environment,
     agent: &Agent,
@@ -445,27 +369,11 @@ pub async fn install_wallet(
         .call_and_wait()
         .await
         .context("Failed to install wallet wasm.")?;
-    let wallet = build_wallet_canister(id, env).await?;
+    let wallet = build_wallet_canister(id, agent).await?;
     wallet
         .wallet_store_wallet_wasm(wasm)
         .call_and_wait()
         .await
         .context("Failed to store wallet wasm in container.")?;
-    Ok(())
-}
-
-fn ask_for_consent(message: &str) -> DfxResult {
-    eprintln!("WARNING!");
-    eprintln!("{}", message);
-    eprintln!("Do you want to proceed? yes/No");
-    let mut input_string = String::new();
-    stdin()
-        .read_line(&mut input_string)
-        .map_err(|err| anyhow!(err))
-        .context("Unable to read input")?;
-    let input_string = input_string.trim_end();
-    if input_string != "yes" {
-        bail!("Refusing to install canister without approval");
-    }
     Ok(())
 }

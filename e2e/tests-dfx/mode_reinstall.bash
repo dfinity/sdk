@@ -57,7 +57,7 @@ teardown() {
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
 
         assert_not_match "Installing code for canister"
-        assert_match "Refusing to install canister without approval"
+        assert_match "Refusing to install canister without approval: User declined consent."
     )
 }
 
@@ -94,7 +94,7 @@ teardown() {
         assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
 
         assert_not_match "Installing code for canister"
-        assert_match "Refusing to install canister without approval"
+        assert_match "Refusing to install canister without approval: User declined consent."
     )
 }
 

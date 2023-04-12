@@ -1,6 +1,7 @@
 use crate::config::directories::get_config_dfx_dir_path;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
+use crate::error::fs::FsError;
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
     CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
@@ -16,7 +17,6 @@ use crate::error::identity::IdentityError::{
     SwitchBackToIdentityFailed, SwitchDefaultIdentitySettingsFailed,
     SwitchToAnonymousIdentityFailed, TranslatePemContentToTextFailed,
 };
-use crate::error::io::IoError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
 use crate::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
@@ -389,7 +389,7 @@ impl IdentityManager {
     }
 
     /// Return a sorted list of all available identity names
-    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, IoError> {
+    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, FsError> {
         let mut names = crate::fs::read_dir(self.file_locations.root())?
             .filter_map(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {

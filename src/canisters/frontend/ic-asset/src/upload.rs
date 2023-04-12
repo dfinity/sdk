@@ -1,9 +1,8 @@
 use crate::asset::config::AssetConfig;
-use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::{
     self,
-    operations::AssetDeletionReason,
-    plumbing::{make_project_assets, AssetDescriptor},
+    operations::{AssetDeletionReason, BATCH_UPLOAD_API_VERSION},
+    plumbing::{make_project_assets, AssetDescriptor, ChunkUploadTarget},
 };
 use crate::canister_api::methods::{
     api_version::api_version,
@@ -41,16 +40,20 @@ pub async fn upload(
 
     info!(logger, "Staging contents of new and changed assets:");
 
-    let project_assets = make_project_assets(
+    let chunk_upload_target = ChunkUploadTarget {
         canister,
-        &batch_id,
+        batch_id: &batch_id,
+    };
+
+    let project_assets = make_project_assets(
+        Some(&chunk_upload_target),
         asset_descriptors,
         &canister_assets,
         logger,
     )
     .await?;
 
-    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
+    let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
         project_assets,
         canister_assets,
         AssetDeletionReason::Incompatible,

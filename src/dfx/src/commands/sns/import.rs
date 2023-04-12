@@ -25,6 +25,7 @@ pub struct SnsImportOpts {
 pub fn exec(env: &dyn Environment, opts: SnsImportOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let mut config = config.as_ref().clone();
+    let logger = env.get_logger();
 
     let network_mappings = get_network_mappings(&opts.network_mapping)?;
 
@@ -33,11 +34,12 @@ pub fn exec(env: &dyn Environment, opts: SnsImportOpts) -> DfxResult {
     let their_dfx_json_location =
         format!("https://raw.githubusercontent.com/dfinity/ic/{ic_commit}/rs/sns/cli/dfx.json");
     runtime.block_on(import_canister_definitions(
-        env.get_logger(),
+        logger,
         &mut config,
         &their_dfx_json_location,
         None,
         None,
         &network_mappings,
-    ))
+    ))?;
+    Ok(())
 }

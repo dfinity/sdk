@@ -2,11 +2,13 @@ use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
+use crate::batch_upload::plumbing::ChunkUploadTarget;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
     plumbing::{make_project_assets, AssetDescriptor},
 };
+use crate::canister_api::methods::batch::{compute_evidence, propose_commit_batch};
 use crate::canister_api::methods::{
     api_version::api_version,
     asset_properties::get_assets_properties,
@@ -14,6 +16,9 @@ use crate::canister_api::methods::{
     list::list_assets,
 };
 use crate::canister_api::types::batch_upload::v0;
+use crate::canister_api::types::batch_upload::{
+    common::ComputeEvidenceArguments, v1::CommitBatchArguments,
+};
 
 use anyhow::{anyhow, bail, Context};
 use ic_utils::Canister;
@@ -23,7 +28,11 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
-pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
+pub async fn upload_content_and_assemble_sync_operations(
+    canister: &Canister<'_>,
+    dirs: &[&Path],
+    logger: &Logger,
+) -> anyhow::Result<CommitBatchArguments> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
@@ -35,18 +44,25 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
 
     let batch_id = create_batch(canister).await?;
 
-    info!(logger, "Staging contents of new and changed assets:");
+    info!(
+        logger,
+        "Staging contents of new and changed assets in batch {}:", batch_id
+    );
+
+    let chunk_upload_target = ChunkUploadTarget {
+        canister,
+        batch_id: &batch_id,
+    };
 
     let project_assets = make_project_assets(
-        canister,
-        &batch_id,
+        Some(&chunk_upload_target),
         asset_descriptors,
         &canister_assets,
         logger,
     )
     .await?;
 
-    let commit_batch_args = batch_upload::operations::assemble_batch_operations(
+    let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
         project_assets,
         canister_assets,
         AssetDeletionReason::Obsolete,
@@ -54,6 +70,14 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
         batch_id,
     );
 
+    Ok(commit_batch_args)
+}
+
+/// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
+pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
+    let commit_batch_args =
+        upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+    info!(logger, "Committing batch.");
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
     let response = match canister_api_version {
@@ -70,6 +94,40 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
     Ok(())
 }
 
+/// Stage changes and propose the batch for commit.
+pub async fn prepare_sync_for_proposal(
+    canister: &Canister<'_>,
+    dirs: &[&Path],
+    logger: &Logger,
+) -> anyhow::Result<()> {
+    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+    let arg = sort_batch_operations(arg);
+    let batch_id = arg.batch_id.clone();
+
+    info!(logger, "Preparing batch {}.", batch_id);
+    propose_commit_batch(canister, arg).await?;
+
+    let compute_evidence_arg = ComputeEvidenceArguments {
+        batch_id: batch_id.clone(),
+        max_iterations: Some(97), // 75% of max(130) = 97.5
+    };
+    info!(logger, "Computing evidence.");
+    let evidence = loop {
+        if let Some(evidence) = compute_evidence(canister, &compute_evidence_arg).await? {
+            break evidence;
+        }
+    };
+
+    info!(logger, "Proposed commit of batch {} with evidence {}.  Either commit it by proposal, or delete it.", batch_id, hex::encode(evidence));
+
+    Ok(())
+}
+
+fn sort_batch_operations(mut args: CommitBatchArguments) -> CommitBatchArguments {
+    args.operations.sort();
+    args
+}
+
 fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
     let starts_with_a_dot = entry
         .file_name()
@@ -83,7 +141,7 @@ fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
     }
 }
 
-fn gather_asset_descriptors(
+pub(crate) fn gather_asset_descriptors(
     dirs: &[&Path],
     logger: &Logger,
 ) -> anyhow::Result<Vec<AssetDescriptor>> {

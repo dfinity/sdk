@@ -2,7 +2,7 @@ use super::common::*;
 use candid::{CandidType, Nat};
 
 /// Batch operations that can be applied atomically.
-#[derive(CandidType, Debug)]
+#[derive(CandidType, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[allow(dead_code)]
 pub enum BatchOperationKind {
     /// Create a new asset.
@@ -22,7 +22,7 @@ pub enum BatchOperationKind {
 }
 
 /// Apply all of the operations in the batch, and then remove the batch.
-#[derive(CandidType, Debug)]
+#[derive(CandidType, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct CommitBatchArguments {
     /// The batch to commit.
     pub batch_id: Nat,

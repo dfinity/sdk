@@ -127,6 +127,7 @@ impl Replica {
 
         let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
+        let artificial_delay = config.artificial_delay;
         let replica_path = self.config.replica_path.to_path_buf();
         let ic_starter_path = self.config.ic_starter_path.to_path_buf();
 
@@ -141,6 +142,7 @@ impl Replica {
                 ic_starter_path,
                 replica_path,
                 replica_pid_path,
+                artificial_delay,
                 addr,
                 receiver,
             ),
@@ -271,6 +273,7 @@ fn replica_start_thread(
     ic_starter_path: PathBuf,
     replica_path: PathBuf,
     replica_pid_path: PathBuf,
+    artificial_delay: u32,
     addr: Addr<Replica>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
@@ -335,7 +338,7 @@ fn replica_start_thread(
             // The intial notary delay is set to 2500ms in the replica's
             // default subnet configuration to help running tests.
             // For our production network, we actually set them to 600ms.
-            "600",
+            &format!("{artificial_delay}"),
         ]);
 
         // This should agree with the value at

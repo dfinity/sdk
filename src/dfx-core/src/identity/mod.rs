@@ -259,3 +259,25 @@ impl AsRef<Identity> for Identity {
         self
     }
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CallSender {
+    SelectedId,
+    Wallet(Principal),
+}
+
+// Determine whether the selected Identity
+// or the provided wallet canister ID should be the Sender of the call.
+impl CallSender {
+    pub fn from(wallet: &Option<String>) -> Result<Self, IdentityError> {
+        let sender = if let Some(id) = wallet {
+            CallSender::Wallet(
+                Principal::from_text(id)
+                    .map_err(|e| IdentityError::ParsePrincipalFromIdFailed(id.clone(), e))?,
+            )
+        } else {
+            CallSender::SelectedId
+        };
+        Ok(sender)
+    }
+}

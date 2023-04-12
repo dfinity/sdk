@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: --artificial-delay flag
+
+The local replica uses a 600ms delay by default when performing update calls. With `dfx start --artificial-delay <ms>`, you can decrease this value (e.g. 100ms) for faster integration tests, or increase it (e.g. 2500ms) to mimick mainnet latency for e.g. UI responsiveness checks.
+
 ### fix: make sure assetstorage did file is created as writeable.
 
 ### feat: specify id when provisional create canister
@@ -60,6 +64,20 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
 
+### feat: dfx deploy <frontend canister name> --by-proposal
+
+This supports asset updates through SNS proposal.
+
+Uploads asset changes to an asset canister (propose_commit_batch()), but does not commit them.
+
+The SNS will call `commit_proposed_batch()` to commit the changes.  If the proposal fails, the caller of `dfx deploy --by-proposal` should call `delete_batch()`.
+
+### feat: dfx deploy <frontend canister name> --compute-evidence
+
+Builds the specified asset canister, determines the batch operations required to synchronize the assets, and computes a hash ("evidence") over those batch operations.  This evidence will match the evidence computed by `dfx deploy --by-proposal`, and which will be specified in the update proposal.
+
+No permissions are required to compute evidence, so this can be called with `--identity anonymous` or any other identity.
+
 ## Asset Canister
 
 Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
@@ -75,8 +93,20 @@ Added partial support for proposal-based asset updates:
   - propose_commit_batch() stores batch arguments for later commit
   - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
   - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
+  - commit_proposed_batch() commits batch previously proposed (must have evidence computed)
+  - validate_commit_proposed_batch() required validation method for SNS
 
-Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister. 
+Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
+
+Added support for v2 asset certification. In comparison to v1, v2 asset certification not only certifies the http response body, but also the headers. The v2 spec is first published in [this PR](https://github.com/dfinity/interface-spec/pull/147)
+
+Added canister metadata field `supported_certificate_versions`, which contains a comma-separated list of all asset certification protocol versions. You can query it e.g. using `dfx canister --network ic metadata <canister name or id> supported_certificate_versions`. In this release, the value of this metadata field value is `1,2` because certification v1 and v2 are supported.
+
+Fixed a bug in `http_request` that served assets with the wrong certificate. If no encoding specified in the `Accept-Encoding` header is available with a certificate, an available encoding is returned without a certificate (instead of a wrong certificate, which was the case previously). Otherwise, nothing changed.
+For completeness' sake, the new behavior is as follows:
+- If one of the encodings specified in the `Accept-Encoding` header is available with certification, it now is served with the correct certificate.
+- If no requested encoding is available with certification, one of the requested encodings is returned without a certificate (instead of a wrong certificate, which was the case previously).
+- If no encoding specified in the `Accept-Encoding` header is available, a certified encoding that is available is returned instead.
 
 Added support for API versioning of the asset canister in `ic-asset`.
 
@@ -89,6 +119,11 @@ Added functionality which allows to set asset properties during `dfx deploy`, wh
 - API version: 1
 - Module hash: ec70ad4179ec1bfa098a2d59f7d942f459fc26feec7c8956f3eb9d7e96f72086
 - https://github.com/dfinity/sdk/pull/3002
+- https://github.com/dfinity/sdk/pull/3065
+- https://github.com/dfinity/sdk/pull/3058
+- https://github.com/dfinity/sdk/pull/3057
+- https://github.com/dfinity/sdk/pull/2960
+- https://github.com/dfinity/sdk/pull/3051
 - https://github.com/dfinity/sdk/pull/3034
 - https://github.com/dfinity/sdk/pull/3023
 - https://github.com/dfinity/sdk/pull/3022
@@ -102,7 +137,7 @@ Added functionality which allows to set asset properties during `dfx deploy`, wh
 
 ### Motoko
 
-Updated Motoko to 0.8.4
+Updated Motoko to 0.8.7
 
 ### ic-ref
 

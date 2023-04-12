@@ -37,7 +37,7 @@ pub struct AssetProperties {
 }
 
 /// Sets the asset with the given properties.
-#[derive(Debug, CandidType)]
+#[derive(Debug, CandidType, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SetAssetPropertiesArguments {
     pub key: String,
     pub max_age: Option<Option<u64>>,

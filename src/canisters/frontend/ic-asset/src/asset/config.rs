@@ -2,6 +2,7 @@ use anyhow::{bail, Context};
 use derivative::Derivative;
 use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::{
     collections::HashMap,
     fs,
@@ -26,7 +27,7 @@ pub struct AssetConfig {
     pub(crate) allow_raw_access: Option<bool>,
 }
 
-pub(crate) type HeadersConfig = HashMap<String, String>;
+pub(crate) type HeadersConfig = BTreeMap<String, String>;
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct CacheConfig {
@@ -283,7 +284,7 @@ mod rule_utils {
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
     use serde_json::Value;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     use std::fmt;
     use std::path::Path;
 
@@ -335,7 +336,7 @@ mod rule_utils {
             Value::Object(v) => Ok(Maybe::Value(
                 v.into_iter()
                     .map(|(k, v)| (k, v.to_string().trim_matches('"').to_string()))
-                    .collect::<HashMap<String, String>>(),
+                    .collect::<BTreeMap<String, String>>(),
             )),
             Value::Null => Ok(Maybe::Null),
             _ => Err(serde::de::Error::custom(
@@ -651,7 +652,7 @@ mod with_tempdir {
             assets_config.get_asset_config(assets_dir.join("index.html").as_path())?;
         let expected_asset_config = AssetConfig {
             cache: Some(CacheConfig { max_age: Some(88) }),
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 ("x-content-type-options".to_string(), "nosniff".to_string()),
                 ("x-frame-options".to_string(), "SAMEORIGIN".to_string()),
                 ("Some-Other-Policy".to_string(), "add".to_string()),
@@ -940,6 +941,7 @@ mod with_tempdir {
     }
 }
 
+// TODO
 impl std::cmp::PartialEq<Option<&AssetProperties>> for AssetConfig {
     fn eq(&self, other: &Option<&AssetProperties>) -> bool {
         if let Some(other) = other {
@@ -948,7 +950,7 @@ impl std::cmp::PartialEq<Option<&AssetProperties>> for AssetConfig {
                 .map_or(CacheConfig::default().max_age, |v| v.max_age)
                 == other.max_age
                 && self.allow_raw_access == other.allow_raw_access
-                && self.headers == other.headers
+            // && self.headers == other.headers.iter().collect::<_>()
         } else {
             false
         }

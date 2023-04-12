@@ -14,8 +14,9 @@ pub struct CreateOpts {}
 pub fn exec(env: &dyn Environment, _opts: CreateOpts) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let path = config.get_project_root().join(sns::CONFIG_FILE_NAME);
+    let cache = env.get_cache();
 
-    create_config(env, &path)?;
+    create_config(cache.as_ref(), &path)?;
     println!("Created SNS configuration at: {}", path.display());
     Ok(())
 }

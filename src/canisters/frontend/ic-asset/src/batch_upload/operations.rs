@@ -14,19 +14,18 @@ use std::collections::HashMap;
 pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 1;
 
 pub(crate) fn assemble_batch_operations(
-    project_assets: HashMap<String, ProjectAsset>,
+    project_assets: &HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
     canister_asset_properties: HashMap<String, AssetProperties>,
-    batch_id: Nat,
-) -> CommitBatchArguments {
+) -> Vec<BatchOperationKind> {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
 
     delete_assets(
         &mut operations,
-        &project_assets,
+        project_assets,
         &mut canister_assets,
         asset_deletion_reason,
     );
@@ -35,6 +34,22 @@ pub(crate) fn assemble_batch_operations(
     set_encodings(&mut operations, &project_assets);
     update_properties(&mut operations, &project_assets, &canister_asset_properties);
 
+    operations
+}
+
+pub(crate) fn assemble_commit_batch_arguments(
+    project_assets: HashMap<String, ProjectAsset>,
+    canister_assets: HashMap<String, AssetDetails>,
+    asset_deletion_reason: AssetDeletionReason,
+    canister_asset_properties: HashMap<String, AssetProperties>,
+    batch_id: Nat,
+) -> CommitBatchArguments {
+    let operations = assemble_batch_operations(
+        &project_assets,
+        canister_assets,
+        asset_deletion_reason,
+        canister_asset_properties,
+    );
     CommitBatchArguments {
         operations,
         batch_id,
@@ -144,7 +159,7 @@ pub(crate) fn set_encodings(
     project_assets: &HashMap<String, ProjectAsset>,
 ) {
     for (key, project_asset) in project_assets {
-        for (content_encoding, v) in project_asset.encodings.iter() {
+        for (content_encoding, v) in &project_asset.encodings {
             if v.already_in_place {
                 continue;
             }

@@ -15,12 +15,11 @@ byte-unit = { workspace = true, features = ["serde"] }
 candid = { workspace = true, features = ["random"] }
 dialoguer = "0.10.0"
 directories-next.workspace = true
-flate2 = { workspace = true, default-features = false, features = [
-    "zlib-ng",
-] }
+flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
 hex = { workspace = true, features = ["serde"] }
 humantime-serde = "1.1.1"
 ic-agent = { workspace = true, features = ["reqwest"] }
+ic-utils.workspace = true
 ic-identity-hsm = { workspace = true }
 k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
