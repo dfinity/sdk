@@ -99,6 +99,14 @@ async fn make_project_asset_encoding(
         )
         .await?
     } else {
+        info!(
+            logger,
+            "  {}{} ({} bytes) sha {} will be uploaded",
+            &asset_descriptor.key,
+            content_encoding_descriptive_suffix(content_encoding),
+            content.data.len(),
+            hex::encode(&sha256),
+        );
         vec![]
     };
 
