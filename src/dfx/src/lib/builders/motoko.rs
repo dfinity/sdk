@@ -5,7 +5,7 @@ use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::metadata::names::{CANDID_SERVICE, CANDID_ARGS};
+use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 use dfx_core::config::cache::Cache;

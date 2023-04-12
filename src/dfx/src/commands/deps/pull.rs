@@ -1,6 +1,6 @@
 use crate::commands::deps::{
     copy_service_candid_to_project, get_pulled_wasm_path, get_service_candid_path,
-    write_pulled_json, write_to_tempfile_then_rename,
+    save_pulled_json, write_to_tempfile_then_rename,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
@@ -88,7 +88,7 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
         }
     }
 
-    write_pulled_json(env, &pulled_json)?;
+    save_pulled_json(env, &pulled_json)?;
     Ok(())
 }
 

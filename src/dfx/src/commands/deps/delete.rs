@@ -10,7 +10,7 @@ use ic_agent::Agent;
 use ic_utils::{call::AsyncCall, interfaces::ManagementCanister};
 use slog::{info, Logger};
 
-use super::{get_pull_canisters_in_config, read_pulled_json, validate_pulled};
+use super::{get_pull_canisters_in_config, load_pulled_json, validate_pulled};
 
 /// Install pulled canisters.
 #[derive(Parser)]
@@ -21,7 +21,7 @@ pub struct DepsDeleteOpts {
 
 pub async fn exec(env: &dyn Environment, opts: DepsDeleteOpts) -> DfxResult {
     let logger = env.get_logger();
-    let pulled_json = read_pulled_json(env)?;
+    let pulled_json = load_pulled_json(env)?;
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     validate_pulled(&pulled_json, &pull_canisters_in_config)?;
 
@@ -46,7 +46,11 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeleteOpts) -> DfxResult {
 }
 
 #[context("Failed to stop and delete canster {}", canister_id)]
-async fn stop_and_delete_canister(agent: &Agent, logger: &Logger, canister_id: &Principal) -> DfxResult {
+async fn stop_and_delete_canister(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: &Principal,
+) -> DfxResult {
     info!(logger, "Deleting canister: {canister_id}");
     let mgr = ManagementCanister::create(agent);
     mgr.stop_canister(canister_id).call_and_wait().await?;

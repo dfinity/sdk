@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::fs::read_to_string;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -12,6 +11,8 @@ use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::config::cache::get_cache_root;
+use dfx_core::fs::composite::ensure_dir_exists;
+use dfx_core::json::{load_json_file, save_json_file};
 use fn_error_context::context;
 use sha2::{Digest, Sha256};
 use tokio::runtime::Runtime;
@@ -77,7 +78,8 @@ fn validate_pulled(
 
     for (canister_id, pulled_canister) in &pulled_json.canisters {
         let pulled_canister_path = get_pulled_wasm_path(*canister_id)?;
-        let bytes = std::fs::read(pulled_canister_path)?;
+        let bytes = std::fs::read(&pulled_canister_path)
+            .context(format!("Failed to read {:?}", &pulled_canister_path))?;
         let hash_cache = Sha256::digest(bytes);
         let hash_in_json = hex::decode(&pulled_canister.wasm_hash)?;
         if hash_cache.as_slice() != hash_in_json {
@@ -102,18 +104,16 @@ fn get_pulled_json_path(env: &dyn Environment) -> DfxResult<PathBuf> {
 }
 
 #[context("Failed to read pulled.json. Please (re)run `dfx deps pull`.")]
-fn read_pulled_json(env: &dyn Environment) -> DfxResult<PulledJson> {
+fn load_pulled_json(env: &dyn Environment) -> DfxResult<PulledJson> {
     let pulled_json_path = get_pulled_json_path(env)?;
-    let pulled_json_str = read_to_string(pulled_json_path)?;
-    let pulled_json: PulledJson = serde_json::from_str::<PulledJson>(&pulled_json_str)?;
+    let pulled_json = load_json_file(&pulled_json_path)?;
     Ok(pulled_json)
 }
 
 #[context("Failed to write pulled.json")]
-fn write_pulled_json(env: &dyn Environment, pulled_json: &PulledJson) -> DfxResult {
+fn save_pulled_json(env: &dyn Environment, pulled_json: &PulledJson) -> DfxResult {
     let pulled_json_path = get_pulled_json_path(env)?;
-    let content = serde_json::to_string_pretty(pulled_json)?;
-    write_to_tempfile_then_rename(content.as_bytes(), &pulled_json_path)?;
+    save_json_file(&pulled_json_path, pulled_json)?;
     Ok(())
 }
 
@@ -129,18 +129,16 @@ fn create_init_json_if_not_existed(env: &dyn Environment) -> DfxResult {
 }
 
 #[context("Failed to read init.json")]
-fn read_init_json(env: &dyn Environment) -> DfxResult<InitJson> {
+fn load_init_json(env: &dyn Environment) -> DfxResult<InitJson> {
     let init_json_path = get_init_json_path(env)?;
-    let init_json_str = read_to_string(init_json_path)?;
-    let init_json: InitJson = serde_json::from_str::<InitJson>(&init_json_str)?;
+    let init_json = load_json_file(&init_json_path)?;
     Ok(init_json)
 }
 
 #[context("Failed to write init.json")]
-fn write_init_json(env: &dyn Environment, init_json: &InitJson) -> DfxResult {
+fn save_init_json(env: &dyn Environment, init_json: &InitJson) -> DfxResult {
     let init_json_path = get_init_json_path(env)?;
-    let content = serde_json::to_string_pretty(init_json)?;
-    write_to_tempfile_then_rename(content.as_bytes(), &init_json_path)?;
+    save_json_file(&init_json_path, init_json)?;
     Ok(())
 }
 
@@ -181,7 +179,7 @@ fn write_to_tempfile_then_rename(content: &[u8], path: &PathBuf) -> DfxResult {
     let dir = path
         .parent()
         .ok_or_else(|| anyhow!("Failed to get the parent dir from path"))?;
-    std::fs::create_dir_all(dir).with_context(|| format!("Failed to create dir at {:?}", &dir))?;
+    ensure_dir_exists(&dir)?;
     let mut f = tempfile::NamedTempFile::new_in(dir)?;
     f.write_all(content)?;
     std::fs::rename(f.path(), path)?;

@@ -11,7 +11,7 @@ teardown() {
 
     dfx_stop
 
-    # standard_teardown
+    standard_teardown
 }
 
 CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"

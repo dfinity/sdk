@@ -1,10 +1,8 @@
 {
     "canisters": {
         "app": {
-            "type": "custom",
-            "wasm": "",
-            "candid": "",
-            "build": "",
+            "type": "motoko",
+            "main": "src/main.mo",
             "dependencies": [
                 "dep1", "dep2"
             ]

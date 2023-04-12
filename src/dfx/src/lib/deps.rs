@@ -29,7 +29,7 @@ pub struct PulledCanister {
 impl PulledJson {
     pub fn with_named(named: &BTreeMap<String, Principal>) -> Self {
         Self {
-            named:named.clone(),
+            named: named.clone(),
             ..Default::default()
         }
     }

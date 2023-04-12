@@ -9,7 +9,7 @@ use slog::{info, warn};
 
 use super::{
     create_init_json_if_not_existed, get_pull_canisters_in_config, get_service_candid_path,
-    read_init_json, read_pulled_json, validate_pulled, write_init_json,
+    load_init_json, load_pulled_json, save_init_json, validate_pulled,
 };
 
 /// Set init argument for a pulled canister.
@@ -32,11 +32,11 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
     let logger = env.get_logger();
 
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
-    let pulled_json = read_pulled_json(env)?;
+    let pulled_json = load_pulled_json(env)?;
     validate_pulled(&pulled_json, &pull_canisters_in_config)?;
 
     create_init_json_if_not_existed(env)?;
-    let mut init_json = read_init_json(env)?;
+    let mut init_json = load_init_json(env)?;
 
     match opts.canister {
         Some(canister) => {
@@ -97,6 +97,6 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
         }
     }
 
-    write_init_json(env, &init_json)?;
+    save_init_json(env, &init_json)?;
     Ok(())
 }
