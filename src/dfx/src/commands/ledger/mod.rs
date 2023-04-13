@@ -149,10 +149,7 @@ pub async fn transfer(
                 let result = Decode!(&data, TransferResult)
                     .context("Failed to decode transfer response.")?;
                 match result {
-                    Ok(block_height) => {
-                        println!("Transfer sent at block height {block_height}");
-                        break block_height;
-                    }
+                    Ok(block_height) => break block_height,
                     Err(TransferError::TxDuplicate { duplicate_of }) => {
                         println!("{}", TransferError::TxDuplicate { duplicate_of });
                         break duplicate_of;
@@ -173,6 +170,8 @@ pub async fn transfer(
             },
         }
     };
+
+    println!("Transfer sent at block height {block_height}");
 
     Ok(block_height)
 }
