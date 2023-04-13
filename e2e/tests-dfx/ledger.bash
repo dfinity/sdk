@@ -75,16 +75,26 @@ current_time_nanoseconds() {
     t=$(current_time_nanoseconds)
 
     assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
-    assert_match "Transfer sent at block height"
+    # shellcheck disable=SC2154
+    block_height=$(echo "$stdout" | sed '1q' | sed 's/Transfer sent at block height //')
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
 
     assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $((t+1)) 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
-    assert_match "Transfer sent at block height"
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Transfer sent at block height $block_height" "$stdout"
 
     assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
-    assert_match "transaction is a duplicate of another transaction in block"
+    # shellcheck disable=SC2154
+    assert_match "transaction is a duplicate of another transaction in block $block_height" "$stdout"
 
     assert_command dfx ledger transfer --icp 1 --memo 2 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
-    assert_match "Transfer sent at block height"
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Transfer sent at block height $block_height" "$stdout"
 
 }
 
@@ -142,13 +152,36 @@ tc_to_num() {
     t=$(current_time_nanoseconds)
 
     assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time "$t"
-    assert_match "Canister was topped up with"
+    
+    # shellcheck disable=SC2154
+    block_height=$(echo "$stdout" | sed '1q' | sed 's/Transfer sent at block height //')
+    
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister was topped up with" "$stdout"
 
     assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $((t+1))
-    assert_match "Canister was topped up with"
-
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister was topped up with" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Using transfer at block height $block_height" "$stdout"
+    
     assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time "$t"
-    assert_match "transaction is a duplicate of another transaction in block"
+    # shellcheck disable=SC2154
+    assert_match "transaction is a duplicate of another transaction in block $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister was topped up with" "$stdout"
 }
 
 @test "ledger create-canister" {
@@ -162,13 +195,40 @@ tc_to_num() {
     t=$(current_time_nanoseconds)
 
     assert_command dfx ledger create-canister --amount=100 --created-at-time "$t" "$(dfx identity get-principal)"
-    assert_match "Transfer sent at block height"
-
+    # shellcheck disable=SC2154
+    block_height=$(echo "$stdout" | sed '1q' | sed 's/Transfer sent at block height //')
+    # shellcheck disable=SC2154
+    created_canister_id=$(echo "$stdout" | sed '3q;d' | sed 's/Canister created with id: //')
+    
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister created with id: $created_canister_id" "$stdout"
+    
     assert_command dfx ledger create-canister --amount=100 --created-at-time $((t+1)) "$(dfx identity get-principal)"
-    assert_match "Transfer sent at block height"
-
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister created with id:" "$stdout" 
+    # shellcheck disable=SC2154
+    assert_not_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Canister created with id: $created_canister_id" "$stdout"
+    
     assert_command dfx ledger create-canister --amount=100 --created-at-time "$t" "$(dfx identity get-principal)"
-    assert_match "transaction is a duplicate of another transaction in block"
+    # shellcheck disable=SC2154
+    assert_match "transaction is a duplicate of another transaction in block $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister created with id: $created_canister_id" "$stdout"
+    
 }
 
 @test "ledger show-subnet-types" {
