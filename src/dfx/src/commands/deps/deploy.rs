@@ -20,15 +20,15 @@ use ic_agent::Agent;
 use ic_utils::interfaces::{management_canister::builders::InstallMode, ManagementCanister};
 use slog::{info, Logger};
 
-/// Install pulled canisters.
+/// Deploy pulled canisters.
 #[derive(Parser)]
-pub struct DepsInstallOpts {
-    /// Specify the canister to install. You can specify its name (as defined in dfx.json) or Principal.
-    /// If not specified, all pulled canisters will be installed.
+pub struct DepsDeployOpts {
+    /// Specify the canister to deploy. You can specify its name (as defined in dfx.json) or Principal.
+    /// If not specified, all pulled canisters will be deployed.
     canister: Option<String>,
 }
 
-pub async fn exec(env: &dyn Environment, opts: DepsInstallOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
     let logger = env.get_logger();
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
     let pulled_json = load_pulled_json(&project_root)?;

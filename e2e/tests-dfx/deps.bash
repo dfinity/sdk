@@ -310,7 +310,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Canister $CANISTER_ID_B takes no init argument. PLease rerun without \`--argument\`"
 }
 
-@test "dfx deps install can install pulled canisters which set init arguments" {
+@test "dfx deps deploy can deploy pulled canisters which set init arguments" {
     # When ran with ic-ref, got following error:
     # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
@@ -329,8 +329,8 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_command dfx deps init "$CANISTER_ID_A" --argument 11
     assert_command dfx deps init "$CANISTER_ID_C" --argument 33
 
-    # install all
-    assert_command dfx deps install
+    # deploy all
+    assert_command dfx deps deploy
     assert_contains "Creating canister deps:$CANISTER_ID_A...
 Installing canister: $CANISTER_ID_A"
     assert_contains "Creating canister dep1...
@@ -339,22 +339,22 @@ Installing canister: $CANISTER_ID_B"
 Installing canister: $CANISTER_ID_C"
 
     # by name in dfx.json
-    assert_command dfx deps install dep1
+    assert_command dfx deps deploy dep1
     assert_contains "Creating canister dep1...
 Installing canister: $CANISTER_ID_B"
 
     # by canister id
-    assert_command dfx deps install $CANISTER_ID_A
+    assert_command dfx deps deploy $CANISTER_ID_A
     assert_contains "Creating canister deps:$CANISTER_ID_A...
 Installing canister: $CANISTER_ID_A"
 
     # error cases
     rm deps/init.json
-    assert_command_fail dfx deps install
+    assert_command_fail dfx deps deploy
     assert_contains "Failed to read init.json"
 
     assert_command dfx deps init # b is set here
-    assert_command_fail dfx deps install "$CANISTER_ID_A"
+    assert_command_fail dfx deps deploy "$CANISTER_ID_A"
     assert_contains "Failed to create and install canster $CANISTER_ID_A"
     assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`."
 }
@@ -377,7 +377,7 @@ Installing canister: $CANISTER_ID_A"
     assert_command dfx deps init # b is set here
     assert_command dfx deps init "$CANISTER_ID_A" --argument 11
     assert_command dfx deps init "$CANISTER_ID_C" --argument 33
-    assert_command dfx deps install
+    assert_command dfx deps deploy
     
     # by name in dfx.json
     assert_command dfx deps delete dep1

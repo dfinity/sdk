@@ -1,5 +1,6 @@
 use crate::lib::deps::{
-    get_candid_path_in_project, get_pulled_wasm_path, get_service_candid_path, save_pulled_json, get_pull_canisters_in_config,
+    get_candid_path_in_project, get_pull_canisters_in_config, get_pulled_wasm_path,
+    get_service_candid_path, save_pulled_json,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;

@@ -93,7 +93,7 @@ pub async fn exec(
     if let Some(canister) = opts.canister.as_deref() {
         if pull_canisters_in_config.contains_key(canister) {
             bail!(
-                "{0} is a pull dependency. Please create and install it using `dfx deps install {0}",
+                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
                 canister
             );
         }
@@ -208,7 +208,7 @@ pub async fn exec(
             }
         }
         if !pull_canisters_in_config.is_empty() {
-            info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please create and install them using `dfx deps install`.");
+            info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`.");
         }
         Ok(())
     } else {

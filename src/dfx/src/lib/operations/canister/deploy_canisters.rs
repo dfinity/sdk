@@ -48,7 +48,7 @@ pub async fn deploy_canisters(
     if let Some(canister_name) = some_canister {
         if pull_canisters_in_config.contains_key(canister_name) {
             bail!(
-                "{0} is a pull dependency. Please create and install it using `dfx deps install {0}",
+                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}",
                 canister_name
             );
         }
@@ -90,11 +90,8 @@ pub async fn deploy_canisters(
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
-    } else if pull_canisters_in_config.is_empty() {
-        info!(log, "Deploying all canisters.");
     } else {
-        info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`.");
-        info!(log, "Deploying all other canisters.");
+        info!(log, "Deploying all canisters.");
     }
 
     register_canisters(

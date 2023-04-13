@@ -6,8 +6,8 @@ use clap::Parser;
 use tokio::runtime::Runtime;
 
 mod delete;
+mod deploy;
 mod init;
-mod install;
 mod pull;
 
 /// Options for `dfx deps`.
@@ -27,7 +27,7 @@ pub struct DepsOpts {
 enum SubCommand {
     Pull(pull::DepsPullOpts),
     Init(init::DepsInitOpts),
-    Install(install::DepsInstallOpts),
+    Deploy(deploy::DepsDeployOpts),
     Delete(delete::DepsDeleteOpts),
 }
 
@@ -39,7 +39,7 @@ pub fn exec(env: &dyn Environment, opts: DepsOpts) -> DfxResult {
         match opts.subcmd {
             SubCommand::Pull(v) => pull::exec(&agent_env, v).await,
             SubCommand::Init(v) => init::exec(&agent_env, v).await,
-            SubCommand::Install(v) => install::exec(&agent_env, v).await,
+            SubCommand::Deploy(v) => deploy::exec(&agent_env, v).await,
             SubCommand::Delete(v) => delete::exec(&agent_env, v).await,
         }
     })
