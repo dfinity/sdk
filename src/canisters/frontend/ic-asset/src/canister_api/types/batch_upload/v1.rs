@@ -10,21 +10,21 @@ use candid::{CandidType, Nat};
 /// Batch operations that can be applied atomically.
 #[derive(CandidType, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum BatchOperationKind {
-    /// Create a new asset.
-    CreateAsset(CreateAssetArguments),
-
-    /// Assign content to an asset by encoding.
-    SetAssetContent(SetAssetContentArguments),
-
-    /// Remove content from an asset by encoding.
-    UnsetAssetContent(UnsetAssetContentArguments),
+    #[allow(dead_code)]
+    /// Clear all state from the asset canister.
+    Clear(ClearArguments),
 
     /// Remove an asset altogether.
     DeleteAsset(DeleteAssetArguments),
 
-    /// Clear all state from the asset canister.
-    #[allow(dead_code)]
-    Clear(ClearArguments),
+    /// Create a new asset.
+    CreateAsset(CreateAssetArguments),
+
+    /// Remove content from an asset by encoding.
+    UnsetAssetContent(UnsetAssetContentArguments),
+
+    /// Assign content to an asset by encoding.
+    SetAssetContent(SetAssetContentArguments),
 
     /// Set asset properties.
     SetAssetProperties(SetAssetPropertiesArguments),
