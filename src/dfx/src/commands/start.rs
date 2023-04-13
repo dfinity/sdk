@@ -295,6 +295,21 @@ pub fn exec(
         replica_config
     };
 
+    let effective_config = if emulator {
+        CachedConfig::emulator()
+    } else {
+        CachedConfig::replica(&replica_config)
+    };
+    if !clean && !force && previous_config_path.exists() {
+        let previous_config = load_json_file(&previous_config_path)
+            .context("Failed to read replica configuration. Rerun with `--clean`.")?;
+        if effective_config != previous_config {
+            bail!("The network configuration was changed. Rerun with `--clean`.")
+        }
+    }
+    save_json_file(&previous_config_path, &effective_config)
+        .context("Failed to write replica configuration")?;
+
     let network_descriptor = network_descriptor.clone();
 
     let system = actix::System::new();
@@ -302,16 +317,6 @@ pub fn exec(
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let effective_config = CachedConfig::emulator();
-            if !clean && !force && previous_config_path.exists() {
-                let previous_config = load_json_file(&previous_config_path)
-                    .context("Failed to read replica configuration. Rerun with `--clean`.")?;
-                if effective_config != previous_config {
-                    bail!("The network configuration was changed. Rerun with `--clean`.")
-                }
-            }
-            save_json_file(&previous_config_path, &effective_config)
-                .context("Failed to write replica configuration")?;
             let emulator =
                 start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
             emulator.recipient()
@@ -338,19 +343,6 @@ pub fn exec(
                     )
                 })
                 .transpose()?;
-
-            let effective_config = CachedConfig::replica(&replica_config);
-
-            if !clean && !force && previous_config_path.exists() {
-                let previous_config = load_json_file(&previous_config_path)
-                    .context("Failed to read replica configuration. Rerun with `--clean`.")?;
-                if effective_config != previous_config {
-                    bail!("The network configuration was changed. Rerun with `--clean`.")
-                }
-            }
-
-            save_json_file(&previous_config_path, &effective_config)
-                .context("Failed to write replica configuration")?;
 
             let replica = start_replica_actor(
                 env,
