@@ -30,8 +30,8 @@ pub(crate) async fn get_assets_properties(
             {
                 break;
             }
-            _ => {
-                return Err(anyhow::anyhow!("Failed to get asset properties"));
+            Err(e) => {
+                return Err(anyhow::anyhow!("Failed to get asset properties: {e}"));
             }
         }
     }
