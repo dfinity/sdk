@@ -1,7 +1,8 @@
 use crate::asset::config::AssetConfig;
+use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::{
     self,
-    operations::{AssetDeletionReason, BATCH_UPLOAD_API_VERSION},
+    operations::AssetDeletionReason,
     plumbing::{make_project_assets, AssetDescriptor, ChunkUploadTarget},
 };
 use crate::canister_api::methods::{
@@ -69,7 +70,7 @@ pub async fn upload(
                 .map_err(|e| anyhow!("Failed to downgrade from v1::CommitBatchArguments to v0::CommitBatchArguments: {}. Please upgrade your asset canister, or use older tooling (dfx<=v-0.13.1 or icx-asset<=0.20.0)", e))?;
             commit_batch(canister, commit_batch_args_v0).await
         }
-        1.. => commit_batch(canister, commit_batch_args).await,
+        BATCH_UPLOAD_API_VERSION.. => commit_batch(canister, commit_batch_args).await,
     };
     response.map_err(|e| anyhow!("Failed to upload project assets to frontend canister: {e}"))?;
 
