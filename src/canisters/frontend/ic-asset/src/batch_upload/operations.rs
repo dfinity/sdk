@@ -183,46 +183,73 @@ pub(crate) fn update_properties(
 ) {
     for (key, project_asset) in project_assets {
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
-        let canister_asset_properties = canister_asset_properties.get(key);
-        // skip if the asset is not already in the canister, because
-        // proporties gonna be created during create_new_assets call
-        if canister_asset_properties.is_none() {
-            continue;
-        }
-        let canister_asset_properties = canister_asset_properties.unwrap();
-        let cache_is_different = project_asset_properties
-            .cache
-            .as_ref()
-            .and_then(|v| v.max_age)
-            != canister_asset_properties.max_age;
-        let headers_are_different = project_asset_properties.headers
-            != canister_asset_properties
-                .headers
-                .as_ref()
-                .map(|v| BTreeMap::from_iter(v.clone().into_iter()));
-        let allow_raw_access_is_different =
-            project_asset_properties.allow_raw_access != canister_asset_properties.allow_raw_access;
+        if let Some(canister_asset_properties) = canister_asset_properties.get(key) {
+            let mut set_asset_props = SetAssetPropertiesArguments::default();
+            set_asset_props.max_age = {
+                let project_asset_max_age = project_asset_properties
+                    .cache
+                    .as_ref()
+                    .and_then(|v| v.max_age);
+                if project_asset_max_age != canister_asset_properties.max_age {
+                    Some(project_asset_max_age)
+                } else {
+                    None
+                }
+            };
+            set_asset_props.headers = {
+                let project_asset_headers = project_asset_properties.headers.map(|hm| {
+                    let mut vec = hm
+                        .iter()
+                        .map(|(k, v)| (k.clone(), v.clone()))
+                        .collect::<Vec<_>>();
+                    vec.sort();
+                    vec
+                });
+                let canister_asset_headers = canister_asset_properties.headers.as_ref().map(|hm| {
+                    let mut vec = hm
+                        .iter()
+                        .map(|(k, v)| (k.clone(), v.clone()))
+                        .collect::<Vec<_>>();
+                    vec.sort();
+                    vec
+                });
+                if project_asset_headers != canister_asset_headers {
+                    Some(project_asset_headers)
+                } else {
+                    None
+                }
+            };
+            set_asset_props.is_aliased = {
+                if project_asset_properties.enable_aliasing != canister_asset_properties.is_aliased
+                {
+                    Some(project_asset_properties.enable_aliasing)
+                } else {
+                    None
+                }
+            };
+            set_asset_props.allow_raw_access = {
+                if project_asset_properties.allow_raw_access
+                    != canister_asset_properties.allow_raw_access
+                {
+                    Some(project_asset_properties.allow_raw_access)
+                } else {
+                    None
+                }
+            };
 
-        // check if the properties are the same and skip if they are to save saves cycles
-        if cache_is_different || headers_are_different || allow_raw_access_is_different {
-            operations.push(BatchOperationKind::SetAssetProperties(
-                SetAssetPropertiesArguments {
-                    key: key.clone(),
-                    max_age: Some(
-                        project_asset_properties
-                            .cache
-                            .as_ref()
-                            .and_then(|c| c.max_age),
-                    ),
-                    headers: Some(project_asset_properties.headers.map(|hm| {
-                        hm.iter()
-                            .map(|(k, v)| (k.clone(), v.clone()))
-                            .collect::<Vec<_>>()
-                    })),
-                    is_aliased: Some(project_asset_properties.enable_aliasing),
-                    allow_raw_access: Some(project_asset_properties.allow_raw_access),
-                },
-            ));
+            // check if the properties are the same and skip if they are to save saves cycles
+            if set_asset_props.allow_raw_access.is_some()
+                || set_asset_props.max_age.is_some()
+                || set_asset_props.headers.is_some()
+                || set_asset_props.is_aliased.is_some()
+            {
+                set_asset_props.key = key.clone();
+                operations.push(BatchOperationKind::SetAssetProperties(set_asset_props));
+            }
+        } else {
+            // skip if the asset is not already in the canister, because
+            // proporties gonna be created during create_new_assets call
+            continue;
         }
     }
 }

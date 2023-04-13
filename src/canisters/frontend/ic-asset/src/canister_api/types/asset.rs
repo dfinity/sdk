@@ -34,10 +34,12 @@ pub struct AssetProperties {
     pub headers: Option<HashMap<String, String>>,
     /// Asset's toggle for whether to serve the asset over .raw domain
     pub allow_raw_access: Option<bool>,
+    /// Asset's toggle for whether to serve the .html asset both as /route and /route.html
+    pub is_aliased: Option<bool>,
 }
 
 /// Sets the asset with the given properties.
-#[derive(Debug, CandidType, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, CandidType, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct SetAssetPropertiesArguments {
     pub key: String,
     pub max_age: Option<Option<u64>>,
