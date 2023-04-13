@@ -25,8 +25,9 @@ pub(crate) async fn get_assets_properties(
                 reject_code,
                 reject_message,
             }) if reject_code == 3
-                && reject_message
-                    .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'")) =>
+                && (reject_message
+                    .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'"))
+                    || reject_message.contains("query method does not exist")) =>
             {
                 break;
             }
