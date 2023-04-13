@@ -2929,8 +2929,10 @@ mod evidence_computation {
         assert_ne!(evidence_1, evidence_2);
     }
 
-    macro_rules! set_asset_properties_permutations {
-        ($test_fn:expr) => {
+    #[test]
+    fn set_asset_properties_arguments_properties_affects_evidence() {
+        fn generate_unique_set_asset_properties() -> Vec<SetAssetPropertiesArguments> {
+            let mut result = vec![];
             for max_age in &[None, Some(None), Some(Some(100))] {
                 for headers in &[
                     None,
@@ -2943,30 +2945,25 @@ mod evidence_computation {
                     for allow_raw_access in &[None, Some(None), Some(Some(true)), Some(Some(false))]
                     {
                         for is_aliased in &[None, Some(None), Some(Some(true)), Some(Some(false))] {
-                            let args = SetAssetPropertiesArguments {
+                            result.push(SetAssetPropertiesArguments {
                                 key: "/1".to_string(),
                                 max_age: max_age.clone(),
                                 headers: headers.clone(),
                                 allow_raw_access: allow_raw_access.clone(),
                                 is_aliased: is_aliased.clone(),
-                            };
-
-                            $test_fn(args);
+                            });
                         }
                     }
                 }
             }
-        };
-    }
+            result
+        }
 
-    #[test]
-    fn set_asset_properties_arguments_properties_affects_evidence() {
-        let mut state = State::default();
-        let time_now = 100_000_000_000;
-
-        let mut evidences = Vec::new();
-
-        set_asset_properties_permutations!(|args: SetAssetPropertiesArguments| {
+        fn compute_evidence_for_set_asset_properties(
+            args: SetAssetPropertiesArguments,
+        ) -> serde_bytes::ByteBuf {
+            let mut state = State::default();
+            let time_now = 100_000_000_000;
             let batch = state.create_batch(time_now);
             assert!(state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2981,8 +2978,14 @@ mod evidence_computation {
                 })
                 .unwrap()
                 .unwrap();
-            evidences.push(evidence);
-        });
+            evidence
+        }
+
+        let instances = generate_unique_set_asset_properties();
+        let evidences = instances
+            .into_iter()
+            .map(compute_evidence_for_set_asset_properties)
+            .collect::<Vec<_>>();
 
         // Check if all evidences are different.
         for i in 0..evidences.len() {
