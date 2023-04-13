@@ -2874,6 +2874,117 @@ mod evidence_computation {
 
         assert_ne!(evidence_1, evidence_2);
     }
+
+    #[test]
+    fn set_asset_properties_arguments_key_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::SetAssetProperties(
+                    SetAssetPropertiesArguments {
+                        key: "/1".to_string(),
+                        max_age: Some(Some(100)),
+                        headers: None,
+                        allow_raw_access: Some(Some(false)),
+                        is_aliased: Some(Some(true))
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::SetAssetProperties(
+                    SetAssetPropertiesArguments {
+                        key: "/2".to_string(),
+                        max_age: Some(Some(100)),
+                        headers: None,
+                        allow_raw_access: Some(Some(false)),
+                        is_aliased: Some(Some(true))
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn set_asset_properties_arguments_properties_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::SetAssetProperties(
+                    SetAssetPropertiesArguments {
+                        key: "/1".to_string(),
+                        max_age: Some(Some(100)),
+                        headers: Some(Some(HashMap::from([(
+                            String::from("a"),
+                            String::from("b")
+                        )]))),
+                        allow_raw_access: Some(Some(false)),
+                        is_aliased: Some(Some(true))
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::SetAssetProperties(
+                    SetAssetPropertiesArguments {
+                        key: "/1".to_string(),
+                        max_age: Some(None),
+                        headers: None,
+                        allow_raw_access: Some(Some(true)),
+                        is_aliased: None
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
 }
 
 #[cfg(test)]
