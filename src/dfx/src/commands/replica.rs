@@ -12,9 +12,10 @@ use crate::lib::network::id::write_network_id;
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
 use dfx_core::config::model::dfinity::DEFAULT_REPLICA_PORT;
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use clap::Parser;
 use fn_error_context::context;
 use std::default::Default;
@@ -22,6 +23,8 @@ use std::fs;
 use std::fs::create_dir_all;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+
+use super::start::CachedConfig;
 
 /// Starts a local Internet Computer replica.
 #[derive(Parser)]
@@ -49,6 +52,10 @@ pub struct ReplicaOpts {
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
     #[clap(long, conflicts_with("emulator"), default_value = "600")]
     artificial_delay: u32,
+
+    /// Start even if the network config was modified.
+    #[clap(long)]
+    force: bool,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -91,6 +98,7 @@ pub fn exec(
         enable_bitcoin,
         enable_canister_http,
         artificial_delay,
+        force,
     }: ReplicaOpts,
 ) -> DfxResult {
     let system = actix::System::new();
@@ -138,6 +146,8 @@ pub fn exec(
     let canister_http_adapter_socket_holder_path =
         local_server_descriptor.canister_http_adapter_socket_holder_path();
 
+    let previous_config_path = local_server_descriptor.effective_config_path();
+
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
@@ -178,6 +188,17 @@ pub fn exec(
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
         if emulator {
+            let effective_config = CachedConfig::emulator();
+            if !force && previous_config_path.exists() {
+                let previous_config = load_json_file(&previous_config_path).context(
+                    "Failed to read replica configuration. Run `dfx start` with `--clean`.",
+                )?;
+                if effective_config != previous_config {
+                    bail!("The network configuration was changed. Run `dfx start` with `--clean`.")
+                }
+            }
+            save_json_file(&previous_config_path, &effective_config)
+                .context("Failed to write replica configuration")?;
             start_emulator_actor(env, shutdown_controller, emulator_port_path)?;
         } else {
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
@@ -223,6 +244,17 @@ pub fn exec(
                     replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
                 }
             }
+            let effective_config = CachedConfig::replica(&replica_config);
+            if !force && previous_config_path.exists() {
+                let previous_config = load_json_file(&previous_config_path).context(
+                    "Failed to read replica configuration. Run `dfx start` with `--clean`.",
+                )?;
+                if effective_config != previous_config {
+                    bail!("The network configuration was changed. Run `dfx start` with `--clean`.")
+                }
+            }
+            save_json_file(&previous_config_path, &effective_config)
+                .context("Failed to write replica configuration")?;
 
             start_replica_actor(
                 env,
