@@ -184,61 +184,63 @@ pub(crate) fn update_properties(
     for (key, project_asset) in project_assets {
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
         if let Some(canister_asset_properties) = canister_asset_properties.get(key) {
-            let mut set_asset_props = SetAssetPropertiesArguments::default();
-            set_asset_props.max_age = {
-                let project_asset_max_age = project_asset_properties
-                    .cache
-                    .as_ref()
-                    .and_then(|v| v.max_age);
-                if project_asset_max_age != canister_asset_properties.max_age {
-                    Some(project_asset_max_age)
-                } else {
-                    None
-                }
+            let set_asset_props = SetAssetPropertiesArguments {
+                key: key.clone(),
+                max_age: {
+                    let project_asset_max_age = project_asset_properties
+                        .cache
+                        .as_ref()
+                        .and_then(|v| v.max_age);
+                    if project_asset_max_age != canister_asset_properties.max_age {
+                        Some(project_asset_max_age)
+                    } else {
+                        None
+                    }
+                },
+                headers: {
+                    let project_asset_headers = project_asset_properties.headers.map(|hm| {
+                        let mut vec = Vec::from_iter(hm.into_iter());
+                        vec.sort();
+                        vec
+                    });
+                    let canister_asset_headers =
+                        canister_asset_properties.headers.as_ref().map(|hm| {
+                            // collect into a vec and sort it
+                            let mut vec = Vec::from_iter(hm.clone().into_iter());
+                            vec.sort();
+                            vec
+                        });
+                    if project_asset_headers != canister_asset_headers {
+                        Some(project_asset_headers)
+                    } else {
+                        None
+                    }
+                },
+                is_aliased: {
+                    if project_asset_properties.enable_aliasing
+                        != canister_asset_properties.is_aliased
+                    {
+                        Some(project_asset_properties.enable_aliasing)
+                    } else {
+                        None
+                    }
+                },
+                allow_raw_access: {
+                    if project_asset_properties.allow_raw_access
+                        != canister_asset_properties.allow_raw_access
+                    {
+                        Some(project_asset_properties.allow_raw_access)
+                    } else {
+                        None
+                    }
+                },
             };
-            set_asset_props.headers = {
-                let project_asset_headers = project_asset_properties.headers.map(|hm| {
-                    let mut vec = Vec::from_iter(hm.clone().into_iter());
-                    vec.sort();
-                    vec
-                });
-                let canister_asset_headers = canister_asset_properties.headers.as_ref().map(|hm| {
-                    // collect into a vec and sort it
-                    let mut vec = Vec::from_iter(hm.clone().into_iter());
-                    vec.sort();
-                    vec
-                });
-                if project_asset_headers != canister_asset_headers {
-                    Some(project_asset_headers)
-                } else {
-                    None
-                }
-            };
-            set_asset_props.is_aliased = {
-                if project_asset_properties.enable_aliasing != canister_asset_properties.is_aliased
-                {
-                    Some(project_asset_properties.enable_aliasing)
-                } else {
-                    None
-                }
-            };
-            set_asset_props.allow_raw_access = {
-                if project_asset_properties.allow_raw_access
-                    != canister_asset_properties.allow_raw_access
-                {
-                    Some(project_asset_properties.allow_raw_access)
-                } else {
-                    None
-                }
-            };
-
             // check if the properties are the same and skip if they are to save saves cycles
             if set_asset_props.allow_raw_access.is_some()
                 || set_asset_props.max_age.is_some()
                 || set_asset_props.headers.is_some()
                 || set_asset_props.is_aliased.is_some()
             {
-                set_asset_props.key = key.clone();
                 operations.push(BatchOperationKind::SetAssetProperties(set_asset_props));
             }
         } else {
