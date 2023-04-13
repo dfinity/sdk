@@ -14,7 +14,7 @@ use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
 use crate::sync::gather_asset_descriptors;
 use ic_utils::Canister;
 use sha2::{Digest, Sha256};
-use slog::Logger;
+use slog::{info, Logger};
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
@@ -40,6 +40,10 @@ pub async fn compute_evidence(
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
+    info!(
+        logger,
+        "Fetching properties for all assets in the canister."
+    );
     let canister_asset_properties = get_assets_properties(canister, &canister_assets)
         .await
         .unwrap_or_default(); // older canisters don't have get_assets_properties method
