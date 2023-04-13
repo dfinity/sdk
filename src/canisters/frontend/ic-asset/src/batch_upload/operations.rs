@@ -9,7 +9,7 @@ use crate::canister_api::types::batch_upload::common::{
     UnsetAssetContentArguments,
 };
 use crate::canister_api::types::batch_upload::v1::{BatchOperationKind, CommitBatchArguments};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 1;
 
@@ -198,18 +198,13 @@ pub(crate) fn update_properties(
             };
             set_asset_props.headers = {
                 let project_asset_headers = project_asset_properties.headers.map(|hm| {
-                    let mut vec = hm
-                        .iter()
-                        .map(|(k, v)| (k.clone(), v.clone()))
-                        .collect::<Vec<_>>();
+                    let mut vec = Vec::from_iter(hm.clone().into_iter());
                     vec.sort();
                     vec
                 });
                 let canister_asset_headers = canister_asset_properties.headers.as_ref().map(|hm| {
-                    let mut vec = hm
-                        .iter()
-                        .map(|(k, v)| (k.clone(), v.clone()))
-                        .collect::<Vec<_>>();
+                    // collect into a vec and sort it
+                    let mut vec = Vec::from_iter(hm.clone().into_iter());
                     vec.sort();
                     vec
                 });
@@ -251,5 +246,176 @@ pub(crate) fn update_properties(
             // proporties gonna be created during create_new_assets call
             continue;
         }
+    }
+}
+
+#[cfg(test)]
+mod test_update_properties {
+    use super::update_properties;
+    use crate::asset::config::{AssetConfig, CacheConfig};
+    use crate::batch_upload::plumbing::{AssetDescriptor, ProjectAsset};
+    use crate::canister_api::types::asset::{AssetProperties, SetAssetPropertiesArguments};
+    use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
+    use std::collections::{BTreeMap, HashMap};
+    use std::path::PathBuf;
+
+    fn dummy_project_asset(key: &str, asset_props: AssetConfig) -> ProjectAsset {
+        ProjectAsset {
+            media_type: mime::TEXT_PLAIN,
+            encodings: HashMap::new(),
+            asset_descriptor: AssetDescriptor {
+                key: key.to_string(),
+                source: PathBuf::from(""),
+                config: asset_props,
+            },
+        }
+    }
+
+    #[test]
+    fn basic_test() {
+        let mut project_assets = HashMap::new();
+        let mut canister_asset_properties = HashMap::new();
+        project_assets.insert(
+            "key1".to_string(),
+            dummy_project_asset(
+                "key1",
+                AssetConfig {
+                    cache: Some(CacheConfig { max_age: Some(100) }),
+                    headers: Some(BTreeMap::from([("key".to_string(), "value".to_string())])),
+                    enable_aliasing: Some(false),
+                    allow_raw_access: Some(false),
+                    ..Default::default()
+                },
+            ),
+        );
+        project_assets.insert(
+            "key2".to_string(),
+            dummy_project_asset(
+                "key2",
+                AssetConfig {
+                    cache: Some(CacheConfig { max_age: Some(100) }),
+                    headers: Some(BTreeMap::new()),
+                    enable_aliasing: Some(true),
+                    allow_raw_access: Some(true),
+                    ..Default::default()
+                },
+            ),
+        );
+        canister_asset_properties.insert(
+            "key1".to_string(),
+            AssetProperties {
+                max_age: Some(1),
+                headers: Some(HashMap::new()),
+                is_aliased: Some(true),
+                allow_raw_access: Some(true),
+            },
+        );
+        let mut operations = vec![];
+        update_properties(&mut operations, &project_assets, &canister_asset_properties);
+        assert_eq!(operations.len(), 1);
+        assert_eq!(
+            operations[0],
+            BatchOperationKind::SetAssetProperties(SetAssetPropertiesArguments {
+                key: "key1".to_string(),
+                max_age: Some(Some(100)),
+                headers: Some(Some(vec![("key".to_string(), "value".to_string())])),
+                is_aliased: Some(Some(false)),
+                allow_raw_access: Some(Some(false)),
+            })
+        );
+    }
+
+    #[test]
+    fn update_no_properties() {
+        let mut project_assets = HashMap::new();
+        let mut canister_asset_properties = HashMap::new();
+        project_assets.insert(
+            "key1".to_string(),
+            dummy_project_asset(
+                "key1",
+                AssetConfig {
+                    cache: Some(CacheConfig { max_age: Some(100) }),
+                    headers: Some(BTreeMap::new()),
+                    enable_aliasing: Some(true),
+                    allow_raw_access: Some(true),
+                    ..Default::default()
+                },
+            ),
+        );
+        project_assets.insert(
+            "key2".to_string(),
+            dummy_project_asset(
+                "key2",
+                AssetConfig {
+                    cache: Some(CacheConfig { max_age: Some(100) }),
+                    headers: Some(BTreeMap::new()),
+                    enable_aliasing: Some(true),
+                    allow_raw_access: Some(true),
+                    ..Default::default()
+                },
+            ),
+        );
+        canister_asset_properties.insert(
+            "key1".to_string(),
+            AssetProperties {
+                max_age: Some(100),
+                headers: Some(HashMap::new()),
+                is_aliased: Some(true),
+                allow_raw_access: Some(true),
+            },
+        );
+        canister_asset_properties.insert(
+            "key3".to_string(),
+            AssetProperties {
+                max_age: Some(100),
+                headers: Some(HashMap::new()),
+                is_aliased: Some(true),
+                allow_raw_access: Some(true),
+            },
+        );
+        let mut operations = vec![];
+        update_properties(&mut operations, &project_assets, &canister_asset_properties);
+        assert_eq!(operations.len(), 0);
+    }
+
+    #[test]
+    fn update_with_nones() {
+        let mut project_assets = HashMap::new();
+        let mut canister_asset_properties = HashMap::new();
+        project_assets.insert(
+            "key1".to_string(),
+            dummy_project_asset(
+                "key1",
+                AssetConfig {
+                    cache: None,
+                    headers: None,
+                    enable_aliasing: None,
+                    allow_raw_access: None,
+                    ..Default::default()
+                },
+            ),
+        );
+        canister_asset_properties.insert(
+            "key1".to_string(),
+            AssetProperties {
+                max_age: Some(100),
+                headers: Some(HashMap::from([("key".to_string(), "value".to_string())])),
+                is_aliased: Some(true),
+                allow_raw_access: Some(true),
+            },
+        );
+        let mut operations = vec![];
+        update_properties(&mut operations, &project_assets, &canister_asset_properties);
+        assert_eq!(operations.len(), 1);
+        assert_eq!(
+            operations[0],
+            BatchOperationKind::SetAssetProperties(SetAssetPropertiesArguments {
+                key: "key1".to_string(),
+                max_age: Some(None),
+                headers: Some(None),
+                is_aliased: Some(None),
+                allow_raw_access: Some(None),
+            })
+        );
     }
 }
