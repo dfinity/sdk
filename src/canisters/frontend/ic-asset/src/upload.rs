@@ -71,7 +71,7 @@ pub async fn upload(
         }
         1.. => commit_batch(canister, commit_batch_args).await,
     };
-    response.map_err(|e| anyhow!("The API version of the canister (v{}) is incompatible with batch upload version (v{}): {}", canister_api_version, BATCH_UPLOAD_API_VERSION, e))?;
+    response.map_err(|e| anyhow!("Failed to upload project assets to frontend canister: {e}"))?;
 
     Ok(())
 }
