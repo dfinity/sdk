@@ -8,6 +8,7 @@ use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::info::replica_rev;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
@@ -218,7 +219,7 @@ pub fn exec(
         empty_writable_path(local_server_descriptor.icx_proxy_pid_path())?;
     let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
-    let previous_config_path = network_temp_dir.join("replica-effective-config.json");
+    let previous_config_path = local_server_descriptor.effective_config_path();
 
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
@@ -281,10 +282,7 @@ pub fn exec(
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let effective_config = CachedConfig {
-                replica_rev: env!("DFX_ASSET_REPLICA_REV").into(),
-                config: CachedReplicaConfig::Emulator,
-            };
+            let effective_config = CachedConfig::emulator();
             if !clean && !force && previous_config_path.exists() {
                 let previous_config = load_json_file(&previous_config_path)
                     .context("Failed to read replica configuration. Rerun with `--clean`.")?;
@@ -344,12 +342,7 @@ pub fn exec(
                 }
             }
 
-            let effective_config = CachedConfig {
-                config: CachedReplicaConfig::Replica {
-                    config: Cow::Borrowed(&replica_config),
-                },
-                replica_rev: env!("DFX_ASSET_REPLICA_REV").into(),
-            };
+            let effective_config = CachedConfig::replica(&replica_config);
 
             if !clean && !force && previous_config_path.exists() {
                 let previous_config = load_json_file(&previous_config_path)
@@ -414,6 +407,23 @@ pub struct CachedConfig<'a> {
     pub replica_rev: String,
     #[serde(flatten)]
     pub config: CachedReplicaConfig<'a>,
+}
+
+impl<'a> CachedConfig<'a> {
+    pub fn replica(config: &'a ReplicaConfig) -> Self {
+        Self {
+            replica_rev: replica_rev().into(),
+            config: CachedReplicaConfig::Replica {
+                config: Cow::Borrowed(config),
+            },
+        }
+    }
+    pub fn emulator() -> Self {
+        Self {
+            replica_rev: replica_rev().into(),
+            config: CachedReplicaConfig::Emulator,
+        }
+    }
 }
 
 pub fn apply_command_line_parameters(

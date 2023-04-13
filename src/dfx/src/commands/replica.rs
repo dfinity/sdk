@@ -18,14 +18,13 @@ use dfx_core::network::provider::{create_network_descriptor, LocalBindDeterminat
 use anyhow::{bail, Context};
 use clap::Parser;
 use fn_error_context::context;
-use std::borrow::Cow;
 use std::default::Default;
 use std::fs;
 use std::fs::create_dir_all;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
-use super::start::{CachedConfig, CachedReplicaConfig};
+use super::start::CachedConfig;
 
 /// Starts a local Internet Computer replica.
 #[derive(Parser)]
@@ -147,7 +146,7 @@ pub fn exec(
     let canister_http_adapter_socket_holder_path =
         local_server_descriptor.canister_http_adapter_socket_holder_path();
 
-    let previous_config_path = temp_dir.join("replica-effective-config.json");
+    let previous_config_path = local_server_descriptor.effective_config_path();
 
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
@@ -189,10 +188,7 @@ pub fn exec(
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
         if emulator {
-            let effective_config = CachedConfig {
-                replica_rev: env!("DFX_ASSET_REPLICA_REV").into(),
-                config: CachedReplicaConfig::Emulator,
-            };
+            let effective_config = CachedConfig::emulator();
             if !force && previous_config_path.exists() {
                 let previous_config = load_json_file(&previous_config_path).context(
                     "Failed to read replica configuration. Run `dfx start` with `--clean`.",
@@ -205,12 +201,7 @@ pub fn exec(
                 .context("Failed to write replica configuration")?;
             start_emulator_actor(env, shutdown_controller, emulator_port_path)?;
         } else {
-            let effective_config = CachedConfig {
-                config: CachedReplicaConfig::Replica {
-                    config: Cow::Borrowed(&replica_config),
-                },
-                replica_rev: env!("DFX_ASSET_REPLICA_REV").into(),
-            };
+            let effective_config = CachedConfig::replica(&replica_config);
             if !force && previous_config_path.exists() {
                 let previous_config = load_json_file(&previous_config_path).context(
                     "Failed to read replica configuration. Run `dfx start` with `--clean`.",
