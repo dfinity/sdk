@@ -132,7 +132,7 @@ fn get_deps_dir(project_root: &PathBuf) -> PathBuf {
 }
 
 pub fn get_candid_path_in_project(project_root: &PathBuf, name: &str) -> PathBuf {
-    get_deps_dir(project_root).join(format!("{name}.did"))
+    get_deps_dir(project_root).join(name).with_extension("did")
 }
 
 fn get_init_json_path(project_root: &PathBuf) -> PathBuf {

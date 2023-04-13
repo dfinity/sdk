@@ -44,9 +44,24 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = env.get_canister_id_store()?;
 
-    let network = env.get_network_descriptor();
+    let pull_canisters_in_config = config.get_config().get_pull_canisters()?;
+    if let Some(canister_name) = some_canister {
+        if pull_canisters_in_config.contains_key(canister_name) {
+            bail!(
+                "{0} is a pull dependency. Please create and install it using `dfx deps install {0}",
+                canister_name
+            );
+        }
+    }
 
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
+    // exclude pull dependencies in deploy
+    let canisters_to_load: Vec<String> = canisters_to_load
+        .into_iter()
+        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
+        .collect();
+
+    let network = env.get_network_descriptor();
 
     let canisters_to_deploy = if force_reinstall {
         // don't force-reinstall the dependencies too.
@@ -75,8 +90,11 @@ pub async fn deploy_canisters(
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
-    } else {
+    } else if pull_canisters_in_config.is_empty() {
         info!(log, "Deploying all canisters.");
+    } else {
+        info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`.");
+        info!(log, "Deploying all other canisters.");
     }
 
     register_canisters(

@@ -484,10 +484,6 @@ impl CanisterPool {
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
-        // No need to run for Pull canister
-        if canister.get_info().is_pull() {
-            return Ok(());
-        }
         // Copy the WASM and IDL files to canisters/NAME/...
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
         let idl_file_path = canister.info.get_build_idl_path();
