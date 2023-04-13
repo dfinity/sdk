@@ -135,7 +135,7 @@ fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
     }
 }
 
-fn gather_asset_descriptors(
+pub(crate) fn gather_asset_descriptors(
     dirs: &[&Path],
     logger: &Logger,
 ) -> anyhow::Result<Vec<AssetDescriptor>> {

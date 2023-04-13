@@ -34,9 +34,11 @@
 mod asset;
 mod batch_upload;
 mod canister_api;
+mod evidence;
 mod sync;
 mod upload;
 
+pub use evidence::compute_evidence;
 pub use sync::prepare_sync_for_proposal;
 pub use sync::sync;
 pub use upload::upload;
