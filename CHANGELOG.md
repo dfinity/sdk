@@ -110,7 +110,7 @@ For completeness' sake, the new behavior is as follows:
 
 Added support for API versioning of the asset canister in `ic-asset`.
 
-Added functionality which allows to set asset properties during `dfx deploy`, which means no longer you need to delete and re-deploy the assets to set the properties, yay! This change bumps the version of the API of the asset canister from `0` to `1`. 
+Added functionality that allows setting asset properties during `dfx deploy` even if the asset has already been deployed to the canister in the past. This means no longer you need to delete and re-deploy the assets to set the properties, yay! This change bumps the version of the API of the asset canister from `0` to `1`. 
 
 ## Dependencies
 
