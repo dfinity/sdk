@@ -36,13 +36,11 @@ pub async fn upload_content_and_assemble_sync_operations(
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
-    let canister_asset_properties = get_assets_properties(canister, &canister_assets)
-        .await
-        .unwrap_or_default(); // older canisters don't have get_assets_properties method
     info!(
         logger,
         "Fetching properties for all assets in the canister."
     );
+    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
 
     info!(logger, "Starting batch.");
 

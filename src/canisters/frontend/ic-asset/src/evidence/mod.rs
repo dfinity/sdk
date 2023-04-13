@@ -44,9 +44,7 @@ pub async fn compute_evidence(
         logger,
         "Fetching properties for all assets in the canister."
     );
-    let canister_asset_properties = get_assets_properties(canister, &canister_assets)
-        .await
-        .unwrap_or_default(); // older canisters don't have get_assets_properties method
+    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
 
     let project_assets =
         make_project_assets(None, asset_descriptors, &canister_assets, logger).await?;

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use ic_agent::AgentError;
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 
@@ -14,8 +15,23 @@ pub(crate) async fn get_assets_properties(
 ) -> anyhow::Result<HashMap<String, AssetProperties>> {
     let mut all_assets_properties = HashMap::new();
     for asset_id in canister_assets.keys() {
-        let asset_properties = get_asset_properties(canister, asset_id).await?;
-        all_assets_properties.insert(asset_id.clone(), asset_properties);
+        match get_asset_properties(canister, asset_id).await {
+            Ok(asset_properties) => {
+                all_assets_properties.insert(asset_id.to_string(), asset_properties);
+            }
+            // older canisters don't have get_assets_properties method
+            // therefore we can break the loop
+            Err(AgentError::ReplicaError {
+                reject_code,
+                reject_message,
+            }) if reject_code == 3
+                && reject_message
+                    .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'")) =>
+            {
+                break
+            }
+            _ => continue,
+        }
     }
 
     Ok(all_assets_properties)
@@ -24,7 +40,7 @@ pub(crate) async fn get_assets_properties(
 pub(crate) async fn get_asset_properties(
     canister: &Canister<'_>,
     asset_id: &str,
-) -> anyhow::Result<AssetProperties> {
+) -> Result<AssetProperties, AgentError> {
     let (asset_properties,): (AssetProperties,) = canister
         .query_(GET_ASSET_PROPERTIES)
         .with_arg(GetAssetPropertiesArgument(asset_id.to_string()))
