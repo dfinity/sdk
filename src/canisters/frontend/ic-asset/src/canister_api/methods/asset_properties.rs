@@ -28,9 +28,11 @@ pub(crate) async fn get_assets_properties(
                 && reject_message
                     .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'")) =>
             {
-                break
+                break;
             }
-            _ => continue,
+            _ => {
+                return Err(anyhow::anyhow!("Failed to get asset properties"));
+            }
         }
     }
 
