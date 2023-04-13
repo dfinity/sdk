@@ -201,18 +201,6 @@ pub fn exec(
                 .context("Failed to write replica configuration")?;
             start_emulator_actor(env, shutdown_controller, emulator_port_path)?;
         } else {
-            let effective_config = CachedConfig::replica(&replica_config);
-            if !force && previous_config_path.exists() {
-                let previous_config = load_json_file(&previous_config_path).context(
-                    "Failed to read replica configuration. Run `dfx start` with `--clean`.",
-                )?;
-                if effective_config != previous_config {
-                    bail!("The network configuration was changed. Run `dfx start` with `--clean`.")
-                }
-            }
-            save_json_file(&previous_config_path, &effective_config)
-                .context("Failed to write replica configuration")?;
-
             let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
                 if let Some(ref btc_adapter_config) = btc_adapter_config {
                     let socket_path = btc_adapter_config.get_socket_path();
@@ -256,6 +244,17 @@ pub fn exec(
                     replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
                 }
             }
+            let effective_config = CachedConfig::replica(&replica_config);
+            if !force && previous_config_path.exists() {
+                let previous_config = load_json_file(&previous_config_path).context(
+                    "Failed to read replica configuration. Run `dfx start` with `--clean`.",
+                )?;
+                if effective_config != previous_config {
+                    bail!("The network configuration was changed. Run `dfx start` with `--clean`.")
+                }
+            }
+            save_json_file(&previous_config_path, &effective_config)
+                .context("Failed to write replica configuration")?;
 
             start_replica_actor(
                 env,
