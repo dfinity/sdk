@@ -79,7 +79,6 @@ pub async fn upload_content_and_assemble_sync_operations(
 pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
     let commit_batch_args =
         upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
-    info!(logger, "Committing batch.");
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
     let response = match canister_api_version {
