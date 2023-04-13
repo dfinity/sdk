@@ -275,6 +275,26 @@ pub fn exec(
         .replica
         .log_level
         .unwrap_or_default();
+
+    let replica_config = {
+        let mut replica_config =
+            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay)
+                .with_random_port(&replica_port_path);
+        if let Some(btc_adapter_config) = btc_adapter_config.as_ref() {
+            replica_config = replica_config.with_btc_adapter_enabled();
+            if let Some(btc_adapter_socket) = btc_adapter_config.get_socket_path() {
+                replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+            }
+        }
+        if let Some(canister_http_adapter_config) = canister_http_adapter_config.as_ref() {
+            replica_config = replica_config.with_canister_http_adapter_enabled();
+            if let Some(socket_path) = canister_http_adapter_config.get_socket_path() {
+                replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
+            }
+        }
+        replica_config
+    };
+
     let network_descriptor = network_descriptor.clone();
 
     let system = actix::System::new();
@@ -296,51 +316,28 @@ pub fn exec(
                 start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
             emulator.recipient()
         } else {
-            let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                if let Some(ref btc_adapter_config) = btc_adapter_config {
-                    let socket_path = btc_adapter_config.get_socket_path();
-                    let ready_subscribe = start_btc_adapter_actor(
+            let btc_adapter_ready_subscribe = btc_adapter_config
+                .map(|btc_adapter_config| {
+                    start_btc_adapter_actor(
                         env,
                         btc_adapter_config_path,
-                        socket_path.clone(),
+                        btc_adapter_config.get_socket_path(),
                         shutdown_controller.clone(),
                         btc_adapter_pid_file_path,
-                    )?
-                    .recipient();
-                    (Some(ready_subscribe), socket_path)
-                } else {
-                    (None, None)
-                };
-            let (canister_http_adapter_ready_subscribe, canister_http_socket_path) =
-                if let Some(ref canister_http_adapter_config) = canister_http_adapter_config {
-                    let socket_path = canister_http_adapter_config.get_socket_path();
-                    let ready_subscribe = start_canister_http_adapter_actor(
+                    )
+                })
+                .transpose()?;
+            let canister_http_adapter_ready_subscribe = canister_http_adapter_config
+                .map(|canister_http_adapter_config| {
+                    start_canister_http_adapter_actor(
                         env,
                         canister_http_adapter_config_path,
-                        socket_path.clone(),
+                        canister_http_adapter_config.get_socket_path(),
                         shutdown_controller.clone(),
                         canister_http_adapter_pid_file_path,
-                    )?
-                    .recipient();
-                    (Some(ready_subscribe), socket_path)
-                } else {
-                    (None, None)
-                };
-            let mut replica_config =
-                ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay)
-                    .with_random_port(&replica_port_path);
-            if btc_adapter_config.is_some() {
-                replica_config = replica_config.with_btc_adapter_enabled();
-                if let Some(btc_adapter_socket) = btc_adapter_socket_path {
-                    replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
-                }
-            }
-            if canister_http_adapter_config.is_some() {
-                replica_config = replica_config.with_canister_http_adapter_enabled();
-                if let Some(socket_path) = canister_http_socket_path {
-                    replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
-                }
-            }
+                    )
+                })
+                .transpose()?;
 
             let effective_config = CachedConfig::replica(&replica_config);
 
