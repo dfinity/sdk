@@ -5,20 +5,20 @@ use candid::{CandidType, Nat};
 #[derive(CandidType, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[allow(dead_code)]
 pub enum BatchOperationKind {
-    /// Create a new asset.
-    CreateAsset(CreateAssetArguments),
-
-    /// Assign content to an asset by encoding.
-    SetAssetContent(SetAssetContentArguments),
-
-    /// Remove content from an asset by encoding.
-    UnsetAssetContent(UnsetAssetContentArguments),
+    /// Clear all state from the asset canister.
+    Clear(ClearArguments),
 
     /// Remove an asset altogether.
     DeleteAsset(DeleteAssetArguments),
 
-    /// Clear all state from the asset canister.
-    Clear(ClearArguments),
+    /// Create a new asset.
+    CreateAsset(CreateAssetArguments),
+
+    /// Remove content from an asset by encoding.
+    UnsetAssetContent(UnsetAssetContentArguments),
+
+    /// Assign content to an asset by encoding.
+    SetAssetContent(SetAssetContentArguments),
 }
 
 /// Apply all of the operations in the batch, and then remove the batch.

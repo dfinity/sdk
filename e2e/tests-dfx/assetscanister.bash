@@ -91,11 +91,11 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence cc6b5aab7ed38606774878fb33c17fccd02983d8415fb27dfb8dae50dc099fb1.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence 31e0bf262cabcbbbeb65a9544ba33c7caf88423fe03f68148d31b2e4ca50cdb1.  Either commit it by proposal, or delete it."
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "cc6b5aab7ed38606774878fb33c17fccd02983d8415fb27dfb8dae50dc099fb1" "$stdout"
+  assert_eq "31e0bf262cabcbbbeb65a9544ba33c7caf88423fe03f68148d31b2e4ca50cdb1" "$stdout"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -108,13 +108,13 @@ check_permission_failure() {
   assert_command curl --fail -vv --output encoded-compressed-1.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
   assert_match "content-encoding: gzip"
 
-  wrong_commit_args='(record { batch_id = 2; evidence = blob "\cc\6b\5a\ab\7e\d3\86\06\77\48\78\fb\33\c1\7f\cc\d1\29\83\d8\41\5f\b2\7d\fb\8d\ae\50\dc\09\9f\b1" } )'
+  wrong_commit_args='(record { batch_id = 2; evidence = blob "\31\e0\bf\26\2c\ab\cb\bb\eb\65\a9\54\4b\a2\3c\7c\af\88\42\3f\e0\3f\68\14\8d\31\b2\e4\ca\50\cd\b1" } )'
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$wrong_commit_args" --identity commit
   assert_match "batch computed evidence .* does not match presented evidence"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\cc\6b\5a\ab\7e\d3\86\06\77\48\78\fb\33\c1\7f\cc\d0\29\83\d8\41\5f\b2\7d\fb\8d\ae\50\dc\09\9f\b1" } )'
+  commit_args='(record { batch_id = 2; evidence = blob "\31\e0\bf\26\2c\ab\cb\bb\eb\65\a9\54\4b\a3\3c\7c\af\88\42\3f\e0\3f\68\14\8d\31\b2\e4\ca\50\cd\b1" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence cc6b"
+  assert_contains "commit proposed batch 2 with evidence 31e0"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
 
