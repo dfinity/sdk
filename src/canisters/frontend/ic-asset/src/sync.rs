@@ -91,8 +91,7 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
         }
         BATCH_UPLOAD_API_VERSION.. => commit_batch(canister, commit_batch_args).await,
     };
-    response
-        .map_err(|e| anyhow!("Failed to synchronize frontend canister with project assets: {e}"))?;
+    response.context("Failed to synchronize frontend canister with project assets.")?;
 
     Ok(())
 }
