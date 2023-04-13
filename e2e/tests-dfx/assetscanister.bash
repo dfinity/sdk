@@ -131,6 +131,34 @@ check_permission_failure() {
   assert_command curl --fail -vv -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
   assert_not_contains "content-encoding"
   assert_eq "will not compress" "$stdout"
+
+  # show SetAssetProperties works as expected
+  echo '[
+    {
+      "match": "new_file.txt",
+      "cache": {
+        "max_age": 888
+      },
+      "headers": {
+        "x-extra-header": "x-extra-value"
+      }
+    }
+  ]' > 'src/e2e_project_frontend/assets/.ic-assets.json5'
+  assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_contains "Proposed commit of batch 3 with evidence 4c62dfe0bb1108b4505f28cc2d8b47a959e6780545d7a8653f4956f1efccfe20.  Either commit it by proposal, or delete it."
+  assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
+  # shellcheck disable=SC2154
+  assert_eq "4c62dfe0bb1108b4505f28cc2d8b47a959e6780545d7a8653f4956f1efccfe20" "$stdout"
+  commit_args='(record { batch_id = 3; evidence = blob "\4c\62\df\e0\bb\11\08\b4\50\5f\28\cc\2d\8b\47\a9\59\e6\78\05\45\d7\a8\65\3f\49\56\f1\ef\cc\fe\20" } )'
+  assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
+  assert_contains "commit proposed batch 3 with evidence 4c62"
+  assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
+  assert_eq "()"
+  # show this asset properties were set
+  assert_command curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "x-extra-header: x-extra-value"
 }
 
 @test "deploy --by-proposal all assets" {
