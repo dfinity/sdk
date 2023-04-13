@@ -184,7 +184,7 @@ pub(crate) fn update_properties(
     for (key, project_asset) in project_assets {
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
         // skip if the asset is not already in the canister, because
-        // proporties gonna be created during create_new_assets call
+        // properties are going to be created during create_new_assets call
         if let Some(canister_asset_properties) = canister_asset_properties.get(key) {
             let set_asset_props = SetAssetPropertiesArguments {
                 key: key.clone(),
