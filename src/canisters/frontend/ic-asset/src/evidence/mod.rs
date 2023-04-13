@@ -46,6 +46,10 @@ pub async fn compute_evidence(
     );
     let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
 
+    info!(
+        logger,
+        "Computing evidence for batch operations for assets in the project.",
+    );
     let project_assets =
         make_project_assets(None, asset_descriptors, &canister_assets, logger).await?;
 
