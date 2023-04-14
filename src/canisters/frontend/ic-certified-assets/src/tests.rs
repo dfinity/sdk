@@ -2947,10 +2947,10 @@ mod evidence_computation {
                         for is_aliased in &[None, Some(None), Some(Some(true)), Some(Some(false))] {
                             result.push(SetAssetPropertiesArguments {
                                 key: "/1".to_string(),
-                                max_age: max_age.clone(),
+                                max_age: *max_age,
                                 headers: headers.clone(),
-                                allow_raw_access: allow_raw_access.clone(),
-                                is_aliased: is_aliased.clone(),
+                                allow_raw_access: *allow_raw_access,
+                                is_aliased: *is_aliased,
                             });
                         }
                     }
@@ -2971,14 +2971,14 @@ mod evidence_computation {
                     operations: vec![BatchOperation::SetAssetProperties(args)],
                 })
                 .is_ok());
-            let evidence = state
+            
+            state
                 .compute_evidence(ComputeEvidenceArguments {
                     batch_id: batch,
                     max_iterations: Some(3),
                 })
                 .unwrap()
-                .unwrap();
-            evidence
+                .unwrap()
         }
 
         let instances = generate_unique_set_asset_properties();
