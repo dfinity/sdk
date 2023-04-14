@@ -2177,7 +2177,7 @@ dependencies = [
 [[package]]
 name = "ic-wasm"
 version = "0.3.6"
-source = "git+https://github.com/dfinity/ic-wasm.git?branch=wasm-opt#dd0b87cd90a80d3aa01324befad1c017f8885f37"
+source = "git+https://github.com/dfinity/ic-wasm.git#3c5acecd3dd917946f9be3efde624eed30c216bd"
 dependencies = [
  "anyhow",
  "candid 0.9.0-beta.2",
