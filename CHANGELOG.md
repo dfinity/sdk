@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix!: --clean required when network configuration changes
+
+If the network configuration has changed since last time `dfx start` was run, `dfx start` will now error if you try to run it without `--clean`, to avoid spurious errors. You can provide the `--force` flag if you are sure you want to start it without cleaning state.
+
 ### feat: --artificial-delay flag
 
 The local replica uses a 600ms delay by default when performing update calls. With `dfx start --artificial-delay <ms>`, you can decrease this value (e.g. 100ms) for faster integration tests, or increase it (e.g. 2500ms) to mimick mainnet latency for e.g. UI responsiveness checks.
@@ -59,6 +63,12 @@ Added the ability to configure the WASM module used for assets canisters through
 ### feat: dfx pull can download wasm
 
 ### fix: dfx deploy and icx-asset no longer retry on permission failure
+
+### feat: --created-at-time for the ledger functions: transfer, create-canister, and top-up
+
+### fix: ledger transfer duplicate transaction prints the duplicate transaction response before returning success to differentiate between a new transaction response and between a duplicate transaction response.
+
+Before it was possible that a user could send 2 ledger transfers with the same arguments at the same timestamp and both would show success but there would have been only 1 ledger transfer. Now dfx prints different messages when the ledger returns a duplicate transaction response and when the ledger returns a new transaction response.
 
 ### chore: clarify `dfx identity new` help text
 

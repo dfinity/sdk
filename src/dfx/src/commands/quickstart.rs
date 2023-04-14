@@ -172,6 +172,7 @@ async fn step_interact_ledger(
         TRANSACTION_FEE,
         None,
         ident_principal,
+        None,
     )
     .await
     .context("Failed to transfer to the cycles minting canister")?;

@@ -8,12 +8,15 @@ use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::info::replica_rev;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
+use candid::Deserialize;
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
+use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use actix::Recipient;
@@ -21,7 +24,9 @@ use anyhow::{anyhow, bail, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
+use serde::Serialize;
 use slog::{info, warn, Logger};
+use std::borrow::Cow;
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -66,6 +71,10 @@ pub struct StartOpts {
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
     #[clap(long, conflicts_with("emulator"), default_value = "600")]
     artificial_delay: u32,
+
+    /// Start even if the network config was modified.
+    #[clap(long)]
+    force: bool,
 }
 
 fn ping_and_wait(frontend_url: &str) -> DfxResult {
@@ -127,6 +136,7 @@ pub fn exec(
         background,
         emulator,
         clean,
+        force,
         bitcoin_node,
         enable_bitcoin,
         enable_canister_http,
@@ -209,6 +219,8 @@ pub fn exec(
         empty_writable_path(local_server_descriptor.icx_proxy_pid_path())?;
     let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
+    let previous_config_path = local_server_descriptor.effective_config_path();
+
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
@@ -270,6 +282,16 @@ pub fn exec(
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
+            let effective_config = CachedConfig::emulator();
+            if !clean && !force && previous_config_path.exists() {
+                let previous_config = load_json_file(&previous_config_path)
+                    .context("Failed to read replica configuration. Rerun with `--clean`.")?;
+                if effective_config != previous_config {
+                    bail!("The network configuration was changed. Rerun with `--clean`.")
+                }
+            }
+            save_json_file(&previous_config_path, &effective_config)
+                .context("Failed to write replica configuration")?;
             let emulator =
                 start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
             emulator.recipient()
@@ -320,6 +342,19 @@ pub fn exec(
                 }
             }
 
+            let effective_config = CachedConfig::replica(&replica_config);
+
+            if !clean && !force && previous_config_path.exists() {
+                let previous_config = load_json_file(&previous_config_path)
+                    .context("Failed to read replica configuration. Rerun with `--clean`.")?;
+                if effective_config != previous_config {
+                    bail!("The network configuration was changed. Rerun with `--clean`.")
+                }
+            }
+
+            save_json_file(&previous_config_path, &effective_config)
+                .context("Failed to write replica configuration")?;
+
             let replica = start_replica_actor(
                 env,
                 replica_config,
@@ -357,6 +392,38 @@ pub fn exec(
     }
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
+pub enum CachedReplicaConfig<'a> {
+    Replica { config: Cow<'a, ReplicaConfig> },
+    Emulator,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+pub struct CachedConfig<'a> {
+    pub replica_rev: String,
+    #[serde(flatten)]
+    pub config: CachedReplicaConfig<'a>,
+}
+
+impl<'a> CachedConfig<'a> {
+    pub fn replica(config: &'a ReplicaConfig) -> Self {
+        Self {
+            replica_rev: replica_rev().into(),
+            config: CachedReplicaConfig::Replica {
+                config: Cow::Borrowed(config),
+            },
+        }
+    }
+    pub fn emulator() -> Self {
+        Self {
+            replica_rev: replica_rev().into(),
+            config: CachedReplicaConfig::Emulator,
+        }
+    }
 }
 
 pub fn apply_command_line_parameters(
