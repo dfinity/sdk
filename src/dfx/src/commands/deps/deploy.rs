@@ -5,12 +5,7 @@ use crate::lib::deps::{
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-
-use std::collections::BTreeSet;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -44,27 +39,20 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
 
     match opts.canister {
         Some(canister) => {
-            let (name, canister_id) = match pull_canisters_in_config.get(&canister) {
-                Some(canister_id) => (Some(canister.as_str()), *canister_id),
+            let canister_id = match pull_canisters_in_config.get(&canister) {
+                Some(canister_id) => *canister_id,
                 None => {
                     let canister_id = Principal::from_text(canister).with_context(|| {
                         "The canister is not a valid Principal nor a name specified in dfx.json"
                     })?;
-                    (None, canister_id)
+                    canister_id
                 }
             };
-            create_and_install(env, agent, logger, name, &canister_id, &init_json).await?;
+            create_and_install(agent, logger, &canister_id, &init_json).await?;
         }
         None => {
-            let mut installed_canisters = BTreeSet::new();
-            for (name, canister_id) in &pull_canisters_in_config {
-                create_and_install(env, agent, logger, Some(name), canister_id, &init_json).await?;
-                installed_canisters.insert(canister_id);
-            }
             for canister_id in pulled_json.canisters.keys() {
-                if !installed_canisters.contains(canister_id) {
-                    create_and_install(env, agent, logger, None, canister_id, &init_json).await?;
-                }
+                create_and_install(agent, logger, canister_id, &init_json).await?;
             }
         }
     }
@@ -74,40 +62,27 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
 
 #[context("Failed to create and install canster {}", canister_id)]
 async fn create_and_install(
-    env: &dyn Environment,
     agent: &Agent,
     logger: &Logger,
-    name: Option<&str>,
     canister_id: &Principal,
     init_json: &InitJson,
 ) -> DfxResult {
     let arg_raw = init_json.get_arg_raw(canister_id)?;
-    try_create_canister(env, name, canister_id).await?;
+    try_create_canister(agent, logger, canister_id).await?;
     install_pulled_canister(agent, logger, canister_id, arg_raw).await?;
     Ok(())
 }
 
+// not use operations::canister::create_canister because we don't want to modify canister_id_store
 #[context("Failed to create canster {}", canister_id)]
-async fn try_create_canister(
-    env: &dyn Environment,
-    name: Option<&str>,
-    canister_id: &Principal,
-) -> DfxResult {
-    let default_name = format!("deps:{canister_id}");
-    let canister_name = match name {
-        Some(s) => s,
-        None => &default_name,
-    };
-    // Ignore the error that canister is already created before
-    let _res = create_canister(
-        env,
-        canister_name,
-        None,
-        Some(*canister_id),
-        &CallSender::SelectedId,
-        CanisterSettings::default(),
-    )
-    .await;
+async fn try_create_canister(agent: &Agent, logger: &Logger, canister_id: &Principal) -> DfxResult {
+    info!(logger, "Creating canister: {canister_id}");
+    let mgr = ManagementCanister::create(agent);
+    mgr.create_canister()
+        .as_provisional_create_with_specified_id(*canister_id)
+        .as_provisional_create_with_amount(Some(10_000_000_000_000_u128)) // 10T cycles
+        .call_and_wait()
+        .await?;
     Ok(())
 }
 

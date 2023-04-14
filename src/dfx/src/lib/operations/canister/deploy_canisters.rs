@@ -48,22 +48,17 @@ pub async fn deploy_canisters(
     if let Some(canister_name) = some_canister {
         if pull_canisters_in_config.contains_key(canister_name) {
             bail!(
-                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}",
+                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
                 canister_name
             );
         }
     }
 
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
-    // exclude pull dependencies in deploy
-    let canisters_to_load: Vec<String> = canisters_to_load
-        .into_iter()
-        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
-        .collect();
 
     let network = env.get_network_descriptor();
 
-    let canisters_to_deploy = if force_reinstall {
+    let canisters_to_build = if force_reinstall {
         // don't force-reinstall the dependencies too.
         match some_canister {
             Some(canister_name) => {
@@ -88,8 +83,14 @@ pub async fn deploy_canisters(
             .collect()
     };
 
+    let canisters_to_install: Vec<String> = canisters_to_build
+        .clone()
+        .into_iter()
+        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
+        .collect();
+
     if some_canister.is_some() {
-        info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
+        info!(log, "Deploying: {}", canisters_to_install.join(" "));
     } else {
         info!(log, "Deploying all canisters.");
     }
@@ -108,7 +109,7 @@ pub async fn deploy_canisters(
     let pool = build_canisters(
         env,
         &canisters_to_load,
-        &canisters_to_deploy,
+        &canisters_to_build,
         &config,
         env_file.clone(),
     )
@@ -116,7 +117,7 @@ pub async fn deploy_canisters(
 
     install_canisters(
         env,
-        &canisters_to_deploy,
+        &canisters_to_install,
         &initial_canister_id_store,
         &config,
         argument,
