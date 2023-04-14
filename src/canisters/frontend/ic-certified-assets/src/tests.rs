@@ -2971,7 +2971,7 @@ mod evidence_computation {
                     operations: vec![BatchOperation::SetAssetProperties(args)],
                 })
                 .is_ok());
-            
+
             state
                 .compute_evidence(ComputeEvidenceArguments {
                     batch_id: batch,
