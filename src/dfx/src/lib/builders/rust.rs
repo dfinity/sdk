@@ -100,10 +100,7 @@ impl CanisterBuilder for RustBuilder {
         let optimize = canister_info.get_optimize();
         let shrink = canister_info.get_shrink().unwrap_or(true);
         if let Some(level) = optimize {
-            info!(
-                self.logger,
-                "Optimize and shrink WASM module at level {}", level
-            );
+            info!(self.logger, "Optimize and shrink WASM module.");
             super::optimize_wasm(rust_info.get_output_wasm_path(), level)?;
         } else if shrink {
             info!(self.logger, "Shrink WASM module size.");

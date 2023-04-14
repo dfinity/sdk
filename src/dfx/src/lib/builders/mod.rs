@@ -497,8 +497,14 @@ fn optimize_wasm(wasm_path: impl AsRef<Path>, level: &str) -> DfxResult {
     let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
     let mut module =
         ic_wasm::utils::parse_wasm(&wasm, true).context("Could not parse the WASM module.")?;
-    ic_wasm::shrink::shrink_with_wasm_opt(&mut module, level)
-        .context("Could not optimize the WASM module.")?;
+    match level {
+        // O3 empirically gives best cycle savings
+        "cycles" => ic_wasm::shrink::shrink_with_wasm_opt(&mut module, "O3"),
+        "size" => ic_wasm::shrink::shrink_with_wasm_opt(&mut module, "Oz"),
+        _ => ic_wasm::shrink::shrink_with_wasm_opt(&mut module, level),
+    }
+    .context("Could not optimize the WASM module.")?;
+
     module
         .emit_wasm_file(wasm_path)
         .with_context(|| format!("Could not write optimized WASM to {:?}.", wasm_path))?;
