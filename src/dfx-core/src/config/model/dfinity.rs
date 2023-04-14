@@ -195,6 +195,11 @@ pub struct ConfigCanistersCanister {
     /// Disabled by default for custom canisters.
     pub shrink: Option<bool>,
 
+    /// # Optimize Canister WASM
+    /// Whether run `ic-wasm shrink --optimize <level>` after building the Canister.
+    /// Disabled by default.
+    pub optimize: Option<String>,
+
     /// # Metadata
     /// Defines metadata sections to set in the canister .wasm
     #[serde(default)]

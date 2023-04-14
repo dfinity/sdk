@@ -415,6 +415,14 @@
             "boolean",
             "null"
           ]
+        },
+        "optimize": {
+          "title": "Optimize Canister WASM",
+          "description": "Whether run `ic-wasm shrink --optimize <level>` after building the Canister. Disabled by default.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
