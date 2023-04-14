@@ -64,6 +64,12 @@ Added the ability to configure the WASM module used for assets canisters through
 
 ### fix: dfx deploy and icx-asset no longer retry on permission failure
 
+### feat: --created-at-time for the ledger functions: transfer, create-canister, and top-up
+
+### fix: ledger transfer duplicate transaction prints the duplicate transaction response before returning success to differentiate between a new transaction response and between a duplicate transaction response.
+
+Before it was possible that a user could send 2 ledger transfers with the same arguments at the same timestamp and both would show success but there would have been only 1 ledger transfer. Now dfx prints different messages when the ledger returns a duplicate transaction response and when the ledger returns a new transaction response.
+
 ### chore: clarify `dfx identity new` help text
 
 ### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
