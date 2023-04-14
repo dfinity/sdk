@@ -41,12 +41,9 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
         Some(canister) => {
             let canister_id = match pull_canisters_in_config.get(&canister) {
                 Some(canister_id) => *canister_id,
-                None => {
-                    let canister_id = Principal::from_text(canister).with_context(|| {
-                        "The canister is not a valid Principal nor a name specified in dfx.json"
-                    })?;
-                    canister_id
-                }
+                None => Principal::from_text(canister).with_context(|| {
+                    "The canister is not a valid Principal nor a name specified in dfx.json"
+                })?,
             };
             create_and_install(agent, logger, &canister_id, &init_json).await?;
         }

@@ -102,7 +102,7 @@ impl CanisterIdStore {
     fn get_name_in_pull_ids(&self, canister_id: &str) -> Option<&String> {
         self.pull_ids
             .iter()
-            .find(|(_, id)| &id.to_text() == canister_id)
+            .find(|(_, id)| id.to_text() == canister_id)
             .map(|(canister_name, _)| canister_name)
     }
 

@@ -16,7 +16,7 @@ use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
 
 use std::collections::VecDeque;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::Path;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -301,12 +301,12 @@ async fn fetch_metatdata(
 }
 
 #[context("Failed to write to a tempfile then rename it to {}", path.display())]
-fn write_to_tempfile_then_rename(content: &[u8], path: &PathBuf) -> DfxResult {
+fn write_to_tempfile_then_rename(content: &[u8], path: &Path) -> DfxResult {
     assert!(path.is_absolute());
     let dir = path
         .parent()
         .ok_or_else(|| anyhow!("Failed to get the parent dir from path"))?;
-    ensure_dir_exists(&dir)?;
+    ensure_dir_exists(dir)?;
     let mut f = tempfile::NamedTempFile::new_in(dir)?;
     f.write_all(content)?;
     std::fs::rename(f.path(), path)?;
@@ -315,7 +315,7 @@ fn write_to_tempfile_then_rename(content: &[u8], path: &PathBuf) -> DfxResult {
 
 #[context("Failed to copy candid path of pull dependency {name}")]
 pub fn copy_service_candid_to_project(
-    project_root: &PathBuf,
+    project_root: &Path,
     name: &str,
     canister_id: Principal,
 ) -> DfxResult {

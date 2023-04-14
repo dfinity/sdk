@@ -4,7 +4,10 @@ use dfx_core::{
     json::{load_json_file, save_json_file},
 };
 
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, Context};
 use candid::Principal;
@@ -127,38 +130,38 @@ pub fn validate_pulled(
     Ok(())
 }
 
-fn get_deps_dir(project_root: &PathBuf) -> PathBuf {
+fn get_deps_dir(project_root: &Path) -> PathBuf {
     project_root.join("deps")
 }
 
-pub fn get_candid_path_in_project(project_root: &PathBuf, name: &str) -> PathBuf {
+pub fn get_candid_path_in_project(project_root: &Path, name: &str) -> PathBuf {
     get_deps_dir(project_root).join(name).with_extension("did")
 }
 
-fn get_init_json_path(project_root: &PathBuf) -> PathBuf {
+fn get_init_json_path(project_root: &Path) -> PathBuf {
     get_deps_dir(project_root).join("init.json")
 }
 
-fn get_pulled_json_path(project_root: &PathBuf) -> PathBuf {
+fn get_pulled_json_path(project_root: &Path) -> PathBuf {
     get_deps_dir(project_root).join("pulled.json")
 }
 
 #[context("Failed to read pulled.json. Please (re)run `dfx deps pull`.")]
-pub fn load_pulled_json(project_root: &PathBuf) -> DfxResult<PulledJson> {
+pub fn load_pulled_json(project_root: &Path) -> DfxResult<PulledJson> {
     let pulled_json_path = get_pulled_json_path(project_root);
     let pulled_json = load_json_file(&pulled_json_path)?;
     Ok(pulled_json)
 }
 
 #[context("Failed to write pulled.json")]
-pub fn save_pulled_json(project_root: &PathBuf, pulled_json: &PulledJson) -> DfxResult {
+pub fn save_pulled_json(project_root: &Path, pulled_json: &PulledJson) -> DfxResult {
     let pulled_json_path = get_pulled_json_path(project_root);
     save_json_file(&pulled_json_path, pulled_json)?;
     Ok(())
 }
 
 #[context("Failed to create init.json")]
-pub fn create_init_json_if_not_existed(project_root: &PathBuf) -> DfxResult {
+pub fn create_init_json_if_not_existed(project_root: &Path) -> DfxResult {
     let init_json_path = get_init_json_path(project_root);
     if !init_json_path.exists() {
         let init_json = InitJson::default();
@@ -168,14 +171,14 @@ pub fn create_init_json_if_not_existed(project_root: &PathBuf) -> DfxResult {
 }
 
 #[context("Failed to read init.json")]
-pub fn load_init_json(project_root: &PathBuf) -> DfxResult<InitJson> {
+pub fn load_init_json(project_root: &Path) -> DfxResult<InitJson> {
     let init_json_path = get_init_json_path(project_root);
     let init_json = load_json_file(&init_json_path)?;
     Ok(init_json)
 }
 
 #[context("Failed to write init.json")]
-pub fn save_init_json(project_root: &PathBuf, init_json: &InitJson) -> DfxResult {
+pub fn save_init_json(project_root: &Path, init_json: &InitJson) -> DfxResult {
     let init_json_path = get_init_json_path(project_root);
     save_json_file(&init_json_path, init_json)?;
     Ok(())
