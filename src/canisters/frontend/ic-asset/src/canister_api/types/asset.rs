@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use candid::CandidType;
 use serde::Deserialize;
 
@@ -22,3 +24,30 @@ pub struct AssetDetails {
     /// The MIME type of the asset.
     pub content_type: String,
 }
+
+/// Information about the properties stored for an asset.
+#[derive(CandidType, Debug, Deserialize, Default)]
+pub struct AssetProperties {
+    /// Asset's cache max_age property
+    pub max_age: Option<u64>,
+    /// Asset's HTTP response headers
+    pub headers: Option<HashMap<String, String>>,
+    /// Asset's toggle for whether to serve the asset over .raw domain
+    pub allow_raw_access: Option<bool>,
+    /// Asset's toggle for whether to serve the .html asset both as /route and /route.html
+    pub is_aliased: Option<bool>,
+}
+
+/// Sets the asset with the given properties.
+#[derive(Debug, CandidType, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SetAssetPropertiesArguments {
+    pub key: String,
+    pub max_age: Option<Option<u64>>,
+    pub headers: Option<Option<Vec<(String, String)>>>,
+    pub allow_raw_access: Option<Option<bool>>,
+    pub is_aliased: Option<Option<bool>>,
+}
+
+/// The arguments to the `get_asset_properties` method.
+#[derive(CandidType, Debug)]
+pub struct GetAssetPropertiesArgument(pub String);

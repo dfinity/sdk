@@ -95,16 +95,15 @@ Added `validate_take_ownership()` method so that an SNS is able to add a custom 
 Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
 
 Added partial support for proposal-based asset updates:
-
 - Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
   having the asset canister not reuse batch ids will make it easier to verify that a particular
   batch has been proposed.
 - Added methods:
-  - propose_commit_batch() stores batch arguments for later commit
-  - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
-  - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
-  - commit_proposed_batch() commits batch previously proposed (must have evidence computed)
-  - validate_commit_proposed_batch() required validation method for SNS
+  - `propose_commit_batch()` stores batch arguments for later commit
+  - `delete_batch()` deletes a batch, intended for use after propose_commit_batch if cancellation needed
+  - `compute_evidence()` computes a hash ("evidence") over the proposed batch arguments
+  - `commit_proposed_batch()` commits batch previously proposed (must have evidence computed)
+  - `validate_commit_proposed_batch()` required validation method for SNS
 
 Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
 
@@ -118,11 +117,17 @@ For completeness' sake, the new behavior is as follows:
 - If no requested encoding is available with certification, one of the requested encodings is returned without a certificate (instead of a wrong certificate, which was the case previously).
 - If no encoding specified in the `Accept-Encoding` header is available, a certified encoding that is available is returned instead.
 
+Added support for API versioning of the asset canister in `ic-asset`.
+
+Added functionality that allows you to set asset properties during `dfx deploy`, even if the asset has already been deployed to a canister in the past. This eliminates the need to delete and re-deploy assets to modify properties - great news! This feature is also available when deploying assets using the `--by-proposal` flag. As a result, the API version of the frontend canister has been incremented from `0` to `1`. The updated `ic-asset` version (which is what is being used during `dfx deploy`) will remain compatible with frontend canisters implementing both API `0` and `1`. However, please note that the new frontend canister version (with API `v1`) will not work with tooling from before the dfx release (0.14.0).
+
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 65e3e99401ec65d915a8d977274e1d507b541ab0d15007769d2bde213c55acff
+- API version: 1
+- Module hash: 1b0c89c86a7c835a8153b61daef9faa44fee6e6363b55d59f0566594129bb431
+- https://github.com/dfinity/sdk/pull/3002
 - https://github.com/dfinity/sdk/pull/3065
 - https://github.com/dfinity/sdk/pull/3058
 - https://github.com/dfinity/sdk/pull/3057
