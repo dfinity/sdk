@@ -95,16 +95,15 @@ Added `validate_take_ownership()` method so that an SNS is able to add a custom 
 Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
 
 Added partial support for proposal-based asset updates:
-
 - Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
   having the asset canister not reuse batch ids will make it easier to verify that a particular
   batch has been proposed.
 - Added methods:
-  - propose_commit_batch() stores batch arguments for later commit
-  - delete_batch() deletes a batch, intended for use after propose_commit_batch if cancellation needed
-  - compute_evidence() computes a hash ("evidence") over the proposed batch arguments
-  - commit_proposed_batch() commits batch previously proposed (must have evidence computed)
-  - validate_commit_proposed_batch() required validation method for SNS
+  - `propose_commit_batch()` stores batch arguments for later commit
+  - `delete_batch()` deletes a batch, intended for use after propose_commit_batch if cancellation needed
+  - `compute_evidence()` computes a hash ("evidence") over the proposed batch arguments
+  - `commit_proposed_batch()` commits batch previously proposed (must have evidence computed)
+  - `validate_commit_proposed_batch()` required validation method for SNS
 
 Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
 
@@ -120,7 +119,7 @@ For completeness' sake, the new behavior is as follows:
 
 Added support for API versioning of the asset canister in `ic-asset`.
 
-Added functionality that allows setting asset properties during `dfx deploy` even if the asset has already been deployed to the canister in the past. This means no longer you need to delete and re-deploy the assets to set the properties, yay! This also works when you're deploying assets `--by-proposal`. This change bumps the version of the API of the asset canister from `0` to `1`. 
+Added functionality that allows you to set asset properties during `dfx deploy`, even if the asset has already been deployed to a canister in the past. This eliminates the need to delete and re-deploy assets to modify properties - great news! This feature is also available when deploying assets using the `--by-proposal` flag. As a result, the API version of the frontend canister has been incremented from `0` to `1`. The updated `ic-asset` version (which is what is being used during `dfx deploy`) will remain compatible with frontend canisters implementing both API `0` and `1`. However, please note that the new frontend canister version (with API `v1`) will not work with tooling from before the dfx release (0.14.0).
 
 ## Dependencies
 
