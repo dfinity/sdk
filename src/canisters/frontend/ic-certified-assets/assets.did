@@ -38,6 +38,8 @@ type BatchOperationKind = variant {
   CreateAsset: CreateAssetArguments;
   SetAssetContent: SetAssetContentArguments;
 
+  SetAssetProperties: SetAssetPropertiesArguments;
+
   UnsetAssetContent: UnsetAssetContentArguments;
   DeleteAsset: DeleteAssetArguments;
 

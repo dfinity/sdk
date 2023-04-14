@@ -42,7 +42,7 @@ pub fn start_btc_adapter_actor(
     socket_path: Option<PathBuf>,
     shutdown_controller: Addr<ShutdownController>,
     btc_adapter_pid_file_path: PathBuf,
-) -> DfxResult<Addr<BtcAdapter>> {
+) -> DfxResult<Recipient<BtcAdapterReadySubscribe>> {
     let btc_adapter_path = env.get_cache().get_binary_command_path("ic-btc-adapter")?;
 
     let actor_config = btc_adapter::Config {
@@ -55,7 +55,7 @@ pub fn start_btc_adapter_actor(
         btc_adapter_pid_file_path,
         logger: Some(env.get_logger().clone()),
     };
-    Ok(BtcAdapter::new(actor_config).start())
+    Ok(BtcAdapter::new(actor_config).start().recipient())
 }
 
 #[context("Failed to start canister http adapter actor.")]
@@ -65,7 +65,7 @@ pub fn start_canister_http_adapter_actor(
     socket_path: Option<PathBuf>,
     shutdown_controller: Addr<ShutdownController>,
     pid_file_path: PathBuf,
-) -> DfxResult<Addr<CanisterHttpAdapter>> {
+) -> DfxResult<Recipient<CanisterHttpAdapterReadySubscribe>> {
     let adapter_path = env
         .get_cache()
         .get_binary_command_path("ic-canister-http-adapter")?;
@@ -80,7 +80,7 @@ pub fn start_canister_http_adapter_actor(
         pid_file_path,
         logger: Some(env.get_logger().clone()),
     };
-    Ok(CanisterHttpAdapter::new(actor_config).start())
+    Ok(CanisterHttpAdapter::new(actor_config).start().recipient())
 }
 
 #[context("Failed to start emulator actor.")]

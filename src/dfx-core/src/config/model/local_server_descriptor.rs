@@ -166,6 +166,11 @@ impl LocalServerDescriptor {
     pub fn webserver_port_path(&self) -> PathBuf {
         self.data_directory.join("webserver-port")
     }
+
+    /// This file contains the effective config the replica was started with.
+    pub fn effective_config_path(&self) -> PathBuf {
+        self.data_directory.join("replica-effective-config.json")
+    }
 }
 
 impl LocalServerDescriptor {

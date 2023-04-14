@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use dfx_core::config::model::dfinity::{ReplicaLogLevel, ReplicaSubnetType};
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HttpHandlerConfig {
     /// Instructs the HTTP handler to use the specified port
     pub port: Option<u16>,
@@ -16,34 +16,34 @@ pub struct HttpHandlerConfig {
     pub write_port_to: Option<PathBuf>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BtcAdapterConfig {
     pub enabled: bool,
     pub socket_path: Option<PathBuf>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CanisterHttpAdapterConfig {
     pub enabled: bool,
     pub socket_path: Option<PathBuf>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ArtifactPoolConfig {
     pub consensus_pool_path: PathBuf,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CryptoConfig {
     pub crypto_root: PathBuf,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StateManagerConfig {
     pub state_root: PathBuf,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ReplicaConfig {
     pub http_handler: HttpHandlerConfig,
     pub state_manager: StateManagerConfig,
