@@ -15,6 +15,8 @@ teardown() {
 }
 
 setup_playground() {
+  create_networks_json
+  jq '.local.replica.subnet_type="system"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON" # use system subnet for local tests because current dfx (0.13.1) has an older replica that doesn't have DTS enabled yet - tested manually against mainnet
   mv dfx.json dfx.json.previous
   install_asset playground_backend
   dfx_start
@@ -22,7 +24,6 @@ setup_playground() {
   dfx ledger fabricate-cycles --t 9999999 --canister backend
   export PLAYGROUND_CANISTER_ID=$(dfx canister id backend)
   echo "PLAYGROUND_CANISTER_ID is $PLAYGROUND_CANISTER_ID"
-  create_networks_json
   WEBSERVER_PORT=$(get_webserver_port)
   jq '.playground.bind="127.0.0.1:'$WEBSERVER_PORT'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   jq '.playground.playground.playground_cid="'$PLAYGROUND_CANISTER_ID'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
@@ -59,5 +60,20 @@ setup_playground() {
   assert_match "Canister 'hello_backend' has timed out."
   assert_match "Reserved canister 'hello_backend'"
 
-  # TODO: install wasm, test calling it. Blocked by .env file change
+
+  echo HERE
+  dfx canister --playground create --all
+  dfx canister --playground info hello_frontend
+  assert_command_fail dfx deploy --playground
+  cp .dfx/playground/canisters/hello_frontend/hello_frontend.wasm /Users/ssiff/Desktop/hello/test.wasm
+  exit 4412
+  assert_command dfx canister --playground call hello_backend greet '("player")'
+  assert_match "Hello, player!"
+
+  CANISTER=$(dfx canister --playground id hello_backend)
+  assert_command_fail dfx canister --playground stop hello_backend
+  assert_match "Canisters borrowed from a playground cannot be stopped."
+  assert_command dfx canister --playground delete hello_backend
+  assert_command_fail dfx canister --playground info hello_backend
+  assert_command dfx canister --playground info "$CANISTER"
 }
