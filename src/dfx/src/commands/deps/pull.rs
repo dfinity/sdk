@@ -1,6 +1,6 @@
 use crate::lib::deps::{
     get_candid_path_in_project, get_pull_canisters_in_config, get_pulled_wasm_path,
-    get_service_candid_path, save_pulled_json,
+    get_service_candid_path, get_wasm_url_txt_path, save_pulled_json,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
@@ -199,13 +199,16 @@ async fn download_canister_files(
 
     // skip download if cache hit
     let mut cache_hit = false;
+    let wasm_url_txt_path = get_wasm_url_txt_path(canister_id)?;
     if wasm_path.exists() {
         let bytes = std::fs::read(&wasm_path)?;
         let hash_cache = Sha256::digest(bytes);
-
         if hash_cache.as_slice() == hash_on_chain {
             cache_hit = true;
             info!(logger, "The canister wasm was found in the cache.");
+            let wasm_url_str = std::fs::read_to_string(&wasm_url_txt_path)
+                .with_context(|| format!("Failed to read {:?}", &wasm_url_txt_path))?;
+            pulled_canister.wasm_url = Some(wasm_url_str);
         }
     }
     if !cache_hit {
@@ -217,7 +220,7 @@ async fn download_canister_files(
             })?;
         let wasm_url_str = String::from_utf8(wasm_url_raw)?;
         let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
-
+        write_to_tempfile_then_rename(wasm_url_str.as_bytes(), &wasm_url_txt_path)?;
         pulled_canister.wasm_url = Some(wasm_url_str);
 
         // download

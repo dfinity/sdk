@@ -199,3 +199,11 @@ pub fn get_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
         .join(canister_id.to_text())
         .join("service.did"))
 }
+
+#[context("Failed to get the wasm_url.txt path of pulled canister \"{canister_id}\"")]
+pub fn get_wasm_url_txt_path(canister_id: Principal) -> DfxResult<PathBuf> {
+    Ok(get_cache_root()?
+        .join("pulled")
+        .join(canister_id.to_text())
+        .join("wasm_url.txt"))
+}
