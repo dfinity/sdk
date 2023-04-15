@@ -275,7 +275,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
 }
 
-@test "dfx deps init can set init arguments for pulled canisters" {
+@test "dfx deps init works" {
     # When ran with ic-ref, got following error:
     # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
@@ -310,7 +310,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Canister $CANISTER_ID_B takes no init argument. PLease rerun without \`--argument\`"
 }
 
-@test "dfx deps deploy can deploy pulled canisters which set init arguments" {
+@test "dfx deps deploy works" {
     # When ran with ic-ref, got following error:
     # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
