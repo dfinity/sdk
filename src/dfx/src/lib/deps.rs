@@ -32,7 +32,9 @@ pub struct PulledCanister {
     // or get from canister_status
     pub wasm_hash: String,
     // dfx:init
-    pub init: Option<String>,
+    pub dfx_init: Option<String>,
+    // candid:args
+    pub candid_args: Option<String>,
 }
 
 impl PulledJson {

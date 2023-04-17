@@ -172,9 +172,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/service.did"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/service.did"
 
     # system-wide local replica
     dfx_start
@@ -189,9 +186,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/service.did"
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/service.did"
 
     cd deps
     assert_file_exists "pulled.json"
@@ -200,11 +194,11 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_eq "$CANISTER_ID_B" "$(jq -r '.named.dep1' pulled.json)"
     assert_eq "$CANISTER_ID_C" "$(jq -r '.named.dep2' pulled.json)"
     assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
-    assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".init' pulled.json
+    assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".dfx_init' pulled.json
     assert_match "Nat"
     cd ../
 
-    assert_command dfx deps pull
+    assert_command dfx deps pull -vvv
     assert_contains "The canister wasm was found in the cache." # cache hit
 
     # sad path 1: wasm hash doesn't match on chain
@@ -271,7 +265,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     cd ../app
     assert_file_not_exists "deps/pulled.json"
 
-    assert_command dfx deps pull
+    assert_command dfx deps pull -vvv
     assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
 }
 

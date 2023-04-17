@@ -1,18 +1,19 @@
 use crate::lib::deps::{
     get_candid_path_in_project, get_pull_canisters_in_config, get_pulled_wasm_path,
-    get_service_candid_path, get_wasm_url_txt_path, save_pulled_json,
+    get_wasm_url_txt_path, save_pulled_json,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::metadata::names::{
-    CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
+    CANDID_ARGS, CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
 };
 use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use dfx_core::config::cache::get_cache_root;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
+use ic_wasm::metadata::get_metadata;
 
 use std::collections::VecDeque;
 use std::io::Write;
@@ -24,7 +25,7 @@ use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use sha2::{Digest, Sha256};
-use slog::{error, info, warn, Logger};
+use slog::{error, info, warn, Logger, trace};
 
 /// Pull canisters upon which the project depends
 #[derive(Parser)]
@@ -165,7 +166,7 @@ async fn download_canister_files(
     let hash_on_chain = match fetch_metatdata(agent, canister_id, DFX_WASM_HASH).await {
         Ok(Some(wasm_hash_raw)) => {
             let wasm_hash_str = String::from_utf8(wasm_hash_raw)?;
-            info!(
+            trace!(
                 logger,
                 "Canister {canister_id} specified a custom hash: {wasm_hash_str}"
             );
@@ -205,7 +206,7 @@ async fn download_canister_files(
         let hash_cache = Sha256::digest(bytes);
         if hash_cache.as_slice() == hash_on_chain {
             cache_hit = true;
-            info!(logger, "The canister wasm was found in the cache.");
+            trace!(logger, "The canister wasm was found in the cache.");
             let wasm_url_str = std::fs::read_to_string(&wasm_url_txt_path)
                 .with_context(|| format!("Failed to read {:?}", &wasm_url_txt_path))?;
             pulled_canister.wasm_url = Some(wasm_url_str);
@@ -248,32 +249,26 @@ download: {}",
         write_to_tempfile_then_rename(&content, &wasm_path)?;
     }
 
-    // fetch `candid:service` and save it
-    let service_candid_bytes = fetch_metatdata(agent, canister_id, CANDID_SERVICE)
-        .await?
-        .ok_or_else(|| {
-            anyhow!("`{CANDID_SERVICE}` metadata not found in canister {canister_id}.")
-        })?;
-    let service_candid_path = get_service_candid_path(canister_id)?;
-    write_to_tempfile_then_rename(&service_candid_bytes, &service_candid_path)?;
+    // get `candid:args` from downloaded wasm
+    let wasm = std::fs::read(&wasm_path)
+        .with_context(|| format!("Failed to read wasm from {:?}", &wasm_path))?;
+    let candid_args = get_metadata(&wasm, CANDID_ARGS).with_context(|| {
+        format!(
+            "Failed to get {} metadata from {:?}",
+            CANDID_ARGS, &wasm_path
+        )
+    })?;
 
-    // try fetch `dfx:init`
-    match fetch_metatdata(agent, canister_id, DFX_INIT).await {
-        Ok(Some(init_bytes)) => {
-            // write_to_tempfile_then_rename(&init_bytes, &canister_dir, "init.txt")?
-            pulled_canister.init = Some(String::from_utf8(init_bytes)?);
-        }
-        Ok(None) => {
-            info!(
-                logger,
-                "Canister {canister_id} doesn't define `{DFX_INIT}` metadata."
-            );
-            pulled_canister.init = None;
-        }
-        Err(e) => {
-            bail!(e);
-        }
-    };
+    pulled_canister.candid_args = Some(candid_args);
+
+    // try get `dfx:init` from downloaded wasm
+    match get_metadata(&wasm, DFX_INIT) {
+        Ok(dfx_init) => pulled_canister.dfx_init = Some(dfx_init),
+        Err(_e) => trace!(
+            logger,
+            "Failed to get {} metadata from {:?}", DFX_INIT, &wasm_path
+        ),
+    }
 
     Ok(())
 }
@@ -322,9 +317,17 @@ pub fn copy_service_candid_to_project(
     name: &str,
     canister_id: Principal,
 ) -> DfxResult {
-    let service_candid_path = get_service_candid_path(canister_id)?;
-    let path_in_project = get_candid_path_in_project(project_root, name);
-    ensure_parent_dir_exists(&path_in_project)?;
-    std::fs::copy(&service_candid_path, &path_in_project)?;
+    let wasm_path = get_pulled_wasm_path(canister_id)?;
+    let wasm = std::fs::read(&wasm_path)
+        .with_context(|| format!("Failed to read wasm from {:?}", &wasm_path))?;
+    let service_candid = get_metadata(&wasm, CANDID_SERVICE).with_context(|| {
+        format!(
+            "Failed to get {} metadata from {:?}",
+            CANDID_SERVICE, &wasm_path
+        )
+    })?;
+    let service_candid_path = get_candid_path_in_project(project_root, name);
+    ensure_parent_dir_exists(&service_candid_path)?;
+    write_to_tempfile_then_rename(service_candid.as_bytes(), &service_candid_path)?;
     Ok(())
 }
