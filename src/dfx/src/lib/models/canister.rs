@@ -97,8 +97,14 @@ impl Canister {
     }
 
     #[context("Failed while trying to generate type declarations for '{}'.", self.info.get_name())]
-    pub fn generate(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
-        self.builder.generate(pool, &self.info, build_config)
+    pub fn generate(
+        &self,
+        pool: &CanisterPool,
+        build_config: &BuildConfig,
+        skip_env_vars: bool,
+    ) -> DfxResult {
+        self.builder
+            .generate(pool, &self.info, build_config, skip_env_vars)
     }
 
     #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
@@ -483,6 +489,7 @@ impl CanisterPool {
         build_config: &BuildConfig,
         canister: &Canister,
         build_output: &BuildOutput,
+        skip_env_vars: bool,
     ) -> DfxResult<()> {
         // No need to run for Pull canister
         if canister.get_info().is_pull() {
@@ -546,7 +553,12 @@ impl CanisterPool {
             set_perms_readwrite(&idl_file_path)?;
         }
 
-        build_canister_js(&canister.canister_id(), &canister.info)?;
+        build_canister_js(
+            &canister.canister_id(),
+            &canister.info,
+            &build_config.network_name,
+            skip_env_vars,
+        )?;
 
         canister.postbuild(self, build_config)
     }
@@ -576,6 +588,7 @@ impl CanisterPool {
         &self,
         log: &Logger,
         build_config: &BuildConfig,
+        skip_env_vars: bool,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
         self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
@@ -630,7 +643,7 @@ impl CanisterPool {
                             })
                         })
                         .and_then(|o| {
-                            self.step_postbuild(build_config, canister, o)
+                            self.step_postbuild(build_config, canister, o, skip_env_vars)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(
                                         *canister_id,
@@ -653,9 +666,14 @@ impl CanisterPool {
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    pub async fn build_or_fail(
+        &self,
+        log: &Logger,
+        build_config: &BuildConfig,
+        skip_env_vars: bool,
+    ) -> DfxResult<()> {
         self.download(build_config).await?;
-        let outputs = self.build(log, build_config)?;
+        let outputs = self.build(log, build_config, skip_env_vars)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
@@ -752,7 +770,12 @@ fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
 
 /// Create a canister JavaScript DID and Actor Factory.
 #[context("Failed to build canister js for canister '{}'.", canister_info.get_name())]
-fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
+fn build_canister_js(
+    canister_id: &CanisterId,
+    canister_info: &CanisterInfo,
+    network_name: &str,
+    skip_env_vars: bool,
+) -> DfxResult {
     let output_did_js_path = canister_info.get_build_idl_path().with_extension("did.js");
     let output_did_ts_path = canister_info
         .get_build_idl_path()
@@ -786,7 +809,17 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         file.read_to_string(&mut file_contents)
             .context("Failed to read file content.")?;
 
-        let new_file_contents = file_contents
+        let new_file_contents = if skip_env_vars {
+            file_contents
+                .replace("process.env.DFX_NETWORK", &format!(r#""{}""#, network_name))
+                .replace(
+                    "process.env.{canister_name_uppercase}_CANISTER_ID",
+                    &format!(r#""{}""#, canister_id),
+                )
+        } else {
+            file_contents
+        };
+        let new_file_contents = new_file_contents
             .replace("{canister_id}", &canister_id.to_text())
             .replace("{canister_name}", canister_info.get_name())
             .replace(

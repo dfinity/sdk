@@ -233,7 +233,9 @@ async fn build_canisters(
     let build_config = BuildConfig::from_config(config)?
         .with_canisters_to_build(canisters_to_build.into())
         .with_env_file(env_file);
-    canister_pool.build_or_fail(log, &build_config).await?;
+    canister_pool
+        .build_or_fail(log, &build_config, false)
+        .await?;
     Ok(canister_pool)
 }
 

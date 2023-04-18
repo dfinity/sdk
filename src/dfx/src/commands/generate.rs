@@ -22,7 +22,7 @@ pub struct GenerateOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let TODO_replace_with_hardcoded_cid = false;
+    let network_manually_specified = opts.network.network.is_some();
     let env = create_anonymous_agent_environment(env, opts.network.network)?;
     let log = env.get_logger();
 
@@ -57,7 +57,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     let mut build_dependees = Vec::new();
     for canister in canister_pool_load.get_canister_list() {
         let canister_name = canister.get_name();
-        if TODO_replace_with_hardcoded_cid && store.get(&canister_name).is_err() {
+        if network_manually_specified && store.get(&canister_name).is_err() {
             bail!(format!("To hard-code canister IDs into the generated files (which happens when using --network) the canister IDs have to be known. Please create canister '{}' before generating.", &canister_name));
         }
         if let Some(info) = canister_pool_load.get_first_canister_with_name(canister_name) {
@@ -88,11 +88,19 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         let canister_pool_build = CanisterPool::load(&env, true, &build_dependees)?;
         slog::info!(log, "Building canisters before generate for Motoko");
         let runtime = Runtime::new().expect("Unable to create a runtime");
-        runtime.block_on(canister_pool_build.build_or_fail(log, &build_config))?;
+        runtime.block_on(canister_pool_build.build_or_fail(
+            log,
+            &build_config,
+            network_manually_specified,
+        ))?;
     }
 
     for canister in canister_pool_load.canisters_to_build(&generate_config) {
-        canister.generate(&canister_pool_load, &generate_config)?;
+        canister.generate(
+            &canister_pool_load,
+            &generate_config,
+            network_manually_specified,
+        )?;
     }
 
     Ok(())

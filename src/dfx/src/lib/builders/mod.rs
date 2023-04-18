@@ -93,6 +93,7 @@ pub trait CanisterBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
+        skip_env_vars: bool,
     ) -> DfxResult {
         let generate_output_dir = info
             .get_declarations_config()
@@ -162,7 +163,13 @@ pub trait CanisterBuilder {
             })?;
             eprintln!("  {}", &output_did_ts_path.display());
 
-            compile_handlebars_files("ts", info, generate_output_dir)?;
+            compile_handlebars_files(
+                "ts",
+                info,
+                generate_output_dir,
+                skip_env_vars,
+                &config.network_name,
+            )?;
         }
 
         // Javascript
@@ -180,7 +187,13 @@ pub trait CanisterBuilder {
             })?;
             eprintln!("  {}", &output_did_js_path.display());
 
-            compile_handlebars_files("js", info, generate_output_dir)?;
+            compile_handlebars_files(
+                "js",
+                info,
+                generate_output_dir,
+                skip_env_vars,
+                &config.network_name,
+            )?;
         }
 
         // Motoko
@@ -224,6 +237,8 @@ fn compile_handlebars_files(
     lang: &str,
     info: &CanisterInfo,
     generate_output_dir: &Path,
+    skip_env_vars: bool,
+    network_name: &str,
 ) -> DfxResult {
     // index.js
     let mut language_bindings = crate::util::assets::language_bindings()
@@ -277,15 +292,26 @@ export const {0} = createActor(canisterId);"#,
             let process_string: String = match &info.get_declarations_config().env_override {
                 Some(s) => format!(r#""{}""#, s.clone()),
                 None => {
-                    format!(
-                        "process.env.{}{}",
-                        &canister_name.to_ascii_uppercase(),
-                        "_CANISTER_ID"
-                    )
+                    if skip_env_vars {
+                        format!(r#""{}""#, info.get_canister_id()?)
+                    } else {
+                        format!(
+                            "process.env.{}{}",
+                            &canister_name.to_ascii_uppercase(),
+                            "_CANISTER_ID"
+                        )
+                    }
                 }
             };
 
             data.insert("canister_name_process_env".to_string(), &process_string);
+
+            let network_string: String = if skip_env_vars {
+                format!(r#""{}""#, network_name)
+            } else {
+                "process.env.DFX_NETWORK".to_string()
+            };
+            data.insert("network_name_process_env".to_string(), &network_string);
 
             let new_file_contents = handlebars.render_template(&file_contents, &data).unwrap();
             let new_path = generate_output_dir.join(pathname.with_extension(""));

@@ -91,7 +91,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         .with_build_mode_check(build_mode_check)
         .with_canisters_to_build(canisters_to_build)
         .with_env_file(env_file);
-    runtime.block_on(canister_pool.build_or_fail(logger, &build_config))?;
+    runtime.block_on(canister_pool.build_or_fail(logger, &build_config, false))?;
 
     Ok(())
 }
