@@ -119,6 +119,13 @@ teardown() {
     assert_command dfx build
 }
 
+@test "build succeeds if enable optimize" {
+    jq '.canisters.e2e_project_backend.optimize=cycles' dfx.json | sponge dfx.json
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
+}
+
 @test "build custom canister default no shrink" {
     install_asset custom_canister
     install_asset wasm/identity
@@ -131,6 +138,20 @@ teardown() {
     jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
     assert_command dfx build custom
     assert_match "Shrink"
+}
+
+@test "build custom canister default no optimize" {
+    install_asset custom_canister
+    install_asset wasm/identity
+
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build custom
+    assert_not_match "Optimize"
+
+    jq '.canisters.custom.optimize=size' dfx.json | sponge dfx.json
+    assert_command dfx build custom
+    assert_match "Optimize"
 }
 
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
