@@ -282,7 +282,7 @@ export const {0} = createActor(canisterId);"#,
                         "process.env.{}{} ||\n  process.env.{}{}",
                         "CANISTER_ID_",
                         &canister_name.to_ascii_uppercase(),
-                        // TODO: remove this fallback in 0.15.x
+                        // TODO: remove this fallback in 0.16.x
                         &canister_name.to_ascii_uppercase(),
                         "_CANISTER_ID",
                     )
