@@ -30,5 +30,6 @@ pub mod replica_config;
 pub mod root_key;
 pub mod sign;
 pub mod sns;
+pub mod state_tree;
 pub mod toolchain;
 pub mod wasm;
