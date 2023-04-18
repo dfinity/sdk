@@ -1,10 +1,10 @@
-use crate::config::cache::{get_bin_cache, get_cache_root};
 use crate::lib::environment::Environment;
 use crate::lib::error::ExtensionError;
 use crate::lib::extension::{
     manifest::{ExtensionManifest, MANIFEST_FILE_NAME},
     Extension,
 };
+use dfx_core::config::cache::{get_bin_cache, get_cache_root};
 
 use dfx_core::fs::composite::ensure_dir_exists;
 use dfx_core::json::load_json_file;

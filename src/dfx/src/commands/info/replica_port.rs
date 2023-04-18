@@ -1,7 +1,6 @@
 use crate::lib::error::DfxResult;
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
-use crate::util::network::get_running_replica_port;
 use crate::Environment;
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::bail;
 
@@ -14,8 +13,10 @@ pub(crate) fn get_replica_port(env: &dyn Environment) -> DfxResult<String> {
         LocalBindDetermination::AsConfigured,
     )?;
 
-    if let Some(port) =
-        get_running_replica_port(None, network_descriptor.local_server_descriptor()?)?
+    let logger = None;
+    if let Some(port) = network_descriptor
+        .local_server_descriptor()?
+        .get_running_replica_port(logger)?
     {
         Ok(format!("{}", port))
     } else {

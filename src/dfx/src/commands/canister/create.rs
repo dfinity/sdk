@@ -3,7 +3,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
 };
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -13,6 +12,7 @@ use crate::util::clap::validators::{
 };
 use dfx_core::error::identity::IdentityError;
 use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
+use dfx_core::identity::CallSender;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
@@ -35,6 +35,13 @@ pub struct CanisterCreateOpts {
     /// This amount is deducted from the wallet's cycle balance.
     #[clap(long, validator(cycle_amount_validator))]
     with_cycles: Option<String>,
+
+    /// Attempts to create the canister with this Canister ID.
+    ///
+    /// This option only works with non-mainnet replica.
+    /// This option implies the --no-wallet flag.
+    #[clap(long, value_name = "PRINCIPAL", conflicts_with = "all")]
+    specified_id: Option<CanisterId>,
 
     /// Specifies the identity name or the principal of the new controller.
     #[clap(long, multiple_occurrences(true))]
@@ -76,7 +83,10 @@ pub async fn exec(
     let network = env.get_network_descriptor();
 
     let proxy_sender;
-    if !opts.no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
+    if opts.specified_id.is_none()
+        && !opts.no_wallet
+        && !matches!(call_sender, CallSender::Wallet(_))
+    {
         let wallet = get_or_create_wallet_canister(
             env,
             env.get_network_descriptor(),
@@ -145,6 +155,7 @@ pub async fn exec(
             env,
             canister_name,
             with_cycles,
+            opts.specified_id,
             call_sender,
             CanisterSettings {
                 controllers,
@@ -196,10 +207,12 @@ pub async fn exec(
                 .with_context(|| {
                     format!("Failed to read freezing threshold of {}.", canister_name)
                 })?;
+                // TODO: create for pull canisters with their mainnet ID (SDK-794)
                 create_canister(
                     env,
                     canister_name,
                     with_cycles,
+                    None,
                     call_sender,
                     CanisterSettings {
                         controllers: controllers.clone(),

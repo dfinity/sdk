@@ -1,7 +1,10 @@
 //! This module declares canister methods expected by the assets canister client.
+mod certification_types;
+pub mod evidence;
 pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
+mod tree;
 pub mod types;
 mod url_decode;
 
@@ -23,10 +26,21 @@ use ic_cdk::api::{
     set_certified_data, time, trap,
 };
 use ic_cdk_macros::{query, update};
+use serde_bytes::ByteBuf;
 use std::cell::RefCell;
+
+#[cfg(target_arch = "wasm32")]
+#[link_section = "icp:public supported_certificate_versions"]
+pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
+}
+
+#[query]
+#[candid_method(query)]
+fn api_version() -> u16 {
+    1
 }
 
 #[update]
@@ -122,10 +136,15 @@ async fn take_ownership() {
         Ok(_) => STATE.with(|s| s.borrow_mut().take_ownership(caller)),
     }
 }
+#[update]
+#[candid_method(update)]
+async fn validate_take_ownership() -> Result<String, String> {
+    Ok("revoke all permissions, then gives the caller Commit permissions".to_string())
+}
 
 #[query]
 #[candid_method(query)]
-fn retrieve(key: Key) -> RcBytes {
+fn retrieve(key: AssetKey) -> RcBytes {
     STATE.with(|s| match s.borrow().retrieve(&key) {
         Ok(bytes) => bytes,
         Err(msg) => trap(&msg),
@@ -222,6 +241,52 @@ fn commit_batch(arg: CommitBatchArguments) {
     });
 }
 
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn propose_commit_batch(arg: CommitBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().propose_commit_batch(arg) {
+            trap(&msg);
+        }
+    });
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
+    STATE.with(|s| match s.borrow_mut().compute_evidence(arg) {
+        Err(msg) => trap(&msg),
+        Ok(maybe_evidence) => maybe_evidence,
+    })
+}
+
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().commit_proposed_batch(arg, time()) {
+            trap(&msg);
+        }
+        set_certified_data(&s.borrow().root_hash());
+    });
+}
+
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
+    STATE.with(|s| s.borrow_mut().validate_commit_proposed_batch(arg))
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn delete_batch(arg: DeleteBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().delete_batch(arg) {
+            trap(&msg);
+        }
+    });
+}
+
 #[query]
 #[candid_method(query)]
 fn get(arg: GetArg) -> EncodedAsset {
@@ -283,7 +348,7 @@ fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCa
 
 #[query]
 #[candid_method(query)]
-fn get_asset_properties(key: Key) -> AssetProperties {
+fn get_asset_properties(key: AssetKey) -> AssetProperties {
     STATE.with(|s| {
         s.borrow()
             .get_asset_properties(key)

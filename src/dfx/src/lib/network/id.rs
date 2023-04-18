@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 
 use anyhow::Context;
 use fn_error_context::context;

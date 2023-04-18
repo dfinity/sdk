@@ -3,9 +3,9 @@
 //! Contains the Candid UI canister for now
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::{self};
+use crate::util;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;

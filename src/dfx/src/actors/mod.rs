@@ -1,18 +1,18 @@
 use crate::actors;
+use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
+use crate::actors::btc_adapter::BtcAdapter;
+use crate::actors::canister_http_adapter::signals::CanisterHttpAdapterReadySubscribe;
+use crate::actors::canister_http_adapter::CanisterHttpAdapter;
 use crate::actors::emulator::Emulator;
+use crate::actors::icx_proxy::signals::PortReadySubscribe;
+use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use crate::actors::replica::Replica;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::ReplicaConfig;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 
-use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
-use crate::actors::btc_adapter::BtcAdapter;
-use crate::actors::canister_http_adapter::signals::CanisterHttpAdapterReadySubscribe;
-use crate::actors::canister_http_adapter::CanisterHttpAdapter;
-use crate::actors::icx_proxy::signals::PortReadySubscribe;
-use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
 use actix::{Actor, Addr, Recipient};
 use anyhow::Context;
 use fn_error_context::context;
@@ -42,7 +42,7 @@ pub fn start_btc_adapter_actor(
     socket_path: Option<PathBuf>,
     shutdown_controller: Addr<ShutdownController>,
     btc_adapter_pid_file_path: PathBuf,
-) -> DfxResult<Addr<BtcAdapter>> {
+) -> DfxResult<Recipient<BtcAdapterReadySubscribe>> {
     let btc_adapter_path = env.get_cache().get_binary_command_path("ic-btc-adapter")?;
 
     let actor_config = btc_adapter::Config {
@@ -55,7 +55,7 @@ pub fn start_btc_adapter_actor(
         btc_adapter_pid_file_path,
         logger: Some(env.get_logger().clone()),
     };
-    Ok(BtcAdapter::new(actor_config).start())
+    Ok(BtcAdapter::new(actor_config).start().recipient())
 }
 
 #[context("Failed to start canister http adapter actor.")]
@@ -65,7 +65,7 @@ pub fn start_canister_http_adapter_actor(
     socket_path: Option<PathBuf>,
     shutdown_controller: Addr<ShutdownController>,
     pid_file_path: PathBuf,
-) -> DfxResult<Addr<CanisterHttpAdapter>> {
+) -> DfxResult<Recipient<CanisterHttpAdapterReadySubscribe>> {
     let adapter_path = env
         .get_cache()
         .get_binary_command_path("ic-canister-http-adapter")?;
@@ -80,7 +80,7 @@ pub fn start_canister_http_adapter_actor(
         pid_file_path,
         logger: Some(env.get_logger().clone()),
     };
-    Ok(CanisterHttpAdapter::new(actor_config).start())
+    Ok(CanisterHttpAdapter::new(actor_config).start().recipient())
 }
 
 #[context("Failed to start emulator actor.")]

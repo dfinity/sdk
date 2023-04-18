@@ -242,6 +242,7 @@ pub enum CanisterTypeProperties {
         /// Commands that are executed in order to produce this canister's WASM module.
         /// Expected to produce the WASM in the path specified by the 'wasm' field.
         /// No build commands are allowed if the `wasm` field is a URL.
+        #[schemars(default)]
         build: SerdeVec<String>,
     },
     /// # Motoko-Specific Properties
@@ -855,12 +856,16 @@ impl Config {
     }
 
     /// Create a configuration from a string.
-    pub fn from_str(content: &str) -> Result<Config, StructuredFileError> {
+    #[cfg(test)]
+    pub(crate) fn from_str(content: &str) -> Result<Config, StructuredFileError> {
         Config::from_slice(PathBuf::from("-"), content.as_bytes())
     }
 
     #[cfg(test)]
-    pub fn from_str_and_path(path: PathBuf, content: &str) -> Result<Config, StructuredFileError> {
+    pub(crate) fn from_str_and_path(
+        path: PathBuf,
+        content: &str,
+    ) -> Result<Config, StructuredFileError> {
         Config::from_slice(path, content.as_bytes())
     }
 

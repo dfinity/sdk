@@ -41,7 +41,7 @@ pub struct CliOpts {
     identity: Option<String>,
 
     /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
-    #[clap(long, global(true))]
+    #[clap(long, global(true), value_name("PRINCIPAL"))]
     provisional_create_canister_effective_canister_id: Option<String>,
 
     #[clap(subcommand)]
@@ -93,7 +93,7 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
             );
         }
 
-        match crate::config::cache::call_cached_dfx(version) {
+        match dfx_core::config::cache::call_cached_dfx(version) {
             Ok(status) => std::process::exit(status.code().unwrap_or(0)),
             Err(e) => {
                 eprintln!("Error when trying to forward to project dfx:\n{:?}", e);

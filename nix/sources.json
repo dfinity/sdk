@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "bb92d2d5d850c7c022290c53ca4faa55b5b498a3",
-        "sha256": "0wcfgc7nrn2qapib1hm1jzw57p8dvkgry9xwv2y2m6bqvr3nbysr",
+        "rev": "23ff35f8259aca16ff14e4ce0da0f54cd496a26c",
+        "sha256": "1a97ijrlpixakd27lmkb3149ha7c9hcr73r1z18npc219ip9zhj3",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/bb92d2d5d850c7c022290c53ca4faa55b5b498a3.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/23ff35f8259aca16ff14e4ce0da0f54cd496a26c.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister_sandbox-x86_64-darwin": {
@@ -83,38 +83,38 @@
     "ic-nns-init-x86_64-darwin": {
         "builtin": false,
         "description": "The ic-nns-init binary.",
-        "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "08sc9kggr514mi4jd0q0pj3m5z73hjggrmhj6aghdpcbk7hz92l2",
+        "rev": "f24c7853befe4b85993f61d11df977a4fd721824",
+        "sha256": "1g9dyhxglzfj8scj823abgv3kil1xqwd6i7kxmharpp717yb7zz1",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-darwin/ic-nns-init.gz",
+        "url": "https://download.dfinity.systems/ic/f24c7853befe4b85993f61d11df977a4fd721824/binaries/x86_64-darwin/ic-nns-init.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/ic-nns-init.gz"
     },
     "ic-nns-init-x86_64-linux": {
         "builtin": false,
         "description": "The ic-nns-init binary.",
-        "rev": "21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1",
-        "sha256": "16ip75dp9hqjfv8vmbr8fp9fm047p5pr1b4981cnl3w9jiyr7d50",
+        "rev": "f24c7853befe4b85993f61d11df977a4fd721824",
+        "sha256": "0xai3imvnhsp88ij9rvvvvnqr710m49786b7w1ms8p0dcg449qad",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-linux/ic-nns-init.gz",
+        "url": "https://download.dfinity.systems/ic/f24c7853befe4b85993f61d11df977a4fd721824/binaries/x86_64-linux/ic-nns-init.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/ic-nns-init.gz"
     },
     "ic-ref-x86_64-darwin": {
         "builtin": false,
         "rev": "3cc51be58784ba9b6e9a06afb4b59a11fb31c771",
-        "sha256": "b99a0922f98d8aaa057f9baead97980fcb08979204649e907087fd965768fbca",
+        "sha256": "0b1hm6cfxa0nvcsxg8hw0l5jwkvmaf9fr2xzzw2kxpz8m7anrxm9",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-3cc51be5-x86_64-darwin.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ca6aca90-x86_64-darwin.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-darwin.tar.gz",
-        "version": "0.0.1-3cc51be5"
+        "version": "0.0.1-ca6aca90"
     },
     "ic-ref-x86_64-linux": {
         "builtin": false,
         "rev": "3cc51be58784ba9b6e9a06afb4b59a11fb31c771",
-        "sha256": "0baa6d0b514769332aa9934bde09350b4785d174829601b7950097a31a69938b",
+        "sha256": "00i0041dy3ylbwb8v5w4jwzwsj5d1r8whq111ipmipm0mblsvyj5",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-3cc51be5-x86_64-linux.tar.gz",
+        "url": "https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ca6aca90-x86_64-linux.tar.gz",
         "url_template": "https://download.dfinity.systems/ic-ref/ic-ref-<version>-x86_64-linux.tar.gz",
-        "version": "0.0.1-3cc51be5"
+        "version": "0.0.1-ca6aca90"
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
@@ -154,27 +154,27 @@
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
-        "sha256": "1pvkdd8zd6l27imgxsni9b0dw8kh6jk3y64v06bjcifrs9rvvmwa",
+        "sha256": "039j55x0hknlhgy7x812f76nz6qsi2ld4svap5hw6kvx5pj43ksp",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.7.6/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.7/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.7.6"
+        "version": "0.8.7"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "1nw6xkkdfakii0cs49sqsqlq0ks64aav31bpjl3jirgn2v029js5",
+        "sha256": "1pv85b9c7xgmnb9vzvh36wlhghbh15aa3qn5sk5zp4laykgalvd2",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.7.6/motoko-macos-0.7.6.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.7/motoko-macos-0.8.7.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
-        "version": "0.7.6"
+        "version": "0.8.7"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "0k6v9dlfbijzhnzwrwlg3d51k5j4w5vdfpgmjcbm9f93kqcs6za6",
+        "sha256": "1si1mr0xckhgvaqyzly9w3ys8r89bbhy1i1jnyk3bsp7frjjp670",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.7.6/motoko-linux64-0.7.6.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.7/motoko-linux64-0.8.7.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
-        "version": "0.7.6"
+        "version": "0.8.7"
     },
     "replica-x86_64-darwin": {
         "builtin": false,

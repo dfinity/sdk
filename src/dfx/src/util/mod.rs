@@ -18,7 +18,6 @@ use std::time::Duration;
 pub mod assets;
 pub mod clap;
 pub mod currency_conversion;
-pub mod network;
 pub mod stderr_wrapper;
 
 const DECIMAL_POINT: char = '.';
@@ -58,10 +57,6 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
 pub fn expiry_duration() -> Duration {
     // 5 minutes is max ingress timeout
     Duration::from_secs(60 * 5)
-}
-
-pub fn network_to_pathcompat(network_name: &str) -> String {
-    network_name.replace(|c: char| !c.is_ascii_alphanumeric(), "_")
 }
 
 /// Deserialize and print return values from canister method.

@@ -1,6 +1,6 @@
 use crate::lib::error::DfxResult;
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::Environment;
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 pub(crate) fn get_webserver_port(env: &dyn Environment) -> DfxResult<String> {
     let port = create_network_descriptor(

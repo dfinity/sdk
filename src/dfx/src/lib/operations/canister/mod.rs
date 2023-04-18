@@ -4,25 +4,27 @@ mod install_canister;
 
 pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
-use fn_error_context::context;
-use ic_utils::Argument;
-pub use install_canister::{install_canister, install_canister_wasm, install_wallet};
+pub use deploy_canisters::DeployMode;
+pub use install_canister::{install_canister, install_wallet};
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
+pub use dfx_core::canister::install_canister_wasm;
+use dfx_core::identity::CallSender;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
+use dfx_core::canister::build_wallet_canister;
+use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
+use ic_utils::Argument;
 use std::path::PathBuf;
 
 #[context(
@@ -42,11 +44,11 @@ where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let out = match call_sender {
         CallSender::SelectedId => {
-            let agent = env
-                .get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
             let mgr = ManagementCanister::create(agent);
 
             mgr.update_(method)
@@ -58,7 +60,7 @@ where
                 .context("Update call (without wallet) failed.")?
         }
         CallSender::Wallet(wallet_id) => {
-            let wallet = build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, agent).await?;
             let out: O = wallet
                 .call(
                     Principal::management_canister(),
