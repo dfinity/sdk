@@ -196,7 +196,7 @@ pub struct ConfigCanistersCanister {
     pub shrink: Option<bool>,
 
     /// # Optimize Canister WASM
-    /// Whether run `ic-wasm shrink --optimize <level>` after building the Canister.
+    /// Invoke wasm level optimizations after building the Canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default.
     /// Disabled by default.
     pub optimize: Option<String>,
 
