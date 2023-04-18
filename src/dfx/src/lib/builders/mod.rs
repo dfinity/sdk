@@ -283,6 +283,7 @@ export const {0} = createActor(canisterId);"#,
                         "CANISTER_ID_",
                         &canister_name.to_ascii_uppercase(),
                         // TODO: remove this fallback in 0.16.x
+                        // https://dfinity.atlassian.net/browse/SDK-1083
                         &canister_name.to_ascii_uppercase(),
                         "_CANISTER_ID",
                     )
