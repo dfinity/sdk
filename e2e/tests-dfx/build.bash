@@ -120,7 +120,7 @@ teardown() {
 }
 
 @test "build succeeds if enable optimize" {
-    jq '.canisters.e2e_project_backend.optimize=cycles' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project_backend.optimize="cycles"' dfx.json | sponge dfx.json
     dfx_start
     dfx canister create --all
     assert_command dfx build
@@ -149,7 +149,7 @@ teardown() {
     assert_command dfx build custom
     assert_not_match "Optimize"
 
-    jq '.canisters.custom.optimize=size' dfx.json | sponge dfx.json
+    jq '.canisters.custom.optimize="size"' dfx.json | sponge dfx.json
     assert_command dfx build custom
     assert_match "Optimize"
 }
