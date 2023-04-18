@@ -68,11 +68,11 @@ teardown() {
 
     assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
     # shellcheck disable=SC2154
-    assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
+    assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")' '$stdout'
 
     assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
     # shellcheck disable=SC2154
-    assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
+    assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")' '$stdout'
 }
 
 @test "cyclic dependencies are detected" {
