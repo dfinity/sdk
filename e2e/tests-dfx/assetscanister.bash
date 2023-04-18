@@ -1235,8 +1235,7 @@ CHERRIES" "$stdout"
         "enable_aliasing": false
       }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-    # '--mode reinstall --yes' can be removed once SDK-817 is implemented
-    dfx deploy e2e_project_frontend --mode reinstall --yes
+    dfx deploy e2e_project_frontend
     
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
     # shellcheck disable=SC2154
