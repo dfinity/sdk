@@ -58,7 +58,7 @@ ic-asset.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
 # FIXME set this to 0.3.6 when it is released
-ic-wasm = { git = "https://github.com/dfinity/ic-wasm.git" }
+ic-wasm = { git = "https://github.com/dfinity/ic-wasm.git", rev = "e4596a99b4891ba753a309c076a858cd52164658" }
 indicatif = "0.16.0"
 itertools.workspace = true
 keyring.workspace = true
