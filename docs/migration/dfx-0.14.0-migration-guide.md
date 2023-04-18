@@ -15,7 +15,7 @@ Starting in `dfx 0.14.0`, the auto-generated `index.js` from `dfx generate` will
 /* CANISTER_ID is replaced by webpack based on node environment
  * Note: canister environment variable will be standardized as
  * process.env.CANISTER_ID_<CANISTER_NAME_UPPERCASE>
- * beginning in dfx 0.15.0
+ * beginning in dfx 0.16.0
  */
 export const canisterId =
   process.env.CANISTER_ID_HELLO_BACKEND ||
