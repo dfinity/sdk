@@ -5,6 +5,7 @@ use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::DfxResult;
 use dfx_core::config::model::dfinity::{
     CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
+    WasmOptLevel,
 };
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -52,7 +53,7 @@ pub struct CanisterInfo {
     post_install: Vec<String>,
     main: Option<PathBuf>,
     shrink: Option<bool>,
-    optimize: Option<String>,
+    optimize: Option<WasmOptLevel>,
     metadata: CanisterMetadataConfig,
     pull_ready: bool,
     pull_dependencies: Vec<(String, CanisterId)>,
@@ -231,7 +232,7 @@ impl CanisterInfo {
         self.shrink
     }
 
-    pub fn get_optimize(&self) -> &Option<String> {
+    pub fn get_optimize(&self) -> &Option<WasmOptLevel> {
         &self.optimize
     }
 

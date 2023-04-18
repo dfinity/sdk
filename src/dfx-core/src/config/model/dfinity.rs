@@ -76,6 +76,31 @@ pub struct ConfigCanistersCanisterRemote {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub enum WasmOptLevel {
+    // Defaults to O3
+    #[serde(rename = "cycles")]
+    Cycles,
+    // Defaults to Oz
+    #[serde(rename = "size")]
+    Size,
+    // Specific performance levels
+    O4,
+    O3,
+    O2,
+    O1,
+    O0,
+    // Specific size levels
+    Oz,
+    Os,
+}
+
+impl std::fmt::Display for WasmOptLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum MetadataVisibility {
     /// Anyone can query the metadata
@@ -198,7 +223,8 @@ pub struct ConfigCanistersCanister {
     /// # Optimize Canister WASM
     /// Invoke wasm level optimizations after building the Canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default.
     /// Disabled by default.
-    pub optimize: Option<String>,
+    #[serde(default)]
+    pub optimize: Option<WasmOptLevel>,
 
     /// # Metadata
     /// Defines metadata sections to set in the canister .wasm
