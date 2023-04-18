@@ -174,3 +174,11 @@ teardown() {
     # expect to see the underlying cause
     assert_match "Cannot find command or file"
 }
+
+@test "invalid optimization level" {
+    jq '.canisters.e2e_project_backend.optimize="bad_level"' dfx.json | sponge dfx.json
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx build
+    assert_match "invalid optimization level"
+}
