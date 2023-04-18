@@ -45,9 +45,9 @@ pub enum Command {
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
     // Extension(extension::ExtensionOpts),
-    // Executes an extension
+    // // Executes an extension
     // #[clap(external_subcommand)]
-    // ExtensionRun(Vec<std::ffi::OsString>),
+    // ExtensionRun(Vec<OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
@@ -59,7 +59,7 @@ pub enum Command {
     Ping(ping::PingOpts),
     #[clap(hide(true))]
     Pull(pull::PullOpts),
-    Quickstart,
+    Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
@@ -93,7 +93,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Nns(v) => nns::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
         Command::Pull(v) => pull::exec(env, v),
-        Command::Quickstart => quickstart::exec(env),
+        Command::Quickstart(v) => quickstart::exec(env, v),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
         Command::Schema(v) => schema::exec(v),

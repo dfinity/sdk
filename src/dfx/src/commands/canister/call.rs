@@ -1,21 +1,17 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
-use crate::util::{
-    arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob,
-    read_module_metadata, CandidSource,
-};
+use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob, read_module_metadata, CandidSource};
+use dfx_core::identity::CallSender;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
+use dfx_core::canister::build_wallet_canister;
 use fn_error_context::context;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
@@ -219,7 +215,7 @@ pub async fn exec(
 
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let canister_id = match CanisterId::from_text(callee_canister) {
         Ok(id) => id,
@@ -304,7 +300,7 @@ pub async fn exec(
                     .context("Failed query call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -337,7 +333,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
@@ -366,7 +362,7 @@ pub async fn exec(
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

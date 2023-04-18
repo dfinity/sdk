@@ -1,12 +1,12 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::get_network_context;
+use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
+use dfx_core::network::provider::get_network_context;
 
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use fn_error_context::context;
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::AgentError;
@@ -25,6 +25,7 @@ pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
     with_cycles: Option<&str>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     settings: CanisterSettings,
 ) -> DfxResult {
@@ -33,7 +34,7 @@ pub async fn create_canister(
 
     let config = env.get_config_or_anyhow()?;
 
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
 
     let network_name = get_network_context()?;
 
@@ -80,6 +81,9 @@ pub async fn create_canister(
                         .create_canister()
                         .as_provisional_create_with_amount(cycles)
                         .with_effective_canister_id(env.get_effective_canister_id());
+                    if let Some(sid) = specified_id {
+                        builder = builder.as_provisional_create_with_specified_id(sid);
+                    }
                     if let Some(controllers) = settings.controllers {
                         for controller in controllers {
                             builder = builder.with_controller(controller);
@@ -101,7 +105,7 @@ pub async fn create_canister(
                     res.context("Canister creation call failed.")?.0
                 }
                 CallSender::Wallet(wallet_id) => {
-                    let wallet = build_wallet_canister(*wallet_id, env).await?;
+                    let wallet = build_wallet_canister(*wallet_id, agent).await?;
                     // amount has been validated by cycle_amount_validator
                     let cycles = with_cycles.map_or(
                         CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,

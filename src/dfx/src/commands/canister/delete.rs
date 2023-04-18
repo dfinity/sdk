@@ -1,17 +1,18 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::wallet::{build_wallet_canister, wallet_canister_id};
-use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
     deposit_cycles, start_canister, stop_canister, update_settings,
 };
-use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
+use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
+
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::attributes::{
@@ -84,7 +85,7 @@ async fn delete_canister(
     withdraw_cycles_to_dank_principal: Option<String>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
     let mut call_sender = call_sender;
@@ -208,7 +209,7 @@ async fn delete_canister(
                             cycles_to_withdraw,
                             dank_target_principal
                         );
-                        let wallet = build_wallet_canister(canister_id, env).await?;
+                        let wallet = build_wallet_canister(canister_id, agent).await?;
                         let opt_principal = Some(dank_target_principal);
                         wallet
                             .call(

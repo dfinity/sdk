@@ -2,6 +2,160 @@
 
 # UNRELEASED
 
+## DFX
+
+### fix!: --clean required when network configuration changes
+
+If the network configuration has changed since last time `dfx start` was run, `dfx start` will now error if you try to run it without `--clean`, to avoid spurious errors. You can provide the `--force` flag if you are sure you want to start it without cleaning state.
+
+### feat: --artificial-delay flag
+
+The local replica uses a 600ms delay by default when performing update calls. With `dfx start --artificial-delay <ms>`, you can decrease this value (e.g. 100ms) for faster integration tests, or increase it (e.g. 2500ms) to mimick mainnet latency for e.g. UI responsiveness checks.
+
+### fix: make sure assetstorage did file is created as writeable.
+
+### feat: specify id when provisional create canister
+
+When creating a canister on non-mainnet replica, you can now specify the canister ID.
+
+`dfx canister create <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
+`dfx deploy <CANISTER_NAME> --specified-id <PRINCIPAL>`
+
+You can specify the ID in the range of `[0, u64::MAX / 2]`.
+If not specify the ID, the canister will be created in the range of `[u64::MAX / 2 + 1, u64::MAX]`. 
+This canister ID allocation behavior only applies to the replica, not the emulator (ic-ref).
+
+### feat: dfx nns install --ledger-accounts
+
+`dfx nns install` now takes an option `--ledger-accounts` to initialize the ledger canister with these accounts. 
+
+### fix: update Rust canister template.
+
+`ic-cdk-timers` is included in the dependencies.
+
+### chore: change the default Internet Computer gateway domain to `icp0.io`
+
+By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`. 
+Canisters communicating with `ic0.app` will continue to function nominally.
+
+### feat: --no-asset-upgrade
+
+### feat: confirmation dialogues are no longer case sensitive and accept 'y' in addition to 'yes'
+
+### fix: `dfx generate` no longer requires non-Motoko canisters to have a canister ID
+Previously, non-Motoko canisters required that the canister was created before `dfx generate` could be called.
+This requirement is now lifted for all canisters except for canisters of type `"motoko"` or canisters that are listed in (transitive) dependencies of a canister of type `"motoko"`.
+It is planned to lift this requirement for Motoko canisters as well, but this requires more work.
+
+### fix: Make `build` field optional in dfx.json
+
+The `build` field in custom canisters was already optional in code, but this fixes it in the schema.
+
+By specifying the `--no-asset-upgrade` flag in `dfx deploy` or `dfx canister install`, you can ensure that the asset canister itself is not upgraded, but instead only the assets themselves are installed.
+
+### feat: Get identity from env var if present
+
+The identity may be specified using the environment variable `DFX_IDENTITY`.
+
+### feat: Add DFX_ASSETS_WASM
+
+Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
+
+### feat: dfx pull can download wasm
+
+### fix: dfx deploy and icx-asset no longer retry on permission failure
+
+### feat: --created-at-time for the ledger functions: transfer, create-canister, and top-up
+
+### fix: ledger transfer duplicate transaction prints the duplicate transaction response before returning success to differentiate between a new transaction response and between a duplicate transaction response.
+
+Before it was possible that a user could send 2 ledger transfers with the same arguments at the same timestamp and both would show success but there would have been only 1 ledger transfer. Now dfx prints different messages when the ledger returns a duplicate transaction response and when the ledger returns a new transaction response.
+
+### chore: clarify `dfx identity new` help text
+
+### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
+
+### feat: dfx deploy <frontend canister name> --by-proposal
+
+This supports asset updates through SNS proposal.
+
+Uploads asset changes to an asset canister (propose_commit_batch()), but does not commit them.
+
+The SNS will call `commit_proposed_batch()` to commit the changes.  If the proposal fails, the caller of `dfx deploy --by-proposal` should call `delete_batch()`.
+
+### feat: dfx deploy <frontend canister name> --compute-evidence
+
+Builds the specified asset canister, determines the batch operations required to synchronize the assets, and computes a hash ("evidence") over those batch operations.  This evidence will match the evidence computed by `dfx deploy --by-proposal`, and which will be specified in the update proposal.
+
+No permissions are required to compute evidence, so this can be called with `--identity anonymous` or any other identity.
+
+## Asset Canister
+
+Added `validate_take_ownership()` method so that an SNS is able to add a custom call to `take_ownership()`.
+
+Added `is_aliased` field to `get_asset_properties` and `set_asset_properties`.
+
+Added partial support for proposal-based asset updates:
+- Batch ids are now stable.  With upcoming changes to support asset updates by proposal,
+  having the asset canister not reuse batch ids will make it easier to verify that a particular
+  batch has been proposed.
+- Added methods:
+  - `propose_commit_batch()` stores batch arguments for later commit
+  - `delete_batch()` deletes a batch, intended for use after propose_commit_batch if cancellation needed
+  - `compute_evidence()` computes a hash ("evidence") over the proposed batch arguments
+  - `commit_proposed_batch()` commits batch previously proposed (must have evidence computed)
+  - `validate_commit_proposed_batch()` required validation method for SNS
+
+Added `api_version` endpoint. With upcoming changes we will introduce breaking changes to asset canister's batch upload process. New endpoint will help `ic-asset` with differentiation between API version, and allow it to support all versions of the asset canister.
+
+Added support for v2 asset certification. In comparison to v1, v2 asset certification not only certifies the http response body, but also the headers. The v2 spec is first published in [this PR](https://github.com/dfinity/interface-spec/pull/147)
+
+Added canister metadata field `supported_certificate_versions`, which contains a comma-separated list of all asset certification protocol versions. You can query it e.g. using `dfx canister --network ic metadata <canister name or id> supported_certificate_versions`. In this release, the value of this metadata field value is `1,2` because certification v1 and v2 are supported.
+
+Fixed a bug in `http_request` that served assets with the wrong certificate. If no encoding specified in the `Accept-Encoding` header is available with a certificate, an available encoding is returned without a certificate (instead of a wrong certificate, which was the case previously). Otherwise, nothing changed.
+For completeness' sake, the new behavior is as follows:
+- If one of the encodings specified in the `Accept-Encoding` header is available with certification, it now is served with the correct certificate.
+- If no requested encoding is available with certification, one of the requested encodings is returned without a certificate (instead of a wrong certificate, which was the case previously).
+- If no encoding specified in the `Accept-Encoding` header is available, a certified encoding that is available is returned instead.
+
+Added support for API versioning of the asset canister in `ic-asset`.
+
+Added functionality that allows you to set asset properties during `dfx deploy`, even if the asset has already been deployed to a canister in the past. This eliminates the need to delete and re-deploy assets to modify properties - great news! This feature is also available when deploying assets using the `--by-proposal` flag. As a result, the API version of the frontend canister has been incremented from `0` to `1`. The updated `ic-asset` version (which is what is being used during `dfx deploy`) will remain compatible with frontend canisters implementing both API `0` and `1`. However, please note that the new frontend canister version (with API `v1`) will not work with tooling from before the dfx release (0.14.0).
+
+## Dependencies
+
+### Frontend canister
+
+- API version: 1
+- Module hash: 1b0c89c86a7c835a8153b61daef9faa44fee6e6363b55d59f0566594129bb431
+- https://github.com/dfinity/sdk/pull/3002
+- https://github.com/dfinity/sdk/pull/3065
+- https://github.com/dfinity/sdk/pull/3058
+- https://github.com/dfinity/sdk/pull/3057
+- https://github.com/dfinity/sdk/pull/2960
+- https://github.com/dfinity/sdk/pull/3051
+- https://github.com/dfinity/sdk/pull/3034
+- https://github.com/dfinity/sdk/pull/3023
+- https://github.com/dfinity/sdk/pull/3022
+- https://github.com/dfinity/sdk/pull/3021
+- https://github.com/dfinity/sdk/pull/3019
+- https://github.com/dfinity/sdk/pull/3016
+- https://github.com/dfinity/sdk/pull/3015
+- https://github.com/dfinity/sdk/pull/3001
+- https://github.com/dfinity/sdk/pull/2987
+- https://github.com/dfinity/sdk/pull/2982
+
+### Motoko
+
+Updated Motoko to 0.8.7
+
+### ic-ref
+
+Updated ic-ref to 0.0.1-ca6aca90
+
+# 0.13.1
+
 ## Asset Canister
 
 Added validate_grant_permission() and validate_revoke_permission() methods per SNS requirements.

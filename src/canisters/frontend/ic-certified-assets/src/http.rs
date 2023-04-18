@@ -1,11 +1,15 @@
+use crate::certification_types::CertificateExpression;
 use crate::rc_bytes::RcBytes;
-use crate::state_machine::{Asset, AssetEncoding};
+use crate::state_machine::{encoding_certification_order, Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
-use ic_certified_map::Hash;
+use ic_certified_map::{Hash, HashTree};
+use serde::Serialize;
 use serde_bytes::ByteBuf;
-use std::collections::HashMap;
+use sha2::Digest;
 
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
+
+pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type"{headers}]}}}})"#;
 
 pub type HeaderField = (String, String);
 
@@ -15,6 +19,7 @@ pub struct HttpRequest {
     pub url: String,
     pub headers: Vec<HeaderField>,
     pub body: ByteBuf,
+    pub certificate_version: Option<u16>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -83,20 +88,32 @@ impl HttpRequest {
             .find_map(|(k, v)| k.eq_ignore_ascii_case(header_key).then_some(v))
     }
 
+    // Spec:
+    // If not set: assume version 1.
+    // If available: use requested certificate version.
+    // If requested version is not available: use latest available version.
+    pub fn get_certificate_version(&self) -> u16 {
+        if self.certificate_version.is_none() || self.certificate_version == Some(1) {
+            1
+        } else {
+            2 // latest available
+        }
+    }
+
     pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
         #[cfg(not(test))]
         let canister_id = ic_cdk::api::id().to_text();
         #[cfg(test)]
         let canister_id = self.get_canister_id();
 
-        let location = format!("https://{canister_id}.ic0.app{path}", path = self.url);
+        let location = format!("https://{canister_id}.icp0.io{path}", path = self.url);
         HttpResponse::build_redirect(HTTP_REDIRECT_PERMANENT, location)
     }
 
     #[cfg(test)]
     pub fn get_canister_id(&self) -> &str {
         if let Some(host_header) = self.get_header_value("Host") {
-            if host_header.contains(".localhost") || host_header.contains(".app") {
+            if host_header.contains(".localhost") || host_header.contains(".io") {
                 return host_header.split('.').next().unwrap();
             } else if let Some(t) = self.url.split("canisterId=").nth(1) {
                 let x = t.split_once('&');
@@ -125,25 +142,14 @@ impl HttpResponse {
         enc: &AssetEncoding,
         key: &str,
         chunk_index: usize,
-        certificate_header: Option<HeaderField>,
-        callback: Func,
-        etags: Vec<Hash>,
+        certificate_header: Option<&HeaderField>,
+        callback: &Func,
+        etags: &[Hash],
+        cert_version: u16,
     ) -> HttpResponse {
-        let mut headers =
-            HashMap::from([("content-type".to_string(), asset.content_type.to_string())]);
-        if enc_name != "identity" {
-            headers.insert("content-encoding".to_string(), enc_name.to_string());
-        }
+        let mut headers = asset.get_headers_for_asset(enc_name, cert_version);
         if let Some(head) = certificate_header {
-            headers.insert(head.0, head.1);
-        }
-        if let Some(max_age) = asset.max_age {
-            headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
-        }
-        if let Some(arg_headers) = asset.headers.as_ref() {
-            for (k, v) in arg_headers {
-                headers.insert(k.to_owned().to_lowercase(), v.to_owned());
-            }
+            headers.insert(head.0.clone(), head.1.clone());
         }
 
         let streaming_strategy = StreamingCallbackToken::create_token(
@@ -153,7 +159,10 @@ impl HttpResponse {
             key,
             chunk_index,
         )
-        .map(|token| StreamingStrategy::Callback { callback, token });
+        .map(|token| StreamingStrategy::Callback {
+            callback: callback.clone(),
+            token,
+        });
 
         let (status_code, body) = if etags.contains(&enc.sha256) {
             (304, RcBytes::default())
@@ -171,6 +180,89 @@ impl HttpResponse {
             body,
             streaming_strategy,
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn build_ok_from_requested_encodings(
+        asset: &Asset,
+        requested_encodings: &[String],
+        key: &str,
+        chunk_index: usize,
+        certificate_header: Option<&HeaderField>,
+        callback: &Func,
+        etags: &[Hash],
+        cert_version: u16,
+    ) -> Option<HttpResponse> {
+        let most_important_v1 = asset.most_important_encoding_v1();
+
+        // Return a requested encoding that is certified
+        for enc_name in requested_encodings.iter() {
+            if let Some(enc) = asset.encodings.get(enc_name) {
+                if enc.certified {
+                    if cert_version == 1 {
+                        // In v1, only the most important encoding is certified.
+                        if enc_name != &most_important_v1 {
+                            continue;
+                        }
+                    }
+                    return Some(Self::build_ok(
+                        asset,
+                        enc_name,
+                        enc,
+                        key,
+                        chunk_index,
+                        certificate_header,
+                        callback,
+                        etags,
+                        cert_version,
+                    ));
+                }
+            }
+        }
+
+        // None of the requested encodings are available with certification
+        // In v1, a first fall-back measure is to return a non-certified encoding, if a requested encoding is available
+        if cert_version == 1 {
+            for enc_name in requested_encodings.iter() {
+                if let Some(enc) = asset.encodings.get(enc_name) {
+                    return Some(Self::build_ok(
+                        asset,
+                        enc_name,
+                        enc,
+                        key,
+                        chunk_index,
+                        None,
+                        callback,
+                        etags,
+                        cert_version,
+                    ));
+                }
+            }
+        }
+
+        // None of the requested encodings are available - fall back to the best we have
+        for enc_name in encoding_certification_order(asset.encodings.keys()) {
+            if let Some(enc) = asset.encodings.get(&enc_name) {
+                // In v1, only the most important encoding is certified.
+                if enc_name != most_important_v1 {
+                    continue;
+                }
+                if enc.certified {
+                    return Some(Self::build_ok(
+                        asset,
+                        &enc_name,
+                        enc,
+                        key,
+                        chunk_index,
+                        certificate_header,
+                        callback,
+                        etags,
+                        cert_version,
+                    ));
+                }
+            }
+        }
+        None
     }
 
     pub fn build_400(err_msg: &str) -> Self {
@@ -199,4 +291,56 @@ impl HttpResponse {
             streaming_strategy: None,
         }
     }
+}
+
+pub fn build_ic_certificate_expression_from_headers_and_encoding(
+    header_names: &[&str],
+    encoding_name: &str,
+) -> CertificateExpression {
+    let mut headers = header_names
+        .iter()
+        .map(|h| format!(", \"{}\"", h))
+        .collect::<Vec<_>>()
+        .join("");
+    if encoding_name != "identity" {
+        headers = format!(", \"content-encoding\"{}", headers);
+    }
+
+    let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
+    let hash = sha2::Sha256::digest(expression.as_bytes())
+        .into_iter()
+        .collect();
+    CertificateExpression { expression, hash }
+}
+
+pub fn witness_to_header_v1(witness: HashTree, certificate: &[u8]) -> HeaderField {
+    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+    serializer.self_describe().unwrap();
+    witness.serialize(&mut serializer).unwrap();
+    (
+        "IC-Certificate".to_string(),
+        String::from("certificate=:")
+            + &base64::encode(certificate)
+            + ":, tree=:"
+            + &base64::encode(&serializer.into_inner())
+            + ":",
+    )
+}
+
+pub fn witness_to_header_v2(witness: HashTree, certificate: &[u8], expr_path: &str) -> HeaderField {
+    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+    serializer.self_describe().unwrap();
+    witness.serialize(&mut serializer).unwrap();
+
+    (
+        "IC-Certificate".to_string(),
+        String::from("version=2, ")
+            + "certificate=:"
+            + &base64::encode(certificate)
+            + ":, tree=:"
+            + &base64::encode(&serializer.into_inner())
+            + ":, expr_path=:"
+            + expr_path
+            + ":",
+    )
 }

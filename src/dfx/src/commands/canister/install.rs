@@ -1,11 +1,11 @@
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::{install_canister, install_canister_wasm};
+use crate::lib::operations::canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::canister::install_canister_wasm;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -59,6 +59,10 @@ pub struct CanisterInstallOpts {
     /// so this is not recommended outside of CI.
     #[clap(long, short)]
     yes: bool,
+
+    /// Skips upgrading the asset canister, to only install the assets themselves.
+    #[clap(long)]
+    no_asset_upgrade: bool,
 }
 
 pub async fn exec(
@@ -77,7 +81,7 @@ pub async fn exec(
     } else {
         Some(InstallMode::from_str(&opts.mode).map_err(|err| anyhow!(err))?)
     };
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
     let network = env.get_network_descriptor();
 
     if mode == Some(InstallMode::Reinstall) && (opts.canister.is_none() || opts.all) {
@@ -110,7 +114,6 @@ pub async fn exec(
             let mode = mode.context("The install mode cannot be auto when using --wasm")?;
             let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
             install_canister_wasm(
-                env,
                 agent,
                 canister_id,
                 canister_info.as_ref().map(|info| info.get_name()).ok(),
@@ -120,8 +123,10 @@ pub async fn exec(
                 fs::read(&wasm_path)
                     .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
                 opts.yes,
+                env.get_logger(),
             )
             .await
+            .map_err(Into::into)
         } else {
             let canister_info = canister_info
                 .with_context(|| format!("Failed to load canister info for {}.", canister))?;
@@ -144,8 +149,10 @@ pub async fn exec(
                 None,
                 opts.yes,
                 env_file.as_deref(),
+                !opts.no_asset_upgrade,
             )
             .await
+            .map_err(Into::into)
         }
     } else if opts.all {
         // Install all canisters.
@@ -186,6 +193,7 @@ pub async fn exec(
                     None,
                     opts.yes,
                     env_file.as_deref(),
+                    !opts.no_asset_upgrade,
                 )
                 .await?;
             }

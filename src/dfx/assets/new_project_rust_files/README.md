@@ -12,7 +12,7 @@ To learn more before you start working with {project_name}, see the following do
 - [ic-cdk](https://docs.rs/ic-cdk)
 - [ic-cdk-macros](https://docs.rs/ic-cdk-macros)
 - [Candid Introduction](https://internetcomputer.org/docs/candid-guide/candid-intro)
-- [JavaScript API Reference](https://erxue-5aaaa-aaaab-qaagq-cai.raw.ic0.app)
+- [JavaScript API Reference](https://erxue-5aaaa-aaaab-qaagq-cai.raw.icp0.io)
 
 If you want to start working on your project right away, you might want to try the following commands:
 

@@ -1,3 +1,4 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{
@@ -7,7 +8,6 @@ use crate::lib::ledger_types::{
 };
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
-use crate::lib::provider::create_agent_environment;
 use crate::NetworkOpt;
 
 use anyhow::{anyhow, bail, Context};
@@ -117,11 +117,14 @@ pub async fn transfer(
     fee: ICPTs,
     from_subaccount: Option<Subaccount>,
     to: AccountIdBlob,
+    created_at_time: Option<u64>,
 ) -> DfxResult<BlockHeight> {
-    let timestamp_nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64;
+    let timestamp_nanos = created_at_time.unwrap_or(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64,
+    );
 
     let mut retry_policy = ExponentialBackoff::default();
 
@@ -147,22 +150,28 @@ pub async fn transfer(
                     .context("Failed to decode transfer response.")?;
                 match result {
                     Ok(block_height) => break block_height,
-                    Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
+                    Err(TransferError::TxDuplicate { duplicate_of }) => {
+                        println!("{}", TransferError::TxDuplicate { duplicate_of });
+                        break duplicate_of;
+                    }
                     Err(transfer_err) => bail!(transfer_err),
                 }
             }
             Err(agent_err) if !retryable(&agent_err) => {
                 bail!(agent_err);
             }
-            Err(agent_err) => {
-                eprintln!("Waiting to retry after error: {:?}", &agent_err);
-                match retry_policy.next_backoff() {
-                    Some(duration) => tokio::time::sleep(duration).await,
-                    None => bail!(agent_err),
+            Err(agent_err) => match retry_policy.next_backoff() {
+                Some(duration) => {
+                    eprintln!("Waiting to retry after error: {:?}", &agent_err);
+                    tokio::time::sleep(duration).await;
+                    println!("Sending duplicate transaction");
                 }
-            }
+                None => bail!(agent_err),
+            },
         }
     };
+
+    println!("Transfer sent at block height {block_height}");
 
     Ok(block_height)
 }
@@ -174,6 +183,7 @@ pub async fn transfer_cmc(
     fee: ICPTs,
     from_subaccount: Option<Subaccount>,
     to_principal: Principal,
+    created_at_time: Option<u64>,
 ) -> DfxResult<BlockHeight> {
     let to_subaccount = Subaccount::from(&to_principal);
     let to =
@@ -186,6 +196,7 @@ pub async fn transfer_cmc(
         fee,
         from_subaccount,
         to,
+        created_at_time,
     )
     .await
 }

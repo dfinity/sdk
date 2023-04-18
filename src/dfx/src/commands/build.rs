@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
+use crate::config::cache::DiskBasedCache;
+use crate::lib::agent::create_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::create_agent_environment;
 use crate::NetworkOpt;
 
 use clap::Parser;
@@ -47,7 +47,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    env.get_cache().install()?;
+    DiskBasedCache::install(&env.get_cache().version_str())?;
 
     let build_mode_check = opts.check;
 
@@ -77,7 +77,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     } else {
         // CanisterIds would have been set in CanisterPool::load, if available.
         // This is just to display an error if trying to build before creating the canister.
-        let store = CanisterIdStore::for_env(&env)?;
+        let store = env.get_canister_id_store()?;
         for canister in canister_pool.get_canister_list() {
             let canister_name = canister.get_name();
             store.get(canister_name)?;

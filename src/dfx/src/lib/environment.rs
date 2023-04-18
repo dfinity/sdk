@@ -1,11 +1,15 @@
-use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::{cache, dfx_version};
+use crate::config::cache::DiskBasedCache;
+use crate::config::dfx_version;
 use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
 use crate::lib::extension::manager::ExtensionManager;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
 use crate::lib::progress_bar::ProgressBar;
+use dfx_core::config::cache::get_cache_root;
+use dfx_core::config::cache::Cache;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::IdentityError;
 use dfx_core::identity::identity_manager::IdentityManager;
 
@@ -68,6 +72,10 @@ pub trait Environment {
     fn get_effective_canister_id(&self) -> Principal;
 
     fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError>;
+
+    fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
+        CanisterIdStore::new(self.get_network_descriptor(), self.get_config())
+    }
 }
 
 pub struct EnvironmentImpl {
@@ -392,7 +400,7 @@ impl AgentClient {
 
     #[context("Failed to determine http auth path.")]
     fn http_auth_path() -> DfxResult<PathBuf> {
-        Ok(cache::get_cache_root()?.join("http_auth"))
+        Ok(get_cache_root()?.join("http_auth"))
     }
 
     // A connection is considered secure if it goes to an HTTPs scheme or if it's the

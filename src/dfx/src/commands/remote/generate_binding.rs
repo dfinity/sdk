@@ -1,8 +1,8 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::provider::create_agent_environment;
-use crate::util::{check_candid_source, CandidSource};
+use crate::util::{check_candid_file, CandidSource};
 
 use anyhow::Context;
 use clap::Parser;

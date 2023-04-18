@@ -1,4 +1,4 @@
-use crate::error::io::IoError;
+use crate::error::fs::FsError;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -8,11 +8,11 @@ pub enum StructuredFileError {
     DeserializeJsonFileFailed(Box<PathBuf>, serde_json::Error),
 
     #[error("Failed to read JSON file: {0}")]
-    ReadJsonFileFailed(IoError),
+    ReadJsonFileFailed(FsError),
 
     #[error("Failed to serialize JSON to {0}: {1}")]
     SerializeJsonFileFailed(Box<PathBuf>, serde_json::Error),
 
     #[error("Failed to write JSON file: {0}")]
-    WriteJsonFileFailed(IoError),
+    WriteJsonFileFailed(FsError),
 }
