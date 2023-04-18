@@ -1,15 +1,15 @@
-# 0.13.2 Migration Guide - Environment Variables
+# 0.14.0 Migration Guide - Environment Variables
 
-This is not an immediate breaking change, but there will be a standardization around environment variables. Backwards compatibility will be supported until 0.15.0, but we recommend updating your projects to use the new environment variables.
+This is not an immediate breaking change, but there will be a standardization around environment variables. Backwards compatibility will be supported until 0.16.0, but we recommend updating your projects to use the new environment variables.
 
 ## Context
 
-Previously, `webpack.config.js` included an `initCanisterEnv` that parsed canister*ids.json files and mapped them to environment variables. The pattern used there was `<CANISTER_NAME_UPPERCASE>_CANISTER_ID`. This was not consistent with the pattern used in the `dfx` internals, which used `CANISTER_ID_<canister
+Previously, `webpack.config.js` included an `initCanisterEnv` that parsed canister\*ids.json files and mapped them to environment variables. The pattern used there was `<CANISTER_NAME_UPPERCASE>_CANISTER_ID`. This was not consistent with the pattern used in the `dfx` internals, which used `CANISTER_ID_<canister
 _name_case_agnostic>`. This was confusing for users, and since uppercase environment variables is a best practice, we have decided to standardize on the `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` pattern across the board.
 
 ## Changes
 
-Starting in `dfx 0.13.1`, the auto-generated `index.js` from `dfx generate` will use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>`, with a fallback to the old `<CANISTER_NAME_UPPERCASE>_CANISTER_ID` pattern. This will look like this:
+Starting in `dfx 0.14.0`, the auto-generated `index.js` from `dfx generate` will use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>`, with a fallback to the old `<CANISTER_NAME_UPPERCASE>_CANISTER_ID` pattern. This will look like this:
 
 ```js
 /* CANISTER_ID is replaced by webpack based on node environment
