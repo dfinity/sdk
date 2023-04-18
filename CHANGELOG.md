@@ -4,6 +4,22 @@
 
 ## DFX
 
+### feat: expose `wasm-opt` optimizer in `ic-wasm` to users
+
+Add option to specify an "optimize" field for canisters to invoke the `wasm-opt` optimizer through `ic-wasm`.
+
+This behavior is disabled by default.
+
+If you want to enable this behavior, you can do so in dfx.json:
+
+    "canisters" : {
+        "app" : {
+            "optimize" : "cycles"
+        }
+    }
+
+The options are "cycles", "size", "O4", "O3", "O2", "O1", "O0", "Oz", and "Os".  The options starting with "O" are the optimization levels that `wasm-opt` provides. The "cycles" and "size" options are recommended defaults for optimizing for cycle usage and binary size respectively.
+
 ### fix!: --clean required when network configuration changes
 
 If the network configuration has changed since last time `dfx start` was run, `dfx start` will now error if you try to run it without `--clean`, to avoid spurious errors. You can provide the `--force` flag if you are sure you want to start it without cleaning state.
