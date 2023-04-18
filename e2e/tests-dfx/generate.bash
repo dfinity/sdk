@@ -134,13 +134,12 @@ teardown() {
     assert_command dfx generate
 }
 
-@test "dfx generate requires canister IDs for Motoko canisters" {
+@test "dfx generate does not require canister IDs for Motoko canisters" {
     dfx_new hello
-    assert_command_fail dfx generate
-    assert_contains "Please create canister 'hello_backend' before generating."
+    assert_command dfx generate
 }
 
-@test "dfx generate requires canister IDs for dependees of Motoko canister" {
+@test "dfx generate --network replaces env vars with hard-coded canister IDs" {
     dfx_new hello
     dfx_start
     jq '.canisters.hello_backend.dependencies[0]="dependee"' dfx.json | sponge dfx.json
@@ -152,16 +151,22 @@ teardown() {
     # generate fails if Motoko canister itself is not created
     dfx canister stop hello_backend
     dfx canister delete hello_backend --no-withdrawal
-    assert_command_fail dfx generate
+    assert_command_fail dfx generate --network local
     assert_contains "Please create canister 'hello_backend' before generating."
     assert_command dfx canister create hello_backend
 
     # generate fails if a dependee is not created
     dfx canister stop dependee
     dfx canister delete dependee --no-withdrawal
-    assert_command_fail dfx generate
+    assert_command_fail dfx generate --network local
     assert_contains "Please create canister 'dependee' before generating."
     assert_command dfx canister create dependee
 
-    assert_command dfx generate
+    assert_command dfx generate --network local
+
+    # generate replaces env vars with hard-coded IDs
+    assert_command_fail grep -r "process.env.HELLO_BACKEND_CANISTER_ID"
+    assert_command_fail grep -r "process.env.HELLO_FRONTEND_CANISTER_ID"
+    assert_command_fail grep -r "process.env.DFX_NETWORK"
+
 }
