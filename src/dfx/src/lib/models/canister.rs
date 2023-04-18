@@ -7,7 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_URL};
 use crate::lib::wasm::file::is_wasm_format;
-use crate::util::{assets, check_candid_sourcem CandidSource};
+use crate::util::{assets, check_candid_source, CandidSource};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 
