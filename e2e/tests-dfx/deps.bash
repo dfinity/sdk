@@ -50,6 +50,8 @@ setup_onchain() {
     cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
     cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
     cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
+
+    cd ..
 }
 
 @test "dfx build can write required metadata for pull" {
@@ -172,20 +174,25 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
-
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/service.did"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/service.did"
     # system-wide local replica
     dfx_start
 
     setup_onchain
 
     # pull canisters in app project
-    cd ../app
+    cd app
     assert_file_not_exists "deps/pulled.json"
 
     assert_command dfx deps pull
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/service.did"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/service.did"
 
     cd deps
     assert_file_exists "pulled.json"
@@ -282,7 +289,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     setup_onchain
 
     # pull canisters in app project
-    cd ../app
+    cd app
     assert_command dfx deps pull
     assert_command dfx deps init
     assert_contains "Following canister(s) require init argument, please run \`dfx deps init <PRINCIPAL>\` to set them individually:"
@@ -297,11 +304,11 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Canister $CANISTER_ID_A requires init argument"
 
     assert_command_fail dfx deps init "$CANISTER_ID_A" --argument '("abc")'
-    assert_contains "Failed to create argument blob."
-    assert_contains "Invalid data: Unable to serialize Candid values: type mismatch: \"abc\" cannot be of type nat"
+    assert_contains "Failed to validate argument against type defined in candid:args"
+    assert_contains "type mismatch: \"abc\" cannot be of type nat"
 
     assert_command_fail dfx deps init "$CANISTER_ID_B" --argument 1
-    assert_contains "Canister $CANISTER_ID_B takes no init argument. PLease rerun without \`--argument\`"
+    assert_contains "Canister $CANISTER_ID_B takes no init argument. Please rerun without \`--argument\`"
 }
 
 @test "dfx deps deploy works" {
@@ -317,7 +324,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     setup_onchain
 
     # pull canisters in app project
-    cd ../app
+    cd app
     assert_command dfx deps pull
     assert_command dfx deps init # b is set here
     assert_command dfx deps init "$CANISTER_ID_A" --argument 11
@@ -366,7 +373,7 @@ Installing canister: $CANISTER_ID_A"
     setup_onchain
 
     # pull canisters in app project
-    cd ../app
+    cd app
     assert_command dfx deps pull
     assert_command dfx deps init # b is set here
     assert_command dfx deps init "$CANISTER_ID_A" --argument 11

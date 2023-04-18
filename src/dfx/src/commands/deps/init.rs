@@ -2,13 +2,17 @@ use crate::lib::deps::{
     create_init_json_if_not_existed, get_pull_canisters_in_config, get_service_candid_path,
     load_init_json, load_pulled_json, save_init_json, validate_pulled,
 };
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::blob_from_arguments;
-use crate::{lib::environment::Environment, util::get_candid_init_type};
+use crate::util::check_candid_file;
 
 use anyhow::{anyhow, bail, Context};
-use candid::Principal;
+use candid::parser::types::IDLTypes;
+use candid::parser::value::IDLValue;
+use candid::types::Type;
+use candid::{IDLArgs, Principal, TypeEnv};
 use clap::Parser;
+use fn_error_context::context;
 use slog::{info, warn};
 
 /// Set init argument for a pulled canister.
@@ -48,21 +52,40 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
             };
 
             let idl_path = get_service_candid_path(canister_id)?;
-            let init_type = get_candid_init_type(idl_path.as_path())
-                .ok_or_else(|| anyhow!("Failed to get init type from {:?}", &idl_path))?;
+            let (env, _) = check_candid_file(&idl_path)?;
+            let candid_args = pulled_json.get_candid_args(&canister_id)?;
+            let candid_args_idl_types: IDLTypes = candid_args.parse()?;
+            let mut types = vec![];
+            for ty in candid_args_idl_types.args.iter() {
+                types.push(env.ast_to_type(ty)?);
+            }
+
             let arguments = opts.argument.as_deref();
             let arg_type = opts.argument_type.as_deref();
-            match (arguments, init_type.1.args.is_empty()) {
+
+            match (arguments, types.is_empty()) {
                 (Some(arg_str), false) => {
-                    let init_args =
-                        blob_from_arguments(arguments, None, arg_type, &Some(init_type))?;
-                    init_json.set_init_arg(canister_id, Some(arg_str.to_owned()), &init_args);
+                    if arg_type == Some("raw") {
+                        let bytes = hex::decode(arguments.unwrap_or(""))
+                            .map_err(|e| anyhow!("Argument is not a valid hex string: {}", e))?;
+                        init_json.set_init_arg(canister_id, None, &bytes);
+                    } else {
+                        let bytes = args_to_bytes(arg_str, &env, &types)?;
+                        init_json.set_init_arg(canister_id, Some(arg_str.to_string()), &bytes);
+                    }
                 }
                 (Some(_), true) => {
-                    bail!("Canister {canister_id} takes no init argument. PLease rerun without `--argument`");
+                    bail!("Canister {canister_id} takes no init argument. Please rerun without `--argument`");
                 }
                 (None, false) => {
-                    bail!("Canister {canister_id} requires init argument",);
+                    let mut message = format!("Canister {canister_id} requires init argument, following info might be helpful.");
+                    if let Some(dfx_init) = pulled_json.get_dfx_init(&canister_id)? {
+                        message.push_str(&format!("dfx:init    => {dfx_init}"));
+                    }
+                    let candid_args = pulled_json.get_candid_args(&canister_id)?;
+                    message.push_str(&format!("candid:args => {candid_args}"));
+
+                    bail!(message);
                 }
                 (None, true) => {
                     init_json.set_empty_init(canister_id);
@@ -76,14 +99,16 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                     info!(logger, "{canister_id} already set init argument.");
                 } else {
                     let idl_path = get_service_candid_path(*canister_id)?;
-                    let init_type = get_candid_init_type(idl_path.as_path());
-                    match blob_from_arguments(None, None, None, &init_type) {
-                        Ok(_) => {
-                            init_json.set_empty_init(*canister_id);
-                        }
-                        Err(_) => {
-                            canisters_require_init.push(*canister_id);
-                        }
+                    let (env, _) = check_candid_file(&idl_path)?;
+                    let candid_args = pulled_json.get_candid_args(canister_id)?;
+                    let candid_args_idl_types: IDLTypes = candid_args.parse()?;
+                    let mut types = vec![];
+                    for ty in candid_args_idl_types.args.iter() {
+                        types.push(env.ast_to_type(ty)?);
+                    }
+                    match types.is_empty() {
+                        true => init_json.set_empty_init(*canister_id),
+                        false => canisters_require_init.push(*canister_id),
                     }
                 }
             }
@@ -99,4 +124,31 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
 
     save_init_json(&project_root, &init_json)?;
     Ok(())
+}
+
+#[context("Failed to validate argument against type defined in candid:args")]
+fn args_to_bytes(
+    arg_str: &str,
+    env: &TypeEnv,
+    types: &[Type], // types has been checked to not be empty
+) -> DfxResult<Vec<u8>> {
+    let first_char = arg_str.chars().next();
+    let is_candid_format = first_char.map_or(false, |c| c == '(');
+    // If parsing fails and method expects a single value, try parsing as IDLValue.
+    // If it still fails, and method expects a text type, send arguments as text.
+    let args = arg_str.parse::<IDLArgs>().or_else(|_| {
+        if types.len() == 1 && !is_candid_format {
+            let is_quote = first_char.map_or(false, |c| c == '"');
+            if candid::types::Type::Text == types[0] && !is_quote {
+                Ok(IDLValue::Text(arg_str.to_string()))
+            } else {
+                candid::pretty_parse::<IDLValue>("Candid argument", arg_str)
+            }
+            .map(|v| IDLArgs::new(&[v]))
+        } else {
+            candid::pretty_parse::<IDLArgs>("Candid argument", arg_str)
+        }
+    })?;
+    let bytes = args.to_bytes_with_types(env, types)?;
+    Ok(bytes)
 }

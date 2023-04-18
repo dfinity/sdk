@@ -44,6 +44,31 @@ impl PulledJson {
             ..Default::default()
         }
     }
+
+    pub fn get_all_ids(&self) -> Vec<Principal> {
+        self.canisters.keys().cloned().collect()
+    }
+
+    pub fn num_of_canisters(&self) -> usize {
+        self.canisters.len()
+    }
+
+    pub fn get_dfx_init(&self, canister_id: &Principal) -> DfxResult<Option<&str>> {
+        match self.canisters.get(canister_id) {
+            Some(o) => Ok(o.dfx_init.as_deref()),
+            None => bail!("Failed to find {canister_id} in pulled.json"),
+        }
+    }
+
+    pub fn get_candid_args(&self, canister_id: &Principal) -> DfxResult<&str> {
+        match self.canisters.get(canister_id) {
+            Some(o) => match &o.candid_args {
+                Some(candid_args) => Ok(candid_args),
+                None => bail!("candid_args was null in pulled.json"),
+            },
+            None => bail!("Failed to find {canister_id} in pulled.json"),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Default)]
