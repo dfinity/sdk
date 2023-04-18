@@ -8,9 +8,7 @@ setup() {
 
 teardown() {
     stop_webserver
-
     dfx_stop
-
     standard_teardown
 }
 
@@ -332,21 +330,21 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     # deploy all
     assert_command dfx deps deploy
-    assert_contains "Creating canister deps:$CANISTER_ID_A...
+    assert_contains "Creating canister: $CANISTER_ID_A
 Installing canister: $CANISTER_ID_A"
-    assert_contains "Creating canister dep1...
+    assert_contains "Creating canister: $CANISTER_ID_B
 Installing canister: $CANISTER_ID_B"
-    assert_contains "Creating canister dep2...
+    assert_contains "Creating canister: $CANISTER_ID_C
 Installing canister: $CANISTER_ID_C"
 
     # by name in dfx.json
     assert_command dfx deps deploy dep1
-    assert_contains "Creating canister dep1...
+    assert_contains "Creating canister: $CANISTER_ID_B
 Installing canister: $CANISTER_ID_B"
 
     # by canister id
     assert_command dfx deps deploy $CANISTER_ID_A
-    assert_contains "Creating canister deps:$CANISTER_ID_A...
+    assert_contains "Creating canister: $CANISTER_ID_A
 Installing canister: $CANISTER_ID_A"
 
     # error cases

@@ -75,11 +75,11 @@ async fn create_and_install(
 async fn try_create_canister(agent: &Agent, logger: &Logger, canister_id: &Principal) -> DfxResult {
     info!(logger, "Creating canister: {canister_id}");
     let mgr = ManagementCanister::create(agent);
-    mgr.create_canister()
+    // ignore the error that the canister is already installed
+    let _res = mgr.create_canister()
         .as_provisional_create_with_specified_id(*canister_id)
-        .as_provisional_create_with_amount(Some(10_000_000_000_000_u128)) // 10T cycles
         .call_and_wait()
-        .await?;
+        .await;
     Ok(())
 }
 
