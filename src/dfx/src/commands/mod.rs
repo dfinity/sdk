@@ -3,6 +3,7 @@ use crate::lib::error::DfxResult;
 
 use anyhow::bail;
 use clap::Subcommand;
+use std::ffi::OsString;
 
 mod beta;
 mod bootstrap;
@@ -44,10 +45,10 @@ pub enum Command {
     Deploy(deploy::DeployOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
-    // Extension(extension::ExtensionOpts),
-    // // Executes an extension
-    // #[clap(external_subcommand)]
-    // ExtensionRun(Vec<OsString>),
+    Extension(extension::ExtensionOpts),
+    // Executes an extension
+    #[clap(external_subcommand)]
+    ExtensionRun(Vec<OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
@@ -82,8 +83,8 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Deploy(v) => deploy::exec(env, v),
         Command::Diagnose(v) => diagnose::exec(env, v),
         Command::Fix(v) => fix::exec(env, v),
-        // Command::Extension(v) => extension::exec(env, v),
-        // Command::ExtensionRun(v) => extension::run::exec(env, v.into()),
+        Command::Extension(v) => extension::exec(env, v),
+        Command::ExtensionRun(v) => extension::run::exec(env, v.into()),
         Command::Generate(v) => generate::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
         Command::Info(v) => info::exec(env, v),

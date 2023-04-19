@@ -5,8 +5,9 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
-use clap::{Args, Parser};
+use clap::{Args, CommandFactory, FromArgMatches as _, Parser};
 use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
+use lib::extension::manager::ExtensionManager;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -178,7 +179,27 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 }
 
 fn main() {
-    let cli_opts = CliOpts::parse();
+    let cli_opts = match ExtensionManager::new(dfx_version()) {
+        Ok(manager) => {
+            let installed_extensions = manager.dfx_help_print_installed_extensions();
+            let app = CliOpts::into_app()
+                .after_long_help(installed_extensions.as_str())
+                .after_help(installed_extensions.as_str());
+            let matches = app.get_matches();
+            let opts = CliOpts::from_arg_matches(&matches);
+            match opts {
+                Ok(opts) => opts,
+                Err(err) => {
+                    print_error_and_diagnosis(anyhow::Error::from(err), NULL_DIAGNOSIS);
+                    std::process::exit(255);
+                }
+            }
+        }
+        Err(err) => {
+            print_error_and_diagnosis(anyhow::Error::from(err), NULL_DIAGNOSIS);
+            std::process::exit(255);
+        }
+    };
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
