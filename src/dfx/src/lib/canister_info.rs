@@ -156,7 +156,7 @@ impl CanisterInfo {
             post_install,
             main: canister_config.main.clone(),
             shrink: canister_config.shrink,
-            optimize: canister_config.optimize.clone(),
+            optimize: canister_config.optimize,
             metadata,
             pull_ready: canister_config.pull_ready,
             pull_dependencies,
