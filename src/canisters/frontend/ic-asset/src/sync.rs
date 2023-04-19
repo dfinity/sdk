@@ -1,19 +1,23 @@
 use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
+use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::plumbing::ChunkUploadTarget;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
     plumbing::{make_project_assets, AssetDescriptor},
 };
+use crate::canister_api::methods::batch::{compute_evidence, propose_commit_batch};
 use crate::canister_api::methods::{
     api_version::api_version,
-    batch::{commit_batch, compute_evidence, create_batch, propose_commit_batch},
+    asset_properties::get_assets_properties,
+    batch::{commit_batch, create_batch},
     list::list_assets,
 };
+use crate::canister_api::types::batch_upload::v0;
 use crate::canister_api::types::batch_upload::{
-    common::ComputeEvidenceArguments, v0::CommitBatchArguments,
+    common::ComputeEvidenceArguments, v1::CommitBatchArguments,
 };
 
 use anyhow::{anyhow, bail, Context};
@@ -32,6 +36,11 @@ pub async fn upload_content_and_assemble_sync_operations(
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
     let canister_assets = list_assets(canister).await?;
+    info!(
+        logger,
+        "Fetching properties for all assets in the canister."
+    );
+    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
 
     info!(logger, "Starting batch.");
 
@@ -59,6 +68,7 @@ pub async fn upload_content_and_assemble_sync_operations(
         project_assets,
         canister_assets,
         AssetDeletionReason::Obsolete,
+        canister_asset_properties,
         batch_id,
     );
 
@@ -69,21 +79,18 @@ pub async fn upload_content_and_assemble_sync_operations(
 pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> anyhow::Result<()> {
     let commit_batch_args =
         upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
-    info!(logger, "Committing batch.");
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
-    match canister_api_version {
-        0.. => {
-            // in the next PR:
-            // if BATCH_UPLOAD_API_VERSION == 1 {
-            //     let commit_batch_args = commit_batch_args.try_into::<v0::CommitBatchArguments>()?;
-            //     warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
-            // }
-            commit_batch(canister, commit_batch_args)
-                .await
-                .map_err(|e| anyhow!("Incompatible canister API version: {}", e))?;
+    let response = match canister_api_version {
+        0 => {
+            let commit_batch_args_v0 = v0::CommitBatchArguments::try_from(commit_batch_args)
+                .map_err(|e| anyhow!("Failed to downgrade from v1::CommitBatchArguments to v0::CommitBatchArguments: {}. Please upgrade your asset canister, or use older tooling (dfx<=v-0.13.1 or icx-asset<=0.20.0)", e))?;
+            warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
+            commit_batch(canister, commit_batch_args_v0).await
         }
-    }
+        BATCH_UPLOAD_API_VERSION.. => commit_batch(canister, commit_batch_args).await,
+    };
+    response.context("Failed to synchronize frontend canister with project assets.")?;
 
     Ok(())
 }
