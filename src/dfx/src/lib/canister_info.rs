@@ -7,13 +7,12 @@ use dfx_core::config::model::dfinity::{
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 
-use std::path::{Path, PathBuf};
-
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
 use core::panic;
 use fn_error_context::context;
+use std::path::{Path, PathBuf};
 
 pub mod assets;
 pub mod custom;

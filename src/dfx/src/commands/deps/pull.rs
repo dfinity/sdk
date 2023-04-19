@@ -23,6 +23,7 @@ use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
+// TODO: update the usage of this method once ic-wasm bump (#3090)
 use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
 use slog::{error, info, trace, warn, Logger};
@@ -82,13 +83,12 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
         }
     }
 
-    match any_download_fail {
-        true => bail!("Failed when pulling canisters."),
-        false => {
-            for (name, canister_id) in &pull_canisters_in_config {
-                copy_service_candid_to_project(&project_root, name, *canister_id)?;
-            }
-        }
+    if any_download_fail {
+        bail!("Failed when pulling canisters.");
+    }
+
+    for (name, canister_id) in &pull_canisters_in_config {
+        copy_service_candid_to_project(&project_root, name, *canister_id)?;
     }
 
     save_pulled_json(&project_root, &pulled_json)?;
@@ -108,23 +108,11 @@ async fn fetch_deps_to_pull(
         "Resolving dependencies of canister {canister_id}..."
     );
 
-    match fetch_metatdata(agent, canister_id, DFX_DEPS).await {
-        Ok(Some(deps_raw)) => {
+    match fetch_metadata(agent, canister_id, DFX_DEPS).await? {
+        Some(deps_raw) => {
             let deps_str = String::from_utf8(deps_raw)?;
-            let mut deps = vec![];
-            for entry in deps_str.split_terminator(';') {
-                match entry.split_once(':') {
-                    Some((_, p)) => {
-                        let dep_id = Principal::from_text(p)
-                            .with_context(|| format!("`{p}` is not a valid Principal."))?;
-                        canisters_to_pull.push_back(dep_id);
-                        deps.push(dep_id);
-                    }
-                    None => bail!(
-                        "Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "
-                    ),
-                }
-            }
+            let deps = parse_dfx_deps(&deps_str)?;
+            canisters_to_pull.extend(deps.iter().copied());
             pulled_json.canisters.insert(
                 canister_id,
                 PulledCanister {
@@ -133,7 +121,7 @@ async fn fetch_deps_to_pull(
                 },
             );
         }
-        Ok(None) => {
+        None => {
             warn!(
                 logger,
                 "`{DFX_DEPS}` metadata not found in canister {canister_id}."
@@ -141,9 +129,6 @@ async fn fetch_deps_to_pull(
             pulled_json
                 .canisters
                 .insert(canister_id, PulledCanister::default());
-        }
-        Err(e) => {
-            bail!(e);
         }
     }
     Ok(())
@@ -163,8 +148,8 @@ async fn download_canister_files(
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     // try fetch `dfx:wasm_hash`. If not available, get the hash of the on chain canister.
-    let hash_on_chain = match fetch_metatdata(agent, canister_id, DFX_WASM_HASH).await {
-        Ok(Some(wasm_hash_raw)) => {
+    let hash_on_chain = match fetch_metadata(agent, canister_id, DFX_WASM_HASH).await? {
+        Some(wasm_hash_raw) => {
             let wasm_hash_str = String::from_utf8(wasm_hash_raw)?;
             trace!(
                 logger,
@@ -172,7 +157,7 @@ async fn download_canister_files(
             );
             hex::decode(wasm_hash_str)?
         }
-        Ok(None) => {
+        None => {
             let canister_status =
                 get_canister_status(env, canister_id, &CallSender::SelectedId).await?;
             match canister_status.module_hash {
@@ -182,9 +167,6 @@ async fn download_canister_files(
                 }
             }
         }
-        Err(e) => {
-            bail!(e);
-        }
     };
 
     pulled_canister.wasm_hash = hex::encode(&hash_on_chain);
@@ -193,8 +175,7 @@ async fn download_canister_files(
     let canister_dir = get_cache_root()?
         .join("pulled")
         .join(canister_id.to_string());
-    std::fs::create_dir_all(&canister_dir)
-        .with_context(|| format!("Failed to create dir at {:?}", &canister_dir))?;
+    dfx_core::fs::create_dir_all(&canister_dir)?;
 
     let wasm_path = get_pulled_wasm_path(canister_id)?;
 
@@ -202,7 +183,7 @@ async fn download_canister_files(
     let mut cache_hit = false;
     let wasm_url_txt_path = get_wasm_url_txt_path(canister_id)?;
     if wasm_path.exists() {
-        let bytes = std::fs::read(&wasm_path)?;
+        let bytes = dfx_core::fs::read(&wasm_path)?;
         let hash_cache = Sha256::digest(bytes);
         if hash_cache.as_slice() == hash_on_chain {
             cache_hit = true;
@@ -214,7 +195,7 @@ async fn download_canister_files(
     }
     if !cache_hit {
         // fetch `dfx:wasm_url`
-        let wasm_url_raw = fetch_metatdata(agent, canister_id, DFX_WASM_URL)
+        let wasm_url_raw = fetch_metadata(agent, canister_id, DFX_WASM_URL)
             .await?
             .ok_or_else(|| {
                 anyhow!("`{DFX_WASM_URL}` metadata not found in canister {canister_id}.")
@@ -233,9 +214,7 @@ async fn download_canister_files(
         let content = response.bytes().await?;
 
         // hash check
-        let mut hasher = Sha256::new();
-        hasher.update(&content);
-        let hash_download = hasher.finalize();
+        let hash_download = Sha256::digest(&content);
         if hash_download.as_slice() != hash_on_chain {
             bail!(
                 "Hash mismatch.
@@ -284,7 +263,7 @@ download: {}",
 }
 
 #[context("Failed to fetch metadata {metadata} of canister {canister_id}.")]
-async fn fetch_metatdata(
+async fn fetch_metadata(
     agent: &Agent,
     canister_id: Principal,
     metadata: &str,
@@ -297,8 +276,11 @@ async fn fetch_metatdata(
         Err(agent_error) => match agent_error {
             // replica returns such error
             AgentError::HttpError(ref e) => {
+                let status = e.status;
                 let content = String::from_utf8(e.content.clone())?;
-                if content.starts_with("Custom section") {
+                if status == 404
+                    && content.starts_with(&format!("Custom section {metadata} not found"))
+                {
                     Ok(None)
                 } else {
                     bail!(agent_error);
@@ -337,4 +319,19 @@ pub fn copy_service_candid_to_project(
     ensure_parent_dir_exists(&path_in_project)?;
     std::fs::copy(&service_candid_path, &path_in_project)?;
     Ok(())
+}
+
+fn parse_dfx_deps(deps_str: &str) -> DfxResult<Vec<Principal>> {
+    let mut deps = vec![];
+    for entry in deps_str.split_terminator(';') {
+        match entry.split_once(':') {
+            Some((_, p)) => {
+                let dep_id = Principal::from_text(p)
+                    .with_context(|| format!("`{p}` is not a valid Principal."))?;
+                deps.push(dep_id);
+            }
+            None => bail!("Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "),
+        }
+    }
+    Ok(deps)
 }

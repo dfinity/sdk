@@ -48,7 +48,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
             let canister_id = match pull_canisters_in_config.get(&canister) {
                 Some(canister_id) => *canister_id,
                 None => Principal::from_text(canister).with_context(|| {
-                    "The canister is not a valid Principal nor a name specified in dfx.json"
+                    "The canister is not a valid Principal nor a `type: pull` canister specified in dfx.json"
                 })?,
             };
             create_and_install(agent, logger, &canister_id, &init_json).await?;
@@ -63,7 +63,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
     Ok(())
 }
 
-#[context("Failed to create and install canster {}", canister_id)]
+#[context("Failed to create and install canister {}", canister_id)]
 async fn create_and_install(
     agent: &Agent,
     logger: &Logger,
@@ -77,7 +77,7 @@ async fn create_and_install(
 }
 
 // not use operations::canister::create_canister because we don't want to modify canister_id_store
-#[context("Failed to create canster {}", canister_id)]
+#[context("Failed to create canister {}", canister_id)]
 async fn try_create_canister(agent: &Agent, logger: &Logger, canister_id: &Principal) -> DfxResult {
     info!(logger, "Creating canister: {canister_id}");
     let mgr = ManagementCanister::create(agent);
@@ -90,7 +90,7 @@ async fn try_create_canister(agent: &Agent, logger: &Logger, canister_id: &Princ
     Ok(())
 }
 
-#[context("Failed to install canster {}", canister_id)]
+#[context("Failed to install canister {}", canister_id)]
 async fn install_pulled_canister(
     agent: &Agent,
     logger: &Logger,
@@ -99,7 +99,7 @@ async fn install_pulled_canister(
 ) -> DfxResult {
     info!(logger, "Installing canister: {canister_id}");
     let pulled_canister_path = get_pulled_wasm_path(*canister_id)?;
-    let wasm = std::fs::read(pulled_canister_path)?;
+    let wasm = dfx_core::fs::read(&pulled_canister_path)?;
     let mgr = ManagementCanister::create(agent);
     mgr.install_code(canister_id, &wasm)
         // always reinstall pulled canister

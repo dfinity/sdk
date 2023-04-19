@@ -278,7 +278,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     dfx_stop
 
     assert_command dfx deps init
-    assert_contains "Following canister(s) require init argument, please run \`dfx deps init <PRINCIPAL>\` to set them individually:"
+    assert_contains "The following canister(s) require an init argument. Please run \`dfx deps init <PRINCIPAL>\` to set them individually:"
     assert_contains "$CANISTER_ID_A"
     assert_contains "$CANISTER_ID_C"
 
@@ -287,7 +287,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     # error cases
     assert_command_fail dfx deps init "$CANISTER_ID_A"
-    assert_contains "Canister $CANISTER_ID_A requires init argument"
+    assert_contains "Canister $CANISTER_ID_A requires an init argument"
 
     assert_command_fail dfx deps init "$CANISTER_ID_A" --argument '("abc")'
     assert_contains "Failed to validate argument against type defined in candid:args"
@@ -364,7 +364,7 @@ Installing canister: $CANISTER_ID_A"
     assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`."
 }
 
-@test "dfx deps pulled dependencies works with app canister" {
+@test "dfx deps pulled dependencies work with app canister" {
     # ic-ref have a different behavior than the repilca:
     #    once a canister has been deleted, it cannot be created again.
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"

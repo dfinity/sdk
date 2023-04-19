@@ -78,7 +78,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                     bail!("Canister {canister_id} takes no init argument. Please rerun without `--argument`");
                 }
                 (None, false) => {
-                    let mut message = format!("Canister {canister_id} requires init argument, following info might be helpful.");
+                    let mut message = format!("Canister {canister_id} requires an init argument. The following info might be helpful:");
                     if let Some(dfx_init) = pulled_json.get_dfx_init(&canister_id)? {
                         message.push_str(&format!("dfx:init    => {dfx_init}"));
                     }
@@ -113,7 +113,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                 }
             }
             if !canisters_require_init.is_empty() {
-                let mut message = "Following canister(s) require init argument, please run `dfx deps init <PRINCIPAL>` to set them individually:".to_string();
+                let mut message = "The following canister(s) require an init argument. Please run `dfx deps init <PRINCIPAL>` to set them individually:".to_string();
                 for canister_id in canisters_require_init {
                     message.push_str(&format!("\n{canister_id}"));
                 }
