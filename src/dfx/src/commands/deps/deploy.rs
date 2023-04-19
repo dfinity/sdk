@@ -76,7 +76,8 @@ async fn try_create_canister(agent: &Agent, logger: &Logger, canister_id: &Princ
     info!(logger, "Creating canister: {canister_id}");
     let mgr = ManagementCanister::create(agent);
     // ignore the error that the canister is already installed
-    let _res = mgr.create_canister()
+    let _res = mgr
+        .create_canister()
         .as_provisional_create_with_specified_id(*canister_id)
         .call_and_wait()
         .await;
