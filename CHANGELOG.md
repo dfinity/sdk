@@ -20,6 +20,11 @@ If you want to enable this behavior, you can do so in dfx.json:
 
 The options are "cycles", "size", "O4", "O3", "O2", "O1", "O0", "Oz", and "Os".  The options starting with "O" are the optimization levels that `wasm-opt` provides. The "cycles" and "size" options are recommended defaults for optimizing for cycle usage and binary size respectively.
 
+### feat: updates the dfx new starter project for env vars
+
+- Updates the starter project for env vars to use the new `dfx build` & `dfx deploy` environment variables
+- Changes the format of the canister id env vars to be `CANISTER_ID_<canister_name_uppercase>`, for the frontend declaraction file to be consistent with the dfx environment variables. `CANISTER_ID` as both a prefix and suffix are supported for backwards compatibility.
+
 ### fix!: --clean required when network configuration changes
 
 If the network configuration has changed since last time `dfx start` was run, `dfx start` will now error if you try to run it without `--clean`, to avoid spurious errors. You can provide the `--force` flag if you are sure you want to start it without cleaning state.
