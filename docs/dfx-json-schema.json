@@ -390,8 +390,8 @@
           ]
         },
         "pull_ready": {
-          "title": "Ready for dfx Pull",
-          "description": "Whether or not to make this canister ready for dfx pull by other project. If true, several required metadata fields must be also set with the correct format.",
+          "title": "Ready to be pulled",
+          "description": "Whether or not to make this canister ready for `dfx deps pull` by other project. If true, several required metadata fields must be also set with the correct format.",
           "default": false,
           "type": "boolean"
         },

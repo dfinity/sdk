@@ -4,6 +4,16 @@
 
 ## DFX
 
+### feat: dfx deps subcommands
+
+This feature was named `dfx pull` before. To make a complete, intuitive user experience, we present a set of subcommands under `dfx deps`:
+- `dfx deps pull`: pull the dependencies from mainnet and generate `deps/pulled.json`, the candid files of direct dependencies will also be put into `deps/`;
+- `dfx deps init`: set the init arguments for the pulled dependencies and save the data in `deps/init.json`;
+- `dfx deps deploy`: deploy the pulled dependencies on local replica with the init arguments recorded in `deps/init.json`;
+- `dfx deps delete`: delete the pulled dependencies;
+
+All generated files in `deps/` are encouraged to be version controled.
+
 ### fix!: --clean required when network configuration changes
 
 If the network configuration has changed since last time `dfx start` was run, `dfx start` will now error if you try to run it without `--clean`, to avoid spurious errors. You can provide the `--force` flag if you are sure you want to start it without cleaning state.
@@ -61,8 +71,6 @@ The identity may be specified using the environment variable `DFX_IDENTITY`.
 ### feat: Add DFX_ASSETS_WASM
 
 Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
-
-### feat: dfx pull can download wasm
 
 ### fix: dfx deploy and icx-asset no longer retry on permission failure
 
@@ -252,8 +260,6 @@ Callable only by a controller.  Clears list of authorized principals and adds th
 
 As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
 
-### feat: write canister metadata sections for dfx pull
-
 ### feat: add `--argument-file` argument to the `dfx canister sign` command
 
 Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
@@ -272,11 +278,6 @@ To force the use of one specific storage mode, use the `--storage-mode` flag wit
 This works for both `dfx identity new` and `dfx identity import`.
 
 The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
-
-### feat: dfx pull
-
-- write canister metadata for dfx pull.
-- `dfx pull` can fetch `dfx:deps` metadata and resolve dependencies recursively.
 
 ### feat(frontend-canister): better control and overview for asset canister authorized principals
 
