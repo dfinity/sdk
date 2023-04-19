@@ -7,10 +7,10 @@
 ### feat: dfx deps subcommands
 
 This feature was named `dfx pull` before. To make a complete, intuitive user experience, we present a set of subcommands under `dfx deps`:
+
 - `dfx deps pull`: pull the dependencies from mainnet and generate `deps/pulled.json`, the candid files of direct dependencies will also be put into `deps/`;
 - `dfx deps init`: set the init arguments for the pulled dependencies and save the data in `deps/init.json`;
 - `dfx deps deploy`: deploy the pulled dependencies on local replica with the init arguments recorded in `deps/init.json`;
-- `dfx deps delete`: delete the pulled dependencies;
 
 All generated files in `deps/` are encouraged to be version controled.
 

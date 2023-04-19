@@ -5,7 +5,6 @@ use crate::NetworkOpt;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
-mod delete;
 mod deploy;
 mod init;
 mod pull;
@@ -28,7 +27,6 @@ enum SubCommand {
     Pull(pull::DepsPullOpts),
     Init(init::DepsInitOpts),
     Deploy(deploy::DepsDeployOpts),
-    Delete(delete::DepsDeleteOpts),
 }
 
 /// Executes `dfx deps` and its subcommands.
@@ -40,7 +38,6 @@ pub fn exec(env: &dyn Environment, opts: DepsOpts) -> DfxResult {
             SubCommand::Pull(v) => pull::exec(&agent_env, v).await,
             SubCommand::Init(v) => init::exec(&agent_env, v).await,
             SubCommand::Deploy(v) => deploy::exec(&agent_env, v).await,
-            SubCommand::Delete(v) => delete::exec(&agent_env, v).await,
         }
     })
 }

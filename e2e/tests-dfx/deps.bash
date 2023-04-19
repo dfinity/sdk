@@ -346,6 +346,13 @@ Installing canister: $CANISTER_ID_B"
     assert_contains "Creating canister: $CANISTER_ID_A
 Installing canister: $CANISTER_ID_A"
 
+    # deployed pulleds dependencies can be stopped and deleted
+    assert_command dfx canister stop dep_b
+    assert_command dfx canister delete dep_b
+
+    assert_command dfx canister stop $CANISTER_ID_A
+    assert_command dfx canister delete $CANISTER_ID_A
+
     # error cases
     rm deps/init.json
     assert_command_fail dfx deps deploy
@@ -355,51 +362,6 @@ Installing canister: $CANISTER_ID_A"
     assert_command_fail dfx deps deploy "$CANISTER_ID_A"
     assert_contains "Failed to create and install canster $CANISTER_ID_A"
     assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`."
-}
-
-@test "dfx deps delete works" {
-    # ic-ref have a different behavior than the repilca:
-    #    once a canister has been deleted, it cannot be created again.
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
-    use_test_specific_cache_root # dfx deps pull will download files to cache
-
-    # start a "mainnet" replica which host the onchain canisters
-    dfx_start
-
-    setup_onchain
-
-    # pull canisters in app project
-    cd app
-    assert_command dfx deps pull
-
-    # delete onchain canisters so that the replica has no canisters as a clean local replica
-    cd ../onchain
-    dfx canister stop a
-    dfx canister delete a
-    dfx canister stop b
-    dfx canister delete b
-    dfx canister stop c
-    dfx canister delete c
-
-    cd ../app
-    assert_command dfx deps init # b is set here
-    assert_command dfx deps init "$CANISTER_ID_A" --argument 11
-    assert_command dfx deps init "$CANISTER_ID_C" --argument 33
-    assert_command dfx deps deploy
-    
-    # by name in dfx.json
-    assert_command dfx deps delete dep_b
-    assert_contains "Deleting canister: $CANISTER_ID_B"
-
-    # by canister id
-    assert_command dfx deps delete "$CANISTER_ID_A"
-    assert_contains "Deleting canister: $CANISTER_ID_A"
-
-    # error case
-    CANISTER_ID_OTHER="rwlgt-iiaaa-aaaaa-aaaaa-cai"
-    assert_command_fail dfx deps delete "$CANISTER_ID_OTHER"
-    assert_contains "Canister $CANISTER_ID_OTHER is not a pulled dependency."
 }
 
 @test "dfx deps pulled dependencies works with app canister" {
