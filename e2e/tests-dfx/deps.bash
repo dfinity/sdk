@@ -360,7 +360,7 @@ Installing canister: $CANISTER_ID_A"
 
     assert_command dfx deps init # b is set here
     assert_command_fail dfx deps deploy "$CANISTER_ID_A"
-    assert_contains "Failed to create and install canster $CANISTER_ID_A"
+    assert_contains "Failed to create and install canister $CANISTER_ID_A"
     assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`."
 }
 

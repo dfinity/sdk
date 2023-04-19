@@ -8,11 +8,10 @@ use crate::lib::error::DfxResult;
 use crate::lib::metadata::names::{
     CANDID_ARGS, CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
 };
-use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use dfx_core::config::cache::get_cache_root;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
-use dfx_core::identity::CallSender;
 
 use std::collections::VecDeque;
 use std::io::Write;
@@ -158,9 +157,7 @@ async fn download_canister_files(
             hex::decode(wasm_hash_str)?
         }
         None => {
-            let canister_status =
-                get_canister_status(env, canister_id, &CallSender::SelectedId).await?;
-            match canister_status.module_hash {
+            match read_state_tree_canister_module_hash(agent, canister_id).await? {
                 Some(hash_on_chain) => hash_on_chain,
                 None => {
                     bail!("Canister {canister_id} doesn't have module hash. Perhaps it's not installed.");

@@ -6,9 +6,10 @@ use crate::lib::deps::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::state_tree::canister_info::read_state_tree_canister_controllers;
 use crate::NetworkOpt;
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, Context, bail};
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
@@ -87,7 +88,11 @@ async fn try_create_canister(agent: &Agent, logger: &Logger, canister_id: &Princ
         .as_provisional_create_with_specified_id(*canister_id)
         .call_and_wait()
         .await;
-    Ok(())
+    match read_state_tree_canister_controllers(agent, *canister_id).await? {
+        Some(cs) if cs.len() == 1 && cs[0] == Principal::anonymous() => Ok(()),
+        Some(_) => bail!("Canister {canister_id} has been created before and its controller is not anonymous identity. Please stop and delete it and then deploy again."),
+        None => bail!("Canister {canister_id} has no controllers."),
+    }
 }
 
 #[context("Failed to install canister {}", canister_id)]
