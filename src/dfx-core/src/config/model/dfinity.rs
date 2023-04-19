@@ -775,15 +775,11 @@ impl ConfigInterface {
         if let Some(map) = &self.canisters {
             for (k, v) in map {
                 if let CanisterTypeProperties::Pull { id } = v.type_specific {
-                    match id_to_name.get(&id) {
-                        Some(other_name) => {
-                            return Err(PullCanistersSameId(other_name.to_string(), k.clone(), id));
-                        }
-                        None => {
-                            res.insert(k.clone(), id);
-                            id_to_name.insert(id, k);
-                        }
+                    if let Some(other_name) = id_to_name.get(&id) {
+                        return Err(PullCanistersSameId(other_name.to_string(), k.clone(), id));
                     }
+                    res.insert(k.clone(), id);
+                    id_to_name.insert(id, k);
                 }
             }
         };
