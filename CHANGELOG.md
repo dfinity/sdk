@@ -107,8 +107,8 @@ Added partial support for proposal-based asset updates:
   batch has been proposed.
 - Added methods:
   - `propose_commit_batch()` stores batch arguments for later commit
-  - `delete_batch()` deletes a batch, intended for use after propose_commit_batch if cancellation needed
-  - `compute_evidence()` computes a hash ("evidence") over the proposed batch arguments
+  - `delete_batch()` deletes a batch, intended for use after compute_evidence if cancellation needed
+  - `compute_evidence()` computes a hash ("evidence") over the proposed batch arguments. Once evidence computation is complete, batch will not expire.
   - `commit_proposed_batch()` commits batch previously proposed (must have evidence computed)
   - `validate_commit_proposed_batch()` required validation method for SNS
 
@@ -133,7 +133,8 @@ Added functionality that allows you to set asset properties during `dfx deploy`,
 ### Frontend canister
 
 - API version: 1
-- Module hash: 1b0c89c86a7c835a8153b61daef9faa44fee6e6363b55d59f0566594129bb431
+- Module hash: e7866e1949e3688a78d8d29bd63e1c13cd6bfb8fbe29444fa606a20e0b1e33f0
+- https://github.com/dfinity/sdk/pull/3094
 - https://github.com/dfinity/sdk/pull/3002
 - https://github.com/dfinity/sdk/pull/3065
 - https://github.com/dfinity/sdk/pull/3058
