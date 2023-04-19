@@ -19,7 +19,8 @@ pub fn exec(env: &dyn Environment, _opts: DeployOpts) -> DfxResult {
     println!("Creating SNS canisters.  This typically takes about one minute...");
     let config = env.get_config_or_anyhow()?;
     let path = config.get_project_root().join(sns::CONFIG_FILE_NAME);
+    let cache = env.get_cache();
 
-    println!("{}", deploy_sns(env, &path)?);
+    println!("{}", deploy_sns(cache.as_ref(), &path)?);
     Ok(())
 }

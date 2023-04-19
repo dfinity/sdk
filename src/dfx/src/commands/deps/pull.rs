@@ -5,7 +5,6 @@ use crate::lib::deps::{
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::metadata::names::{
     CANDID_ARGS, CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
 };
@@ -13,7 +12,7 @@ use crate::lib::operations::canister::get_canister_status;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use dfx_core::config::cache::get_cache_root;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
-use ic_wasm::metadata::get_metadata;
+use dfx_core::identity::CallSender;
 
 use std::collections::VecDeque;
 use std::io::Write;
@@ -24,6 +23,7 @@ use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
+use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
 use slog::{error, info, trace, warn, Logger};
 

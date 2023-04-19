@@ -51,12 +51,19 @@ pub enum BatchOperation {
     UnsetAssetContent(UnsetAssetContentArguments),
     DeleteAsset(DeleteAssetArguments),
     Clear(ClearArguments),
+    SetAssetProperties(SetAssetPropertiesArguments),
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct CommitBatchArguments {
     pub batch_id: BatchId,
     pub operations: Vec<BatchOperation>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct CommitProposedBatchArguments {
+    pub batch_id: BatchId,
+    pub evidence: ByteBuf,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]

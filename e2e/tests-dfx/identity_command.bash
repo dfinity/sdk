@@ -530,13 +530,13 @@ default'
 }
 
 @test "identity: can import an EC key without an EC PARAMETERS section (as quill generate makes)" {
-    cat >private-key-no-ec-parameters.pem <<XXX
+    cat >private-key-no-ec-parameters.pem <<EOF
 -----BEGIN EC PRIVATE KEY-----
 MHQCAQEEIE+3ipe2ruuJOmeBAhImUP/jic7Qwk2fXC8BaAmu6VK4oAcGBSuBBAAK
 oUQDQgAEBQKn0CLyiA/fQf6L8S07/MDJ9kIJTzZvm2jFo2/yvSToGee+XzP/GCE4
 08ZcZFM1EwUsknDBoSd0EF1PzFRmJg==
 -----END EC PRIVATE KEY-----
-XXX
+EOF
     assert_command dfx identity import private-key-no-ec-parameters private-key-no-ec-parameters.pem
     assert_command dfx identity get-principal --identity private-key-no-ec-parameters
     assert_eq "j4p4p-o5ogq-4gzev-t3kay-hpm5o-xuwpz-yvrpp-47cc4-qyunt-k76yw-qae"

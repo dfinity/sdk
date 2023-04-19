@@ -1,11 +1,11 @@
 use crate::evidence::EvidenceComputation::{Computed, NextChunkIndex, NextOperation};
 use crate::state_machine::Chunk;
 use crate::types::BatchOperation::{
-    Clear, CreateAsset, DeleteAsset, SetAssetContent, UnsetAssetContent,
+    Clear, CreateAsset, DeleteAsset, SetAssetContent, SetAssetProperties, UnsetAssetContent,
 };
 use crate::types::{
     ChunkId, ClearArguments, CommitBatchArguments, CreateAssetArguments, DeleteAssetArguments,
-    SetAssetContentArguments, UnsetAssetContentArguments,
+    SetAssetContentArguments, SetAssetPropertiesArguments, UnsetAssetContentArguments,
 };
 use itertools::Itertools;
 use serde_bytes::ByteBuf;
@@ -23,6 +23,7 @@ const TAG_SET_ASSET_CONTENT: [u8; 1] = [5];
 const TAG_UNSET_ASSET_CONTENT: [u8; 1] = [6];
 const TAG_DELETE_ASSET: [u8; 1] = [7];
 const TAG_CLEAR: [u8; 1] = [8];
+const TAG_SET_ASSET_PROPERTIES: [u8; 1] = [9];
 
 pub enum EvidenceComputation {
     NextOperation {
@@ -115,6 +116,13 @@ fn next_operation(
                 hasher,
             }
         }
+        Some(SetAssetProperties(args)) => {
+            hash_set_asset_properties(&mut hasher, args);
+            NextOperation {
+                operation_index: operation_index + 1,
+                hasher,
+            }
+        }
     }
 }
 
@@ -184,6 +192,40 @@ fn hash_delete_asset(hasher: &mut Sha256, args: &DeleteAssetArguments) {
 
 fn hash_clear(hasher: &mut Sha256, _args: &ClearArguments) {
     hasher.update(TAG_CLEAR);
+}
+
+fn hash_set_asset_properties(hasher: &mut Sha256, args: &SetAssetPropertiesArguments) {
+    hasher.update(TAG_SET_ASSET_PROPERTIES);
+    hasher.update(&args.key);
+    if let Some(max_age) = args.max_age {
+        hasher.update(TAG_SOME);
+        if let Some(max_age) = max_age {
+            hasher.update(TAG_SOME);
+            hasher.update(max_age.to_be_bytes());
+        } else {
+            hasher.update(TAG_NONE);
+        }
+    } else {
+        hasher.update(TAG_NONE);
+    }
+    if let Some(headers) = args.headers.as_ref() {
+        hasher.update(TAG_SOME);
+        hash_headers(hasher, headers.as_ref());
+    } else {
+        hasher.update(TAG_NONE);
+    }
+    if let Some(allow_raw_access) = args.allow_raw_access {
+        hasher.update(TAG_SOME);
+        hash_opt_bool(hasher, allow_raw_access);
+    } else {
+        hasher.update(TAG_NONE);
+    }
+    if let Some(enable_aliasing) = args.is_aliased {
+        hasher.update(TAG_SOME);
+        hash_opt_bool(hasher, enable_aliasing);
+    } else {
+        hasher.update(TAG_NONE);
+    }
 }
 
 fn hash_opt_bool(hasher: &mut Sha256, b: Option<bool>) {

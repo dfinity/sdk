@@ -1,14 +1,19 @@
 use crate::lib::builders::BuildConfig;
+use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
+use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::operations::canister::deploy_canisters::DeployMode::{
+    ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+};
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -21,13 +26,21 @@ use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum DeployMode {
+    NormalDeploy,
+    ForceReinstallSingleCanister(String),
+    PrepareForProposal(String),
+    ComputeEvidence(String),
+}
+
 #[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
     argument: Option<&str>,
     argument_type: Option<&str>,
-    force_reinstall: bool,
+    deploy_mode: &DeployMode,
     upgrade_unchanged: bool,
     with_cycles: Option<&str>,
     specified_id: Option<Principal>,
@@ -56,22 +69,15 @@ pub async fn deploy_canisters(
 
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
-    let network = env.get_network_descriptor();
-
-    let canisters_to_build = if force_reinstall {
-        // don't force-reinstall the dependencies too.
-        match some_canister {
-            Some(canister_name) => {
-                if config.get_config().is_remote_canister(canister_name, &network.name)? {
-                    bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
-                    canister_name, &network.name);
-                }
-                vec!(String::from(canister_name))
-            },
-            None => bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."),
+    let canisters_to_build = match deploy_mode {
+        PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
+            vec![canister_name.clone()]
         }
-    } else {
-        canisters_to_load
+        ForceReinstallSingleCanister(canister_name) => {
+            // don't force-reinstall the dependencies too.
+            vec![String::from(canister_name)]
+        }
+        NormalDeploy => canisters_to_load
             .clone()
             .into_iter()
             .filter(|canister_name| {
@@ -80,7 +86,7 @@ pub async fn deploy_canisters(
                     .is_remote_canister(canister_name, &env.get_network_descriptor().name)
                     .unwrap_or(false)
             })
-            .collect()
+            .collect(),
     };
 
     let canisters_to_install: Vec<String> = canisters_to_build
@@ -115,24 +121,35 @@ pub async fn deploy_canisters(
     )
     .await?;
 
-    install_canisters(
-        env,
-        &canisters_to_install,
-        &initial_canister_id_store,
-        &config,
-        argument,
-        argument_type,
-        force_reinstall,
-        upgrade_unchanged,
-        call_sender,
-        pool,
-        skip_consent,
-        env_file.as_deref(),
-        assets_upgrade,
-    )
-    .await?;
-
-    info!(log, "Deployed canisters.");
+    match deploy_mode {
+        NormalDeploy | ForceReinstallSingleCanister(_) => {
+            let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
+            install_canisters(
+                env,
+                &canisters_to_install,
+                &initial_canister_id_store,
+                &config,
+                argument,
+                argument_type,
+                force_reinstall,
+                upgrade_unchanged,
+                call_sender,
+                pool,
+                skip_consent,
+                env_file.as_deref(),
+                assets_upgrade,
+            )
+            .await?;
+            info!(log, "Deployed canisters.");
+        }
+        PrepareForProposal(canister_name) => {
+            prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
+                .await?
+        }
+        ComputeEvidence(canister_name) => {
+            compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
+        }
+    }
 
     Ok(())
 }
@@ -292,6 +309,73 @@ async fn install_canisters(
         )
         .await?;
     }
+
+    Ok(())
+}
+
+#[context("Failed to prepare assets for commit.")]
+async fn prepare_assets_for_commit(
+    env: &dyn Environment,
+    canister_id_store: &CanisterIdStore,
+    config: &Config,
+    canister_name: &str,
+) -> DfxResult {
+    let canister_id = canister_id_store.get(canister_name)?;
+    let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
+
+    if !canister_info.is_assets() {
+        bail!(
+            "Expected canister {} to be an asset canister.",
+            canister_name
+        );
+    }
+
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
+
+    Ok(())
+}
+
+#[context("Failed to compute evidence.")]
+async fn compute_evidence(
+    env: &dyn Environment,
+    canister_id_store: &CanisterIdStore,
+    config: &Config,
+    canister_name: &str,
+) -> DfxResult {
+    let canister_id = canister_id_store.get(canister_name)?;
+    let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
+
+    if !canister_info.is_assets() {
+        bail!(
+            "Expected canister {} to be an asset canister.",
+            canister_name
+        );
+    }
+
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    let assets_canister_info = canister_info.as_info::<AssetsCanisterInfo>()?;
+    let source_paths = assets_canister_info.get_source_paths();
+    let source_paths: Vec<&Path> = source_paths.iter().map(|p| p.as_path()).collect::<_>();
+
+    let canister_id = canister_info
+        .get_canister_id()
+        .context("Could not find canister ID.")?;
+
+    let canister = ic_utils::Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(canister_id)
+        .build()
+        .context("Failed to build asset canister caller.")?;
+
+    let evidence = ic_asset::compute_evidence(&canister, &source_paths, env.get_logger()).await?;
+    println!("{}", evidence);
 
     Ok(())
 }

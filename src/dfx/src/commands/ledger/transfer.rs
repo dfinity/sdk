@@ -47,6 +47,10 @@ pub struct TransferOpts {
     #[clap(long)]
     /// Canister ID of the ledger canister.
     ledger_canister_id: Option<Principal>,
+
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction-deduplication, default is system-time. // https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    #[clap(long)]
+    created_at_time: Option<u64>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
@@ -82,7 +86,7 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         .ledger_canister_id
         .unwrap_or(MAINNET_LEDGER_CANISTER_ID);
 
-    let block_height = transfer(
+    let _block_height = transfer(
         agent,
         &canister_id,
         memo,
@@ -90,10 +94,9 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         fee,
         opts.from_subaccount,
         to,
+        opts.created_at_time,
     )
     .await?;
-
-    println!("Transfer sent at BlockHeight: {}", block_height);
 
     Ok(())
 }

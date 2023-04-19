@@ -40,7 +40,7 @@ thread_local! {
 #[query]
 #[candid_method(query)]
 fn api_version() -> u16 {
-    0
+    1
 }
 
 #[update]
@@ -258,6 +258,23 @@ fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
         Err(msg) => trap(&msg),
         Ok(maybe_evidence) => maybe_evidence,
     })
+}
+
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().commit_proposed_batch(arg, time()) {
+            trap(&msg);
+        }
+        set_certified_data(&s.borrow().root_hash());
+    });
+}
+
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
+    STATE.with(|s| s.borrow_mut().validate_commit_proposed_batch(arg))
 }
 
 #[update(guard = "can_prepare")]

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
-    AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CreateAssetArguments,
-    CreateChunkArg, DeleteAssetArguments, DeleteBatchArguments, SetAssetContentArguments,
-    SetAssetPropertiesArguments,
+    AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
+    ComputeEvidenceArguments, CreateAssetArguments, CreateChunkArg, DeleteAssetArguments,
+    DeleteBatchArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
@@ -122,6 +122,66 @@ impl RequestBuilder {
 fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) -> BatchId {
     let batch_id = state.create_batch(time_now);
 
+    let operations =
+        assemble_create_assets_and_set_contents_operations(state, time_now, assets, &batch_id);
+
+    state
+        .commit_batch(
+            CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations,
+            },
+            time_now,
+        )
+        .unwrap();
+
+    batch_id
+}
+
+fn create_assets_by_proposal(
+    state: &mut State,
+    time_now: u64,
+    assets: Vec<AssetBuilder>,
+) -> BatchId {
+    let batch_id = state.create_batch(time_now);
+
+    let operations =
+        assemble_create_assets_and_set_contents_operations(state, time_now, assets, &batch_id);
+
+    state
+        .propose_commit_batch(CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations,
+        })
+        .unwrap();
+
+    let evidence = state
+        .compute_evidence(ComputeEvidenceArguments {
+            batch_id: batch_id.clone(),
+            max_iterations: Some(100),
+        })
+        .unwrap()
+        .unwrap();
+
+    state
+        .commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id: batch_id.clone(),
+                evidence,
+            },
+            time_now,
+        )
+        .unwrap();
+
+    batch_id
+}
+
+fn assemble_create_assets_and_set_contents_operations(
+    state: &mut State,
+    time_now: u64,
+    assets: Vec<AssetBuilder>,
+    batch_id: &BatchId,
+) -> Vec<BatchOperation> {
     let mut operations = vec![];
 
     for asset in assets {
@@ -160,18 +220,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
             }));
         }
     }
-
-    state
-        .commit_batch(
-            CommitBatchArguments {
-                batch_id: batch_id.clone(),
-                operations,
-            },
-            time_now,
-        )
-        .unwrap();
-
-    batch_id
+    operations
 }
 
 fn lookup_header<'a>(response: &'a HttpResponse, header: &str) -> Option<&'a str> {
@@ -374,6 +423,50 @@ fn serve_correct_encoding_v2() {
     assert_eq!(no_encoding_response.status_code, 404);
     assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
     assert!(lookup_header(&no_encoding_response, "IC-Certificate").is_some());
+}
+
+#[test]
+fn can_create_assets_using_batch_proposal_api() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    let batch_id = create_assets_by_proposal(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY])],
+    );
+
+    let response = state.http_request(
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip,identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+
+    assert_eq!(response.status_code, 200);
+    assert_eq!(response.body.as_ref(), BODY);
+
+    // Try to update a completed batch.
+    let error_msg = state
+        .create_chunk(
+            CreateChunkArg {
+                batch_id,
+                content: ByteBuf::new(),
+            },
+            time_now,
+        )
+        .unwrap_err();
+
+    let expected = "batch not found";
+    assert!(
+        error_msg.contains(expected),
+        "expected '{}' error, got: {}",
+        expected,
+        error_msg
+    );
 }
 
 #[test]
@@ -2780,5 +2873,295 @@ mod evidence_computation {
             .unwrap();
 
         assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn set_asset_properties_arguments_key_affects_evidence() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        let batch_1 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_1.clone(),
+                operations: vec![BatchOperation::SetAssetProperties(
+                    SetAssetPropertiesArguments {
+                        key: "/1".to_string(),
+                        max_age: Some(Some(100)),
+                        headers: None,
+                        allow_raw_access: Some(Some(false)),
+                        is_aliased: Some(Some(true))
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_1 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_1,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        let batch_2 = state.create_batch(time_now);
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_2.clone(),
+                operations: vec![BatchOperation::SetAssetProperties(
+                    SetAssetPropertiesArguments {
+                        key: "/2".to_string(),
+                        max_age: Some(Some(100)),
+                        headers: None,
+                        allow_raw_access: Some(Some(false)),
+                        is_aliased: Some(Some(true))
+                    }
+                ),],
+            })
+            .is_ok());
+        let evidence_2 = state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_2,
+                max_iterations: Some(3),
+            })
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(evidence_1, evidence_2);
+    }
+
+    #[test]
+    fn set_asset_properties_arguments_properties_affects_evidence() {
+        fn generate_unique_set_asset_properties() -> Vec<SetAssetPropertiesArguments> {
+            let mut result = vec![];
+            for max_age in &[None, Some(None), Some(Some(100))] {
+                for headers in &[
+                    None,
+                    Some(None),
+                    Some(Some(HashMap::from([(
+                        String::from("a"),
+                        String::from("b"),
+                    )]))),
+                ] {
+                    for allow_raw_access in &[None, Some(None), Some(Some(true)), Some(Some(false))]
+                    {
+                        for is_aliased in &[None, Some(None), Some(Some(true)), Some(Some(false))] {
+                            result.push(SetAssetPropertiesArguments {
+                                key: "/1".to_string(),
+                                max_age: *max_age,
+                                headers: headers.clone(),
+                                allow_raw_access: *allow_raw_access,
+                                is_aliased: *is_aliased,
+                            });
+                        }
+                    }
+                }
+            }
+            result
+        }
+
+        fn compute_evidence_for_set_asset_properties(
+            args: SetAssetPropertiesArguments,
+        ) -> serde_bytes::ByteBuf {
+            let mut state = State::default();
+            let time_now = 100_000_000_000;
+            let batch = state.create_batch(time_now);
+            assert!(state
+                .propose_commit_batch(CommitBatchArguments {
+                    batch_id: batch.clone(),
+                    operations: vec![BatchOperation::SetAssetProperties(args)],
+                })
+                .is_ok());
+
+            state
+                .compute_evidence(ComputeEvidenceArguments {
+                    batch_id: batch,
+                    max_iterations: Some(3),
+                })
+                .unwrap()
+                .unwrap()
+        }
+
+        let instances = generate_unique_set_asset_properties();
+        let evidences = instances
+            .into_iter()
+            .map(compute_evidence_for_set_asset_properties)
+            .collect::<Vec<_>>();
+
+        // Check if all evidences are different.
+        for i in 0..evidences.len() {
+            for j in (i + 1)..evidences.len() {
+                assert_ne!(evidences[i], evidences[j]);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod validate_commit_proposed_batch {
+    use super::*;
+    use crate::types::ComputeEvidenceArguments;
+
+    #[test]
+    fn batch_not_found() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
+            batch_id: 1.into(),
+            evidence: Default::default(),
+        }) {
+            Err(err) if err.contains("batch not found") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+
+        match state.commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id: 1.into(),
+                evidence: Default::default(),
+            },
+            time_now,
+        ) {
+            Err(err) if err.contains("batch not found") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn no_commit_batch_arguments() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        let batch_id = state.create_batch(time_now);
+
+        match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
+            batch_id: batch_id.clone(),
+            evidence: Default::default(),
+        }) {
+            Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+
+        match state.commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id,
+                evidence: Default::default(),
+            },
+            time_now,
+        ) {
+            Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn evidence_not_computed() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        let batch_id = state.create_batch(time_now);
+
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![],
+            })
+            .is_ok());
+
+        match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
+            batch_id: batch_id.clone(),
+            evidence: Default::default(),
+        }) {
+            Err(err) if err.contains("batch does not have computed evidence") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+        match state.commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id,
+                evidence: Default::default(),
+            },
+            time_now,
+        ) {
+            Err(err) if err.contains("batch does not have computed evidence") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn evidence_does_not_match() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        let batch_id = state.create_batch(time_now);
+
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![],
+            })
+            .is_ok());
+
+        assert!(matches!(
+            state.compute_evidence(ComputeEvidenceArguments {
+                batch_id: batch_id.clone(),
+                max_iterations: Some(1),
+            }),
+            Ok(Some(_))
+        ));
+
+        match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
+            batch_id: batch_id.clone(),
+            evidence: Default::default(),
+        }) {
+            Err(err) if err.contains("does not match presented evidence") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+
+        match state.commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id,
+                evidence: Default::default(),
+            },
+            time_now,
+        ) {
+            Err(err) if err.contains("does not match presented evidence") => (),
+            other => panic!("expected 'batch not found' error, got: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn all_good() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        let batch_id = state.create_batch(time_now);
+
+        assert!(state
+            .propose_commit_batch(CommitBatchArguments {
+                batch_id: batch_id.clone(),
+                operations: vec![],
+            })
+            .is_ok());
+
+        let compute_evidence_result = state.compute_evidence(ComputeEvidenceArguments {
+            batch_id: batch_id.clone(),
+            max_iterations: Some(1),
+        });
+        assert!(matches!(compute_evidence_result, Ok(Some(_))));
+
+        let evidence = if let Ok(Some(computed_evidence)) = compute_evidence_result {
+            computed_evidence
+        } else {
+            unreachable!()
+        };
+
+        assert_eq!(state.validate_commit_proposed_batch(
+            CommitProposedBatchArguments {
+                batch_id: batch_id.clone(),
+                evidence: evidence.clone(),
+            },
+        ).unwrap(), "commit proposed batch 0 with evidence e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
+        state
+            .commit_proposed_batch(
+                CommitProposedBatchArguments { batch_id, evidence },
+                time_now,
+            )
+            .unwrap();
     }
 }
