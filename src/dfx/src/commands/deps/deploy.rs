@@ -9,7 +9,7 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_controllers;
 use crate::NetworkOpt;
 
-use anyhow::{anyhow, Context, bail};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
@@ -32,9 +32,14 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
     let env = create_anonymous_agent_environment(env, opts.network.network)?;
 
     let logger = env.get_logger();
+    let pull_canisters_in_config = get_pull_canisters_in_config(&env)?;
+    if pull_canisters_in_config.is_empty() {
+        info!(logger, "There is no pull dependencies defined in dfx.json");
+        return Ok(());
+    }
+
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
     let pulled_json = load_pulled_json(&project_root)?;
-    let pull_canisters_in_config = get_pull_canisters_in_config(&env)?;
     validate_pulled(&pulled_json, &pull_canisters_in_config)?;
 
     let init_json = load_init_json(&project_root)?;

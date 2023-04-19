@@ -1,6 +1,7 @@
 use crate::lib::{environment::Environment, error::DfxResult};
 use dfx_core::{
     config::cache::get_cache_root,
+    fs::composite::ensure_parent_dir_exists,
     json::{load_json_file, save_json_file},
 };
 
@@ -180,9 +181,10 @@ pub fn load_pulled_json(project_root: &Path) -> DfxResult<PulledJson> {
     Ok(pulled_json)
 }
 
-#[context("Failed to write pulled.json")]
+#[context("Failed to save pulled.json")]
 pub fn save_pulled_json(project_root: &Path, pulled_json: &PulledJson) -> DfxResult {
     let pulled_json_path = get_pulled_json_path(project_root);
+    ensure_parent_dir_exists(&pulled_json_path)?;
     save_json_file(&pulled_json_path, pulled_json)?;
     Ok(())
 }
@@ -192,6 +194,7 @@ pub fn create_init_json_if_not_existed(project_root: &Path) -> DfxResult {
     let init_json_path = get_init_json_path(project_root);
     if !init_json_path.exists() {
         let init_json = InitJson::default();
+        ensure_parent_dir_exists(&init_json_path)?;
         save_json_file(&init_json_path, &init_json)?;
     }
     Ok(())
@@ -204,9 +207,10 @@ pub fn load_init_json(project_root: &Path) -> DfxResult<InitJson> {
     Ok(init_json)
 }
 
-#[context("Failed to write init.json")]
+#[context("Failed to save init.json")]
 pub fn save_init_json(project_root: &Path, init_json: &InitJson) -> DfxResult {
     let init_json_path = get_init_json_path(project_root);
+    ensure_parent_dir_exists(&init_json_path)?;
     save_json_file(&init_json_path, init_json)?;
     Ok(())
 }

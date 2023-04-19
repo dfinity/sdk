@@ -33,6 +33,12 @@ pub struct DepsPullOpts {}
 
 pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let logger = env.get_logger();
+    let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
+    if pull_canisters_in_config.is_empty() {
+        info!(logger, "There is no pull dependencies defined in dfx.json");
+        return Ok(());
+    }
+
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
 
     fetch_root_key_if_needed(env).await?;
@@ -40,8 +46,6 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-
-    let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
 
     let mut canisters_to_resolve: VecDeque<Principal> =
         pull_canisters_in_config.values().cloned().collect();

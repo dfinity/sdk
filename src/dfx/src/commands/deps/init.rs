@@ -33,9 +33,13 @@ pub struct DepsInitOpts {
 
 pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
     let logger = env.get_logger();
-    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
-
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
+    if pull_canisters_in_config.is_empty() {
+        info!(logger, "There is no pull dependencies defined in dfx.json");
+        return Ok(());
+    }
+
+    let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
     let pulled_json = load_pulled_json(&project_root)?;
     validate_pulled(&pulled_json, &pull_canisters_in_config)?;
 

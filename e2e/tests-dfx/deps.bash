@@ -419,3 +419,16 @@ Installing canister: $CANISTER_ID_A"
     dfx canister delete app
     assert_command dfx deploy # only deploy app canister
 }
+
+@test "dfx deps do nothing in a project has no pull dependencies" {
+    dfx_new empty
+
+    assert_command dfx deps pull
+    assert_match "There is no pull dependencies defined in dfx.json"
+    assert_command dfx deps init
+    assert_match "There is no pull dependencies defined in dfx.json"
+    assert_command dfx deps deploy
+    assert_match "There is no pull dependencies defined in dfx.json"
+    
+    assert_directory_not_exists "deps"
+}
