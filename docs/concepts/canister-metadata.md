@@ -93,17 +93,17 @@ When developer declares a canister to be `pull_ready`, following metadata sectio
 
 ### `dfx:wasm_url`
 
-A URL to download canister Wasm module which will be deployed locally.
+A URL to download canister wasm module which will be deployed locally.
 
 This section must be set explicitly.
 
-### `dfx:wasm_hash`
+### `dfx:wasm_hash` (optional)
 
-SHA256 hash of the Wasm module to be downloaded from `dfx:wasm_url`.
+SHA256 hash of the wasm module to be downloaded from `dfx:wasm_url`.
 
-This section is optional. It is required when the Wasm module to be downloaded is different from the canister on chain.
+This section is optional. It is required when the wasm module to be downloaded is different from the canister on chain.
 
-When this metadata is provided, it will be used to verify the integrity of the downloaded Wasm module.
+When this metadata is provided, it will be used to verify the integrity of the downloaded wasm module.
 
 When it is not provided, the hash of the on chain canister will be used.
 
@@ -111,14 +111,23 @@ When it is not provided, the hash of the on chain canister will be used.
 
 A list of `name:ID` pairs of direct dependencies separated by semicolon.
 
-This section must not be set in `dfx.json`. `dfx` will generate the content.
+So far, this metadata has to be set explicitly. `dfx` will be able to generate the content in the future.
 
-### `dfx:init`
+### `dfx:init` (optional)
 
 A message to guide consumers how to initialize the canister.
 
-This section must be set explicitly.
+This section will be extracted from the downloaded wasm.
 
+### `candid:service` and `candid:args`
+
+Both candid sections will be extracted from the fownloaded wasm.
+
+`dfx` takes the full candid file and separate it into these two sections and save them as metadata.
+
+`candid:service` enables dependents to import this pulled dependency.
+
+`candid:args` helps to deploy this pulled dependency.
 
 ## A more complex example
 
