@@ -6,7 +6,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::NetworkOpt;
 
-use anyhow::bail;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
@@ -22,7 +21,6 @@ pub struct GenerateOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let TODO_replace_with_hardcoded_cid = false;
     let env = create_anonymous_agent_environment(env, opts.network.network)?;
     let log = env.get_logger();
 
@@ -50,16 +48,11 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
 
     let canister_pool_load = CanisterPool::load(&env, false, &canisters_to_load)?;
 
-    let store = env.get_canister_id_store()?;
-
     // If generate for motoko canister, build first
     let mut build_before_generate = Vec::new();
     let mut build_dependees = Vec::new();
     for canister in canister_pool_load.get_canister_list() {
         let canister_name = canister.get_name();
-        if TODO_replace_with_hardcoded_cid && store.get(&canister_name).is_err() {
-            bail!(format!("To hard-code canister IDs into the generated files (which happens when using --network) the canister IDs have to be known. Please create canister '{}' before generating.", &canister_name));
-        }
         if let Some(info) = canister_pool_load.get_first_canister_with_name(canister_name) {
             if info.get_info().is_motoko() {
                 build_before_generate.push(canister_name.to_string());
