@@ -4,14 +4,14 @@
             "type": "motoko",
             "main": "src/main.mo",
             "dependencies": [
-                "dep1", "dep2"
+                "dep_b", "dep_c"
             ]
         },
-        "dep1": {
+        "dep_b": {
             "type": "pull",
             "id": "yhgn4-myaaa-aaaaa-aabta-cai"
         },
-        "dep2": {
+        "dep_c": {
             "type": "pull",
             "id": "yahli-baaaa-aaaaa-aabtq-cai"
         }

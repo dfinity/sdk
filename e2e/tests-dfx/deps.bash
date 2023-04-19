@@ -34,10 +34,6 @@ setup_onchain() {
     ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
     ic-wasm b/b.wasm -o b/b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
     ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
-    # moc omit init types in candid:service. So here we have to overwrite it with the full candid
-    ic-wasm a/a.wasm -o a/a.wasm metadata "candid:service" -d "$(cat a/a.did)" -v public
-    ic-wasm b/b.wasm -o b/b.wasm metadata "candid:service" -d "$(cat b/b.did)" -v public
-    ic-wasm c/c.wasm -o c/c.wasm metadata "candid:service" -d "$(cat c/c.did)" -v public
 
     cd ../../../
     dfx canister install a --argument 1
@@ -80,7 +76,6 @@ setup_onchain() {
     # When ran with ic-ref, got following error:
     # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-    # system-wide local replica
     dfx_start
 
     install_asset deps
@@ -175,7 +170,8 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/service.did"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/service.did"
-    # system-wide local replica
+
+    # start a "mainnet" replica which host the onchain canisters
     dfx_start
 
     setup_onchain
@@ -194,10 +190,10 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     cd deps
     assert_file_exists "pulled.json"
-    assert_file_exists "dep1.did"
-    assert_file_exists "dep2.did"
-    assert_eq "$CANISTER_ID_B" "$(jq -r '.named.dep1' pulled.json)"
-    assert_eq "$CANISTER_ID_C" "$(jq -r '.named.dep2' pulled.json)"
+    assert_file_exists "dep_b.did"
+    assert_file_exists "dep_c.did"
+    assert_eq "$CANISTER_ID_B" "$(jq -r '.named.dep_b' pulled.json)"
+    assert_eq "$CANISTER_ID_C" "$(jq -r '.named.dep_c' pulled.json)"
     assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
     assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".dfx_init' pulled.json
     assert_match "Nat"
@@ -233,7 +229,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
-    # system-wide local replica
+    # start a "mainnet" replica which host the onchain canisters
     dfx_start
 
     install_asset deps
@@ -281,7 +277,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
-    # system-wide local replica
+    # start a "mainnet" replica which host the onchain canisters
     dfx_start
 
     setup_onchain
@@ -289,6 +285,10 @@ Failed to download wasm from url: http://example.com/c.wasm."
     # pull canisters in app project
     cd app
     assert_command dfx deps pull
+
+    # stop the "mainnet" replica
+    dfx_stop
+
     assert_command dfx deps init
     assert_contains "Following canister(s) require init argument, please run \`dfx deps init <PRINCIPAL>\` to set them individually:"
     assert_contains "$CANISTER_ID_A"
@@ -316,7 +316,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
-    # system-wide local replica
+    # start a "mainnet" replica which host the onchain canisters
     dfx_start
 
     setup_onchain
@@ -324,6 +324,17 @@ Failed to download wasm from url: http://example.com/c.wasm."
     # pull canisters in app project
     cd app
     assert_command dfx deps pull
+
+    # delete onchain canisters so that the replica has no canisters as a clean local replica
+    cd ../onchain
+    dfx canister stop a
+    dfx canister delete a
+    dfx canister stop b
+    dfx canister delete b
+    dfx canister stop c
+    dfx canister delete c
+
+    cd ../app
     assert_command dfx deps init # b is set here
     assert_command dfx deps init "$CANISTER_ID_A" --argument 11
     assert_command dfx deps init "$CANISTER_ID_C" --argument 33
@@ -338,7 +349,7 @@ Installing canister: $CANISTER_ID_B"
 Installing canister: $CANISTER_ID_C"
 
     # by name in dfx.json
-    assert_command dfx deps deploy dep1
+    assert_command dfx deps deploy dep_b
     assert_contains "Creating canister: $CANISTER_ID_B
 Installing canister: $CANISTER_ID_B"
 
@@ -365,7 +376,7 @@ Installing canister: $CANISTER_ID_A"
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
-    # system-wide local replica
+    # start a "mainnet" replica which host the onchain canisters
     dfx_start
 
     setup_onchain
@@ -373,13 +384,24 @@ Installing canister: $CANISTER_ID_A"
     # pull canisters in app project
     cd app
     assert_command dfx deps pull
+
+    # delete onchain canisters so that the replica has no canisters as a clean local replica
+    cd ../onchain
+    dfx canister stop a
+    dfx canister delete a
+    dfx canister stop b
+    dfx canister delete b
+    dfx canister stop c
+    dfx canister delete c
+
+    cd ../app
     assert_command dfx deps init # b is set here
     assert_command dfx deps init "$CANISTER_ID_A" --argument 11
     assert_command dfx deps init "$CANISTER_ID_C" --argument 33
     assert_command dfx deps deploy
     
     # by name in dfx.json
-    assert_command dfx deps delete dep1
+    assert_command dfx deps delete dep_b
     assert_contains "Deleting canister: $CANISTER_ID_B"
 
     # by canister id
@@ -390,4 +412,60 @@ Installing canister: $CANISTER_ID_A"
     CANISTER_ID_OTHER="rwlgt-iiaaa-aaaaa-aaaaa-cai"
     assert_command_fail dfx deps delete "$CANISTER_ID_OTHER"
     assert_contains "Canister $CANISTER_ID_OTHER is not a pulled dependency."
+}
+
+@test "dfx deps pulled dependencies works with app canister" {
+    # When ran with ic-ref, got following error:
+    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+
+    use_test_specific_cache_root # dfx deps pull will download files to cache
+
+    # start a "mainnet" replica which host the onchain canisters
+    dfx_start
+
+    setup_onchain
+
+    # pull canisters in app project
+    cd app
+    assert_command dfx deps pull
+
+    # delete onchain canisters so that the replica has no canisters as a clean local replica
+    cd ../onchain
+    dfx canister stop a
+    dfx canister delete a
+    dfx canister stop b
+    dfx canister delete b
+    dfx canister stop c
+    dfx canister delete c
+
+    cd ../app
+    assert_command_fail dfx canister create dep_b
+    assert_contains "dep_b is a pull dependency. Please deploy it using \`dfx deps deploy dep_b\`"
+    assert_command dfx canister create app
+
+    assert_command dfx canister create --all
+    assert_contains "There are pull dependencies defined in dfx.json. Please deploy them using \`dfx deps deploy\`."
+
+    assert_command dfx build app
+    assert_command dfx canister install app
+
+    # pulled dependency dep_b hasn't been deployed on local replica
+    assert_command_fail dfx canister call app get_b
+    assert_contains "Canister $CANISTER_ID_B not found" 
+
+    assert_command dfx deps init
+    assert_command dfx deps init "$CANISTER_ID_A" --argument 11
+    assert_command dfx deps init "$CANISTER_ID_C" --argument 33
+    assert_command dfx deps deploy
+
+    assert_command dfx canister call app get_b
+    assert_match "(2 : nat)"
+    assert_command dfx canister call app get_c
+    assert_match "(33 : nat)" # corresponding to "--argument 33" above
+
+    # start a clean local replica
+    dfx canister stop app
+    dfx canister delete app
+    assert_command dfx deploy # only deploy app canister
 }
