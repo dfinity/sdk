@@ -23,19 +23,19 @@ setup_onchain() {
     mkdir www
     start_webserver --directory www
 
-    cd onchain
+    cd onchain || exit
 
     dfx canister create a --specified-id "$CANISTER_ID_A"
     dfx canister create b --specified-id "$CANISTER_ID_B"
     dfx canister create c --specified-id "$CANISTER_ID_C"
     dfx build
 
-    cd .dfx/local/canisters
+    cd .dfx/local/canisters || exit
     ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
     ic-wasm b/b.wasm -o b/b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
     ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
 
-    cd ../../../
+    cd ../../../ || exit
     dfx canister install a --argument 1
     dfx canister install b
     dfx canister install c --argument 3
@@ -45,7 +45,7 @@ setup_onchain() {
     cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
     cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
-    cd ..
+    cd .. || exit
 }
 
 @test "dfx build can write required metadata for pull" {
