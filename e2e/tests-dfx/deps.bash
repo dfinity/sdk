@@ -347,11 +347,11 @@ Installing canister: $CANISTER_ID_B"
 Installing canister: $CANISTER_ID_A"
 
     # deployed pulleds dependencies can be stopped and deleted
-    assert_command dfx canister stop dep_b
-    assert_command dfx canister delete dep_b
+    assert_command dfx canister stop dep_b --identity anonymous
+    assert_command dfx canister delete dep_b --identity anonymous
 
-    assert_command dfx canister stop $CANISTER_ID_A
-    assert_command dfx canister delete $CANISTER_ID_A
+    assert_command dfx canister stop $CANISTER_ID_A --identity anonymous
+    assert_command dfx canister delete $CANISTER_ID_A --identity anonymous
 
     # error cases
     rm deps/init.json

@@ -37,7 +37,7 @@ pub enum CanisterIdStoreError {
     },
 
     #[error(transparent)]
-    PullIdsError(#[from] DfxConfigError),
+    DfxConfigError(#[from] DfxConfigError),
 }
 
 impl From<FsError> for CanisterIdStoreError {
