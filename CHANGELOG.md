@@ -46,6 +46,9 @@ Canisters communicating with `ic0.app` will continue to function nominally.
 ### fix: `dfx generate` no longer requires canisters to have a canister ID
 Previously, canisters required that the canister was created before `dfx generate` could be called.
 
+As a result, the `--network` parameter does not have an impact on the result of `dfx generate` anymore.
+This means that `dfx generate` now also generates type declarations for remote canisters.
+
 ### fix: Make `build` field optional in dfx.json
 
 The `build` field in custom canisters was already optional in code, but this fixes it in the schema.
