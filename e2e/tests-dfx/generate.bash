@@ -138,3 +138,13 @@ teardown() {
     dfx_new hello
     assert_command dfx generate
 }
+
+@test "dfx generate --network is still valid" {
+    # The option has no effect, but is still accepted to not break existing scripts
+    dfx_new hello
+    assert_command dfx generate --network local
+
+    # Option is not advertised anymore
+    assert_command dfx generate --help
+    assert_not_contains "--network"
+}
