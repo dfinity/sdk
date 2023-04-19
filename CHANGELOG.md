@@ -41,6 +41,8 @@ Canisters communicating with `ic0.app` will continue to function nominally.
 
 ### feat: --no-asset-upgrade
 
+### feat: confirmation dialogues are no longer case sensitive and accept 'y' in addition to 'yes'
+
 ### fix: `dfx generate` no longer requires canisters to have a canister ID
 Previously, canisters required that the canister was created before `dfx generate` could be called.
 
