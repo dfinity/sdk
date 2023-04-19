@@ -295,6 +295,7 @@ async fn fetch_metatdata(
     {
         Ok(data) => Ok(Some(data)),
         Err(agent_error) => match agent_error {
+            // replica returns such error
             AgentError::HttpError(ref e) => {
                 let content = String::from_utf8(e.content.clone())?;
                 if content.starts_with("Custom section") {
@@ -303,7 +304,11 @@ async fn fetch_metatdata(
                     bail!(agent_error);
                 }
             }
-            _ => bail!(agent_error),
+            // ic-ref returns such error when the canister doesn't define the metadata
+            AgentError::LookupPathAbsent(_) => Ok(None),
+            _ => {
+                bail!(agent_error)
+            }
         },
     }
 }

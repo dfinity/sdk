@@ -73,8 +73,8 @@ setup_onchain() {
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
-    # When ran with ic-ref, got following error:
-    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    # ic-ref has different behavior than the replica:
+    #   it doesn't differ whether the canister not exist or the metadata not exist
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_start
 
@@ -157,10 +157,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
 }
 
 @test "dfx deps pull can download wasm and candids to shared cache and generate pulled.json" {
-    # When ran with ic-ref, got following error:
-    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
     PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
@@ -223,10 +219,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
 
 @test "dfx deps pull can check hash when dfx:wasm_hash specified" {
-    # When ran with ic-ref, got following error:
-    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
     # start a "mainnet" replica which host the onchain canisters
@@ -271,10 +263,6 @@ Failed to download wasm from url: http://example.com/c.wasm."
 }
 
 @test "dfx deps init works" {
-    # When ran with ic-ref, got following error:
-    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
     # start a "mainnet" replica which host the onchain canisters
@@ -310,8 +298,8 @@ Failed to download wasm from url: http://example.com/c.wasm."
 }
 
 @test "dfx deps deploy works" {
-    # When ran with ic-ref, got following error:
-    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    # ic-ref have a different behavior than the repilca:
+    #    once a canister has been deleted, it cannot be created again.
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
@@ -370,8 +358,8 @@ Installing canister: $CANISTER_ID_A"
 }
 
 @test "dfx deps delete works" {
-    # When ran with ic-ref, got following error:
-    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    # ic-ref have a different behavior than the repilca:
+    #    once a canister has been deleted, it cannot be created again.
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
@@ -415,8 +403,8 @@ Installing canister: $CANISTER_ID_A"
 }
 
 @test "dfx deps pulled dependencies works with app canister" {
-    # When ran with ic-ref, got following error:
-    # Certificate is not authorized to respond to queries for this canister. While developing: Did you forget to set effective_canister_id?
+    # ic-ref have a different behavior than the repilca:
+    #    once a canister has been deleted, it cannot be created again.
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     use_test_specific_cache_root # dfx deps pull will download files to cache
