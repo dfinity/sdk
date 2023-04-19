@@ -21,5 +21,8 @@ target/
 # Node Modules
 **/node_modules/
 
+# Environment Variables
+.env
+
 # Backup files
 *.bak
