@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{bail, Context};
+use anyhow::bail;
 use candid::Principal;
 use fn_error_context::context;
 use serde::{Deserialize, Serialize};

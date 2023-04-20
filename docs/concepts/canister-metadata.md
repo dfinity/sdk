@@ -80,8 +80,6 @@ A string containing the wasm section content directly. Conflicts with "path".
 
 ## Canister Metadata Standard
 
-This section describes each metadata field (_in alphabetical order_)
-
 Contents should be valid UTF-8 text.
 
 ### `candid:args`
@@ -122,21 +120,21 @@ A URL to download canister wasm module which will be deployed locally.
 
 ## Requirements for "pull-ready" canisters
 
-The "production" canister running on the mainnet should has following public metadata:
+A "production" canister running on the mainnet should have the following public metadata:
 
 - `dfx:deps`
 - `dfx:wasm_url`
 - `dfx:wasm_hash` (optional)
 
-The canister wasm downloaded from `dfx:wasm_url` should has following metadata (public or private):
+A canister wasm downloaded from `dfx:wasm_url` should have the following metadata (public or private):
 
 - `candid:service`
 - `candid:args`
 - `dfx:init`
 
-All the metadata sections with `dfx:` prefix must be set in `dfx.json` explicitly.
+All the metadata sections with the `dfx:` prefix must be set in `dfx.json` explicitly.
 
-Those two `candid:` metadata sections are handled by `dfx` during canister building.
+The two `candid:` metadata sections are handled by `dfx` during canister building.
 
 ## A more complex example
 
