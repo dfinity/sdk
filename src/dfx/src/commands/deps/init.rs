@@ -70,7 +70,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
             match (arguments, types.is_empty()) {
                 (Some(arg_str), false) => {
                     if arg_type == Some("raw") {
-                        let bytes = hex::decode(arguments.unwrap_or(""))
+                        let bytes = hex::decode(arg_str)
                             .map_err(|e| anyhow!("Argument is not a valid hex string: {}", e))?;
                         init_json.set_init_arg(canister_id, None, &bytes);
                     } else {

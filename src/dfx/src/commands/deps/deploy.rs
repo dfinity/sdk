@@ -89,7 +89,7 @@ async fn try_create_canister(agent: &Agent, logger: &Logger, canister_id: &Princ
     match read_state_tree_canister_controllers(agent, *canister_id).await? {
         Some(cs) if cs.len() == 1 && cs[0] == Principal::anonymous() => Ok(()),
         Some(_) => bail!("Canister {canister_id} has been created before and its controller is not anonymous identity. Please stop and delete it and then deploy again."),
-        None => bail!("Canister {canister_id} has no controllers."),
+        None => bail!("Failed to create canister {canister_id}"),
     }
 }
 

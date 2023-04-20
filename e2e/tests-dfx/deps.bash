@@ -285,6 +285,10 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_command dfx deps init "$CANISTER_ID_A" --argument 11
     assert_command dfx deps init "$CANISTER_ID_C" --argument 33
 
+    # The argument is the hex string of '("abc")' which doesn't type check
+    # However, passing raw argument will bypass the type check so following command succeed
+    assert_command dfx deps init "$CANISTER_ID_A" --argument "4449444c00017103616263" --argument-type raw
+
     # error cases
     assert_command_fail dfx deps init "$CANISTER_ID_A"
     assert_contains "Canister $CANISTER_ID_A requires an init argument"
@@ -354,10 +358,17 @@ Installing canister: $CANISTER_ID_A"
     assert_command dfx canister delete $CANISTER_ID_A --identity anonymous
 
     # error cases
+    ## set wrong init argument
+    assert_command dfx deps init "$CANISTER_ID_A" --argument "4449444c00017103616263" --argument-type raw
+    assert_command_fail dfx deps deploy
+    assert_contains "Failed to install canister $CANISTER_ID_A"
+
+    ## no init.json
     rm deps/init.json
     assert_command_fail dfx deps deploy
     assert_contains "Failed to read init.json"
 
+    ## forgot to set init argument for some dependencies
     assert_command dfx deps init # b is set here
     assert_command_fail dfx deps deploy "$CANISTER_ID_A"
     assert_contains "Failed to create and install canister $CANISTER_ID_A"
