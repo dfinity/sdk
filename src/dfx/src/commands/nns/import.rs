@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
-use crate::lib::nns::install_nns::canisters::NNS_CORE;
+use crate::lib::nns::install_nns::canisters::{NNS_CORE, NNS_FRONTEND};
 use crate::lib::project::import::{
     get_canisters_json_object, import_canister_definitions, set_remote_canister_ids,
     ImportNetworkMapping,
@@ -61,14 +61,20 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
 /// The "local" entries at the remote URL are often misssing or do not match our NNS installation.
 /// Always set the local values per our local NNS deployment.  We have all the information locally.
 fn set_local_nns_canister_ids(logger: &Logger, config: &mut Config) -> DfxResult {
-    let local_canister_ids: CanisterIds = NNS_CORE
-        .iter()
-        .map(|canister| {
-            (
-                canister.canister_name.to_string(),
-                BTreeMap::from([("local".to_string(), canister.canister_id.to_string())]),
-            )
-        })
+    let nns_init_canister_ids = NNS_CORE.iter().map(|canister| {
+        (
+            canister.canister_name.to_string(),
+            BTreeMap::from([("local".to_string(), canister.canister_id.to_string())]),
+        )
+    });
+    let nns_frontend_canister_ids = NNS_FRONTEND.iter().map(|canister| {
+        (
+            canister.canister_name.to_string(),
+            BTreeMap::from([("local".to_string(), canister.canister_id.to_string())]),
+        )
+    });
+    let local_canister_ids: CanisterIds = nns_init_canister_ids
+        .chain(nns_frontend_canister_ids)
         .collect();
     let local_mappings = [ImportNetworkMapping {
         network_name_in_this_project: "local".to_string(),
