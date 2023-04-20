@@ -10,8 +10,20 @@ pub type AssetHashes = NestedTree<NestedTreeKey, Vec<u8>>;
 pub struct CertificateExpression {
     pub expression: String,
     /// Hash of expression
-    pub hash: Vec<u8>,
+    pub hash: [u8; 32],
 }
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct RequestHash(Option<[u8; 32]>);
+
+impl Default for RequestHash {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
+#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+pub struct ResponseHash(pub [u8; 32]);
 
 /// AssetKey that has been split into segments.
 /// E.g. `["foo", "index.html"]`
@@ -62,6 +74,29 @@ impl AssetPath {
         hash_path.insert(0, "http_expr".into());
         HashTreePath(hash_path)
     }
+
+    pub fn hash_tree_path(
+        &self,
+        certificate_expression: &CertificateExpression,
+        RequestHash(maybe_request_hash): &RequestHash,
+        ResponseHash(response_hash): &ResponseHash,
+    ) -> HashTreePath {
+        let mut hash_path: Vec<NestedTreeKey> = Vec::new();
+        hash_path.push("http_expr".into());
+        hash_path = self.0.iter().fold(hash_path, |mut path, s| {
+            path.push(s.as_str().into());
+            path
+        });
+        hash_path.push("<$>".into()); // asset path terminator
+        hash_path.push(certificate_expression.hash.into());
+        hash_path.push(if let Some(request_hash) = maybe_request_hash {
+            request_hash.clone().into()
+        } else {
+            "".into() // no request certification - use empty node
+        });
+        hash_path.push(NestedTreeKey::Hash(response_hash.clone()));
+        HashTreePath(hash_path)
+    }
 }
 
 impl From<Vec<NestedTreeKey>> for HashTreePath {
@@ -82,6 +117,7 @@ impl HashTreePath {
             .map(|key| match key {
                 NestedTreeKey::String(k) => k.clone(),
                 NestedTreeKey::Bytes(b) => hex::encode(b),
+                NestedTreeKey::Hash(h) => hex::encode(h),
             })
             .collect::<Vec<String>>();
         let cbor = serialize_cbor_self_describing(&strings);
@@ -93,6 +129,7 @@ impl HashTreePath {
 pub enum NestedTreeKey {
     String(String),
     Bytes(Vec<u8>),
+    Hash([u8; 32]),
 }
 
 impl AsRef<[u8]> for NestedTreeKey {
@@ -100,6 +137,7 @@ impl AsRef<[u8]> for NestedTreeKey {
         match self {
             NestedTreeKey::String(s) => s.as_bytes(),
             NestedTreeKey::Bytes(b) => b.as_slice(),
+            NestedTreeKey::Hash(h) => h,
         }
     }
 }
@@ -113,6 +151,12 @@ impl From<&str> for NestedTreeKey {
 impl From<&[u8]> for NestedTreeKey {
     fn from(slice: &[u8]) -> Self {
         Self::Bytes(slice.to_vec())
+    }
+}
+
+impl From<[u8; 32]> for NestedTreeKey {
+    fn from(hash: [u8; 32]) -> Self {
+        Self::Hash(hash)
     }
 }
 

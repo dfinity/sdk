@@ -1,8 +1,9 @@
-use crate::certification_types::CertificateExpression;
+use crate::certification_types::{CertificateExpression, ResponseHash};
 use crate::rc_bytes::RcBytes;
 use crate::state_machine::{encoding_certification_order, Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
 use ic_certified_map::{Hash, HashTree};
+use ic_response_verification::hash::{representation_independent_hash, Value};
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
@@ -293,13 +294,37 @@ impl HttpResponse {
     }
 }
 
+pub fn response_hash(
+    certified_headers: &[(String, Value)],
+    status_code: u16,
+    body_hash: &[u8; 32],
+) -> ResponseHash {
+    // certification v2 spec:
+    // Response hash is the hash of the concatenation of
+    //   - representation-independent hash of headers
+    //   - hash of the response body
+    //
+    // The representation-independent hash of headers consist of
+    //    - all certified headers (here all headers), plus
+    //    - synthetic header `:ic-cert-status` with value <HTTP status code of response>
+
+    let mut headers = Vec::from(certified_headers);
+    headers.push((
+        ":ic-cert-status".to_string(),
+        Value::Number(status_code.into()),
+    ));
+    let header_hash = representation_independent_hash(&headers);
+    let hash: [u8; 32] = sha2::Sha256::digest(&[header_hash.as_ref(), body_hash].concat()).into();
+    ResponseHash(hash)
+}
+
 pub fn build_ic_certificate_expression_from_headers_and_encoding(
-    header_names: &[&str],
+    header_names: &[HeaderField],
     encoding_name: &str,
 ) -> CertificateExpression {
     let mut headers = header_names
         .iter()
-        .map(|h| format!(", \"{}\"", h))
+        .map(|(h, _)| format!(", \"{}\"", h))
         .collect::<Vec<_>>()
         .join("");
     if encoding_name != "identity" {
@@ -307,9 +332,7 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding(
     }
 
     let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
-    let hash = sha2::Sha256::digest(expression.as_bytes())
-        .into_iter()
-        .collect();
+    let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
     CertificateExpression { expression, hash }
 }
 

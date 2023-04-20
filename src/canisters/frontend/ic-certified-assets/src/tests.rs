@@ -1454,7 +1454,12 @@ mod certificate_expression {
 
     #[test]
     fn ic_certificate_expression_value_from_headers() {
-        let h = ["a", "b", "c"].to_vec();
+        let h = [
+            ("a".into(), "".into()),
+            ("b".into(), "".into()),
+            ("c".into(), "".into()),
+        ]
+        .to_vec();
         let c = build_ic_certificate_expression_from_headers_and_encoding(&h, "not identity");
         assert_eq!(
             c.expression,

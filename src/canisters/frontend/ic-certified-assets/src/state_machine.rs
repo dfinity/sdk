@@ -6,13 +6,13 @@
 
 use crate::{
     certification_types::{
-        AssetHashes, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,
+        AssetHashes, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, ResponseHash,
     },
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
     http::{
-        build_ic_certificate_expression_from_headers_and_encoding, witness_to_header_v1,
-        witness_to_header_v2, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
-        StreamingCallbackToken,
+        build_ic_certificate_expression_from_headers_and_encoding, response_hash,
+        witness_to_header_v1, witness_to_header_v2, HeaderField, HttpRequest, HttpResponse,
+        StreamingCallbackHttpResponse, StreamingCallbackToken,
     },
     rc_bytes::RcBytes,
     tree::merge_hash_trees,
@@ -21,7 +21,7 @@ use crate::{
 };
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash};
-use ic_response_verification::hash::{representation_independent_hash, Value};
+use ic_response_verification::hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -125,29 +125,6 @@ impl AssetEncoding {
         content_type: &str,
         encoding_name: &str,
     ) -> HashMap<u16, [u8; 32]> {
-        fn compute_response_hash(
-            base_headers: &[(String, Value)],
-            status_code: u16,
-            body_hash: &[u8; 32],
-        ) -> [u8; 32] {
-            // certification v2 spec:
-            // Response hash is the hash of the concatenation of
-            //   - representation-independent hash of headers
-            //   - hash of the response body
-            //
-            // The representation-independent hash of headers consist of
-            //    - all certified headers (here all headers), plus
-            //    - synthetic header `:ic-cert-status` with value <HTTP status code of response>
-
-            let mut headers = Vec::from(base_headers);
-            headers.push((
-                ":ic-cert-status".to_string(),
-                Value::Number(status_code.into()),
-            ));
-            let header_hash = representation_independent_hash(&headers);
-            sha2::Sha256::digest(&[header_hash.as_ref(), body_hash].concat()).into()
-        }
-
         // Collect all user-defined headers
         let base_headers: Vec<(String, Value)> = build_headers(
             headers.as_ref().map(|h| h.iter()),
@@ -163,11 +140,11 @@ impl AssetEncoding {
         .collect();
 
         // HTTP 200
-        let response_hash_200 = compute_response_hash(&base_headers, 200, &self.sha256);
+        let ResponseHash(response_hash_200) = response_hash(&base_headers, 200, &self.sha256);
 
         // HTTP 304
         let empty_body_hash: [u8; 32] = sha2::Sha256::digest([]).into();
-        let response_hash_304 = compute_response_hash(&base_headers, 304, &empty_body_hash);
+        let ResponseHash(response_hash_304) = response_hash(&base_headers, 304, &empty_body_hash);
 
         let mut response_hashes = HashMap::new();
         response_hashes.insert(200, response_hash_200);
@@ -273,21 +250,21 @@ impl Asset {
 
     fn update_ic_certificate_expressions(&mut self) {
         // gather all headers
-        let mut header_names = vec![];
+        let mut headers: Vec<HeaderField> = vec![];
 
         if self.max_age.is_some() {
-            header_names.push("cache-control");
+            headers.push(("cache-control".to_string(), "".to_string()));
         }
         if let Some(custom_headers) = &self.headers {
-            for (k, _) in custom_headers.iter() {
-                header_names.push(k);
+            for h in custom_headers.iter() {
+                headers.push((h.0.into(), h.1.into()));
             }
         }
 
         // update
         for (enc_name, encoding) in self.encodings.iter_mut() {
             encoding.certificate_expression = Some(
-                build_ic_certificate_expression_from_headers_and_encoding(&header_names, enc_name),
+                build_ic_certificate_expression_from_headers_and_encoding(&headers, enc_name),
             );
         }
     }
