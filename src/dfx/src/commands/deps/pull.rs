@@ -189,7 +189,7 @@ async fn download_canister_files(
         if hash_cache.as_slice() == hash_on_chain {
             cache_hit = true;
             trace!(logger, "The canister wasm was found in the cache.");
-            let wasm_url_str = std::fs::read_to_string(&wasm_url_txt_path)
+            let wasm_url_str = dfx_core::fs::read_to_string(&wasm_url_txt_path)
                 .with_context(|| format!("Failed to read {:?}", &wasm_url_txt_path))?;
             pulled_canister.wasm_url = Some(wasm_url_str);
         }
@@ -229,7 +229,7 @@ download: {}",
         write_to_tempfile_then_rename(&content, &wasm_path)?;
     }
     // get `candid:service` from downloaded wasm
-    let wasm = std::fs::read(&wasm_path)
+    let wasm = dfx_core::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read wasm from {:?}", &wasm_path))?;
     let candid_service = get_metadata(&wasm, CANDID_SERVICE).with_context(|| {
         format!(
@@ -305,7 +305,7 @@ fn write_to_tempfile_then_rename(content: &[u8], path: &Path) -> DfxResult {
     ensure_dir_exists(dir)?;
     let mut f = tempfile::NamedTempFile::new_in(dir)?;
     f.write_all(content)?;
-    std::fs::rename(f.path(), path)?;
+    dfx_core::fs::rename(f.path(), path)?;
     Ok(())
 }
 
@@ -318,7 +318,7 @@ pub fn copy_service_candid_to_project(
     let service_candid_path = get_service_candid_path(canister_id)?;
     let path_in_project = get_candid_path_in_project(project_root, name);
     ensure_parent_dir_exists(&path_in_project)?;
-    std::fs::copy(&service_candid_path, &path_in_project)?;
+    dfx_core::fs::copy(&service_candid_path, &path_in_project)?;
     Ok(())
 }
 

@@ -146,8 +146,7 @@ pub fn validate_pulled(
 
     for (canister_id, pulled_canister) in &pulled_json.canisters {
         let pulled_canister_path = get_pulled_wasm_path(*canister_id)?;
-        let bytes = std::fs::read(&pulled_canister_path)
-            .context(format!("Failed to read {:?}", &pulled_canister_path))?;
+        let bytes = dfx_core::fs::read(&pulled_canister_path)?;
         let hash_cache = Sha256::digest(bytes);
         let hash_in_json = hex::decode(&pulled_canister.wasm_hash)?;
         if hash_cache.as_slice() != hash_in_json {
