@@ -151,7 +151,10 @@ impl CanisterBuilder for CustomBuilder {
         // Custom canister may have WASM gzipped
         if is_wasm_format(&wasm)? {
             if let Some(level) = optimize {
-                info!(self.logger, "Optimize and shrink WASM module.");
+                info!(
+                    self.logger,
+                    "Optimize and shrink WASM module at level {}", level
+                );
                 super::optimize_wasm(&wasm, level)?;
             } else if shrink {
                 info!(self.logger, "Shrink WASM module size.");

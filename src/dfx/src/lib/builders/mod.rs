@@ -527,13 +527,8 @@ fn optimize_wasm(wasm_path: impl AsRef<Path>, level: &WasmOptLevel) -> DfxResult
     let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
     let mut module =
         ic_wasm::utils::parse_wasm(&wasm, true).context("Could not parse the WASM module.")?;
-    match level {
-        // O3 and Oz empirically give best cycle savings and code size savings respectively
-        WasmOptLevel::Cycles => ic_wasm::shrink::shrink_with_wasm_opt(&mut module, "O3"),
-        WasmOptLevel::Size => ic_wasm::shrink::shrink_with_wasm_opt(&mut module, "Oz"),
-        _ => ic_wasm::shrink::shrink_with_wasm_opt(&mut module, &level.to_string()),
-    }
-    .context("Could not optimize the WASM module.")?;
+    ic_wasm::shrink::shrink_with_wasm_opt(&mut module, &level.to_string())
+        .context("Could not optimize the WASM module.")?;
 
     module
         .emit_wasm_file(wasm_path)

@@ -381,7 +381,7 @@
         },
         "optimize": {
           "title": "Optimize Canister WASM",
-          "description": "Invoke wasm level optimizations after building the Canister. Optimization level can be set to \\\"cycles\\\" to optimize for cycle usage, \\\"size\\\" to optimize for binary size, or any of \\\"O4, O3, O2, O1, O0, Oz, Os\\\". Disabled by default.",
+          "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default.",
           "default": null,
           "anyOf": [
             {
@@ -872,34 +872,16 @@
     },
     "WasmOptLevel": {
       "title": "Wasm Optimization Levels",
-      "description": "Wasm optimization levels that are passed to `wasm-opt`. \"cycles\" defaults to O3, \"size\" defaults to Oz. O4 through O0 focus on performance (with O0 being no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os.",
-      "oneOf": [
-        {
-          "type": "string",
-          "enum": [
-            "O4",
-            "O3",
-            "O2",
-            "O1",
-            "O0",
-            "Oz",
-            "Os"
-          ]
-        },
-        {
-          "description": "Defaults to O3",
-          "type": "string",
-          "enum": [
-            "cycles"
-          ]
-        },
-        {
-          "description": "Defaults to Oz",
-          "type": "string",
-          "enum": [
-            "size"
-          ]
-        }
+      "description": "Wasm optimization levels that are passed to `wasm-opt`. \"cycles\" defaults to O3, \"size\" defaults to Oz. O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os. O3 and Oz empirically give best cycle savings and code size savings respectively.",
+      "type": "string",
+      "enum": [
+        "O4",
+        "O3",
+        "O2",
+        "O1",
+        "O0",
+        "Oz",
+        "Os"
       ]
     }
   }

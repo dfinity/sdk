@@ -77,22 +77,18 @@ pub struct ConfigCanistersCanisterRemote {
 
 /// # Wasm Optimization Levels
 /// Wasm optimization levels that are passed to `wasm-opt`. "cycles" defaults to O3, "size" defaults to Oz.
-/// O4 through O0 focus on performance (with O0 being no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os.
+/// O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os.
+/// O3 and Oz empirically give best cycle savings and code size savings respectively.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum WasmOptLevel {
-    /// Defaults to O3
-    #[serde(rename = "cycles")]
-    Cycles,
-    /// Defaults to Oz
-    #[serde(rename = "size")]
-    Size,
-    // Specific performance levels
     O4,
+    #[serde(alias = "cycles")]
     O3,
     O2,
     O1,
     O0,
-    // Specific size levels
+
+    #[serde(alias = "size")]
     Oz,
     Os,
 }
@@ -224,7 +220,8 @@ pub struct ConfigCanistersCanister {
     pub shrink: Option<bool>,
 
     /// # Optimize Canister WASM
-    /// Invoke wasm level optimizations after building the Canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default.
+    /// Invoke wasm level optimizations after building the canister. Optimization level can be set to "cycles" to optimize for cycle usage, "size" to optimize for binary size, or any of "O4, O3, O2, O1, O0, Oz, Os".
+    /// Disabled by default.
     #[serde(default)]
     pub optimize: Option<WasmOptLevel>,
 
