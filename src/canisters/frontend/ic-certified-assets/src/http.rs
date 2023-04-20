@@ -318,17 +318,19 @@ pub fn response_hash(
     ResponseHash(hash)
 }
 
-pub fn build_ic_certificate_expression_from_headers_and_encoding(
-    header_names: &[HeaderField],
-    encoding_name: &str,
+pub fn build_ic_certificate_expression_from_headers_and_encoding<T>(
+    headers: &[(String, T)],
+    encoding_name: Option<&str>,
 ) -> CertificateExpression {
-    let mut headers = header_names
+    let mut headers = headers
         .iter()
         .map(|(h, _)| format!(", \"{}\"", h))
         .collect::<Vec<_>>()
         .join("");
-    if encoding_name != "identity" {
-        headers = format!(", \"content-encoding\"{}", headers);
+    if let Some(encoding) = encoding_name {
+        if encoding != "identity" {
+            headers = format!(", \"content-encoding\"{}", headers);
+        }
     }
 
     let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);

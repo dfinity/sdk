@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use candid::{CandidType, Deserialize};
 use serde_cbor::ser::IoWrite;
 use serde_cbor::Serializer;
@@ -24,6 +26,15 @@ impl Default for RequestHash {
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct ResponseHash(pub [u8; 32]);
+
+impl<T> From<T> for ResponseHash
+where
+    T: Borrow<[u8; 32]>,
+{
+    fn from(hash: T) -> Self {
+        ResponseHash(hash.borrow().clone())
+    }
+}
 
 /// AssetKey that has been split into segments.
 /// E.g. `["foo", "index.html"]`

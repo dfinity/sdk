@@ -1448,6 +1448,8 @@ mod allow_raw_access {
 
 #[cfg(test)]
 mod certificate_expression {
+    use ic_response_verification::hash::Value;
+
     use crate::http::build_ic_certificate_expression_from_headers_and_encoding;
 
     use super::*;
@@ -1455,17 +1457,17 @@ mod certificate_expression {
     #[test]
     fn ic_certificate_expression_value_from_headers() {
         let h = [
-            ("a".into(), "".into()),
-            ("b".into(), "".into()),
-            ("c".into(), "".into()),
+            ("a".into(), Value::String("".into())),
+            ("b".into(), Value::String("".into())),
+            ("c".into(), Value::String("".into())),
         ]
         .to_vec();
-        let c = build_ic_certificate_expression_from_headers_and_encoding(&h, "not identity");
+        let c = build_ic_certificate_expression_from_headers_and_encoding(&h, Some("not identity"));
         assert_eq!(
             c.expression,
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
         );
-        let c2 = build_ic_certificate_expression_from_headers_and_encoding(&h, "identity");
+        let c2 = build_ic_certificate_expression_from_headers_and_encoding(&h, Some("identity"));
         assert_eq!(
             c2.expression,
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "a", "b", "c"]}}}})"#

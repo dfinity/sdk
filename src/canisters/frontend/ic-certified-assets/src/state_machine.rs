@@ -6,12 +6,13 @@
 
 use crate::{
     certification_types::{
-        AssetHashes, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, ResponseHash,
+        AssetHashes, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash,
+        ResponseHash,
     },
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
     http::{
         build_ic_certificate_expression_from_headers_and_encoding, response_hash,
-        witness_to_header_v1, witness_to_header_v2, HeaderField, HttpRequest, HttpResponse,
+        witness_to_header_v1, witness_to_header_v2, HttpRequest, HttpResponse,
         StreamingCallbackHttpResponse, StreamingCallbackToken,
     },
     rc_bytes::RcBytes,
@@ -80,22 +81,11 @@ pub struct AssetEncoding {
 }
 
 impl AssetEncoding {
-    fn asset_hash_path_v2(
-        &self,
-        AssetPath(path): &AssetPath,
-        status_code: u16,
-    ) -> Option<HashTreePath> {
+    fn asset_hash_path_v2(&self, path: &AssetPath, status_code: u16) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
                 hashes.get(&status_code).map(|response_hash| {
-                    let mut path: Vec<NestedTreeKey> =
-                        path.iter().map(|segment| segment.as_str().into()).collect();
-                    path.insert(0, "http_expr".into());
-                    path.push("<$>".into()); // asset path terminator
-                    path.push(ce.hash.as_slice().into());
-                    path.push("".into()); // no request certification - use empty node
-                    path.push(response_hash.as_slice().into());
-                    path.into()
+                    path.hash_tree_path(ce, &RequestHash::default(), &response_hash.into())
                 })
             })
         })
@@ -250,21 +240,21 @@ impl Asset {
 
     fn update_ic_certificate_expressions(&mut self) {
         // gather all headers
-        let mut headers: Vec<HeaderField> = vec![];
+        let mut headers: Vec<(String, Value)> = vec![];
 
         if self.max_age.is_some() {
-            headers.push(("cache-control".to_string(), "".to_string()));
+            headers.push(("cache-control".to_string(), Value::String("".to_string())));
         }
         if let Some(custom_headers) = &self.headers {
             for h in custom_headers.iter() {
-                headers.push((h.0.into(), h.1.into()));
+                headers.push((h.0.into(), Value::String(h.1.into())));
             }
         }
 
         // update
         for (enc_name, encoding) in self.encodings.iter_mut() {
             encoding.certificate_expression = Some(
-                build_ic_certificate_expression_from_headers_and_encoding(&headers, enc_name),
+                build_ic_certificate_expression_from_headers_and_encoding(&headers, Some(enc_name)),
             );
         }
     }
