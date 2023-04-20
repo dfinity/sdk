@@ -27,7 +27,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
     let logger = env.get_logger();
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if pull_canisters_in_config.is_empty() {
-        info!(logger, "There is no pull dependencies defined in dfx.json");
+        info!(logger, "There are no pull dependencies defined in dfx.json");
         return Ok(());
     }
 

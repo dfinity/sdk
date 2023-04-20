@@ -435,11 +435,11 @@ Installing canister: $CANISTER_ID_A"
     dfx_new empty
 
     assert_command dfx deps pull
-    assert_match "There is no pull dependencies defined in dfx.json"
+    assert_match "There are no pull dependencies defined in dfx.json"
     assert_command dfx deps init
-    assert_match "There is no pull dependencies defined in dfx.json"
+    assert_match "There are no pull dependencies defined in dfx.json"
     assert_command dfx deps deploy
-    assert_match "There is no pull dependencies defined in dfx.json"
+    assert_match "There are no pull dependencies defined in dfx.json"
     
     assert_directory_not_exists "deps"
 }

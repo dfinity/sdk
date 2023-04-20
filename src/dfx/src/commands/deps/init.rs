@@ -35,7 +35,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
     let logger = env.get_logger();
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if pull_canisters_in_config.is_empty() {
-        info!(logger, "There is no pull dependencies defined in dfx.json");
+        info!(logger, "There are no pull dependencies defined in dfx.json");
         return Ok(());
     }
 
@@ -102,17 +102,12 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                 if init_json.contains(canister_id) {
                     info!(logger, "{canister_id} already set init argument.");
                 } else {
-                    let idl_path = get_service_candid_path(*canister_id)?;
-                    let (env, _) = check_candid_file(&idl_path)?;
                     let candid_args = pulled_json.get_candid_args(canister_id)?;
                     let candid_args_idl_types: IDLTypes = candid_args.parse()?;
-                    let mut types = vec![];
-                    for ty in candid_args_idl_types.args.iter() {
-                        types.push(env.ast_to_type(ty)?);
-                    }
-                    match types.is_empty() {
-                        true => init_json.set_empty_init(*canister_id),
-                        false => canisters_require_init.push(*canister_id),
+                    if candid_args_idl_types.args.is_empty() {
+                        init_json.set_empty_init(*canister_id);
+                    } else {
+                        canisters_require_init.push(*canister_id);
                     }
                 }
             }
