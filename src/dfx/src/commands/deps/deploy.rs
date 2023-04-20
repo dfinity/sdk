@@ -1,4 +1,3 @@
-use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::deps::{
     get_pull_canisters_in_config, get_pulled_wasm_path, load_init_json, load_pulled_json,
     validate_pulled, InitJson,
@@ -7,7 +6,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_controllers;
-use crate::NetworkOpt;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -23,16 +21,11 @@ pub struct DepsDeployOpts {
     /// Specify the canister to deploy. You can specify its name (as defined in dfx.json) or Principal.
     /// If not specified, all pulled canisters will be deployed.
     canister: Option<String>,
-
-    #[clap(flatten)]
-    network: NetworkOpt,
 }
 
 pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
-    let env = create_anonymous_agent_environment(env, opts.network.network)?;
-
     let logger = env.get_logger();
-    let pull_canisters_in_config = get_pull_canisters_in_config(&env)?;
+    let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if pull_canisters_in_config.is_empty() {
         info!(logger, "There is no pull dependencies defined in dfx.json");
         return Ok(());
@@ -44,7 +37,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
 
     let init_json = load_init_json(&project_root)?;
 
-    fetch_root_key_if_needed(&env).await?;
+    fetch_root_key_if_needed(env).await?;
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
