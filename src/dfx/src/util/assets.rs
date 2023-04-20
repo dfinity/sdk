@@ -83,3 +83,36 @@ pub fn assets_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
     }
     Ok(wasm)
 }
+
+#[allow(unused)]
+#[context("Failed to load bitcoin wasm.")]
+pub fn bitcoin_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
+    let mut wasm = Vec::new();
+
+    if let Ok(dfx_assets_wasm) = std::env::var("DFX_BITCOIN_WASM") {
+        info!(logger, "Using wasm at path: {}", dfx_assets_wasm);
+        std::fs::File::open(&dfx_assets_wasm)
+            .with_context(|| format!("Failed to open {}.", dfx_assets_wasm))?
+            .read_to_end(&mut wasm)
+            .with_context(|| format!("Failed to read file content for {}.", dfx_assets_wasm))?;
+    } else {
+        let mut canister_assets =
+            btc_canister().context("Failed to load bitcoin canister archive.")?;
+        for file in canister_assets
+            .entries()
+            .context("Failed to read bitcoin canister archive entries.")?
+        {
+            let mut file = file.context("Failed to read bitcoin canister archive entry.")?;
+            if file
+                .header()
+                .path()
+                .context("Failed to read archive entry path.")?
+                .ends_with("ic-btc-canister.wasm.gz")
+            {
+                file.read_to_end(&mut wasm)
+                    .context("Failed to read archive entry.")?;
+            }
+        }
+    }
+    Ok(wasm)
+}
