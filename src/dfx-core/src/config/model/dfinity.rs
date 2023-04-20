@@ -81,14 +81,15 @@ pub struct ConfigCanistersCanisterRemote {
 /// O3 and Oz empirically give best cycle savings and code size savings respectively.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum WasmOptLevel {
+    #[serde(rename = "cycles")]
+    Cycles,
+    #[serde(rename = "size")]
+    Size,
     O4,
-    #[serde(alias = "cycles")]
     O3,
     O2,
     O1,
     O0,
-
-    #[serde(alias = "size")]
     Oz,
     Os,
 }

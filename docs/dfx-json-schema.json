@@ -875,6 +875,8 @@
       "description": "Wasm optimization levels that are passed to `wasm-opt`. \"cycles\" defaults to O3, \"size\" defaults to Oz. O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os. O3 and Oz empirically give best cycle savings and code size savings respectively.",
       "type": "string",
       "enum": [
+        "cycles",
+        "size",
         "O4",
         "O3",
         "O2",

@@ -522,7 +522,7 @@ fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
 }
 
 #[context("Failed to optimize wasm at {}.", &wasm_path.as_ref().display())]
-fn optimize_wasm(wasm_path: impl AsRef<Path>, level: &WasmOptLevel) -> DfxResult {
+fn optimize_wasm(wasm_path: impl AsRef<Path>, level: WasmOptLevel) -> DfxResult {
     let wasm_path = wasm_path.as_ref();
     let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
     let mut module =

@@ -232,8 +232,13 @@ impl CanisterInfo {
         self.shrink
     }
 
-    pub fn get_optimize(&self) -> &Option<WasmOptLevel> {
-        &self.optimize
+    pub fn get_optimize(&self) -> Option<WasmOptLevel> {
+        // Cycles defaults to O3, Size defaults to Oz
+        self.optimize.map(|level| match level {
+            WasmOptLevel::Cycles => WasmOptLevel::O3,
+            WasmOptLevel::Size => WasmOptLevel::Oz,
+            other => other,
+        })
     }
 
     pub fn get_build_wasm_path(&self) -> PathBuf {
