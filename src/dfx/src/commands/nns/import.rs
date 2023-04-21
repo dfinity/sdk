@@ -56,8 +56,7 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     .await?;
 
     // Import frontend NNS canisters
-    let config = env.get_config_or_anyhow()?;
-    let mut config = config.as_ref().clone();
+    // TODO: The version of nns-dapp deployed by dfx nns install is very old.
     let frontend_url_str = "https://raw.githubusercontent.com/dfinity/nns-dapp/5a9b84ac38ab60065dd40c5174384c4c161875d3/dfx.json"; // TODO: parameterize URL
     for canister_name in ["nns-dapp", "internet_identity"] {
     import_canister_definitions(
