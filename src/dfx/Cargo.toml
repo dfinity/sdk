@@ -57,8 +57,7 @@ ic-agent = { workspace = true, features = ["reqwest"] }
 ic-asset.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
-# FIXME set this to 0.3.6 when it is released
-ic-wasm = { git = "https://github.com/dfinity/ic-wasm.git", rev = "252e0b5789dddb859084fd48e6a671293d4cad36" }
+ic-wasm = "0.3.6"
 indicatif = "0.16.0"
 itertools.workspace = true
 keyring.workspace = true
