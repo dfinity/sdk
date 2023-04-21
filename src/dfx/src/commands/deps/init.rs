@@ -80,10 +80,10 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                 (None, false) => {
                     let mut message = format!("Canister {canister_prompt} requires an init argument. The following info might be helpful:");
                     if let Some(dfx_init) = pulled_json.get_dfx_init(&canister_id)? {
-                        message.push_str(&format!("dfx:init => {dfx_init}"));
+                        message.push_str(&format!("\ndfx:init => {dfx_init}"));
                     }
                     let candid_args = pulled_json.get_candid_args(&canister_id)?;
-                    message.push_str(&format!("candid:args => {candid_args}"));
+                    message.push_str(&format!("\ncandid:args => {candid_args}"));
 
                     bail!(message);
                 }

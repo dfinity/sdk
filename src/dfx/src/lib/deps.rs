@@ -27,8 +27,6 @@ pub struct PulledCanister {
     pub name: Option<String>,
     // dfx:deps
     pub deps: Vec<Principal>,
-    // dfx:wasm_url, once we can download wasm directly from IC, this field will be optional
-    pub wasm_url: Option<String>,
     // the hash on chain
     // dfx:wasm_hash if defined
     // or get from canister_status
@@ -231,26 +229,16 @@ pub fn save_init_json(project_root: &Path, init_json: &InitJson) -> DfxResult {
 
 #[context("Failed to get the wasm path of pulled canister \"{canister_id}\"")]
 pub fn get_pulled_wasm_path(canister_id: Principal) -> DfxResult<PathBuf> {
-    Ok(get_cache_root()?
-        .join("pulled")
-        .join(canister_id.to_text())
-        .join("canister.wasm"))
+    Ok(get_pulled_canister_dir(canister_id)?.join("canister.wasm"))
 }
 
 #[context("Failed to get the service candid path of pulled canister \"{canister_id}\"")]
 pub fn get_pulled_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
-    Ok(get_cache_root()?
-        .join("pulled")
-        .join(canister_id.to_text())
-        .join("service.did"))
+    Ok(get_pulled_canister_dir(canister_id)?.join("service.did"))
 }
 
-#[context("Failed to get the wasm_url.txt path of pulled canister \"{canister_id}\"")]
-pub fn get_pulled_wasm_url_txt_path(canister_id: Principal) -> DfxResult<PathBuf> {
-    Ok(get_cache_root()?
-        .join("pulled")
-        .join(canister_id.to_text())
-        .join("wasm_url.txt"))
+fn get_pulled_canister_dir(canister_id: Principal) -> DfxResult<PathBuf> {
+    Ok(get_cache_root()?.join("pulled").join(canister_id.to_text()))
 }
 
 pub fn get_pull_canister_or_principal(

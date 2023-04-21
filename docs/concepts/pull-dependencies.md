@@ -49,7 +49,7 @@ Running `dfx deps pull` will:
 
 1. resolve the dependency graph by fetching `dfx:deps` metadata recursively;
 2. download wasm of all direct and indirect dependencies from `dfx:wasm_url` into shared cache;
-3. hash check the downloaded wasm against `dfx:wasm_hash` metadata or the hash of the mainnet running canister;
+3. verify the hash of the downloaded wasm against `dfx:wasm_hash` metadata or the hash of the canister deployed on mainnet;
 4. extract `candid:args`, `candid:service`, `dfx:init` from the downloaded wasm;
 5. create `deps/` folder in project root;
 6. save `candid:service` of direct dependencies as `deps/<NAME>.did`;
@@ -66,7 +66,6 @@ For the example project, you will find following files in `deps/`:
     "yofga-2qaaa-aaaaa-aabsq-cai": {
       "name": null,
       "deps": [],
-      "wasm_url": "example.com/a.wasm",
       "wasm_hash": "e9b8ba2ad28fa1403cf6e776db531cdd6009a8e5cac2b1097d09bfc65163d56f",
       "dfx_init": "Nat",
       "candid_args": "(nat)"
@@ -76,7 +75,6 @@ For the example project, you will find following files in `deps/`:
       "deps": [
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
-      "wasm_url": "example.com/b.wasm",
       "wasm_hash": "f607c30727b0ee81317fc4547a8da3cda9bb9621f5d0740806ef973af5b479a2",
       "dfx_init": null,
       "candid_args": "()"
@@ -86,7 +84,6 @@ For the example project, you will find following files in `deps/`:
       "deps": [
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
-      "wasm_url": "example.com/c.wasm",
       "wasm_hash": "016df9800dc5760785646373bcb6e6bb530fc17f844600991a098ef4d486cf0b",
       "dfx_init": "Nat",
       "candid_args": "(nat)"
@@ -108,7 +105,7 @@ You can choose other network as usual, e.g. `--network local`.
 
 ### 3. Set init arguments using `dfx deps init`
 
-Running `dfx deps init` will iterate all dependencies in `pulled.json`, set empty argument for the ones need no init argument and print the list of dependencies that require init argument.
+Running `dfx deps init` will iterate over all dependencies in `pulled.json`, set an empty argument for the ones that need no init argument and print the list of dependencies that do require an init argument.
 
 Then running `dfx deps init <CANISTER> --argument <ARGUMENT>` to set init argument for individual dependency.
 
@@ -121,7 +118,15 @@ For our example, we should run:
 WARN: The following canister(s) require an init argument. Please run `dfx deps init <NAME/PRINCIPAL>` to set them individually:
 yofga-2qaaa-aaaaa-aabsq-cai
 yahli-baaaa-aaaaa-aabtq-cai (dep_c)
+> dfx deps init yofga-2qaaa-aaaaa-aabsq-cai
+Error: Canister yofga-2qaaa-aaaaa-aabsq-cai requires an init argument. The following info might be helpful:
+dfx:init => Nat
+candid:args => (nat)
 > dfx deps init yofga-2qaaa-aaaaa-aabsq-cai --argument 10
+> dfx deps init deps_c
+Error: Canister yahli-baaaa-aaaaa-aabtq-cai (dep_c) requires an init argument. The following info might be helpful:
+dfx:init => Nat
+candid:args => (nat)
 > dfx deps init deps_c --argument 20
 ```
 
@@ -174,8 +179,8 @@ Installing canister: yhgn4-myaaa-aaaaa-aabta-cai (dep_b)
 
 **Note**
 
-- `dfx deps deploy` always create the canister with the anonymous identity so that dependencies and application canisters will have different controllers;
-- `dfx deps deploy` always install the canister in "reinstall" mode so that the canister status will be discarded;
+- `dfx deps deploy` always creates the canister with the anonymous identity so that dependencies and application canisters will have different controllers;
+- `dfx deps deploy` always installs the canister in "reinstall" mode so that the canister status will be discarded;
 
 ## Q&A
 

@@ -304,9 +304,9 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Canister $CANISTER_ID_B (dep_b) takes no init argument. Please rerun without \`--argument\`"
 
     assert_command_fail dfx deps init "$CANISTER_ID_C"
-    assert_contains "Canister $CANISTER_ID_C (dep_c) requires an init argument. The following info might be helpful:"
-    assert_contains "dfx:init => Nat"
-    assert_contains "candid:args => (nat)"
+    assert_contains "Canister $CANISTER_ID_C (dep_c) requires an init argument. The following info might be helpful:
+dfx:init => Nat
+candid:args => (nat)"
 }
 
 @test "dfx deps deploy works" {
