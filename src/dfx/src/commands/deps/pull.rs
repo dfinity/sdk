@@ -22,7 +22,6 @@ use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
-// TODO: update the usage of this method once ic-wasm bump (#3090)
 use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
 use slog::{error, info, trace, warn, Logger};
@@ -235,33 +234,25 @@ download: {}",
     }
     // get `candid:service` from downloaded wasm
     let wasm = dfx_core::fs::read(&wasm_path).context("Failed to read wasm")?;
-    let candid_service = get_metadata(&wasm, CANDID_SERVICE).with_context(|| {
-        format!(
-            "Failed to get {} metadata from {:?}",
-            CANDID_SERVICE, &wasm_path
-        )
-    })?;
+    let module = ic_wasm::utils::parse_wasm(&wasm, true)?;
+    let candid_service = get_metadata_as_string(&module, CANDID_SERVICE, &wasm_path)?;
     let service_candid_path = get_pulled_service_candid_path(canister_id)?;
     write_to_tempfile_then_rename(candid_service.as_bytes(), &service_candid_path)?;
 
     // get `candid:args` from downloaded wasm
-    let candid_args = get_metadata(&wasm, CANDID_ARGS).with_context(|| {
-        format!(
-            "Failed to get {} metadata from {:?}",
-            CANDID_ARGS, &wasm_path
-        )
-    })?;
+    let candid_args = get_metadata_as_string(&module, CANDID_ARGS, &wasm_path)?;
     pulled_canister.candid_args = Some(candid_args);
 
     // try get `dfx:init` from downloaded wasm
-    match get_metadata(&wasm, DFX_INIT) {
-        Ok(dfx_init) => pulled_canister.dfx_init = Some(dfx_init),
-        Err(_e) => trace!(
+    if let Ok(dfx_init) = get_metadata_as_string(&module, DFX_INIT, &wasm_path) {
+        pulled_canister.dfx_init = Some(dfx_init)
+    } else {
+        trace!(
             logger,
-            "Failed to get {} metadata from {:?}",
-            DFX_INIT,
-            &wasm_path
-        ),
+            "{:?} doesn't define {} metadata",
+            &wasm_path,
+            DFX_INIT
+        );
     }
 
     Ok(())
@@ -339,4 +330,20 @@ fn parse_dfx_deps(deps_str: &str) -> DfxResult<Vec<Principal>> {
         }
     }
     Ok(deps)
+}
+
+fn get_metadata_as_string(
+    module: &walrus::Module,
+    section: &str,
+    wasm_path: &Path,
+) -> DfxResult<String> {
+    let metadata_bytes = get_metadata(&module, section)
+        .with_context(|| format!("Failed to get {} metadata from {:?}", section, wasm_path))?;
+    let metadata = String::from_utf8(metadata_bytes.to_vec()).with_context(|| {
+        format!(
+            "Failed to read {} metadata from {:?} as UTF-8 text",
+            section, wasm_path
+        )
+    })?;
+    Ok(metadata)
 }

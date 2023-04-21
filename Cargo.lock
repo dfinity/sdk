@@ -1165,6 +1165,7 @@ dependencies = [
  "toml 0.7.3",
  "url",
  "walkdir",
+ "walrus",
  "wasmparser 0.87.0",
  "which",
 ]
