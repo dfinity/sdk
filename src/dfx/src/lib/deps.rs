@@ -267,3 +267,10 @@ pub fn get_pull_canister_or_principal(
         }
     }
 }
+
+pub fn get_canister_prompt(canister_id: &Principal, pulled_canister: &PulledCanister) -> String {
+    match &pulled_canister.name {
+        Some(name) => format!("{canister_id} ({name})"),
+        None => canister_id.to_text(),
+    }
+}

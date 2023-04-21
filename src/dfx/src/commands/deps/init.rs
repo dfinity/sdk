@@ -1,7 +1,7 @@
 use crate::lib::deps::{
-    create_init_json_if_not_existed, get_pull_canister_or_principal, get_pull_canisters_in_config,
-    get_pulled_service_candid_path, load_init_json, load_pulled_json, save_init_json,
-    validate_pulled, PulledCanister,
+    create_init_json_if_not_existed, get_canister_prompt, get_pull_canister_or_principal,
+    get_pull_canisters_in_config, get_pulled_service_candid_path, load_init_json, load_pulled_json,
+    save_init_json, validate_pulled,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -11,7 +11,7 @@ use anyhow::{anyhow, bail};
 use candid::parser::types::IDLTypes;
 use candid::parser::value::IDLValue;
 use candid::types::Type;
-use candid::{IDLArgs, Principal, TypeEnv};
+use candid::{IDLArgs, TypeEnv};
 use clap::Parser;
 use fn_error_context::context;
 use slog::{info, warn};
@@ -113,7 +113,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                 }
             }
             if !canisters_require_init.is_empty() {
-                let mut message = "The following canister(s) require an init argument. Please run `dfx deps init <PRINCIPAL>` to set them individually:".to_string();
+                let mut message = "The following canister(s) require an init argument. Please run `dfx deps init <NAME/PRINCIPAL>` to set them individually:".to_string();
                 for canister_prompt in canisters_require_init {
                     message.push_str(&format!("\n{canister_prompt}"));
                 }
@@ -151,11 +151,4 @@ fn args_to_bytes(
     })?;
     let bytes = args.to_bytes_with_types(env, types)?;
     Ok(bytes)
-}
-
-fn get_canister_prompt(canister_id: &Principal, pulled_canister: &PulledCanister) -> String {
-    match &pulled_canister.name {
-        Some(name) => format!("{canister_id} ({name})"),
-        None => canister_id.to_text(),
-    }
 }

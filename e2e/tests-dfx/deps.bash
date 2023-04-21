@@ -280,7 +280,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     dfx_stop
 
     assert_command dfx deps init
-    assert_contains "The following canister(s) require an init argument. Please run \`dfx deps init <PRINCIPAL>\` to set them individually:"
+    assert_contains "The following canister(s) require an init argument. Please run \`dfx deps init <NAME/PRINCIPAL>\` to set them individually:"
     assert_contains "$CANISTER_ID_A"
     assert_contains "$CANISTER_ID_C (dep_c)"
 
@@ -344,15 +344,15 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_command dfx deps deploy
     assert_contains "Creating canister: $CANISTER_ID_A
 Installing canister: $CANISTER_ID_A"
-    assert_contains "Creating canister: $CANISTER_ID_B
-Installing canister: $CANISTER_ID_B"
-    assert_contains "Creating canister: $CANISTER_ID_C
-Installing canister: $CANISTER_ID_C"
+    assert_contains "Creating canister: $CANISTER_ID_B (dep_b)
+Installing canister: $CANISTER_ID_B (dep_b)"
+    assert_contains "Creating canister: $CANISTER_ID_C (dep_c)
+Installing canister: $CANISTER_ID_C (dep_c)"
 
     # by name in dfx.json
     assert_command dfx deps deploy dep_b
-    assert_contains "Creating canister: $CANISTER_ID_B
-Installing canister: $CANISTER_ID_B"
+    assert_contains "Creating canister: $CANISTER_ID_B (dep_b)
+Installing canister: $CANISTER_ID_B (dep_b)"
 
     # by canister id
     assert_command dfx deps deploy $CANISTER_ID_A
