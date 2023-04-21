@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::bail;
+use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
 use serde::{Deserialize, Serialize};
@@ -62,12 +62,13 @@ impl PulledJson {
     }
 
     pub fn get_candid_args(&self, canister_id: &Principal) -> DfxResult<&str> {
-        match self.canisters.get(canister_id) {
-            Some(o) => match &o.candid_args {
-                Some(candid_args) => Ok(candid_args),
-                None => bail!("candid_args was null in pulled.json"),
-            },
-            None => bail!("Failed to find {canister_id} in pulled.json"),
+        let pulled_canister = self
+            .canisters
+            .get(canister_id)
+            .ok_or_else(|| anyhow!("Failed to find {canister_id} in pulled.json"))?;
+        match &pulled_canister.candid_args {
+            Some(candid_args) => Ok(candid_args),
+            None => bail!("candid_args of {canister_id} is null in pulled.json"),
         }
     }
 }
@@ -110,15 +111,15 @@ impl InitJson {
     }
 
     pub fn get_arg_raw(&self, canister_id: &Principal) -> DfxResult<Vec<u8>> {
-        match self.canisters.get(canister_id) {
-            Some(item) => match &item.arg_raw {
-                Some(s) => Ok(hex::decode(s)?),
-                None => Ok(vec![]),
-            },
-            None => bail!(
+        let init_item = self.canisters.get(canister_id).ok_or_else(|| {
+            anyhow!(
                 "Failed to find {0} entry in init.json. Please run `dfx deps init {0}`.",
                 canister_id
-            ),
+            )
+        })?;
+        match &init_item.arg_raw {
+            Some(s) => Ok(hex::decode(s)?),
+            None => Ok(vec![]),
         }
     }
 }
@@ -150,7 +151,15 @@ pub fn validate_pulled(
         let hash_cache = Sha256::digest(bytes);
         let hash_in_json = hex::decode(&pulled_canister.wasm_hash)?;
         if hash_cache.as_slice() != hash_in_json {
-            bail!("The pulled canister Wasm module has different hash than in pulled.json.");
+            let hash_cache = hex::encode(hash_cache.as_slice());
+            let hash_in_json = &pulled_canister.wasm_hash;
+            bail!(
+                "The pulled wasm of {canister_id} has different hash than in pulled.json:
+    The pulled wasm is at {pulled_canister_path:?}. Its hash is:
+        {hash_cache}
+    The expected hash in pulled.json is:
+        {hash_in_json}"
+            );
         }
     }
 
@@ -214,7 +223,7 @@ pub fn save_init_json(project_root: &Path, init_json: &InitJson) -> DfxResult {
     Ok(())
 }
 
-#[context("Failed to get the path of pulled canister \"{canister_id}\"")]
+#[context("Failed to get the wasm path of pulled canister \"{canister_id}\"")]
 pub fn get_pulled_wasm_path(canister_id: Principal) -> DfxResult<PathBuf> {
     Ok(get_cache_root()?
         .join("pulled")
@@ -223,7 +232,7 @@ pub fn get_pulled_wasm_path(canister_id: Principal) -> DfxResult<PathBuf> {
 }
 
 #[context("Failed to get the service candid path of pulled canister \"{canister_id}\"")]
-pub fn get_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
+pub fn get_pulled_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
     Ok(get_cache_root()?
         .join("pulled")
         .join(canister_id.to_text())
@@ -231,9 +240,24 @@ pub fn get_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
 }
 
 #[context("Failed to get the wasm_url.txt path of pulled canister \"{canister_id}\"")]
-pub fn get_wasm_url_txt_path(canister_id: Principal) -> DfxResult<PathBuf> {
+pub fn get_pulled_wasm_url_txt_path(canister_id: Principal) -> DfxResult<PathBuf> {
     Ok(get_cache_root()?
         .join("pulled")
         .join(canister_id.to_text())
         .join("wasm_url.txt"))
+}
+
+pub fn get_pull_canister_or_principal(
+    canister: &str,
+    pull_canisters_in_config: &BTreeMap<String, Principal>,
+) -> DfxResult<Principal> {
+    match pull_canisters_in_config.get(canister) {
+        Some(canister_id) => Ok(*canister_id),
+        None => {
+            let p = Principal::from_text(canister).with_context(||
+                format!("{canister} is not a valid Principal nor a `type: pull` canister specified in dfx.json")
+            )?;
+            Ok(p)
+        }
+    }
 }

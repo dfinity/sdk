@@ -1,6 +1,6 @@
 use crate::lib::deps::{
-    get_candid_path_in_project, get_pull_canisters_in_config, get_pulled_wasm_path,
-    get_service_candid_path, get_wasm_url_txt_path, save_pulled_json,
+    get_candid_path_in_project, get_pull_canisters_in_config, get_pulled_service_candid_path,
+    get_pulled_wasm_path, get_pulled_wasm_url_txt_path, save_pulled_json,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
@@ -182,7 +182,7 @@ async fn download_canister_files(
 
     // skip download if cache hit
     let mut cache_hit = false;
-    let wasm_url_txt_path = get_wasm_url_txt_path(canister_id)?;
+    let wasm_url_txt_path = get_pulled_wasm_url_txt_path(canister_id)?;
     if wasm_path.exists() {
         let bytes = dfx_core::fs::read(&wasm_path)?;
         let hash_cache = Sha256::digest(bytes);
@@ -229,15 +229,14 @@ download: {}",
         write_to_tempfile_then_rename(&content, &wasm_path)?;
     }
     // get `candid:service` from downloaded wasm
-    let wasm = dfx_core::fs::read(&wasm_path)
-        .with_context(|| format!("Failed to read wasm from {:?}", &wasm_path))?;
+    let wasm = dfx_core::fs::read(&wasm_path).context("Failed to read wasm")?;
     let candid_service = get_metadata(&wasm, CANDID_SERVICE).with_context(|| {
         format!(
             "Failed to get {} metadata from {:?}",
             CANDID_SERVICE, &wasm_path
         )
     })?;
-    let service_candid_path = get_service_candid_path(canister_id)?;
+    let service_candid_path = get_pulled_service_candid_path(canister_id)?;
     write_to_tempfile_then_rename(candid_service.as_bytes(), &service_candid_path)?;
 
     // get `candid:args` from downloaded wasm
@@ -299,12 +298,12 @@ async fn fetch_metadata(
 #[context("Failed to write to a tempfile then rename it to {}", path.display())]
 fn write_to_tempfile_then_rename(content: &[u8], path: &Path) -> DfxResult {
     assert!(path.is_absolute());
-    let dir = path
-        .parent()
-        .ok_or_else(|| anyhow!("Failed to get the parent dir from path"))?;
-    ensure_dir_exists(dir)?;
-    let mut f = tempfile::NamedTempFile::new_in(dir)?;
-    f.write_all(content)?;
+    let dir = dfx_core::fs::parent(path)?;
+    ensure_dir_exists(&dir)?;
+    let mut f = tempfile::NamedTempFile::new_in(&dir)
+        .with_context(|| format!("Failed to create a NamedTempFile in {dir:?}"))?;
+    f.write_all(content)
+        .with_context(|| format!("Failed to write the NamedTempFile at {:?}", f.path()))?;
     dfx_core::fs::rename(f.path(), path)?;
     Ok(())
 }
@@ -315,7 +314,7 @@ pub fn copy_service_candid_to_project(
     name: &str,
     canister_id: Principal,
 ) -> DfxResult {
-    let service_candid_path = get_service_candid_path(canister_id)?;
+    let service_candid_path = get_pulled_service_candid_path(canister_id)?;
     let path_in_project = get_candid_path_in_project(project_root, name);
     ensure_parent_dir_exists(&path_in_project)?;
     dfx_core::fs::copy(&service_candid_path, &path_in_project)?;

@@ -1,13 +1,13 @@
 use crate::lib::deps::{
-    get_pull_canisters_in_config, get_pulled_wasm_path, load_init_json, load_pulled_json,
-    validate_pulled, InitJson,
+    get_pull_canister_or_principal, get_pull_canisters_in_config, get_pulled_wasm_path,
+    load_init_json, load_pulled_json, validate_pulled, InitJson,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_controllers;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
@@ -15,7 +15,7 @@ use ic_agent::Agent;
 use ic_utils::interfaces::{management_canister::builders::InstallMode, ManagementCanister};
 use slog::{info, Logger};
 
-/// Deploy pulled canisters.
+/// Deploy pulled dependencies.
 #[derive(Parser)]
 pub struct DepsDeployOpts {
     /// Specify the canister to deploy. You can specify its name (as defined in dfx.json) or Principal.
@@ -42,21 +42,15 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    match opts.canister {
+    let canister_ids = match &opts.canister {
         Some(canister) => {
-            let canister_id = match pull_canisters_in_config.get(&canister) {
-                Some(canister_id) => *canister_id,
-                None => Principal::from_text(canister).with_context(|| {
-                    "The canister is not a valid Principal nor a `type: pull` canister specified in dfx.json"
-                })?,
-            };
-            create_and_install(agent, logger, &canister_id, &init_json).await?;
+            let canister_id = get_pull_canister_or_principal(canister, &pull_canisters_in_config)?;
+            vec![canister_id]
         }
-        None => {
-            for canister_id in pulled_json.canisters.keys() {
-                create_and_install(agent, logger, canister_id, &init_json).await?;
-            }
-        }
+        None => pulled_json.canisters.keys().copied().collect(),
+    };
+    for canister_id in canister_ids {
+        create_and_install(agent, logger, &canister_id, &init_json).await?;
     }
 
     Ok(())
@@ -79,17 +73,19 @@ async fn create_and_install(
 #[context("Failed to create canister {}", canister_id)]
 async fn try_create_canister(agent: &Agent, logger: &Logger, canister_id: &Principal) -> DfxResult {
     info!(logger, "Creating canister: {canister_id}");
-    let mgr = ManagementCanister::create(agent);
-    // ignore the error that the canister is already installed
-    let _res = mgr
-        .create_canister()
-        .as_provisional_create_with_specified_id(*canister_id)
-        .call_and_wait()
-        .await;
     match read_state_tree_canister_controllers(agent, *canister_id).await? {
         Some(cs) if cs.len() == 1 && cs[0] == Principal::anonymous() => Ok(()),
-        Some(_) => bail!("Canister {canister_id} has been created before and its controller is not anonymous identity. Please stop and delete it and then deploy again."),
-        None => bail!("Failed to create canister {canister_id}"),
+        Some(_) => {
+            bail!("Canister {canister_id} has been created before and its controller is not anonymous identity. Please stop and delete it and then deploy again.");
+        }
+        None => {
+            let mgr = ManagementCanister::create(agent);
+            mgr.create_canister()
+                .as_provisional_create_with_specified_id(*canister_id)
+                .call_and_wait()
+                .await?;
+            Ok(())
+        }
     }
 }
 

@@ -1,21 +1,22 @@
 use crate::lib::deps::{
-    create_init_json_if_not_existed, get_pull_canisters_in_config, get_service_candid_path,
-    load_init_json, load_pulled_json, save_init_json, validate_pulled,
+    create_init_json_if_not_existed, get_pull_canister_or_principal, get_pull_canisters_in_config,
+    get_pulled_service_candid_path, load_init_json, load_pulled_json, save_init_json,
+    validate_pulled,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::check_candid_file;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
 use candid::parser::types::IDLTypes;
 use candid::parser::value::IDLValue;
 use candid::types::Type;
-use candid::{IDLArgs, Principal, TypeEnv};
+use candid::{IDLArgs, TypeEnv};
 use clap::Parser;
 use fn_error_context::context;
 use slog::{info, warn};
 
-/// Set init argument for a pulled canister.
+/// Set init arguments for pulled dependencies.
 #[derive(Parser)]
 pub struct DepsInitOpts {
     /// Name of the pulled canister (as defined in dfx.json) or its Principal.
@@ -48,14 +49,8 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
 
     match opts.canister {
         Some(canister) => {
-            let canister_id = match pull_canisters_in_config.get(&canister) {
-                Some(canister_id) => *canister_id,
-                None => Principal::from_text(&canister).with_context(|| {
-                    "The canister is neither a valid Principal nor a name specified in dfx.json"
-                })?,
-            };
-
-            let idl_path = get_service_candid_path(canister_id)?;
+            let canister_id = get_pull_canister_or_principal(&canister, &pull_canisters_in_config)?;
+            let idl_path = get_pulled_service_candid_path(canister_id)?;
             let (env, _) = check_candid_file(&idl_path)?;
             let candid_args = pulled_json.get_candid_args(&canister_id)?;
             let candid_args_idl_types: IDLTypes = candid_args.parse()?;
