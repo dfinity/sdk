@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "23ff35f8259aca16ff14e4ce0da0f54cd496a26c",
-        "sha256": "1a97ijrlpixakd27lmkb3149ha7c9hcr73r1z18npc219ip9zhj3",
+        "rev": "cab69cc909dad84ca9409fb538bc95077ae9de0f",
+        "sha256": "1g3gwip96wsylbzgf9hqj7bg5jrf26l21h8xizzg5z615a8hg54x",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/23ff35f8259aca16ff14e4ce0da0f54cd496a26c.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/cab69cc909dad84ca9409fb538bc95077ae9de0f.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "ic-btc-canister": {
