@@ -47,7 +47,7 @@ teardown() {
     dfx_new_rust
     # We used to set CARGO_TARGET_DIR="$(echo -ne '\x81')"
     # But since rust 1.69, `cargo metadata` returns
-    #   error: path contains invalid UTF-8 characters 
+    #   error: path contains invalid UTF-8 characters
     CARGO_TARGET_DIR="custom-target"
     export CARGO_TARGET_DIR
     dfx_start
