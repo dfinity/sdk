@@ -90,20 +90,21 @@ pub async fn deploy_canisters(
         .any(|canister| initial_canister_id_store.find(canister).is_none())
     {
         let proxy_sender;
-        let create_call_sender =
-            if !no_wallet && specified_id.is_none() && matches!(call_sender, CallSender::Wallet(_))
-            {
-                call_sender
-            } else {
-                let wallet = get_or_create_wallet_canister(
-                    env,
-                    env.get_network_descriptor(),
-                    env.get_selected_identity().expect("No selected identity"),
-                )
-                .await?;
-                proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-                &proxy_sender
-            };
+        let create_call_sender = if no_wallet
+            || specified_id.is_none()
+            || matches!(call_sender, CallSender::Wallet(_))
+        {
+            call_sender
+        } else {
+            let wallet = get_or_create_wallet_canister(
+                env,
+                env.get_network_descriptor(),
+                env.get_selected_identity().expect("No selected identity"),
+            )
+            .await?;
+            proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+            &proxy_sender
+        };
         register_canisters(
             env,
             &canisters_to_load,
