@@ -6,12 +6,12 @@ use crate::lib::error::ExtensionError;
 
 pub static MANIFEST_FILE_NAME: &str = "extension.toml";
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Extension {
+#[derive(Debug, Deserialize)]
+struct ExtensionManifestWrapper {
     extension: ExtensionManifest,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ExtensionManifest {
     pub name: String,
     pub version: String,
@@ -27,18 +27,20 @@ pub struct ExtensionManifest {
 
 impl Display for ExtensionManifest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Ok(json) = serde_json::to_string_pretty(self) else {
+        let Ok(s) = toml::to_string_pretty(self) else {
             return Err(std::fmt::Error)
         };
-        write!(f, "{}", json)
+        write!(f, "{}", s)
     }
 }
 
 impl ExtensionManifest {
+    // TODO: err about missing manifest file
     pub fn from_extension_directory(path: PathBuf) -> Result<Self, ExtensionError> {
         let manifest_path = path.join(MANIFEST_FILE_NAME);
-        let ext: Extension = toml::from_str(&dfx_core::fs::read_to_string(&manifest_path)?)
-            .map_err(|e| ExtensionError::ExtensionAlreadyInstalled(e.to_string()))?;
+        let ext: ExtensionManifestWrapper =
+            toml::from_str(&dfx_core::fs::read_to_string(&manifest_path)?)
+                .map_err(|e| ExtensionError::ExtensionAlreadyInstalled(e.to_string()))?;
         Ok(ext.extension)
     }
 }
