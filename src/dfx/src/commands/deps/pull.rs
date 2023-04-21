@@ -1,3 +1,4 @@
+use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::deps::{
     get_candid_path_in_project, get_pull_canisters_in_config, get_pulled_service_candid_path,
     get_pulled_wasm_path, get_pulled_wasm_url_txt_path, save_pulled_json,
@@ -10,6 +11,7 @@ use crate::lib::metadata::names::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
+use crate::NetworkOpt;
 use dfx_core::config::cache::get_cache_root;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
 
@@ -26,11 +28,16 @@ use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
 use slog::{error, info, trace, warn, Logger};
 
-/// Pull canisters upon which the project depends
+/// Pull canisters upon which the project depends.
+/// This command connects to the "ic" mainnet by default.
+/// You can still choose other network by setting `--network`.
 #[derive(Parser)]
-pub struct DepsPullOpts {}
+pub struct DepsPullOpts {
+    #[clap(flatten)]
+    network: NetworkOpt,
+}
 
-pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: DepsPullOpts) -> DfxResult {
     let logger = env.get_logger();
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if pull_canisters_in_config.is_empty() {
@@ -38,9 +45,12 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
         return Ok(());
     }
 
+    let network = opts.network.network.unwrap_or("ic".to_string());
+    let env = create_anonymous_agent_environment(env, Some(network))?;
+
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
 
-    fetch_root_key_if_needed(env).await?;
+    fetch_root_key_if_needed(&env).await?;
 
     let agent = env
         .get_agent()
@@ -79,7 +89,7 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let mut any_download_fail = false;
 
     for (canister_id, pulled_canister) in pulled_json.canisters.iter_mut() {
-        if let Err(e) = download_canister_files(env, logger, *canister_id, pulled_canister).await {
+        if let Err(e) = download_canister_files(&env, logger, *canister_id, pulled_canister).await {
             error!(logger, "Failed to pull canister {canister_id}.\n{e}");
             any_download_fail = true;
         }

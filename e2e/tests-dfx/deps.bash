@@ -103,7 +103,7 @@ setup_onchain() {
     ## 1.2. pull onchain canisters in "app" project
     cd ../app
 
-    assert_command_fail dfx deps pull # the overall pull fail but succeed to fetch and parse `dfx:deps` recursively
+    assert_command_fail dfx deps pull --network local # the overall pull fail but succeed to fetch and parse `dfx:deps` recursively
     assert_contains "Resolving dependencies of canister $CANISTER_ID_B...
 Resolving dependencies of canister $CANISTER_ID_C...
 Resolving dependencies of canister $CANISTER_ID_A...
@@ -130,7 +130,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     dfx canister install c --argument 3 --mode=reinstall --yes
 
     cd ../app
-    assert_command_fail dfx deps pull
+    assert_command_fail dfx deps pull --network local
     assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_C."
     assert_contains "Failed to parse \`dfx:deps\` entry: $CANISTER_ID_A. Expected \`name:Principal\`."
 
@@ -142,7 +142,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     dfx canister uninstall-code a
 
     cd ../app
-    assert_command_fail dfx deps pull
+    assert_command_fail dfx deps pull --network local
     assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_A."
     assert_contains "Canister $CANISTER_ID_A has no module."
 
@@ -151,7 +151,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     dfx canister delete a
 
     cd ../app
-    assert_command_fail dfx deps pull
+    assert_command_fail dfx deps pull --network local
     assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_A."
     assert_contains "Canister $CANISTER_ID_A not found."
 }
@@ -176,7 +176,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     cd app
     assert_file_not_exists "deps/pulled.json"
 
-    assert_command dfx deps pull
+    assert_command dfx deps pull --network local
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
@@ -197,7 +197,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_match "dep_c"
     cd ../
 
-    assert_command dfx deps pull -vvv
+    assert_command dfx deps pull --network local -vvv
     assert_contains "The canister wasm was found in the cache." # cache hit
 
     # sad path 1: wasm hash doesn't match on chain
@@ -206,7 +206,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     cp .dfx/local/canisters/b/b.wasm ../www/a.wasm 
 
     cd ../app
-    assert_command_fail dfx deps pull
+    assert_command_fail dfx deps pull --network local
     assert_contains "Failed to pull canister $CANISTER_ID_A."
     assert_contains "Hash mismatch."
 
@@ -214,7 +214,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     rm -r "${PULLED_DIR:?}/"
     rm ../www/a.wasm
 
-    assert_command_fail dfx deps pull
+    assert_command_fail dfx deps pull --network local
     assert_contains "Failed to pull canister $CANISTER_ID_A."
     assert_contains "Failed to download wasm from url:"
 }
@@ -260,7 +260,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     cd ../app
     assert_file_not_exists "deps/pulled.json"
 
-    assert_command dfx deps pull -vvv
+    assert_command dfx deps pull --network local -vvv
     assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
 }
 
@@ -274,7 +274,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     # pull canisters in app project
     cd app
-    assert_command dfx deps pull
+    assert_command dfx deps pull --network local
 
     # stop the "mainnet" replica
     dfx_stop
@@ -298,8 +298,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Canister $CANISTER_ID_A requires an init argument"
 
     assert_command_fail dfx deps init "$CANISTER_ID_A" --argument '("abc")'
-    assert_contains "Failed to validate argument against type defined in candid:args"
-    assert_contains "type mismatch: \"abc\" cannot be of type nat"
+    assert_contains "Invalid data: Unable to serialize Candid values: type mismatch: \"abc\" cannot be of type nat"
 
     assert_command_fail dfx deps init dep_b --argument 1
     assert_contains "Canister $CANISTER_ID_B (dep_b) takes no init argument. Please rerun without \`--argument\`"
@@ -324,7 +323,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     # pull canisters in app project
     cd app
-    assert_command dfx deps pull
+    assert_command dfx deps pull --network local
 
     # delete onchain canisters so that the replica has no canisters as a clean local replica
     cd ../onchain
@@ -398,7 +397,7 @@ Installing canister: $CANISTER_ID_A"
 
     # pull canisters in app project
     cd app
-    assert_command dfx deps pull
+    assert_command dfx deps pull --network local
 
     # delete onchain canisters so that the replica has no canisters as a clean local replica
     cd ../onchain
@@ -442,6 +441,11 @@ Installing canister: $CANISTER_ID_A"
 
 @test "dfx deps do nothing in a project has no pull dependencies" {
     dfx_new empty
+
+    # verify the help message
+    assert_command dfx deps pull -h
+    assert_contains "Pull canisters upon which the project depends. This command connects to the \"ic\" mainnet by default.
+You can still choose other network by setting \`--network\`"
 
     assert_command dfx deps pull
     assert_match "There are no pull dependencies defined in dfx.json"

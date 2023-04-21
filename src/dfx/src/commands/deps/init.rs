@@ -5,15 +5,11 @@ use crate::lib::deps::{
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::check_candid_file;
+use crate::util::{check_candid_file, fuzzy_parse_argument};
 
 use anyhow::{anyhow, bail};
 use candid::parser::types::IDLTypes;
-use candid::parser::value::IDLValue;
-use candid::types::Type;
-use candid::{IDLArgs, TypeEnv};
 use clap::Parser;
-use fn_error_context::context;
 use slog::{info, warn};
 
 /// Set init arguments for pulled dependencies.
@@ -74,7 +70,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                             .map_err(|e| anyhow!("Argument is not a valid hex string: {}", e))?;
                         init_json.set_init_arg(canister_id, None, &bytes);
                     } else {
-                        let bytes = args_to_bytes(arg_str, &env, &types)?;
+                        let bytes = fuzzy_parse_argument(arg_str, &env, &types)?;
                         init_json.set_init_arg(canister_id, Some(arg_str.to_string()), &bytes);
                     }
                 }
@@ -124,31 +120,4 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
 
     save_init_json(&project_root, &init_json)?;
     Ok(())
-}
-
-#[context("Failed to validate argument against type defined in candid:args")]
-fn args_to_bytes(
-    arg_str: &str,
-    env: &TypeEnv,
-    types: &[Type], // types has been checked to not be empty
-) -> DfxResult<Vec<u8>> {
-    let first_char = arg_str.chars().next();
-    let is_candid_format = first_char.map_or(false, |c| c == '(');
-    // If parsing fails and method expects a single value, try parsing as IDLValue.
-    // If it still fails, and method expects a text type, send arguments as text.
-    let args = arg_str.parse::<IDLArgs>().or_else(|_| {
-        if types.len() == 1 && !is_candid_format {
-            let is_quote = first_char.map_or(false, |c| c == '"');
-            if candid::types::Type::Text == types[0] && !is_quote {
-                Ok(IDLValue::Text(arg_str.to_string()))
-            } else {
-                candid::pretty_parse::<IDLValue>("Candid argument", arg_str)
-            }
-            .map(|v| IDLArgs::new(&[v]))
-        } else {
-            candid::pretty_parse::<IDLArgs>("Candid argument", arg_str)
-        }
-    })?;
-    let bytes = args.to_bytes_with_types(env, types)?;
-    Ok(bytes)
 }

@@ -4,13 +4,13 @@
 
 The interoperability of canisters on the Internet Computer (IC) is an important feature. 
 
-`dfx` provides a consistent developer workflow for integrating thrid party canisters.
+`dfx` provides a consistent developer workflow for integrating thrid-party canisters.
 
 A service provider attaches [necessary metadata](canister-metadata.md) to the canister wasm.
 
 A service consumer then can pull dependencies directly from the IC mainnet and easily deploy them on a local replica.
 
-This document describes the consumer workflow and explains what happens behind the scene.
+This document describes the consumer workflow and explains what happens behind the scenes.
 
 ## Workflow
 
@@ -45,9 +45,9 @@ Below is an example `dfx.json`, the service consumer is developing the "app" can
 
 ### 2. Pull the dependencies using `dfx deps pull`
 
-Running `dfx deps pull --network ic` will:
+Running `dfx deps pull` will:
 
-1. resolve the dependency graph by fetching `dfx:deps` metadata recuresively;
+1. resolve the dependency graph by fetching `dfx:deps` metadata recursively;
 2. download wasm of all direct and indirect dependencies from `dfx:wasm_url` into shared cache;
 3. hash check the downloaded wasm against `dfx:wasm_hash` metadata or the hash of the mainnet running canister;
 4. extract `candid:args`, `candid:service`, `dfx:init` from the downloaded wasm;
@@ -100,6 +100,11 @@ There are three dependencies:
 - "yhgn4-myaaa-aaaaa-aabta-cai": "dep_b" in `dfx.json`;
 - "yahli-baaaa-aaaaa-aabtq-cai": "dep_c" in `dfx.json`;
 - "yofga-2qaaa-aaaaa-aabsq-cai": an indirect dependency that both "dep_b" and "dep_c" depend on;
+
+**Note**
+
+-  `dfx deps pull` connects to the IC mainnet by default (`--network ic`).
+You can choose other network as usual, e.g. `--network local`.
 
 ### 3. Set init arguments using `dfx deps init`
 

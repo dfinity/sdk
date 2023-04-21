@@ -184,25 +184,7 @@ pub fn blob_from_arguments(
                 }
                 Some((env, func)) => {
                     if let Some(arguments) = arguments {
-                        let first_char = arguments.chars().next();
-                        let is_candid_format = first_char.map_or(false, |c| c == '(');
-                        // If parsing fails and method expects a single value, try parsing as IDLValue.
-                        // If it still fails, and method expects a text type, send arguments as text.
-                        let args = arguments.parse::<IDLArgs>().or_else(|_| {
-                            if func.args.len() == 1 && !is_candid_format {
-                                let is_quote = first_char.map_or(false, |c| c == '"');
-                                if candid::types::Type::Text == func.args[0] && !is_quote {
-                                    Ok(IDLValue::Text(arguments.to_string()))
-                                } else {
-                                    candid::pretty_parse::<IDLValue>("Candid argument", arguments)
-                                }
-                                .map(|v| IDLArgs::new(&[v]))
-                            } else {
-                                candid::pretty_parse::<IDLArgs>("Candid argument", arguments)
-                            }
-                        });
-                        args.map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
-                            .to_bytes_with_types(env, &func.args)
+                        fuzzy_parse_argument(arguments, env, &func.args)
                     } else if func.args.is_empty() {
                         use candid::Encode;
                         Encode!()
@@ -238,6 +220,35 @@ pub fn blob_from_arguments(
         }
         v => Err(error_unknown!("Invalid type: {}", v)),
     }
+}
+
+pub fn fuzzy_parse_argument(
+    arg_str: &str,
+    env: &TypeEnv,
+    types: &[Type],
+) -> Result<Vec<u8>, candid::Error> {
+    let first_char = arg_str.chars().next();
+    let is_candid_format = first_char.map_or(false, |c| c == '(');
+    // If parsing fails and method expects a single value, try parsing as IDLValue.
+    // If it still fails, and method expects a text type, send arguments as text.
+    let args = arg_str.parse::<IDLArgs>().or_else(|_| {
+        if types.len() == 1 && !is_candid_format {
+            let is_quote = first_char.map_or(false, |c| c == '"');
+            if candid::types::Type::Text == types[0] && !is_quote {
+                Ok(IDLValue::Text(arg_str.to_string()))
+            } else {
+                candid::pretty_parse::<IDLValue>("Candid argument", arg_str)
+            }
+            .map(|v| IDLArgs::new(&[v]))
+        } else {
+            candid::pretty_parse::<IDLArgs>("Candid argument", arg_str)
+        }
+    });
+    let bytes = args
+        .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
+        .to_bytes_with_types(env, types)
+        .map_err(|e| error_invalid_data!("Unable to serialize Candid values: {}", e))?;
+    Ok(bytes)
 }
 
 pub fn format_as_trillions(amount: u128) -> String {
