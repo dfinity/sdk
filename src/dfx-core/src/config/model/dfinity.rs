@@ -75,6 +75,31 @@ pub struct ConfigCanistersCanisterRemote {
     pub id: BTreeMap<String, Principal>,
 }
 
+/// # Wasm Optimization Levels
+/// Wasm optimization levels that are passed to `wasm-opt`. "cycles" defaults to O3, "size" defaults to Oz.
+/// O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os.
+/// O3 and Oz empirically give best cycle savings and code size savings respectively.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub enum WasmOptLevel {
+    #[serde(rename = "cycles")]
+    Cycles,
+    #[serde(rename = "size")]
+    Size,
+    O4,
+    O3,
+    O2,
+    O1,
+    O0,
+    Oz,
+    Os,
+}
+
+impl std::fmt::Display for WasmOptLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum MetadataVisibility {
@@ -194,6 +219,12 @@ pub struct ConfigCanistersCanister {
     /// Enabled by default for Rust/Motoko canisters.
     /// Disabled by default for custom canisters.
     pub shrink: Option<bool>,
+
+    /// # Optimize Canister WASM
+    /// Invoke wasm level optimizations after building the canister. Optimization level can be set to "cycles" to optimize for cycle usage, "size" to optimize for binary size, or any of "O4, O3, O2, O1, O0, Oz, Os".
+    /// Disabled by default.
+    #[serde(default)]
+    pub optimize: Option<WasmOptLevel>,
 
     /// # Metadata
     /// Defines metadata sections to set in the canister .wasm

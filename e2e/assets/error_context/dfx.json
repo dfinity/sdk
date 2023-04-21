@@ -23,6 +23,10 @@
       "wasm": "not used",
       "candid": "not used",
       "build": "not-the-name-of-an-executable-that-exists oh no certainly not"
+    },
+    "bad_optimization_level": {
+      "type": "motoko",
+      "main": "main.mo"
     }
   }
 }

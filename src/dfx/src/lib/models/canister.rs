@@ -192,8 +192,10 @@ impl Canister {
             return Ok(());
         }
 
-        let mut m = std::fs::read(&wasm_path)
+        let wasm = std::fs::read(&wasm_path)
             .with_context(|| format!("Failed to read wasm at {}", wasm_path.display()))?;
+        let mut m = ic_wasm::utils::parse_wasm(&wasm, true)
+            .with_context(|| format!("Failed to parse wasm at {}", wasm_path.display()))?;
 
         for (name, section) in &metadata_sections {
             if section.name == CANDID_SERVICE && self.info.is_motoko() {
@@ -232,12 +234,12 @@ impl Canister {
 
             // if the metadata already exists in the wasm with a different visibility,
             // then we have to remove it
-            m = remove_metadata(&m, name)?;
+            remove_metadata(&mut m, name);
 
-            m = add_metadata(&m, visibility, name, data)?;
+            add_metadata(&mut m, visibility, name, data);
         }
 
-        std::fs::write(&wasm_path, &m)
+        m.emit_wasm_file(&wasm_path)
             .with_context(|| format!("Could not write WASM to {:?}", wasm_path))
     }
 }
