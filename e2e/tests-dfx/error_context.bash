@@ -174,3 +174,9 @@ teardown() {
     # expect to see the underlying cause
     assert_match "Cannot find command or file"
 }
+
+@test "invalid optimization level" {
+    jq '.canisters.bad_optimization_level.optimize="bad_level"' dfx.json | sponge dfx.json
+    assert_command_fail dfx_start
+    assert_match "expected one of "
+}
