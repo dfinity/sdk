@@ -68,7 +68,7 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
         import_canister_definitions(
             logger,
             &mut config,
-            &frontend_url_str,
+            frontend_url_str,
             None,
             Some(canister_name.to_string()),
             &network_mappings,
