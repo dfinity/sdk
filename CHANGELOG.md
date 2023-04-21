@@ -176,6 +176,10 @@ Updated Motoko to 0.8.7
 
 Updated ic-ref to 0.0.1-ca6aca90
 
+### ic-btc-canister
+
+Started bundling ic-btc-canister, release 2023-03-31
+
 # 0.13.1
 
 ## Asset Canister

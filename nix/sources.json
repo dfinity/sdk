@@ -12,6 +12,14 @@
         "url": "https://github.com/RustSec/advisory-db/archive/cab69cc909dad84ca9409fb538bc95077ae9de0f.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "ic-btc-canister": {
+        "owner": "dfinity",
+        "sha256": "0izvazr0cpdwjga12zim2cwp3rgm5n3w7ag5yplfl8rxrhwk65f4",
+        "type": "file",
+        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-03-31/ic-btc-canister.wasm.gz",
+        "url_template": "https://github.com/dfinity/bitcoin-canister/releases/download/<version>/ic-btc-canister.wasm.gz",
+        "version": "release%2F2023-03-31"
+    },
     "canister_sandbox-x86_64-darwin": {
         "builtin": false,
         "description": "The canister_sandbox binary. It must be updated together with the replica binary.",
