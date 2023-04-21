@@ -56,7 +56,13 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     .await?;
 
     // Import frontend NNS canisters
-    // TODO: The version of nns-dapp deployed by dfx nns install is very old.
+    // TODO: The version of nns-dapp deployed by dfx nns install is very old and needs to be
+    // updated and parameterized.
+    //       - The pattern of where assets are has changed
+    //       - The wasm can now be used on any network
+    //       - Deploying the new nns-dapp requires passing arguments
+    // The following URL has the correct canister IDs and uses __default, so should give
+    // useful canister IDs in more cases but the wasm is from a much older commit.
     let frontend_url_str = "https://raw.githubusercontent.com/dfinity/nns-dapp/5a9b84ac38ab60065dd40c5174384c4c161875d3/dfx.json"; // TODO: parameterize URL
     for canister_name in ["nns-dapp", "internet_identity"] {
         import_canister_definitions(
