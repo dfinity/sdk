@@ -16,7 +16,7 @@ This document describes the consumer workflow and explains what happens behind t
 
 ### 1. Declare "pull" dependencies in `dfx.json`
 
-Below is an example `dfx.json` of a project, the service consumer is developing the "app" canister which has two pull dependencies:
+Below is an example `dfx.json`, the service consumer is developing the "app" canister which has two pull dependencies:
 
 - "dep_b" which has canister ID of "yhgn4-myaaa-aaaaa-aabta-cai" on the mainnet.
 - "dep_c" which has canister ID of "yahli-baaaa-aaaaa-aabtq-cai" on the mainnet.
@@ -66,7 +66,7 @@ For the example project, you will find following files in `deps/`:
     "yofga-2qaaa-aaaaa-aabsq-cai": {
       "name": null,
       "deps": [],
-      "wasm_url": "exmaple.com/a.wasm",
+      "wasm_url": "example.com/a.wasm",
       "wasm_hash": "e9b8ba2ad28fa1403cf6e776db531cdd6009a8e5cac2b1097d09bfc65163d56f",
       "dfx_init": "Nat",
       "candid_args": "(nat)"
@@ -76,7 +76,7 @@ For the example project, you will find following files in `deps/`:
       "deps": [
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
-      "wasm_url": "exmaple.com/b.wasm",
+      "wasm_url": "example.com/b.wasm",
       "wasm_hash": "f607c30727b0ee81317fc4547a8da3cda9bb9621f5d0740806ef973af5b479a2",
       "dfx_init": null,
       "candid_args": "()"
@@ -86,7 +86,7 @@ For the example project, you will find following files in `deps/`:
       "deps": [
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
-      "wasm_url": "exmaple.com/c.wasm",
+      "wasm_url": "example.com/c.wasm",
       "wasm_hash": "016df9800dc5760785646373bcb6e6bb530fc17f844600991a098ef4d486cf0b",
       "dfx_init": "Nat",
       "candid_args": "(nat)"
@@ -99,7 +99,7 @@ There are three dependencies:
 
 - "yhgn4-myaaa-aaaaa-aabta-cai": "dep_b" in `dfx.json`;
 - "yahli-baaaa-aaaaa-aabtq-cai": "dep_c" in `dfx.json`;
-- "yofga-2qaaa-aaaaa-aabsq-cai": a indirect dependency that both "dep_b" and "dep_c" depend on;
+- "yofga-2qaaa-aaaaa-aabsq-cai": an indirect dependency that both "dep_b" and "dep_c" depend on;
 
 ### 3. Set init arguments using `dfx deps init`
 
@@ -113,7 +113,7 @@ For our example, we should run:
 
 ```
 > dfx deps init
-WARN: The following canister(s) require an init argument. Please run `dfx deps init <PRINCIPAL>` to set them individually:
+WARN: The following canister(s) require an init argument. Please run `dfx deps init <NAME/PRINCIPAL>` to set them individually:
 yofga-2qaaa-aaaaa-aabsq-cai
 yahli-baaaa-aaaaa-aabtq-cai (dep_c)
 > dfx deps init yofga-2qaaa-aaaaa-aabsq-cai --argument 10
@@ -169,20 +169,20 @@ Installing canister: yhgn4-myaaa-aaaaa-aabta-cai (dep_b)
 
 **Note**
 
-- `dfx deps deploy` always create the canister with the anonymous identity so that dependencies will have different controller with the application canisters;
+- `dfx deps deploy` always create the canister with the anonymous identity so that dependencies and application canisters will have different controllers;
 - `dfx deps deploy` always install the canister in "reinstall" mode so that the canister status will be discarded;
 
 ## Q&A
 
 ### Why download wasm into shared cache instead of a project subfolder?
 
-We don't want to encourage developers to include binary files in version control.
+We don't want to encourage including binary files in version control.
 
-On IC, every canister only has one latest version running on the mainnet. And service consumer should only integrate with that latest version.
+On IC, every canister only has one latest version running on the mainnet. And service consumer should integrate with that latest version.
 
 So `dfx deps pull` always get the latest dependencies instead of locking on a particular run.
 
-Every pulled canister has one latest version in the shared cache and can be reused by different projects.
+Every pulled canister has the latest version in shared cache and can be reused by different projects.
 
 ### Should I include `deps/` folder in version control?
 
