@@ -59,15 +59,15 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     // TODO: The version of nns-dapp deployed by dfx nns install is very old.
     let frontend_url_str = "https://raw.githubusercontent.com/dfinity/nns-dapp/5a9b84ac38ab60065dd40c5174384c4c161875d3/dfx.json"; // TODO: parameterize URL
     for canister_name in ["nns-dapp", "internet_identity"] {
-    import_canister_definitions(
-        logger,
-        &mut config,
-        &frontend_url_str,
-        None,
-        Some(canister_name.to_string()),
-        &network_mappings,
-    )
-    .await?;
+        import_canister_definitions(
+            logger,
+            &mut config,
+            &frontend_url_str,
+            None,
+            Some(canister_name.to_string()),
+            &network_mappings,
+        )
+        .await?;
     }
 
     set_local_nns_canister_ids(logger, &mut config)
@@ -115,10 +115,7 @@ fn set_local_nns_canister_ids(logger: &Logger, config: &mut Config) -> DfxResult
                 dfx_canister,
             )?;
         } else {
-            info!(
-                logger,
-                "{} has no local canister ID.", canister_name
-            );
+            info!(logger, "{} has no local canister ID.", canister_name);
         }
     }
     config.save()?;
