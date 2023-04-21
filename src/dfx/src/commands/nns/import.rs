@@ -54,6 +54,19 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     )
     .await?;
 
+    let frontend_url_str = "https://raw.githubusercontent.com/dfinity/nns-dapp/5a9b84ac38ab60065dd40c5174384c4c161875d3/dfx.json"; // TODO: parameterize URL
+    for canister_name in ["nns-dapp", "internet_identity"] {
+    import_canister_definitions(
+        logger,
+        &mut config,
+        &frontend_url_str,
+        None,
+        Some(canister_name.to_string()),
+        &network_mappings,
+    )
+    .await?;
+    }
+
     set_local_nns_canister_ids(logger, &mut config)
 }
 
@@ -76,6 +89,7 @@ fn set_local_nns_canister_ids(logger: &Logger, config: &mut Config) -> DfxResult
     let local_canister_ids: CanisterIds = nns_init_canister_ids
         .chain(nns_frontend_canister_ids)
         .collect();
+    println!("{:#?}", local_canister_ids);
     let local_mappings = [ImportNetworkMapping {
         network_name_in_this_project: "local".to_string(),
         network_name_in_project_being_imported: "local".to_string(),
