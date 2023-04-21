@@ -36,8 +36,9 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let logger = env.get_logger();
 
     let network_mappings = get_network_mappings(&opts.network_mapping)?;
-    let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
 
+    // Import core NNS canisters
+    let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
     let dfx_url_str = {
         let ic_project = std::env::var("DFX_IC_SRC").unwrap_or_else(|_| {
             format!("https://raw.githubusercontent.com/dfinity/ic/{ic_commit}")
@@ -54,6 +55,9 @@ pub async fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     )
     .await?;
 
+    // Import frontend NNS canisters
+    let config = env.get_config_or_anyhow()?;
+    let mut config = config.as_ref().clone();
     let frontend_url_str = "https://raw.githubusercontent.com/dfinity/nns-dapp/5a9b84ac38ab60065dd40c5174384c4c161875d3/dfx.json"; // TODO: parameterize URL
     for canister_name in ["nns-dapp", "internet_identity"] {
     import_canister_definitions(
@@ -97,16 +101,16 @@ fn set_local_nns_canister_ids(logger: &Logger, config: &mut Config) -> DfxResult
 
     let canisters = get_canisters_json_object(config)?;
 
-    for canister in NNS_CORE {
+    for canister_name in local_canister_ids.keys() {
         // Not all NNS canisters may be listed in the remote dfx.json
         let dfx_canister = canisters
-            .get_mut(canister.canister_name)
+            .get_mut(canister_name)
             .and_then(|canister_entry| canister_entry.as_object_mut());
         // If the canister is in dfx.json, set the local canister ID.
         if let Some(dfx_canister) = dfx_canister {
             set_remote_canister_ids(
                 logger,
-                canister.canister_name,
+                canister_name,
                 &local_mappings,
                 &local_canister_ids,
                 dfx_canister,
@@ -114,7 +118,7 @@ fn set_local_nns_canister_ids(logger: &Logger, config: &mut Config) -> DfxResult
         } else {
             info!(
                 logger,
-                "{} has no local canister ID.", canister.canister_name
+                "{} has no local canister ID.", canister_name
             );
         }
     }
