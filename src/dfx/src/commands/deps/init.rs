@@ -1,7 +1,7 @@
 use crate::lib::deps::{
     create_init_json_if_not_existed, get_pull_canister_or_principal, get_pull_canisters_in_config,
     get_pulled_service_candid_path, load_init_json, load_pulled_json, save_init_json,
-    validate_pulled,
+    validate_pulled, PulledCanister,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -11,7 +11,7 @@ use anyhow::{anyhow, bail};
 use candid::parser::types::IDLTypes;
 use candid::parser::value::IDLValue;
 use candid::types::Type;
-use candid::{IDLArgs, TypeEnv};
+use candid::{IDLArgs, Principal, TypeEnv};
 use clap::Parser;
 use fn_error_context::context;
 use slog::{info, warn};
@@ -50,6 +50,11 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
     match opts.canister {
         Some(canister) => {
             let canister_id = get_pull_canister_or_principal(&canister, &pull_canisters_in_config)?;
+            let pulled_canister = pulled_json
+                .canisters
+                .get(&canister_id)
+                .ok_or_else(|| anyhow!("Failed to find {canister_id} entry in pulled.json"))?;
+            let canister_prompt = get_canister_prompt(&canister_id, pulled_canister);
             let idl_path = get_pulled_service_candid_path(canister_id)?;
             let (env, _) = check_candid_file(&idl_path)?;
             let candid_args = pulled_json.get_candid_args(&canister_id)?;
@@ -74,12 +79,12 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                     }
                 }
                 (Some(_), true) => {
-                    bail!("Canister {canister_id} takes no init argument. Please rerun without `--argument`");
+                    bail!("Canister {canister_prompt} takes no init argument. Please rerun without `--argument`");
                 }
                 (None, false) => {
-                    let mut message = format!("Canister {canister_id} requires an init argument. The following info might be helpful:");
+                    let mut message = format!("Canister {canister_prompt} requires an init argument. The following info might be helpful:");
                     if let Some(dfx_init) = pulled_json.get_dfx_init(&canister_id)? {
-                        message.push_str(&format!("dfx:init    => {dfx_init}"));
+                        message.push_str(&format!("dfx:init => {dfx_init}"));
                     }
                     let candid_args = pulled_json.get_candid_args(&canister_id)?;
                     message.push_str(&format!("candid:args => {candid_args}"));
@@ -93,23 +98,24 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
         }
         None => {
             let mut canisters_require_init = vec![];
-            for canister_id in pulled_json.canisters.keys() {
+            for (canister_id, pulled_canister) in &pulled_json.canisters {
+                let canister_prompt = get_canister_prompt(canister_id, pulled_canister);
                 if init_json.contains(canister_id) {
-                    info!(logger, "{canister_id} already set init argument.");
+                    info!(logger, "{canister_prompt} already set init argument.");
                 } else {
                     let candid_args = pulled_json.get_candid_args(canister_id)?;
                     let candid_args_idl_types: IDLTypes = candid_args.parse()?;
                     if candid_args_idl_types.args.is_empty() {
                         init_json.set_empty_init(*canister_id);
                     } else {
-                        canisters_require_init.push(*canister_id);
+                        canisters_require_init.push(canister_prompt);
                     }
                 }
             }
             if !canisters_require_init.is_empty() {
                 let mut message = "The following canister(s) require an init argument. Please run `dfx deps init <PRINCIPAL>` to set them individually:".to_string();
-                for canister_id in canisters_require_init {
-                    message.push_str(&format!("\n{canister_id}"));
+                for canister_prompt in canisters_require_init {
+                    message.push_str(&format!("\n{canister_prompt}"));
                 }
                 warn!(logger, "{message}");
             }
@@ -145,4 +151,11 @@ fn args_to_bytes(
     })?;
     let bytes = args.to_bytes_with_types(env, types)?;
     Ok(bytes)
+}
+
+fn get_canister_prompt(canister_id: &Principal, pulled_canister: &PulledCanister) -> String {
+    match &pulled_canister.name {
+        Some(name) => format!("{canister_id} ({name})"),
+        None => canister_id.to_text(),
+    }
 }

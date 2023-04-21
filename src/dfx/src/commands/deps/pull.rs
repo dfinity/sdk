@@ -50,7 +50,7 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
     let mut canisters_to_resolve: VecDeque<Principal> =
         pull_canisters_in_config.values().cloned().collect();
 
-    let mut pulled_json = PulledJson::with_named(&pull_canisters_in_config);
+    let mut pulled_json = PulledJson::default();
 
     while let Some(callee_canister) = canisters_to_resolve.pop_front() {
         if !pulled_json.canisters.contains_key(&callee_canister) {
@@ -92,6 +92,11 @@ pub async fn exec(env: &dyn Environment, _opts: DepsPullOpts) -> DfxResult {
 
     for (name, canister_id) in &pull_canisters_in_config {
         copy_service_candid_to_project(&project_root, name, *canister_id)?;
+        let pulled_canister = pulled_json
+            .canisters
+            .get_mut(canister_id)
+            .ok_or_else(|| anyhow!("Failed to find {canister_id} entry in pulled.json"))?;
+        pulled_canister.name = Some(name.clone());
     }
 
     save_pulled_json(&project_root, &pulled_json)?;

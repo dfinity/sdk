@@ -188,11 +188,13 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_file_exists "pulled.json"
     assert_file_exists "dep_b.did"
     assert_file_exists "dep_c.did"
-    assert_eq "$CANISTER_ID_B" "$(jq -r '.named.dep_b' pulled.json)"
-    assert_eq "$CANISTER_ID_C" "$(jq -r '.named.dep_c' pulled.json)"
     assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
     assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".dfx_init' pulled.json
     assert_match "Nat"
+    assert_command jq -r '.canisters."'"$CANISTER_ID_B"'".name' pulled.json
+    assert_match "dep_b"
+    assert_command jq -r '.canisters."'"$CANISTER_ID_C"'".name' pulled.json
+    assert_match "dep_c"
     cd ../
 
     assert_command dfx deps pull -vvv
@@ -280,14 +282,16 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_command dfx deps init
     assert_contains "The following canister(s) require an init argument. Please run \`dfx deps init <PRINCIPAL>\` to set them individually:"
     assert_contains "$CANISTER_ID_A"
-    assert_contains "$CANISTER_ID_C"
+    assert_contains "$CANISTER_ID_C (dep_c)"
 
     assert_command dfx deps init "$CANISTER_ID_A" --argument 11
-    assert_command dfx deps init "$CANISTER_ID_C" --argument 33
+    assert_command dfx deps init dep_c --argument 33
 
     # The argument is the hex string of '("abc")' which doesn't type check
     # However, passing raw argument will bypass the type check so following command succeed
     assert_command dfx deps init "$CANISTER_ID_A" --argument "4449444c00017103616263" --argument-type raw
+    assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".arg_raw' deps/init.json
+    assert_match "4449444c00017103616263"
 
     # error cases
     assert_command_fail dfx deps init "$CANISTER_ID_A"
@@ -297,8 +301,13 @@ Failed to download wasm from url: http://example.com/c.wasm."
     assert_contains "Failed to validate argument against type defined in candid:args"
     assert_contains "type mismatch: \"abc\" cannot be of type nat"
 
-    assert_command_fail dfx deps init "$CANISTER_ID_B" --argument 1
-    assert_contains "Canister $CANISTER_ID_B takes no init argument. Please rerun without \`--argument\`"
+    assert_command_fail dfx deps init dep_b --argument 1
+    assert_contains "Canister $CANISTER_ID_B (dep_b) takes no init argument. Please rerun without \`--argument\`"
+
+    assert_command_fail dfx deps init "$CANISTER_ID_C"
+    assert_contains "Canister $CANISTER_ID_C (dep_c) requires an init argument. The following info might be helpful:"
+    assert_contains "dfx:init => Nat"
+    assert_contains "candid:args => (nat)"
 }
 
 @test "dfx deps deploy works" {

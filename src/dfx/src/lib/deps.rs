@@ -18,12 +18,13 @@ use sha2::{Digest, Sha256};
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledJson {
-    pub named: BTreeMap<String, Principal>,
     pub canisters: BTreeMap<Principal, PulledCanister>,
 }
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledCanister {
+    // name of `type: pull` in dfx.json. None if indirect dependency.
+    pub name: Option<String>,
     // dfx:deps
     pub deps: Vec<Principal>,
     // dfx:wasm_url, once we can download wasm directly from IC, this field will be optional
@@ -39,13 +40,6 @@ pub struct PulledCanister {
 }
 
 impl PulledJson {
-    pub fn with_named(named: &BTreeMap<String, Principal>) -> Self {
-        Self {
-            named: named.clone(),
-            ..Default::default()
-        }
-    }
-
     pub fn get_all_ids(&self) -> Vec<Principal> {
         self.canisters.keys().cloned().collect()
     }
@@ -136,13 +130,25 @@ pub fn get_pull_canisters_in_config(
 
 // 1. whether pulled.json is consistent with dfx.json
 // 2. whether downloaded wasm modules are consistent with pulled.json
-#[context("Failed to validate pulled.json and pulled Wasm modules. Please rerun `dfx deps pull`.")]
 pub fn validate_pulled(
     pulled_json: &PulledJson,
     pull_canisters_in_config: &BTreeMap<String, Principal>,
 ) -> DfxResult {
-    if &pulled_json.named != pull_canisters_in_config {
-        bail!("The named section in pulled.json is not consistent with pull types canisters in dfx.json.");
+    for (name, canister_id) in pull_canisters_in_config {
+        let pulled_canister = pulled_json
+            .canisters
+            .get(canister_id)
+            .ok_or_else(|| anyhow!("Failed to find {name}:{canister_id} in pulled.json."))?;
+        match &pulled_canister.name {
+            Some(s) if s == name => continue,
+            Some(other_name) => bail!(
+                "{canister_id} is \"{name}\" in dfx.json, but it has name \"{}\" in pulled.json.",
+                other_name
+            ),
+            None => bail!(
+                "{canister_id} is \"{name}\" in dfx.json, but it doesn't have name in pulled.json."
+            ),
+        }
     }
 
     for (canister_id, pulled_canister) in &pulled_json.canisters {
