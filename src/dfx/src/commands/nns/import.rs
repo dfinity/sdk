@@ -98,7 +98,6 @@ fn set_local_nns_canister_ids(logger: &Logger, config: &mut Config) -> DfxResult
     let local_canister_ids: CanisterIds = nns_init_canister_ids
         .chain(nns_frontend_canister_ids)
         .collect();
-    println!("{:#?}", local_canister_ids);
     let local_mappings = [ImportNetworkMapping {
         network_name_in_this_project: "local".to_string(),
         network_name_in_project_being_imported: "local".to_string(),
