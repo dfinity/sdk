@@ -15,7 +15,7 @@ use crate::NetworkOpt;
 use dfx_core::config::cache::get_cache_root;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
 
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
 use std::path::Path;
 
@@ -56,48 +56,11 @@ pub async fn exec(env: &dyn Environment, opts: DepsPullOpts) -> DfxResult {
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
-    let mut canisters_to_resolve: VecDeque<Principal> =
-        pull_canisters_in_config.values().cloned().collect();
+    let all_dependencies =
+        resolve_all_dependencies(agent, logger, &pull_canisters_in_config).await?;
 
-    let mut pulled_json = PulledJson::default();
-
-    while let Some(callee_canister) = canisters_to_resolve.pop_front() {
-        if !pulled_json.canisters.contains_key(&callee_canister) {
-            fetch_deps_to_pull(
-                agent,
-                logger,
-                callee_canister,
-                &mut canisters_to_resolve,
-                &mut pulled_json,
-            )
-            .await?;
-        }
-    }
-
-    let mut message = String::new();
-    message.push_str(&format!(
-        "Found {} dependencies:",
-        pulled_json.num_of_canisters()
-    ));
-    for id in pulled_json.get_all_ids() {
-        message.push('\n');
-        message.push_str(&id.to_text());
-    }
-
-    info!(logger, "{}", message);
-
-    let mut any_download_fail = false;
-
-    for (canister_id, pulled_canister) in pulled_json.canisters.iter_mut() {
-        if let Err(e) = download_canister_files(&env, logger, *canister_id, pulled_canister).await {
-            error!(logger, "Failed to pull canister {canister_id}.\n{e}");
-            any_download_fail = true;
-        }
-    }
-
-    if any_download_fail {
-        bail!("Failed when pulling canisters.");
-    }
+    let mut pulled_json =
+        download_all_and_generate_pulled_json(agent, logger, &all_dependencies).await?;
 
     for (name, canister_id) in &pull_canisters_in_config {
         copy_service_candid_to_project(&project_root, name, *canister_id)?;
@@ -112,60 +75,95 @@ pub async fn exec(env: &dyn Environment, opts: DepsPullOpts) -> DfxResult {
     Ok(())
 }
 
-#[context("Failed to fetch and parse `dfx:deps` metadata from canister {canister_id}.")]
-async fn fetch_deps_to_pull(
+async fn resolve_all_dependencies(
     agent: &Agent,
     logger: &Logger,
-    canister_id: Principal,
-    canisters_to_pull: &mut VecDeque<Principal>,
-    pulled_json: &mut PulledJson,
-) -> DfxResult {
+    pull_canisters_in_config: &BTreeMap<String, Principal>,
+) -> DfxResult<Vec<Principal>> {
+    let mut canisters_to_resolve: VecDeque<Principal> =
+        pull_canisters_in_config.values().cloned().collect();
+    let mut checked = BTreeSet::new();
+    while let Some(canister_id) = canisters_to_resolve.pop_front() {
+        if !checked.contains(&canister_id) {
+            checked.insert(canister_id);
+            let dependencies = get_dependencies(agent, logger, &canister_id).await?;
+            canisters_to_resolve.extend(dependencies.iter());
+        }
+    }
+    let all_dependencies = checked.into_iter().collect::<Vec<_>>();
+    let mut message = String::new();
+    message.push_str(&format!("Found {} dependencies:", all_dependencies.len()));
+    for id in &all_dependencies {
+        message.push('\n');
+        message.push_str(&id.to_text());
+    }
+    info!(logger, "{}", message);
+    Ok(all_dependencies)
+}
+
+#[context("Failed to get dependencies of canister {canister_id}.")]
+async fn get_dependencies(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: &Principal,
+) -> DfxResult<Vec<Principal>> {
     info!(
         logger,
         "Resolving dependencies of canister {canister_id}..."
     );
-
     match fetch_metadata(agent, canister_id, DFX_DEPS).await? {
         Some(deps_raw) => {
             let deps_str = String::from_utf8(deps_raw)?;
             let deps = parse_dfx_deps(&deps_str)?;
-            canisters_to_pull.extend(deps.iter().copied());
-            pulled_json.canisters.insert(
-                canister_id,
-                PulledCanister {
-                    deps,
-                    ..Default::default()
-                },
-            );
+            Ok(deps)
         }
         None => {
             warn!(
                 logger,
                 "`{DFX_DEPS}` metadata not found in canister {canister_id}."
             );
-            pulled_json
-                .canisters
-                .insert(canister_id, PulledCanister::default());
+            Ok(vec![])
         }
     }
-    Ok(())
 }
 
-// download canister wasm, candid, init
-async fn download_canister_files(
-    env: &dyn Environment,
+async fn download_all_and_generate_pulled_json(
+    agent: &Agent,
+    logger: &Logger,
+    all_dependencies: &[Principal],
+) -> DfxResult<PulledJson> {
+    let mut any_download_fail = false;
+    let mut pulled_json = PulledJson::default();
+    for canister_id in all_dependencies {
+        match download_and_generate_pulled_canister(agent, logger, *canister_id).await {
+            Ok(pulled_canister) => {
+                pulled_json.canisters.insert(*canister_id, pulled_canister);
+            }
+            Err(e) => {
+                error!(logger, "Failed to pull canister {canister_id}.\n{e}");
+                any_download_fail = true;
+            }
+        }
+    }
+
+    if any_download_fail {
+        bail!("Failed when pulling canisters.");
+    }
+    Ok(pulled_json)
+}
+
+// Download canister wasm, then extract metadata from it to build a PulledCanister
+async fn download_and_generate_pulled_canister(
+    agent: &Agent,
     logger: &Logger,
     canister_id: Principal,
-    pulled_canister: &mut PulledCanister,
-) -> DfxResult {
+) -> DfxResult<PulledCanister> {
     info!(logger, "Pulling canister {canister_id}...");
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let mut pulled_canister = PulledCanister::default();
 
     // try fetch `dfx:wasm_hash`. If not available, get the hash of the on chain canister.
-    let hash_on_chain = match fetch_metadata(agent, canister_id, DFX_WASM_HASH).await? {
+    let hash_on_chain = match fetch_metadata(agent, &canister_id, DFX_WASM_HASH).await? {
         Some(wasm_hash_raw) => {
             let wasm_hash_str = String::from_utf8(wasm_hash_raw)?;
             trace!(
@@ -206,7 +204,7 @@ async fn download_canister_files(
     }
     if !cache_hit {
         // fetch `dfx:wasm_url`
-        let wasm_url_raw = fetch_metadata(agent, canister_id, DFX_WASM_URL)
+        let wasm_url_raw = fetch_metadata(agent, &canister_id, DFX_WASM_URL)
             .await?
             .ok_or_else(|| {
                 anyhow!("`{DFX_WASM_URL}` metadata not found in canister {canister_id}.")
@@ -236,18 +234,24 @@ download: {}",
 
         write_to_tempfile_then_rename(&content, &wasm_path)?;
     }
-    // get `candid:service` from downloaded wasm
+
+    // extract `candid:service` and save as candid file in shared cache
     let wasm = dfx_core::fs::read(&wasm_path).context("Failed to read wasm")?;
     let module = ic_wasm::utils::parse_wasm(&wasm, true)?;
     let candid_service = get_metadata_as_string(&module, CANDID_SERVICE, &wasm_path)?;
     let service_candid_path = get_pulled_service_candid_path(canister_id)?;
     write_to_tempfile_then_rename(candid_service.as_bytes(), &service_candid_path)?;
 
-    // get `candid:args` from downloaded wasm
+    // extract `candid:args`
     let candid_args = get_metadata_as_string(&module, CANDID_ARGS, &wasm_path)?;
     pulled_canister.candid_args = Some(candid_args);
 
-    // try get `dfx:init` from downloaded wasm
+    // extract `dfx:deps`
+    let dfx_deps = get_metadata_as_string(&module, DFX_DEPS, &wasm_path)?;
+    let deps = parse_dfx_deps(&dfx_deps)?;
+    pulled_canister.deps = deps;
+
+    // try extract `dfx:init`
     if let Ok(dfx_init) = get_metadata_as_string(&module, DFX_INIT, &wasm_path) {
         pulled_canister.dfx_init = Some(dfx_init)
     } else {
@@ -259,17 +263,17 @@ download: {}",
         );
     }
 
-    Ok(())
+    Ok(pulled_canister)
 }
 
 #[context("Failed to fetch metadata {metadata} of canister {canister_id}.")]
 async fn fetch_metadata(
     agent: &Agent,
-    canister_id: Principal,
+    canister_id: &Principal,
     metadata: &str,
 ) -> DfxResult<Option<Vec<u8>>> {
     match agent
-        .read_state_canister_metadata(canister_id, metadata)
+        .read_state_canister_metadata(*canister_id, metadata)
         .await
     {
         Ok(data) => Ok(Some(data)),

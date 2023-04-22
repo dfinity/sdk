@@ -38,14 +38,6 @@ pub struct PulledCanister {
 }
 
 impl PulledJson {
-    pub fn get_all_ids(&self) -> Vec<Principal> {
-        self.canisters.keys().cloned().collect()
-    }
-
-    pub fn num_of_canisters(&self) -> usize {
-        self.canisters.len()
-    }
-
     pub fn get_dfx_init(&self, canister_id: &Principal) -> DfxResult<Option<&str>> {
         match self.canisters.get(canister_id) {
             Some(o) => Ok(o.dfx_init.as_deref()),

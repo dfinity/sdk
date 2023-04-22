@@ -131,7 +131,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     cd ../app
     assert_command_fail dfx deps pull --network local
-    assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_C."
+    assert_contains "Failed to get dependencies of canister $CANISTER_ID_C."
     assert_contains "Failed to parse \`dfx:deps\` entry: $CANISTER_ID_A. Expected \`name:Principal\`."
 
 
@@ -143,7 +143,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     cd ../app
     assert_command_fail dfx deps pull --network local
-    assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_A."
+    assert_contains "Failed to get dependencies of canister $CANISTER_ID_A."
     assert_contains "Canister $CANISTER_ID_A has no module."
 
     cd ../onchain
@@ -152,7 +152,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     cd ../app
     assert_command_fail dfx deps pull --network local
-    assert_contains "Failed to fetch and parse \`dfx:deps\` metadata from canister $CANISTER_ID_A."
+    assert_contains "Failed to get dependencies of canister $CANISTER_ID_A."
     assert_contains "Canister $CANISTER_ID_A not found."
 }
 
