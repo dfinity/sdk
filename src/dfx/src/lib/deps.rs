@@ -24,6 +24,7 @@ pub struct PulledJson {
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledCanister {
     // name of `type: pull` in dfx.json. None if indirect dependency.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     // dfx:deps
     pub deps: Vec<Principal>,

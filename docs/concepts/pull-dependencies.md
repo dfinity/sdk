@@ -64,7 +64,6 @@ For the example project, you will find following files in `deps/`:
 {
   "canisters": {
     "yofga-2qaaa-aaaaa-aabsq-cai": {
-      "name": null,
       "deps": [],
       "wasm_hash": "e9b8ba2ad28fa1403cf6e776db531cdd6009a8e5cac2b1097d09bfc65163d56f",
       "dfx_init": "Nat",
