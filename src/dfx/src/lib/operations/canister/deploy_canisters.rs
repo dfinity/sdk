@@ -91,7 +91,7 @@ pub async fn deploy_canisters(
     {
         let proxy_sender;
         let create_call_sender = if no_wallet
-            || specified_id.is_none()
+            || specified_id.is_some()
             || matches!(call_sender, CallSender::Wallet(_))
         {
             call_sender
