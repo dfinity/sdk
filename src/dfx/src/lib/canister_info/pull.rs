@@ -47,10 +47,10 @@ impl CanisterInfoFactory for PullCanisterInfo {
             }
         };
 
-        let output_wasm_path = get_pulled_wasm_path(canister_id)?;
+        let output_wasm_path = get_pulled_wasm_path(&canister_id)?;
 
         let workspace_root = info.get_workspace_root().to_path_buf();
-        let output_idl_path = get_candid_path_in_project(&workspace_root, &name);
+        let output_idl_path = get_candid_path_in_project(&workspace_root, &canister_id);
 
         Ok(Self {
             name,

@@ -52,12 +52,12 @@ Running `dfx deps pull` will:
 3. verify the hash of the downloaded wasm against `dfx:wasm_hash` metadata or the hash of the canister deployed on mainnet;
 4. extract `candid:args`, `candid:service`, `dfx:init` from the downloaded wasm;
 5. create `deps/` folder in project root;
-6. save `candid:service` of direct dependencies as `deps/<NAME>.did`;
+6. save `candid:service` of direct dependencies as `deps/<CANISTER_ID>.did`;
 7. save `deps/pulled.json` which contains major info of all direct and indirect dependencies;
 
 For the example project, you will find following files in `deps/`:
 
-- `dep_b.did` and `dep_c.did`: candid files that can be imported by "app";
+- `yhgn4-myaaa-aaaaa-aabta-cai.did` and `yahli-baaaa-aaaaa-aabtq-cai.did`: candid files that can be imported by "app";
 - `pulled.json` which has follwing content:
 
 ```

@@ -63,7 +63,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsPullOpts) -> DfxResult {
         download_all_and_generate_pulled_json(agent, logger, &all_dependencies).await?;
 
     for (name, canister_id) in &pull_canisters_in_config {
-        copy_service_candid_to_project(&project_root, name, *canister_id)?;
+        copy_service_candid_to_project(&project_root, name, canister_id)?;
         let pulled_canister = pulled_json
             .canisters
             .get_mut(canister_id)
@@ -190,7 +190,7 @@ async fn download_and_generate_pulled_canister(
         .join(canister_id.to_string());
     dfx_core::fs::create_dir_all(&canister_dir)?;
 
-    let wasm_path = get_pulled_wasm_path(canister_id)?;
+    let wasm_path = get_pulled_wasm_path(&canister_id)?;
 
     // skip download if cache hit
     let mut cache_hit = false;
@@ -239,7 +239,7 @@ download: {}",
     let wasm = dfx_core::fs::read(&wasm_path).context("Failed to read wasm")?;
     let module = ic_wasm::utils::parse_wasm(&wasm, true)?;
     let candid_service = get_metadata_as_string(&module, CANDID_SERVICE, &wasm_path)?;
-    let service_candid_path = get_pulled_service_candid_path(canister_id)?;
+    let service_candid_path = get_pulled_service_candid_path(&canister_id)?;
     write_to_tempfile_then_rename(candid_service.as_bytes(), &service_candid_path)?;
 
     // extract `candid:args`
@@ -316,10 +316,10 @@ fn write_to_tempfile_then_rename(content: &[u8], path: &Path) -> DfxResult {
 pub fn copy_service_candid_to_project(
     project_root: &Path,
     name: &str,
-    canister_id: Principal,
+    canister_id: &Principal,
 ) -> DfxResult {
     let service_candid_path = get_pulled_service_candid_path(canister_id)?;
-    let path_in_project = get_candid_path_in_project(project_root, name);
+    let path_in_project = get_candid_path_in_project(project_root, canister_id);
     ensure_parent_dir_exists(&path_in_project)?;
     dfx_core::fs::copy(&service_candid_path, &path_in_project)?;
     Ok(())

@@ -51,7 +51,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                 .get(&canister_id)
                 .ok_or_else(|| anyhow!("Failed to find {canister_id} entry in pulled.json"))?;
             let canister_prompt = get_canister_prompt(&canister_id, pulled_canister);
-            let idl_path = get_pulled_service_candid_path(canister_id)?;
+            let idl_path = get_pulled_service_candid_path(&canister_id)?;
             let (env, _) = check_candid_file(&idl_path)?;
             let candid_args = pulled_json.get_candid_args(&canister_id)?;
             let candid_args_idl_types: IDLTypes = candid_args.parse()?;

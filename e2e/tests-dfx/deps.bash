@@ -186,8 +186,8 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     cd deps
     assert_file_exists "pulled.json"
-    assert_file_exists "dep_b.did"
-    assert_file_exists "dep_c.did"
+    assert_file_exists "$CANISTER_ID_B.did"
+    assert_file_exists "$CANISTER_ID_C.did"
     assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
     assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".dfx_init' pulled.json
     assert_match "Nat"

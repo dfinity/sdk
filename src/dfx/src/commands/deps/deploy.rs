@@ -108,7 +108,7 @@ async fn install_pulled_canister(
     canister_prompt: &str,
 ) -> DfxResult {
     info!(logger, "Installing canister: {canister_prompt}");
-    let pulled_canister_path = get_pulled_wasm_path(*canister_id)?;
+    let pulled_canister_path = get_pulled_wasm_path(canister_id)?;
     let wasm = dfx_core::fs::read(&pulled_canister_path)?;
     let mgr = ManagementCanister::create(agent);
     mgr.install_code(canister_id, &wasm)

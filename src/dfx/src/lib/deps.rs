@@ -142,7 +142,7 @@ pub fn validate_pulled(
     }
 
     for (canister_id, pulled_canister) in &pulled_json.canisters {
-        let pulled_canister_path = get_pulled_wasm_path(*canister_id)?;
+        let pulled_canister_path = get_pulled_wasm_path(canister_id)?;
         let bytes = dfx_core::fs::read(&pulled_canister_path)?;
         let hash_cache = Sha256::digest(bytes);
         let hash_in_json = hex::decode(&pulled_canister.wasm_hash)?;
@@ -166,8 +166,10 @@ fn get_deps_dir(project_root: &Path) -> PathBuf {
     project_root.join("deps")
 }
 
-pub fn get_candid_path_in_project(project_root: &Path, name: &str) -> PathBuf {
-    get_deps_dir(project_root).join(name).with_extension("did")
+pub fn get_candid_path_in_project(project_root: &Path, canister_id: &Principal) -> PathBuf {
+    get_deps_dir(project_root)
+        .join(canister_id.to_text())
+        .with_extension("did")
 }
 
 fn get_init_json_path(project_root: &Path) -> PathBuf {
@@ -220,16 +222,16 @@ pub fn save_init_json(project_root: &Path, init_json: &InitJson) -> DfxResult {
 }
 
 #[context("Failed to get the wasm path of pulled canister \"{canister_id}\"")]
-pub fn get_pulled_wasm_path(canister_id: Principal) -> DfxResult<PathBuf> {
+pub fn get_pulled_wasm_path(canister_id: &Principal) -> DfxResult<PathBuf> {
     Ok(get_pulled_canister_dir(canister_id)?.join("canister.wasm"))
 }
 
 #[context("Failed to get the service candid path of pulled canister \"{canister_id}\"")]
-pub fn get_pulled_service_candid_path(canister_id: Principal) -> DfxResult<PathBuf> {
+pub fn get_pulled_service_candid_path(canister_id: &Principal) -> DfxResult<PathBuf> {
     Ok(get_pulled_canister_dir(canister_id)?.join("service.did"))
 }
 
-fn get_pulled_canister_dir(canister_id: Principal) -> DfxResult<PathBuf> {
+fn get_pulled_canister_dir(canister_id: &Principal) -> DfxResult<PathBuf> {
     Ok(get_cache_root()?.join("pulled").join(canister_id.to_text()))
 }
 
