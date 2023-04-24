@@ -556,14 +556,11 @@ impl State {
                 evidence_computation: None,
             },
         );
-        self.chunks.retain(|_, c| {
-            self.batches
-                .get(&c.batch_id)
-                .map(|b| b.expires_at > now || b.commit_batch_arguments.is_some())
-                .unwrap_or(false)
+        self.batches.retain(|_, b| {
+            b.expires_at > now || matches!(b.evidence_computation, Some(Computed(_)))
         });
-        self.batches
-            .retain(|_, b| b.expires_at > now || b.commit_batch_arguments.is_some());
+        self.chunks
+            .retain(|_, c| self.batches.contains_key(&c.batch_id));
 
         batch_id
     }
@@ -602,6 +599,7 @@ impl State {
                 BatchOperation::UnsetAssetContent(arg) => self.unset_asset_content(arg)?,
                 BatchOperation::DeleteAsset(arg) => self.delete_asset(arg),
                 BatchOperation::Clear(_) => self.clear(),
+                BatchOperation::SetAssetProperties(arg) => self.set_asset_properties(arg)?,
             }
         }
         self.batches.remove(&batch_id);

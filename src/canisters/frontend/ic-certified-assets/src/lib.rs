@@ -40,7 +40,7 @@ thread_local! {
 #[query]
 #[candid_method(query)]
 fn api_version() -> u16 {
-    0
+    1
 }
 
 #[update]
