@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.14.0
+
 ## DFX
 
 ### fix: stop `dfx deploy` from creating a wallet if all canisters exist
