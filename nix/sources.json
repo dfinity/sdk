@@ -6,19 +6,11 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "cab69cc909dad84ca9409fb538bc95077ae9de0f",
-        "sha256": "1g3gwip96wsylbzgf9hqj7bg5jrf26l21h8xizzg5z615a8hg54x",
+        "rev": "5f4eca136204fb9e86d6297b20f149d225276824",
+        "sha256": "0c8b2vnhr33kdskj11gf19zafmxrg94k8x512ilxn053wlah68x8",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/cab69cc909dad84ca9409fb538bc95077ae9de0f.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/5f4eca136204fb9e86d6297b20f149d225276824.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "ic-btc-canister": {
-        "owner": "dfinity",
-        "sha256": "0izvazr0cpdwjga12zim2cwp3rgm5n3w7ag5yplfl8rxrhwk65f4",
-        "type": "file",
-        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-03-31/ic-btc-canister.wasm.gz",
-        "url_template": "https://github.com/dfinity/bitcoin-canister/releases/download/<version>/ic-btc-canister.wasm.gz",
-        "version": "release%2F2023-03-31"
     },
     "canister_sandbox-x86_64-darwin": {
         "builtin": false,
@@ -71,6 +63,14 @@
         "type": "file",
         "url": "https://download.dfinity.systems/ic/21aa2ba29bf97115aa3cdedecf0655d0cfa64bf1/binaries/x86_64-linux/ic-btc-adapter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/ic-btc-adapter.gz"
+    },
+    "ic-btc-canister": {
+        "owner": "dfinity",
+        "sha256": "0izvazr0cpdwjga12zim2cwp3rgm5n3w7ag5yplfl8rxrhwk65f4",
+        "type": "file",
+        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-03-31/ic-btc-canister.wasm.gz",
+        "url_template": "https://github.com/dfinity/bitcoin-canister/releases/download/<version>/ic-btc-canister.wasm.gz",
+        "version": "release%2F2023-03-31"
     },
     "ic-canister-http-adapter-x86_64-darwin": {
         "builtin": false,
