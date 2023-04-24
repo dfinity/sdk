@@ -11,6 +11,7 @@ use crate::lib::metadata::names::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
+use crate::util::download_file;
 use crate::NetworkOpt;
 use dfx_core::config::cache::get_cache_root;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
@@ -213,12 +214,7 @@ async fn download_and_generate_pulled_canister(
         let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
 
         // download
-        let response = reqwest::get(wasm_url.clone()).await?;
-        let status = response.status();
-        if status.is_client_error() || status.is_server_error() {
-            bail!("Failed to download wasm from url: {wasm_url}.\n  StatusCode: {status}");
-        }
-        let content = response.bytes().await?;
+        let content = download_file(&wasm_url).await?;
 
         // hash check
         let hash_download = Sha256::digest(&content);

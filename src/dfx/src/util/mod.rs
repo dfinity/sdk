@@ -1,18 +1,25 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 
-use anyhow::Context;
+use anyhow::{bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
+use bytes::Bytes;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs};
+use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
+use hyper_rustls::ConfigBuilderExt;
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
 use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
+use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
 use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
+use std::path::Path;
 use std::time::Duration;
 
 pub mod assets;
@@ -310,6 +317,54 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .chars()
         .rev()
         .collect::<_>()
+}
+
+#[context("Failed to download {} to {}.", from, to.display())]
+pub async fn download_file_to_path(from: &Url, to: &Path) -> DfxResult {
+    let parent_dir = to.parent().unwrap();
+    create_dir_all(parent_dir)?;
+    let body = download_file(from).await?;
+    dfx_core::fs::write(to, body)?;
+    Ok(())
+}
+
+#[context("Failed to download from {}.", from)]
+pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
+    let tls_config = rustls::ClientConfig::builder()
+        .with_safe_defaults()
+        .with_webpki_roots()
+        .with_no_client_auth();
+
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls_config)
+        .build()
+        .context("Could not create HTTP client.")?;
+
+    let mut retry_policy = ExponentialBackoff::default();
+
+    let body = loop {
+        match attempt_download(&client, from).await {
+            Ok(Some(body)) => break body,
+            Ok(None) => bail!("Not found: {}", from),
+            Err(request_error) => match retry_policy.next_backoff() {
+                Some(duration) => tokio::time::sleep(duration).await,
+                None => bail!(request_error),
+            },
+        }
+    };
+
+    Ok(body.to_vec())
+}
+
+async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>> {
+    let response = client.get(url.clone()).send().await?;
+
+    if response.status() == StatusCode::NOT_FOUND {
+        Ok(None)
+    } else {
+        let body = response.error_for_status()?.bytes().await?;
+        Ok(Some(body))
+    }
 }
 
 #[cfg(test)]
