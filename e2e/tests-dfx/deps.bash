@@ -63,7 +63,7 @@ setup_onchain() {
     assert_match "icp:public dfx:wasm_url"
 
     assert_command ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx:deps
-    assert_match "a:yofga-2qaaa-aaaaa-aabsq-cai"
+    assert_match "yofga-2qaaa-aaaaa-aabsq-cai;"
 
     assert_command ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx:init
     assert_match "Nat"
@@ -98,7 +98,7 @@ setup_onchain() {
     dfx deploy c --argument 3
 
     assert_command dfx canister metadata b dfx:deps
-    assert_match "a:$CANISTER_ID_A;"
+    assert_match "$CANISTER_ID_A;"
 
     ## 1.2. pull onchain canisters in "app" project
     cd ../app
@@ -107,6 +107,7 @@ setup_onchain() {
     assert_contains "Resolving dependencies of canister $CANISTER_ID_B...
 Resolving dependencies of canister $CANISTER_ID_C...
 Resolving dependencies of canister $CANISTER_ID_A...
+WARN: \`dfx:deps\` metadata not found in canister $CANISTER_ID_A.
 Found 3 dependencies:
 yofga-2qaaa-aaaaa-aabsq-cai
 yhgn4-myaaa-aaaaa-aabta-cai
@@ -125,14 +126,14 @@ Failed to download wasm from url: http://example.com/c.wasm."
     # 2. sad path: if dependency metadata cannot be read (wrong format)
     cd ../onchain
     cd .dfx/local/canisters
-    ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:deps" -d "$CANISTER_ID_A;a" -v public
+    ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:deps" -d "not_a_principal;" -v public
     cd ../../../ # go back to root of "onchain" project
     dfx canister install c --argument 3 --mode=reinstall --yes
 
     cd ../app
     assert_command_fail dfx deps pull --network local
     assert_contains "Failed to get dependencies of canister $CANISTER_ID_C."
-    assert_contains "Failed to parse \`dfx:deps\` entry: $CANISTER_ID_A. Expected \`name:Principal\`."
+    assert_contains "Found invalid entry in \`dfx:deps\`: \"not_a_principal\". Expected a Principal."
 
 
     # 3. sad path: if the canister is not present on-chain

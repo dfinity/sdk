@@ -45,7 +45,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsPullOpts) -> DfxResult {
         return Ok(());
     }
 
-    let network = opts.network.network.unwrap_or("ic".to_string());
+    let network = opts.network.network.unwrap_or_else(|| "ic".to_string());
     let env = create_anonymous_agent_environment(env, Some(network))?;
 
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
@@ -328,14 +328,10 @@ pub fn copy_service_candid_to_project(
 fn parse_dfx_deps(deps_str: &str) -> DfxResult<Vec<Principal>> {
     let mut deps = vec![];
     for entry in deps_str.split_terminator(';') {
-        match entry.split_once(':') {
-            Some((_, p)) => {
-                let dep_id = Principal::from_text(p)
-                    .with_context(|| format!("`{p}` is not a valid Principal."))?;
-                deps.push(dep_id);
-            }
-            None => bail!("Failed to parse `dfx:deps` entry: {entry}. Expected `name:Principal`. "),
-        }
+        let canister_id = Principal::from_text(entry).with_context(|| {
+            format!("Found invalid entry in `dfx:deps`: \"{entry}\". Expected a Principal.")
+        })?;
+        deps.push(canister_id);
     }
     Ok(deps)
 }
@@ -345,7 +341,7 @@ fn get_metadata_as_string(
     section: &str,
     wasm_path: &Path,
 ) -> DfxResult<String> {
-    let metadata_bytes = get_metadata(&module, section)
+    let metadata_bytes = get_metadata(module, section)
         .with_context(|| format!("Failed to get {} metadata from {:?}", section, wasm_path))?;
     let metadata = String::from_utf8(metadata_bytes.to_vec()).with_context(|| {
         format!(

@@ -29,7 +29,7 @@
                 },
                 {
                     "name": "dfx:deps",
-                    "content": "a:yofga-2qaaa-aaaaa-aabsq-cai;"
+                    "content": "yofga-2qaaa-aaaaa-aabsq-cai;"
                 }
             ]
         },
@@ -47,7 +47,7 @@
                 },
                 {
                     "name": "dfx:deps",
-                    "content": "a:yofga-2qaaa-aaaaa-aabsq-cai;"
+                    "content": "yofga-2qaaa-aaaaa-aabsq-cai;"
                 },
                 {
                     "name": "dfx:init",

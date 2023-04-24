@@ -98,7 +98,7 @@ For Motoko canisters, if you specify a `path` for candid:service metadata (repla
 
 ### `dfx:deps`
 
-A list of `name:ID` pairs of direct dependencies separated by semicolon.
+Canister IDs (`Principal`) of direct dependencies separated by semicolon.
 
 ### `dfx:init`
 
@@ -142,8 +142,6 @@ In this example, we change the visibility of the `candid:service` metadata on th
 
 `dfx:wasm_url` and `dfx:init` are set with default visibility - public.
 
-`dfx` resolves dependencies and adds `dfx:deps` section with content `dep1:rrkah-fqaaa-aaaaa-aaaaq-cai;dep2:ryjl3-tyaaa-aaaaa-aaaba-cai;`.
-
 ```json
 {
   "canisters": {
@@ -168,7 +166,7 @@ In this example, we change the visibility of the `candid:service` metadata on th
         },
         {
           "name": "dfx:deps",
-          "content": "dep1:rrkah-fqaaa-aaaaa-aaaaq-cai;dep2:ryjl3-tyaaa-aaaaa-aaaba-cai;"
+          "content": "rrkah-fqaaa-aaaaa-aaaaq-cai;ryjl3-tyaaa-aaaaa-aaaba-cai;"
         },
         {
           "name": "dfx:wasm_url",

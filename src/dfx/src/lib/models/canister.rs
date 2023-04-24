@@ -5,7 +5,7 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::metadata::names::{CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_URL};
+use crate::lib::metadata::names::CANDID_SERVICE;
 use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -118,63 +118,7 @@ impl Canister {
             );
         }
 
-        if self.info.is_pull_ready() {
-            // Check DFX_WASM_URL
-            match metadata_sections.get(DFX_WASM_URL) {
-                Some(s) => {
-                    if s.visibility != MetadataVisibility::Public {
-                        warn!(
-                            logger,
-                            "`{}` metadata should be public. section: {:?}", DFX_WASM_URL, s
-                        );
-                    }
-                }
-                None => bail!("pull_ready canister must set `{}` metadata.", DFX_WASM_URL),
-            }
-            // Check DFX_INIT
-            match metadata_sections.get(DFX_INIT) {
-                Some(s) => {
-                    if s.visibility != MetadataVisibility::Public {
-                        warn!(
-                            logger,
-                            "`{}` metadata should be public. section: {:?}", DFX_INIT, s
-                        );
-                    }
-                }
-                None => warn!(
-                    logger,
-                    "pull_ready canister should better set `{}` metadata as a initialization guide.",
-                    DFX_INIT
-                ),
-            }
-            // Check DFX_DEPS
-            match metadata_sections.get(DFX_DEPS) {
-                Some(s) => warn!(
-                    logger,
-                    "Overwriting `{}` metadata which should be set by dfx. section: {:?}",
-                    DFX_DEPS,
-                    s
-                ),
-                None => {
-                    let mut s = String::new();
-                    for (name, id) in self.info.get_pull_dependencies() {
-                        s.push_str(name);
-                        s.push(':');
-                        s.push_str(&id.to_text());
-                        s.push(';');
-                    }
-                    metadata_sections.insert(
-                        DFX_DEPS.to_string(),
-                        CanisterMetadataSection {
-                            name: DFX_DEPS.to_string(),
-                            visibility: MetadataVisibility::Public,
-                            content: Some(s),
-                            ..Default::default()
-                        },
-                    );
-                }
-            }
-        }
+        // TODO: check metadata sections for pull_ready canister (SDK-1091)
 
         if metadata_sections.is_empty() {
             return Ok(());
