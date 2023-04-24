@@ -1,4 +1,4 @@
-use crate::certification_types::{CertificateExpression, ResponseHash};
+use crate::certification::internals::certification_types::{CertificateExpression, ResponseHash};
 use crate::rc_bytes::RcBytes;
 use crate::state_machine::{encoding_certification_order, Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};

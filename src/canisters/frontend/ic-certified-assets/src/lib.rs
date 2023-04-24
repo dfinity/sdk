@@ -1,10 +1,9 @@
 //! This module declares canister methods expected by the assets canister client.
-mod certification_types;
+pub mod certification;
 pub mod evidence;
 pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
-mod tree;
 pub mod types;
 mod url_decode;
 

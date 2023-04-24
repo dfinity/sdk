@@ -1,12 +1,16 @@
 use std::borrow::Borrow;
 
 use candid::{CandidType, Deserialize};
+use ic_response_verification::hash::Value;
 use serde_cbor::ser::IoWrite;
 use serde_cbor::Serializer;
+use sha2::Digest;
 
-use crate::{tree::NestedTree, types::AssetKey};
-
-pub type AssetHashes = NestedTree<NestedTreeKey, Vec<u8>>;
+use crate::{
+    http::{build_ic_certificate_expression_from_headers_and_encoding, response_hash},
+    rc_bytes::RcBytes,
+    types::AssetKey,
+};
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct CertificateExpression {
@@ -133,6 +137,29 @@ impl HashTreePath {
             .collect::<Vec<String>>();
         let cbor = serialize_cbor_self_describing(&strings);
         base64::encode(cbor)
+    }
+
+    pub fn new(
+        asset: &str,
+        status_code: u16,
+        headers: &[(String, Value)],
+        body: &RcBytes,
+        body_hash: Option<[u8; 32]>,
+    ) -> Self {
+        let asset_path = AssetPath::from(asset);
+        let certificate_expression =
+            build_ic_certificate_expression_from_headers_and_encoding(headers, None);
+        let response_hash = if let Some(body_hash) = body_hash {
+            response_hash(headers, status_code, &body_hash)
+        } else {
+            let body_hash = sha2::Sha256::digest(body).into();
+            response_hash(headers, status_code, &body_hash)
+        };
+        asset_path.hash_tree_path(
+            &certificate_expression,
+            &RequestHash::default(),
+            &response_hash,
+        )
     }
 }
 

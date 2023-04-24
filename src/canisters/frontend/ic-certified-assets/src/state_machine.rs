@@ -5,10 +5,10 @@
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
 use crate::{
-    certification_types::{
-        AssetHashes, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash,
-        ResponseHash,
+    certification::internals::certification_types::{
+        AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash, ResponseHash,
     },
+    certification::{internals::tree::merge_hash_trees, CertifiedResponses},
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
     http::{
         build_ic_certificate_expression_from_headers_and_encoding, response_hash,
@@ -16,7 +16,6 @@ use crate::{
         StreamingCallbackHttpResponse, StreamingCallbackToken,
     },
     rc_bytes::RcBytes,
-    tree::merge_hash_trees,
     types::*,
     url_decode::url_decode,
 };
@@ -214,7 +213,7 @@ pub struct State {
     prepare_principals: BTreeSet<Principal>,
     manage_permissions_principals: BTreeSet<Principal>,
 
-    asset_hashes: AssetHashes,
+    asset_hashes: CertifiedResponses,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -1075,7 +1074,7 @@ fn build_headers(
 }
 
 fn on_asset_change(
-    asset_hashes: &mut AssetHashes,
+    asset_hashes: &mut CertifiedResponses,
     key: &str,
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
@@ -1121,7 +1120,10 @@ fn on_asset_change(
     }
 }
 
-fn delete_preexisting_asset_hashes(asset_hashes: &mut AssetHashes, affected_keys: &[String]) {
+fn delete_preexisting_asset_hashes(
+    asset_hashes: &mut CertifiedResponses,
+    affected_keys: &[String],
+) {
     for key in affected_keys.iter() {
         let key_path = AssetPath::from(key);
         asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
@@ -1136,7 +1138,7 @@ fn delete_preexisting_asset_hashes(asset_hashes: &mut AssetHashes, affected_keys
 }
 
 fn insert_new_response_hashes_for_encoding(
-    asset_hashes: &mut AssetHashes,
+    asset_hashes: &mut CertifiedResponses,
     enc: &AssetEncoding,
     affected_keys: &Vec<String>,
     is_most_important_encoding: bool,
