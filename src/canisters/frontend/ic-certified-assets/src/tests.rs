@@ -120,7 +120,7 @@ impl RequestBuilder {
 }
 
 fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) -> BatchId {
-    let batch_id = state.create_batch(time_now);
+    let batch_id = state.create_batch(time_now).unwrap();
 
     let operations =
         assemble_create_assets_and_set_contents_operations(state, time_now, assets, &batch_id);
@@ -143,7 +143,7 @@ fn create_assets_by_proposal(
     time_now: u64,
     assets: Vec<AssetBuilder>,
 ) -> BatchId {
-    let batch_id = state.create_batch(time_now);
+    let batch_id = state.create_batch(time_now).unwrap();
 
     let operations =
         assemble_create_assets_and_set_contents_operations(state, time_now, assets, &batch_id);
@@ -550,7 +550,7 @@ fn batches_are_dropped_after_timeout() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
-    let batch_1 = state.create_batch(time_now);
+    let batch_1 = state.create_batch(time_now).unwrap();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
@@ -584,7 +584,7 @@ fn can_propose_commit_batch_exactly_once() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
-    let batch_1 = state.create_batch(time_now);
+    let batch_1 = state.create_batch(time_now).unwrap();
 
     let args = CommitBatchArguments {
         batch_id: batch_1,
@@ -602,7 +602,7 @@ fn cannot_create_chunk_in_proposed_batch_() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
-    let batch_1 = state.create_batch(time_now);
+    let batch_1 = state.create_batch(time_now).unwrap();
 
     let args = CommitBatchArguments {
         batch_id: batch_1.clone(),
@@ -628,7 +628,7 @@ fn batches_with_proposed_commit_args_do_not_expire() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
-    let batch_1 = state.create_batch(time_now);
+    let batch_1 = state.create_batch(time_now).unwrap();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
@@ -668,7 +668,7 @@ fn batches_with_evidence_do_not_expire() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
-    let batch_1 = state.create_batch(time_now);
+    let batch_1 = state.create_batch(time_now).unwrap();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
@@ -715,7 +715,7 @@ fn can_delete_proposed_batch() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
-    let batch_1 = state.create_batch(time_now);
+    let batch_1 = state.create_batch(time_now).unwrap();
 
     let args = CommitBatchArguments {
         batch_id: batch_1.clone(),
@@ -735,7 +735,7 @@ fn can_delete_batch_with_chunks() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
-    let batch_1 = state.create_batch(time_now);
+    let batch_1 = state.create_batch(time_now).unwrap();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     let _chunk_1 = state
@@ -1757,7 +1757,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
         let chunk_1 = state
             .create_chunk(
@@ -1812,7 +1812,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         const CHUNK_1_CONTENT: &[u8] = b"<!DOCTYPE html><html></html>";
         const CHUNK_2_CONTENT: &[u8] = b"there is more content here";
         let chunk_1 = state
@@ -1877,7 +1877,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_id = state.create_batch(time_now);
+        let batch_id = state.create_batch(time_now).unwrap();
         let create_asset = CreateAssetArguments {
             key: "/a/b/c".to_string(),
             content_type: "text/plain".to_string(),
@@ -1909,7 +1909,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_id = state.create_batch(time_now);
+        let batch_id = state.create_batch(time_now).unwrap();
         let create_asset = CreateAssetArguments {
             key: "/a/b/c".to_string(),
             content_type: "text/plain".to_string(),
@@ -1954,7 +1954,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_id = state.create_batch(time_now);
+        let batch_id = state.create_batch(time_now).unwrap();
         let cba = CommitBatchArguments {
             batch_id: batch_id.clone(),
             operations: vec![],
@@ -1976,7 +1976,7 @@ mod evidence_computation {
         let time_now = 100_000_000_000;
 
         {
-            let batch_1 = state.create_batch(time_now);
+            let batch_1 = state.create_batch(time_now).unwrap();
             assert!(state
                 .propose_commit_batch(CommitBatchArguments {
                     batch_id: batch_1.clone(),
@@ -1998,7 +1998,7 @@ mod evidence_computation {
                 .unwrap()
                 .unwrap();
 
-            let batch_2 = state.create_batch(time_now);
+            let batch_2 = state.create_batch(time_now).unwrap();
             assert!(state
                 .propose_commit_batch(CommitBatchArguments {
                     batch_id: batch_2.clone(),
@@ -2024,7 +2024,7 @@ mod evidence_computation {
         }
 
         {
-            let batch_1 = state.create_batch(time_now);
+            let batch_1 = state.create_batch(time_now).unwrap();
             assert!(state
                 .propose_commit_batch(CommitBatchArguments {
                     batch_id: batch_1.clone(),
@@ -2049,7 +2049,7 @@ mod evidence_computation {
                 .unwrap()
                 .unwrap();
 
-            let batch_2 = state.create_batch(time_now);
+            let batch_2 = state.create_batch(time_now).unwrap();
             assert!(state
                 .propose_commit_batch(CommitBatchArguments {
                     batch_id: batch_2.clone(),
@@ -2082,7 +2082,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2104,7 +2104,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2134,7 +2134,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2156,7 +2156,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2186,7 +2186,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2208,7 +2208,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2231,7 +2231,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_3 = state.create_batch(time_now);
+        let batch_3 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_3.clone(),
@@ -2263,7 +2263,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2285,7 +2285,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2307,7 +2307,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_3 = state.create_batch(time_now);
+        let batch_3 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_3.clone(),
@@ -2330,7 +2330,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_4 = state.create_batch(time_now);
+        let batch_4 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_4.clone(),
@@ -2368,7 +2368,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2390,7 +2390,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2413,7 +2413,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_3 = state.create_batch(time_now);
+        let batch_3 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_3.clone(),
@@ -2445,7 +2445,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2467,7 +2467,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2490,7 +2490,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_3 = state.create_batch(time_now);
+        let batch_3 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_3.clone(),
@@ -2522,7 +2522,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2542,7 +2542,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2570,7 +2570,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2590,7 +2590,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2621,7 +2621,7 @@ mod evidence_computation {
         const CHUNK_1_CONTENT: &[u8] = b"first batch chunk content";
         const CHUNK_2_CONTENT: &[u8] = b"second batch chunk content";
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         let chunk_1 = state
             .create_chunk(
                 CreateChunkArg {
@@ -2650,7 +2650,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         let chunk_2 = state
             .create_chunk(
                 CreateChunkArg {
@@ -2690,7 +2690,7 @@ mod evidence_computation {
         const BATCH_1_CHUNK_2_CONTENT: &[u8] = b"first batch second chunk content";
         const BATCH_2_CHUNK_2_CONTENT: &[u8] = b"second batch second chunk content";
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         {
             let chunk_1 = state
                 .create_chunk(
@@ -2731,7 +2731,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         {
             let chunk_1 = state
                 .create_chunk(
@@ -2782,7 +2782,7 @@ mod evidence_computation {
         let sha256_1 = ByteBuf::from("01020304");
         let sha256_2 = ByteBuf::from("09080706");
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2802,7 +2802,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2830,7 +2830,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2850,7 +2850,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2878,7 +2878,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2898,7 +2898,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2927,7 +2927,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2944,7 +2944,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -2969,7 +2969,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -2984,7 +2984,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -3010,7 +3010,7 @@ mod evidence_computation {
         let mut state = State::default();
         let time_now = 100_000_000_000;
 
-        let batch_1 = state.create_batch(time_now);
+        let batch_1 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_1.clone(),
@@ -3033,7 +3033,7 @@ mod evidence_computation {
             .unwrap()
             .unwrap();
 
-        let batch_2 = state.create_batch(time_now);
+        let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
                 batch_id: batch_2.clone(),
@@ -3094,7 +3094,7 @@ mod evidence_computation {
         ) -> serde_bytes::ByteBuf {
             let mut state = State::default();
             let time_now = 100_000_000_000;
-            let batch = state.create_batch(time_now);
+            let batch = state.create_batch(time_now).unwrap();
             assert!(state
                 .propose_commit_batch(CommitBatchArguments {
                     batch_id: batch.clone(),
@@ -3160,7 +3160,7 @@ mod validate_commit_proposed_batch {
     fn no_commit_batch_arguments() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
-        let batch_id = state.create_batch(time_now);
+        let batch_id = state.create_batch(time_now).unwrap();
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
             batch_id: batch_id.clone(),
@@ -3186,7 +3186,7 @@ mod validate_commit_proposed_batch {
     fn evidence_not_computed() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
-        let batch_id = state.create_batch(time_now);
+        let batch_id = state.create_batch(time_now).unwrap();
 
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
@@ -3218,7 +3218,7 @@ mod validate_commit_proposed_batch {
     fn evidence_does_not_match() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
-        let batch_id = state.create_batch(time_now);
+        let batch_id = state.create_batch(time_now).unwrap();
 
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
@@ -3259,7 +3259,7 @@ mod validate_commit_proposed_batch {
     fn all_good() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
-        let batch_id = state.create_batch(time_now);
+        let batch_id = state.create_batch(time_now).unwrap();
 
         assert!(state
             .propose_commit_batch(CommitBatchArguments {
@@ -3293,5 +3293,360 @@ mod validate_commit_proposed_batch {
                 time_now,
             )
             .unwrap();
+    }
+}
+
+#[cfg(test)]
+mod configuration_methods {
+    use super::*;
+    use crate::types::ConfigureArguments;
+
+    #[test]
+    fn empty_config() {
+        let state = State::default();
+
+        let x = state.get_configuration();
+        assert!(x.max_batches.is_none());
+        assert!(x.max_chunks.is_none());
+        assert!(x.max_bytes.is_none());
+    }
+
+    #[test]
+    fn set_only_max_batches() {
+        let mut state = State::default();
+
+        state.configure(ConfigureArguments {
+            max_batches: Some(Some(47)),
+            max_chunks: None,
+            max_bytes: None,
+        });
+
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, Some(47));
+        assert_eq!(x.max_chunks, None);
+        assert_eq!(x.max_bytes, None);
+    }
+
+    #[test]
+    fn unset_only_max_batches() {
+        let mut state = State::default();
+        state.configure(ConfigureArguments {
+            max_batches: Some(Some(47)),
+            max_chunks: Some(Some(67)),
+            max_bytes: Some(Some(77)),
+        });
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, Some(47));
+        assert_eq!(x.max_chunks, Some(67));
+        assert_eq!(x.max_bytes, Some(77));
+
+        state.configure(ConfigureArguments {
+            max_batches: Some(None),
+            max_chunks: None,
+            max_bytes: None,
+        });
+
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, None);
+        assert_eq!(x.max_chunks, Some(67));
+        assert_eq!(x.max_bytes, Some(77));
+    }
+
+    #[test]
+    fn change_only_max_batches() {
+        let mut state = State::default();
+        state.configure(ConfigureArguments {
+            max_batches: Some(Some(47)),
+            max_chunks: Some(Some(67)),
+            max_bytes: Some(Some(77)),
+        });
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, Some(47));
+        assert_eq!(x.max_chunks, Some(67));
+        assert_eq!(x.max_bytes, Some(77));
+
+        state.configure(ConfigureArguments {
+            max_batches: Some(Some(35)),
+            max_chunks: None,
+            max_bytes: None,
+        });
+
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, Some(35));
+        assert_eq!(x.max_chunks, Some(67));
+        assert_eq!(x.max_bytes, Some(77));
+    }
+
+    #[test]
+    fn set_only_max_chunks() {
+        let mut state = State::default();
+
+        state.configure(ConfigureArguments {
+            max_batches: None,
+            max_chunks: Some(Some(23)),
+            max_bytes: None,
+        });
+
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, None);
+        assert_eq!(x.max_chunks, Some(23));
+        assert_eq!(x.max_bytes, None);
+    }
+
+    #[test]
+    fn unset_only_max_chunks() {
+        let mut state = State::default();
+        state.configure(ConfigureArguments {
+            max_batches: Some(Some(47)),
+            max_chunks: Some(Some(67)),
+            max_bytes: Some(Some(77)),
+        });
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, Some(47));
+        assert_eq!(x.max_chunks, Some(67));
+        assert_eq!(x.max_bytes, Some(77));
+
+        state.configure(ConfigureArguments {
+            max_batches: None,
+            max_chunks: Some(None),
+            max_bytes: None,
+        });
+
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, Some(47));
+        assert_eq!(x.max_chunks, None);
+        assert_eq!(x.max_bytes, Some(77));
+    }
+
+    #[test]
+    fn change_only_max_chunks() {
+        let mut state = State::default();
+        state.configure(ConfigureArguments {
+            max_batches: Some(Some(47)),
+            max_chunks: Some(Some(67)),
+            max_bytes: Some(Some(77)),
+        });
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, Some(47));
+        assert_eq!(x.max_chunks, Some(67));
+        assert_eq!(x.max_bytes, Some(77));
+
+        state.configure(ConfigureArguments {
+            max_batches: None,
+            max_chunks: Some(Some(54)),
+            max_bytes: None,
+        });
+
+        let x = state.get_configuration();
+        assert_eq!(x.max_batches, Some(47));
+        assert_eq!(x.max_chunks, Some(54));
+        assert_eq!(x.max_bytes, Some(77));
+    }
+}
+
+#[cfg(test)]
+mod enforce_limits {
+    use super::*;
+    use crate::types::ConfigureArguments;
+
+    #[test]
+    fn cannot_create_batch_if_batch_already_proposed_with_no_batch_limit() {
+        cannot_create_batch_if_batch_already_proposed_with_batch_limit(None);
+    }
+
+    #[test]
+    fn cannot_create_batch_if_batch_already_proposed_with_a_batch_limit() {
+        // test with a batch limit to make sure we get the right message (not: batch limit exceeded)
+        cannot_create_batch_if_batch_already_proposed_with_batch_limit(Some(1));
+    }
+
+    fn cannot_create_batch_if_batch_already_proposed_with_batch_limit(max_batches: Option<u64>) {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        state.configure(ConfigureArguments {
+            max_batches: Some(max_batches),
+            max_chunks: None,
+            max_bytes: None,
+        });
+
+        let batch_id = state.create_batch(time_now).unwrap();
+        let cba = CommitBatchArguments {
+            batch_id: batch_id.clone(),
+            operations: vec![],
+        };
+        assert!(state.propose_commit_batch(cba).is_ok());
+
+        assert_eq!(state.create_batch(time_now + BATCH_EXPIRY_NANOS - 1).unwrap_err(),
+                   "Batch 0 has not completed evidence computation.  Wait for it to expire or delete it to propose another.");
+
+        assert!(state
+            .compute_evidence(ComputeEvidenceArguments {
+                batch_id,
+                max_iterations: Some(1),
+            })
+            .unwrap()
+            .is_some());
+
+        assert_eq!(
+            state
+                .create_batch(time_now + BATCH_EXPIRY_NANOS + 1)
+                .unwrap_err(),
+            "Batch 0 is already proposed.  Delete or execute it to propose another."
+        );
+    }
+
+    #[test]
+    fn max_batches() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        state.configure(ConfigureArguments {
+            max_batches: Some(Some(3)),
+            max_chunks: None,
+            max_bytes: None,
+        });
+        state.create_batch(time_now).unwrap();
+        state.create_batch(time_now).unwrap();
+        state.create_batch(time_now).unwrap();
+        assert_eq!(
+            state.create_batch(time_now).unwrap_err(),
+            "batch limit exceeded"
+        );
+    }
+
+    #[test]
+    fn max_chunks() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        state.configure(ConfigureArguments {
+            max_batches: None,
+            max_chunks: Some(Some(3)),
+            max_bytes: None,
+        });
+        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(time_now).unwrap();
+
+        state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_1.clone(),
+                    content: ByteBuf::new(),
+                },
+                time_now,
+            )
+            .unwrap();
+        state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_2.clone(),
+                    content: ByteBuf::new(),
+                },
+                time_now,
+            )
+            .unwrap();
+        state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_2.clone(),
+                    content: ByteBuf::new(),
+                },
+                time_now,
+            )
+            .unwrap();
+
+        assert_eq!(
+            state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_1,
+                        content: ByteBuf::new(),
+                    },
+                    time_now
+                )
+                .unwrap_err(),
+            "chunk limit exceeded"
+        );
+        assert_eq!(
+            state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_2,
+                        content: ByteBuf::new(),
+                    },
+                    time_now
+                )
+                .unwrap_err(),
+            "chunk limit exceeded"
+        );
+    }
+
+    #[test]
+    fn max_bytes() {
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+        state.configure(ConfigureArguments {
+            max_batches: None,
+            max_chunks: None,
+            max_bytes: Some(Some(289)),
+        });
+        let c0 = vec![0u8; 100];
+        let c1 = vec![1u8; 100];
+        let c2 = vec![2u8; 90];
+        let c3 = vec![3u8; 89];
+        let c4 = vec![4u8; 1];
+
+        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(time_now).unwrap();
+        state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_1.clone(),
+                    content: ByteBuf::from(c0),
+                },
+                time_now,
+            )
+            .unwrap();
+        state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_2.clone(),
+                    content: ByteBuf::from(c1),
+                },
+                time_now,
+            )
+            .unwrap();
+        assert_eq!(
+            state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_2.clone(),
+                        content: ByteBuf::from(c2),
+                    },
+                    time_now
+                )
+                .unwrap_err(),
+            "byte limit exceeded"
+        );
+        state
+            .create_chunk(
+                CreateChunkArg {
+                    batch_id: batch_2,
+                    content: ByteBuf::from(c3),
+                },
+                time_now,
+            )
+            .unwrap();
+        assert_eq!(
+            state
+                .create_chunk(
+                    CreateChunkArg {
+                        batch_id: batch_1,
+                        content: ByteBuf::from(c4),
+                    },
+                    time_now
+                )
+                .unwrap_err(),
+            "byte limit exceeded"
+        );
     }
 }

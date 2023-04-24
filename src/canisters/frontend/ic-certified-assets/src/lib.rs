@@ -151,8 +151,9 @@ fn store(arg: StoreArg) {
 #[update(guard = "can_prepare")]
 #[candid_method(update)]
 fn create_batch() -> CreateBatchResponse {
-    STATE.with(|s| CreateBatchResponse {
-        batch_id: s.borrow_mut().create_batch(time()),
+    STATE.with(|s| match s.borrow_mut().create_batch(time()) {
+        Ok(batch_id) => CreateBatchResponse { batch_id },
+        Err(msg) => trap(&msg),
     })
 }
 
@@ -350,6 +351,24 @@ fn set_asset_properties(arg: SetAssetPropertiesArguments) {
             trap(&msg);
         }
     })
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn get_configuration() -> ConfigurationResponse {
+    STATE.with(|s| s.borrow().get_configuration())
+}
+
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn configure(arg: ConfigureArguments) {
+    STATE.with(|s| s.borrow_mut().configure(arg))
+}
+
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
+    Ok(format!("configure: {:?}", arg))
 }
 
 fn can(permission: Permission) -> Result<(), String> {
