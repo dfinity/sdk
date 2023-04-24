@@ -13,6 +13,9 @@ This feature was named `dfx pull` before. To make a complete, intuitive user exp
 - `dfx deps deploy`: deploy the pulled dependencies on local replica with the init arguments recorded in `deps/init.json`;
 
 All generated files in `deps/` are encouraged to be version controled.
+
+### fix: stop `dfx deploy` from creating a wallet if all canisters exist
+
 ### feat: expose `wasm-opt` optimizer in `ic-wasm` to users
 
 Add option to specify an "optimize" field for canisters to invoke the `wasm-opt` optimizer through `ic-wasm`.
