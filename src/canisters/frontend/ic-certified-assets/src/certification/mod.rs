@@ -3,6 +3,8 @@ use self::internals::{
     tree::NestedTree,
 };
 
+use sha2::Digest;
+
 pub mod internals;
 pub use ic_certified_map::HashTree;
 pub use ic_response_verification::hash::Value;
@@ -10,7 +12,7 @@ pub use ic_response_verification::hash::Value;
 pub type CertifiedResponses = NestedTree<NestedTreeKey, Vec<u8>>;
 
 impl CertifiedResponses {
-    /// Certifies a response for a number of paths.
+    /// Certifies a response for a number of paths with certification v2.
     ///
     /// # Arguments
     /// * `paths`: path(s) to the resource
@@ -32,7 +34,35 @@ impl CertifiedResponses {
         todo!()
     }
 
-    /// Certifies a response that can be used if no certified response is available for the requested path
+    /// Certifies a response for a number of paths with certification v1.
+    ///
+    /// REPLACES a previously certified response for the given path because v1 certification only supports one certified response per path.
+    ///
+    /// # Arguments
+    /// * `paths`: path(s) to the resource
+    /// * `body`: Response body
+    /// * `body_hash`: Hash of the response body. If supplied the response body will not be hashed, which can save a lot of computation
+    pub fn certify_response_v1(
+        &mut self,
+        paths: &[&str],
+        body: &[u8],
+        body_hash: Option<[u8; 32]>,
+    ) {
+        let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
+        let hash_tree_paths: Vec<HashTreePath> = paths
+            .into_iter()
+            .map(|path| {
+                let asset_path = AssetPath::from(path);
+                asset_path.asset_hash_path_v1()
+            })
+            .collect();
+
+        for path in hash_tree_paths.iter() {
+            self.insert(path.as_vec(), Vec::from(body_hash));
+        }
+    }
+
+    /// Certifies a response that can be used if no certified response is available for the requested path with certification v2.
     ///
     /// # Arguments
     /// * `status_code`: HTTP status code of the response
@@ -52,9 +82,9 @@ impl CertifiedResponses {
         todo!()
     }
 
-    /// Certifies a response. Expects a finished `HashTreePath`, but does not calculate the path from scratch
-    pub fn certify_response_precomputed(&mut self, hash_tree_path: &HashTreePath) {
-        todo!()
+    /// Certifies a response. Expects a finished `HashTreePath`, skipping the (sometimes expensive) computation of the `HashTreePath`.
+    pub fn certify_response_precomputed(&mut self, path: &HashTreePath) {
+        self.insert(path.as_vec(), Vec::new());
     }
 
     /// Removes all certified responses for a path
@@ -72,7 +102,7 @@ impl CertifiedResponses {
         ])
     }
 
-    /// Removes a specific response from the certified responses
+    /// Removes a specific response from the certified responses. Expects a finished `HashTreePath`, skipping the (sometimes expensive) computation of the `HashTreePath`.
     pub fn remove_response_precomputed(&mut self, hash_tree_path: &HashTreePath) {
         todo!()
     }

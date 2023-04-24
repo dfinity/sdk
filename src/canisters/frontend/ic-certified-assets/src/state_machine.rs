@@ -1138,16 +1138,15 @@ fn insert_new_response_hashes_for_encoding(
     affected_keys: &Vec<String>,
     is_most_important_encoding: bool,
 ) {
+    let affected_keys_slice: Vec<&str> = affected_keys.iter().map(|s| s.as_str()).collect();
+    if is_most_important_encoding {
+        asset_hashes.certify_response_v1(affected_keys_slice.as_slice(), &[], Some(enc.sha256));
+    }
     for key in affected_keys {
         let key_path = AssetPath::from(&key);
-        let v1_path = key_path.asset_hash_path_v1();
-        if is_most_important_encoding {
-            // v1 can only certify one encoding, therefore we only certify the most important one
-            asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
-        }
         for status_code in STATUS_CODES_TO_CERTIFY {
             if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
-                asset_hashes.insert(hash_path.as_vec(), Vec::new());
+                asset_hashes.certify_response_precomputed(&hash_path);
             } else {
                 unreachable!(
                     "Could not create a hash path for a status code {} and key {} - did you forget to compute a response hash for this status code?",
@@ -1157,7 +1156,7 @@ fn insert_new_response_hashes_for_encoding(
         }
         if key == INDEX_FILE {
             if let Some(not_found_hash_path) = enc.not_found_hash_path() {
-                asset_hashes.insert(not_found_hash_path.as_vec(), Vec::new());
+                asset_hashes.certify_response_precomputed(&not_found_hash_path);
             }
         }
     }
