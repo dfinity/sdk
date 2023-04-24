@@ -74,12 +74,12 @@ pub struct InitItem {
 impl InitJson {
     pub fn set_init_arg(
         &mut self,
-        canister_id: Principal,
+        canister_id: &Principal,
         arg_str: Option<String>,
         arg_raw: &[u8],
     ) {
         self.canisters.insert(
-            canister_id,
+            *canister_id,
             InitItem {
                 arg_str,
                 arg_raw: Some(hex::encode(arg_raw)),
@@ -87,8 +87,8 @@ impl InitJson {
         );
     }
 
-    pub fn set_empty_init(&mut self, canister_id: Principal) {
-        self.canisters.insert(canister_id, InitItem::default());
+    pub fn set_empty_init(&mut self, canister_id: &Principal) {
+        self.canisters.insert(*canister_id, InitItem::default());
     }
 
     pub fn contains(&self, canister_id: &Principal) -> bool {

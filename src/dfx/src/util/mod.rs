@@ -328,7 +328,7 @@ pub async fn download_file_to_path(from: &Url, to: &Path) -> DfxResult {
     Ok(())
 }
 
-#[context("Failed to download from {}.", from)]
+#[context("Failed to download from url: {}.", from)]
 pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
     let tls_config = rustls::ClientConfig::builder()
         .with_safe_defaults()

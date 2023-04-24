@@ -115,13 +115,13 @@ yahli-baaaa-aaaaa-aabtq-cai"
     assert_occurs 1 "Resolving dependencies of canister $CANISTER_ID_A..." # common dependency onchain_a is pulled only once
     assert_contains "Pulling canister $CANISTER_ID_A...
 ERROR: Failed to pull canister $CANISTER_ID_A.
-Failed to download wasm from url: http://example.com/a.wasm."
+Failed to download from url: http://example.com/a.wasm."
     assert_contains "Pulling canister $CANISTER_ID_B...
 ERROR: Failed to pull canister $CANISTER_ID_B.
-Failed to download wasm from url: http://example.com/b.wasm."
+Failed to download from url: http://example.com/b.wasm."
     assert_contains "Pulling canister $CANISTER_ID_C...
 ERROR: Failed to pull canister $CANISTER_ID_C.
-Failed to download wasm from url: http://example.com/c.wasm."
+Failed to download from url: http://example.com/c.wasm."
 
     # 2. sad path: if dependency metadata cannot be read (wrong format)
     cd ../onchain
@@ -217,7 +217,7 @@ Failed to download wasm from url: http://example.com/c.wasm."
 
     assert_command_fail dfx deps pull --network local
     assert_contains "Failed to pull canister $CANISTER_ID_A."
-    assert_contains "Failed to download wasm from url:"
+    assert_contains "Failed to download from url:"
 }
 
 

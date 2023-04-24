@@ -242,10 +242,18 @@ download: {}",
     let candid_args = get_metadata_as_string(&module, CANDID_ARGS, &wasm_path)?;
     pulled_canister.candid_args = Some(candid_args);
 
-    // extract `dfx:deps`
-    let dfx_deps = get_metadata_as_string(&module, DFX_DEPS, &wasm_path)?;
-    let deps = parse_dfx_deps(&dfx_deps)?;
-    pulled_canister.deps = deps;
+    // try extract `dfx:deps`
+    if let Ok(dfx_deps) = get_metadata_as_string(&module, DFX_DEPS, &wasm_path) {
+        let deps = parse_dfx_deps(&dfx_deps)?;
+        pulled_canister.deps = deps;
+    } else {
+        trace!(
+            logger,
+            "{:?} doesn't define {} metadata",
+            &wasm_path,
+            DFX_DEPS
+        );
+    }
 
     // try extract `dfx:init`
     if let Ok(dfx_init) = get_metadata_as_string(&module, DFX_INIT, &wasm_path) {
