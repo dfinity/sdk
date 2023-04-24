@@ -4,6 +4,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
@@ -45,7 +46,7 @@ pub async fn deploy_canisters(
     with_cycles: Option<&str>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
-    create_call_sender: &CallSender,
+    no_wallet: bool,
     skip_consent: bool,
     env_file: Option<PathBuf>,
     assets_upgrade: bool,
@@ -84,17 +85,39 @@ pub async fn deploy_canisters(
     } else {
         info!(log, "Deploying all canisters.");
     }
-
-    register_canisters(
-        env,
-        &canisters_to_load,
-        &initial_canister_id_store,
-        with_cycles,
-        specified_id,
-        create_call_sender,
-        &config,
-    )
-    .await?;
+    if canisters_to_load
+        .iter()
+        .any(|canister| initial_canister_id_store.find(canister).is_none())
+    {
+        let proxy_sender;
+        let create_call_sender = if no_wallet
+            || specified_id.is_some()
+            || matches!(call_sender, CallSender::Wallet(_))
+        {
+            call_sender
+        } else {
+            let wallet = get_or_create_wallet_canister(
+                env,
+                env.get_network_descriptor(),
+                env.get_selected_identity().expect("No selected identity"),
+            )
+            .await?;
+            proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+            &proxy_sender
+        };
+        register_canisters(
+            env,
+            &canisters_to_load,
+            &initial_canister_id_store,
+            with_cycles,
+            specified_id,
+            create_call_sender,
+            &config,
+        )
+        .await?;
+    } else {
+        info!(env.get_logger(), "All canisters have already been created.");
+    }
 
     let pool = build_canisters(
         env,
@@ -167,53 +190,48 @@ async fn register_canisters(
         .filter(|n| canister_id_store.find(n).is_none())
         .cloned()
         .collect::<Vec<String>>();
-    if canisters_to_create.is_empty() {
-        info!(env.get_logger(), "All canisters have already been created.");
-    } else {
-        info!(env.get_logger(), "Creating canisters...");
-        for canister_name in &canisters_to_create {
-            let config_interface = config.get_config();
-            let compute_allocation = config_interface
-                .get_compute_allocation(canister_name)?
+    info!(env.get_logger(), "Creating canisters...");
+    for canister_name in &canisters_to_create {
+        let config_interface = config.get_config();
+        let compute_allocation = config_interface
+            .get_compute_allocation(canister_name)?
+            .map(|arg| {
+                ComputeAllocation::try_from(arg).context("Compute Allocation must be a percentage.")
+            })
+            .transpose()?;
+        let memory_allocation = config_interface
+            .get_memory_allocation(canister_name)?
+            .map(|arg| {
+                u64::try_from(arg.get_bytes())
+                    .map_err(|e| anyhow!(e))
+                    .and_then(|n| Ok(MemoryAllocation::try_from(n)?))
+                    .context(
+                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                    )
+            })
+            .transpose()?;
+        let freezing_threshold =
+            config_interface
+                .get_freezing_threshold(canister_name)?
                 .map(|arg| {
-                    ComputeAllocation::try_from(arg)
-                        .context("Compute Allocation must be a percentage.")
-                })
-                .transpose()?;
-            let memory_allocation = config_interface
-                .get_memory_allocation(canister_name)?
-                .map(|arg| {
-                    u64::try_from(arg.get_bytes())
-                        .map_err(|e| anyhow!(e))
-                        .and_then(|n| Ok(MemoryAllocation::try_from(n)?))
-                        .context(
-                            "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
-                        )
-                })
-                .transpose()?;
-            let freezing_threshold =
-                config_interface
-                    .get_freezing_threshold(canister_name)?
-                    .map(|arg| {
-                        FreezingThreshold::try_from(arg.as_secs())
-                            .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
-                    });
-            let controllers = None;
-            create_canister(
-                env,
-                canister_name,
-                with_cycles,
-                specified_id,
-                call_sender,
-                CanisterSettings {
-                    controllers,
-                    compute_allocation,
-                    memory_allocation,
-                    freezing_threshold,
-                },
-            )
-            .await?;
-        }
+                    FreezingThreshold::try_from(arg.as_secs())
+                        .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
+                });
+        let controllers = None;
+        create_canister(
+            env,
+            canister_name,
+            with_cycles,
+            specified_id,
+            call_sender,
+            CanisterSettings {
+                controllers,
+                compute_allocation,
+                memory_allocation,
+                freezing_threshold,
+            },
+        )
+        .await?;
     }
     Ok(())
 }
