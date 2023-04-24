@@ -103,8 +103,8 @@ impl CertifiedResponses {
     }
 
     /// Removes a specific response from the certified responses. Expects a finished `HashTreePath`, skipping the (sometimes expensive) computation of the `HashTreePath`.
-    pub fn remove_response_precomputed(&mut self, hash_tree_path: &HashTreePath) {
-        todo!()
+    pub fn remove_response_precomputed(&mut self, path: &HashTreePath) {
+        self.delete(path.as_vec());
     }
 
     /// If the path has certified responses this function creates a hash tree that proves...
