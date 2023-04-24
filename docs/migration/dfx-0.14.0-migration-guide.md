@@ -26,9 +26,9 @@ This will not break an existing application, but if you are using the environmen
 
 ## Webpack / Bundler Migration
 
-If your frontend project is using the old environment variables, you will need to update your `webpack.config.js` file to use the new `CANISTER_ID_prefix` variables, or to use the new webpack config provided in the starter project. We recommend using the new, simplified webpack config, which is provided below:
+If your frontend project is using the old environment variables, you will need to update your `webpack.config.js` file to use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` variables, or to use the new webpack config provided in the starter project. We recommend using the new, simplified webpack config, which is provided below:
 
-````js
+```js
 require("dotenv").config();
 const path = require("path");
 const webpack = require("webpack");
@@ -127,7 +127,7 @@ module.exports = {
 };
 ```
 
-If you prefer to modify an existing webpack config, you will need to update the `initCanisterEnv` function to use the new `CANISTER_ID_prefix` variables.
+If you prefer to modify an existing webpack config, you will need to update the `initCanisterEnv` function to use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` variables.
 
 For example, if your frontend project is using the following mapping of environment variables inside of `initCanisterEnv`:
 
@@ -135,7 +135,7 @@ For example, if your frontend project is using the following mapping of environm
 prev[canisterName.toUpperCase() + "_CANISTER_ID"] = canisterDetails[network];
 ````
 
-You should update your `webpack.config.js` file to use the new `CANISTER_ID_prefix` variables:
+You should update your `webpack.config.js` file to use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` variables:
 
 ```js
 prev[`CANISTER_ID_${canisterName.toUpperCase()}`] = canisterDetails[network];
