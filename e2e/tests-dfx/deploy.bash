@@ -98,5 +98,7 @@ teardown() {
     dfx_start
     dfx canister create --all --no-wallet
     assert_command dfx deploy
-    assert_not_match "Creating a wallet canister"
+    assert_not_contains "Creating a wallet canister"
+    assert_command dfx identity get-wallet
+    assert_contains "Creating a wallet canister"
 }
