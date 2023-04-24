@@ -1,5 +1,5 @@
 use self::internals::{
-    certification_types::{HashTreePath, NestedTreeKey},
+    certification_types::{AssetPath, HashTreePath, NestedTreeKey},
     tree::NestedTree,
 };
 
@@ -59,12 +59,17 @@ impl CertifiedResponses {
 
     /// Removes all certified responses for a path
     pub fn remove_responses_for_path(&mut self, path: &str) {
-        todo!()
+        let key = AssetPath::from(path);
+        self.delete(key.asset_hash_path_root_v2().as_vec());
+        self.delete(key.asset_hash_path_v1().as_vec());
     }
 
     /// Removes all certified 404 responses
     pub fn remove_404_responses(&mut self) {
-        todo!()
+        self.delete(&[
+            NestedTreeKey::String("http_expr".into()),
+            NestedTreeKey::String("<*>".into()),
+        ])
     }
 
     /// Removes a specific response from the certified responses

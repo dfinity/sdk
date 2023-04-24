@@ -428,10 +428,10 @@ impl State {
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
         if self.assets.contains_key(&arg.key) {
             for dependent in self.dependent_keys(&arg.key) {
-                let path = AssetPath::from(dependent);
-                self.asset_hashes.delete(path.asset_hash_path_v1().as_vec());
-                self.asset_hashes
-                    .delete(path.asset_hash_path_root_v2().as_vec());
+                self.asset_hashes.remove_responses_for_path(&dependent);
+                if dependent == INDEX_FILE {
+                    self.asset_hashes.remove_404_responses();
+                }
             }
             self.assets.remove(&arg.key);
         }
@@ -1125,14 +1125,9 @@ fn delete_preexisting_asset_hashes(
     affected_keys: &[String],
 ) {
     for key in affected_keys.iter() {
-        let key_path = AssetPath::from(key);
-        asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
-        asset_hashes.delete(key_path.asset_hash_path_v1().as_vec());
+        asset_hashes.remove_responses_for_path(key);
         if key == INDEX_FILE {
-            asset_hashes.delete(&[
-                NestedTreeKey::String("http_expr".into()),
-                NestedTreeKey::String("<*>".into()),
-            ]);
+            asset_hashes.remove_404_responses();
         }
     }
 }
