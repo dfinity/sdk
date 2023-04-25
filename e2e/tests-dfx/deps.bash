@@ -375,7 +375,7 @@ Installing canister: $CANISTER_ID_A"
     ## no init.json
     rm deps/init.json
     assert_command_fail dfx deps deploy
-    assert_contains "Failed to read init.json"
+    assert_contains "Failed to read init.json. Please run \`dfx deps init\`."
 
     ## forgot to set init argument for some dependencies
     assert_command dfx deps init # b is set here

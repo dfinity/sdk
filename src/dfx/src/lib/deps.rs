@@ -208,7 +208,7 @@ pub fn create_init_json_if_not_existed(project_root: &Path) -> DfxResult {
     Ok(())
 }
 
-#[context("Failed to read init.json")]
+#[context("Failed to read init.json. Please run `dfx deps init`.")]
 pub fn load_init_json(project_root: &Path) -> DfxResult<InitJson> {
     let init_json_path = get_init_json_path(project_root);
     let init_json = load_json_file(&init_json_path)?;
