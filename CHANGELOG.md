@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.14.0
+
 ## DFX
 
 ### fix: stop `dfx deploy` from creating a wallet if all canisters exist
@@ -66,10 +68,11 @@ Canisters communicating with `ic0.app` will continue to function nominally.
 
 ### feat: confirmation dialogues are no longer case sensitive and accept 'y' in addition to 'yes'
 
-### fix: `dfx generate` no longer requires non-Motoko canisters to have a canister ID
-Previously, non-Motoko canisters required that the canister was created before `dfx generate` could be called.
-This requirement is now lifted for all canisters except for canisters of type `"motoko"` or canisters that are listed in (transitive) dependencies of a canister of type `"motoko"`.
-It is planned to lift this requirement for Motoko canisters as well, but this requires more work.
+### fix: `dfx generate` no longer requires canisters to have a canister ID
+Previously, canisters required that the canister was created before `dfx generate` could be called.
+
+As a result, the `--network` parameter does not have an impact on the result of `dfx generate` anymore.
+This means that `dfx generate` now also generates type declarations for remote canisters.
 
 ### fix: Make `build` field optional in dfx.json
 
