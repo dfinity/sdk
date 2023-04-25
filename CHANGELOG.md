@@ -2,7 +2,27 @@
 
 # UNRELEASED
 
+# 0.14.0
+
 ## DFX
+
+### fix: stop `dfx deploy` from creating a wallet if all canisters exist
+
+### feat: expose `wasm-opt` optimizer in `ic-wasm` to users
+
+Add option to specify an "optimize" field for canisters to invoke the `wasm-opt` optimizer through `ic-wasm`.
+
+This behavior is disabled by default.
+
+If you want to enable this behavior, you can do so in dfx.json:
+
+    "canisters" : {
+        "app" : {
+            "optimize" : "cycles"
+        }
+    }
+
+The options are "cycles", "size", "O4", "O3", "O2", "O1", "O0", "Oz", and "Os".  The options starting with "O" are the optimization levels that `wasm-opt` provides. The "cycles" and "size" options are recommended defaults for optimizing for cycle usage and binary size respectively.
 
 ### feat: updates the dfx new starter project for env vars
 
@@ -162,6 +182,10 @@ Updated Motoko to 0.8.7
 ### ic-ref
 
 Updated ic-ref to 0.0.1-ca6aca90
+
+### ic-btc-canister
+
+Started bundling ic-btc-canister, release 2023-03-31
 
 # 0.13.1
 
