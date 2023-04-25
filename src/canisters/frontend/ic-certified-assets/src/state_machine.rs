@@ -8,7 +8,7 @@ use crate::{
     certification::internals::certification_types::{
         AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash, ResponseHash,
     },
-    certification::{internals::tree::merge_hash_trees, CertifiedResponses},
+    certification::{internals::certification_types::WitnessResult, CertifiedResponses},
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
     http::{
         build_ic_certificate_expression_from_headers_and_encoding, response_hash,
@@ -759,48 +759,21 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        let (asset_hash_path, not_found_hash_path) = if req.get_certificate_version() == 1 {
-            let path = AssetPath::from(path);
-            let v1_path = path.asset_hash_path_v1();
-
-            let not_found_path = AssetPath::from(INDEX_FILE);
-            let v1_not_found = not_found_path.asset_hash_path_v1();
-
-            (v1_path, v1_not_found)
+        let (witness, witness_result) = if req.get_certificate_version() == 1 {
+            self.asset_hashes.witness_path_v1(path, INDEX_FILE)
         } else {
-            let path = AssetPath::from(path);
-            let v2_root_path = path.asset_hash_path_root_v2();
-
-            let v2_not_found_root = HashTreePath::from(Vec::from([
-                NestedTreeKey::String("http_expr".into()),
-                NestedTreeKey::String("<*>".into()),
-            ]));
-
-            (v2_root_path, v2_not_found_root)
+            self.asset_hashes.witness_path(path)
         };
 
-        let index_redirect_certificate =
-            if !self.asset_hashes.contains_path(asset_hash_path.as_vec())
-                && self
-                    .asset_hashes
-                    .contains_path(not_found_hash_path.as_vec())
-            {
-                let absence_proof = self.asset_hashes.witness(asset_hash_path.as_vec());
-                let not_found_proof = self.asset_hashes.witness(not_found_hash_path.as_vec());
-                let combined_proof = merge_hash_trees(absence_proof, not_found_proof);
-
-                if req.get_certificate_version() == 1 {
-                    Some(witness_to_header_v1(combined_proof, certificate))
-                } else {
-                    Some(witness_to_header_v2(
-                        combined_proof,
-                        certificate,
-                        &asset_hash_path.expr_path(),
-                    ))
-                }
+        let index_redirect_certificate = if witness_result == WitnessResult::FallbackFound {
+            if req.get_certificate_version() == 1 {
+                Some(witness_to_header_v1(&witness, certificate))
             } else {
-                None
-            };
+                Some(witness_to_header_v2(&witness, certificate, &path))
+            }
+        } else {
+            None
+        };
 
         if let Some(certificate_header) = index_redirect_certificate.as_ref() {
             if let Ok(asset) = self.get_asset(&INDEX_FILE.to_string()) {
@@ -823,16 +796,9 @@ impl State {
         }
 
         let certificate_header = if req.get_certificate_version() == 1 {
-            witness_to_header_v1(
-                self.asset_hashes.witness(asset_hash_path.as_vec()),
-                certificate,
-            )
+            witness_to_header_v1(&witness, certificate)
         } else {
-            witness_to_header_v2(
-                self.asset_hashes.witness(asset_hash_path.as_vec()),
-                certificate,
-                &asset_hash_path.expr_path(),
-            )
+            witness_to_header_v2(&witness, certificate, &path)
         };
 
         if let Ok(asset) = self.get_asset(&path.into()) {

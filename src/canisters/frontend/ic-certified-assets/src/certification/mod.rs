@@ -1,6 +1,6 @@
 use self::internals::{
-    certification_types::{AssetPath, HashTreePath, NestedTreeKey},
-    tree::NestedTree,
+    certification_types::{AssetPath, HashTreePath, NestedTreeKey, WitnessResult},
+    tree::{merge_hash_trees, NestedTree},
 };
 
 use sha2::Digest;
@@ -96,10 +96,7 @@ impl CertifiedResponses {
 
     /// Removes all certified 404 responses
     pub fn remove_404_responses(&mut self) {
-        self.delete(&[
-            NestedTreeKey::String("http_expr".into()),
-            NestedTreeKey::String("<*>".into()),
-        ])
+        self.delete(HashTreePath::not_found_base_path_v2().as_vec());
     }
 
     /// Removes a specific response from the certified responses. Expects a finished `HashTreePath`, skipping the (sometimes expensive) computation of the `HashTreePath`.
@@ -115,12 +112,84 @@ impl CertifiedResponses {
     /// * The absence of the path in the CertifiedResponses hash tree
     /// * The presence/absence of a 404 response
     /// The hash tree then includes certification for all valid responses for a 404 response.
-    pub fn witness_path(&self, path: &str) -> HashTree {
-        todo!()
+    ///
+    /// # Return Value
+    /// `(found, tree)`
+    /// * `found`:
+    ///   * WitnessResult::Found if `path` has a certified response.
+    ///   * `WitnessResult::FallbackFound` if the path has no certified response, but the fallback path has.
+    ///   * `WitnessResult::NoneFound` if both `path` and the fallback path have no certified response.
+    /// * `tree`: The `HashTree` as described above.
+    pub fn witness_path(&self, path: &str) -> (HashTree, WitnessResult) {
+        let path = AssetPath::from(path);
+        let hash_tree_path_root = path.asset_hash_path_root_v2();
+        if self.contains_path(hash_tree_path_root.as_vec()) {
+            println!("contains");
+            (
+                self.witness(hash_tree_path_root.as_vec()),
+                WitnessResult::PathFound,
+            )
+        } else {
+            println!("NOT contains {:?}", &hash_tree_path_root);
+            let fallback_path = HashTreePath::not_found_base_path_v2();
+
+            let absence_proof = self.witness(hash_tree_path_root.as_vec());
+            let not_found_proof = self.witness(fallback_path.as_vec());
+            let combined_proof = merge_hash_trees(absence_proof, not_found_proof);
+
+            if self.contains_path(fallback_path.as_vec()) {
+                (combined_proof, WitnessResult::FallbackFound)
+            } else {
+                (combined_proof, WitnessResult::NoneFound)
+            }
+        }
+    }
+
+    /// If the path has certified responses this function creates a hash tree that proves...
+    /// * The path is part of the CertifiedResponses hash tree
+    /// The hash tree then includes certification the valid certification v1 response for this path.
+    ///
+    /// If the path has no certified response this function creates a hash tree that proves...
+    /// * The absence of the path in the CertifiedResponses hash tree
+    /// * The presence/absence of a 404 response
+    /// The hash tree then includes certification for the valid certification v1 response for a 404 response.
+    ///
+    /// # Arguments
+    /// * `path`: The path to generate a proof of presence/absence for
+    /// * `not_found_path`: The defined fall-back path to use if `path` is not certified by v1
+    ///
+    /// # Return Value
+    /// `(found, tree)`
+    /// * `found`:
+    ///   * WitnessResult::Found if `path` has a certified response.
+    ///   * `WitnessResult::FallbackFound` if the path has no certified response, but the fallback path has.
+    ///   * `WitnessResult::NoneFound` if both `path` and the fallback path have no certified response.
+    /// * `tree`: The `HashTree` as described above.
+    pub fn witness_path_v1(&self, path: &str, not_found_path: &str) -> (HashTree, WitnessResult) {
+        let path = AssetPath::from(path);
+        let hash_tree_path = path.asset_hash_path_v1();
+        if self.contains_leaf(hash_tree_path.as_vec()) {
+            (
+                self.witness(hash_tree_path.as_vec()),
+                WitnessResult::PathFound,
+            )
+        } else {
+            let fallback_path = AssetPath::from(not_found_path).asset_hash_path_v1();
+
+            let absence_proof = self.witness(hash_tree_path.as_vec());
+            let not_found_proof = self.witness(fallback_path.as_vec());
+            let combined_proof = merge_hash_trees(absence_proof, not_found_proof);
+
+            if self.contains_leaf(fallback_path.as_vec()) {
+                (combined_proof, WitnessResult::FallbackFound)
+            } else {
+                (combined_proof, WitnessResult::NoneFound)
+            }
+        }
     }
 
     /// Same as `witness_path`, but produces a header th
-    pub fn witness_header(&self, path: &str) -> (String, Value) {
+    pub fn witness_header(&self, path: &str) -> (bool, (String, Value)) {
         todo!()
     }
 }

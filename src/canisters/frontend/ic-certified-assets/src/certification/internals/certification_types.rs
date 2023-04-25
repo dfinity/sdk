@@ -45,11 +45,6 @@ where
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetPath(pub Vec<AssetKey>);
 
-/// AssetPath that is ready to be inserted into asset_hashes.
-/// E.g. `["http_expr", "foo", "index.html", "<$>", "<expr_hash>", "<request hash>", "<response_hash>"]`
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HashTreePath(pub Vec<NestedTreeKey>);
-
 impl<T> From<T> for AssetPath
 where
     T: AsRef<str>,
@@ -114,6 +109,11 @@ impl AssetPath {
     }
 }
 
+/// AssetPath that is ready to be inserted into asset_hashes.
+/// E.g. `["http_expr", "foo", "index.html", "<$>", "<expr_hash>", "<request hash>", "<response_hash>"]`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HashTreePath(pub Vec<NestedTreeKey>);
+
 impl From<Vec<NestedTreeKey>> for HashTreePath {
     fn from(vec: Vec<NestedTreeKey>) -> Self {
         Self(vec)
@@ -160,6 +160,18 @@ impl HashTreePath {
             &RequestHash::default(),
             &response_hash,
         )
+    }
+
+    pub fn not_found_base_path_v2() -> Self {
+        HashTreePath::from(Vec::from([
+            NestedTreeKey::String("http_expr".into()),
+            NestedTreeKey::String("<*>".into()),
+        ]))
+    }
+
+    pub fn not_found_base_path_v1(fallback_path: &str) -> Self {
+        let not_found_path = AssetPath::from(fallback_path);
+        not_found_path.asset_hash_path_v1()
     }
 }
 
@@ -217,4 +229,11 @@ where
         .serialize(&mut s)
         .expect("Failed to serialize self-describing CBOR.");
     vec
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WitnessResult {
+    PathFound,
+    FallbackFound,
+    NoneFound,
 }

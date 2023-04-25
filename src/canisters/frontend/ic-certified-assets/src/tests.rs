@@ -1619,7 +1619,7 @@ mod certification_v2 {
 
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
-                .with_header("Accept-Encoding", "gzip,identity")
+                .with_header("Accept-Encoding", "identity,gzip")
                 .with_certificate_version(2)
                 .build(),
             &[],
