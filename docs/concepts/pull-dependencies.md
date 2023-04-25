@@ -4,7 +4,7 @@
 
 The interoperability of canisters on the Internet Computer (IC) is an important feature. 
 
-`dfx` provides a consistent developer workflow for integrating thrid-party canisters.
+`dfx` provides a consistent developer workflow for integrating third-party canisters.
 
 A service provider attaches [necessary metadata](canister-metadata.md) to the canister wasm.
 
@@ -16,10 +16,10 @@ This document describes the consumer workflow and explains what happens behind t
 
 ### 1. Declare "pull" dependencies in `dfx.json`
 
-Below is an example `dfx.json`, the service consumer is developing the "app" canister which has two pull dependencies:
+Below is an example `dfx.json` in which the service consumer is developing the "app" canister which has two pull dependencies:
 
-- "dep_b" which has canister ID of "yhgn4-myaaa-aaaaa-aabta-cai" on the mainnet.
-- "dep_c" which has canister ID of "yahli-baaaa-aaaaa-aabtq-cai" on the mainnet.
+- "dep_b" which has canister ID of "yhgn4-myaaa-aaaaa-aabta-cai" on mainnet.
+- "dep_c" which has canister ID of "yahli-baaaa-aaaaa-aabtq-cai" on mainnet.
 
 ```json
 {
@@ -187,11 +187,11 @@ Installing canister: yhgn4-myaaa-aaaaa-aabta-cai (dep_b)
 
 We don't want to encourage including binary files in version control.
 
-On IC, every canister only has one latest version running on the mainnet. And service consumer should integrate with that latest version.
+On the Internet Computer, every canister only has one latest version running on mainnet. Service consumers should integrate with that latest version.
 
-So `dfx deps pull` always get the latest dependencies instead of locking on a particular run.
+So `dfx deps pull` always gets the latest dependencies instead of locking on a particular run.
 
-Every pulled canister has the latest version in shared cache and can be reused by different projects.
+Every pulled canister has the latest version in the shared cache and can be reused by different projects.
 
 ### Should I include `deps/` folder in version control?
 
@@ -204,7 +204,7 @@ If the required wasm files are also available in the shared cache, all applicati
 Considering a canister developer team:
 
 1.  Dev1 follows the [workflow](#workflow) and include all generated `deps/` files in source control;
-2.  Dev2 pull the branch by Dev1 and run `dfx deps pull` again
+2.  Dev2 pulls the branch by Dev1 and runs `dfx deps pull` again
     1.  If the `pulled.json` has no change, then all dependencies are still up to date. Dev2 can `dfx deps deploy` without setting init arguments again;
     2.  If there are changes in `pulled.json`, Dev2 can try `dfx deps deploy` to see if all init arguments are still valid. Then Dev2 run `dfx deps init` if necessary and update source control;
 

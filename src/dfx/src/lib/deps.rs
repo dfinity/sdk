@@ -169,6 +169,7 @@ fn get_deps_dir(project_root: &Path) -> PathBuf {
 
 pub fn get_candid_path_in_project(project_root: &Path, canister_id: &Principal) -> PathBuf {
     get_deps_dir(project_root)
+    .join("candid")
         .join(canister_id.to_text())
         .with_extension("did")
 }
