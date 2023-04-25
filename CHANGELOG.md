@@ -2,6 +2,9 @@
 
 # UNRELEASED
 
+### chore: Add the `nns-dapp` and `internet_identity` to the local canister IDs set by `dfx nns import`
+`dfx nns install` installs a set of canisters in a local repolica.  `dfx nns import` complements this by setting the canister IDs so that they can be queried by the user.  But `dfx nns import` is incomplete.  Now it will also provide the IDs of the `nns-dapp` and `internet_identity` canisters.
+
 # 0.14.0
 
 ## DFX
@@ -28,9 +31,6 @@ The options are "cycles", "size", "O4", "O3", "O2", "O1", "O0", "Oz", and "Os". 
 
 - Updates the starter project for env vars to use the new `dfx build` & `dfx deploy` environment variables
 - Changes the format of the canister id env vars to be `CANISTER_ID_<canister_name_uppercase>`, for the frontend declaraction file to be consistent with the dfx environment variables. `CANISTER_ID` as both a prefix and suffix are supported for backwards compatibility.
-
-### chore: Add the `nns-dapp` and `internet_identity` to the local canister IDs set by `dfx nns import`
-`dfx nns install` installs a set of canisters in a local repolica.  `dfx nns import` complements this by setting the canister IDs so that they can be queried by the user.  But `dfx nns import` is incomplete.  Now it will also provide the IDs of the `nns-dapp` and `internet_identity` canisters.
 
 ### fix!: --clean required when network configuration changes
 
