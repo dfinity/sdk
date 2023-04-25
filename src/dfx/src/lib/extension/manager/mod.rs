@@ -1,12 +1,7 @@
 use crate::lib::error::ExtensionError;
-use crate::lib::extension::{
-    manifest::{ExtensionManifest, MANIFEST_FILE_NAME},
-    Extension,
-};
 use dfx_core::config::cache::{get_bin_cache, get_cache_root};
 
 use dfx_core::fs::composite::ensure_dir_exists;
-use dfx_core::json::load_json_file;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -59,13 +54,5 @@ impl ExtensionManager {
         } else {
             Ok(std::process::Command::new(bin))
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn load_manifest(&self, ext: Extension) -> Result<ExtensionManifest, ExtensionError> {
-        let manifest_path = self
-            .get_extension_directory(&ext.name)
-            .join(MANIFEST_FILE_NAME);
-        load_json_file(&manifest_path).map_err(ExtensionError::ExtensionManifestIsNotValidJson)
     }
 }

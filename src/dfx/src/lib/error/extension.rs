@@ -62,8 +62,14 @@ pub enum ExtensionError {
     #[error("Cannot list extensions: {0}")]
     ExtensionsDirectoryIsNotReadable(dfx_core::error::fs::FsError),
 
-    #[error("Malformed extension manifest: {0}")]
-    ExtensionManifestIsNotValidJson(dfx_core::error::structured_file::StructuredFileError),
+    // TODO: this error should be `#[from dfx_core::...::StructureFileError]`, however,
+    // adding new error type to enum StructureFileError causes a cascade of problems,
+    // and they should be addressed separately: https://dfinity.atlassian.net/browse/SDK-1096
+    #[error("Malformed extension manifest: Failed to parse contents of {0} as toml: {1}")]
+    ExtensionManifestIsNotValid(Box<std::path::PathBuf>, toml::de::Error),
+
+    #[error("Missing 'extension.toml' file for extension '{0}'.")]
+    ExtensionManifestMissing(String),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]

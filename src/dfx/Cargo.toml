@@ -105,7 +105,7 @@ time = { workspace = true, features = [
     "serde-human-readable",
 ] }
 tokio = { workspace = true, features = ["fs"] }
-toml = "0.7.3"
+toml.workspace = true
 url.workspace = true
 walkdir.workspace = true
 wasmparser = "0.87.0"

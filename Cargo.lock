@@ -1019,6 +1019,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tiny-bip39",
+ "toml 0.7.3",
  "url",
 ]
 

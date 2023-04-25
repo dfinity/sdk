@@ -38,9 +38,20 @@ impl ExtensionManifest {
     // TODO: err about missing manifest file
     pub fn from_extension_directory(path: PathBuf) -> Result<Self, ExtensionError> {
         let manifest_path = path.join(MANIFEST_FILE_NAME);
+        if !manifest_path.exists() {
+            return Err(ExtensionError::ExtensionManifestMissing(
+                path.components()
+                    .last()
+                    .unwrap()
+                    .as_os_str()
+                    .to_string_lossy()
+                    .to_string(),
+            ));
+        }
         let ext: ExtensionManifestWrapper =
-            toml::from_str(&dfx_core::fs::read_to_string(&manifest_path)?)
-                .map_err(|e| ExtensionError::ExtensionAlreadyInstalled(e.to_string()))?;
+            toml::from_str(&dfx_core::fs::read_to_string(&manifest_path)?).map_err(|e| {
+                ExtensionError::ExtensionManifestIsNotValid(Box::new(manifest_path), e)
+            })?;
         Ok(ext.extension)
     }
 }
