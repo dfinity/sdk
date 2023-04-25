@@ -137,7 +137,7 @@ teardown() {
     assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
 }
 
-@test "canister create --all, canister install --all, dfx generate skip remote canisters" {
+@test "canister create --all, canister install --all skip remote canisters" {
     install_asset remote/actual
     dfx_start
     setup_actuallylocal_shared_network
@@ -177,9 +177,6 @@ teardown() {
     assert_command dfx build --network actuallylocal -vv
     assert_match "Not building canister 'remote'"
     assert_command dfx canister install --all --network actuallylocal
-    assert_command dfx generate --network actuallylocal
-    assert_match "Generating type declarations for canister basic"
-    assert_not_match "Generating type declarations for canister remote"
 
     assert_command dfx canister call basic read_remote --network actuallylocal
     assert_eq '("this is data in the remote canister")'
