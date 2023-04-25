@@ -46,7 +46,8 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
 
     match &opts.canister {
         Some(canister) => {
-            let canister_id = get_pull_canister_or_principal(canister, &pull_canisters_in_config)?;
+            let canister_id =
+                get_pull_canister_or_principal(canister, &pull_canisters_in_config, &pulled_json)?;
             set_init(&canister_id, &mut init_json, &pulled_json, &opts)?;
         }
         None => try_set_empty_init_for_all(logger, &mut init_json, &pulled_json)?,

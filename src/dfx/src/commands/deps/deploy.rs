@@ -44,7 +44,8 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
 
     let canister_ids = match &opts.canister {
         Some(canister) => {
-            let canister_id = get_pull_canister_or_principal(canister, &pull_canisters_in_config)?;
+            let canister_id =
+                get_pull_canister_or_principal(canister, &pull_canisters_in_config, &pulled_json)?;
             vec![canister_id]
         }
         None => pulled_json.canisters.keys().copied().collect(),

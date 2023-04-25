@@ -295,19 +295,27 @@ Failed to download from url: http://example.com/c.wasm."
     assert_match "4449444c00017103616263"
 
     # error cases
+    ## require init arguments but not provide
     assert_command_fail dfx deps init "$CANISTER_ID_A"
     assert_contains "Canister $CANISTER_ID_A requires an init argument"
 
+    ## wrong type
     assert_command_fail dfx deps init "$CANISTER_ID_A" --argument '("abc")'
     assert_contains "Invalid data: Unable to serialize Candid values: type mismatch: \"abc\" cannot be of type nat"
 
+    ## require no init argument but provide
     assert_command_fail dfx deps init dep_b --argument 1
     assert_contains "Canister $CANISTER_ID_B (dep_b) takes no init argument. Please rerun without \`--argument\`"
 
-    assert_command_fail dfx deps init "$CANISTER_ID_C"
+    ## require init arguments but not provide
+    assert_command_fail dfx deps init dep_c
     assert_contains "Canister $CANISTER_ID_C (dep_c) requires an init argument. The following info might be helpful:
 dfx:init => Nat
 candid:args => (nat)"
+
+    ## canister ID not in pulled.json
+    assert_command_fail dfx deps init aaaaa-aa
+    assert_contains "Could not find aaaaa-aa in pulled.json"
 }
 
 @test "dfx deps deploy works" {
@@ -371,6 +379,10 @@ Installing canister: $CANISTER_ID_A"
     assert_command dfx deps init "$CANISTER_ID_A" --argument "4449444c00017103616263" --argument-type raw
     assert_command_fail dfx deps deploy
     assert_contains "Failed to install canister $CANISTER_ID_A"
+
+    ## canister ID not in pulled.json
+    assert_command_fail dfx deps deploy aaaaa-aa
+    assert_contains "Could not find aaaaa-aa in pulled.json"
 
     ## no init.json
     rm deps/init.json

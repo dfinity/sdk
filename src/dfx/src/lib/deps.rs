@@ -169,7 +169,7 @@ fn get_deps_dir(project_root: &Path) -> PathBuf {
 
 pub fn get_candid_path_in_project(project_root: &Path, canister_id: &Principal) -> PathBuf {
     get_deps_dir(project_root)
-    .join("candid")
+        .join("candid")
         .join(canister_id.to_text())
         .with_extension("did")
 }
@@ -240,6 +240,7 @@ fn get_pulled_canister_dir(canister_id: &Principal) -> DfxResult<PathBuf> {
 pub fn get_pull_canister_or_principal(
     canister: &str,
     pull_canisters_in_config: &BTreeMap<String, Principal>,
+    pulled_json: &PulledJson,
 ) -> DfxResult<Principal> {
     match pull_canisters_in_config.get(canister) {
         Some(canister_id) => Ok(*canister_id),
@@ -247,6 +248,9 @@ pub fn get_pull_canister_or_principal(
             let p = Principal::from_text(canister).with_context(||
                 format!("{canister} is not a valid Principal nor a `type: pull` canister specified in dfx.json")
             )?;
+            if pulled_json.canisters.get(&p).is_none() {
+                bail!("Could not find {} in pulled.json", &p);
+            }
             Ok(p)
         }
     }
