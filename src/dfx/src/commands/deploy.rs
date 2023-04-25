@@ -1,7 +1,6 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::operations::canister::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
@@ -161,21 +160,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
-    let proxy_sender;
-    let create_call_sender = if opts.specified_id.is_none()
-        && !opts.no_wallet
-        && !matches!(call_sender, CallSender::Wallet(_))
-    {
-        let wallet = runtime.block_on(get_or_create_wallet_canister(
-            &env,
-            env.get_network_descriptor(),
-            env.get_selected_identity().expect("No selected identity"),
-        ))?;
-        proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-        &proxy_sender
-    } else {
-        &call_sender
-    };
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(
@@ -188,7 +172,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         with_cycles,
         opts.specified_id,
         &call_sender,
-        create_call_sender,
+        opts.no_wallet,
         opts.yes,
         env_file,
         !opts.no_asset_upgrade,

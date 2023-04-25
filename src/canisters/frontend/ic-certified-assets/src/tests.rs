@@ -582,6 +582,53 @@ fn batches_with_proposed_commit_args_do_not_expire() {
         },
         time_now,
     ) {
+        Err(err) if err.contains("batch not found") => (),
+        other => panic!("expected 'batch not found' error, got: {:?}", other),
+    }
+}
+
+#[test]
+fn batches_with_evidence_do_not_expire() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    let batch_1 = state.create_batch(time_now);
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    let _chunk_1 = state
+        .create_chunk(
+            CreateChunkArg {
+                batch_id: batch_1.clone(),
+                content: ByteBuf::from(BODY.to_vec()),
+            },
+            time_now,
+        )
+        .unwrap();
+
+    let args = CommitBatchArguments {
+        batch_id: batch_1.clone(),
+        operations: vec![],
+    };
+    assert_eq!(Ok(()), state.propose_commit_batch(args));
+    assert!(matches!(
+        state.compute_evidence(ComputeEvidenceArguments {
+            batch_id: batch_1.clone(),
+            max_iterations: Some(3),
+        }),
+        Ok(Some(_))
+    ));
+
+    let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
+    let _batch_2 = state.create_batch(time_now);
+
+    match state.create_chunk(
+        CreateChunkArg {
+            batch_id: batch_1,
+            content: ByteBuf::from(BODY.to_vec()),
+        },
+        time_now,
+    ) {
         Err(err) if err == *"batch has been proposed" => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }

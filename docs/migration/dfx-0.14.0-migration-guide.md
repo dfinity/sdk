@@ -1,3 +1,34 @@
+# 0.14.0 Migration Guide - Environment Variables
+
+This is not an immediate breaking change, but there will be a standardization around environment variables. Backwards compatibility will be supported until 0.16.0, but we recommend updating your projects to use the new environment variables.
+
+## Context
+
+Previously, `webpack.config.js` included an `initCanisterEnv` that parsed canister\*ids.json files and mapped them to environment variables. The pattern used there was `<CANISTER_NAME_UPPERCASE>_CANISTER_ID`. This was not consistent with the pattern used in the `dfx` internals, which used `CANISTER_ID_<canister
+_name_case_agnostic>`. This was confusing for users, and since uppercase environment variables is a best practice, we have decided to standardize on the `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` pattern across the board.
+
+## Changes
+
+Starting in `dfx 0.14.0`, the auto-generated `index.js` from `dfx generate` will use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>`, with a fallback to the old `<CANISTER_NAME_UPPERCASE>_CANISTER_ID` pattern. This will look like this:
+
+```js
+/* CANISTER_ID is replaced by webpack based on node environment
+ * Note: canister environment variable will be standardized as
+ * process.env.CANISTER_ID_<CANISTER_NAME_UPPERCASE>
+ * beginning in dfx 0.16.0
+ */
+export const canisterId =
+  process.env.CANISTER_ID_HELLO_BACKEND ||
+  process.env.HELLO_BACKEND_CANISTER_ID;
+```
+
+This will not break an existing application, but if you are using the environment variables elsewhere throughout your application, you should switch to the new pattern.
+
+## Webpack / Bundler Migration
+
+If your frontend project is using the old environment variables, you will need to update your `webpack.config.js` file to use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` variables, or to use the new webpack config provided in the starter project. We recommend using the new, simplified webpack config, which is provided below:
+
+```js
 require("dotenv").config();
 const path = require("path");
 const webpack = require("webpack");
@@ -7,7 +38,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
-const frontendDirectory = "{project_name}_frontend";
+const frontendDirectory = "<your_frontend_directory>";
 
 const frontend_entry = path.join("src", frontendDirectory, "src", "index.html");
 
@@ -94,3 +125,20 @@ module.exports = {
     liveReload: true,
   },
 };
+```
+
+If you prefer to modify an existing webpack config, you will need to update the `initCanisterEnv` function to use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` variables.
+
+For example, if your frontend project is using the following mapping of environment variables inside of `initCanisterEnv`:
+
+```js
+prev[canisterName.toUpperCase() + "_CANISTER_ID"] = canisterDetails[network];
+````
+
+You should update your `webpack.config.js` file to use the new `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` variables:
+
+```js
+prev[`CANISTER_ID_${canisterName.toUpperCase()}`] = canisterDetails[network];
+```
+
+Alternately, if you are using the new `.env` file support, you can install `dotenv` and imitate the new webpack config provided above.
