@@ -1,7 +1,6 @@
 //! This module declares canister methods expected by the assets canister client.
 pub mod certification;
 pub mod evidence;
-pub mod http;
 pub mod rc_bytes;
 pub mod state_machine;
 pub mod types;
@@ -12,7 +11,9 @@ mod tests;
 
 pub use crate::state_machine::StableState;
 use crate::{
-    http::{HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken},
+    certification::internals::http_types::{
+        HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+    },
     rc_bytes::RcBytes,
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,

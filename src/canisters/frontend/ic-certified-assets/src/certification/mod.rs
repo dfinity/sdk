@@ -1,8 +1,10 @@
 use self::internals::{
     certification_types::{AssetPath, HashTreePath, NestedTreeKey, WitnessResult},
+    http_types::HeaderField,
     tree::{merge_hash_trees, NestedTree},
 };
 
+use serde::Serialize;
 use sha2::Digest;
 
 pub mod internals;
@@ -124,13 +126,11 @@ impl CertifiedResponses {
         let path = AssetPath::from(path);
         let hash_tree_path_root = path.asset_hash_path_root_v2();
         if self.contains_path(hash_tree_path_root.as_vec()) {
-            println!("contains");
             (
                 self.witness(hash_tree_path_root.as_vec()),
                 WitnessResult::PathFound,
             )
         } else {
-            println!("NOT contains {:?}", &hash_tree_path_root);
             let fallback_path = HashTreePath::not_found_base_path_v2();
 
             let absence_proof = self.witness(hash_tree_path_root.as_vec());
@@ -188,8 +188,56 @@ impl CertifiedResponses {
         }
     }
 
-    /// Same as `witness_path`, but produces a header th
-    pub fn witness_header(&self, path: &str) -> (bool, (String, Value)) {
-        todo!()
+    /// Same as `witness_path`, but produces a header that can be returned as a `HttpResponse` header instead of a witness `HashTree`.
+    pub fn witness_to_header(
+        &self,
+        path: &str,
+        certificate: &[u8],
+    ) -> (HeaderField, WitnessResult) {
+        let (witness, witness_result) = self.witness_path(path);
+        let expr_path = AssetPath::from(path).asset_hash_path_root_v2().expr_path();
+
+        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+        serializer.self_describe().unwrap();
+        witness.serialize(&mut serializer).unwrap();
+
+        (
+            (
+                "IC-Certificate".to_string(),
+                String::from("version=2, ")
+                    + "certificate=:"
+                    + &base64::encode(certificate)
+                    + ":, tree=:"
+                    + &base64::encode(&serializer.into_inner())
+                    + ":, expr_path=:"
+                    + &expr_path
+                    + ":",
+            ),
+            witness_result,
+        )
+    }
+
+    /// Same as `witness_path`, but produces a header that can be returned as a `HttpResponse` header instead of a witness `HashTree`.
+    pub fn witness_to_header_v1(
+        &self,
+        path: &str,
+        not_found_path: &str,
+        certificate: &[u8],
+    ) -> (HeaderField, WitnessResult) {
+        let (witness, witness_result) = self.witness_path_v1(path, not_found_path);
+        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+        serializer.self_describe().unwrap();
+        witness.serialize(&mut serializer).unwrap();
+        (
+            (
+                "IC-Certificate".to_string(),
+                String::from("certificate=:")
+                    + &base64::encode(certificate)
+                    + ":, tree=:"
+                    + &base64::encode(&serializer.into_inner())
+                    + ":",
+            ),
+            witness_result,
+        )
     }
 }

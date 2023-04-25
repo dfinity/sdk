@@ -1,12 +1,9 @@
-use crate::certification::internals::certification_types::{
-    AssetPath, CertificateExpression, ResponseHash,
-};
+use crate::certification::internals::certification_types::{CertificateExpression, ResponseHash};
 use crate::rc_bytes::RcBytes;
 use crate::state_machine::{encoding_certification_order, Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
-use ic_certified_map::{Hash, HashTree};
+use ic_certified_map::Hash;
 use ic_response_verification::hash::{representation_independent_hash, Value};
-use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 
@@ -338,38 +335,4 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding<T>(
     let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
     let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
     CertificateExpression { expression, hash }
-}
-
-pub fn witness_to_header_v1(witness: &HashTree, certificate: &[u8]) -> HeaderField {
-    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
-    serializer.self_describe().unwrap();
-    witness.serialize(&mut serializer).unwrap();
-    (
-        "IC-Certificate".to_string(),
-        String::from("certificate=:")
-            + &base64::encode(certificate)
-            + ":, tree=:"
-            + &base64::encode(&serializer.into_inner())
-            + ":",
-    )
-}
-
-pub fn witness_to_header_v2(witness: &HashTree, certificate: &[u8], path: &str) -> HeaderField {
-    let expr_path = AssetPath::from(path).asset_hash_path_root_v2().expr_path();
-
-    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
-    serializer.self_describe().unwrap();
-    witness.serialize(&mut serializer).unwrap();
-
-    (
-        "IC-Certificate".to_string(),
-        String::from("version=2, ")
-            + "certificate=:"
-            + &base64::encode(certificate)
-            + ":, tree=:"
-            + &base64::encode(&serializer.into_inner())
-            + ":, expr_path=:"
-            + &expr_path
-            + ":",
-    )
 }

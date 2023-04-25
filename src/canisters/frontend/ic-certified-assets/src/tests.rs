@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
+use crate::certification::internals::http_types::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
@@ -1450,7 +1450,7 @@ mod allow_raw_access {
 mod certificate_expression {
     use ic_response_verification::hash::Value;
 
-    use crate::http::build_ic_certificate_expression_from_headers_and_encoding;
+    use crate::certification::internals::http_types::build_ic_certificate_expression_from_headers_and_encoding;
 
     use super::*;
 

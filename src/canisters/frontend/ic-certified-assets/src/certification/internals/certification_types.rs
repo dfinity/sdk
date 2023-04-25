@@ -7,7 +7,9 @@ use serde_cbor::Serializer;
 use sha2::Digest;
 
 use crate::{
-    http::{build_ic_certificate_expression_from_headers_and_encoding, response_hash},
+    certification::internals::http_types::{
+        build_ic_certificate_expression_from_headers_and_encoding, response_hash,
+    },
     rc_bytes::RcBytes,
     types::AssetKey,
 };

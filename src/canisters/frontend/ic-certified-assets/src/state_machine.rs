@@ -8,13 +8,12 @@ use crate::{
     certification::internals::certification_types::{
         AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash, ResponseHash,
     },
+    certification::internals::http_types::{
+        build_ic_certificate_expression_from_headers_and_encoding, response_hash, HttpRequest,
+        HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+    },
     certification::{internals::certification_types::WitnessResult, CertifiedResponses},
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
-    http::{
-        build_ic_certificate_expression_from_headers_and_encoding, response_hash,
-        witness_to_header_v1, witness_to_header_v2, HttpRequest, HttpResponse,
-        StreamingCallbackHttpResponse, StreamingCallbackToken,
-    },
     rc_bytes::RcBytes,
     types::*,
     url_decode::url_decode,
@@ -759,23 +758,14 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        let (witness, witness_result) = if req.get_certificate_version() == 1 {
-            self.asset_hashes.witness_path_v1(path, INDEX_FILE)
+        let (certificate_header, witness_result) = if req.get_certificate_version() == 1 {
+            self.asset_hashes
+                .witness_to_header_v1(path, INDEX_FILE, certificate)
         } else {
-            self.asset_hashes.witness_path(path)
+            self.asset_hashes.witness_to_header(path, certificate)
         };
 
-        let index_redirect_certificate = if witness_result == WitnessResult::FallbackFound {
-            if req.get_certificate_version() == 1 {
-                Some(witness_to_header_v1(&witness, certificate))
-            } else {
-                Some(witness_to_header_v2(&witness, certificate, &path))
-            }
-        } else {
-            None
-        };
-
-        if let Some(certificate_header) = index_redirect_certificate.as_ref() {
+        if witness_result == WitnessResult::FallbackFound {
             if let Ok(asset) = self.get_asset(&INDEX_FILE.to_string()) {
                 if !asset.allow_raw_access() && req.is_raw_domain() {
                     return req.redirect_from_raw_to_certified_domain();
@@ -785,7 +775,7 @@ impl State {
                     &requested_encodings,
                     path,
                     chunk_index,
-                    Some(certificate_header),
+                    Some(&certificate_header),
                     &callback,
                     &etags,
                     req.get_certificate_version(),
@@ -793,29 +783,23 @@ impl State {
                     return response;
                 }
             }
-        }
-
-        let certificate_header = if req.get_certificate_version() == 1 {
-            witness_to_header_v1(&witness, certificate)
-        } else {
-            witness_to_header_v2(&witness, certificate, &path)
-        };
-
-        if let Ok(asset) = self.get_asset(&path.into()) {
-            if !asset.allow_raw_access() && req.is_raw_domain() {
-                return req.redirect_from_raw_to_certified_domain();
-            }
-            if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
-                asset,
-                &requested_encodings,
-                path,
-                chunk_index,
-                Some(&certificate_header),
-                &callback,
-                &etags,
-                req.get_certificate_version(),
-            ) {
-                return response;
+        } else if witness_result == WitnessResult::PathFound {
+            if let Ok(asset) = self.get_asset(&path.into()) {
+                if !asset.allow_raw_access() && req.is_raw_domain() {
+                    return req.redirect_from_raw_to_certified_domain();
+                }
+                if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
+                    asset,
+                    &requested_encodings,
+                    path,
+                    chunk_index,
+                    Some(&certificate_header),
+                    &callback,
+                    &etags,
+                    req.get_certificate_version(),
+                ) {
+                    return response;
+                }
             }
         }
 
