@@ -35,14 +35,13 @@ impl Display for ExtensionManifest {
 }
 
 impl ExtensionManifest {
-    // TODO: err about missing manifest file
     pub fn from_extension_directory(path: PathBuf) -> Result<Self, ExtensionError> {
         let manifest_path = path.join(MANIFEST_FILE_NAME);
         if !manifest_path.exists() {
             return Err(ExtensionError::ExtensionManifestMissing(
                 path.components()
                     .last()
-                    .unwrap()
+                    .unwrap() // safe to unwrap - the `path` parameter is guaranteed not to be root (`/`)
                     .as_os_str()
                     .to_string_lossy()
                     .to_string(),
