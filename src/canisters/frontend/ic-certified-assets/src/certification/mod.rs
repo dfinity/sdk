@@ -1,10 +1,10 @@
 use crate::certification::types::{
-    certification_types::RequestHash,
+    certification::RequestHash,
     http::{build_ic_certificate_expression_from_headers, response_hash},
 };
 
 use self::types::{
-    certification_types::{AssetPath, HashTreePath, NestedTreeKey, WitnessResult},
+    certification::{AssetPath, HashTreePath, NestedTreeKey, WitnessResult},
     http::{HeaderField, FALLBACK_FILE},
 };
 use crate::certification::tree::{merge_hash_trees, NestedTree};

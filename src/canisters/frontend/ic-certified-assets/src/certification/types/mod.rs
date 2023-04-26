@@ -1,2 +1,2 @@
-pub mod certification_types;
+pub mod certification;
 pub mod http;
