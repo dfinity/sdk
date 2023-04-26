@@ -5,7 +5,7 @@ use crate::certification::internals::{
 
 use self::internals::{
     certification_types::{AssetPath, HashTreePath, NestedTreeKey, WitnessResult},
-    http_types::HeaderField,
+    http_types::{HeaderField, FALLBACK_FILE},
     tree::{merge_hash_trees, NestedTree},
 };
 
@@ -39,7 +39,7 @@ impl CertifiedResponses {
         body_hash: Option<[u8; 32]>,
     ) -> Vec<HashTreePath> {
         let certificate_expression = build_ic_certificate_expression_from_headers(headers);
-        let request_hash = RequestHash::default(); // currently not supported
+        let request_hash = RequestHash::default(); // request certification currently not supported
         let body_hash = if let Some(precomputed) = body_hash {
             precomputed
         } else {
@@ -64,7 +64,7 @@ impl CertifiedResponses {
 
     /// Certifies a response for a number of paths with certification v1.
     ///
-    /// REPLACES a previously certified response for the given path because v1 certification only supports one certified response per path.
+    /// REPLACES a previously certified response for any given path because v1 certification only supports one certified response per path.
     ///
     /// # Arguments
     /// * `paths`: path(s) to the resource
@@ -124,31 +124,11 @@ impl CertifiedResponses {
     }
 
     /// Certifies a response that can be used if no certified response is available for the requested path with certification v1.
-    /// This replaces any fallback
+    /// Alias for `self.certify_response_v1(&["/index.html"], body, body_hash)`.
     ///
-    /// # Arguments
-    /// * `status_code`: HTTP status code of the response
-    /// * `headers`: All certified headers. It is possible to respond with additional headers, but only the ones supplied in this argument are certified
-    /// * `body`: Response body. Ignored if `body_hash.is_some()`
-    /// * `body_hash`: Hash of the response body. If supplied the response body will not be hashed, which can save a lot of computation
-    ///
-    /// # Return Value
-    /// * `HashTreePath`: `HashTreePath` corresponding to the supplied response. Can be used to remove or re-insert certification for this specific response without having to re-compute the full path
-    pub fn certify_fallback_response_v1(
-        &mut self,
-        body: &[u8],
-        body_hash: Option<[u8; 32]>,
-    ) -> HashTreePath {
-        let body_hash = if let Some(precomputed) = body_hash {
-            precomputed
-        } else {
-            sha2::Sha256::digest(body).into()
-        };
-
-        let asset_path = AssetPath::fallback_path_v1();
-        let hash_tree_path = asset_path.asset_hash_path_v1();
-        self.insert(hash_tree_path.as_vec(), Vec::from(body_hash));
-        hash_tree_path
+    /// REPLACES a previously certified response because v1 certification only supports one certified response per path.
+    pub fn certify_fallback_response_v1(&mut self, body: &[u8], body_hash: Option<[u8; 32]>) {
+        self.certify_response_v1(&[FALLBACK_FILE], body, body_hash)
     }
 
     /// Certifies a response. Expects a finished `HashTreePath`, skipping the (sometimes expensive) computation of the `HashTreePath`.
@@ -156,10 +136,15 @@ impl CertifiedResponses {
         self.insert(path.as_vec(), Vec::new());
     }
 
-    /// Removes all certified responses for a path
+    /// Removes all certified responses for a path for certification v2
     pub fn remove_responses_for_path(&mut self, path: &str) {
         let key = AssetPath::from(path);
         self.delete(key.asset_hash_path_root_v2().as_vec());
+    }
+
+    /// Removes the certified response for a path for certification v1
+    pub fn remove_responses_for_path_v1(&mut self, path: &str) {
+        let key = AssetPath::from(path);
         self.delete(key.asset_hash_path_v1().as_vec());
     }
 
@@ -168,7 +153,7 @@ impl CertifiedResponses {
         self.delete(HashTreePath::not_found_base_path_v2().as_vec());
     }
 
-    /// Removes all certified fallback responses for certification v1
+    /// Removes the certified fallback response for certification v1
     pub fn remove_fallback_responses_v1(&mut self) {
         self.delete(HashTreePath::not_found_base_path_v1().as_vec());
     }

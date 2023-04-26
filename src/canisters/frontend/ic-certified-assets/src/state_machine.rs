@@ -425,8 +425,10 @@ impl State {
         if self.assets.contains_key(&arg.key) {
             for dependent in self.dependent_keys(&arg.key) {
                 self.asset_hashes.remove_responses_for_path(&dependent);
+                self.asset_hashes.remove_responses_for_path_v1(&dependent);
                 if dependent == FALLBACK_FILE {
                     self.asset_hashes.remove_fallback_responses();
+                    self.asset_hashes.remove_fallback_responses_v1();
                 }
             }
             self.assets.remove(&arg.key);
@@ -1082,8 +1084,10 @@ fn delete_preexisting_asset_hashes(
 ) {
     for key in affected_keys.iter() {
         asset_hashes.remove_responses_for_path(key);
+        asset_hashes.remove_responses_for_path_v1(key);
         if key == FALLBACK_FILE {
             asset_hashes.remove_fallback_responses();
+            asset_hashes.remove_fallback_responses_v1();
         }
     }
 }
