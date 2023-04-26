@@ -14,6 +14,8 @@ use crate::{
     types::AssetKey,
 };
 
+use super::http_types::FALLBACK_FILE;
+
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct CertificateExpression {
     pub expression: String,
@@ -109,6 +111,14 @@ impl AssetPath {
         hash_path.push(NestedTreeKey::Hash(response_hash.clone()));
         HashTreePath(hash_path)
     }
+
+    pub fn fallback_path() -> Self {
+        Self(vec!["http_expr".into(), "<*>".into()])
+    }
+
+    pub fn fallback_path_v1() -> Self {
+        Self::from(FALLBACK_FILE)
+    }
 }
 
 /// AssetPath that is ready to be inserted into asset_hashes.
@@ -171,8 +181,8 @@ impl HashTreePath {
         ]))
     }
 
-    pub fn not_found_base_path_v1(fallback_path: &str) -> Self {
-        let not_found_path = AssetPath::from(fallback_path);
+    pub fn not_found_base_path_v1() -> Self {
+        let not_found_path = AssetPath::from(FALLBACK_FILE);
         not_found_path.asset_hash_path_v1()
     }
 }

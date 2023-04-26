@@ -10,7 +10,7 @@ use crate::{
     },
     certification::internals::http_types::{
         build_ic_certificate_expression_from_headers_and_encoding, response_hash, HttpRequest,
-        HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+        HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
     },
     certification::{internals::certification_types::WitnessResult, CertifiedResponses},
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
@@ -52,9 +52,6 @@ pub fn encoding_certification_order<'a>(
     );
     encoding_order
 }
-
-/// The file to serve if the requested file wasn't found.
-const INDEX_FILE: &str = "/index.html";
 
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
@@ -428,8 +425,8 @@ impl State {
         if self.assets.contains_key(&arg.key) {
             for dependent in self.dependent_keys(&arg.key) {
                 self.asset_hashes.remove_responses_for_path(&dependent);
-                if dependent == INDEX_FILE {
-                    self.asset_hashes.remove_404_responses();
+                if dependent == FALLBACK_FILE {
+                    self.asset_hashes.remove_fallback_responses();
                 }
             }
             self.assets.remove(&arg.key);
@@ -758,18 +755,27 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
+        if let Ok(asset) = self.get_asset(&path.into()) {
+            if !asset.allow_raw_access() && req.is_raw_domain() {
+                return req.redirect_from_raw_to_certified_domain();
+            }
+        } else if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
+            if !asset.allow_raw_access() && req.is_raw_domain() {
+                return req.redirect_from_raw_to_certified_domain();
+            }
+        }
+
         let (certificate_header, witness_result) = if req.get_certificate_version() == 1 {
-            self.asset_hashes
-                .witness_to_header_v1(path, INDEX_FILE, certificate)
+            self.asset_hashes.witness_to_header_v1(path, certificate)
         } else {
             self.asset_hashes.witness_to_header(path, certificate)
         };
 
+        println!("Certificate version: {}", req.get_certificate_version());
+        println!("WitnessResult: {:?}", &witness_result);
+
         if witness_result == WitnessResult::FallbackFound {
-            if let Ok(asset) = self.get_asset(&INDEX_FILE.to_string()) {
-                if !asset.allow_raw_access() && req.is_raw_domain() {
-                    return req.redirect_from_raw_to_certified_domain();
-                }
+            if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
                 if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
                     asset,
                     &requested_encodings,
@@ -1076,8 +1082,8 @@ fn delete_preexisting_asset_hashes(
 ) {
     for key in affected_keys.iter() {
         asset_hashes.remove_responses_for_path(key);
-        if key == INDEX_FILE {
-            asset_hashes.remove_404_responses();
+        if key == FALLBACK_FILE {
+            asset_hashes.remove_fallback_responses();
         }
     }
 }
@@ -1104,7 +1110,7 @@ fn insert_new_response_hashes_for_encoding(
                 );
             }
         }
-        if key == INDEX_FILE {
+        if key == FALLBACK_FILE {
             if let Some(not_found_hash_path) = enc.not_found_hash_path() {
                 asset_hashes.certify_response_precomputed(&not_found_hash_path);
             }

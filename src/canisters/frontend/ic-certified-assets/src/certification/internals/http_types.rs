@@ -7,6 +7,9 @@ use ic_response_verification::hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 
+/// The file to serve if the requested file wasn't found.
+pub const FALLBACK_FILE: &str = "/index.html";
+
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
 
 pub const IC_CERTIFICATE_EXPRESSION_VALUE: &str = r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type"{headers}]}}}})"#;
@@ -331,6 +334,20 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding<T>(
             headers = format!(", \"content-encoding\"{}", headers);
         }
     }
+
+    let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
+    let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
+    CertificateExpression { expression, hash }
+}
+
+pub fn build_ic_certificate_expression_from_headers<T>(
+    headers: &[(String, T)],
+) -> CertificateExpression {
+    let headers = headers
+        .iter()
+        .map(|(h, _)| format!(", \"{}\"", h))
+        .collect::<Vec<_>>()
+        .join("");
 
     let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
     let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
