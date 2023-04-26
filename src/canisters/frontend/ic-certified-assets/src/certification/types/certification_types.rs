@@ -7,14 +7,14 @@ use serde_cbor::Serializer;
 use sha2::Digest;
 
 use crate::{
-    certification::internals::http_types::{
+    certification::types::http::{
         build_ic_certificate_expression_from_headers_and_encoding, response_hash,
     },
     rc_bytes::RcBytes,
     types::AssetKey,
 };
 
-use super::http_types::FALLBACK_FILE;
+use super::http::FALLBACK_FILE;
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct CertificateExpression {

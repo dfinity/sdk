@@ -11,7 +11,7 @@ mod tests;
 
 pub use crate::state_machine::StableState;
 use crate::{
-    certification::internals::http_types::{
+    certification::types::http::{
         HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
     },
     rc_bytes::RcBytes,

@@ -5,14 +5,14 @@
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
 use crate::{
-    certification::internals::certification_types::{
+    certification::types::certification_types::{
         AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash, ResponseHash,
     },
-    certification::internals::http_types::{
+    certification::types::http::{
         build_ic_certificate_expression_from_headers_and_encoding, response_hash, HttpRequest,
         HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
     },
-    certification::{internals::certification_types::WitnessResult, CertifiedResponses},
+    certification::{types::certification_types::WitnessResult, CertifiedResponses},
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
     rc_bytes::RcBytes,
     types::*,
@@ -847,6 +847,7 @@ impl State {
                     "failed to decode path '{}': {}",
                     path, err
                 ))),
+                upgrade: false,
                 streaming_strategy: None,
             },
         }

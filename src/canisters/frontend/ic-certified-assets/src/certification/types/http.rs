@@ -1,4 +1,4 @@
-use crate::certification::internals::certification_types::{CertificateExpression, ResponseHash};
+use crate::certification::types::certification_types::{CertificateExpression, ResponseHash};
 use crate::rc_bytes::RcBytes;
 use crate::state_machine::{encoding_certification_order, Asset, AssetEncoding};
 use candid::{CandidType, Deserialize, Func, Nat};
@@ -30,6 +30,7 @@ pub struct HttpResponse {
     pub status_code: u16,
     pub headers: Vec<HeaderField>,
     pub body: RcBytes,
+    pub upgrade: bool,
     pub streaming_strategy: Option<StreamingStrategy>,
 }
 
@@ -181,6 +182,7 @@ impl HttpResponse {
             status_code,
             headers: headers.into_iter().collect::<_>(),
             body,
+            upgrade: false,
             streaming_strategy,
         }
     }
@@ -273,6 +275,7 @@ impl HttpResponse {
             status_code: 400,
             headers: vec![],
             body: RcBytes::from(ByteBuf::from(err_msg)),
+            upgrade: false,
             streaming_strategy: None,
         }
     }
@@ -282,6 +285,7 @@ impl HttpResponse {
             status_code: 404,
             headers: vec![certificate_header],
             body: RcBytes::from(ByteBuf::from("not found")),
+            upgrade: false,
             streaming_strategy: None,
         }
     }
@@ -291,6 +295,7 @@ impl HttpResponse {
             status_code,
             headers: vec![("Location".to_string(), location)],
             body: RcBytes::from(ByteBuf::default()),
+            upgrade: false,
             streaming_strategy: None,
         }
     }

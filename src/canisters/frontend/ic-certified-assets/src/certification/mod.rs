@@ -1,18 +1,19 @@
-use crate::certification::internals::{
+use crate::certification::types::{
     certification_types::RequestHash,
-    http_types::{build_ic_certificate_expression_from_headers, response_hash},
+    http::{build_ic_certificate_expression_from_headers, response_hash},
 };
 
-use self::internals::{
+use self::types::{
     certification_types::{AssetPath, HashTreePath, NestedTreeKey, WitnessResult},
-    http_types::{HeaderField, FALLBACK_FILE},
-    tree::{merge_hash_trees, NestedTree},
+    http::{HeaderField, FALLBACK_FILE},
 };
+use crate::certification::tree::{merge_hash_trees, NestedTree};
 
 use serde::Serialize;
 use sha2::Digest;
 
-pub mod internals;
+pub mod tree;
+pub mod types;
 pub use ic_certified_map::HashTree;
 pub use ic_response_verification::hash::Value;
 
