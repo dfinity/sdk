@@ -1,13 +1,12 @@
-use crate::certification::types::{
-    certification::RequestHash,
-    http::{build_ic_certificate_expression_from_headers, response_hash},
+use self::{
+    tree::{merge_hash_trees, NestedTree},
+    types::{
+        certification::{AssetPath, HashTreePath, NestedTreeKey, RequestHash, WitnessResult},
+        http::{
+            build_ic_certificate_expression_from_headers, response_hash, HeaderField, FALLBACK_FILE,
+        },
+    },
 };
-
-use self::types::{
-    certification::{AssetPath, HashTreePath, NestedTreeKey, WitnessResult},
-    http::{HeaderField, FALLBACK_FILE},
-};
-use crate::certification::tree::{merge_hash_trees, NestedTree};
 
 use serde::Serialize;
 use sha2::Digest;

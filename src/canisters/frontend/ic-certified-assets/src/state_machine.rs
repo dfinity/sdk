@@ -5,19 +5,26 @@
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
 use crate::{
-    certification::types::certification::{
-        AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash, ResponseHash,
+    certification::{
+        types::{
+            certification::{
+                AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash,
+                ResponseHash, WitnessResult,
+            },
+            http::{
+                build_ic_certificate_expression_from_headers_and_encoding, response_hash,
+                HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+                FALLBACK_FILE,
+            },
+        },
+        CertifiedResponses,
     },
-    certification::types::http::{
-        build_ic_certificate_expression_from_headers_and_encoding, response_hash, HttpRequest,
-        HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
-    },
-    certification::{types::certification::WitnessResult, CertifiedResponses},
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
     rc_bytes::RcBytes,
     types::*,
     url_decode::url_decode,
 };
+
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash};
 use ic_response_verification::hash::Value;
