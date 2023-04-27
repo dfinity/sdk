@@ -2,6 +2,13 @@
 
 # UNRELEASED
 
+## Asset Canister 
+
+Added more detailed logging to `ic-asset`. Running `dfx deploy -v` (or `-vv`) will now print:
+- count for each `BatchOperationKind` in `CommitBatchArgs`
+- API version of the both `ic-asset` and the canister 
+- (only for `-vv`) value of `CommitBatchArgs`
+
 # 0.14.0
 
 ## DFX
