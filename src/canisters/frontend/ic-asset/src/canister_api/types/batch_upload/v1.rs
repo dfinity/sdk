@@ -10,7 +10,7 @@ use crate::canister_api::types::{
 use candid::{CandidType, Nat};
 
 /// Batch operations that can be applied atomically.
-#[derive(CandidType, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(CandidType, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum BatchOperationKind {
     #[allow(dead_code)]
     /// Clear all state from the asset canister.
