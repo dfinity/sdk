@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::canister_api::types::{
     asset::SetAssetPropertiesArguments,
     batch_upload::common::{
@@ -38,4 +40,23 @@ pub struct CommitBatchArguments {
 
     /// The operations to apply atomically.
     pub operations: Vec<BatchOperationKind>,
+}
+
+impl CommitBatchArguments {
+    pub(crate) fn group_by_kind_then_count(&self) -> HashMap<String, usize> {
+        self.operations
+            .iter()
+            .fold(HashMap::new(), |mut map: HashMap<String, usize>, op| {
+                let key = match op {
+                    BatchOperationKind::Clear(_) => "Clear",
+                    BatchOperationKind::DeleteAsset(_) => "Delete",
+                    BatchOperationKind::CreateAsset(_) => "CreateAsset",
+                    BatchOperationKind::UnsetAssetContent(_) => "UnsetAssetContent",
+                    BatchOperationKind::SetAssetContent(_) => "SetAssetContent",
+                    BatchOperationKind::SetAssetProperties(_) => "SetAssetProperties",
+                };
+                *map.entry(key.to_owned()).or_default() += 1;
+                map
+            })
+    }
 }
