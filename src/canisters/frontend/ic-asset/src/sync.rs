@@ -22,7 +22,7 @@ use crate::canister_api::types::batch_upload::{
 
 use anyhow::{anyhow, bail, Context};
 use ic_utils::Canister;
-use slog::{info, warn, Logger};
+use slog::{debug, info, trace, warn, Logger};
 use std::collections::HashMap;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -72,6 +72,15 @@ pub async fn upload_content_and_assemble_sync_operations(
         batch_id,
     );
 
+    // -v
+    debug!(
+        logger,
+        "Count of each Batch Operation Kind: {:?}",
+        commit_batch_args.group_by_kind_and_count()
+    );
+    // -vv
+    trace!(logger, "Value of CommitBatch: {:?}", commit_batch_args);
+
     Ok(commit_batch_args)
 }
 
@@ -80,6 +89,7 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
     let commit_batch_args =
         upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
     let canister_api_version = api_version(canister).await;
+    trace!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
     info!(logger, "Committing batch.");
     let response = match canister_api_version {
         0 => {
