@@ -43,7 +43,7 @@ pub struct CommitBatchArguments {
 }
 
 impl CommitBatchArguments {
-    pub(crate) fn group_by_kind_and_count(&self) -> HashMap<String, usize> {
+    pub(crate) fn group_by_kind_then_count(&self) -> HashMap<String, usize> {
         self.operations
             .iter()
             .fold(HashMap::new(), |mut map: HashMap<String, usize>, op| {

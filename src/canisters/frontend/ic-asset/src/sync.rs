@@ -76,7 +76,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     debug!(
         logger,
         "Count of each Batch Operation Kind: {:?}",
-        commit_batch_args.group_by_kind_and_count()
+        commit_batch_args.group_by_kind_then_count()
     );
     // -vv
     trace!(logger, "Value of CommitBatch: {:?}", commit_batch_args);
