@@ -118,8 +118,8 @@ async fn commit_in_stages(
         .operations
         .into_iter()
         .partition(|op| matches!(op, BatchOperationKind::SetAssetProperties(_)));
-    let batch_id = commit_batch_args.batch_id;
 
+    // This part seems reasonable in general as a separate batch
     for operations in set_properties_operations.chunks(500) {
         info!(logger, "Setting properties of {} assets.", operations.len());
         commit_batch(
@@ -131,16 +131,31 @@ async fn commit_in_stages(
         )
         .await?
     }
-    info!(
-        logger,
-        "Committing batch with {} operations.",
-        other_operations.len()
-    );
+
+    // Seen to work at 800 ({"SetAssetContent": 932, "Delete": 47, "CreateAsset": 58})
+    // so 500 shouldn't exceed per-message instruction limit
+    for operations in other_operations.chunks(500) {
+        info!(
+            logger,
+            "Committing batch with {} operations.",
+            operations.len()
+        );
+        commit_batch(
+            canister,
+            CommitBatchArguments {
+                batch_id: Nat::from(0),
+                operations: operations.into(),
+            },
+        )
+        .await?
+    }
+
+    // this just deletes the batch
     commit_batch(
         canister,
         CommitBatchArguments {
-            batch_id,
-            operations: other_operations,
+            batch_id: commit_batch_args.batch_id,
+            operations: vec![],
         },
     )
     .await
