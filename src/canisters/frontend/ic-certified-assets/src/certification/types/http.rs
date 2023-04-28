@@ -346,7 +346,10 @@ pub fn build_ic_certificate_expression_from_headers_and_encoding<T>(
 
     let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
     let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
-    CertificateExpression { expression, hash }
+    CertificateExpression {
+        expression,
+        expression_hash: hash,
+    }
 }
 
 pub fn build_ic_certificate_expression_from_headers<T>(
@@ -360,7 +363,10 @@ pub fn build_ic_certificate_expression_from_headers<T>(
 
     let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
     let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
-    CertificateExpression { expression, hash }
+    CertificateExpression {
+        expression,
+        expression_hash: hash,
+    }
 }
 
 pub fn build_ic_certificate_expression_header(

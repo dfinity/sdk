@@ -16,18 +16,11 @@ pub type AssetKey = String;
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct CertificateExpression {
     pub expression: String,
-    /// Hash of expression
-    pub hash: [u8; 32],
+    pub expression_hash: [u8; 32],
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Default)]
 pub struct RequestHash(Option<[u8; 32]>);
-
-impl Default for RequestHash {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct ResponseHash(pub [u8; 32]);
@@ -99,12 +92,12 @@ impl AssetPath {
             path
         });
         hash_path.push("<$>".into()); // asset path terminator
-        hash_path.push(certificate_expression.hash.into());
-        hash_path.push(if let Some(request_hash) = maybe_request_hash {
-            request_hash.clone().into()
-        } else {
-            "".into() // no request certification - use empty node
-        });
+        hash_path.push(certificate_expression.expression_hash.into());
+        hash_path.push(
+            maybe_request_hash
+                .map(|request_hash| request_hash.clone().into())
+                .unwrap_or_else(|| "".into()),
+        );
         hash_path.push(NestedTreeKey::Hash(response_hash.clone()));
         HashTreePath(hash_path)
     }
@@ -167,22 +160,14 @@ impl HashTreePath {
         certificate_expression: Option<&CertificateExpression>,
         response_hash: Option<&ResponseHash>,
     ) -> Self {
-        let certificate_expression = if let Some(ce) = certificate_expression {
-            ce.clone()
-        } else {
-            build_ic_certificate_expression_from_headers(headers)
-        };
+        let certificate_expression = certificate_expression
+            .map(|ce| ce.clone())
+            .unwrap_or_else(|| build_ic_certificate_expression_from_headers(headers));
         let request_hash = RequestHash::default(); // request certification currently not supported
-        let body_hash = if let Some(precomputed) = body_hash {
-            precomputed
-        } else {
-            sha2::Sha256::digest(body).into()
-        };
-        let response_hash = if let Some(response_hash) = response_hash {
-            response_hash.clone()
-        } else {
-            super::http::response_hash(headers, status_code, &body_hash)
-        };
+        let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
+        let response_hash = response_hash
+            .map(|hash| hash.clone())
+            .unwrap_or_else(|| super::http::response_hash(headers, status_code, &body_hash));
 
         let asset_path = AssetPath::from(path);
         let hash_tree_path =

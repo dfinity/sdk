@@ -102,7 +102,7 @@ impl AssetEncoding {
                     HashTreePath::from(Vec::<NestedTreeKey>::from([
                         "http_expr".into(),
                         "<*>".into(), // 404 not found wildcard segment
-                        ce.hash.as_slice().into(),
+                        ce.expression_hash.as_slice().into(),
                         "".into(), // no request certification - use empty node
                         response_hash.as_slice().into(),
                     ]))
