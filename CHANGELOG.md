@@ -5,6 +5,17 @@
 ### chore: Add the `nns-dapp` and `internet_identity` to the local canister IDs set by `dfx nns import`
 `dfx nns install` installs a set of canisters in a local repolica.  `dfx nns import` complements this by setting the canister IDs so that they can be queried by the user.  But `dfx nns import` is incomplete.  Now it will also provide the IDs of the `nns-dapp` and `internet_identity` canisters.
 
+## Asset Canister Synchronization
+
+Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
+- The count for each `BatchOperationKind` in `CommitBatchArgs`
+- The API version of both the `ic-asset` and the canister
+- (Only for `-vv`) The value of `CommitBatchArgs`
+
+In order to allow larger changes without exceeding the per-message instruction limit, the sync process now:
+- sets properties of assets already in the canister separately from the rest of the batch.
+- splits up the rest of the batch into groups of up to 500 operations.
+
 # 0.14.0
 
 ## DFX

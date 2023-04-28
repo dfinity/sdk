@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::canister_api::types::{
     asset::SetAssetPropertiesArguments,
     batch_upload::common::{
@@ -8,7 +10,7 @@ use crate::canister_api::types::{
 use candid::{CandidType, Nat};
 
 /// Batch operations that can be applied atomically.
-#[derive(CandidType, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(CandidType, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum BatchOperationKind {
     #[allow(dead_code)]
     /// Clear all state from the asset canister.
@@ -38,4 +40,23 @@ pub struct CommitBatchArguments {
 
     /// The operations to apply atomically.
     pub operations: Vec<BatchOperationKind>,
+}
+
+impl CommitBatchArguments {
+    pub(crate) fn group_by_kind_then_count(&self) -> HashMap<String, usize> {
+        self.operations
+            .iter()
+            .fold(HashMap::new(), |mut map: HashMap<String, usize>, op| {
+                let key = match op {
+                    BatchOperationKind::Clear(_) => "Clear",
+                    BatchOperationKind::DeleteAsset(_) => "Delete",
+                    BatchOperationKind::CreateAsset(_) => "CreateAsset",
+                    BatchOperationKind::UnsetAssetContent(_) => "UnsetAssetContent",
+                    BatchOperationKind::SetAssetContent(_) => "SetAssetContent",
+                    BatchOperationKind::SetAssetProperties(_) => "SetAssetProperties",
+                };
+                *map.entry(key.to_owned()).or_default() += 1;
+                map
+            })
+    }
 }
