@@ -6,9 +6,12 @@ use serde_cbor::ser::IoWrite;
 use serde_cbor::Serializer;
 use sha2::Digest;
 
-use crate::{rc_bytes::RcBytes, types::AssetKey};
+use crate::types::AssetKey;
 
-use super::http::{build_ic_certificate_expression_from_headers, FALLBACK_FILE};
+use super::{
+    http::{build_ic_certificate_expression_from_headers, FALLBACK_FILE},
+    rc_bytes::RcBytes,
+};
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct CertificateExpression {

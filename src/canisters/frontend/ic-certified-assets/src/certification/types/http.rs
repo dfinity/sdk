@@ -1,6 +1,5 @@
 use crate::{
     certification::types::certification::{CertificateExpression, ResponseHash},
-    rc_bytes::RcBytes,
     state_machine::{encoding_certification_order, Asset, AssetEncoding},
 };
 
@@ -9,6 +8,8 @@ use ic_certified_map::Hash;
 use ic_response_verification::hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
+
+use super::rc_bytes::RcBytes;
 
 /// The file to serve if the requested file wasn't found.
 pub const FALLBACK_FILE: &str = "/index.html";

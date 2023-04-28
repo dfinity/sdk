@@ -1,7 +1,6 @@
 //! This module declares canister methods expected by the assets canister client.
 pub mod certification;
 pub mod evidence;
-pub mod rc_bytes;
 pub mod state_machine;
 pub mod types;
 mod url_decode;
@@ -14,11 +13,11 @@ use crate::{
     certification::types::http::{
         HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
     },
-    rc_bytes::RcBytes,
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
 };
 use candid::{candid_method, Principal};
+use certification::types::rc_bytes::RcBytes;
 use ic_cdk::api::{
     call::ManualReply,
     caller, data_certificate,
