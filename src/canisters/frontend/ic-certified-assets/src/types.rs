@@ -5,11 +5,10 @@ use std::collections::HashMap;
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde_bytes::ByteBuf;
 
-use crate::certification::types::rc_bytes::RcBytes;
+use crate::certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 
 pub type BatchId = Nat;
 pub type ChunkId = Nat;
-pub type AssetKey = String;
 
 // IDL Types
 

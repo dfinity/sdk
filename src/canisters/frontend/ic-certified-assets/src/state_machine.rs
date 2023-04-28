@@ -8,8 +8,8 @@ use crate::{
     certification::{
         types::{
             certification::{
-                AssetPath, CertificateExpression, HashTreePath, NestedTreeKey, RequestHash,
-                ResponseHash, WitnessResult,
+                AssetKey, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,
+                RequestHash, ResponseHash, WitnessResult,
             },
             http::{
                 build_ic_certificate_expression_from_headers_and_encoding,

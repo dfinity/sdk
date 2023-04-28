@@ -17,7 +17,7 @@ use crate::{
     types::*,
 };
 use candid::{candid_method, Principal};
-use certification::types::rc_bytes::RcBytes;
+use certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use ic_cdk::api::{
     call::ManualReply,
     caller, data_certificate,
