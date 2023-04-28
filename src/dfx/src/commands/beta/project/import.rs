@@ -16,7 +16,7 @@ pub struct ImportOpts {
     canister_name: Option<String>,
 
     /// Imports all canisters found in the other project.
-    #[clap(long, required_unless_present("canister-name"))]
+    #[clap(long, required_unless_present("canister_name"))]
     all: bool,
 
     /// An optional prefix for canisters names to add to the project

@@ -68,7 +68,7 @@ pub struct DeployOpts {
     ///
     /// This option only works with non-mainnet replica.
     /// This option implies the --no-wallet flag.
-    #[clap(long, value_name = "PRINCIPAL", requires = "canister-name")]
+    #[clap(long, value_name = "PRINCIPAL", requires = "canister_name")]
     specified_id: Option<Principal>,
 
     /// Specify a wallet canister id to perform the call.
@@ -95,11 +95,11 @@ pub struct DeployOpts {
     no_asset_upgrade: bool,
 
     /// Prepare (upload) assets for later commit by proposal.
-    #[clap(long, conflicts_with("compute-evidence"))]
+    #[clap(long, conflicts_with("compute_evidence"))]
     by_proposal: bool,
 
     /// Compute evidence and compare it against expected evidence
-    #[clap(long, conflicts_with("by-proposal"))]
+    #[clap(long, conflicts_with("by_proposal"))]
     compute_evidence: bool,
 }
 

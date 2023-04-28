@@ -20,7 +20,7 @@ pub struct ImportOpts {
     pem_file: Option<PathBuf>,
 
     /// The path to a file with your seed phrase.
-    #[clap(long, conflicts_with("pem-file"), required_unless_present("pem-file"))]
+    #[clap(long, conflicts_with("pem_file"), required_unless_present("pem_file"))]
     seed_file: Option<PathBuf>,
 
     /// DEPRECATED: Please use --storage-mode=plaintext instead
@@ -30,7 +30,7 @@ pub struct ImportOpts {
     /// How your private keys are stored. By default, if keyring/keychain is available, keys are stored there.
     /// Otherwise, a password-protected file is used as fallback.
     /// Mode 'plaintext' is not safe, but convenient for use in CI.
-    #[clap(long, conflicts_with("disable-encryption"),
+    #[clap(long, conflicts_with("disable_encryption"),
     value_parser(["keyring", "password-protected", "plaintext"]))]
     storage_mode: Option<String>,
 

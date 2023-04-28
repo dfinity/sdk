@@ -36,11 +36,11 @@ pub struct UpdateSettingsOpts {
     set_controller: Option<Vec<String>>,
 
     /// Add a principal to the list of controllers of the canister.
-    #[clap(long, action = ArgAction::Append, conflicts_with("set-controller"))]
+    #[clap(long, action = ArgAction::Append, conflicts_with("set_controller"))]
     add_controller: Option<Vec<String>>,
 
     /// Removes a principal from the list of controllers of the canister.
-    #[clap(long, action = ArgAction::Append, conflicts_with("set-controller"))]
+    #[clap(long, action = ArgAction::Append, conflicts_with("set_controller"))]
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]

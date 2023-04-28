@@ -54,22 +54,22 @@ pub struct CanisterDeleteOpts {
     no_withdrawal: bool,
 
     /// Withdraw cycles from canister(s) to the specified canister/wallet before deleting.
-    #[clap(long, conflicts_with("no-withdrawal"))]
+    #[clap(long, conflicts_with("no_withdrawal"))]
     withdraw_cycles_to_canister: Option<String>,
 
     /// Withdraw cycles to dank with the current principal.
     #[clap(
         long,
-        conflicts_with("withdraw-cycles-to-canister"),
-        conflicts_with("no-withdrawal")
+        conflicts_with("withdraw_cycles_to_canister"),
+        conflicts_with("no_withdrawal")
     )]
     withdraw_cycles_to_dank: bool,
 
     /// Withdraw cycles to dank with the given principal.
     #[clap(
         long,
-        conflicts_with("withdraw-cycles-to-canister"),
-        conflicts_with("no-withdrawal")
+        conflicts_with("withdraw_cycles_to_canister"),
+        conflicts_with("no_withdrawal")
     )]
     withdraw_cycles_to_dank_principal: Option<String>,
 }

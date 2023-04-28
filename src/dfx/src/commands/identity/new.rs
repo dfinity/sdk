@@ -27,11 +27,11 @@ pub struct NewIdentityOpts {
         windows,
         doc = r#"The file path to the opensc-pkcs11 library e.g. "C:\Program Files (x86)\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll"#
     )]
-    #[clap(long, requires("hsm-key-id"))]
+    #[clap(long, requires("hsm_key_id"))]
     hsm_pkcs11_lib_path: Option<String>,
 
     /// A sequence of pairs of hex digits
-    #[clap(long, requires("hsm-pkcs11-lib-path"), value_parser(hsm_key_id_parser))]
+    #[clap(long, requires("hsm_pkcs11_lib_path"), value_parser(hsm_key_id_parser))]
     hsm_key_id: Option<String>,
 
     /// DEPRECATED: Please use --storage-mode=plaintext instead
@@ -41,7 +41,7 @@ pub struct NewIdentityOpts {
     /// How your private keys are stored. By default, if keyring/keychain is available, keys are stored there.
     /// Otherwise, a password-protected file is used as fallback.
     /// Mode 'plaintext' is not safe, but convenient for use in CI.
-    #[clap(long, conflicts_with("disable-encryption"),
+    #[clap(long, conflicts_with("disable_encryption"),
     value_parser(["keyring", "password-protected", "plaintext"]))]
     storage_mode: Option<String>,
 

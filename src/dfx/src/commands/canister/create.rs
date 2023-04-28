@@ -28,7 +28,7 @@ pub struct CanisterCreateOpts {
     canister_name: Option<String>,
 
     /// Creates all canisters configured in dfx.json.
-    #[clap(long, required_unless_present("canister-name"))]
+    #[clap(long, required_unless_present("canister_name"))]
     all: bool,
 
     /// Specifies the initial cycle balance to deposit into the newly created canister.

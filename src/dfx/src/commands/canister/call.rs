@@ -46,7 +46,7 @@ pub struct CanisterCallOpts {
     update: bool,
 
     /// Specifies the argument to pass to the method.
-    #[clap(conflicts_with("random"), conflicts_with("argument-file"))]
+    #[clap(conflicts_with("random"), conflicts_with("argument_file"))]
     argument: Option<String>,
 
     /// Specifies the file from which to read the argument to pass to the method.
@@ -59,7 +59,7 @@ pub struct CanisterCallOpts {
     argument_file: Option<PathBuf>,
 
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"), conflicts_with("argument-file"))]
+    #[clap(long, conflicts_with("argument"), conflicts_with("argument_file"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
