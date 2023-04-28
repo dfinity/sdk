@@ -87,7 +87,7 @@ impl AssetEncoding {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
                 hashes.get(&status_code).map(|response_hash| {
-                    path.hash_tree_path(ce, &RequestHash::default(), &response_hash.into())
+                    path.hash_tree_path(ce, &RequestHash::default(), response_hash.into())
                 })
             })
         })
@@ -1029,7 +1029,7 @@ fn build_headers(
         }
     }
     if let Some(expr) = cert_expr {
-        let (k, v) = build_ic_certificate_expression_header(&expr);
+        let (k, v) = build_ic_certificate_expression_header(expr);
         headers.insert(k, v);
     }
     headers

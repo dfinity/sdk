@@ -54,7 +54,7 @@ impl CertifiedResponses {
                 let hash_tree_path = asset_path.hash_tree_path(
                     &certificate_expression,
                     &request_hash,
-                    &response_hash,
+                    response_hash,
                 );
                 self.certify_response_precomputed(&hash_tree_path);
                 hash_tree_path
@@ -78,7 +78,7 @@ impl CertifiedResponses {
     ) {
         let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
         let hash_tree_paths: Vec<HashTreePath> = paths
-            .into_iter()
+            .iter()
             .map(|path| {
                 let asset_path = AssetPath::from(path);
                 asset_path.asset_hash_path_v1()
@@ -118,7 +118,7 @@ impl CertifiedResponses {
 
         let asset_path = AssetPath::fallback_path();
         let hash_tree_path =
-            asset_path.hash_tree_path(&certificate_expression, &request_hash, &response_hash);
+            asset_path.hash_tree_path(&certificate_expression, &request_hash, response_hash);
         self.certify_response_precomputed(&hash_tree_path);
         hash_tree_path
     }

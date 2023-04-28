@@ -22,7 +22,7 @@ pub struct CertificateExpression {
 #[derive(Clone, Debug, CandidType, Deserialize, Default)]
 pub struct RequestHash(Option<[u8; 32]>);
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[derive(Default, Clone, Copy, Debug, CandidType, Deserialize)]
 pub struct ResponseHash(pub [u8; 32]);
 
 impl<T> From<T> for ResponseHash
@@ -30,7 +30,7 @@ where
     T: Borrow<[u8; 32]>,
 {
     fn from(hash: T) -> Self {
-        ResponseHash(hash.borrow().clone())
+        ResponseHash(*hash.borrow())
     }
 }
 
@@ -83,10 +83,9 @@ impl AssetPath {
         &self,
         certificate_expression: &CertificateExpression,
         RequestHash(maybe_request_hash): &RequestHash,
-        ResponseHash(response_hash): &ResponseHash,
+        ResponseHash(response_hash): ResponseHash,
     ) -> HashTreePath {
-        let mut hash_path: Vec<NestedTreeKey> = Vec::new();
-        hash_path.push("http_expr".into());
+        let mut hash_path: Vec<NestedTreeKey> = vec!["http_expr".into()];
         hash_path = self.0.iter().fold(hash_path, |mut path, s| {
             path.push(s.as_str().into());
             path
@@ -95,10 +94,10 @@ impl AssetPath {
         hash_path.push(certificate_expression.expression_hash.into());
         hash_path.push(
             maybe_request_hash
-                .map(|request_hash| request_hash.clone().into())
+                .map(|request_hash| request_hash.into())
                 .unwrap_or_else(|| "".into()),
         );
-        hash_path.push(NestedTreeKey::Hash(response_hash.clone()));
+        hash_path.push(NestedTreeKey::Hash(response_hash));
         HashTreePath(hash_path)
     }
 
@@ -158,22 +157,17 @@ impl HashTreePath {
         body: &[u8],
         body_hash: Option<[u8; 32]>,
         certificate_expression: Option<&CertificateExpression>,
-        response_hash: Option<&ResponseHash>,
+        response_hash: Option<ResponseHash>,
     ) -> Self {
         let certificate_expression = certificate_expression
-            .map(|ce| ce.clone())
+            .cloned()
             .unwrap_or_else(|| build_ic_certificate_expression_from_headers(headers));
         let request_hash = RequestHash::default(); // request certification currently not supported
         let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
         let response_hash = response_hash
-            .map(|hash| hash.clone())
             .unwrap_or_else(|| super::http::response_hash(headers, status_code, &body_hash));
 
-        let asset_path = AssetPath::from(path);
-        let hash_tree_path =
-            asset_path.hash_tree_path(&certificate_expression, &request_hash, &response_hash);
-
-        hash_tree_path
+        AssetPath::from(path).hash_tree_path(&certificate_expression, &request_hash, response_hash)
     }
 
     pub fn not_found_base_path_v2() -> Self {
