@@ -173,6 +173,14 @@ Failed to download from url: http://example.com/c.wasm."
 
     setup_onchain
 
+    cd onchain/.dfx/local/canisters/b
+    ic-wasm b.wasm -o b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm.gz" -v public
+    gzip -n b.wasm
+    cd ../../../../
+    cp .dfx/local/canisters/b/b.wasm.gz ../www/b.wasm.gz
+    dfx canister install b --wasm .dfx/local/canisters/b/b.wasm.gz --mode=reinstall --yes
+    cd ..
+
     # pull canisters in app project
     cd app
     assert_file_not_exists "deps/pulled.json"
@@ -204,7 +212,7 @@ Failed to download from url: http://example.com/c.wasm."
     # sad path 1: wasm hash doesn't match on chain
     rm -r "${PULLED_DIR:?}/"
     cd ../onchain
-    cp .dfx/local/canisters/b/b.wasm ../www/a.wasm 
+    cp .dfx/local/canisters/c/c.wasm ../www/a.wasm 
 
     cd ../app
     assert_command_fail dfx deps pull --network local

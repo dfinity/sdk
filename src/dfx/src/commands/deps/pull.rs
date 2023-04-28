@@ -11,6 +11,7 @@ use crate::lib::metadata::names::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
+use crate::lib::wasm::file::read_wasm_module;
 use crate::util::download_file;
 use crate::NetworkOpt;
 use dfx_core::config::cache::get_cache_root;
@@ -232,8 +233,7 @@ download: {}",
     }
 
     // extract `candid:service` and save as candid file in shared cache
-    let wasm = dfx_core::fs::read(&wasm_path).context("Failed to read wasm")?;
-    let module = ic_wasm::utils::parse_wasm(&wasm, true)?;
+    let module = read_wasm_module(&wasm_path)?;
     let candid_service = get_metadata_as_string(&module, CANDID_SERVICE, &wasm_path)?;
     let service_candid_path = get_pulled_service_candid_path(&canister_id)?;
     write_to_tempfile_then_rename(candid_service.as_bytes(), &service_candid_path)?;
