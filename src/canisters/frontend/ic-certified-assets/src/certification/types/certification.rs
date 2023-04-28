@@ -6,15 +6,9 @@ use serde_cbor::ser::IoWrite;
 use serde_cbor::Serializer;
 use sha2::Digest;
 
-use crate::{
-    certification::types::http::{
-        build_ic_certificate_expression_from_headers_and_encoding, response_hash,
-    },
-    rc_bytes::RcBytes,
-    types::AssetKey,
-};
+use crate::{rc_bytes::RcBytes, types::AssetKey};
 
-use super::http::FALLBACK_FILE;
+use super::http::{build_ic_certificate_expression_from_headers, FALLBACK_FILE};
 
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct CertificateExpression {
@@ -158,20 +152,40 @@ impl HashTreePath {
         body: &RcBytes,
         body_hash: Option<[u8; 32]>,
     ) -> Self {
-        let asset_path = AssetPath::from(asset);
-        let certificate_expression =
-            build_ic_certificate_expression_from_headers_and_encoding(headers, None);
-        let response_hash = if let Some(body_hash) = body_hash {
-            response_hash(headers, status_code, &body_hash)
+        Self::from_parts(asset, status_code, headers, body, body_hash, None, None)
+    }
+
+    pub fn from_parts(
+        path: &str,
+        status_code: u16,
+        headers: &[(String, Value)],
+        body: &[u8],
+        body_hash: Option<[u8; 32]>,
+        certificate_expression: Option<&CertificateExpression>,
+        response_hash: Option<&ResponseHash>,
+    ) -> Self {
+        let certificate_expression = if let Some(ce) = certificate_expression {
+            ce.clone()
         } else {
-            let body_hash = sha2::Sha256::digest(body).into();
-            response_hash(headers, status_code, &body_hash)
+            build_ic_certificate_expression_from_headers(headers)
         };
-        asset_path.hash_tree_path(
-            &certificate_expression,
-            &RequestHash::default(),
-            &response_hash,
-        )
+        let request_hash = RequestHash::default(); // request certification currently not supported
+        let body_hash = if let Some(precomputed) = body_hash {
+            precomputed
+        } else {
+            sha2::Sha256::digest(body).into()
+        };
+        let response_hash = if let Some(response_hash) = response_hash {
+            response_hash.clone()
+        } else {
+            super::http::response_hash(headers, status_code, &body_hash)
+        };
+
+        let asset_path = AssetPath::from(path);
+        let hash_tree_path =
+            asset_path.hash_tree_path(&certificate_expression, &request_hash, &response_hash);
+
+        hash_tree_path
     }
 
     pub fn not_found_base_path_v2() -> Self {

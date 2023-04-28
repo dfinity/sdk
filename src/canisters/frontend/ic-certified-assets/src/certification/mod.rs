@@ -50,7 +50,7 @@ impl CertifiedResponses {
         paths
             .iter()
             .map(|path| {
-                let asset_path = AssetPath::from(*path);
+                let asset_path = AssetPath::from(path);
                 let hash_tree_path = asset_path.hash_tree_path(
                     &certificate_expression,
                     &request_hash,
@@ -280,7 +280,6 @@ impl CertifiedResponses {
         path: &str,
         certificate: &[u8],
     ) -> (HeaderField, WitnessResult) {
-        println!("witnessing {}", path);
         let (witness, witness_result) = self.witness_path_v1(path);
         let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
         serializer.self_describe().unwrap();

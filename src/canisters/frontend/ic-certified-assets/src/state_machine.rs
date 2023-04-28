@@ -780,9 +780,6 @@ impl State {
             self.asset_hashes.witness_to_header(path, certificate)
         };
 
-        println!("Certificate version: {}", req.get_certificate_version());
-        println!("WitnessResult: {:?}", &witness_result);
-
         if witness_result == WitnessResult::FallbackFound {
             if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
                 if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
