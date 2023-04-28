@@ -16,7 +16,7 @@ use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::{bail, Context};
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use std::default::Default;
 use std::fs;
@@ -38,7 +38,7 @@ pub struct ReplicaOpts {
     emulator: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    #[clap(long, conflicts_with("emulator"), action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration

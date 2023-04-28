@@ -13,7 +13,7 @@ use crate::Environment;
 use dfx_core::config::model::canister_id_store::CanisterIds;
 use dfx_core::config::model::dfinity::Config;
 
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use slog::{info, Logger};
 
 /// Imports the nns canisters
@@ -25,7 +25,7 @@ pub struct ImportOpts {
     /// Examples:
     ///   --network-mapping ic
     ///   --network-mapping ic=mainnet
-    #[clap(long, default_value = "ic=mainnet", multiple_occurrences(true))]
+    #[clap(long, default_value = "ic=mainnet", action = ArgAction::Append)]
     network_mapping: Vec<String>,
 }
 

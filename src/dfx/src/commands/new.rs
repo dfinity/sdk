@@ -43,11 +43,11 @@ lazy_static! {
 #[derive(Parser)]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
-    #[clap(validator(project_name_validator))]
+    #[clap(value_parser(project_name_validator))]
     project_name: String,
 
     /// Choose the type of canister in the starter project. Default to be motoko.
-    #[clap(long, possible_values(&["motoko", "rust"]), default_value = "motoko")]
+    #[clap(long, value_parser(["motoko", "rust"]), default_value = "motoko")]
     r#type: String,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.

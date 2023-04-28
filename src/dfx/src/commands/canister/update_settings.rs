@@ -14,7 +14,7 @@ use dfx_core::identity::CallSender;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use ic_agent::identity::Identity;
 
@@ -31,19 +31,19 @@ pub struct UpdateSettingsOpts {
     /// Specifies the identity name or the principal of the new controller.
     /// Can be specified more than once, indicating the canister will have multiple controllers.
     /// If any controllers are set with this parameter, any other controllers will be removed.
-    #[clap(long, multiple_occurrences(true))]
+    #[clap(long, action = ArgAction::Append)]
     set_controller: Option<Vec<String>>,
 
     /// Add a principal to the list of controllers of the canister.
-    #[clap(long, multiple_occurrences(true), conflicts_with("set-controller"))]
+    #[clap(long, action = ArgAction::Append, conflicts_with("set-controller"))]
     add_controller: Option<Vec<String>>,
 
     /// Removes a principal from the list of controllers of the canister.
-    #[clap(long, multiple_occurrences(true), conflicts_with("set-controller"))]
+    #[clap(long, action = ArgAction::Append, conflicts_with("set-controller"))]
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
-    #[clap(long, short('c'), validator(compute_allocation_validator))]
+    #[clap(long, short('c'), value_parser(compute_allocation_validator))]
     compute_allocation: Option<String>,
 
     /// Specifies how much memory the canister is allowed to use in total.
@@ -51,14 +51,14 @@ pub struct UpdateSettingsOpts {
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
-    #[clap(long, validator(memory_allocation_validator))]
+    #[clap(long, value_parser(memory_allocation_validator))]
     memory_allocation: Option<String>,
 
     /// Sets the freezing_threshold in SECONDS.
     /// A canister is considered frozen whenever the IC estimates that the canister would be depleted of cycles
     /// before freezing_threshold seconds pass, given the canister's current size and the IC's current cost for storage.
     /// A frozen canister rejects any calls made to it.
-    #[clap(long, validator(freezing_threshold_validator))]
+    #[clap(long, value_parser(freezing_threshold_validator))]
     freezing_threshold: Option<String>,
 
     /// Freezing thresholds above ~1.5 years require this flag as confirmation.

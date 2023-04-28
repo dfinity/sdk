@@ -11,7 +11,7 @@ use clap::Parser;
 #[derive(Parser)]
 pub struct NotifyCreateOpts {
     /// BlockHeight at which the send transation was recorded.
-    #[clap(validator(e8s_validator))]
+    #[clap(value_parser(e8s_validator))]
     block_height: String,
 
     /// The controller of the created canister.

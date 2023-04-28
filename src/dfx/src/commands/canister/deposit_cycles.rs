@@ -16,7 +16,7 @@ use slog::info;
 pub struct DepositCyclesOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
-    #[clap(validator(cycle_amount_validator))]
+    #[clap(value_parser(cycle_amount_validator))]
     cycles: String,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.

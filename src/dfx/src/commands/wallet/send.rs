@@ -16,7 +16,7 @@ pub struct SendOpts {
 
     /// Specifies the amount of cycles to send.
     /// Deducted from the wallet.
-    #[clap(validator(cycle_amount_validator))]
+    #[clap(value_parser(cycle_amount_validator))]
     amount: String,
 }
 

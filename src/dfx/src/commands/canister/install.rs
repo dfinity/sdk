@@ -33,7 +33,7 @@ pub struct CanisterInstallOpts {
     /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
     /// If auto is selected, either install or upgrade will be used depending on if the canister has already been installed.
     #[clap(long, short('m'), default_value("install"),
-        possible_values(&["install", "reinstall", "upgrade", "auto"]))]
+        value_parser(["install", "reinstall", "upgrade", "auto"]))]
     mode: String,
 
     /// Upgrade the canister even if the .wasm did not change.
@@ -45,7 +45,7 @@ pub struct CanisterInstallOpts {
     argument: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[clap(long, requires("argument"), value_parser(["idl", "raw"]))]
     argument_type: Option<String>,
 
     /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.

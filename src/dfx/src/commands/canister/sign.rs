@@ -48,7 +48,7 @@ pub struct CanisterSignOpts {
     /// Specifies the file from which to read the argument to pass to the method.
     #[clap(
         long,
-        validator(file_or_stdin_validator),
+        value_parser(file_or_stdin_validator),
         conflicts_with("random"),
         conflicts_with("argument")
     )]
@@ -59,7 +59,7 @@ pub struct CanisterSignOpts {
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[clap(long, requires("argument"), value_parser(["idl", "raw"]))]
     r#type: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)

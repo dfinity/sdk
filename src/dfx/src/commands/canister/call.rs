@@ -52,7 +52,7 @@ pub struct CanisterCallOpts {
     /// Specifies the file from which to read the argument to pass to the method.
     #[clap(
         long,
-        validator(file_or_stdin_validator),
+        value_parser(file_or_stdin_validator),
         conflicts_with("random"),
         conflicts_with("argument")
     )]
@@ -63,18 +63,18 @@ pub struct CanisterCallOpts {
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[clap(long, requires("argument"), value_parser(["idl", "raw"]))]
     r#type: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
     #[clap(long, conflicts_with("async"),
-        possible_values(&["idl", "raw", "pp"]))]
+        value_parser(["idl", "raw", "pp"]))]
     output: Option<String>,
 
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
     /// Requires --wallet as a flag to `dfx canister`.
-    #[clap(long, validator(cycle_amount_validator))]
+    #[clap(long, value_parser(cycle_amount_validator))]
     with_cycles: Option<String>,
 
     /// Provide the .did file with which to decode the response.  Overrides value from dfx.json

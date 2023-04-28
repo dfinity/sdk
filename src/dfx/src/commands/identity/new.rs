@@ -31,7 +31,7 @@ pub struct NewIdentityOpts {
     hsm_pkcs11_lib_path: Option<String>,
 
     /// A sequence of pairs of hex digits
-    #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_hsm_key_id))]
+    #[clap(long, requires("hsm-pkcs11-lib-path"), value_parser(is_hsm_key_id))]
     hsm_key_id: Option<String>,
 
     /// DEPRECATED: Please use --storage-mode=plaintext instead
@@ -42,7 +42,7 @@ pub struct NewIdentityOpts {
     /// Otherwise, a password-protected file is used as fallback.
     /// Mode 'plaintext' is not safe, but convenient for use in CI.
     #[clap(long, conflicts_with("disable-encryption"),
-    possible_values(&["keyring", "password-protected", "plaintext"]))]
+    value_parser(["keyring", "password-protected", "plaintext"]))]
     storage_mode: Option<String>,
 
     /// If the identity already exists, remove and re-create it.

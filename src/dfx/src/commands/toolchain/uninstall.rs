@@ -10,7 +10,7 @@ use clap::Parser;
 #[clap(name("uninstall"))]
 pub struct ToolchainUninstall {
     /// Toolchain name, such as '0.6.22', '0.6', 'latest'
-    #[clap(required = true, min_values = 1)]
+    #[clap(required = true, num_args = 1..)]
     toolchains: Vec<String>,
 }
 

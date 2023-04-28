@@ -21,7 +21,7 @@ use dfx_core::network::provider::{create_network_descriptor, LocalBindDeterminat
 
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
 use serde::Serialize;
@@ -57,7 +57,7 @@ pub struct StartOpts {
     emulator: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    #[clap(long, conflicts_with("emulator"), action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration

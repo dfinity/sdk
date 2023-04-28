@@ -16,7 +16,7 @@ use dfx_core::identity::CallSender;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use ic_agent::Identity as _;
 use slog::info;
 
@@ -33,7 +33,7 @@ pub struct CanisterCreateOpts {
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[clap(long, validator(cycle_amount_validator))]
+    #[clap(long, value_parser(cycle_amount_validator))]
     with_cycles: Option<String>,
 
     /// Attempts to create the canister with this Canister ID.
@@ -44,11 +44,11 @@ pub struct CanisterCreateOpts {
     specified_id: Option<CanisterId>,
 
     /// Specifies the identity name or the principal of the new controller.
-    #[clap(long, multiple_occurrences(true))]
+    #[clap(long, action = ArgAction::Append)]
     controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
-    #[clap(long, short('c'), validator(compute_allocation_validator))]
+    #[clap(long, short('c'), value_parser(compute_allocation_validator))]
     compute_allocation: Option<String>,
 
     /// Specifies how much memory the canister is allowed to use in total.
@@ -56,10 +56,10 @@ pub struct CanisterCreateOpts {
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
-    #[clap(long, validator(memory_allocation_validator))]
+    #[clap(long, value_parser(memory_allocation_validator))]
     memory_allocation: Option<String>,
 
-    #[clap(long, validator(freezing_threshold_validator), hide(true))]
+    #[clap(long, value_parser(freezing_threshold_validator), hide(true))]
     freezing_threshold: Option<String>,
 
     /// Performs the call with the user Identity as the Sender of messages.

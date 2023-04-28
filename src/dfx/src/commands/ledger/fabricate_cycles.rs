@@ -25,7 +25,7 @@ pub struct FabricateCyclesOpts {
     /// Specifies the amount of cycles to fabricate.
     #[clap(
         long,
-        validator(cycle_amount_validator),
+        value_parser(cycle_amount_validator),
         conflicts_with("t"),
         conflicts_with("amount"),
         conflicts_with("icp"),
@@ -38,7 +38,7 @@ pub struct FabricateCyclesOpts {
     /// i.e. 100.012
     #[clap(
         long,
-        validator(icpts_amount_validator),
+        value_parser(icpts_amount_validator),
         conflicts_with("cycles"),
         conflicts_with("icp"),
         conflicts_with("e8s"),
@@ -49,7 +49,7 @@ pub struct FabricateCyclesOpts {
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
     #[clap(
         long,
-        validator(e8s_validator),
+        value_parser(e8s_validator),
         conflicts_with("amount"),
         conflicts_with("cycles"),
         conflicts_with("t")
@@ -59,7 +59,7 @@ pub struct FabricateCyclesOpts {
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
     #[clap(
         long,
-        validator(e8s_validator),
+        value_parser(e8s_validator),
         conflicts_with("amount"),
         conflicts_with("cycles"),
         conflicts_with("t")
@@ -69,7 +69,7 @@ pub struct FabricateCyclesOpts {
     /// Specifies the amount of trillion cycles to fabricate.
     #[clap(
         long,
-        validator(trillion_cycle_amount_validator),
+        value_parser(trillion_cycle_amount_validator),
         conflicts_with("amount")
     )]
     t: Option<String>,

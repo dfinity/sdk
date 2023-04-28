@@ -28,23 +28,23 @@ pub struct CreateCanisterOpts {
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(long, validator(icpts_amount_validator))]
+    #[clap(long, value_parser(icpts_amount_validator))]
     amount: Option<String>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[clap(long, validator(e8s_validator), conflicts_with("amount"))]
+    #[clap(long, value_parser(e8s_validator), conflicts_with("amount"))]
     icp: Option<String>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[clap(long, validator(e8s_validator), conflicts_with("amount"))]
+    #[clap(long, value_parser(e8s_validator), conflicts_with("amount"))]
     e8s: Option<String>,
 
     /// Transaction fee, default is 10000 e8s.
-    #[clap(long, validator(icpts_amount_validator))]
+    #[clap(long, value_parser(icpts_amount_validator))]
     fee: Option<String>,
 
     /// Max fee, default is 10000 e8s.
-    #[clap(long, validator(icpts_amount_validator))]
+    #[clap(long, value_parser(icpts_amount_validator))]
     max_fee: Option<String>,
 
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction-deduplication, default is system-time. // https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-

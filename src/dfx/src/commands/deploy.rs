@@ -40,7 +40,7 @@ pub struct DeployOpts {
     argument: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[clap(long, requires("argument"), value_parser(["idl", "raw"]))]
     argument_type: Option<String>,
 
     /// Force the type of deployment to be reinstall, which overwrites the module.
@@ -48,7 +48,7 @@ pub struct DeployOpts {
     /// By default, upgrade will be chosen automatically if the module already exists,
     /// or install if it does not.
     #[clap(long, short('m'),
-    possible_values(&["reinstall"]))]
+    value_parser(["reinstall"]))]
     mode: Option<String>,
 
     /// Upgrade the canister even if the .wasm did not change.
@@ -61,7 +61,7 @@ pub struct DeployOpts {
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[clap(long, validator(cycle_amount_validator))]
+    #[clap(long, value_parser(cycle_amount_validator))]
     with_cycles: Option<String>,
 
     /// Attempts to create the canister with this Canister ID.
