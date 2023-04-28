@@ -361,3 +361,12 @@ pub fn build_ic_certificate_expression_from_headers<T>(
     let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
     CertificateExpression { expression, hash }
 }
+
+pub fn build_ic_certificate_expression_header(
+    certificate_expression: &CertificateExpression,
+) -> HeaderField {
+    (
+        "ic-certificateexpression".to_string(),
+        certificate_expression.expression.clone(),
+    )
+}

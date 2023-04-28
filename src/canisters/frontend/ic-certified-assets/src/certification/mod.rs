@@ -108,7 +108,7 @@ impl CertifiedResponses {
         body_hash: Option<[u8; 32]>,
     ) -> HashTreePath {
         let certificate_expression = build_ic_certificate_expression_from_headers(headers);
-        let request_hash = RequestHash::default(); // currently not supported
+        let request_hash = RequestHash::default(); // request certification currently not supported
         let body_hash = if let Some(precomputed) = body_hash {
             precomputed
         } else {

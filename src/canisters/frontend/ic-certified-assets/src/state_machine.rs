@@ -12,9 +12,9 @@ use crate::{
                 ResponseHash, WitnessResult,
             },
             http::{
-                build_ic_certificate_expression_from_headers_and_encoding, response_hash,
-                HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
-                FALLBACK_FILE,
+                build_ic_certificate_expression_from_headers_and_encoding,
+                build_ic_certificate_expression_header, response_hash, HttpRequest, HttpResponse,
+                StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
             },
         },
         CertifiedResponses,
@@ -123,9 +123,7 @@ impl AssetEncoding {
             max_age,
             content_type,
             encoding_name,
-            self.certificate_expression
-                .as_ref()
-                .map(|ce| &ce.expression),
+            self.certificate_expression.as_ref(),
         )
         .into_iter()
         .map(|(k, v)| (k, Value::String(v)))
@@ -269,7 +267,7 @@ impl Asset {
         let ce = if cert_version != 1 {
             self.encodings
                 .get(encoding_name)
-                .and_then(|e| e.certificate_expression.as_ref().map(|ce| &ce.expression))
+                .and_then(|e| e.certificate_expression.as_ref())
         } else {
             None
         };
@@ -1015,7 +1013,7 @@ fn build_headers(
     max_age: &Option<u64>,
     content_type: impl Into<String>,
     encoding_name: impl Into<String>,
-    cert_expr: Option<impl Into<String>>,
+    cert_expr: Option<&CertificateExpression>,
 ) -> HashMap<String, String> {
     let mut headers = HashMap::from([("content-type".to_string(), content_type.into())]);
     if let Some(max_age) = max_age {
@@ -1031,7 +1029,8 @@ fn build_headers(
         }
     }
     if let Some(expr) = cert_expr {
-        headers.insert("ic-certificateexpression".to_string(), expr.into());
+        let (k, v) = build_ic_certificate_expression_header(&expr);
+        headers.insert(k, v);
     }
     headers
 }
