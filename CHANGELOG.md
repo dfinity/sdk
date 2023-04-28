@@ -165,7 +165,8 @@ Added functionality that allows you to set asset properties during `dfx deploy`,
 ### Frontend canister
 
 - API version: 1
-- Module hash: e7866e1949e3688a78d8d29bd63e1c13cd6bfb8fbe29444fa606a20e0b1e33f0
+- Module hash: 675ee9a41ec950295a61ef0eba77ab301338808940559472aa490ef8ec846a72
+- https://github.com/dfinity/sdk/pull/3112
 - https://github.com/dfinity/sdk/pull/3094
 - https://github.com/dfinity/sdk/pull/3002
 - https://github.com/dfinity/sdk/pull/3065
