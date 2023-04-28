@@ -5,7 +5,7 @@ use crate::lib::ledger_types::{Memo, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::{e8s_validator, icpts_amount_validator, memo_validator};
+use crate::util::clap::parsers::{e8s_parser, icpts_parser, memo_parser};
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -25,24 +25,24 @@ pub struct TransferOpts {
     /// ICPs to transfer to the destination AccountIdentifier
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(long, value_parser(icpts_amount_validator))]
-    amount: Option<String>,
+    #[clap(long, value_parser(icpts_parser))]
+    amount: Option<ICPTs>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[clap(long, value_parser(e8s_validator), conflicts_with("amount"))]
-    icp: Option<String>,
+    #[clap(long, value_parser(e8s_parser), conflicts_with("amount"))]
+    icp: Option<u64>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[clap(long, value_parser(e8s_validator), conflicts_with("amount"))]
-    e8s: Option<String>,
+    #[clap(long, value_parser(e8s_parser), conflicts_with("amount"))]
+    e8s: Option<u64>,
 
     /// Specify a numeric memo for this transaction.
-    #[clap(long, value_parser(memo_validator))]
-    memo: String,
+    #[clap(long, value_parser(memo_parser))]
+    memo: u64,
 
     /// Transaction fee, default is 10000 e8s.
-    #[clap(long, value_parser(icpts_amount_validator))]
-    fee: Option<String>,
+    #[clap(long, value_parser(icpts_parser))]
+    fee: Option<ICPTs>,
 
     #[clap(long)]
     /// Canister ID of the ledger canister.
@@ -54,17 +54,11 @@ pub struct TransferOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
-    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
+    let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
 
-    let fee = opts.fee.clone().map_or(TRANSACTION_FEE, |v| {
-        ICPTs::from_str(&v).expect("bug: amount_validator did not validate the fee")
-    });
+    let fee = opts.fee.unwrap_or(TRANSACTION_FEE);
 
-    let memo = Memo(
-        opts.memo
-            .parse::<u64>()
-            .expect("bug: memo_validator did not validate the memo"),
-    );
+    let memo = Memo(opts.memo);
 
     let to = AccountIdentifier::from_str(&opts.to)
         .map_err(|e| anyhow!(e))

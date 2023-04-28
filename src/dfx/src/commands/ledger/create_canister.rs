@@ -6,12 +6,11 @@ use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::{e8s_validator, icpts_amount_validator};
+use crate::util::clap::parsers::{e8s_parser, icpts_parser};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
-use std::str::FromStr;
 
 pub const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;
 
@@ -28,24 +27,24 @@ pub struct CreateCanisterOpts {
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(long, value_parser(icpts_amount_validator))]
-    amount: Option<String>,
+    #[clap(long, value_parser(icpts_parser))]
+    amount: Option<ICPTs>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[clap(long, value_parser(e8s_validator), conflicts_with("amount"))]
-    icp: Option<String>,
+    #[clap(long, value_parser(e8s_parser), conflicts_with("amount"))]
+    icp: Option<u64>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[clap(long, value_parser(e8s_validator), conflicts_with("amount"))]
-    e8s: Option<String>,
+    #[clap(long, value_parser(e8s_parser), conflicts_with("amount"))]
+    e8s: Option<u64>,
 
     /// Transaction fee, default is 10000 e8s.
-    #[clap(long, value_parser(icpts_amount_validator))]
-    fee: Option<String>,
+    #[clap(long, value_parser(icpts_parser))]
+    fee: Option<ICPTs>,
 
     /// Max fee, default is 10000 e8s.
-    #[clap(long, value_parser(icpts_amount_validator))]
-    max_fee: Option<String>,
+    #[clap(long, value_parser(icpts_parser))]
+    max_fee: Option<ICPTs>,
 
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction-deduplication, default is system-time. // https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
     #[clap(long)]
@@ -59,16 +58,9 @@ pub struct CreateCanisterOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult {
-    let amount = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
+    let amount = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
 
-    let fee = opts
-        .fee
-        .as_ref()
-        .map_or(Ok(TRANSACTION_FEE), |v| {
-            ICPTs::from_str(v).map_err(|err| anyhow!(err))
-        })
-        .context("Failed to determine fee.")?;
-
+    let fee = opts.fee.unwrap_or(TRANSACTION_FEE);
     let memo = Memo(MEMO_CREATE_CANISTER);
 
     let controller = Principal::from_text(&opts.controller).with_context(|| {

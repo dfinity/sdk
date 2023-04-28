@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::clap::validators::is_hsm_key_id;
+use crate::util::clap::parsers::hsm_key_id_parser;
 use dfx_core::error::identity::IdentityError::SwitchBackToIdentityFailed;
 use dfx_core::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
@@ -31,7 +31,7 @@ pub struct NewIdentityOpts {
     hsm_pkcs11_lib_path: Option<String>,
 
     /// A sequence of pairs of hex digits
-    #[clap(long, requires("hsm-pkcs11-lib-path"), value_parser(is_hsm_key_id))]
+    #[clap(long, requires("hsm-pkcs11-lib-path"), value_parser(hsm_key_id_parser))]
     hsm_key_id: Option<String>,
 
     /// DEPRECATED: Please use --storage-mode=plaintext instead

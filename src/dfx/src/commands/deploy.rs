@@ -7,7 +7,7 @@ use crate::lib::operations::canister::DeployMode::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
-use crate::util::clap::validators::cycle_amount_validator;
+use crate::util::clap::parsers::cycle_amount_parser;
 use crate::NetworkOpt;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
@@ -61,8 +61,8 @@ pub struct DeployOpts {
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[clap(long, value_parser(cycle_amount_validator))]
-    with_cycles: Option<String>,
+    #[clap(long, value_parser(cycle_amount_parser))]
+    with_cycles: Option<u128>,
 
     /// Attempts to create the canister with this Canister ID.
     ///
@@ -121,7 +121,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .output_env_file
         .or_else(|| config.get_config().output_env_file.clone());
 
-    let with_cycles = opts.with_cycles.as_deref();
+    let with_cycles = opts.with_cycles;
 
     let deploy_mode = match (mode, canister_name) {
         (Some(InstallMode::Reinstall), Some(canister_name)) => {

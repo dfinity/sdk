@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
+use crate::util::clap::parsers::{cycle_amount_parser, file_or_stdin_parser};
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
 use dfx_core::identity::CallSender;
 
@@ -52,11 +52,11 @@ pub struct CanisterCallOpts {
     /// Specifies the file from which to read the argument to pass to the method.
     #[clap(
         long,
-        value_parser(file_or_stdin_validator),
+        value_parser(file_or_stdin_parser),
         conflicts_with("random"),
         conflicts_with("argument")
     )]
-    argument_file: Option<String>,
+    argument_file: Option<PathBuf>,
 
     /// Specifies the config for generating random argument.
     #[clap(long, conflicts_with("argument"), conflicts_with("argument-file"))]
@@ -74,8 +74,8 @@ pub struct CanisterCallOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
     /// Requires --wallet as a flag to `dfx canister`.
-    #[clap(long, value_parser(cycle_amount_validator))]
-    with_cycles: Option<String>,
+    #[clap(long, value_parser(cycle_amount_parser))]
+    with_cycles: Option<u128>,
 
     /// Provide the .did file with which to decode the response.  Overrides value from dfx.json
     /// for project canisters.
@@ -272,10 +272,7 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     // amount has been validated by cycle_amount_validator
-    let cycles = opts
-        .with_cycles
-        .as_deref()
-        .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
+    let cycles = opts.with_cycles.unwrap_or(0);
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
         return Err(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\

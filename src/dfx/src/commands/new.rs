@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
-use crate::util::clap::validators::project_name_validator;
+use crate::util::clap::parsers::project_name_parser;
 use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
 
 use anyhow::{anyhow, bail, Context};
@@ -43,7 +43,7 @@ lazy_static! {
 #[derive(Parser)]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
-    #[clap(value_parser(project_name_validator))]
+    #[clap(value_parser(project_name_parser))]
     project_name: String,
 
     /// Choose the type of canister in the starter project. Default to be motoko.
@@ -517,28 +517,28 @@ mod tests {
 
     #[test]
     fn project_name_is_valid() {
-        assert!(project_name_validator("a").is_ok());
-        assert!(project_name_validator("a_").is_ok());
-        assert!(project_name_validator("a_1").is_ok());
-        assert!(project_name_validator("A").is_ok());
-        assert!(project_name_validator("A1").is_ok());
-        assert!(project_name_validator("a_good_name_").is_ok());
-        assert!(project_name_validator("a_good_name").is_ok());
+        assert!(project_name_parser("a").is_ok());
+        assert!(project_name_parser("a_").is_ok());
+        assert!(project_name_parser("a_1").is_ok());
+        assert!(project_name_parser("A").is_ok());
+        assert!(project_name_parser("A1").is_ok());
+        assert!(project_name_parser("a_good_name_").is_ok());
+        assert!(project_name_parser("a_good_name").is_ok());
     }
 
     #[test]
     fn project_name_is_invalid() {
-        assert!(project_name_validator("_a_good_name_").is_err());
-        assert!(project_name_validator("__also_good").is_err());
-        assert!(project_name_validator("_1").is_err());
-        assert!(project_name_validator("_a").is_err());
-        assert!(project_name_validator("1").is_err());
-        assert!(project_name_validator("1_").is_err());
-        assert!(project_name_validator("-").is_err());
-        assert!(project_name_validator("_").is_err());
-        assert!(project_name_validator("a-b-c").is_err());
-        assert!(project_name_validator("🕹").is_err());
-        assert!(project_name_validator("不好").is_err());
-        assert!(project_name_validator("a:b").is_err());
+        assert!(project_name_parser("_a_good_name_").is_err());
+        assert!(project_name_parser("__also_good").is_err());
+        assert!(project_name_parser("_1").is_err());
+        assert!(project_name_parser("_a").is_err());
+        assert!(project_name_parser("1").is_err());
+        assert!(project_name_parser("1_").is_err());
+        assert!(project_name_parser("-").is_err());
+        assert!(project_name_parser("_").is_err());
+        assert!(project_name_parser("a-b-c").is_err());
+        assert!(project_name_parser("🕹").is_err());
+        assert!(project_name_parser("不好").is_err());
+        assert!(project_name_parser("a:b").is_err());
     }
 }

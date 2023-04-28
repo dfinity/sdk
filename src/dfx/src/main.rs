@@ -219,3 +219,15 @@ fn main() {
         std::process::exit(255);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    use crate::CliOpts;
+
+    #[test]
+    fn validate_cli() {
+        CliOpts::command().debug_assert();
+    }
+}
