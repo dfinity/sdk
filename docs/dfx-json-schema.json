@@ -222,6 +222,16 @@
                 "type": "string"
               }
             },
+            "build": {
+              "title": "Build Commands",
+              "description": "Commands that are executed in order to produce this canister's assets. Expected to produce assets in one of the paths specified by the 'source' field. Optional if there is no build necessary or the assets can be built using the default `npm run build` command.",
+              "default": [],
+              "allOf": [
+                {
+                  "$ref": "#/definitions/SerdeVec_for_String"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [

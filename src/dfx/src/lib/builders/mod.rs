@@ -1,14 +1,14 @@
 use crate::config::dfx_version_str;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util::check_candid_file;
 use dfx_core::config::model::dfinity::{Config, Profile, WasmOptLevel};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
 use handlebars::Handlebars;
@@ -19,6 +19,7 @@ use std::fmt::Write;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 
 mod assets;
@@ -313,6 +314,36 @@ fn ensure_trailing_newline(s: String) -> String {
         let mut s = s;
         s.push('\n');
         s
+    }
+}
+
+pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
+    let (command_name, arguments) = args.split_first().unwrap();
+    let canonicalized = cwd
+        .join(command_name)
+        .canonicalize()
+        .or_else(|_| which::which(command_name))
+        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
+    let mut cmd = Command::new(&canonicalized);
+
+    cmd.args(arguments)
+        .current_dir(cwd)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    for (key, value) in vars {
+        cmd.env(key.as_ref(), value);
+    }
+
+    let output = cmd
+        .output()
+        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(DfxError::new(BuildError::CustomToolError(
+            output.status.code(),
+        )))
     }
 }
 

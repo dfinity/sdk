@@ -2,6 +2,21 @@
 
 # UNRELEASED
 
+## feat: add optional custom build command for asset canisters
+
+The custom build command can be set in `dfx.json` the same way it is set for `custom` type canisters. If the command is not provided, DFX will fallback to the default `npm run build` command.
+
+```json
+{
+  "canisters": {
+    "ui": {
+      "type": "assets",
+      "build": ["<custom build command>"]
+    }
+  }
+}
+```
+
 ## Asset Canister Synchronization
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
