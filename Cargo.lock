@@ -1088,7 +1088,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "actix",
  "aes-gcm",
@@ -2007,6 +2007,7 @@ dependencies = [
  "hex",
  "ic-agent",
  "ic-utils",
+ "itertools 0.10.5",
  "json5",
  "mime",
  "mime_guess",

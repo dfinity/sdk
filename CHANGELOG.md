@@ -14,6 +14,17 @@ This feature was named `dfx pull` before. To make a complete, intuitive user exp
 
 All generated files in `deps/` are encouraged to be version controlled.
 
+## Asset Canister Synchronization
+
+Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
+- The count for each `BatchOperationKind` in `CommitBatchArgs`
+- The API version of both the `ic-asset` and the canister
+- (Only for `-vv`) The value of `CommitBatchArgs`
+
+In order to allow larger changes without exceeding the per-message instruction limit, the sync process now:
+- sets properties of assets already in the canister separately from the rest of the batch.
+- splits up the rest of the batch into groups of up to 500 operations.
+
 # 0.14.0
 
 ## DFX
