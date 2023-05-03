@@ -35,39 +35,39 @@ pub struct CanisterSignOpts {
     method_name: String,
 
     /// Sends a query request to a canister.
-    #[clap(long)]
+    #[arg(long)]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("query"))]
+    #[arg(long, conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
 
     /// Specifies the file from which to read the argument to pass to the method.
-    #[clap(
+    #[arg(
         long,
-        value_parser(file_or_stdin_parser),
+        value_parser = file_or_stdin_parser,
         conflicts_with("random"),
         conflicts_with("argument")
     )]
     argument_file: Option<PathBuf>,
 
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"))]
+    #[arg(long, conflicts_with("argument"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), value_parser(["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     r#type: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
-    #[clap(long, default_value("5m"))]
+    #[arg(long, default_value("5m"))]
     expire_after: String,
 
     /// Specifies the output file name.
-    #[clap(long, default_value("message.json"))]
+    #[arg(long, default_value("message.json"))]
     file: PathBuf,
 }
 

@@ -16,11 +16,11 @@ enum ForFile {
 /// Prints the schema for dfx.json.
 #[derive(Parser)]
 pub struct SchemaOpts {
-    #[clap(long, value_enum)]
+    #[arg(long, value_enum)]
     r#for: Option<ForFile>,
 
     /// Outputs the schema to the specified file.
-    #[clap(long)]
+    #[arg(long)]
     outfile: Option<PathBuf>,
 }
 

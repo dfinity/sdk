@@ -22,9 +22,9 @@ const DEFAULT_CYCLES_TO_FABRICATE: u128 = 10_000_000_000_000_u128;
 #[derive(Parser)]
 pub struct FabricateCyclesOpts {
     /// Specifies the amount of cycles to fabricate.
-    #[clap(
+    #[arg(
         long,
-        value_parser(cycle_amount_parser),
+        value_parser = cycle_amount_parser,
         conflicts_with("t"),
         conflicts_with("amount"),
         conflicts_with("icp"),
@@ -35,7 +35,7 @@ pub struct FabricateCyclesOpts {
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(
+    #[arg(
         long,
         conflicts_with("cycles"),
         conflicts_with("icp"),
@@ -45,7 +45,7 @@ pub struct FabricateCyclesOpts {
     amount: Option<ICPTs>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[clap(
+    #[arg(
         long,
         value_parser(e8s_parser),
         conflicts_with("amount"),
@@ -55,7 +55,7 @@ pub struct FabricateCyclesOpts {
     icp: Option<u64>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[clap(
+    #[arg(
         long,
         value_parser(e8s_parser),
         conflicts_with("amount"),
@@ -65,20 +65,20 @@ pub struct FabricateCyclesOpts {
     e8s: Option<u64>,
 
     /// Specifies the amount of trillion cycles to fabricate.
-    #[clap(
+    #[arg(
         long,
-        value_parser(trillion_cycle_amount_parser),
+        value_parser = trillion_cycle_amount_parser,
         conflicts_with("amount")
     )]
     t: Option<u128>,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.
     /// You must specify either a canister name/id or the --all option.
-    #[clap(long, required_unless_present("all"))]
+    #[arg(long, required_unless_present("all"))]
     canister: Option<String>,
 
     /// Deposit cycles to all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 

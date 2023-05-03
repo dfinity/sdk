@@ -18,7 +18,7 @@ pub struct NotifyCreateOpts {
     /// Specify the optional subnet type to create the canister on. If no
     /// subnet type is provided, the canister will be created on a random
     /// default application subnet.
-    #[clap(long)]
+    #[arg(long)]
     subnet_type: Option<String>,
 }
 

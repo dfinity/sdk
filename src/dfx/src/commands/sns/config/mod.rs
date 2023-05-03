@@ -11,10 +11,10 @@ pub struct ConfigOpts {}
 
 /// SNS config command line arguments.
 #[derive(Parser)]
-#[clap(name("config"))]
+#[command(name = "config")]
 pub struct SnsConfigOpts {
     /// `dfx sns config` subcommand arguments.
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

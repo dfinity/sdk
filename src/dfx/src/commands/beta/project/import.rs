@@ -16,11 +16,11 @@ pub struct ImportOpts {
     canister_name: Option<String>,
 
     /// Imports all canisters found in the other project.
-    #[clap(long, required_unless_present("canister_name"))]
+    #[arg(long, required_unless_present("canister_name"))]
     all: bool,
 
     /// An optional prefix for canisters names to add to the project
-    #[clap(long)]
+    #[arg(long)]
     prefix: Option<String>,
 
     /// Networks to import canisters ids for.
@@ -29,7 +29,7 @@ pub struct ImportOpts {
     /// Examples:
     ///   --network-mapping ic
     ///   --network-mapping ic=mainnet
-    #[clap(long, default_value = "ic", action = ArgAction::Append)]
+    #[arg(long, default_value = "ic", action = ArgAction::Append)]
     network_mapping: Vec<String>,
 }
 

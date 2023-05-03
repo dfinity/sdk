@@ -25,7 +25,7 @@ pub struct ImportOpts {
     /// Examples:
     ///   --network-mapping ic
     ///   --network-mapping ic=mainnet
-    #[clap(long, default_value = "ic=mainnet", action = ArgAction::Append)]
+    #[arg(long, default_value = "ic=mainnet", action = ArgAction::Append)]
     network_mapping: Vec<String>,
 }
 

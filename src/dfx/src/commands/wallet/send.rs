@@ -16,7 +16,7 @@ pub struct SendOpts {
 
     /// Specifies the amount of cycles to send.
     /// Deducted from the wallet.
-    #[clap(value_parser(cycle_amount_parser))]
+    #[arg(value_parser = cycle_amount_parser)]
     amount: u128,
 }
 

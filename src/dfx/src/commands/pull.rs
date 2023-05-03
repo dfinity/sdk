@@ -27,7 +27,7 @@ pub struct PullOpts {
     /// If you don’t specify a canister name, all pull type canisters defined in the dfx.json file are pulled.
     canister_name: Option<String>,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 }
 

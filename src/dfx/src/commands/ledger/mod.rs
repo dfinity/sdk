@@ -37,12 +37,12 @@ mod transfer;
 
 /// Ledger commands.
 #[derive(Parser)]
-#[clap(name("ledger"))]
+#[command(name = "ledger")]
 pub struct LedgerOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

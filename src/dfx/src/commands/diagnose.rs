@@ -13,7 +13,7 @@ use crate::{
 /// These commands can be batch-run automatically via `dfx fix`.
 #[derive(Parser)]
 pub struct DiagnoseOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 }
 

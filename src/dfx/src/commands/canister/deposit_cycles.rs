@@ -16,7 +16,7 @@ use slog::info;
 pub struct DepositCyclesOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
-    #[clap(value_parser(cycle_amount_parser))]
+    #[arg(value_parser = cycle_amount_parser)]
     cycles: u128,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.
@@ -24,7 +24,7 @@ pub struct DepositCyclesOpts {
     canister: Option<String>,
 
     /// Deposit cycles to all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 

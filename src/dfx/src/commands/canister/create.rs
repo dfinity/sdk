@@ -28,28 +28,28 @@ pub struct CanisterCreateOpts {
     canister_name: Option<String>,
 
     /// Creates all canisters configured in dfx.json.
-    #[clap(long, required_unless_present("canister_name"))]
+    #[arg(long, required_unless_present("canister_name"))]
     all: bool,
 
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[clap(long, value_parser(cycle_amount_parser))]
+    #[arg(long, value_parser = cycle_amount_parser)]
     with_cycles: Option<u128>,
 
     /// Attempts to create the canister with this Canister ID.
     ///
     /// This option only works with non-mainnet replica.
     /// This option implies the --no-wallet flag.
-    #[clap(long, value_name = "PRINCIPAL", conflicts_with = "all")]
+    #[arg(long, value_name = "PRINCIPAL", conflicts_with = "all")]
     specified_id: Option<CanisterId>,
 
     /// Specifies the identity name or the principal of the new controller.
-    #[clap(long, action = ArgAction::Append)]
+    #[arg(long, action = ArgAction::Append)]
     controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
-    #[clap(long, short('c'), value_parser(compute_allocation_parser))]
+    #[arg(long, short('c'), value_parser = compute_allocation_parser)]
     compute_allocation: Option<u64>,
 
     /// Specifies how much memory the canister is allowed to use in total.
@@ -57,15 +57,15 @@ pub struct CanisterCreateOpts {
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
-    #[clap(long, value_parser(memory_allocation_parser))]
+    #[arg(long, value_parser = memory_allocation_parser)]
     memory_allocation: Option<Byte>,
 
-    #[clap(long, value_parser(freezing_threshold_parser), hide(true))]
+    #[arg(long, value_parser = freezing_threshold_parser, hide = true)]
     freezing_threshold: Option<u64>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
-    #[clap(long)]
+    #[arg(long)]
     no_wallet: bool,
 }
 

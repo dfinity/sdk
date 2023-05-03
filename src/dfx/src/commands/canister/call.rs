@@ -34,52 +34,52 @@ pub struct CanisterCallOpts {
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
     /// Instead return a response ID.
-    #[clap(long)]
+    #[arg(long)]
     r#async: bool,
 
     /// Sends a query request to a canister instead of an update request.
-    #[clap(long, conflicts_with("async"))]
+    #[arg(long, conflicts_with("async"))]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("async"), conflicts_with("query"))]
+    #[arg(long, conflicts_with("async"), conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
-    #[clap(conflicts_with("random"), conflicts_with("argument_file"))]
+    #[arg(conflicts_with("random"), conflicts_with("argument_file"))]
     argument: Option<String>,
 
     /// Specifies the file from which to read the argument to pass to the method.
-    #[clap(
+    #[arg(
         long,
-        value_parser(file_or_stdin_parser),
+        value_parser = file_or_stdin_parser,
         conflicts_with("random"),
         conflicts_with("argument")
     )]
     argument_file: Option<PathBuf>,
 
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"), conflicts_with("argument_file"))]
+    #[arg(long, conflicts_with("argument"), conflicts_with("argument_file"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), value_parser(["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     r#type: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
-    #[clap(long, conflicts_with("async"),
-        value_parser(["idl", "raw", "pp"]))]
+    #[arg(long, conflicts_with("async"),
+        value_parser = ["idl", "raw", "pp"])]
     output: Option<String>,
 
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
     /// Requires --wallet as a flag to `dfx canister`.
-    #[clap(long, value_parser(cycle_amount_parser))]
+    #[arg(long, value_parser = cycle_amount_parser)]
     with_cycles: Option<u128>,
 
     /// Provide the .did file with which to decode the response.  Overrides value from dfx.json
     /// for project canisters.
-    #[clap(long)]
+    #[arg(long)]
     candid: Option<PathBuf>,
 }
 

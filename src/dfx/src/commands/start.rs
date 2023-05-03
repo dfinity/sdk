@@ -41,39 +41,39 @@ use tokio::runtime::Runtime;
 #[derive(Parser)]
 pub struct StartOpts {
     /// Specifies the host name and port number to bind the frontend to.
-    #[clap(long)]
+    #[arg(long)]
     host: Option<String>,
 
     /// Exits the dfx leaving the replica running. Will wait until the replica replies before exiting.
-    #[clap(long)]
+    #[arg(long)]
     background: bool,
 
     /// Cleans the state of the current project.
-    #[clap(long)]
+    #[arg(long)]
     clean: bool,
 
     /// Runs a dedicated emulator instead of the replica
-    #[clap(long)]
+    #[arg(long)]
     emulator: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"), action = ArgAction::Append)]
+    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
 
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
-    #[clap(long, conflicts_with("emulator"), default_value = "600")]
+    #[arg(long, conflicts_with("emulator"), default_value = "600")]
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 

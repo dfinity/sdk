@@ -10,9 +10,9 @@ mod uninstall;
 
 /// Manage the dfx toolchains
 #[derive(Parser)]
-#[clap(name("toolchain"))]
+#[command(name = "toolchain")]
 pub struct ToolchainOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
