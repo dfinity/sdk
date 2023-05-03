@@ -2163,6 +2163,7 @@ checksum = "978b91fc78de9d2eb0144db717839cde3b35470199ea51aca362cb6310e93dfd"
 name = "icx-asset"
 version = "0.20.0"
 dependencies = [
+ "anstyle",
  "anyhow",
  "candid 0.8.4",
  "clap",

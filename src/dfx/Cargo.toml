@@ -29,7 +29,7 @@ walkdir = "2.3.2"
 [dependencies]
 actix = "0.13.0"
 aes-gcm.workspace = true
-anstyle = "1"
+anstyle.workspace = true
 anyhow.workspace = true
 argon2.workspace = true
 atty = "0.2.13"
