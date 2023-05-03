@@ -43,14 +43,14 @@ pub(crate) struct ProjectAsset {
     pub(crate) encodings: HashMap<String, ProjectAssetEncoding>,
 }
 
-pub(crate) struct ChunkUploader<'a> {
-    canister: &'a Canister<'a>,
-    batch_id: &'a Nat,
+pub(crate) struct ChunkUploader<'agent> {
+    canister: Canister<'agent>,
+    batch_id: Nat,
     chunks: Arc<AtomicUsize>,
     bytes: Arc<AtomicUsize>,
 }
-impl<'a> ChunkUploader<'a> {
-    pub(crate) fn new(canister: &'a Canister, batch_id: &'a Nat) -> Self {
+impl<'agent> ChunkUploader<'agent> {
+    pub(crate) fn new(canister: Canister<'agent>, batch_id: Nat) -> Self {
         Self {
             canister,
             batch_id,
@@ -66,7 +66,7 @@ impl<'a> ChunkUploader<'a> {
     ) -> anyhow::Result<Nat> {
         self.chunks.fetch_add(1, Ordering::SeqCst);
         self.bytes.fetch_add(contents.len(), Ordering::SeqCst);
-        create_chunk(self.canister, self.batch_id, contents, semaphores).await
+        create_chunk(&self.canister, &self.batch_id, contents, semaphores).await
     }
 
     pub(crate) fn bytes(&self) -> usize {

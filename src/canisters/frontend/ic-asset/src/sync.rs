@@ -53,8 +53,7 @@ pub async fn upload_content_and_assemble_sync_operations(
         "Staging contents of new and changed assets in batch {}:", batch_id
     );
 
-    let chunk_uploader = ChunkUploader::new(canister, &batch_id);
-    let batch_id = batch_id.clone();
+    let chunk_uploader = ChunkUploader::new(canister.clone(), batch_id.clone());
 
     let project_assets = make_project_assets(
         Some(&chunk_uploader),
