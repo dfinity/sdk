@@ -90,8 +90,8 @@ assert_nns_canister_id_matches() {
     # assert_nns_canister_id_matches nns-ic-ckbtc-minter
     assert_nns_canister_id_matches nns-sns-wasm
     # TODO: No source provides these canister IDs - yet.
-    #assert_nns_canister_id_matches internet_identity
-    #assert_nns_canister_id_matches nns-dapp
+    assert_nns_canister_id_matches internet_identity
+    assert_nns_canister_id_matches nns-dapp
 }
 
 @test "dfx nns install runs" {
