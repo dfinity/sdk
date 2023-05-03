@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+## dfx
+
+- Upgraded to clap v4; some command-line colors may be different.
+
 ## Asset Canister Synchronization
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
