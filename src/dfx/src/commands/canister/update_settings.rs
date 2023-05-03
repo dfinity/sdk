@@ -44,7 +44,7 @@ pub struct UpdateSettingsOpts {
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
-    #[arg(long, short('c'), value_parser = compute_allocation_parser)]
+    #[arg(long, short, value_parser = compute_allocation_parser)]
     compute_allocation: Option<u64>,
 
     /// Specifies how much memory the canister is allowed to use in total.

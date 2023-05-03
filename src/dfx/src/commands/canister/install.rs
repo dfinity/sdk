@@ -32,7 +32,7 @@ pub struct CanisterInstallOpts {
 
     /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
     /// If auto is selected, either install or upgrade will be used depending on if the canister has already been installed.
-    #[arg(long, short('m'), default_value("install"),
+    #[arg(long, short, default_value("install"),
         value_parser = ["install", "reinstall", "upgrade", "auto"])]
     mode: String,
 

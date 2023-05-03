@@ -47,8 +47,7 @@ pub struct DeployOpts {
     /// In other words, this erases all data in the canister.
     /// By default, upgrade will be chosen automatically if the module already exists,
     /// or install if it does not.
-    #[arg(long, short('m'),
-    value_parser = ["reinstall"])]
+    #[arg(long, short, value_parser = ["reinstall"])]
     mode: Option<String>,
 
     /// Upgrade the canister even if the .wasm did not change.

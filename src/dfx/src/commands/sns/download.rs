@@ -12,7 +12,7 @@ use tokio::runtime::Runtime;
 #[derive(Parser)]
 pub struct SnsDownloadOpts {
     /// IC commit of SNS canister WASMs to download
-    #[arg(long, env("DFX_IC_COMMIT"))]
+    #[arg(long, env = "DFX_IC_COMMIT")]
     ic_commit: Option<String>,
     /// Path to store downloaded SNS canister WASMs
     #[arg(long, default_value = ".")]

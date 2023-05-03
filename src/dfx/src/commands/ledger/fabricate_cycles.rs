@@ -47,7 +47,7 @@ pub struct FabricateCyclesOpts {
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
     #[arg(
         long,
-        value_parser(e8s_parser),
+        value_parser = e8s_parser,
         conflicts_with("amount"),
         conflicts_with("cycles"),
         conflicts_with("t")
@@ -57,7 +57,7 @@ pub struct FabricateCyclesOpts {
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
     #[arg(
         long,
-        value_parser(e8s_parser),
+        value_parser = e8s_parser,
         conflicts_with("amount"),
         conflicts_with("cycles"),
         conflicts_with("t")

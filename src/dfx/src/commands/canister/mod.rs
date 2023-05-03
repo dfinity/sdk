@@ -33,7 +33,7 @@ pub struct CanisterOpts {
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
-    #[arg(long, global(true))]
+    #[arg(long, global = true)]
     wallet: Option<String>,
 
     #[command(subcommand)]

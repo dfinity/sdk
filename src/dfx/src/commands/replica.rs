@@ -50,7 +50,7 @@ pub struct ReplicaOpts {
     enable_canister_http: bool,
 
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
-    #[arg(long, conflicts_with("emulator"), default_value = "600")]
+    #[arg(long, conflicts_with("emulator"), default_value_t = 600)]
     artificial_delay: u32,
 
     /// Start even if the network config was modified.

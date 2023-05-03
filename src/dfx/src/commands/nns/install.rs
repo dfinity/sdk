@@ -24,7 +24,7 @@ use clap::Parser;
 #[command(about)]
 pub struct InstallOpts {
     /// Initialize ledger canister with these test accounts
-    #[arg(long, num_args(..))]
+    #[arg(long, num_args = ..)]
     ledger_accounts: Vec<String>,
 }
 

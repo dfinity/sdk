@@ -63,11 +63,11 @@ pub struct CanisterSignOpts {
     r#type: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
-    #[arg(long, default_value("5m"))]
+    #[arg(long, default_value = "5m")]
     expire_after: String,
 
     /// Specifies the output file name.
-    #[arg(long, default_value("message.json"))]
+    #[arg(long, default_value = "message.json")]
     file: PathBuf,
 }
 

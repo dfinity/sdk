@@ -42,7 +42,7 @@ pub struct NewIdentityOpts {
     /// Otherwise, a password-protected file is used as fallback.
     /// Mode 'plaintext' is not safe, but convenient for use in CI.
     #[arg(long, conflicts_with("disable_encryption"),
-    value_parser = ["keyring", "password-protected", "plaintext"])]
+        value_parser = ["keyring", "password-protected", "plaintext"])]
     storage_mode: Option<String>,
 
     /// If the identity already exists, remove and re-create it.

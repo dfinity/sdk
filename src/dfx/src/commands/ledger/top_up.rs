@@ -31,11 +31,11 @@ pub struct TopUpOpts {
     amount: Option<ICPTs>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[arg(long, value_parser(e8s_parser), conflicts_with("amount"))]
+    #[arg(long, value_parser = e8s_parser, conflicts_with("amount"))]
     icp: Option<u64>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[arg(long, value_parser(e8s_parser), conflicts_with("amount"))]
+    #[arg(long, value_parser = e8s_parser, conflicts_with("amount"))]
     e8s: Option<u64>,
 
     /// Transaction fee, default is 10000 e8s.
