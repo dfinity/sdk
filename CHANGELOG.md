@@ -9,6 +9,7 @@
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
 - The count for each `BatchOperationKind` in `CommitBatchArgs`
+- The number of chunks uploaded and the total bytes
 - The API version of both the `ic-asset` and the canister
 - (Only for `-vv`) The value of `CommitBatchArgs`
 
