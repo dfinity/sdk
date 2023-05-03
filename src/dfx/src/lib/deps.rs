@@ -33,15 +33,15 @@ pub struct PulledCanister {
     // or get from canister_status
     pub wasm_hash: String,
     // dfx:init
-    pub dfx_init: Option<String>,
+    pub init: String,
     // candid:args
     pub candid_args: Option<String>,
 }
 
 impl PulledJson {
-    pub fn get_dfx_init(&self, canister_id: &Principal) -> DfxResult<Option<&str>> {
+    pub fn get_init(&self, canister_id: &Principal) -> DfxResult<&str> {
         match self.canisters.get(canister_id) {
-            Some(o) => Ok(o.dfx_init.as_deref()),
+            Some(o) => Ok(&o.init),
             None => bail!("Failed to find {canister_id} in pulled.json"),
         }
     }

@@ -159,6 +159,23 @@ impl CanisterMetadataSection {
     }
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct PullReady {
+    /// # wasm_url
+    /// The Url to download canister wasm.
+    pub wasm_url: String,
+    /// # wasm_hash
+    /// SHA256 hash of the wasm module located at wasm_url.
+    pub wasm_hash: Option<String>,
+    /// # deps
+    /// Canister IDs (Principal) of direct dependencies.
+    #[schemars(with = "Vec::<String>")]
+    pub deps: Vec<Principal>,
+    /// # init
+    /// A message to guide consumers how to initialize the canister.
+    pub init: String,
+}
+
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
 pub const DEFAULT_PROJECT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
@@ -235,7 +252,7 @@ pub struct ConfigCanistersCanister {
     /// Whether or not to make this canister ready for `dfx deps pull` by other project.
     /// If true, several required metadata fields must be also set with the correct format.
     #[serde(default)]
-    pub pull_ready: bool,
+    pub pull_ready: Option<PullReady>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -282,7 +299,7 @@ pub enum CanisterTypeProperties {
         /// # Canister ID
         /// Principal of the canister on the ic network.
         #[schemars(with = "String")]
-        id: candid::Principal,
+        id: Principal,
     },
 }
 

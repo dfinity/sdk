@@ -3,17 +3,11 @@
         "a": {
             "type": "motoko",
             "main": "src/a.mo",
-            "pull_ready": true,
-            "metadata": [
-                {
-                    "name": "dfx:wasm_url",
-                    "content": "http://example.com/a.wasm"
-                },
-                {
-                    "name": "dfx:init",
-                    "content": "Nat"
-                }
-            ]
+            "pull_ready": {
+                "wasm_url": "http://example.com/a.wasm",
+                "deps": [],
+                "init": "A natual number, e.g. 10."
+            }
         },
         "b": {
             "type": "motoko",
@@ -21,17 +15,13 @@
             "dependencies": [
                 "a"
             ],
-            "pull_ready": true,
-            "metadata": [
-                {
-                    "name": "dfx:wasm_url",
-                    "content": "http://example.com/b.wasm"
-                },
-                {
-                    "name": "dfx:deps",
-                    "content": "yofga-2qaaa-aaaaa-aabsq-cai;"
-                }
-            ]
+            "pull_ready": {
+                "wasm_url": "http://example.com/b.wasm",
+                "deps": [
+                    "yofga-2qaaa-aaaaa-aabsq-cai"
+                ],
+                "init": "No init arguments required"
+            }
         },
         "c": {
             "type": "motoko",
@@ -39,21 +29,13 @@
             "dependencies": [
                 "a"
             ],
-            "pull_ready": true,
-            "metadata": [
-                {
-                    "name": "dfx:wasm_url",
-                    "content": "http://example.com/c.wasm"
-                },
-                {
-                    "name": "dfx:deps",
-                    "content": "yofga-2qaaa-aaaaa-aabsq-cai;"
-                },
-                {
-                    "name": "dfx:init",
-                    "content": "Nat"
-                }
-            ]
+            "pull_ready": {
+                "wasm_url": "http://example.com/c.wasm",
+                "deps": [
+                    "yofga-2qaaa-aaaaa-aabsq-cai"
+                ],
+                "init": "A natual number, e.g. 20."
+            }
         }
     }
 }

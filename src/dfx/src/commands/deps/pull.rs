@@ -6,9 +6,8 @@ use crate::lib::deps::{
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::metadata::names::{
-    CANDID_ARGS, CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_HASH, DFX_WASM_URL,
-};
+use crate::lib::metadata::dfx::DfxMetadata;
+use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::lib::wasm::file::read_wasm_module;
@@ -28,7 +27,7 @@ use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
-use slog::{error, info, trace, warn, Logger};
+use slog::{error, info, trace, Logger};
 
 /// Pull canisters upon which the project depends.
 /// This command connects to the "ic" mainnet by default.
@@ -113,20 +112,8 @@ async fn get_dependencies(
         logger,
         "Resolving dependencies of canister {canister_id}..."
     );
-    match fetch_metadata(agent, canister_id, DFX_DEPS).await? {
-        Some(deps_raw) => {
-            let deps_str = String::from_utf8(deps_raw)?;
-            let deps = parse_dfx_deps(&deps_str)?;
-            Ok(deps)
-        }
-        None => {
-            warn!(
-                logger,
-                "`{DFX_DEPS}` metadata not found in canister {canister_id}."
-            );
-            Ok(vec![])
-        }
-    }
+    let dfx_metadata = fetch_dfx_metadata(agent, canister_id).await?;
+    Ok(dfx_metadata.pull_ready.deps)
 }
 
 async fn download_all_and_generate_pulled_json(
@@ -164,10 +151,11 @@ async fn download_and_generate_pulled_canister(
 
     let mut pulled_canister = PulledCanister::default();
 
-    // try fetch `dfx:wasm_hash`. If not available, get the hash of the on chain canister.
-    let hash_on_chain = match fetch_metadata(agent, &canister_id, DFX_WASM_HASH).await? {
-        Some(wasm_hash_raw) => {
-            let wasm_hash_str = String::from_utf8(wasm_hash_raw)?;
+    let pull_ready = fetch_dfx_metadata(agent, &canister_id).await?.pull_ready;
+
+    // lookup `wasm_hash` in dfx metadata. If not available, get the hash of the on chain canister.
+    let hash_on_chain = match pull_ready.wasm_hash {
+        Some(wasm_hash_str) => {
             trace!(
                 logger,
                 "Canister {canister_id} specified a custom hash: {wasm_hash_str}"
@@ -205,13 +193,8 @@ async fn download_and_generate_pulled_canister(
         }
     }
     if !cache_hit {
-        // fetch `dfx:wasm_url`
-        let wasm_url_raw = fetch_metadata(agent, &canister_id, DFX_WASM_URL)
-            .await?
-            .ok_or_else(|| {
-                anyhow!("`{DFX_WASM_URL}` metadata not found in canister {canister_id}.")
-            })?;
-        let wasm_url_str = String::from_utf8(wasm_url_raw)?;
+        // lookup `wasm_url` in dfx metadata
+        let wasm_url_str = pull_ready.wasm_url;
         let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
 
         // download
@@ -242,32 +225,26 @@ download: {}",
     let candid_args = get_metadata_as_string(&module, CANDID_ARGS, &wasm_path)?;
     pulled_canister.candid_args = Some(candid_args);
 
-    // try extract `dfx:deps`
-    if let Ok(dfx_deps) = get_metadata_as_string(&module, DFX_DEPS, &wasm_path) {
-        let deps = parse_dfx_deps(&dfx_deps)?;
-        pulled_canister.deps = deps;
-    } else {
-        trace!(
-            logger,
-            "{:?} doesn't define {} metadata",
-            &wasm_path,
-            DFX_DEPS
-        );
-    }
-
-    // try extract `dfx:init`
-    if let Ok(dfx_init) = get_metadata_as_string(&module, DFX_INIT, &wasm_path) {
-        pulled_canister.dfx_init = Some(dfx_init)
-    } else {
-        trace!(
-            logger,
-            "{:?} doesn't define {} metadata",
-            &wasm_path,
-            DFX_INIT
-        );
-    }
+    // extract `dfx`
+    let dfx_metadata_str = get_metadata_as_string(&module, DFX, &wasm_path)?;
+    let dfx_metadata: DfxMetadata = serde_json::from_str(&dfx_metadata_str)?;
+    pulled_canister.deps = dfx_metadata.pull_ready.deps;
+    pulled_canister.init = dfx_metadata.pull_ready.init;
 
     Ok(pulled_canister)
+}
+
+async fn fetch_dfx_metadata(agent: &Agent, canister_id: &Principal) -> DfxResult<DfxMetadata> {
+    match fetch_metadata(agent, canister_id, DFX).await? {
+        Some(dfx_metadata_raw) => {
+            let dfx_metadata_str = String::from_utf8(dfx_metadata_raw)?;
+            let dfx_metadata: DfxMetadata = serde_json::from_str(&dfx_metadata_str)?;
+            Ok(dfx_metadata)
+        }
+        None => {
+            bail!("`{DFX}` metadata not found in canister {canister_id}.");
+        }
+    }
 }
 
 #[context("Failed to fetch metadata {metadata} of canister {canister_id}.")]
@@ -327,17 +304,6 @@ pub fn copy_service_candid_to_project(
     ensure_parent_dir_exists(&path_in_project)?;
     dfx_core::fs::copy(&service_candid_path, &path_in_project)?;
     Ok(())
-}
-
-fn parse_dfx_deps(deps_str: &str) -> DfxResult<Vec<Principal>> {
-    let mut deps = vec![];
-    for entry in deps_str.split_terminator(';') {
-        let canister_id = Principal::from_text(entry).with_context(|| {
-            format!("Found invalid entry in `dfx:deps`: \"{entry}\". Expected a Principal.")
-        })?;
-        deps.push(canister_id);
-    }
-    Ok(deps)
 }
 
 fn get_metadata_as_string(

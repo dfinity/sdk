@@ -96,9 +96,9 @@ fn set_init(
         }
         (None, false) => {
             let mut message = format!("Canister {canister_prompt} requires an init argument. The following info might be helpful:");
-            if let Some(dfx_init) = pulled_json.get_dfx_init(canister_id)? {
-                message.push_str(&format!("\ndfx:init => {dfx_init}"));
-            }
+            let init = pulled_json.get_init(canister_id)?;
+            message.push_str(&format!("\ninit => {init}"));
+
             let candid_args = pulled_json.get_candid_args(canister_id)?;
             message.push_str(&format!("\ncandid:args => {candid_args}"));
 

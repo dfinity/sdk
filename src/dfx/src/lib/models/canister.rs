@@ -5,7 +5,8 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::metadata::names::CANDID_SERVICE;
+use crate::lib::metadata::dfx::DfxMetadata;
+use crate::lib::metadata::names::{CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -118,7 +119,22 @@ impl Canister {
             );
         }
 
-        // TODO: check metadata sections for pull_ready canister (SDK-1091)
+        if let Some(pull_ready) = self.info.get_pull_ready() {
+            let mut dfx_metadata = DfxMetadata::default();
+            dfx_metadata.set_pull_ready(pull_ready);
+            let content = serde_json::to_string_pretty(&dfx_metadata)
+                .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
+
+            metadata_sections.insert(
+                DFX.to_string(),
+                CanisterMetadataSection {
+                    name: DFX.to_string(),
+                    visibility: MetadataVisibility::Public,
+                    content: Some(content),
+                    ..Default::default()
+                },
+            );
+        }
 
         if metadata_sections.is_empty() {
             return Ok(());
