@@ -18,7 +18,7 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Parser)]
-#[clap(name("dfx"), version = dfx_version_str())]
+#[clap(name("dfx"), version = dfx_version_str(), styles = util::clap::style())]
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
     #[clap(long, short('v'), action = ArgAction::Count, global(true))]
