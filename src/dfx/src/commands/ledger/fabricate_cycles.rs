@@ -3,9 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
-use crate::util::clap::parsers::{
-    cycle_amount_parser, e8s_parser, icpts_parser, trillion_cycle_amount_parser,
-};
+use crate::util::clap::parsers::{cycle_amount_parser, e8s_parser, trillion_cycle_amount_parser};
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
 use dfx_core::identity::CallSender;
 
@@ -39,7 +37,6 @@ pub struct FabricateCyclesOpts {
     /// i.e. 100.012
     #[clap(
         long,
-        value_parser(icpts_parser),
         conflicts_with("cycles"),
         conflicts_with("icp"),
         conflicts_with("e8s"),

@@ -1,7 +1,5 @@
-use crate::lib::nns_types::icpts::ICPTs;
 use byte_unit::{Byte, ByteUnit};
 use std::path::PathBuf;
-use std::str::FromStr;
 
 pub fn request_id_parser(v: &str) -> Result<String, String> {
     // A valid Request Id starts with `0x` and is a series of 64 hexadecimals.
@@ -23,10 +21,6 @@ pub fn request_id_parser(v: &str) -> Result<String, String> {
 pub fn e8s_parser(e8s: &str) -> Result<u64, String> {
     e8s.parse::<u64>()
         .map_err(|_| "Must specify a non negative whole number.".to_string())
-}
-
-pub fn icpts_parser(icpts: &str) -> Result<ICPTs, String> {
-    ICPTs::from_str(icpts)
 }
 
 pub fn memo_parser(memo: &str) -> Result<u64, String> {

@@ -6,7 +6,7 @@ use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::{e8s_parser, icpts_parser};
+use crate::util::clap::parsers::e8s_parser;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -27,7 +27,7 @@ pub struct TopUpOpts {
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(long, value_parser(icpts_parser))]
+    #[clap(long)]
     amount: Option<ICPTs>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
@@ -39,11 +39,11 @@ pub struct TopUpOpts {
     e8s: Option<u64>,
 
     /// Transaction fee, default is 10000 e8s.
-    #[clap(long, value_parser(icpts_parser))]
+    #[clap(long)]
     fee: Option<ICPTs>,
 
     /// Max fee, default is 10000 e8s.
-    #[clap(long, value_parser(icpts_parser))]
+    #[clap(long)]
     max_fee: Option<ICPTs>,
 
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction-deduplication, default is system-time. // https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-

@@ -5,7 +5,7 @@ use crate::lib::ledger_types::{Memo, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::{e8s_parser, icpts_parser, memo_parser};
+use crate::util::clap::parsers::{e8s_parser, memo_parser};
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -25,7 +25,7 @@ pub struct TransferOpts {
     /// ICPs to transfer to the destination AccountIdentifier
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(long, value_parser(icpts_parser))]
+    #[clap(long)]
     amount: Option<ICPTs>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
@@ -41,7 +41,7 @@ pub struct TransferOpts {
     memo: u64,
 
     /// Transaction fee, default is 10000 e8s.
-    #[clap(long, value_parser(icpts_parser))]
+    #[clap(long)]
     fee: Option<ICPTs>,
 
     #[clap(long)]
