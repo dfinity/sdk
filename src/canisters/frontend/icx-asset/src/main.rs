@@ -16,7 +16,7 @@ use std::path::PathBuf;
 const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
 
 #[derive(Parser)]
-#[clap(
+#[command(
     version = crate_version!(),
     author = crate_authors!(),
     propagate_version = true,
