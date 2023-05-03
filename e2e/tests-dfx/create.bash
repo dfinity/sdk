@@ -49,7 +49,7 @@ teardown() {
 @test "create fails if set both --all and --specified-id" {
     dfx_start
     assert_command_fail dfx canister create --all --specified-id xbgkv-fyaaa-aaaaa-aaava-cai
-    assert_match "The argument '--all' cannot be used with '--specified-id <PRINCIPAL>'"
+    assert_match "error: the argument '--all' cannot be used with '--specified-id <PRINCIPAL>'"
 }
 
 @test "create generates the canister_ids.json" {
