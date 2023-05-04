@@ -26,14 +26,14 @@ pub struct PulledCanister {
     // name of `type: pull` in dfx.json. None if indirect dependency.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    // dfx:deps
-    pub deps: Vec<Principal>,
+
+    pub dependencies: Vec<Principal>,
     // the hash on chain
-    // dfx:wasm_hash if defined
+    // wasm_hash if defined
     // or get from canister_status
     pub wasm_hash: String,
-    // dfx:init
-    pub init: String,
+
+    pub init_guide: String,
     // candid:args
     pub candid_args: Option<String>,
 }
@@ -41,7 +41,7 @@ pub struct PulledCanister {
 impl PulledJson {
     pub fn get_init(&self, canister_id: &Principal) -> DfxResult<&str> {
         match self.canisters.get(canister_id) {
-            Some(o) => Ok(&o.init),
+            Some(o) => Ok(&o.init_guide),
             None => bail!("Failed to find {canister_id} in pulled.json"),
         }
     }

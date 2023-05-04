@@ -25,21 +25,15 @@ setup_onchain() {
 
     cd onchain || exit
 
-    jq '.canisters.a.pull_ready.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/a.wasm"'"' dfx.json | sponge dfx.json
-    jq '.canisters.b.pull_ready.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm"'"' dfx.json | sponge dfx.json
-    jq '.canisters.c.pull_ready.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm"'"' dfx.json | sponge dfx.json
+    jq '.canisters.a.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/a.wasm"'"' dfx.json | sponge dfx.json
+    jq '.canisters.b.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm"'"' dfx.json | sponge dfx.json
+    jq '.canisters.c.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm"'"' dfx.json | sponge dfx.json
 
     dfx canister create a --specified-id "$CANISTER_ID_A"
     dfx canister create b --specified-id "$CANISTER_ID_B"
     dfx canister create c --specified-id "$CANISTER_ID_C"
     dfx build
 
-    # cd .dfx/local/canisters || exit
-    # ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
-    # ic-wasm b/b.wasm -o b/b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
-    # ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
-
-    # cd ../../../ || exit
     dfx canister install a --argument 1
     dfx canister install b
     dfx canister install c --argument 3
@@ -52,7 +46,7 @@ setup_onchain() {
     cd .. || exit
 }
 
-@test "dfx build can write required metadata for pull_ready" {
+@test "dfx build can write required metadata for pullable" {
     dfx_start
 
     install_asset deps
@@ -65,14 +59,14 @@ setup_onchain() {
     assert_match "icp:public dfx"
 
     ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx > c_dfx.json
-    assert_command jq -r '.pull_ready.wasm_url' c_dfx.json
-    assert_match "http://example.com/c.wasm"
-    assert_command jq -r '.pull_ready.deps | length' c_dfx.json
-    assert_match 1
-    assert_command jq -r '.pull_ready.deps | first' c_dfx.json
-    assert_match "$CANISTER_ID_A"
-    assert_command jq -r '.pull_ready.init' c_dfx.json
-    assert_match "A natural number, e.g. 20."
+    assert_command jq -r '.pullable.wasm_url' c_dfx.json
+    assert_eq "http://example.com/c.wasm" "$output"
+    assert_command jq -r '.pullable.dependencies | length' c_dfx.json
+    assert_eq 1 "$output"
+    assert_command jq -r '.pullable.dependencies | first' c_dfx.json
+    assert_eq "$CANISTER_ID_A" "$output"
+    assert_command jq -r '.pullable.init_guide' c_dfx.json
+    assert_eq "A natural number, e.g. 20." "$output"
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
@@ -104,14 +98,14 @@ setup_onchain() {
     cd ../app
 
     assert_command_fail dfx deps pull --network local # the overall pull fail but succeed to fetch and parse `dfx:deps` recursively
-    assert_contains "Resolving dependencies of canister $CANISTER_ID_B...
-Resolving dependencies of canister $CANISTER_ID_C...
-Resolving dependencies of canister $CANISTER_ID_A...
+    assert_contains "Fetching dependencies of canister $CANISTER_ID_B...
+Fetching dependencies of canister $CANISTER_ID_C...
+Fetching dependencies of canister $CANISTER_ID_A...
 Found 3 dependencies:
 $CANISTER_ID_A
 $CANISTER_ID_B
 $CANISTER_ID_C"
-    assert_occurs 1 "Resolving dependencies of canister $CANISTER_ID_A..." # common dependency onchain_a is pulled only once
+    assert_occurs 1 "Fetching dependencies of canister $CANISTER_ID_A..." # common dependency onchain_a is pulled only once
     assert_contains "Pulling canister $CANISTER_ID_A...
 ERROR: Failed to pull canister $CANISTER_ID_A.
 Failed to download from url: http://example.com/a.wasm."
@@ -178,12 +172,12 @@ Failed to download from url: http://example.com/c.wasm."
     assert_file_exists "candid/$CANISTER_ID_B.did"
     assert_file_exists "candid/$CANISTER_ID_C.did"
     assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
-    assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".init' pulled.json
-    assert_match "A natural number, e.g. 10."
+    assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".init_guide' pulled.json
+    assert_eq "A natural number, e.g. 10." "$output"
     assert_command jq -r '.canisters."'"$CANISTER_ID_B"'".name' pulled.json
-    assert_match "dep_b"
+    assert_eq "dep_b" "$output"
     assert_command jq -r '.canisters."'"$CANISTER_ID_C"'".name' pulled.json
-    assert_match "dep_c"
+    assert_eq "dep_c" "$output"
     cd ../
 
     assert_command dfx deps pull --network local -vvv
@@ -223,9 +217,9 @@ Failed to download from url: http://example.com/c.wasm."
 
     cd onchain
 
-    jq '.canisters.a.pull_ready.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/a.wasm"'"' dfx.json | sponge dfx.json
-    jq '.canisters.b.pull_ready.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm"'"' dfx.json | sponge dfx.json
-    jq '.canisters.c.pull_ready.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm"'"' dfx.json | sponge dfx.json
+    jq '.canisters.a.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/a.wasm"'"' dfx.json | sponge dfx.json
+    jq '.canisters.b.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm"'"' dfx.json | sponge dfx.json
+    jq '.canisters.c.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm"'"' dfx.json | sponge dfx.json
 
     dfx canister create a --specified-id "$CANISTER_ID_A"
     dfx canister create b --specified-id "$CANISTER_ID_B"
@@ -238,15 +232,8 @@ Failed to download from url: http://example.com/c.wasm."
     cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
     CUSTOM_HASH="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
-    jq '.canisters.a.pull_ready.wasm_hash="'"$CUSTOM_HASH"'"' dfx.json | sponge dfx.json
-    dfx build a
-
-    # cd .dfx/local/canisters
-    # ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/a.wasm" -v public
-    # ic-wasm b/b.wasm -o b/b.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/b.wasm" -v public
-    # ic-wasm c/c.wasm -o c/c.wasm metadata "dfx:wasm_url" -d "http://localhost:$E2E_WEB_SERVER_PORT/c.wasm" -v public
-    # ic-wasm a/a.wasm -o a/a_custom.wasm metadata "hello" -d "world" -v public
-    # ic-wasm a/a.wasm -o a/a.wasm metadata "dfx:wasm_hash" -d "$(sha256sum a/a_custom.wasm | cut -d " " -f 1)" -v public
+    jq '.canisters.a.pullable.wasm_hash="'"$CUSTOM_HASH"'"' dfx.json | sponge dfx.json
+    dfx build a # .dfx/local/canisters/a/a.wasm is replaced. The new wasm has wasm_hash defined and will be installed.
 
     # cd ../../../
     dfx canister install a --argument 1
@@ -259,6 +246,18 @@ Failed to download from url: http://example.com/c.wasm."
 
     assert_command dfx deps pull --network local -vvv
     assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
+
+    # error case: hash mismatch
+    PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
+    rm -r "${PULLED_DIR:?}/"
+    cd ../onchain
+    cp .dfx/local/canisters/a/a.wasm ../www/a.wasm # now the webserver has the onchain version of canister_a which won't match wasm_hash
+
+    cd ../app
+    assert_command_fail dfx deps pull --network local -vvv
+    assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
+    assert_contains "Failed to pull canister $CANISTER_ID_A."
+    assert_contains "Hash mismatch."
 }
 
 @test "dfx deps init works" {
@@ -288,7 +287,7 @@ Failed to download from url: http://example.com/c.wasm."
     # However, passing raw argument will bypass the type check so following command succeed
     assert_command dfx deps init "$CANISTER_ID_A" --argument "4449444c00017103616263" --argument-type raw
     assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".arg_raw' deps/init.json
-    assert_match "4449444c00017103616263"
+    assert_eq "4449444c00017103616263" "$output"
 
     # error cases
     ## require init arguments but not provide
@@ -355,13 +354,11 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
     # by name in dfx.json
     assert_command dfx deps deploy dep_b
-    assert_contains "Creating canister: $CANISTER_ID_B (dep_b)
-Installing canister: $CANISTER_ID_B (dep_b)"
+    assert_contains "Installing canister: $CANISTER_ID_B (dep_b)" # dep_p has been created before, so we only see "Installing ..." here
 
     # by canister id
     assert_command dfx deps deploy $CANISTER_ID_A
-    assert_contains "Creating canister: $CANISTER_ID_A
-Installing canister: $CANISTER_ID_A"
+    assert_contains "Installing canister: $CANISTER_ID_A"
 
     # deployed pull dependencies can be stopped and deleted
     assert_command dfx canister stop dep_b --identity anonymous
@@ -438,9 +435,9 @@ Installing canister: $CANISTER_ID_A"
     assert_command dfx deps deploy
 
     assert_command dfx canister call app get_b
-    assert_match "(2 : nat)"
+    assert_eq "(2 : nat)" "$output"
     assert_command dfx canister call app get_c
-    assert_match "(33 : nat)" # corresponding to "--argument 33" above
+    assert_eq "(33 : nat)" "$output" # corresponding to "--argument 33" above
 
     # start a clean local replica
     dfx canister stop app
@@ -448,7 +445,7 @@ Installing canister: $CANISTER_ID_A"
     assert_command dfx deploy # only deploy app canister
 }
 
-@test "dfx deps do nothing in a project has no pull dependencies" {
+@test "dfx deps does nothing in a project has no pull dependencies" {
     dfx_new empty
 
     # verify the help message
@@ -457,11 +454,11 @@ Installing canister: $CANISTER_ID_A"
 You can still choose other network by setting \`--network\`"
 
     assert_command dfx deps pull
-    assert_match "There are no pull dependencies defined in dfx.json"
+    assert_contains "There are no pull dependencies defined in dfx.json"
     assert_command dfx deps init
-    assert_match "There are no pull dependencies defined in dfx.json"
+    assert_contains "There are no pull dependencies defined in dfx.json"
     assert_command dfx deps deploy
-    assert_match "There are no pull dependencies defined in dfx.json"
+    assert_contains "There are no pull dependencies defined in dfx.json"
     
     assert_directory_not_exists "deps"
 }

@@ -105,7 +105,7 @@ impl Canister {
     #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
     pub(crate) fn apply_metadata(&self, logger: &Logger) -> DfxResult {
         let mut metadata_sections = self.info.metadata().sections.clone();
-        // Default to write public candid:service unless overwrited
+        // Default to write public candid:service unless overwritten
         if (self.info.is_rust() || self.info.is_motoko())
             && !metadata_sections.contains_key(CANDID_SERVICE)
         {
@@ -119,9 +119,9 @@ impl Canister {
             );
         }
 
-        if let Some(pull_ready) = self.info.get_pull_ready() {
+        if let Some(pullable) = self.info.get_pullable() {
             let mut dfx_metadata = DfxMetadata::default();
-            dfx_metadata.set_pull_ready(pull_ready);
+            dfx_metadata.set_pullable(pullable);
             let content = serde_json::to_string_pretty(&dfx_metadata)
                 .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
 

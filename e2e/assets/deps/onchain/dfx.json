@@ -3,10 +3,10 @@
         "a": {
             "type": "motoko",
             "main": "src/a.mo",
-            "pull_ready": {
+            "pullable": {
                 "wasm_url": "http://example.com/a.wasm",
-                "deps": [],
-                "init": "A natural number, e.g. 10."
+                "dependencies": [],
+                "init_guide": "A natural number, e.g. 10."
             }
         },
         "b": {
@@ -15,12 +15,12 @@
             "dependencies": [
                 "a"
             ],
-            "pull_ready": {
+            "pullable": {
                 "wasm_url": "http://example.com/b.wasm",
-                "deps": [
+                "dependencies": [
                     "yofga-2qaaa-aaaaa-aabsq-cai"
                 ],
-                "init": "No init arguments required"
+                "init_guide": "No init arguments required"
             }
         },
         "c": {
@@ -29,12 +29,12 @@
             "dependencies": [
                 "a"
             ],
-            "pull_ready": {
+            "pullable": {
                 "wasm_url": "http://example.com/c.wasm",
-                "deps": [
+                "dependencies": [
                     "yofga-2qaaa-aaaaa-aabsq-cai"
                 ],
-                "init": "A natural number, e.g. 20."
+                "init_guide": "A natural number, e.g. 20."
             }
         }
     }

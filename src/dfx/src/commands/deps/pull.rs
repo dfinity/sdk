@@ -108,12 +108,10 @@ async fn get_dependencies(
     logger: &Logger,
     canister_id: &Principal,
 ) -> DfxResult<Vec<Principal>> {
-    info!(
-        logger,
-        "Resolving dependencies of canister {canister_id}..."
-    );
+    info!(logger, "Fetching dependencies of canister {canister_id}...");
     let dfx_metadata = fetch_dfx_metadata(agent, canister_id).await?;
-    Ok(dfx_metadata.pull_ready.deps)
+    let dependencies = dfx_metadata.get_pullable()?.dependencies.clone();
+    Ok(dependencies)
 }
 
 async fn download_all_and_generate_pulled_json(
@@ -151,10 +149,11 @@ async fn download_and_generate_pulled_canister(
 
     let mut pulled_canister = PulledCanister::default();
 
-    let pull_ready = fetch_dfx_metadata(agent, &canister_id).await?.pull_ready;
+    let dfx_metadata = fetch_dfx_metadata(agent, &canister_id).await?;
+    let pullable = dfx_metadata.get_pullable()?;
 
     // lookup `wasm_hash` in dfx metadata. If not available, get the hash of the on chain canister.
-    let hash_on_chain = match pull_ready.wasm_hash {
+    let hash_on_chain = match &pullable.wasm_hash {
         Some(wasm_hash_str) => {
             trace!(
                 logger,
@@ -194,8 +193,7 @@ async fn download_and_generate_pulled_canister(
     }
     if !cache_hit {
         // lookup `wasm_url` in dfx metadata
-        let wasm_url_str = pull_ready.wasm_url;
-        let wasm_url = reqwest::Url::parse(&wasm_url_str)?;
+        let wasm_url = reqwest::Url::parse(&pullable.wasm_url)?;
 
         // download
         let content = download_file(&wasm_url).await?;
@@ -228,8 +226,9 @@ download: {}",
     // extract `dfx`
     let dfx_metadata_str = get_metadata_as_string(&module, DFX, &wasm_path)?;
     let dfx_metadata: DfxMetadata = serde_json::from_str(&dfx_metadata_str)?;
-    pulled_canister.deps = dfx_metadata.pull_ready.deps;
-    pulled_canister.init = dfx_metadata.pull_ready.init;
+    let pullable = dfx_metadata.get_pullable()?;
+    pulled_canister.dependencies = pullable.dependencies.clone();
+    pulled_canister.init_guide = pullable.init_guide.clone();
 
     Ok(pulled_canister)
 }

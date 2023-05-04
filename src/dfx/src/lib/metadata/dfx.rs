@@ -3,16 +3,27 @@
 //! The cli tool dfx should consolidate its usage of canister metadata into this single section
 //! It's originally for pulling dependencies. But open to extend for other usage.
 
-use dfx_core::config::model::dfinity::PullReady;
+use crate::lib::error::DfxResult;
+use dfx_core::config::model::dfinity::Pullable;
+
+use anyhow::bail;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct DfxMetadata {
-    pub pull_ready: PullReady,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pullable: Option<Pullable>,
 }
 
 impl DfxMetadata {
-    pub fn set_pull_ready(&mut self, pull_ready: PullReady) {
-        self.pull_ready = pull_ready;
+    pub fn set_pullable(&mut self, pullable: Pullable) {
+        self.pullable = Some(pullable);
+    }
+
+    pub fn get_pullable(&self) -> DfxResult<&Pullable> {
+        match &self.pullable {
+            Some(pullable) => Ok(pullable),
+            None => bail!("The `dfx` metadata doesn't contain the `pullable` object."),
+        }
     }
 }

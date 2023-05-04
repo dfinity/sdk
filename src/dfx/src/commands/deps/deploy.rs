@@ -52,7 +52,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
     };
     for canister_id in canister_ids {
         // Safe to unwrap:
-        // caniseter_ids are guranteed to exist in pulled.json
+        // canister_ids are guaranteed to exist in pulled.json
         let pulled_canister = pulled_json.canisters.get(&canister_id).unwrap();
         let canister_prompt = get_canister_prompt(&canister_id, pulled_canister);
         create_and_install(agent, logger, &canister_id, &init_json, &canister_prompt).await?;
@@ -83,7 +83,6 @@ async fn try_create_canister(
     canister_id: &Principal,
     canister_prompt: &str,
 ) -> DfxResult {
-    info!(logger, "Creating canister: {canister_prompt}");
     match read_state_tree_canister_controllers(agent, *canister_id).await? {
         Some(cs) if cs.len() == 1 && cs[0] == Principal::anonymous() => Ok(()),
         Some(_) => {
@@ -91,6 +90,7 @@ async fn try_create_canister(
         }
         None => {
             let mgr = ManagementCanister::create(agent);
+            info!(logger, "Creating canister: {canister_prompt}");
             mgr.create_canister()
                 .as_provisional_create_with_specified_id(*canister_id)
                 .call_and_wait()

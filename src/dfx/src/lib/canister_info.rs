@@ -2,7 +2,7 @@
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
 use dfx_core::config::model::dfinity::{
-    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, PullReady,
+    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
     WasmOptLevel,
 };
 use dfx_core::network::provider::get_network_context;
@@ -58,7 +58,7 @@ pub struct CanisterInfo {
     shrink: Option<bool>,
     optimize: Option<WasmOptLevel>,
     metadata: CanisterMetadataConfig,
-    pull_ready: Option<PullReady>,
+    pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
 }
 
@@ -161,7 +161,7 @@ impl CanisterInfo {
             shrink: canister_config.shrink,
             optimize: canister_config.optimize,
             metadata,
-            pull_ready: canister_config.pull_ready.clone(),
+            pullable: canister_config.pullable.clone(),
             pull_dependencies,
         };
 
@@ -315,8 +315,8 @@ impl CanisterInfo {
         &self.metadata
     }
 
-    pub fn get_pull_ready(&self) -> Option<PullReady> {
-        self.pull_ready.clone()
+    pub fn get_pullable(&self) -> Option<Pullable> {
+        self.pullable.clone()
     }
 
     pub fn get_pull_dependencies(&self) -> &[(String, CanisterId)] {

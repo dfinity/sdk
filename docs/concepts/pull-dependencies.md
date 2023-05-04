@@ -6,7 +6,7 @@ The interoperability of canisters on the Internet Computer (IC) is an important 
 
 `dfx` provides a consistent developer workflow for integrating third-party canisters.
 
-A service provider prepare the canister to be `pull_ready` and deploy it on the IC mainnet.
+A service provider prepares the canister to be `pull_ready` and deploys it on the IC mainnet.
 
 A service consumer then can pull dependencies directly from mainnet and easily deploy them on a local replica.
 
@@ -113,7 +113,7 @@ Running `dfx deps pull` will:
 3. verify the hash of the downloaded wasm against `dfx:wasm_hash` metadata or the hash of the canister deployed on mainnet;
 4. extract `candid:args`, `candid:service`, `dfx:init` from the downloaded wasm;
 5. create `deps/` folder in project root;
-6. save `candid:service` of direct dependencies as `deps/<CANISTER_ID>.did`;
+6. save `candid:service` of direct dependencies as `deps/candid/<CANISTER_ID>.did`;
 7. save `deps/pulled.json` which contains major info of all direct and indirect dependencies;
 
 For the example project, you will find following files in `deps/`:
