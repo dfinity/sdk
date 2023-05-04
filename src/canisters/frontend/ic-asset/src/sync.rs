@@ -2,7 +2,7 @@ use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
-use crate::batch_upload::plumbing::ChunkUploadTarget;
+use crate::batch_upload::plumbing::ChunkUploader;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
@@ -53,13 +53,10 @@ pub async fn upload_content_and_assemble_sync_operations(
         "Staging contents of new and changed assets in batch {}:", batch_id
     );
 
-    let chunk_upload_target = ChunkUploadTarget {
-        canister,
-        batch_id: &batch_id,
-    };
+    let chunk_uploader = ChunkUploader::new(canister.clone(), batch_id.clone());
 
     let project_assets = make_project_assets(
-        Some(&chunk_upload_target),
+        Some(&chunk_uploader),
         asset_descriptors,
         &canister_assets,
         logger,
@@ -80,6 +77,13 @@ pub async fn upload_content_and_assemble_sync_operations(
         "Count of each Batch Operation Kind: {:?}",
         commit_batch_args.group_by_kind_then_count()
     );
+    debug!(
+        logger,
+        "Chunks: {}  Bytes: {}",
+        chunk_uploader.chunks(),
+        chunk_uploader.bytes()
+    );
+
     // -vv
     trace!(logger, "Value of CommitBatch: {:?}", commit_batch_args);
 
