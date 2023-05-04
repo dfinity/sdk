@@ -18,6 +18,9 @@ pub enum ExtensionError {
     #[error("Extension '{0}' is already installed.")]
     ExtensionAlreadyInstalled(String),
 
+    #[error("Extension '{0}' cannot be installed because it conflicts with an existing command.")]
+    CommandAlreadyExists(String),
+
     #[error("Cannot fetch compatibility.json from '{0}': {1}")]
     CompatibilityMatrixFetchError(String, reqwest::Error),
 
@@ -65,8 +68,8 @@ pub enum ExtensionError {
     // TODO: this error should be `#[from dfx_core::...::StructureFileError]`, however,
     // adding new error type to enum StructureFileError causes a cascade of problems,
     // and they should be addressed separately: https://dfinity.atlassian.net/browse/SDK-1096
-    #[error("Malformed extension manifest: Failed to parse contents of {0} as toml: {1}")]
-    ExtensionManifestIsNotValid(Box<std::path::PathBuf>, toml::de::Error),
+    #[error("Malformed extension manifest: Failed to parse contents of {0} as toml: ")]
+    ExtensionManifestIsNotValid(dfx_core::error::structured_file::StructuredFileError),
 
     #[error("Missing 'extension.toml' file for extension '{0}'.")]
     ExtensionManifestMissing(String),

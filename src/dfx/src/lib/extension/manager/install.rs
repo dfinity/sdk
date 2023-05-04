@@ -1,6 +1,8 @@
+use crate::commands::Command;
 use crate::lib::error::extension::ExtensionError;
 use crate::lib::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
 
+use clap::Subcommand;
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
@@ -18,6 +20,11 @@ impl ExtensionManager {
     pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
         if self.get_extension_directory(extension_name).exists() {
             return Err(ExtensionError::ExtensionAlreadyInstalled(
+                extension_name.to_string(),
+            ));
+        }
+        if Command::has_subcommand(extension_name) {
+            return Err(ExtensionError::CommandAlreadyExists(
                 extension_name.to_string(),
             ));
         }

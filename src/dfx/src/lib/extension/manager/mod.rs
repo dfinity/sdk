@@ -19,7 +19,10 @@ impl ExtensionManager {
     pub fn new(version: &Version) -> Result<Self, ExtensionError> {
         let versioned_cache_dir = get_bin_cache(version.to_string().as_str()).map_err(|e| {
             ExtensionError::FindCacheDirectoryFailed(
-                get_cache_root().unwrap_or_default().join("versions"),
+                get_cache_root()
+                    .unwrap_or_default()
+                    .join("versions")
+                    .join(version.to_string()),
                 e,
             )
         })?;

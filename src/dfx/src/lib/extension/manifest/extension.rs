@@ -1,17 +1,12 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use std::{collections::HashMap, fmt::Display, path::PathBuf};
+use std::{collections::HashMap, fmt::Display, path::Path};
 
 use crate::lib::error::ExtensionError;
 
-pub static MANIFEST_FILE_NAME: &str = "extension.toml";
+pub static MANIFEST_FILE_NAME: &str = "extension.json";
 
-#[derive(Debug, Deserialize)]
-struct ExtensionManifestWrapper {
-    extension: ExtensionManifest,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct ExtensionManifest {
     pub name: String,
     pub version: String,
@@ -25,9 +20,16 @@ pub struct ExtensionManifest {
     pub dependencies: Option<HashMap<String, String>>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExtensionSubcommand {
+    pub subcommands: Vec<ExtensionSubcommand>,
+    pub key: String,
+    pub summary: String,
+}
+
 impl Display for ExtensionManifest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Ok(s) = toml::to_string_pretty(self) else {
+        let Ok(s) = serde_json::to_string_pretty(self) else {
             return Err(std::fmt::Error)
         };
         write!(f, "{}", s)
@@ -35,22 +37,12 @@ impl Display for ExtensionManifest {
 }
 
 impl ExtensionManifest {
-    pub fn from_extension_directory(path: PathBuf) -> Result<Self, ExtensionError> {
-        let manifest_path = path.join(MANIFEST_FILE_NAME);
+    pub fn new(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
+        let manifest_path = extensions_root_dir.join(name).join(MANIFEST_FILE_NAME);
         if !manifest_path.exists() {
-            return Err(ExtensionError::ExtensionManifestMissing(
-                path.components()
-                    .last()
-                    .unwrap() // safe to unwrap - the `path` parameter is guaranteed not to be root (`/`)
-                    .as_os_str()
-                    .to_string_lossy()
-                    .to_string(),
-            ));
+            return Err(ExtensionError::ExtensionManifestMissing(name.to_owned()));
         }
-        let ext: ExtensionManifestWrapper =
-            toml::from_str(&dfx_core::fs::read_to_string(&manifest_path)?).map_err(|e| {
-                ExtensionError::ExtensionManifestIsNotValid(Box::new(manifest_path), e)
-            })?;
-        Ok(ext.extension)
+        dfx_core::json::load_json_file(&manifest_path)
+            .map_err(ExtensionError::ExtensionManifestIsNotValid)
     }
 }
