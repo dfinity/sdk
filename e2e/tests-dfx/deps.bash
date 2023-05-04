@@ -52,7 +52,7 @@ setup_onchain() {
     cd .. || exit
 }
 
-@test "dfx build can write required metadata for pull" {
+@test "dfx build can write required metadata for pull_ready" {
     dfx_start
 
     install_asset deps
@@ -70,9 +70,9 @@ setup_onchain() {
     assert_command jq -r '.pull_ready.deps | length' c_dfx.json
     assert_match 1
     assert_command jq -r '.pull_ready.deps | first' c_dfx.json
-    assert_match "yofga-2qaaa-aaaaa-aabsq-cai"
+    assert_match "$CANISTER_ID_A"
     assert_command jq -r '.pull_ready.init' c_dfx.json
-    assert_match "A natual number, e.g. 20."
+    assert_match "A natural number, e.g. 20."
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
@@ -108,9 +108,9 @@ setup_onchain() {
 Resolving dependencies of canister $CANISTER_ID_C...
 Resolving dependencies of canister $CANISTER_ID_A...
 Found 3 dependencies:
-yofga-2qaaa-aaaaa-aabsq-cai
-yhgn4-myaaa-aaaaa-aabta-cai
-yahli-baaaa-aaaaa-aabtq-cai"
+$CANISTER_ID_A
+$CANISTER_ID_B
+$CANISTER_ID_C"
     assert_occurs 1 "Resolving dependencies of canister $CANISTER_ID_A..." # common dependency onchain_a is pulled only once
     assert_contains "Pulling canister $CANISTER_ID_A...
 ERROR: Failed to pull canister $CANISTER_ID_A.
@@ -179,7 +179,7 @@ Failed to download from url: http://example.com/c.wasm."
     assert_file_exists "candid/$CANISTER_ID_C.did"
     assert_eq 5 "$(jq -r '.canisters | keys' pulled.json | wc -l | tr -d ' ')" # 3 canisters + 2 lines of '[' and ']'
     assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".init' pulled.json
-    assert_match "A natual number, e.g. 10."
+    assert_match "A natural number, e.g. 10."
     assert_command jq -r '.canisters."'"$CANISTER_ID_B"'".name' pulled.json
     assert_match "dep_b"
     assert_command jq -r '.canisters."'"$CANISTER_ID_C"'".name' pulled.json
@@ -306,7 +306,7 @@ Failed to download from url: http://example.com/c.wasm."
     ## require init arguments but not provide
     assert_command_fail dfx deps init dep_c
     assert_contains "Canister $CANISTER_ID_C (dep_c) requires an init argument. The following info might be helpful:
-init => A natual number, e.g. 20.
+init => A natural number, e.g. 20.
 candid:args => (nat)"
 
     ## canister ID not in pulled.json
@@ -315,7 +315,7 @@ candid:args => (nat)"
 }
 
 @test "dfx deps deploy works" {
-    # ic-ref have a different behavior than the repilca:
+    # ic-ref have a different behavior than the replica:
     #    once a canister has been deleted, it cannot be created again.
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
@@ -363,7 +363,7 @@ Installing canister: $CANISTER_ID_B (dep_b)"
     assert_contains "Creating canister: $CANISTER_ID_A
 Installing canister: $CANISTER_ID_A"
 
-    # deployed pulleds dependencies can be stopped and deleted
+    # deployed pull dependencies can be stopped and deleted
     assert_command dfx canister stop dep_b --identity anonymous
     assert_command dfx canister delete dep_b --identity anonymous
 
@@ -393,7 +393,7 @@ Installing canister: $CANISTER_ID_A"
 }
 
 @test "dfx deps pulled dependencies work with app canister" {
-    # ic-ref have a different behavior than the repilca:
+    # ic-ref have a different behavior than the replica:
     #    once a canister has been deleted, it cannot be created again.
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 

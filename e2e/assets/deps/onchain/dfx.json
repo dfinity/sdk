@@ -6,7 +6,7 @@
             "pull_ready": {
                 "wasm_url": "http://example.com/a.wasm",
                 "deps": [],
-                "init": "A natual number, e.g. 10."
+                "init": "A natural number, e.g. 10."
             }
         },
         "b": {
@@ -34,7 +34,7 @@
                 "deps": [
                     "yofga-2qaaa-aaaaa-aabsq-cai"
                 ],
-                "init": "A natual number, e.g. 20."
+                "init": "A natural number, e.g. 20."
             }
         }
     }
