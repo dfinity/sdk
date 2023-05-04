@@ -6,7 +6,7 @@ The interoperability of canisters on the Internet Computer (IC) is an important 
 
 `dfx` provides a consistent developer workflow for integrating third-party canisters.
 
-A service provider prepares the canister to be `pull_ready` and deploys it on the IC mainnet.
+A service provider prepares the canister to be `pullable` and deploys it on the IC mainnet.
 
 A service consumer then can pull dependencies directly from mainnet and easily deploy them on a local replica.
 
@@ -14,7 +14,7 @@ This document describes the workflow and explains what happens behind the scenes
 
 ## Service Provider Workflow
 
-Below is an example provider `dfx.json` which has a `pull_ready` "service" canister:
+Below is an example provider `dfx.json` which has a `pullable` "service" canister:
 
 ```json
 {
@@ -22,22 +22,22 @@ Below is an example provider `dfx.json` which has a `pull_ready` "service" canis
         "service": {
             "type": "motoko",
             "main": "src/main.mo",
-            "pull_ready": {
+            "pullable": {
                 "wasm_url": "http://example.com/a.wasm",
                 "wasm_hash": "d180f1e232bafcee7d4879d8a2260ee7bcf9a20c241468d0e9cf4aa15ef8f312",
-                "deps": [
+                "dependencies": [
                     "yofga-2qaaa-aaaaa-aabsq-cai"
                 ],
-                "init": "A natural number, e.g. 10."
+                "init_guide": "A natural number, e.g. 10."
             }
         }
     }
 }
 ```
 
-THe `pull_ready` object will be serialized as a part of the `dfx` metadata and attached to the wasm.
+The `pullable` object will be serialized as a part of the `dfx` metadata and attached to the wasm.
 
-Let's go through the properties of the `pull_ready` object.
+Let's go through the properties of the `pullable` object.
 
 ### `wasm_url`
 
@@ -53,11 +53,11 @@ In most cases, the wasm module at `wasm_url` will be the same as the on-chain wa
 
 In other cases, the wasm module at `wasm_url` is not the same as the on-chain wasm module. For example, the Internet Identity canister provides Development flavor to be integrated locally. In these cases, `wasm_hash` provides the expected hash, and dfx verifies the downloaded wasm against this.
 
-### `deps`
+### `dependencies`
 
 An array of Canister IDs (`Principal`) of direct dependencies.
 
-### `init`
+### `init_guide`
 
 A message to guide consumers how to initialize the canister.
 
@@ -108,10 +108,10 @@ Below is an example `dfx.json` in which the service consumer is developing the "
 
 Running `dfx deps pull` will:
 
-1. resolve the dependency graph by fetching `dfx:deps` metadata recursively;
-2. download wasm of all direct and indirect dependencies from `dfx:wasm_url` into shared cache;
-3. verify the hash of the downloaded wasm against `dfx:wasm_hash` metadata or the hash of the canister deployed on mainnet;
-4. extract `candid:args`, `candid:service`, `dfx:init` from the downloaded wasm;
+1. resolve the dependency graph by fetching `dependencies` field in `dfx` metadata recursively;
+2. download wasm of all direct and indirect dependencies from `wasm_url` into shared cache;
+3. verify the hash of the downloaded wasm against `wasm_hash` metadata or the hash of the canister deployed on mainnet;
+4. extract `candid:args`, `candid:service`, `dfx` metadata from the downloaded wasm;
 5. create `deps/` folder in project root;
 6. save `candid:service` of direct dependencies as `deps/candid/<CANISTER_ID>.did`;
 7. save `deps/pulled.json` which contains major info of all direct and indirect dependencies;
@@ -125,27 +125,27 @@ For the example project, you will find following files in `deps/`:
 {
   "canisters": {
     "yofga-2qaaa-aaaaa-aabsq-cai": {
-      "deps": [],
+      "dependencies": [],
       "wasm_hash": "e9b8ba2ad28fa1403cf6e776db531cdd6009a8e5cac2b1097d09bfc65163d56f",
-      "init": "A natural number, e.g. 10.",
+      "init_guide": "A natural number, e.g. 10.",
       "candid_args": "(nat)"
     },
     "yhgn4-myaaa-aaaaa-aabta-cai": {
       "name": "dep_b",
-      "deps": [
+      "dependencies": [
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
       "wasm_hash": "f607c30727b0ee81317fc4547a8da3cda9bb9621f5d0740806ef973af5b479a2",
-      "init": "No init arguments required",
+      "init_guide": "No init arguments required",
       "candid_args": "()"
     },
     "yahli-baaaa-aaaaa-aabtq-cai": {
       "name": "dep_c",
-      "deps": [
+      "dependencies": [
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
       "wasm_hash": "016df9800dc5760785646373bcb6e6bb530fc17f844600991a098ef4d486cf0b",
-      "init": "A natural number, e.g. 20.",
+      "init_guide": "A natural number, e.g. 20.",
       "candid_args": "(nat)"
     }
   }
@@ -180,12 +180,12 @@ yofga-2qaaa-aaaaa-aabsq-cai
 yahli-baaaa-aaaaa-aabtq-cai (dep_c)
 > dfx deps init yofga-2qaaa-aaaaa-aabsq-cai
 Error: Canister yofga-2qaaa-aaaaa-aabsq-cai requires an init argument. The following info might be helpful:
-dfx:init => A natural number, e.g. 10.
+init_guide => A natural number, e.g. 10.
 candid:args => (nat)
 > dfx deps init yofga-2qaaa-aaaaa-aabsq-cai --argument 10
 > dfx deps init deps_c
 Error: Canister yahli-baaaa-aaaaa-aabtq-cai (dep_c) requires an init argument. The following info might be helpful:
-init =>"A natural number, e.g. 20.
+init_guide => A natural number, e.g. 20.
 candid:args => (nat)
 > dfx deps init deps_c --argument 20
 ```
@@ -230,10 +230,8 @@ Installing canister: yhgn4-myaaa-aaaaa-aabta-cai (dep_b)
 Creating canister: yahli-baaaa-aaaaa-aabtq-cai (dep_c)
 Installing canister: yahli-baaaa-aaaaa-aabtq-cai (dep_c)
 > dfx deps deploy yofga-2qaaa-aaaaa-aabsq-cai
-Creating canister: yofga-2qaaa-aaaaa-aabsq-cai
 Installing canister: yofga-2qaaa-aaaaa-aabsq-cai
 > dfx deps deploy dep_b
-Creating canister: yhgn4-myaaa-aaaaa-aabta-cai (dep_b)
 Installing canister: yhgn4-myaaa-aaaaa-aabta-cai (dep_b)
 ```
 

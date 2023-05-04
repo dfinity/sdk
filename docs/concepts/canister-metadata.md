@@ -97,18 +97,17 @@ For Motoko canisters, if you specify a `path` for candid:service metadata (repla
 
 A json text for `dfx` usage.
 
-Currently it contains the [`pull_ready`](pull-dependencies.md#service-provider-workflow) object.
+Currently it contains the [`pullable`](pull-dependencies.md#service-provider-workflow) object.
 
 ```json
 {
-  "pull_ready": {
+  "pullable": {
     "wasm_url": "http://example.com/a.wasm",
     "wasm_hash": "d180f1e232bafcee7d4879d8a2260ee7bcf9a20c241468d0e9cf4aa15ef8f312",
-    ,
-    "deps": [
+    "dependencies": [
       "yofga-2qaaa-aaaaa-aabsq-cai"
     ],
-    "init": "A natural number, e.g. 10."
+    "init_guide": "A natural number, e.g. 10."
   }
 }
 ```
