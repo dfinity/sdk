@@ -221,7 +221,7 @@ download: {}",
 
     // extract `candid:args`
     let candid_args = get_metadata_as_string(&module, CANDID_ARGS, &wasm_path)?;
-    pulled_canister.candid_args = Some(candid_args);
+    pulled_canister.candid_args = candid_args;
 
     // extract `dfx`
     let dfx_metadata_str = get_metadata_as_string(&module, DFX, &wasm_path)?;

@@ -403,8 +403,8 @@
           ]
         },
         "pullable": {
-          "title": "Ready to be pulled",
-          "description": "Whether or not to make this canister ready for `dfx deps pull` by other project. If true, several required metadata fields must be also set with the correct format.",
+          "title": "Pullable",
+          "description": "Defines required properties so that this canister is ready for `dfx deps pull` by other projects.",
           "default": null,
           "anyOf": [
             {

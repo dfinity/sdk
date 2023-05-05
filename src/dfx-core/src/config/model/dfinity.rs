@@ -249,9 +249,8 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub metadata: Vec<CanisterMetadataSection>,
 
-    /// # Ready to be pulled
-    /// Whether or not to make this canister ready for `dfx deps pull` by other project.
-    /// If true, several required metadata fields must be also set with the correct format.
+    /// # Pullable
+    /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
     pub pullable: Option<Pullable>,
 }

@@ -47,7 +47,7 @@ A URL to download canister wasm module which will be deployed locally.
 
 SHA256 hash of the wasm module located at `wasm_url`.
 
-This section is optional.
+This field is optional.
 
 In most cases, the wasm module at `wasm_url` will be the same as the on-chain wasm module. This means that dfx can read the state tree to obtain and verify the module hash.
 
@@ -167,7 +167,7 @@ You can choose other network as usual, e.g. `--network local`.
 
 Running `dfx deps init` will iterate over all dependencies in `pulled.json`, set an empty argument for the ones that need no init argument and print the list of dependencies that do require an init argument.
 
-Then running `dfx deps init <CANISTER> --argument <ARGUMENT>` to set init argument for individual dependency.
+Then running `dfx deps init <CANISTER> --argument <ARGUMENT>` will set the init argument for an individual dependency.
 
 The init arguments will be recorded in `deps/init.json`.
 
