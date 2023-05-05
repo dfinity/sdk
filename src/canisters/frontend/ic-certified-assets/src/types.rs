@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde_bytes::ByteBuf;
 
-use crate::certification::types::{certification::AssetKey, rc_bytes::RcBytes};
+use crate::asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 
 pub type BatchId = Nat;
 pub type ChunkId = Nat;

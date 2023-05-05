@@ -5,7 +5,7 @@
 // as formal arguments.  This approach makes it very easy to test the state machine.
 
 use crate::{
-    certification::{
+    asset_certification::{
         types::{
             certification::{
                 AssetKey, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,

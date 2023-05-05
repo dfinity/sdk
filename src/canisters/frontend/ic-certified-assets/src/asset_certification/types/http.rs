@@ -1,5 +1,5 @@
 use crate::{
-    certification::types::certification::{CertificateExpression, ResponseHash},
+    asset_certification::types::certification::{CertificateExpression, ResponseHash},
     state_machine::{encoding_certification_order, Asset, AssetEncoding},
 };
 
