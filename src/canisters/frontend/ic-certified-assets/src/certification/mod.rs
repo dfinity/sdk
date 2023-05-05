@@ -40,11 +40,7 @@ impl CertifiedResponses {
     ) -> Vec<HashTreePath> {
         let certificate_expression = build_ic_certificate_expression_from_headers(headers);
         let request_hash = RequestHash::default(); // request certification currently not supported
-        let body_hash = if let Some(precomputed) = body_hash {
-            precomputed
-        } else {
-            sha2::Sha256::digest(body).into()
-        };
+        let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
         let response_hash = response_hash(headers, status_code, &body_hash);
 
         paths
@@ -109,11 +105,7 @@ impl CertifiedResponses {
     ) -> HashTreePath {
         let certificate_expression = build_ic_certificate_expression_from_headers(headers);
         let request_hash = RequestHash::default(); // request certification currently not supported
-        let body_hash = if let Some(precomputed) = body_hash {
-            precomputed
-        } else {
-            sha2::Sha256::digest(body).into()
-        };
+        let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
         let response_hash = response_hash(headers, status_code, &body_hash);
 
         let asset_path = AssetPath::fallback_path();
