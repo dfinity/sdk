@@ -18,6 +18,7 @@ pub enum ExtensionError {
     #[error("Extension '{0}' is already installed.")]
     ExtensionAlreadyInstalled(String),
 
+    // TODO: suggest `--install-as` flag (awaiting https://dfinity.atlassian.net/browse/SDK-963)
     #[error("Extension '{0}' cannot be installed because it conflicts with an existing command.")]
     CommandAlreadyExists(String),
 
