@@ -1,10 +1,10 @@
 #![allow(special_module_name)]
 
 use crate::config::{dfx_version, dfx_version_str};
-use crate::lib::environment::{Environment, EnvironmentImpl};
-use crate::lib::logger::{create_root_logger, LoggingMode};
 use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
+use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::extension::manager::ExtensionManager;
+use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
 use clap::{ArgAction, Args, Command, CommandFactory, FromArgMatches as _, Parser};
@@ -228,6 +228,9 @@ fn main() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
             match EnvironmentImpl::new().map(|env| {
+                env.get_cache()
+                    .get_binary_command_path("xyz")
+                    .unwrap_or_default();
                 env.with_logger(log)
                     .with_identity_override(identity)
                     .with_verbose_level(verbose_level)

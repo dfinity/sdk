@@ -1,12 +1,11 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
-use std::{collections::HashMap, fmt::Display, path::Path};
+use serde::Deserialize;
+use std::{collections::HashMap, path::Path};
 
 use crate::lib::error::ExtensionError;
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
 pub struct ExtensionManifest {
     pub name: String,
     pub version: String,
@@ -16,24 +15,8 @@ pub struct ExtensionManifest {
     pub categories: Vec<String>,
     pub keywords: Option<Vec<String>>,
     pub description: Option<String>,
-    pub subcommands: JsonValue, // TODO: awaiting https://dfinity.atlassian.net/browse/SDK-599
+    pub subcommands: serde_json::Value, // TODO: https://dfinity.atlassian.net/browse/SDK-599
     pub dependencies: Option<HashMap<String, String>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ExtensionSubcommand {
-    pub subcommands: Vec<ExtensionSubcommand>,
-    pub key: String,
-    pub summary: String,
-}
-
-impl Display for ExtensionManifest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let Ok(s) = serde_json::to_string_pretty(self) else {
-            return Err(std::fmt::Error)
-        };
-        write!(f, "{}", s)
-    }
 }
 
 impl ExtensionManifest {
