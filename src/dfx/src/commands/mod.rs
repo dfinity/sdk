@@ -35,25 +35,25 @@ mod wallet;
 
 #[derive(Subcommand)]
 pub enum Command {
-    #[clap(hide(true))]
+    #[command(hide = true)]
     Beta(beta::BetaOpts),
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
     Deploy(deploy::DeployOpts),
-    #[clap(hide(true))]
+    #[command(hide = true)]
     Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
     // Extension(extension::ExtensionOpts),
     // // Executes an extension
-    // #[clap(external_subcommand)]
+    // #[arg(external_subcommand)]
     // ExtensionRun(Vec<OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
-    #[clap(name("_language-service"))]
+    #[command(name = "_language-service")]
     LanguageServices(language_service::LanguageServiceOpts),
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
@@ -63,7 +63,7 @@ pub enum Command {
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
-    #[clap(hide(true))]
+    #[command(hide = true)]
     Sns(sns::SnsOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),

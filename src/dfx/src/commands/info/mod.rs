@@ -24,10 +24,10 @@ enum InfoType {
 }
 
 #[derive(Parser)]
-#[clap(name("info"))]
+#[command(name = "info")]
 /// Get information about the replica shipped with dfx, path to networks.json, and network ports of running replica.
 pub struct InfoOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     info_type: InfoType,
 }
 

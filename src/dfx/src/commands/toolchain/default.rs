@@ -8,7 +8,7 @@ use clap::Parser;
 
 /// Set default toolchain or get current default toolchain
 #[derive(Parser)]
-#[clap(name("default"))]
+#[command(name = "default")]
 pub struct ToolchainDefault {
     /// Toolchain name, such as '0.6.22', '0.6', 'latest'
     toolchain: Option<String>,

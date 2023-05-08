@@ -6,7 +6,7 @@ use crate::lib::sign::sign_transport::SignReplicaV2Transport;
 use crate::lib::sign::signed_message::SignedMessageV1;
 use dfx_core::identity::CallSender;
 
-use crate::util::clap::validators::file_or_stdin_validator;
+use crate::util::clap::parsers::file_or_stdin_parser;
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
 
 use candid::Principal;
@@ -21,7 +21,7 @@ use time::OffsetDateTime;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::SystemTime;
 
@@ -35,40 +35,40 @@ pub struct CanisterSignOpts {
     method_name: String,
 
     /// Sends a query request to a canister.
-    #[clap(long)]
+    #[arg(long)]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("query"))]
+    #[arg(long, conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
 
     /// Specifies the file from which to read the argument to pass to the method.
-    #[clap(
+    #[arg(
         long,
-        validator(file_or_stdin_validator),
+        value_parser = file_or_stdin_parser,
         conflicts_with("random"),
         conflicts_with("argument")
     )]
-    argument_file: Option<String>,
+    argument_file: Option<PathBuf>,
 
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"))]
+    #[arg(long, conflicts_with("argument"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     r#type: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
-    #[clap(long, default_value("5m"))]
+    #[arg(long, default_value = "5m")]
     expire_after: String,
 
     /// Specifies the output file name.
-    #[clap(long, default_value("message.json"))]
-    file: String,
+    #[arg(long, default_value = "message.json")]
+    file: PathBuf,
 }
 
 pub async fn exec(
@@ -169,7 +169,7 @@ pub async fn exec(
     if Path::new(&file_name).exists() {
         bail!(
             "[{}] already exists, please specify a different output file name.",
-            file_name
+            file_name.display(),
         );
     }
 

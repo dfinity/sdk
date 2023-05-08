@@ -7,9 +7,9 @@ mod import;
 
 /// Project commands.
 #[derive(Parser)]
-#[clap(name("project"))]
+#[command(name = "project")]
 pub struct ProjectOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

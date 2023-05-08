@@ -4,6 +4,10 @@
 
 ## DFX
 
+### chore: upgraded to clap v4
+
+Updated the command-parsing library to v4. Some colors may be different.
+
 ### feat: dfx deps subcommands
 
 This feature was named `dfx pull` before. To make a complete, intuitive user experience, we present a set of subcommands under `dfx deps`:

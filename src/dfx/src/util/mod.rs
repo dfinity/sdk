@@ -153,8 +153,8 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
     })
 }
 
-pub fn arguments_from_file(file_name: &str) -> DfxResult<String> {
-    if file_name == "-" {
+pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
+    if file_name == Path::new("-") {
         let mut content = String::new();
         stdin().read_to_string(&mut content).map_err(|e| {
             error_invalid_argument!("Could not read arguments from stdin to string: {}", e)
