@@ -1,3 +1,4 @@
+use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::{
@@ -127,7 +128,14 @@ pub async fn exec(
         .transpose()
         .context("Failed to determine controllers.")?;
 
+    let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if let Some(canister_name) = opts.canister_name.as_deref() {
+        if pull_canisters_in_config.contains_key(canister_name) {
+            bail!(
+                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
+                canister_name
+            );
+        }
         let canister_is_remote = config
             .get_config()
             .is_remote_canister(canister_name, &network.name)?;
@@ -171,6 +179,9 @@ pub async fn exec(
         // Create all canisters.
         if let Some(canisters) = &config.get_config().canisters {
             for canister_name in canisters.keys() {
+                if pull_canisters_in_config.contains_key(canister_name) {
+                    continue;
+                }
                 let canister_is_remote = config
                     .get_config()
                     .is_remote_canister(canister_name, &network.name)?;
@@ -208,7 +219,6 @@ pub async fn exec(
                 .with_context(|| {
                     format!("Failed to read freezing threshold of {}.", canister_name)
                 })?;
-                // TODO: create for pull canisters with their mainnet ID (SDK-794)
                 create_canister(
                     env,
                     canister_name,
@@ -223,6 +233,9 @@ pub async fn exec(
                     },
                 )
                 .await?;
+            }
+            if !pull_canisters_in_config.is_empty() {
+                info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`.");
             }
         }
         Ok(())

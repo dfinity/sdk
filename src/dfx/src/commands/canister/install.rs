@@ -1,4 +1,5 @@
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister;
@@ -88,7 +89,15 @@ pub async fn exec(
         bail!("The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister.");
     }
 
+    let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
+
     if let Some(canister) = opts.canister.as_deref() {
+        if pull_canisters_in_config.contains_key(canister) {
+            bail!(
+                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
+                canister
+            );
+        }
         let config = env.get_config();
         let is_remote = config
             .as_ref()
@@ -162,6 +171,9 @@ pub async fn exec(
             .or_else(|| config.get_config().output_env_file.clone());
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
+                if pull_canisters_in_config.contains_key(canister) {
+                    continue;
+                }
                 let canister_is_remote = config
                     .get_config()
                     .is_remote_canister(canister, &network.name)?;
@@ -197,6 +209,9 @@ pub async fn exec(
                 )
                 .await?;
             }
+        }
+        if !pull_canisters_in_config.is_empty() {
+            info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`.");
         }
         Ok(())
     } else {

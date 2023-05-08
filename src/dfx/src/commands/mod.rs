@@ -10,6 +10,7 @@ mod build;
 mod cache;
 mod canister;
 mod deploy;
+mod deps;
 mod diagnose;
 mod extension;
 mod fix;
@@ -21,7 +22,6 @@ mod ledger;
 mod new;
 mod nns;
 mod ping;
-mod pull;
 mod quickstart;
 mod remote;
 mod replica;
@@ -42,6 +42,8 @@ pub enum Command {
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
     Deploy(deploy::DeployOpts),
+    #[command(hide = true)]
+    Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
     // Extension(extension::ExtensionOpts),
@@ -57,8 +59,6 @@ pub enum Command {
     New(new::NewOpts),
     Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
-    #[command(hide = true)]
-    Pull(pull::PullOpts),
     Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
@@ -80,6 +80,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Cache(v) => cache::exec(env, v),
         Command::Canister(v) => canister::exec(env, v),
         Command::Deploy(v) => deploy::exec(env, v),
+        Command::Deps(v) => deps::exec(env, v),
         Command::Diagnose(v) => diagnose::exec(env, v),
         Command::Fix(v) => fix::exec(env, v),
         // Command::Extension(v) => extension::exec(env, v),
@@ -92,7 +93,6 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::New(v) => new::exec(env, v),
         Command::Nns(v) => nns::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
-        Command::Pull(v) => pull::exec(env, v),
         Command::Quickstart(v) => quickstart::exec(env, v),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),
