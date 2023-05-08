@@ -98,8 +98,6 @@ dfx_patchelf() {
     echo dfx = "$(which dfx)"
     CACHE_DIR="$(dfx cache show)"
 
-    dfx cache install
-
     # Both ldd and iconv are providedin glibc.bin package
     LD_LINUX_SO=$(ldd "$(which iconv)"|grep ld-linux-x86|cut -d' ' -f3)
     for binary in ic-starter icx-proxy replica; do
@@ -133,6 +131,9 @@ determine_network_directory() {
 # Start the replica in the background.
 dfx_start() {
     local port dfx_config_root webserver_port
+
+    dfx cache install
+
     dfx_patchelf
 
     # Start on random port for parallel test execution
@@ -202,6 +203,9 @@ wait_until_replica_healthy() {
 # Start the replica in the background.
 dfx_replica() {
     local replica_port dfx_config_root
+
+    dfx cache install
+
     dfx_patchelf
     determine_network_directory
     if [ "$USE_IC_REF" ]

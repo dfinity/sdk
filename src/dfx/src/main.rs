@@ -230,9 +230,6 @@ fn main() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
             match EnvironmentImpl::new().map(|env| {
-                env.get_cache()
-                    .get_binary_command_path("xyz")
-                    .unwrap_or_default();
                 env.with_logger(log)
                     .with_identity_override(identity)
                     .with_verbose_level(verbose_level)
