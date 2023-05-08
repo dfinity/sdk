@@ -27,6 +27,9 @@ pub struct CanisterIdStore {
 
     // Remote ids read from dfx.json, never written to canister_ids.json
     remote_ids: Option<CanisterIds>,
+
+    // ids of pull dependencies in dfx.json, never written to canister_ids.json
+    pull_ids: BTreeMap<CanisterName, CanisterId>,
 }
 
 impl CanisterIdStore {
@@ -57,7 +60,12 @@ impl CanisterIdStore {
                 }
             },
         };
-        let remote_ids = get_remote_ids(config);
+        let remote_ids = get_remote_ids(config.clone());
+        let pull_ids = if let Some(config) = config {
+            config.get_config().get_pull_canisters()?
+        } else {
+            BTreeMap::new()
+        };
         let ids = match &path {
             Some(path) if path.is_file() => crate::json::load_json_file(path)?,
             _ => CanisterIds::new(),
@@ -68,6 +76,7 @@ impl CanisterIdStore {
             path,
             ids,
             remote_ids,
+            pull_ids,
         })
     }
 
@@ -76,6 +85,7 @@ impl CanisterIdStore {
             .as_ref()
             .and_then(|remote_ids| self.get_name_in(canister_id, remote_ids))
             .or_else(|| self.get_name_in(canister_id, &self.ids))
+            .or_else(|| self.get_name_in_pull_ids(canister_id))
     }
 
     pub fn get_name_in<'a, 'b>(
@@ -86,6 +96,13 @@ impl CanisterIdStore {
         canister_ids
             .iter()
             .find(|(_, nn)| nn.get(&self.network_descriptor.name) == Some(&canister_id.to_string()))
+            .map(|(canister_name, _)| canister_name)
+    }
+
+    fn get_name_in_pull_ids(&self, canister_id: &str) -> Option<&String> {
+        self.pull_ids
+            .iter()
+            .find(|(_, id)| id.to_text() == canister_id)
             .map(|(canister_name, _)| canister_name)
     }
 
@@ -107,6 +124,7 @@ impl CanisterIdStore {
             .as_ref()
             .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
             .or_else(|| self.find_in(canister_name, &self.ids))
+            .or_else(|| self.pull_ids.get(canister_name).copied())
     }
 
     fn find_in(&self, canister_name: &str, canister_ids: &CanisterIds) -> Option<CanisterId> {

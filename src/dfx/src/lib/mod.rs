@@ -2,6 +2,7 @@ pub mod agent;
 pub mod builders;
 pub mod call_bundled;
 pub mod canister_info;
+pub mod deps;
 pub mod diagnosis;
 pub mod dist;
 pub mod environment;
