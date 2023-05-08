@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::http::{HttpRequest, HttpResponse, StreamingStrategy};
+use crate::asset_certification::types::http::{HttpRequest, HttpResponse, StreamingStrategy};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
@@ -1448,19 +1448,26 @@ mod allow_raw_access {
 
 #[cfg(test)]
 mod certificate_expression {
-    use crate::http::build_ic_certificate_expression_from_headers_and_encoding;
+    use ic_response_verification::hash::Value;
+
+    use crate::asset_certification::types::http::build_ic_certificate_expression_from_headers_and_encoding;
 
     use super::*;
 
     #[test]
     fn ic_certificate_expression_value_from_headers() {
-        let h = ["a", "b", "c"].to_vec();
-        let c = build_ic_certificate_expression_from_headers_and_encoding(&h, "not identity");
+        let h = [
+            ("a".into(), Value::String("".into())),
+            ("b".into(), Value::String("".into())),
+            ("c".into(), Value::String("".into())),
+        ]
+        .to_vec();
+        let c = build_ic_certificate_expression_from_headers_and_encoding(&h, Some("not identity"));
         assert_eq!(
             c.expression,
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "a", "b", "c"]}}}})"#
         );
-        let c2 = build_ic_certificate_expression_from_headers_and_encoding(&h, "identity");
+        let c2 = build_ic_certificate_expression_from_headers_and_encoding(&h, Some("identity"));
         assert_eq!(
             c2.expression,
             r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "a", "b", "c"]}}}})"#
