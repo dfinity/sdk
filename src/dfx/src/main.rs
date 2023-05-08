@@ -210,8 +210,10 @@ fn main() {
             .into_iter()
             .map(|ext| ext.into_clap_command(&ext_manager))
             .collect::<Vec<Command>>();
-        let mut app = CliOpts::command_for_update().subcommands(installed_extensions);
-        sort_clap_subcommands(&mut app);
+        let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
+        if !installed_extensions.is_empty() {
+            sort_clap_subcommands(&mut app);
+        }
         app.get_matches()
     };
 
