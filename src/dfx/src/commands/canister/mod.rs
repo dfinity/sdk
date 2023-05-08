@@ -26,17 +26,17 @@ mod update_settings;
 
 /// Manages canisters deployed on a network replica.
 #[derive(Parser)]
-#[clap(name("canister"))]
+#[command(name = "canister")]
 pub struct CanisterOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
-    #[clap(long, global(true))]
+    #[arg(long, global = true)]
     wallet: Option<String>,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

@@ -2,7 +2,7 @@ use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
-use crate::batch_upload::plumbing::ChunkUploadTarget;
+use crate::batch_upload::plumbing::ChunkUploader;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
@@ -20,9 +20,11 @@ use crate::canister_api::types::batch_upload::{
     common::ComputeEvidenceArguments, v1::CommitBatchArguments,
 };
 
+use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
 use anyhow::{anyhow, bail, Context};
+use candid::Nat;
 use ic_utils::Canister;
-use slog::{info, warn, Logger};
+use slog::{debug, info, trace, warn, Logger};
 use std::collections::HashMap;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -51,13 +53,10 @@ pub async fn upload_content_and_assemble_sync_operations(
         "Staging contents of new and changed assets in batch {}:", batch_id
     );
 
-    let chunk_upload_target = ChunkUploadTarget {
-        canister,
-        batch_id: &batch_id,
-    };
+    let chunk_uploader = ChunkUploader::new(canister.clone(), batch_id.clone());
 
     let project_assets = make_project_assets(
-        Some(&chunk_upload_target),
+        Some(&chunk_uploader),
         asset_descriptors,
         &canister_assets,
         logger,
@@ -72,6 +71,22 @@ pub async fn upload_content_and_assemble_sync_operations(
         batch_id,
     );
 
+    // -v
+    debug!(
+        logger,
+        "Count of each Batch Operation Kind: {:?}",
+        commit_batch_args.group_by_kind_then_count()
+    );
+    debug!(
+        logger,
+        "Chunks: {}  Bytes: {}",
+        chunk_uploader.chunks(),
+        chunk_uploader.bytes()
+    );
+
+    // -vv
+    trace!(logger, "Value of CommitBatch: {:?}", commit_batch_args);
+
     Ok(commit_batch_args)
 }
 
@@ -80,6 +95,7 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
     let commit_batch_args =
         upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
     let canister_api_version = api_version(canister).await;
+    debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
     info!(logger, "Committing batch.");
     let response = match canister_api_version {
         0 => {
@@ -88,11 +104,65 @@ pub async fn sync(canister: &Canister<'_>, dirs: &[&Path], logger: &Logger) -> a
             warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
             commit_batch(canister, commit_batch_args_v0).await
         }
-        BATCH_UPLOAD_API_VERSION.. => commit_batch(canister, commit_batch_args).await,
+        BATCH_UPLOAD_API_VERSION.. => commit_in_stages(canister, commit_batch_args, logger).await,
     };
     response.context("Failed to synchronize frontend canister with project assets.")?;
 
     Ok(())
+}
+
+async fn commit_in_stages(
+    canister: &Canister<'_>,
+    commit_batch_args: CommitBatchArguments,
+    logger: &Logger,
+) -> anyhow::Result<()> {
+    // Note that SetAssetProperties operations are only generated for assets that
+    // already exist, since CreateAsset operations set all properties.
+    let (set_properties_operations, other_operations): (Vec<_>, Vec<_>) = commit_batch_args
+        .operations
+        .into_iter()
+        .partition(|op| matches!(op, BatchOperationKind::SetAssetProperties(_)));
+
+    // This part seems reasonable in general as a separate batch
+    for operations in set_properties_operations.chunks(500) {
+        info!(logger, "Setting properties of {} assets.", operations.len());
+        commit_batch(
+            canister,
+            CommitBatchArguments {
+                batch_id: Nat::from(0),
+                operations: operations.into(),
+            },
+        )
+        .await?
+    }
+
+    // Seen to work at 800 ({"SetAssetContent": 932, "Delete": 47, "CreateAsset": 58})
+    // so 500 shouldn't exceed per-message instruction limit
+    for operations in other_operations.chunks(500) {
+        info!(
+            logger,
+            "Committing batch with {} operations.",
+            operations.len()
+        );
+        commit_batch(
+            canister,
+            CommitBatchArguments {
+                batch_id: Nat::from(0),
+                operations: operations.into(),
+            },
+        )
+        .await?
+    }
+
+    // this just deletes the batch
+    commit_batch(
+        canister,
+        CommitBatchArguments {
+            batch_id: commit_batch_args.batch_id,
+            operations: vec![],
+        },
+    )
+    .await
 }
 
 /// Stage changes and propose the batch for commit.

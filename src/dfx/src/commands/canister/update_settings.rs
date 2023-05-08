@@ -6,15 +6,16 @@ use crate::lib::ic_attributes::{
 };
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::{
-    compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
+use crate::util::clap::parsers::{
+    compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
 };
+use byte_unit::Byte;
 use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use ic_agent::identity::Identity;
 
@@ -25,44 +26,44 @@ pub struct UpdateSettingsOpts {
     canister: Option<String>,
 
     /// Updates the settings of all canisters configured in the project dfx.json files.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
     /// Can be specified more than once, indicating the canister will have multiple controllers.
     /// If any controllers are set with this parameter, any other controllers will be removed.
-    #[clap(long, multiple_occurrences(true))]
+    #[arg(long, action = ArgAction::Append)]
     set_controller: Option<Vec<String>>,
 
     /// Add a principal to the list of controllers of the canister.
-    #[clap(long, multiple_occurrences(true), conflicts_with("set-controller"))]
+    #[arg(long, action = ArgAction::Append, conflicts_with("set_controller"))]
     add_controller: Option<Vec<String>>,
 
     /// Removes a principal from the list of controllers of the canister.
-    #[clap(long, multiple_occurrences(true), conflicts_with("set-controller"))]
+    #[arg(long, action = ArgAction::Append, conflicts_with("set_controller"))]
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
-    #[clap(long, short('c'), validator(compute_allocation_validator))]
-    compute_allocation: Option<String>,
+    #[arg(long, short, value_parser = compute_allocation_parser)]
+    compute_allocation: Option<u64>,
 
     /// Specifies how much memory the canister is allowed to use in total.
     /// This should be a value in the range [0..12 GiB].
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
-    #[clap(long, validator(memory_allocation_validator))]
-    memory_allocation: Option<String>,
+    #[arg(long, value_parser = memory_allocation_parser)]
+    memory_allocation: Option<Byte>,
 
     /// Sets the freezing_threshold in SECONDS.
     /// A canister is considered frozen whenever the IC estimates that the canister would be depleted of cycles
     /// before freezing_threshold seconds pass, given the canister's current size and the IC's current cost for storage.
     /// A frozen canister rejects any calls made to it.
-    #[clap(long, validator(freezing_threshold_validator))]
-    freezing_threshold: Option<String>,
+    #[arg(long, value_parser = freezing_threshold_parser)]
+    freezing_threshold: Option<u64>,
 
     /// Freezing thresholds above ~1.5 years require this flag as confirmation.
-    #[clap(long)]
+    #[arg(long)]
     confirm_very_long_freezing_threshold: bool,
 }
 
@@ -72,10 +73,7 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     // sanity checks
-    if let Some(ref threshold_string) = opts.freezing_threshold {
-        let threshold_in_seconds = threshold_string
-            .parse::<u128>()
-            .expect("freezing_threshold_validator did not properly validate.");
+    if let Some(threshold_in_seconds) = opts.freezing_threshold {
         if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
         {
             return Err(DiagnosedError::new(
@@ -109,21 +107,12 @@ pub async fn exec(
         let textual_cid = canister_id.to_text();
         let canister_name = canister_id_store.get_name(&textual_cid).map(|x| &**x);
 
-        let compute_allocation = get_compute_allocation(
-            opts.compute_allocation.clone(),
-            config_interface,
-            canister_name,
-        )?;
-        let memory_allocation = get_memory_allocation(
-            opts.memory_allocation.clone(),
-            config_interface,
-            canister_name,
-        )?;
-        let freezing_threshold = get_freezing_threshold(
-            opts.freezing_threshold.clone(),
-            config_interface,
-            canister_name,
-        )?;
+        let compute_allocation =
+            get_compute_allocation(opts.compute_allocation, config_interface, canister_name)?;
+        let memory_allocation =
+            get_memory_allocation(opts.memory_allocation, config_interface, canister_name)?;
+        let freezing_threshold =
+            get_freezing_threshold(opts.freezing_threshold, config_interface, canister_name)?;
         if let Some(added) = &opts.add_controller {
             let status = get_canister_status(env, canister_id, call_sender).await?;
             let mut existing_controllers = status.settings.controllers;
@@ -167,7 +156,7 @@ pub async fn exec(
                 let mut controllers = controllers.clone();
                 let canister_id = canister_id_store.get(canister_name)?;
                 let compute_allocation = get_compute_allocation(
-                    opts.compute_allocation.clone(),
+                    opts.compute_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -175,7 +164,7 @@ pub async fn exec(
                     format!("Failed to get compute allocation for {}.", canister_name)
                 })?;
                 let memory_allocation = get_memory_allocation(
-                    opts.memory_allocation.clone(),
+                    opts.memory_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -183,7 +172,7 @@ pub async fn exec(
                     format!("Failed to get memory allocation for {}.", canister_name)
                 })?;
                 let freezing_threshold = get_freezing_threshold(
-                    opts.freezing_threshold.clone(),
+                    opts.freezing_threshold,
                     Some(config_interface),
                     Some(canister_name),
                 )

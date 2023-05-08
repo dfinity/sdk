@@ -1,16 +1,13 @@
 #![allow(dead_code)]
-use crate::lib::canister_info::assets::AssetsCanisterInfo;
-use crate::lib::canister_info::custom::CustomCanisterInfo;
-use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::DfxResult;
+use crate::lib::metadata::config::CanisterMetadataConfig;
 use dfx_core::config::model::dfinity::{
-    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
+    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
     WasmOptLevel,
 };
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 
-use crate::lib::metadata::config::CanisterMetadataConfig;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
@@ -18,12 +15,18 @@ use core::panic;
 use fn_error_context::context;
 use std::path::{Path, PathBuf};
 
-use self::rust::RustCanisterInfo;
-
 pub mod assets;
 pub mod custom;
 pub mod motoko;
+pub mod pull;
 pub mod rust;
+
+use assets::AssetsCanisterInfo;
+use custom::CustomCanisterInfo;
+use motoko::MotokoCanisterInfo;
+use rust::RustCanisterInfo;
+
+use self::pull::PullCanisterInfo;
 
 pub trait CanisterInfoFactory {
     fn create(info: &CanisterInfo) -> DfxResult<Self>
@@ -55,7 +58,7 @@ pub struct CanisterInfo {
     shrink: Option<bool>,
     optimize: Option<WasmOptLevel>,
     metadata: CanisterMetadataConfig,
-    pull_ready: bool,
+    pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
 }
 
@@ -158,7 +161,7 @@ impl CanisterInfo {
             shrink: canister_config.shrink,
             optimize: canister_config.optimize,
             metadata,
-            pull_ready: canister_config.pull_ready,
+            pullable: canister_config.pullable.clone(),
             pull_dependencies,
         };
 
@@ -267,9 +270,9 @@ impl CanisterInfo {
             CanisterTypeProperties::Rust { .. } => self
                 .as_info::<RustCanisterInfo>()
                 .map(|x| x.get_output_idl_path().to_path_buf()),
-            CanisterTypeProperties::Pull { .. } => {
-                unreachable!("Should not get output idl from pull type canister")
-            }
+            CanisterTypeProperties::Pull { .. } => self
+                .as_info::<PullCanisterInfo>()
+                .map(|x| x.get_output_idl_path().to_path_buf()),
         }
         .ok()
         .or_else(|| self.remote_candid.clone())
@@ -312,8 +315,8 @@ impl CanisterInfo {
         &self.metadata
     }
 
-    pub fn is_pull_ready(&self) -> bool {
-        self.pull_ready
+    pub fn get_pullable(&self) -> Option<Pullable> {
+        self.pullable.clone()
     }
 
     pub fn get_pull_dependencies(&self) -> &[(String, CanisterId)] {

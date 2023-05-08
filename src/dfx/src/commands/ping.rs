@@ -24,7 +24,7 @@ pub struct PingOpts {
     network: Option<String>,
 
     /// Repeatedly ping until the replica is healthy
-    #[clap(long)]
+    #[arg(long)]
     wait_healthy: bool,
 }
 

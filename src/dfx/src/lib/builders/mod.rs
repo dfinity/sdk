@@ -42,6 +42,7 @@ pub enum IdlBuildOutput {
 }
 
 /// The output of a build.
+#[derive(Debug)]
 pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,

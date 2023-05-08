@@ -3,7 +3,7 @@ use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
-    plumbing::{make_project_assets, AssetDescriptor, ChunkUploadTarget},
+    plumbing::{make_project_assets, AssetDescriptor, ChunkUploader},
 };
 use crate::canister_api::methods::{
     api_version::api_version,
@@ -41,10 +41,7 @@ pub async fn upload(
 
     info!(logger, "Staging contents of new and changed assets:");
 
-    let chunk_upload_target = ChunkUploadTarget {
-        canister,
-        batch_id: &batch_id,
-    };
+    let chunk_upload_target = ChunkUploader::new(canister.clone(), batch_id.clone());
 
     let project_assets = make_project_assets(
         Some(&chunk_upload_target),

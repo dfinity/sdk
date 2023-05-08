@@ -2,6 +2,48 @@
 
 # UNRELEASED
 
+## DFX
+
+### chore: upgraded to clap v4
+
+Updated the command-parsing library to v4. Some colors may be different.
+
+### feat: dfx deps subcommands
+
+This feature was named `dfx pull` before. To make a complete, intuitive user experience, we present a set of subcommands under `dfx deps`:
+
+- `dfx deps pull`: pull the dependencies from mainnet and generate `deps/pulled.json`, the candid files of direct dependencies will also be put into `deps/candid/`;
+- `dfx deps init`: set the init arguments for the pulled dependencies and save the data in `deps/init.json`;
+- `dfx deps deploy`: deploy the pulled dependencies on local replica with the init arguments recorded in `deps/init.json`;
+
+All generated files in `deps/` are encouraged to be version controlled.
+
+### chore: Add the `nns-dapp` and `internet_identity` to the local canister IDs set by `dfx nns import`
+`dfx nns install` installs a set of canisters in a local replica.  `dfx nns import` complements this by setting the canister IDs so that they can be queried by the user.  But `dfx nns import` is incomplete.  Now it will also provide the IDs of the `nns-dapp` and `internet_identity` canisters.
+
+## Asset Canister Synchronization
+
+Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
+- The count for each `BatchOperationKind` in `CommitBatchArgs`
+- The number of chunks uploaded and the total bytes
+- The API version of both the `ic-asset` and the canister
+- (Only for `-vv`) The value of `CommitBatchArgs`
+
+In order to allow larger changes without exceeding the per-message instruction limit, the sync process now:
+- sets properties of assets already in the canister separately from the rest of the batch.
+- splits up the rest of the batch into groups of up to 500 operations.
+
+## Dependencies
+
+### Frontend canister
+
+The asset canister now properly removes the v2-certified response when `/index.html` is deleted.
+
+The HttpResponse type now explicitly mentions the `upgrade : bool` field instead of implicitly returning `false` all the time.
+
+- Module hash: 44b969d29a35ab67da654b37895cebfdd8b390f4e8feef025b081a311245f36d
+- https://github.com/dfinity/sdk/pull/3112
+
 # 0.14.0
 
 ## DFX
@@ -68,10 +110,11 @@ Canisters communicating with `ic0.app` will continue to function nominally.
 
 ### feat: confirmation dialogues are no longer case sensitive and accept 'y' in addition to 'yes'
 
-### fix: `dfx generate` no longer requires non-Motoko canisters to have a canister ID
-Previously, non-Motoko canisters required that the canister was created before `dfx generate` could be called.
-This requirement is now lifted for all canisters except for canisters of type `"motoko"` or canisters that are listed in (transitive) dependencies of a canister of type `"motoko"`.
-It is planned to lift this requirement for Motoko canisters as well, but this requires more work.
+### fix: `dfx generate` no longer requires canisters to have a canister ID
+Previously, canisters required that the canister was created before `dfx generate` could be called.
+
+As a result, the `--network` parameter does not have an impact on the result of `dfx generate` anymore.
+This means that `dfx generate` now also generates type declarations for remote canisters.
 
 ### fix: Make `build` field optional in dfx.json
 
@@ -86,8 +129,6 @@ The identity may be specified using the environment variable `DFX_IDENTITY`.
 ### feat: Add DFX_ASSETS_WASM
 
 Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
-
-### feat: dfx pull can download wasm
 
 ### fix: dfx deploy and icx-asset no longer retry on permission failure
 
@@ -282,8 +323,6 @@ Callable only by a controller.  Clears list of authorized principals and adds th
 
 As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
 
-### feat: write canister metadata sections for dfx pull
-
 ### feat: add `--argument-file` argument to the `dfx canister sign` command
 
 Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
@@ -302,11 +341,6 @@ To force the use of one specific storage mode, use the `--storage-mode` flag wit
 This works for both `dfx identity new` and `dfx identity import`.
 
 The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
-
-### feat: dfx pull
-
-- write canister metadata for dfx pull.
-- `dfx pull` can fetch `dfx:deps` metadata and resolve dependencies recursively.
 
 ### feat(frontend-canister): better control and overview for asset canister authorized principals
 
