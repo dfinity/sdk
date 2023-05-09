@@ -290,15 +290,15 @@ impl CanisterPool {
         Ok(())
     }
 
-    #[context(
-        "Failed to load canister pool for given canisters: {:?}",
-        canister_names
-    )]
-    pub fn load(
+    #[context("Failed to load canister pool.")]
+    pub fn load<'a, I>(
         env: &dyn Environment,
         generate_cid: bool,
-        canister_names: &[String],
-    ) -> DfxResult<Self> {
+        canister_names: I,
+    ) -> DfxResult<Self>
+    where
+        I: Iterator<Item = &'a String>,
+    {
         let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
@@ -314,8 +314,8 @@ impl CanisterPool {
             canisters_map: &mut canisters_map,
         };
 
-        for canister_name in canister_names {
-            CanisterPool::insert(canister_name, &mut pool_helper)?;
+        for canister_name in canister_names.into_iter() {
+            CanisterPool::insert(&canister_name, &mut pool_helper)?;
         }
 
         Ok(CanisterPool {
@@ -427,7 +427,7 @@ impl CanisterPool {
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
-                    std::fs::copy(from, &to).with_context(|| {
+                    dfx_core::fs::copy(from, &to).with_context(|| {
                         format!(
                             "Failed to copy canister '{}' candid from {} to {}.",
                             canister.get_name(),

@@ -287,7 +287,7 @@ fn run_post_install_tasks(
                 .get_config()
                 .get_canister_names_with_dependencies(Some(canister.get_name()))?;
 
-            tmp = CanisterPool::load(env, false, &deps)
+            tmp = CanisterPool::load(env, false, deps.iter())
                 .context("Error collecting canisters for post-install task")?;
             &tmp
         }

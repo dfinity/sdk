@@ -247,7 +247,7 @@ async fn build_canisters(
     let log = env.get_logger();
     info!(log, "Building canisters...");
     let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
+    let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters.iter())?;
     let build_config = BuildConfig::from_config(config)?
         .with_canisters_to_build(canisters_to_build.into())
         .with_env_file(env_file);
