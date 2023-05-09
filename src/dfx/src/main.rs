@@ -199,7 +199,7 @@ fn sort_clap_subcommands(cmd: &mut Command) {
 }
 
 fn main() {
-    let ext_manager = ExtensionManager::new(dfx_version()).unwrap_or_else(|err| {
+    let ext_manager = ExtensionManager::new(dfx_version(), false).unwrap_or_else(|err| {
         print_error_and_diagnosis(anyhow::Error::from(err), NULL_DIAGNOSIS);
         std::process::exit(255);
     });

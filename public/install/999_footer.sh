@@ -186,6 +186,8 @@ main() {
     log "Installed $_install_dir/dfx"
 
     ignore rm -rf "$_dir"
+
+    dfx cache install
 }
 
 get_architecture() {

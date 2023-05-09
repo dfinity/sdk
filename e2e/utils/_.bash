@@ -46,6 +46,8 @@ standard_setup() {
         export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/.local/share/dfx/network/local"
     fi
     export E2E_NETWORKS_JSON="$DFX_CONFIG_ROOT/.config/dfx/networks.json"
+
+    dfx cache install
 }
 
 standard_teardown() {
@@ -131,9 +133,6 @@ determine_network_directory() {
 # Start the replica in the background.
 dfx_start() {
     local port dfx_config_root webserver_port
-
-    dfx cache install
-
     dfx_patchelf
 
     # Start on random port for parallel test execution
@@ -203,9 +202,6 @@ wait_until_replica_healthy() {
 # Start the replica in the background.
 dfx_replica() {
     local replica_port dfx_config_root
-
-    dfx cache install
-
     dfx_patchelf
     determine_network_directory
     if [ "$USE_IC_REF" ]

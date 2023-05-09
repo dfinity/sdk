@@ -16,7 +16,7 @@ pub struct ExtensionManager {
 }
 
 impl ExtensionManager {
-    pub fn new(version: &Version) -> Result<Self, ExtensionError> {
+    pub fn new(version: &Version, ensure_exists: bool) -> Result<Self, ExtensionError> {
         let versioned_cache_dir = get_bin_cache(version.to_string().as_str()).map_err(|e| {
             ExtensionError::FindCacheDirectoryFailed(
                 get_cache_root()
@@ -27,7 +27,9 @@ impl ExtensionManager {
             )
         })?;
         let dir = versioned_cache_dir.join("extensions");
-        ensure_dir_exists(&dir).map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
+        if ensure_exists {
+            ensure_dir_exists(&dir).map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
+        }
 
         Ok(Self {
             dir,
