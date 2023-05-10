@@ -63,7 +63,6 @@ pub enum Command {
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
-    #[command(hide = true)]
     Sns(sns::SnsOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
