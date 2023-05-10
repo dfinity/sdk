@@ -274,8 +274,8 @@ impl CanisterPool {
             canisters_map: &mut canisters_map,
         };
 
-        for canister_name in canister_names.into_iter() {
-            CanisterPool::insert(&canister_name, &mut pool_helper)?;
+        for canister_name in canister_names {
+            CanisterPool::insert(canister_name, &mut pool_helper)?;
         }
 
         Ok(CanisterPool {

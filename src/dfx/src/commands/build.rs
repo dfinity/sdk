@@ -63,7 +63,6 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     canisters_to_load.extend(extra_canisters.into_iter());
 
     let canisters_to_build = required_canisters
-        .clone()
         .into_iter()
         .filter(|canister_name| {
             !config
