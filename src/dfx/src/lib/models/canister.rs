@@ -387,14 +387,7 @@ impl CanisterPool {
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
-                    dfx_core::fs::copy(from, &to).with_context(|| {
-                        format!(
-                            "Failed to copy canister '{}' candid from {} to {}.",
-                            canister.get_name(),
-                            from.to_string_lossy(),
-                            to.to_string_lossy()
-                        )
-                    })?;
+                    dfx_core::fs::copy(from, &to)?;
                 } else {
                     warn!(
                         log,
