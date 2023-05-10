@@ -4,6 +4,8 @@
 
 ## DFX
 
+### chore: make `sns` subcommands visible in `dfx help`
+
 ### chore: upgraded to clap v4
 
 Updated the command-parsing library to v4. Some colors may be different.
