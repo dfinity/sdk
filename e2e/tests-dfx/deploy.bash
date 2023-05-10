@@ -102,3 +102,11 @@ teardown() {
     assert_command dfx identity get-wallet
     assert_contains "Creating a wallet canister"
 }
+
+@test "deploying multiple canisters with arguments fails" {
+    dfx_start
+    assert_command_fail dfx deploy --argument hello
+    assert_contains \
+"error: the following required arguments were not provided:
+  <CANISTER_NAME>"
+}
