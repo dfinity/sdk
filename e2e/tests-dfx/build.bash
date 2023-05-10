@@ -154,6 +154,26 @@ teardown() {
     assert_match "Optimize"
 }
 
+@test "build succeeds if enable gzip" {
+    install_asset base
+    jq '.canisters.e2e_project_backend.gzip=true' dfx.json | sponge dfx.json
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
+    assert_file_exists .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm.gz
+}
+
+@test "build fails if specify gzip wasm" {
+    install_asset gzip
+    install_asset wasm/identity
+    dfx_start
+    dfx canister create --all
+    assert_command_fail dfx build
+    assert_match "The wasm module should not be gzipped.
+Please remove the gzip step in your custom build script and turn on the \`gzip\` option in \`dfx.json\`.
+\`dfx\` will handle the final gzip for you."
+}
+
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
 # Currently due to new canister ids, the wasm binary will be different for inter-canister calls.
 @test "build twice produces the same wasm binary" {

@@ -143,15 +143,15 @@ teardown() {
     assert_match "hello $id"
 }
 
-@test "can install wasm.gz canisters" {
-    install_asset gzip
-    install_asset wasm/identity
+@test "can install gzip wasm" {
+    jq '.canisters.e2e_project_backend.gzip=true' dfx.json | sponge dfx.json
     dfx_start
-    assert_command dfx canister create --all 
+    dfx canister create --all
     assert_command dfx build
     assert_command dfx canister install --all
-    assert_command dfx canister call gzipped fromQuery '()'
-    assert_match "$(dfx identity get-principal)"
+    BUILD_HASH="0x$(sha256sum .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm.gz | cut -d " " -f 1)"
+    ONCHAIN_HASH="$(dfx canister info e2e_project_backend | tail -n 1 | cut -d " " -f 3)"
+    assert_eq $BUILD_HASH $ONCHAIN_HASH
 }
 
 @test "--mode=auto selects install or upgrade automatically" {

@@ -102,3 +102,12 @@ teardown() {
     assert_command dfx identity get-wallet
     assert_contains "Creating a wallet canister"
 }
+
+@test "can deploy gzip wasm" {
+    jq '.canisters.hello_backend.gzip=true' dfx.json | sponge dfx.json
+    dfx_start
+    assert_command dfx deploy
+    BUILD_HASH="0x$(sha256sum .dfx/local/canisters/hello_backend/hello_backend.wasm.gz | cut -d " " -f 1)"
+    ONCHAIN_HASH="$(dfx canister info hello_backend | tail -n 1 | cut -d " " -f 3)"
+    assert_eq $BUILD_HASH $ONCHAIN_HASH
+}

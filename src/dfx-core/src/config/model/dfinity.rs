@@ -253,6 +253,10 @@ pub struct ConfigCanistersCanister {
     /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
     pub pullable: Option<Pullable>,
+
+    /// # Gzip Canister WASM
+    /// Disabled by default.
+    pub gzip: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]

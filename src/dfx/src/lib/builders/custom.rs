@@ -143,8 +143,10 @@ impl CanisterBuilder for CustomBuilder {
 
         let optimize = info.get_optimize();
         let shrink = info.get_shrink().unwrap_or(false);
+        let bytes: Vec<u8> = dfx_core::fs::read(&wasm).context("Failed to read wasm")?;
+
         // Custom canister may have WASM gzipped
-        if is_wasm_format(&wasm)? {
+        if is_wasm_format(&bytes) {
             if let Some(level) = optimize {
                 info!(
                     self.logger,

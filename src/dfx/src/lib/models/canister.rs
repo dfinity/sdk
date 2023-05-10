@@ -7,13 +7,14 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_SERVICE, DFX};
-use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use itertools::Itertools;
@@ -23,7 +24,7 @@ use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -102,8 +103,40 @@ impl Canister {
         self.builder.generate(pool, &self.info, build_config)
     }
 
-    #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
-    pub(crate) fn apply_metadata(&self, logger: &Logger) -> DfxResult {
+    #[context("Failed to process wasm of canister '{}'.", self.info.get_name())]
+    pub(crate) fn wasm_post_process(
+        &self,
+        logger: &Logger,
+        build_output: &BuildOutput,
+    ) -> DfxResult {
+        let WasmBuildOutput::File(build_output_wasm_path) = &build_output.wasm;
+        let wasm_path = self.info.get_build_wasm_path();
+        dfx_core::fs::create_dir_all(&dfx_core::fs::parent(&wasm_path)?)?;
+        if self.info.is_assets() || self.info.is_pull() || self.info.is_remote() {
+            dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
+            return Ok(());
+        }
+
+        // 0. get the wasm from build output, which MUST be non-gzipped
+        if build_output_wasm_path.extension().unwrap() == "gz" {
+            bail!(
+                "The wasm module should not be gzipped.
+Please remove the gzip step in your custom build script and turn on the `gzip` option in `dfx.json`.
+`dfx` will handle the final gzip for you."
+            )
+        }
+
+        let bytes: Vec<u8> =
+            dfx_core::fs::read(build_output_wasm_path).context("Failed to read wasm")?;
+        let mut m = ic_wasm::utils::parse_wasm(&bytes, true).with_context(|| {
+            format!(
+                "Failed to parse wasm at {}",
+                build_output_wasm_path.display()
+            )
+        })?;
+
+        // 1. metadata
+        trace!(logger, "Attaching metadata...");
         let mut metadata_sections = self.info.metadata().sections.clone();
         // Default to write public candid:service unless overwritten
         if (self.info.is_rust() || self.info.is_motoko())
@@ -136,31 +169,11 @@ impl Canister {
             );
         }
 
-        if metadata_sections.is_empty() {
-            return Ok(());
-        }
-
-        let wasm_path = self.info.get_build_wasm_path();
-        let idl_path = self.info.get_build_idl_path();
-
-        if !is_wasm_format(&wasm_path)? {
-            warn!(
-                logger,
-                "Canister '{}': cannot apply metadata because the canister is not wasm format",
-                self.info.get_name()
-            );
-            return Ok(());
-        }
-
-        let wasm = std::fs::read(&wasm_path)
-            .with_context(|| format!("Failed to read wasm at {}", wasm_path.display()))?;
-        let mut m = ic_wasm::utils::parse_wasm(&wasm, true)
-            .with_context(|| format!("Failed to parse wasm at {}", wasm_path.display()))?;
-
+        let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
         for (name, section) in &metadata_sections {
             if section.name == CANDID_SERVICE && self.info.is_motoko() {
                 if let Some(specified_path) = &section.path {
-                    check_valid_subtype(&idl_path, specified_path)?
+                    check_valid_subtype(build_idl_path, specified_path)?
                 } else {
                     // Motoko compiler handles this
                     continue;
@@ -169,8 +182,8 @@ impl Canister {
 
             let data = match (section.path.as_ref(), section.content.as_ref()) {
                 (None, None) if section.name == CANDID_SERVICE =>
-                    std::fs::read(&idl_path)
-                .with_context(|| format!("Failed to read {}", idl_path.to_string_lossy()))?
+                    std::fs::read(build_idl_path)
+                .with_context(|| format!("Failed to read {}", build_idl_path.to_string_lossy()))?
                 ,
 
                 (Some(path), None)=> std::fs::read(path)
@@ -199,8 +212,24 @@ impl Canister {
             add_metadata(&mut m, visibility, name, data);
         }
 
-        m.emit_wasm_file(&wasm_path)
-            .with_context(|| format!("Could not write WASM to {:?}", wasm_path))
+        let new_bytes = m.emit_wasm();
+        let wasm_path: std::path::PathBuf = self.info.get_build_wasm_path();
+
+        // 2. gzip
+        if self.info.get_gzip() {
+            trace!(logger, "Gzipping WASM...");
+            let bytes = m.emit_wasm();
+            let mut e = GzEncoder::new(Vec::new(), Compression::default());
+            e.write_all(&bytes)?;
+            let gzip_bytes = e.finish()?;
+            dfx_core::fs::write(&wasm_path, &gzip_bytes)
+                .with_context(|| format!("Could not write gzip WASM to {:?}", &wasm_path))?;
+        } else {
+            dfx_core::fs::write(&wasm_path, new_bytes)
+                .with_context(|| format!("Could not write WASM to {:?}", &wasm_path))?;
+        }
+
+        Ok(())
     }
 }
 
@@ -446,62 +475,36 @@ impl CanisterPool {
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
-        // Copy the WASM and IDL files to canisters/NAME/...
+        canister.wasm_post_process(self.get_logger(), build_output)?;
+
+        // Copy the IDL file to three places in .dfx/local/:
+        // 1. canisters/NAME/NAME.did
+        // 2. IDL_ROOT/CANISTER_ID.did
+        // 3. LSP_ROOT/CANISTER_ID.did
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
-        let idl_file_path = canister.info.get_build_idl_path();
-        if build_idl_path.ne(&idl_file_path) {
-            std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
-                format!(
-                    "Failed to create idl file {}.",
-                    idl_file_path.parent().unwrap().to_string_lossy()
-                )
-            })?;
-            std::fs::copy(build_idl_path, &idl_file_path)
-                .map(|_| {})
-                .map_err(DfxError::from)
-                .with_context(|| {
-                    format!(
-                        "Failed to copy {} to {}",
-                        build_idl_path.display(),
-                        idl_file_path.display()
-                    )
-                })?;
-            set_perms_readwrite(&idl_file_path)?;
-        }
-
-        let WasmBuildOutput::File(build_wasm_path) = &build_output.wasm;
-        let wasm_file_path = canister.info.get_build_wasm_path();
-        if build_wasm_path.ne(&wasm_file_path) {
-            std::fs::create_dir_all(wasm_file_path.parent().unwrap()).with_context(|| {
-                format!(
-                    "Failed to create {}.",
-                    wasm_file_path.parent().unwrap().to_string_lossy()
-                )
-            })?;
-            std::fs::copy(build_wasm_path, &wasm_file_path)
-                .map(|_| {})
-                .map_err(DfxError::from)?;
-            set_perms_readwrite(&wasm_file_path)?;
-        }
-
-        canister.apply_metadata(self.get_logger())?;
-
+        let mut targets = vec![];
+        targets.push(canister.info.get_build_idl_path());
         let canister_id = canister.canister_id();
+        targets.push(
+            build_config
+                .idl_root
+                .join(canister_id.to_text())
+                .with_extension("did"),
+        );
+        targets.push(
+            build_config
+                .lsp_root
+                .join(canister_id.to_text())
+                .with_extension("did"),
+        );
 
-        // Copy DID files to IDL and LSP directories
-        for root in [&build_config.idl_root, &build_config.lsp_root] {
-            let idl_file_path = root.join(canister_id.to_text()).with_extension("did");
-
-            std::fs::create_dir_all(idl_file_path.parent().unwrap()).with_context(|| {
-                format!(
-                    "Failed to create {}.",
-                    idl_file_path.parent().unwrap().to_string_lossy()
-                )
-            })?;
-            std::fs::copy(build_idl_path, &idl_file_path)
-                .map(|_| {})
-                .map_err(DfxError::from)?;
-            set_perms_readwrite(&idl_file_path)?;
+        for target in targets {
+            if &target == build_idl_path {
+                continue;
+            }
+            dfx_core::fs::create_dir_all(&dfx_core::fs::parent(&target)?)?;
+            dfx_core::fs::copy(build_idl_path, &target)?;
+            set_perms_readwrite(&target)?;
         }
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
