@@ -27,16 +27,12 @@ pub struct SnsOpts {
 #[derive(Parser)]
 enum SubCommand {
     /// Subcommands for working with configuration.
-    #[command(hide = true)]
     Config(SnsConfigOpts),
     /// Subcommand for creating an SNS.
-    #[command(hide = true)]
     Deploy(deploy::DeployOpts),
     /// Subcommand for importing sns API definitions and canister IDs.
-    #[command(hide = true)]
     Import(SnsImportOpts),
     /// Subcommand for downloading SNS WASMs.
-    #[command(hide = true)]
     Download(SnsDownloadOpts),
 }
 
