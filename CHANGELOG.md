@@ -4,6 +4,12 @@
 
 ## DFX
 
+### fix: prevented using --argument with --all in canister installation
+
+Removed `dfx deploy`'s behavior of providing the same argument to all canisters, and `dfx canister install`'s behavior of providing an empty argument to all canisters regardless of what was specified. Now installing multiple canisters and providing an installation argument is an error in both commands.
+
+### chore: make `sns` subcommands visible in `dfx help`
+
 ### chore: upgraded to clap v4
 
 Updated the command-parsing library to v4. Some colors may be different.

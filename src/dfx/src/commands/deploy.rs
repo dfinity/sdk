@@ -36,7 +36,7 @@ pub struct DeployOpts {
     canister_name: Option<String>,
 
     /// Specifies the argument to pass to the method.
-    #[arg(long)]
+    #[arg(long, requires("canister_name"))]
     argument: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
