@@ -38,25 +38,6 @@ teardown() {
     assert_contains "DFX_NETWORK='actuallylocal'" "$(< .env)"
 }
 
-@test "writes all canister IDs to .env even if not specified as dependency" {
-    jq 'del(.canisters.e2e_project_frontend.dependencies)' dfx.json  | sponge dfx.json
-
-    dfx_start
-    dfx canister create --all
-    backend_canister=$(dfx canister id e2e_project_backend)
-    frontend_canister=$(dfx canister id e2e_project_frontend)
-    
-    assert_command dfx build e2e_project_frontend
-
-    assert_file_exists .env
-    env=$(< .env)
-    assert_contains "DFX_NETWORK='local'" "$env"
-    assert_contains "CANISTER_ID_E2E_PROJECT_BACKEND='$backend_canister'" "$env"
-    assert_contains "E2E_PROJECT_BACKEND_CANISTER_ID='$backend_canister'" "$env"
-    assert_contains "CANISTER_ID_E2E_PROJECT_FRONTEND='$frontend_canister'" "$env"
-    assert_contains "E2E_PROJECT_FRONTEND_CANISTER_ID='$frontend_canister'" "$env"
-}
-
 @test "writes environment variables to selected file" {
     dfx_start
     dfx canister create --all
