@@ -41,7 +41,8 @@ The asset canister now properly removes the v2-certified response when `/index.h
 
 The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field instead of implicitly returning `None` all the time.
 
-- Module hash: 44b969d29a35ab67da654b37895cebfdd8b390f4e8feef025b081a311245f36d
+- Module hash: 651425d92d3796ddae581191452e0e87484eeff4ff6352fe9a59c7e1f97a2310
+- https://github.com/dfinity/sdk/pull/3120
 - https://github.com/dfinity/sdk/pull/3112
 
 # 0.14.0
