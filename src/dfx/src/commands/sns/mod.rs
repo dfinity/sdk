@@ -16,10 +16,10 @@ mod import;
 
 /// Options for `dfx sns`.
 #[derive(Parser)]
-#[clap(name("sns"))]
+#[command(name = "sns")]
 pub struct SnsOpts {
     /// Arguments and flags for subcommands.
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
@@ -27,16 +27,16 @@ pub struct SnsOpts {
 #[derive(Parser)]
 enum SubCommand {
     /// Subcommands for working with configuration.
-    #[clap(hide(true))]
+    #[command(hide = true)]
     Config(SnsConfigOpts),
     /// Subcommand for creating an SNS.
-    #[clap(hide(true))]
+    #[command(hide = true)]
     Deploy(deploy::DeployOpts),
     /// Subcommand for importing sns API definitions and canister IDs.
-    #[clap(hide(true))]
+    #[command(hide = true)]
     Import(SnsImportOpts),
     /// Subcommand for downloading SNS WASMs.
-    #[clap(hide(true))]
+    #[command(hide = true)]
     Download(SnsDownloadOpts),
 }
 

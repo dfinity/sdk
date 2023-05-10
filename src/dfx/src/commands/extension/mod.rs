@@ -12,9 +12,9 @@ mod uninstall;
 
 /// Manages the dfx extensions.
 #[derive(Parser)]
-#[clap(name("extension"))]
+#[command(name = "extension")]
 pub struct ExtensionOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

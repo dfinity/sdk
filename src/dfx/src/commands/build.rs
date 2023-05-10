@@ -21,18 +21,18 @@ pub struct CanisterBuildOpts {
     canister_name: Option<String>,
 
     /// Builds all canisters configured in the dfx.json file.
-    #[clap(long, conflicts_with("canister-name"))]
+    #[arg(long, conflicts_with("canister_name"))]
     all: bool,
 
     /// Build canisters without creating them. This can be used to check that canisters build ok.
-    #[clap(long)]
+    #[arg(long)]
     check: bool,
 
     /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
-    #[clap(long)]
+    #[arg(long)]
     output_env_file: Option<PathBuf>,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 }
 

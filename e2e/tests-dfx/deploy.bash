@@ -90,7 +90,7 @@ teardown() {
 @test "deploy fails if --specified-id without canister_name" {
     dfx_start
     assert_command_fail dfx deploy --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
-    assert_match "error: The following required arguments were not provided:"
+    assert_match "error: the following required arguments were not provided:"
     assert_match "<CANISTER_NAME>"
 }
 

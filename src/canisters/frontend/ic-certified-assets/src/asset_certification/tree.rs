@@ -51,6 +51,22 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
         }
     }
 
+    /// Returns true if there is a leaf at the specified path
+    pub fn contains_leaf(&self, path: &[K]) -> bool {
+        if let Some(key) = path.get(0) {
+            match self {
+                NestedTree::Leaf(_) => false,
+                NestedTree::Nested(tree) => tree
+                    .get(key.as_ref())
+                    .map(|child| child.contains_leaf(&path[1..]))
+                    .unwrap_or(false),
+            }
+        } else {
+            matches!(self, NestedTree::Leaf(_))
+        }
+    }
+
+    /// Returns true if there is a leaf or a subtree at the specified path
     pub fn contains_path(&self, path: &[K]) -> bool {
         if let Some(key) = path.get(0) {
             match self {
@@ -61,7 +77,7 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
                     .unwrap_or(false),
             }
         } else {
-            matches!(self, NestedTree::Leaf(_))
+            true
         }
     }
 
@@ -157,26 +173,28 @@ fn nested_tree_operation() {
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
     assert_eq!(tree.get(&["one", "two", "three"]), None);
     assert_eq!(tree.get(&["one"]), None);
-    assert!(tree.contains_path(&["one", "two"]));
+    assert!(tree.contains_leaf(&["one", "two"]));
+    assert!(tree.contains_path(&["one"]));
+    assert!(!tree.contains_leaf(&["one", "two", "three"]));
     assert!(!tree.contains_path(&["one", "two", "three"]));
-    assert!(!tree.contains_path(&["one"]));
+    assert!(!tree.contains_leaf(&["one"]));
 
     // deleting non-existent key doesn't do anything
     tree.delete(&["one", "two", "three"]);
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
-    assert!(tree.contains_path(&["one", "two"]));
+    assert!(tree.contains_leaf(&["one", "two"]));
 
     // deleting existing key works
     tree.delete(&["one", "three"]);
     assert_eq!(tree.get(&["one", "two"]), Some(&vec![2]));
     assert_eq!(tree.get(&["one", "three"]), None);
-    assert!(tree.contains_path(&["one", "two"]));
-    assert!(!tree.contains_path(&["one", "three"]));
+    assert!(tree.contains_leaf(&["one", "two"]));
+    assert!(!tree.contains_leaf(&["one", "three"]));
 
     // deleting subtree works
     tree.delete(&["one"]);
     assert_eq!(tree.get(&["one", "two"]), None);
     assert_eq!(tree.get(&["one"]), None);
-    assert!(!tree.contains_path(&["one", "two"]));
-    assert!(!tree.contains_path(&["one"]));
+    assert!(!tree.contains_leaf(&["one", "two"]));
+    assert!(!tree.contains_leaf(&["one"]));
 }

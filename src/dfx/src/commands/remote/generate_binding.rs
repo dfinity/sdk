@@ -17,14 +17,14 @@ pub struct GenerateBindingOpts {
     canister: Option<String>,
 
     /// Builds bindings for all canisters.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     // destructive operations (see --overwrite) can happen
     // therefore it is safer to require the explicit --all flag
     #[allow(dead_code)]
     all: bool,
 
     /// Overwrite main file if it already exists.
-    #[clap(long)]
+    #[arg(long)]
     overwrite: bool,
 }
 
