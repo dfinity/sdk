@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::path::PathBuf;
 
 use crate::config::cache::DiskBasedCache;
@@ -57,10 +56,13 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let required_canisters = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
-    let extra_canisters = collect_extra_canisters(&env, &config);
+    let extra_canisters: Vec<_> = collect_extra_canisters(&env, &config)
+        .into_iter()
+        .filter(|extra| !required_canisters.contains(extra))
+        .collect();
 
-    let mut canisters_to_load: HashSet<_> = required_canisters.clone().into_iter().collect();
-    canisters_to_load.extend(extra_canisters.into_iter());
+    let mut canisters_to_load = required_canisters.clone();
+    canisters_to_load.extend_from_slice(extra_canisters.as_slice());
 
     let canisters_to_build = required_canisters
         .into_iter()
