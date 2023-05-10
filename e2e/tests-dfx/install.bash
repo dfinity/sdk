@@ -183,9 +183,6 @@ teardown() {
 }
 
 @test "installing multiple canisters with arguments fails" {
-    dfx_start
-    dfx canister create --all
-    dfx build
     assert_command_fail dfx canister install --all --argument hello
     assert_contains "error: the argument '--all' cannot be used with '--argument <ARGUMENT>'"
 }
