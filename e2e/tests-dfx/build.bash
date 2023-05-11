@@ -112,13 +112,6 @@ teardown() {
     assert_command dfx build
 }
 
-@test "build succeeds if disable shrink" {
-    jq '.canisters.e2e_project_backend.shrink=false' dfx.json | sponge dfx.json
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
-}
-
 @test "build succeeds if enable optimize" {
     jq '.canisters.e2e_project_backend.optimize="cycles"' dfx.json | sponge dfx.json
     dfx_start
@@ -126,18 +119,18 @@ teardown() {
     assert_command dfx build
 }
 
-@test "build custom canister default no shrink" {
+@test "build custom canister default shrink" {
     install_asset custom_canister
     install_asset wasm/identity
 
     dfx_start
     dfx canister create --all
-    assert_command dfx build custom
-    assert_not_match "Shrink"
+    assert_command dfx build custom -vvv
+    assert_match "Shrinking WASM"
 
-    jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
-    assert_command dfx build custom
-    assert_match "Shrink"
+    jq '.canisters.custom.shrink=false' dfx.json | sponge dfx.json
+    assert_command dfx build custom -vvv
+    assert_not_match "Shrinking WASM"
 }
 
 @test "build custom canister default no optimize" {
@@ -146,12 +139,12 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command dfx build custom
-    assert_not_match "Optimize"
+    assert_command dfx build custom -vvv
+    assert_not_match "Optimizing"
 
     jq '.canisters.custom.optimize="size"' dfx.json | sponge dfx.json
-    assert_command dfx build custom
-    assert_match "Optimize"
+    assert_command dfx build custom -vvv
+    assert_match "Optimizing WASM at level"
 }
 
 @test "build succeeds if enable gzip" {

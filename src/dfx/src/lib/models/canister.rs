@@ -125,7 +125,7 @@ impl Canister {
             return Ok(());
         }
 
-        // 0. get the wasm from build output, which MUST be non-gzipped
+        // get the wasm from build output, which MUST be non-gzipped
         if build_output_wasm_path.extension().unwrap() == "gz" {
             bail!(
                 "The wasm module should not be gzipped.
@@ -143,8 +143,18 @@ Please remove the gzip step in your custom build script and turn on the `gzip` o
             )
         })?;
 
-        // 1. metadata
-        trace!(logger, "Attaching metadata...");
+        // optimize or shrink
+        if let Some(level) = self.info.get_optimize() {
+            trace!(logger, "Optimizing WASM at level {}", level);
+            ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string())
+                .context("Failed to optimize the WASM module.")?;
+        } else if self.info.get_shrink().unwrap_or(true) {
+            trace!(logger, "Shrinking WASM");
+            ic_wasm::shrink::shrink(&mut m);
+        }
+
+        // metadata
+        trace!(logger, "Attaching metadata");
         // Default to write public candid:service unless overwritten
         if (self.info.is_rust() || self.info.is_motoko())
             && !metadata_sections.contains_key(CANDID_SERVICE)
@@ -222,9 +232,9 @@ Please remove the gzip step in your custom build script and turn on the `gzip` o
         let new_bytes = m.emit_wasm();
         let wasm_path: std::path::PathBuf = self.info.get_build_wasm_path();
 
-        // 2. gzip
+        // gzip
         if self.info.get_gzip() {
-            trace!(logger, "Gzipping WASM...");
+            trace!(logger, "Gzipping WASM");
             let bytes = m.emit_wasm();
             let mut e = GzEncoder::new(Vec::new(), Compression::default());
             e.write_all(&bytes)?;
