@@ -74,7 +74,7 @@ teardown() {
     dfx_start
     assert_command_fail dfx build --network local
     assert_match "Cannot find canister id."
-    assert_not_match "local"
+    assert_not_contains "--network local"
 }
 
 @test "failure message does include network if for non-local network" {
