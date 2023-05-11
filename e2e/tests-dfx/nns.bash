@@ -142,7 +142,7 @@ assert_nns_canister_id_matches() {
 
     echo "    The secp256k1 account can be controlled from the command line"
     install_asset nns
-    dfx identity import --force --disable-encryption ident-1 ident-1/identity.pem
+    dfx identity import --force --storage-mode plaintext ident-1 ident-1/identity.pem
     assert_command dfx ledger account-id --identity ident-1
     assert_eq "$SECP256K1_ACCOUNT_ID"
 

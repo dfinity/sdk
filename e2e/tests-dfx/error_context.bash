@@ -44,7 +44,7 @@ teardown() {
 
     # can't write it?
     chmod u=r,go= "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
-    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --storage-mode plaintext alice
     assert_command_fail dfx identity get-wallet --identity alice
     assert_match "Failed to write to .*/local/wallets.json"
     assert_match "Permission denied"
