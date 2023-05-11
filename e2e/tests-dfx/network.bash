@@ -81,6 +81,6 @@ teardown() {
 
     setup_actuallylocal_shared_network
 
-    assert_command_fail dfx build e2e_project_frontend --network actuallylocal
+    assert_command_fail dfx build --network actuallylocal
     assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend --network actuallylocal"
 }
