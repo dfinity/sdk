@@ -4,6 +4,28 @@
 
 ## DFX
 
+### feat: gzip option in dfx.json
+
+`dfx` can gzip wasm module as the final step in building canisters. 
+
+This behavior is disabled by default.
+
+You can enable it in `dfx.json`:
+
+```json
+{
+  "canisters" : {
+    "app" : {
+      "gzip" : true
+    }
+  }
+}
+```
+
+Please note that, the `"wasm"` field of a custom type canister must point to a non-gzip wasm file. Please remove the gzip step in your build script and let `dfx` handle the final gzip.
+
+And the `optimize` and `shrink` behavior is unified for all canister types. Now `shrink` is on by default. If you specify `optimize` with a level, `dfx` will optimize the wasm instead of shrinking it. To turn off all optimization/shrink, please explicitly set `shrink` to false.
+
 ### fix: prevented using --argument with --all in canister installation
 
 Removed `dfx deploy`'s behavior of providing the same argument to all canisters, and `dfx canister install`'s behavior of providing an empty argument to all canisters regardless of what was specified. Now installing multiple canisters and providing an installation argument is an error in both commands.

@@ -233,6 +233,8 @@ Please remove the gzip step in your custom build script and turn on the `gzip` o
         let wasm_path: std::path::PathBuf = self.info.get_build_wasm_path();
 
         // gzip
+        // Unlike using gzip CLI, the compression below only takes the wasm bytes
+        // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
         if self.info.get_gzip() {
             trace!(logger, "Gzipping WASM");
             let bytes = m.emit_wasm();
