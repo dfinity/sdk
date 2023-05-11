@@ -151,7 +151,7 @@ teardown() {
     assert_command dfx canister install --all
     BUILD_HASH="0x$(sha256sum .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm.gz | cut -d " " -f 1)"
     ONCHAIN_HASH="$(dfx canister info e2e_project_backend | tail -n 1 | cut -d " " -f 3)"
-    assert_eq $BUILD_HASH $ONCHAIN_HASH
+    assert_eq "$BUILD_HASH" "$ONCHAIN_HASH"
 }
 
 @test "--mode=auto selects install or upgrade automatically" {
