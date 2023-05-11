@@ -112,7 +112,15 @@ impl Canister {
         let WasmBuildOutput::File(build_output_wasm_path) = &build_output.wasm;
         let wasm_path = self.info.get_build_wasm_path();
         dfx_core::fs::create_dir_all(&dfx_core::fs::parent(&wasm_path)?)?;
+        let mut metadata_sections = self.info.metadata().sections.clone();
         if self.info.is_assets() || self.info.is_pull() || self.info.is_remote() {
+            if !metadata_sections.is_empty() {
+                warn!(
+                    logger,
+                    "Canister {} should not define metadata in `dfx.json`. Please remove them.",
+                    self.get_name()
+                );
+            }
             dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
             return Ok(());
         }
@@ -137,7 +145,6 @@ Please remove the gzip step in your custom build script and turn on the `gzip` o
 
         // 1. metadata
         trace!(logger, "Attaching metadata...");
-        let mut metadata_sections = self.info.metadata().sections.clone();
         // Default to write public candid:service unless overwritten
         if (self.info.is_rust() || self.info.is_motoko())
             && !metadata_sections.contains_key(CANDID_SERVICE)

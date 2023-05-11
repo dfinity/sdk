@@ -136,17 +136,16 @@ teardown() {
     diff first-match-chosen.txt from-canister.txt
 }
 
-@test "warns if cannot add metadata to a compressed canister" {
-    # the frontend canister is compressed
-    dfx_new_frontend
+@test "warns if add metadata to a frontend canister" {
+    # For assets/pull/remote canisters, `dfx` will skip apllying metadata and warns if user defines metadata for them.
+    dfx_new
     dfx_start
 
     jq 'del(.canisters.e2e_project_frontend.metadata)' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project_frontend.metadata[0].name="arbitrary"|.canisters.e2e_project_frontend.metadata[0].path="arbitrary-metadata.txt"' dfx.json | sponge dfx.json
-    echo "can be anything" >arbitrary-metadata.txt
+    jq '.canisters.e2e_project_frontend.metadata[0].name="arbitrary"|.canisters.e2e_project_frontend.metadata[0].content="arbitrary content"' dfx.json | sponge dfx.json
     jq . dfx.json
     assert_command dfx deploy
-    assert_match "cannot apply metadata because the canister is not wasm format"
+    assert_match "Canister e2e_project_frontend should not define metadata in \`dfx.json\`. Please remove them."
 }
 
 @test "existence of build steps do not control custom canister metadata" {
