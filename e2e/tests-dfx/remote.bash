@@ -19,7 +19,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_shared_network
 
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
 
     assert_command dfx deploy --network actuallylocal --identity alice
     assert_command dfx canister call remote write '("initial data in the remote canister")' --identity alice --network actuallylocal
@@ -98,7 +98,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_shared_network
 
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
 
     assert_command dfx deploy --network actuallylocal --identity alice
 
@@ -120,7 +120,7 @@ teardown() {
     dfx_start
     setup_actuallylocal_shared_network
 
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
 
     assert_command dfx deploy --network actuallylocal --identity alice
 
@@ -146,7 +146,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
 
     assert_command dfx deploy --network actuallylocal --identity alice
     assert_command dfx canister call remote write '("this is data in the remote canister")' --identity alice --network actuallylocal
@@ -215,7 +215,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
 
     assert_command dfx deploy --network actuallylocal --identity alice
 
@@ -251,7 +251,7 @@ teardown() {
     # Set up the "remote" canister, with a different controller in order to
     # demonstrate that we don't try to install/upgrade it as a remote canister.
     #
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
 
     assert_command dfx deploy --network actuallylocal --identity alice
     assert_command dfx canister call remote write '("this is data in the remote canister")' --network actuallylocal --identity alice
