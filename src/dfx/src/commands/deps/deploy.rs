@@ -1,3 +1,4 @@
+use crate::lib::deps::deploy::try_create_canister;
 use crate::lib::deps::{
     get_canister_prompt, get_pull_canister_or_principal, get_pull_canisters_in_config,
     get_pulled_wasm_path, load_init_json, load_pulled_json, validate_pulled, InitJson,
@@ -5,9 +6,8 @@ use crate::lib::deps::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::state_tree::canister_info::read_state_tree_canister_controllers;
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
@@ -73,31 +73,6 @@ async fn create_and_install(
     try_create_canister(agent, logger, canister_id, canister_prompt).await?;
     install_pulled_canister(agent, logger, canister_id, arg_raw, canister_prompt).await?;
     Ok(())
-}
-
-// not use operations::canister::create_canister because we don't want to modify canister_id_store
-#[context("Failed to create canister {}", canister_id)]
-async fn try_create_canister(
-    agent: &Agent,
-    logger: &Logger,
-    canister_id: &Principal,
-    canister_prompt: &str,
-) -> DfxResult {
-    match read_state_tree_canister_controllers(agent, *canister_id).await? {
-        Some(cs) if cs.len() == 1 && cs[0] == Principal::anonymous() => Ok(()),
-        Some(_) => {
-            bail!("Canister {canister_id} has been created before and its controller is not the anonymous identity. Please stop and delete it and then deploy again.");
-        }
-        None => {
-            let mgr = ManagementCanister::create(agent);
-            info!(logger, "Creating canister: {canister_prompt}");
-            mgr.create_canister()
-                .as_provisional_create_with_specified_id(*canister_id)
-                .call_and_wait()
-                .await?;
-            Ok(())
-        }
-    }
 }
 
 #[context("Failed to install canister {}", canister_id)]

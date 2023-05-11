@@ -1,3 +1,5 @@
+pub mod deploy;
+
 use crate::lib::{environment::Environment, error::DfxResult};
 use dfx_core::{
     config::cache::get_cache_root,
