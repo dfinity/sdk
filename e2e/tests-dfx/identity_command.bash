@@ -142,7 +142,7 @@ frank'
 }
 
 @test "identity new: key is compatible with openssl" {
-    assert_command dfx identity new --disable-encryption bob
+    assert_command dfx identity new --storage-mode plaintext bob
     assert_command openssl ec -in "$DFX_CONFIG_ROOT/.config/dfx/identity/bob/identity.pem"
 }
 
@@ -558,7 +558,7 @@ EOF
     [[ $stderr =~ $reg ]]
     echo "${BASH_REMATCH[1]}" >seed.txt
     principal=$(dfx identity get-principal --identity alice)
-    assert_command dfx identity import alice2 --seed-file seed.txt --disable-encryption
+    assert_command dfx identity import alice2 --seed-file seed.txt --storage-mode plaintext
     assert_command dfx identity get-principal --identity alice2
     assert_eq "$principal"
     dfx identity export alice2 > export.pem
@@ -568,7 +568,7 @@ EOF
 
 @test "identity: consistently imports a known seed phrase" {
     echo "display dawn estate night naive stomach receive lock expose boring square boy deposit mistake volume soldier coil rocket match diamond repair opinion action paddle">seed.txt
-    assert_command dfx identity import alice --seed-file seed.txt --disable-encryption
+    assert_command dfx identity import alice --seed-file seed.txt --storage-mode plaintext
     assert_command dfx identity get-principal --identity alice
     assert_eq "qimd7-lqrvx-kdvsm-7zeqn-bgoix-ukjfi-hgmfg-ur2he-odgb2-joms4-nae"
 }

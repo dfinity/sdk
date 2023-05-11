@@ -14,7 +14,7 @@ teardown() {
     use_test_specific_cache_root   # Because this test depends on a clean cache state
 
     #identity
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/alice/identity.pem"
     assert_command head "$DFX_CONFIG_ROOT/.config/dfx/identity/default/identity.pem"
 
@@ -35,7 +35,7 @@ teardown() {
         unset DFX_CACHE_ROOT
         unset DFX_CONFIG_ROOT
 
-        dfx identity new --disable-encryption bob
+        dfx identity new --storage-mode plaintext bob
         assert_command head "$HOME/.config/dfx/identity/bob/identity.pem"
         assert_command head "$HOME/.config/dfx/identity/default/identity.pem"
 
