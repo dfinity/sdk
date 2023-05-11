@@ -21,11 +21,11 @@ pub struct DepsInitOpts {
     canister: Option<String>,
 
     /// Specifies the init argument.
-    #[clap(long, requires("canister"))]
+    #[arg(long, requires("canister"))]
     argument: Option<String>,
 
     /// Specifies the data type of the init argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     argument_type: Option<String>,
 }
 

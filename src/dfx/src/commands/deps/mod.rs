@@ -11,13 +11,13 @@ mod pull;
 
 /// Options for `dfx deps`.
 #[derive(Parser)]
-#[clap(name = "deps")]
+#[command(name = "deps")]
 pub struct DepsOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
     /// Arguments and flags for subcommands.
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

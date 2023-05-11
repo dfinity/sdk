@@ -15,11 +15,11 @@ pub struct BalanceOpts {
     of: Option<String>,
 
     /// Subaccount of the selected identity to get the balance of
-    #[clap(long, conflicts_with("of"))]
+    #[arg(long, conflicts_with("of"))]
     subaccount: Option<Subaccount>,
 
     /// Canister ID of the ledger canister.
-    #[clap(long)]
+    #[arg(long)]
     ledger_canister_id: Option<Principal>,
 }
 

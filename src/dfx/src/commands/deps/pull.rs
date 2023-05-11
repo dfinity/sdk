@@ -34,7 +34,7 @@ use slog::{error, info, trace, Logger};
 /// You can still choose other network by setting `--network`.
 #[derive(Parser)]
 pub struct DepsPullOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 }
 

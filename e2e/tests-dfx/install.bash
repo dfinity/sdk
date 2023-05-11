@@ -181,3 +181,8 @@ teardown() {
     assert_command dfx canister info e2e_project_frontend
     assert_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
 }
+
+@test "installing multiple canisters with arguments fails" {
+    assert_command_fail dfx canister install --all --argument hello
+    assert_contains "error: the argument '--all' cannot be used with '--argument <ARGUMENT>'"
+}

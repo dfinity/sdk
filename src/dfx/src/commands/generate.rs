@@ -17,7 +17,7 @@ pub struct GenerateOpts {
 
     // Deprecated/hidden because it had/has no effect.
     // Cannot use 'hide' on a flattened  object - inlined the flattened network specifier
-    #[clap(long, global(true), hide(true))]
+    #[arg(long, global = true, hide = true)]
     network: Option<String>,
 }
 

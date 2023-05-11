@@ -12,10 +12,10 @@ mod install;
 
 /// Options for `dfx nns` and its subcommands.
 #[derive(Parser)]
-#[clap(name("nns"))]
+#[command(name = "nns")]
 pub struct NnsOpts {
     /// `dfx nns` subcommand arguments.
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
