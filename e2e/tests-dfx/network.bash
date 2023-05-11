@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
     standard_setup
 
-    dfx identity new --disable-encryption test_id
+    dfx identity new --storage-mode plaintext test_id
     dfx identity use test_id
     dfx_new
 }
