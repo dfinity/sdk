@@ -37,7 +37,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
     let canister_names = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister.as_deref())?;
-    let canister_pool = CanisterPool::load(&env, false, canister_names.iter())?;
+    let canister_pool = CanisterPool::load(&env, false, &canister_names)?;
 
     for canister in canister_pool.get_canister_list() {
         let info = canister.get_info();

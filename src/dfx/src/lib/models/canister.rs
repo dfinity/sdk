@@ -251,14 +251,11 @@ impl CanisterPool {
     }
 
     #[context("Failed to load canister pool.")]
-    pub fn load<'a, I>(
+    pub fn load(
         env: &dyn Environment,
         generate_cid: bool,
-        canister_names: I,
-    ) -> DfxResult<Self>
-    where
-        I: Iterator<Item = &'a String>,
-    {
+        canister_names: &[String],
+    ) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
         let config = env
             .get_config()
