@@ -18,7 +18,6 @@ pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
 }
 
 pub fn copy(from: &Path, to: &Path) -> Result<u64, FsError> {
-    create_dir_all(&parent(to)?)?;
     std::fs::copy(from, to).map_err(|err| {
         FsError::new(CopyFileFailed(
             Box::new(from.to_path_buf()),

@@ -384,6 +384,7 @@ impl CanisterPool {
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
+                    dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
                     dfx_core::fs::copy(from, &to)?;
                 } else {
                     warn!(
