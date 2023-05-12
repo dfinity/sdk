@@ -450,8 +450,7 @@ teardown() {
 
     dfx_start
     dfx deploy
-
-    CANISTER_ID=$(dfx canister id hello_backend)
+    WALLET_PRINCIPAL=$(dfx identity get-wallet)
     
     assert_command dfx canister update-settings hello_backend --add-controller "${BOB_PRINCIPAL}"
     assert_command dfx canister info hello_backend
@@ -468,5 +467,12 @@ teardown() {
     assert_command dfx canister info hello_backend
     assert_not_contains "${ALICE_PRINCIPAL}"
 
+    # Cannot remove wallet controller without extra consent
+    echo "no" | assert_command_fail dfx canister update-settings hello_backend --remove-controller "${WALLET_PRINCIPAL}" --wallet "${WALLET_PRINCIPAL}"
+    assert_command dfx canister info hello_backend
+    assert_contains "${WALLET_PRINCIPAL}"
+    echo "yes" | assert_command dfx canister update-settings hello_backend --remove-controller "${WALLET_PRINCIPAL}" --wallet "${WALLET_PRINCIPAL}"
+    assert_command dfx canister info hello_backend
+    assert_not_contains "${WALLET_PRINCIPAL}"
 
 }

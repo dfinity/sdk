@@ -67,7 +67,7 @@ pub struct UpdateSettingsOpts {
     #[arg(long)]
     confirm_very_long_freezing_threshold: bool,
 
-    /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
+    /// Skips yes/no checks by answering 'yes'. Such checks can result in loss of control,
     /// so this is not recommended outside of CI.
     #[arg(long, short)]
     yes: bool,
@@ -91,7 +91,6 @@ pub async fn exec(
 
     fetch_root_key_if_needed(env).await?;
 
-    println!("YES is {}", opts.yes);
     if !opts.yes && user_is_removing_themselves_as_controller(env, call_sender, &opts)? {
         ask_for_consent("You are trying to remove yourself as a controller of this canister. This may leave this canister un-upgradeable.")?
     }
@@ -238,7 +237,6 @@ fn user_is_removing_themselves_as_controller(
     call_sender: &CallSender,
     opts: &UpdateSettingsOpts,
 ) -> DfxResult<bool> {
-    println!("OPTS: {:#?}", opts);
     let caller_principal = match call_sender {
         CallSender::SelectedId => env
             .get_selected_identity_principal()
@@ -246,7 +244,6 @@ fn user_is_removing_themselves_as_controller(
             .to_string(),
         CallSender::Wallet(principal) => principal.to_string(),
     };
-    println!("Caller principal is {}", caller_principal);
     let removes_themselves = opts
         .remove_controller
         .as_ref()
@@ -257,8 +254,6 @@ fn user_is_removing_themselves_as_controller(
         .as_ref()
         .map(|set| !set.contains(&caller_principal))
         .unwrap_or_default();
-    println!("REMOVES_THEMSELVES is {}", removes_themselves);
-    println!("NOT_IN_NEW_CONTROLLERS is {}", not_in_new_controllers);
     Ok(removes_themselves || not_in_new_controllers)
 }
 
