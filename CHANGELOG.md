@@ -55,6 +55,10 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 - https://github.com/dfinity/sdk/pull/3120
 - https://github.com/dfinity/sdk/pull/3112
 
+### Motoko
+
+Updated Motoko to 0.8.8
+
 # 0.14.0
 
 ## DFX
