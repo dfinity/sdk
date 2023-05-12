@@ -1,6 +1,7 @@
 use crate::lib::deps::{
     get_canister_prompt, get_pull_canister_or_principal, get_pull_canisters_in_config,
     get_pulled_wasm_path, load_init_json, load_pulled_json, validate_pulled, InitJson,
+    PulledCanister,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -54,8 +55,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
         // Safe to unwrap:
         // canister_ids are guaranteed to exist in pulled.json
         let pulled_canister = pulled_json.canisters.get(&canister_id).unwrap();
-        let canister_prompt = get_canister_prompt(&canister_id, pulled_canister);
-        create_and_install(agent, logger, &canister_id, &init_json, &canister_prompt).await?;
+        create_and_install(agent, logger, &canister_id, &init_json, pulled_canister).await?;
     }
 
     Ok(())
@@ -67,11 +67,11 @@ async fn create_and_install(
     logger: &Logger,
     canister_id: &Principal,
     init_json: &InitJson,
-    canister_prompt: &str,
+    pulled_canister: &PulledCanister,
 ) -> DfxResult {
     let arg_raw = init_json.get_arg_raw(canister_id)?;
-    try_create_canister(agent, logger, canister_id, canister_prompt).await?;
-    install_pulled_canister(agent, logger, canister_id, arg_raw, canister_prompt).await?;
+    try_create_canister(agent, logger, canister_id, pulled_canister).await?;
+    install_pulled_canister(agent, logger, canister_id, arg_raw, pulled_canister).await?;
     Ok(())
 }
 
@@ -81,8 +81,9 @@ async fn try_create_canister(
     agent: &Agent,
     logger: &Logger,
     canister_id: &Principal,
-    canister_prompt: &str,
+    pulled_canister: &PulledCanister,
 ) -> DfxResult {
+    let canister_prompt = get_canister_prompt(&canister_id, pulled_canister);
     match read_state_tree_canister_controllers(agent, *canister_id).await? {
         Some(cs) if cs.len() == 1 && cs[0] == Principal::anonymous() => Ok(()),
         Some(_) => {
@@ -106,10 +107,11 @@ async fn install_pulled_canister(
     logger: &Logger,
     canister_id: &Principal,
     install_args: Vec<u8>,
-    canister_prompt: &str,
+    pulled_canister: &PulledCanister,
 ) -> DfxResult {
+    let canister_prompt = get_canister_prompt(&canister_id, pulled_canister);
     info!(logger, "Installing canister: {canister_prompt}");
-    let pulled_canister_path = get_pulled_wasm_path(canister_id)?;
+    let pulled_canister_path = get_pulled_wasm_path(canister_id, pulled_canister.gzip)?;
     let wasm = dfx_core::fs::read(&pulled_canister_path)?;
     let mgr = ManagementCanister::create(agent);
     mgr.install_code(canister_id, &wasm)

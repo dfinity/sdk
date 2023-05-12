@@ -7,7 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_SERVICE, DFX};
-use crate::lib::wasm::file::{bytes_to_module, compress_bytes, decompress_bytes};
+use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
 use crate::util::{assets, check_candid_file};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
@@ -115,37 +115,13 @@ impl Canister {
         let info = &self.info;
         let mut metadata_sections = info.metadata().sections.clone();
         if info.is_pull() || info.is_remote() {
-            dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
+            // We won't install such canisters with `dfx canister install` or `dfx deploy`.
+            // So no need to copy the wasm.
+            // Pull type canisters have empty `build_output_wasm_path`. Impossible to copy it.
             return Ok(());
         }
 
-        let bytes = dfx_core::fs::read(build_output_wasm_path).context("Failed to read wasm")?;
-
-        let mut m = match build_output_wasm_path.extension() {
-            Some(f) if f == "gz" => {
-                let unzip_bytes = decompress_bytes(&bytes).with_context(|| {
-                    format!("Failed to decode gzip file {:?}", build_output_wasm_path)
-                })?;
-                bytes_to_module(&unzip_bytes).with_context(|| {
-                    format!(
-                        "Failed to parse wasm module from decompressed {:?}",
-                        build_output_wasm_path
-                    )
-                })?
-            }
-            Some(f) if f == "wasm" => bytes_to_module(&bytes).with_context(|| {
-                format!(
-                    "Failed to parse wasm module from {:?}",
-                    build_output_wasm_path
-                )
-            })?,
-            _ => {
-                bail!(
-                    "{:?} is neither a wasm nor a wasm.gz file",
-                    build_output_wasm_path
-                );
-            }
-        };
+        let mut m = read_wasm_module(build_output_wasm_path)?;
 
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
@@ -239,7 +215,7 @@ impl Canister {
         // Unlike using gzip CLI, the compression below only takes the wasm bytes
         // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
         if wasm_path.extension() == Some(OsStr::new("gz")) {
-            trace!(logger, "Gzipping WASM");
+            trace!(logger, "Compressing WASM");
             let gzip_bytes = compress_bytes(&new_bytes)?;
             dfx_core::fs::write(&wasm_path, &gzip_bytes)
                 .with_context(|| format!("Failed to write gzip WASM to {:?}", &wasm_path))?;

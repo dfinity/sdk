@@ -10,7 +10,7 @@ use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
-use crate::lib::wasm::file::read_wasm_module;
+use crate::lib::wasm::file::{decompress_bytes, read_wasm_module};
 use crate::util::download_file;
 use crate::NetworkOpt;
 use dfx_core::config::cache::get_cache_root;
@@ -179,18 +179,29 @@ async fn download_and_generate_pulled_canister(
         .join(canister_id.to_string());
     dfx_core::fs::create_dir_all(&canister_dir)?;
 
-    let wasm_path = get_pulled_wasm_path(&canister_id)?;
+    let cache_wasm_path = get_pulled_wasm_path(&canister_id, false)?;
+    let cache_wasm_gz_path = get_pulled_wasm_path(&canister_id, true)?;
 
     // skip download if cache hit
     let mut cache_hit = false;
-    if wasm_path.exists() {
-        let bytes = dfx_core::fs::read(&wasm_path)?;
+    if cache_wasm_path.exists() {
+        let bytes = dfx_core::fs::read(&cache_wasm_path)?;
         let hash_cache = Sha256::digest(bytes);
         if hash_cache.as_slice() == hash_on_chain {
             cache_hit = true;
+            pulled_canister.gzip = false;
+            trace!(logger, "The canister wasm was found in the cache.");
+        }
+    } else if cache_wasm_gz_path.exists() {
+        let bytes = dfx_core::fs::read(&cache_wasm_gz_path)?;
+        let hash_cache = Sha256::digest(bytes);
+        if hash_cache.as_slice() == hash_on_chain {
+            cache_hit = true;
+            pulled_canister.gzip = true;
             trace!(logger, "The canister wasm was found in the cache.");
         }
     }
+
     if !cache_hit {
         // lookup `wasm_url` in dfx metadata
         let wasm_url = reqwest::Url::parse(&pullable.wasm_url)?;
@@ -210,8 +221,14 @@ download: {}",
             );
         }
 
+        let gzip = decompress_bytes(&content).is_ok();
+        pulled_canister.gzip = gzip;
+        let wasm_path = get_pulled_wasm_path(&canister_id, gzip)?;
+
         write_to_tempfile_then_rename(&content, &wasm_path)?;
     }
+
+    let wasm_path = get_pulled_wasm_path(&canister_id, pulled_canister.gzip)?;
 
     // extract `candid:service` and save as candid file in shared cache
     let module = read_wasm_module(&wasm_path)?;

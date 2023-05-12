@@ -1,6 +1,6 @@
 use crate::lib::error::DfxResult;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
 use flate2::Compression;
@@ -8,24 +8,27 @@ use fn_error_context::context;
 use std::io::{Read, Write};
 use std::path::Path;
 
-const WASM_HEADER: [u8; 4] = *b"\0asm";
-
-pub fn is_wasm_format(bytes: &[u8]) -> bool {
-    bytes.len() >= 4 && bytes[..4] == WASM_HEADER
-}
-
+/// Read wasm module
+/// 
+/// Based on the file extension, it may decompress the file before parse the wasm module.
 pub fn read_wasm_module(path: &Path) -> DfxResult<walrus::Module> {
-    let bytes: Vec<u8> = dfx_core::fs::read(path).context("Failed to read wasm")?;
+    let bytes: Vec<u8> = dfx_core::fs::read(path)?;
 
-    let unzipped_bytes = if is_wasm_format(&bytes) {
-        bytes
-    } else {
-        decompress_bytes(&bytes)?
+    let m = match path.extension() {
+        Some(f) if f == "gz" => {
+            let unzip_bytes = decompress_bytes(&bytes)
+                .with_context(|| format!("Failed to decode gzip file {:?}", path))?;
+            bytes_to_module(&unzip_bytes).with_context(|| {
+                format!("Failed to parse wasm module from decompressed {:?}", path)
+            })?
+        }
+        Some(f) if f == "wasm" => bytes_to_module(&bytes)
+            .with_context(|| format!("Failed to parse wasm module from {:?}", path))?,
+        _ => {
+            bail!("{:?} is neither a wasm nor a wasm.gz file", path);
+        }
     };
-
-    let module = ic_wasm::utils::parse_wasm(&unzipped_bytes, true)
-        .with_context(|| format!("Failed to parse wasm file {}", path.display()))?;
-    Ok(module)
+    Ok(m)
 }
 
 #[context("Failed to parse bytes as wasm")]

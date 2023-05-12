@@ -23,21 +23,24 @@ pub struct PulledJson {
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledCanister {
-    // name of `type: pull` in dfx.json. None if indirect dependency.
+    /// Name of `type: pull` in dfx.json. None if indirect dependency.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    // from the dfx metadata of the downloaded wasm module
+    /// From the dfx metadata of the downloaded wasm module
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub dependencies: Vec<Principal>,
-    // the hash of the canister wasm on chain
-    // wasm_hash if defined in the dfx metadata
-    // or get from canister_status
+    /// The hash of the canister wasm on chain
+    ///
+    /// wasm_hash if defined in the dfx metadata
+    /// or get from canister_status
     pub wasm_hash: String,
-    // from the dfx metadata of the downloaded wasm module
+    /// From the dfx metadata of the downloaded wasm module
     pub init_guide: String,
-    // from the candid:args metadata of the downloaded wasm module
+    /// From the candid:args metadata of the downloaded wasm module
     pub candid_args: String,
+    /// The downloaded wasm is gzip or not
+    pub gzip: bool,
 }
 
 impl PulledJson {
@@ -142,7 +145,7 @@ pub fn validate_pulled(
     }
 
     for (canister_id, pulled_canister) in &pulled_json.canisters {
-        let pulled_canister_path = get_pulled_wasm_path(canister_id)?;
+        let pulled_canister_path = get_pulled_wasm_path(canister_id, pulled_canister.gzip)?;
         let bytes = dfx_core::fs::read(&pulled_canister_path)?;
         let hash_cache = Sha256::digest(bytes);
         let hash_in_json = hex::decode(&pulled_canister.wasm_hash)?;
@@ -223,9 +226,18 @@ pub fn save_init_json(project_root: &Path, init_json: &InitJson) -> DfxResult {
 }
 
 #[context("Failed to get the wasm path of pulled canister \"{canister_id}\"")]
-pub fn get_pulled_wasm_path(canister_id: &Principal) -> DfxResult<PathBuf> {
-    Ok(get_pulled_canister_dir(canister_id)?.join("canister.wasm"))
+pub fn get_pulled_wasm_path(canister_id: &Principal, gzip: bool) -> DfxResult<PathBuf> {
+    let p = get_pulled_canister_dir(canister_id)?.join("canister");
+    match gzip {
+        true => Ok(p.with_extension("wasm.gz")),
+        false => Ok(p.with_extension("wasm")),
+    }
 }
+
+// #[context("Failed to get the wasm.gz path of pulled canister \"{canister_id}\"")]
+// pub fn get_pulled_wasm_gz_path(canister_id: &Principal) -> DfxResult<PathBuf> {
+//     Ok(get_pulled_canister_dir(canister_id)?.join("canister.wasm.gz"))
+// }
 
 #[context("Failed to get the service candid path of pulled canister \"{canister_id}\"")]
 pub fn get_pulled_service_candid_path(canister_id: &Principal) -> DfxResult<PathBuf> {
