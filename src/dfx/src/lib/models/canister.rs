@@ -122,17 +122,20 @@ impl Canister {
         }
 
         let mut m = read_wasm_module(build_output_wasm_path)?;
+        let mut modified = false;
 
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
             trace!(logger, "Optimizing WASM at level {}", level);
             ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string())
                 .context("Failed to optimize the WASM module.")?;
+            modified = true;
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
         {
             trace!(logger, "Shrinking WASM");
             ic_wasm::shrink::shrink(&mut m);
+            modified = true;
         }
 
         // metadata
@@ -207,6 +210,13 @@ impl Canister {
             remove_metadata(&mut m, name);
 
             add_metadata(&mut m, visibility, name, data);
+            modified = true;
+        }
+
+        // If not modified and not set "gzip" explicitly, copy the wasm file directly so that hash match.
+        if !modified && !info.get_gzip() {
+            dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
+            return Ok(());
         }
 
         let new_bytes = m.emit_wasm();
