@@ -1,4 +1,10 @@
-#![allow(special_module_name)]
+#![allow(
+    special_module_name,
+    dead_code,
+    unreachable_code,
+    unreachable_patterns,
+    unused
+)]
 
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
@@ -47,7 +53,7 @@ pub struct CliOpts {
     provisional_create_canister_effective_canister_id: Option<String>,
 
     #[command(subcommand)]
-    command: commands::Command,
+    command: commands::DfxCommand,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -179,48 +185,8 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-/// sort subcommands alphabetically, help still gets printed as the last one
-fn sort_clap_subcommands(cmd: &mut Command) {
-    let mut cli_subcommands: Vec<String> = cmd
-        .get_subcommands()
-        .map(|v| v.get_display_name().unwrap_or_default().to_string())
-        .collect();
-    cli_subcommands.sort();
-    let cli_subcommands: HashMap<String, usize> = cli_subcommands
-        .into_iter()
-        .enumerate()
-        .map(|(i, v)| (v, i))
-        .collect();
-    for c in cmd.get_subcommands_mut() {
-        let name = c.get_display_name().unwrap_or_default().to_string();
-        let ord = *cli_subcommands.get(&name).unwrap_or(&999);
-        *c = c.clone().display_order(ord);
-    }
-}
-
 fn main() {
-    let ext_manager = ExtensionManager::new(dfx_version(), false).unwrap_or_else(|err| {
-        print_error_and_diagnosis(anyhow::Error::from(err), NULL_DIAGNOSIS);
-        std::process::exit(255);
-    });
-    let matches = {
-        let installed_extensions = ext_manager
-            .list_installed_extensions()
-            .unwrap_or_default()
-            .into_iter()
-            .map(|ext| ext.into_clap_command(&ext_manager))
-            .collect::<Vec<Command>>();
-        let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
-        if !installed_extensions.is_empty() {
-            sort_clap_subcommands(&mut app);
-        }
-        app.get_matches()
-    };
-
-    let cli_opts = CliOpts::from_arg_matches(&matches).unwrap_or_else(|err| {
-        print_error_and_diagnosis(anyhow::Error::from(err), NULL_DIAGNOSIS);
-        std::process::exit(255);
-    });
+    let cli_opts = CliOpts::parse();
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
@@ -252,7 +218,7 @@ fn main() {
             }
         }
         Err(e) => match command {
-            commands::Command::Schema(_) => commands::exec_without_env(command),
+            commands::DfxCommand::Schema(_) => commands::exec_without_env(command),
             _ => Err(e),
         },
     };

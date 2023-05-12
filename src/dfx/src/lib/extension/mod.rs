@@ -31,8 +31,24 @@ impl Display for Extension {
 
 impl Extension {
     pub fn into_clap_command(self, manager: &ExtensionManager) -> Command {
-        let summary = ExtensionManifest::new(&self.name, &manager.dir)
-            .map_or_else(|e| e.to_string(), |v| v.summary);
-        Command::new(&self.name).about(summary)
+        let mut cmd = Command::new(&self.name)
+            .bin_name(&self.name)
+            // by default, don't enforce any restrictions
+            .allow_missing_positional(true)
+            .allow_external_subcommands(true);
+        let about = match ExtensionManifest::new(&self.name, &manager.dir) {
+            Ok(manifest) => {
+                let about = manifest.summary.clone();
+                if let Some(subcmds) = manifest.into_clap_commands() {
+                    // If the user declared subcommands in the manifest file, only allow
+                    // subcommands and arguments specified in the manifest file, disallowing
+                    // pass-through of any other values.
+                    cmd = cmd.allow_external_subcommands(false).subcommands(subcmds);
+                }
+                about
+            }
+            Err(err) => err.to_string(),
+        };
+        cmd.about(about)
     }
 }
