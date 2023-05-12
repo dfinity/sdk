@@ -250,10 +250,7 @@ impl CanisterPool {
         Ok(())
     }
 
-    #[context(
-        "Failed to load canister pool for given canisters: {:?}",
-        canister_names
-    )]
+    #[context("Failed to load canister pool.")]
     pub fn load(
         env: &dyn Environment,
         generate_cid: bool,
@@ -387,14 +384,8 @@ impl CanisterPool {
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
-                    std::fs::copy(from, &to).with_context(|| {
-                        format!(
-                            "Failed to copy canister '{}' candid from {} to {}.",
-                            canister.get_name(),
-                            from.to_string_lossy(),
-                            to.to_string_lossy()
-                        )
-                    })?;
+                    dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
+                    dfx_core::fs::copy(from, &to)?;
                 } else {
                     warn!(
                         log,

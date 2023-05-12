@@ -27,6 +27,10 @@ All generated files in `deps/` are encouraged to be version controlled.
 ### chore: Add the `nns-dapp` and `internet_identity` to the local canister IDs set by `dfx nns import`
 `dfx nns install` installs a set of canisters in a local replica.  `dfx nns import` complements this by setting the canister IDs so that they can be queried by the user.  But `dfx nns import` is incomplete.  Now it will also provide the IDs of the `nns-dapp` and `internet_identity` canisters.
 
+### feat: `.env` file includes all created canister IDs
+Previously the `.env` file only included canister IDs for canisters that were listed as explicit dependencies during the build process.
+Now all canisters that have a canister ID for the specified network are included in `.env`.
+
 ## Asset Canister Synchronization
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
