@@ -18,7 +18,7 @@ teardown() {
 @test "identity get-principal: the get-principal is the same as sender id" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new --disable-encryption jose
+    assert_command dfx identity new --storage-mode plaintext jose
 
     PRINCIPAL_ID=$(dfx identity get-principal --identity jose)
 
@@ -38,7 +38,7 @@ teardown() {
 @test "identity get-principal (anonymous): the get-principal is the same as sender id" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new --disable-encryption jose
+    assert_command dfx identity new --storage-mode plaintext jose
 
     ANONYMOUS_PRINCIPAL_ID="2vxsx-fae"
 
@@ -108,8 +108,8 @@ teardown() {
 @test "after using a specific identity while creating a canister, that user is the initializer" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new --disable-encryption alice
-    assert_command dfx identity new --disable-encryption bob
+    assert_command dfx identity new --storage-mode plaintext alice
+    assert_command dfx identity new --storage-mode plaintext bob
 
     dfx canister create --all --identity alice
     assert_command dfx build --identity alice
@@ -138,7 +138,7 @@ teardown() {
 @test "after renaming an identity, the renamed identity is still initializer" {
     install_asset identity
     dfx_start
-    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --storage-mode plaintext alice
 
     dfx canister create --all --identity alice
     assert_command dfx build --identity alice
@@ -166,7 +166,7 @@ teardown() {
     assert_match "WARN: The default identity is not stored securely." "$stderr"
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/init_alice_with_pw.exp"
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/get_ledger_balance.exp"
-    dfx identity new bob --disable-encryption
+    dfx identity new bob --storage-mode plaintext
     assert_command dfx ledger balance --network ic --identity bob
     assert_match "WARN: The bob identity is not stored securely." "$stderr"
 }

@@ -131,7 +131,7 @@ teardown() {
 @test "dfx identity rename renames wallet for shared local network" {
      dfx_start
 
-     dfx identity new  alice --disable-encryption
+     dfx identity new  alice --storage-mode plaintext
      ALICE_WALLET="$(dfx identity get-wallet --identity alice)"
 
      dfx identity rename alice bob

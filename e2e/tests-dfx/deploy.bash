@@ -90,8 +90,9 @@ teardown() {
 @test "deploy fails if --specified-id without canister_name" {
     dfx_start
     assert_command_fail dfx deploy --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
-    assert_match "error: the following required arguments were not provided:"
-    assert_match "<CANISTER_NAME>"
+    assert_match \
+"error: the following required arguments were not provided:
+  <CANISTER_NAME>"
 }
 
 @test "deploy does not require wallet if all canisters are created" {
@@ -101,4 +102,11 @@ teardown() {
     assert_not_contains "Creating a wallet canister"
     assert_command dfx identity get-wallet
     assert_contains "Creating a wallet canister"
+}
+
+@test "deploying multiple canisters with arguments fails" {
+    assert_command_fail dfx deploy --argument hello
+    assert_contains \
+"error: the following required arguments were not provided:
+  <CANISTER_NAME>"
 }
