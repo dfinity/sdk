@@ -1,12 +1,14 @@
-use clap::{builder::OsStr, ArgAction};
-use semver::Version;
-use serde::Deserialize;
-use std::{collections::BTreeMap, path::Path};
+use crate::lib::error::ExtensionError;
 
-use crate::lib::{error::ExtensionError, extension::Extension};
+use clap::ArgAction;
+use serde::Deserialize;
+use std::{
+    collections::{BTreeMap, HashMap},
+    path::Path,
+};
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
-type DependencyName = String;
+
 type SubcmdName = String;
 type ArgName = String;
 
@@ -20,8 +22,8 @@ pub struct ExtensionManifest {
     pub categories: Vec<String>,
     pub keywords: Option<Vec<String>>,
     pub description: Option<String>,
-    pub dependencies: Option<BTreeMap<DependencyName, Version>>,
-    pub subcommands: Option<BTreeMap<SubcmdName, ExtensionSubcommandOpts>>, // TODO: https://dfinity.atlassian.net/browse/SDK-599
+    pub subcommands: Option<BTreeMap<SubcmdName, ExtensionSubcommandOpts>>,
+    pub dependencies: Option<HashMap<String, String>>,
 }
 
 impl ExtensionManifest {
@@ -63,8 +65,10 @@ pub struct ExtensionSubcommandArgOpts {
 
 impl ExtensionSubcommandArgOpts {
     pub fn into_clap_arg(self, name: String) -> clap::Arg {
-        let mut arg =
-            clap::Arg::new(name).help(self.about.unwrap_or("Missing arg description.".to_string()));
+        let mut arg = clap::Arg::new(name).help(
+            self.about
+                .unwrap_or_else(|| "Missing arg description.".to_string()),
+        );
         if let Some(l) = self.long {
             arg = arg.long(l);
         }
@@ -180,6 +184,6 @@ fn parse_test_file() {
         }
     }
 
-    let mut cli = clap::Command::new("sns").subcommands(subcmds);
+    let cli = clap::Command::new("sns").subcommands(subcmds);
     cli.debug_assert();
 }

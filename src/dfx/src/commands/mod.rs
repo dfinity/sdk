@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::fmt::Debug;
 
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
@@ -294,23 +293,10 @@ impl FromArgMatches for DfxCommand {
                 Ok(Self::Upgrade(upgrade::UpgradeOpts::from_arg_matches(args)?))
             }
             Some(("wallet", args)) => Ok(Self::Wallet(wallet::WalletOpts::from_arg_matches(args)?)),
-            Some((v, a)) => {
+            Some((_, _)) => {
                 let args = &std::env::args_os().collect::<Vec<_>>()[1..];
                 let args = args.to_vec();
-                return Ok(Self::ExtensionRun(args));
-
-                if let Ok(ext_manager) = ExtensionManager::new(dfx_version(), false) {
-                    if let Err(err) = ext_manager.run_extension(OsString::from(v), args) {
-                        return Err(Error::raw(
-                            ErrorKind::InvalidSubcommand,
-                            format!("{}", err), // "The subcommand provided is not valid.",
-                        ));
-                    }
-                };
-                Err(Error::raw(
-                    ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand,
-                    "A subcommand is required.",
-                ))
+                Ok(Self::ExtensionRun(args))
             }
             None => Err(Error::raw(
                 ErrorKind::MissingSubcommand,

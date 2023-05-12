@@ -1,21 +1,13 @@
-#![allow(
-    special_module_name,
-    dead_code,
-    unreachable_code,
-    unreachable_patterns,
-    unused
-)]
+#![allow(special_module_name)]
 
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use crate::lib::environment::{Environment, EnvironmentImpl};
-use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
-use clap::{ArgAction, Args, Command, CommandFactory, FromArgMatches as _, Parser};
+use clap::{ArgAction, Args, Parser};
 use semver::Version;
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 mod actors;
@@ -26,7 +18,7 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Parser)]
-#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style(), arg_required_else_help = true)]
+#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style())]
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
     #[arg(long, short, action = ArgAction::Count, global = true)]
