@@ -16,6 +16,8 @@ use fn_error_context::context;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+pub mod deploy;
+
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledJson {
     pub canisters: BTreeMap<Principal, PulledCanister>,

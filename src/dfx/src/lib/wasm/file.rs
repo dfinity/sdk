@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 
 /// Read wasm module
-/// 
+///
 /// Based on the file extension, it may decompress the file before parse the wasm module.
 pub fn read_wasm_module(path: &Path) -> DfxResult<walrus::Module> {
     let bytes: Vec<u8> = dfx_core::fs::read(path)?;
