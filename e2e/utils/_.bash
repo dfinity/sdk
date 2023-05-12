@@ -46,8 +46,6 @@ standard_setup() {
         export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/.local/share/dfx/network/local"
     fi
     export E2E_NETWORKS_JSON="$DFX_CONFIG_ROOT/.config/dfx/networks.json"
-
-    dfx cache install
 }
 
 standard_teardown() {
@@ -99,6 +97,8 @@ dfx_patchelf() {
 
     echo dfx = "$(which dfx)"
     CACHE_DIR="$(dfx cache show)"
+
+    dfx cache install
 
     # Both ldd and iconv are providedin glibc.bin package
     LD_LINUX_SO=$(ldd "$(which iconv)"|grep ld-linux-x86|cut -d' ' -f3)

@@ -57,13 +57,13 @@ pub enum DfxCommand {
     LanguageServices(language_service::LanguageServiceOpts),
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
-    // Nns(nns::NnsOpts),
+    Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
     Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
-    // Sns(sns::SnsOpts),
+    Sns(sns::SnsOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
     Toolchain(toolchain::ToolchainOpts),
@@ -90,13 +90,13 @@ pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
         DfxCommand::LanguageServices(v) => language_service::exec(env, v),
         DfxCommand::Ledger(v) => ledger::exec(env, v),
         DfxCommand::New(v) => new::exec(env, v),
-        // Command::Nns(v) => nns::exec(env, v),
+        DfxCommand::Nns(v) => nns::exec(env, v),
         DfxCommand::Ping(v) => ping::exec(env, v),
         DfxCommand::Quickstart(v) => quickstart::exec(env, v),
         DfxCommand::Remote(v) => remote::exec(env, v),
         DfxCommand::Replica(v) => replica::exec(env, v),
         DfxCommand::Schema(v) => schema::exec(v),
-        // CliCommand::Sns(v) => sns::exec(env, v),
+        DfxCommand::Sns(v) => sns::exec(env, v),
         DfxCommand::Start(v) => start::exec(env, v),
         DfxCommand::Stop(v) => stop::exec(env, v),
         DfxCommand::Toolchain(v) => toolchain::exec(env, v),
@@ -125,7 +125,6 @@ impl Subcommand for DfxCommand {
             } else {
                 vec![]
             };
-        // println!("augmentsubcmd: {:?}", ebxtension_subcommands);
         let mut cmd = cmd
             .subcommand(beta::BetaOpts::augment_args(
                 Command::new("beta").hide(true),
@@ -164,12 +163,14 @@ impl Subcommand for DfxCommand {
             ))
             .subcommand(ledger::LedgerOpts::augment_args(Command::new("ledger")))
             .subcommand(new::NewOpts::augment_args(Command::new("new")))
+            .subcommand(nns::NnsOpts::augment_args(Command::new("nns")))
             .subcommand(ping::PingOpts::augment_args(Command::new("ping")))
             .subcommand(quickstart::QuickstartOpts::augment_args(Command::new(
                 "quickstart",
             )))
             .subcommand(remote::RemoteOpts::augment_args(Command::new("remote")))
             .subcommand(replica::ReplicaOpts::augment_args(Command::new("replica")))
+            .subcommand(sns::SnsOpts::augment_args(Command::new("sns")))
             .subcommand(schema::SchemaOpts::augment_args(Command::new("schema")))
             .subcommand(start::StartOpts::augment_args(Command::new("start")))
             // .subcommand(sns::SnsOpts::augment_args(Command::new("sns")))
@@ -221,11 +222,13 @@ impl Subcommand for DfxCommand {
                 | "_language-service"
                 | "ledger"
                 | "new"
+                | "nns"
                 | "ping"
                 | "quickstart"
                 | "remote"
                 | "replica"
                 | "schema"
+                | "sns"
                 | "start"
                 | "stop"
                 | "toolchain"
@@ -271,6 +274,7 @@ impl FromArgMatches for DfxCommand {
             )),
             Some(("ledger", args)) => Ok(Self::Ledger(ledger::LedgerOpts::from_arg_matches(args)?)),
             Some(("new", args)) => Ok(Self::New(new::NewOpts::from_arg_matches(args)?)),
+            Some(("nns", args)) => Ok(Self::Nns(nns::NnsOpts::from_arg_matches(args)?)),
             Some(("ping", args)) => Ok(Self::Ping(ping::PingOpts::from_arg_matches(args)?)),
             Some(("quickstart", args)) => Ok(Self::Quickstart(
                 quickstart::QuickstartOpts::from_arg_matches(args)?,
@@ -280,6 +284,7 @@ impl FromArgMatches for DfxCommand {
                 Ok(Self::Replica(replica::ReplicaOpts::from_arg_matches(args)?))
             }
             Some(("schema", args)) => Ok(Self::Schema(schema::SchemaOpts::from_arg_matches(args)?)),
+            Some(("sns", args)) => Ok(Self::Sns(sns::SnsOpts::from_arg_matches(args)?)),
             Some(("start", args)) => Ok(Self::Start(start::StartOpts::from_arg_matches(args)?)),
             Some(("stop", args)) => Ok(Self::Stop(stop::StopOpts::from_arg_matches(args)?)),
             Some(("toolchain", args)) => Ok(Self::Toolchain(
