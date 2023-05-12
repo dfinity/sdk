@@ -9,8 +9,8 @@ setup() {
     install_asset ledger
     install_shared_asset subnet_type/shared_network_settings/system
 
-    dfx identity import --disable-encryption alice alice.pem
-    dfx identity import --disable-encryption bob bob.pem
+    dfx identity import --storage-mode plaintext alice alice.pem
+    dfx identity import --storage-mode plaintext bob bob.pem
 
     dfx_start_for_nns_install
 
