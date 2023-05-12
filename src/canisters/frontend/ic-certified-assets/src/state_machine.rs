@@ -849,7 +849,7 @@ impl State {
                     "failed to decode path '{}': {}",
                     path, err
                 ))),
-                upgrade: false,
+                upgrade: None,
                 streaming_strategy: None,
             },
         }
