@@ -22,7 +22,7 @@ You can enable it in `dfx.json`:
 }
 ```
 
-You can still specify `.wasm.gz` file for custom canisters directly. If there is any metadata/optimize/shrink options set in `dfx.json`, the `.wasm.gz` file will be decompressed, applied all the wasm modifications, and compressed as `.wasm.gz` in the end.
+You can still specify `.wasm.gz` file for custom canisters directly. If any metadata/optimize/shrink options are set in `dfx.json`, the `.wasm.gz` file will be decompressed, applied all the wasm modifications, and compressed as `.wasm.gz` in the end.
 
 ### fix: prevented using --argument with --all in canister installation
 
