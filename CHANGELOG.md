@@ -22,9 +22,7 @@ You can enable it in `dfx.json`:
 }
 ```
 
-Please note that, the `"wasm"` field of a custom type canister must point to a non-gzip wasm file. Please remove the gzip step in your build script and let `dfx` handle the final gzip.
-
-And the `optimize` and `shrink` behavior is unified for all canister types. Now `shrink` is on by default. If you specify `optimize` with a level, `dfx` will optimize the wasm instead of shrinking it. To turn off all optimization/shrink, please explicitly set `shrink` to false.
+You can still specify `.wasm.gz` file for custom canisters directly. If there is any metadata/optimize/shrink options set in `dfx.json`, the `.wasm.gz` file will be decompressed, applied all the wasm modifications, and compressed as `.wasm.gz` in the end.
 
 ### fix: prevented using --argument with --all in canister installation
 

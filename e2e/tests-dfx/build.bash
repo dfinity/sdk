@@ -119,18 +119,18 @@ teardown() {
     assert_command dfx build
 }
 
-@test "build custom canister default shrink" {
+@test "build custom canister default no shrink" {
     install_asset custom_canister
     install_asset wasm/identity
 
     dfx_start
     dfx canister create --all
     assert_command dfx build custom -vvv
-    assert_match "Shrinking WASM"
-
-    jq '.canisters.custom.shrink=false' dfx.json | sponge dfx.json
-    assert_command dfx build custom -vvv
     assert_not_match "Shrinking WASM"
+
+    jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
+    assert_command dfx build custom -vvv
+    assert_match "Shrinking WASM"
 }
 
 @test "build custom canister default no optimize" {
@@ -156,15 +156,12 @@ teardown() {
     assert_file_exists .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm.gz
 }
 
-@test "build fails if specify gzip wasm" {
+@test "build succeeds if specify gzip wasm" {
     install_asset gzip
     install_asset wasm/identity
     dfx_start
     dfx canister create --all
-    assert_command_fail dfx build
-    assert_match "The wasm module should not be gzipped.
-Please remove the gzip step in your custom build script and turn on the \`gzip\` option in \`dfx.json\`.
-\`dfx\` will handle the final gzip for you."
+    assert_command dfx build
 }
 
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.

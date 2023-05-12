@@ -248,13 +248,20 @@ impl CanisterInfo {
         })
     }
 
+    /// Path to the wasm module in .dfx that will be install.
     pub fn get_build_wasm_path(&self) -> PathBuf {
-        let prefix = self.output_root.join(&self.name);
-        if self.get_gzip() {
-            prefix.with_extension("wasm.gz")
-        } else {
-            prefix.with_extension("wasm")
+        let mut gzip_original = false;
+        if let CanisterTypeProperties::Custom { wasm, .. } = &self.type_specific {
+            if wasm.ends_with(".gz") {
+                gzip_original = true;
+            }
         }
+        let ext = if self.gzip || gzip_original {
+            "wasm.gz"
+        } else {
+            "wasm"
+        };
+        self.output_root.join(&self.name).with_extension(ext)
     }
 
     pub fn get_build_idl_path(&self) -> PathBuf {

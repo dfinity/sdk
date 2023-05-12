@@ -234,8 +234,8 @@ pub struct ConfigCanistersCanister {
 
     /// # Shrink Canister WASM
     /// Whether run `ic-wasm shrink` after building the Canister.
-    /// If not specify `optimize`, this option will be true by default.
-    /// To turn off all optimization/shrink, please explicitly set this option to false.
+    /// Enabled by default for Rust/Motoko canisters.
+    /// Disabled by default for custom canisters.
     pub shrink: Option<bool>,
 
     /// # Optimize Canister WASM

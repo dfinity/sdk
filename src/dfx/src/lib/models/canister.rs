@@ -7,14 +7,13 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_SERVICE, DFX};
+use crate::lib::wasm::file::{bytes_to_module, compress_bytes, decompress_bytes};
 use crate::util::{assets, check_candid_file};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
-use flate2::write::GzEncoder;
-use flate2::Compression;
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use itertools::Itertools;
@@ -24,7 +23,8 @@ use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
-use std::io::{Read, Write};
+use std::ffi::OsStr;
+use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -112,43 +112,49 @@ impl Canister {
         let WasmBuildOutput::File(build_output_wasm_path) = &build_output.wasm;
         let wasm_path = self.info.get_build_wasm_path();
         dfx_core::fs::create_dir_all(&dfx_core::fs::parent(&wasm_path)?)?;
-        let mut metadata_sections = self.info.metadata().sections.clone();
-        if self.info.is_assets() || self.info.is_pull() || self.info.is_remote() {
-            if !metadata_sections.is_empty() {
-                warn!(
-                    logger,
-                    "Canister {} should not define metadata in `dfx.json`. Please remove them.",
-                    self.get_name()
-                );
-            }
+        let info = &self.info;
+        let mut metadata_sections = info.metadata().sections.clone();
+        if info.is_pull() || info.is_remote() {
             dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
             return Ok(());
         }
 
-        // get the wasm from build output, which MUST be non-gzipped
-        if build_output_wasm_path.extension().unwrap() == "gz" {
-            bail!(
-                "The wasm module should not be gzipped.
-Please remove the gzip step in your custom build script and turn on the `gzip` option in `dfx.json`.
-`dfx` will handle the final gzip for you."
-            )
-        }
+        let bytes = dfx_core::fs::read(build_output_wasm_path).context("Failed to read wasm")?;
 
-        let bytes: Vec<u8> =
-            dfx_core::fs::read(build_output_wasm_path).context("Failed to read wasm")?;
-        let mut m = ic_wasm::utils::parse_wasm(&bytes, true).with_context(|| {
-            format!(
-                "Failed to parse wasm at {}",
-                build_output_wasm_path.display()
-            )
-        })?;
+        let mut m = match build_output_wasm_path.extension() {
+            Some(f) if f == "gz" => {
+                let unzip_bytes = decompress_bytes(&bytes).with_context(|| {
+                    format!("Failed to decode gzip file {:?}", build_output_wasm_path)
+                })?;
+                bytes_to_module(&unzip_bytes).with_context(|| {
+                    format!(
+                        "Failed to parse wasm module from decompressed {:?}",
+                        build_output_wasm_path
+                    )
+                })?
+            }
+            Some(f) if f == "wasm" => bytes_to_module(&bytes).with_context(|| {
+                format!(
+                    "Failed to parse wasm module from {:?}",
+                    build_output_wasm_path
+                )
+            })?,
+            _ => {
+                bail!(
+                    "{:?} is neither a wasm nor a wasm.gz file",
+                    build_output_wasm_path
+                );
+            }
+        };
 
         // optimize or shrink
-        if let Some(level) = self.info.get_optimize() {
+        if let Some(level) = info.get_optimize() {
             trace!(logger, "Optimizing WASM at level {}", level);
             ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string())
                 .context("Failed to optimize the WASM module.")?;
-        } else if self.info.get_shrink().unwrap_or(true) {
+        } else if info.get_shrink() == Some(true)
+            || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
+        {
             trace!(logger, "Shrinking WASM");
             ic_wasm::shrink::shrink(&mut m);
         }
@@ -156,9 +162,7 @@ Please remove the gzip step in your custom build script and turn on the `gzip` o
         // metadata
         trace!(logger, "Attaching metadata");
         // Default to write public candid:service unless overwritten
-        if (self.info.is_rust() || self.info.is_motoko())
-            && !metadata_sections.contains_key(CANDID_SERVICE)
-        {
+        if (info.is_rust() || info.is_motoko()) && !metadata_sections.contains_key(CANDID_SERVICE) {
             metadata_sections.insert(
                 CANDID_SERVICE.to_string(),
                 CanisterMetadataSection {
@@ -169,7 +173,7 @@ Please remove the gzip step in your custom build script and turn on the `gzip` o
             );
         }
 
-        if let Some(pullable) = self.info.get_pullable() {
+        if let Some(pullable) = info.get_pullable() {
             let mut dfx_metadata = DfxMetadata::default();
             dfx_metadata.set_pullable(pullable);
             let content = serde_json::to_string_pretty(&dfx_metadata)
@@ -188,7 +192,7 @@ Please remove the gzip step in your custom build script and turn on the `gzip` o
 
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
         for (name, section) in &metadata_sections {
-            if section.name == CANDID_SERVICE && self.info.is_motoko() {
+            if section.name == CANDID_SERVICE && info.is_motoko() {
                 if let Some(specified_path) = &section.path {
                     check_valid_subtype(build_idl_path, specified_path)?
                 } else {
@@ -230,22 +234,18 @@ Please remove the gzip step in your custom build script and turn on the `gzip` o
         }
 
         let new_bytes = m.emit_wasm();
-        let wasm_path: std::path::PathBuf = self.info.get_build_wasm_path();
 
         // gzip
         // Unlike using gzip CLI, the compression below only takes the wasm bytes
         // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
-        if self.info.get_gzip() {
+        if wasm_path.extension() == Some(OsStr::new("gz")) {
             trace!(logger, "Gzipping WASM");
-            let bytes = m.emit_wasm();
-            let mut e = GzEncoder::new(Vec::new(), Compression::default());
-            e.write_all(&bytes)?;
-            let gzip_bytes = e.finish()?;
+            let gzip_bytes = compress_bytes(&new_bytes)?;
             dfx_core::fs::write(&wasm_path, &gzip_bytes)
-                .with_context(|| format!("Could not write gzip WASM to {:?}", &wasm_path))?;
+                .with_context(|| format!("Failed to write gzip WASM to {:?}", &wasm_path))?;
         } else {
             dfx_core::fs::write(&wasm_path, new_bytes)
-                .with_context(|| format!("Could not write WASM to {:?}", &wasm_path))?;
+                .with_context(|| format!("Failed to write WASM to {:?}", &wasm_path))?;
         }
 
         Ok(())

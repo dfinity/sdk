@@ -438,7 +438,7 @@
         },
         "shrink": {
           "title": "Shrink Canister WASM",
-          "description": "Whether run `ic-wasm shrink` after building the Canister. If not specify `optimize`, this option will be true by default. To turn off all optimization/shrink, please explicitly set this option to false.",
+          "description": "Whether run `ic-wasm shrink` after building the Canister. Enabled by default for Rust/Motoko canisters. Disabled by default for custom canisters.",
           "type": [
             "boolean",
             "null"

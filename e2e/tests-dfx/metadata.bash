@@ -136,16 +136,15 @@ teardown() {
     diff first-match-chosen.txt from-canister.txt
 }
 
-@test "warns if add metadata to a frontend canister" {
-    # For assets/pull/remote canisters, `dfx` will skip apllying metadata and warns if user defines metadata for them.
-    dfx_new
+@test "can add metadata to a compressed canister" {
     dfx_start
-
-    jq 'del(.canisters.e2e_project_frontend.metadata)' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project_frontend.metadata[0].name="arbitrary"|.canisters.e2e_project_frontend.metadata[0].content="arbitrary content"' dfx.json | sponge dfx.json
-    jq . dfx.json
+    install_asset gzip
+    install_asset wasm/identity
+    jq '.canisters.gzipped.metadata[0].name="arbitrary"|.canisters.gzipped.metadata[0].content="arbitrary content"' dfx.json | sponge dfx.json
+    
     assert_command dfx deploy
-    assert_match "Canister e2e_project_frontend should not define metadata in \`dfx.json\`. Please remove them."
+    assert_command dfx canister metadata gzipped arbitrary
+    assert_eq "$output" "arbitrary content"
 }
 
 @test "existence of build steps do not control custom canister metadata" {
