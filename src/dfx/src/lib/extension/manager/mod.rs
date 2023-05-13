@@ -1,7 +1,6 @@
 use crate::lib::error::ExtensionError;
 use dfx_core::config::cache::{get_bin_cache, get_cache_root};
 
-use dfx_core::fs::composite::ensure_dir_exists;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -16,7 +15,7 @@ pub struct ExtensionManager {
 }
 
 impl ExtensionManager {
-    pub fn new(version: &Version, ensure_exists: bool) -> Result<Self, ExtensionError> {
+    pub fn new(version: &Version, ensure_dir_exists: bool) -> Result<Self, ExtensionError> {
         let versioned_cache_dir = get_bin_cache(version.to_string().as_str()).map_err(|e| {
             ExtensionError::FindCacheDirectoryFailed(
                 get_cache_root()
@@ -27,8 +26,9 @@ impl ExtensionManager {
             )
         })?;
         let dir = versioned_cache_dir.join("extensions");
-        if ensure_exists {
-            ensure_dir_exists(&dir).map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
+        if ensure_dir_exists {
+            dfx_core::fs::composite::ensure_dir_exists(&dir)
+                .map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
         }
 
         Ok(Self {

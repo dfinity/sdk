@@ -3,10 +3,12 @@ use std::ffi::OsString;
 
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
+use crate::lib::extension::Extension;
 use crate::lib::{environment::Environment, extension::manager::ExtensionManager};
 
 use anyhow::bail;
 use clap::{error::ErrorKind, ArgMatches, Args, Command, Error, FromArgMatches, Subcommand};
+use itertools::Itertools;
 
 mod beta;
 mod bootstrap;
@@ -112,19 +114,31 @@ pub fn exec_without_env(cmd: DfxCommand) -> DfxResult {
 }
 
 impl Subcommand for DfxCommand {
-    fn augment_subcommands(cmd: Command) -> Command {
-        let extension_subcommands =
-            if let Ok(ext_manager) = ExtensionManager::new(dfx_version(), false) {
-                ext_manager
-                    .list_installed_extensions()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|ext| ext.into_clap_command(&ext_manager))
-                    .collect::<Vec<Command>>()
-            } else {
-                vec![]
-            };
+    fn augment_subcommands(mut cmd: Command) -> Command {
+        let extension_subcmds = ExtensionManager::new(dfx_version(), false).map_or(vec![], |mgr| {
+            mgr.list_installed_extensions()
+                .unwrap_or_default()
+                .into_iter()
+                .map(|ext| ext.into_clap_command(&mgr))
+                .collect::<Vec<Command>>()
+        });
+        if !extension_subcmds
+            .iter()
+            .map(|c| c.get_name())
+            .contains(&"sns")
+        {
+            cmd = cmd.subcommand(sns::SnsOpts::augment_args(Command::new("sns")));
+        }
+        if !extension_subcmds
+            .iter()
+            .map(|c| c.get_name())
+            .contains(&"nns")
+        {
+            cmd = cmd.subcommand(nns::NnsOpts::augment_args(Command::new("nns")));
+        }
+
         let mut cmd = cmd
+            .subcommands(extension_subcmds)
             .subcommand(beta::BetaOpts::augment_args(
                 Command::new("beta").hide(true),
             ))
@@ -146,7 +160,6 @@ impl Subcommand for DfxCommand {
                 "diagnose",
             )))
             .subcommand(fix::FixOpts::augment_args(Command::new("fix")))
-            .subcommand(Command::new("extension-run").allow_external_subcommands(true))
             .subcommand(extension::ExtensionOpts::augment_args(Command::new(
                 "extension",
             )))
@@ -162,25 +175,20 @@ impl Subcommand for DfxCommand {
             ))
             .subcommand(ledger::LedgerOpts::augment_args(Command::new("ledger")))
             .subcommand(new::NewOpts::augment_args(Command::new("new")))
-            .subcommand(nns::NnsOpts::augment_args(Command::new("nns")))
             .subcommand(ping::PingOpts::augment_args(Command::new("ping")))
             .subcommand(quickstart::QuickstartOpts::augment_args(Command::new(
                 "quickstart",
             )))
             .subcommand(remote::RemoteOpts::augment_args(Command::new("remote")))
             .subcommand(replica::ReplicaOpts::augment_args(Command::new("replica")))
-            .subcommand(sns::SnsOpts::augment_args(Command::new("sns")))
             .subcommand(schema::SchemaOpts::augment_args(Command::new("schema")))
             .subcommand(start::StartOpts::augment_args(Command::new("start")))
-            // .subcommand(sns::SnsOpts::augment_args(Command::new("sns")))
             .subcommand(stop::StopOpts::augment_args(Command::new("stop")))
             .subcommand(toolchain::ToolchainOpts::augment_args(Command::new(
                 "toolchain",
             )))
             .subcommand(upgrade::UpgradeOpts::augment_args(Command::new("upgrade")))
             .subcommand(wallet::WalletOpts::augment_args(Command::new("wallet")))
-            .subcommands(extension_subcommands)
-            .allow_external_subcommands(true)
             .subcommand_required(true);
         sort_clap_commands(&mut cmd);
         cmd
@@ -191,49 +199,43 @@ impl Subcommand for DfxCommand {
     }
 
     fn has_subcommand(name: &str) -> bool {
-        // let f = include_str!("mod.rs");
-        let extension_subcommands =
-            if let Ok(ext_manager) = ExtensionManager::new(dfx_version(), false) {
-                ext_manager
-                    .list_installed_extensions()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|v| v.name)
-                    .collect()
-            } else {
-                vec![]
-            };
-        matches!(
-            name,
-            "beta"
-                | "bootstrap"
-                | "build"
-                | "cache"
-                | "canister"
-                | "deploy"
-                | "deps"
-                | "diagnose"
-                | "fix"
-                | "extension"
-                | "generate"
-                | "identity"
-                | "info"
-                | "_language-service"
-                | "ledger"
-                | "new"
-                | "nns"
-                | "ping"
-                | "quickstart"
-                | "remote"
-                | "replica"
-                | "schema"
-                | "sns"
-                | "start"
-                | "stop"
-                | "toolchain"
-                | "upgrade"
-                | "wallet"
-        ) || extension_subcommands.contains(&name.to_owned())
+        let installed_ext = ExtensionManager::new(dfx_version(), false).map_or(vec![], |mgr| {
+            mgr.list_installed_extensions()
+                .unwrap_or_default()
+                .iter()
+                .map(Extension::to_string)
+                .collect()
+        });
+        installed_ext.contains(&name.to_owned())
+            || matches!(
+                name,
+                "beta"
+                    | "bootstrap"
+                    | "build"
+                    | "cache"
+                    | "canister"
+                    | "deploy"
+                    | "deps"
+                    | "diagnose"
+                    | "fix"
+                    | "extension"
+                    | "generate"
+                    | "identity"
+                    | "info"
+                    | "ledger"
+                    | "new"
+                    | "ping"
+                    | "quickstart"
+                    | "remote"
+                    | "replica"
+                    | "schema"
+                    | "start"
+                    | "stop"
+                    | "toolchain"
+                    | "upgrade"
+                    | "wallet"
+                    | "_language-service"
+            )
     }
 }
 
@@ -257,7 +259,6 @@ impl FromArgMatches for DfxCommand {
                 diagnose::DiagnoseOpts::from_arg_matches(args)?,
             )),
             Some(("fix", args)) => Ok(Self::Fix(fix::FixOpts::from_arg_matches(args)?)),
-            // Some(("sns", args)) => Ok(Self::Sns(sns::SnsOpts::from_arg_matches(args)?)),
             Some(("extension", args)) => Ok(Self::Extension(
                 extension::ExtensionOpts::from_arg_matches(args)?,
             )),
@@ -273,7 +274,6 @@ impl FromArgMatches for DfxCommand {
             )),
             Some(("ledger", args)) => Ok(Self::Ledger(ledger::LedgerOpts::from_arg_matches(args)?)),
             Some(("new", args)) => Ok(Self::New(new::NewOpts::from_arg_matches(args)?)),
-            Some(("nns", args)) => Ok(Self::Nns(nns::NnsOpts::from_arg_matches(args)?)),
             Some(("ping", args)) => Ok(Self::Ping(ping::PingOpts::from_arg_matches(args)?)),
             Some(("quickstart", args)) => Ok(Self::Quickstart(
                 quickstart::QuickstartOpts::from_arg_matches(args)?,
@@ -283,7 +283,6 @@ impl FromArgMatches for DfxCommand {
                 Ok(Self::Replica(replica::ReplicaOpts::from_arg_matches(args)?))
             }
             Some(("schema", args)) => Ok(Self::Schema(schema::SchemaOpts::from_arg_matches(args)?)),
-            Some(("sns", args)) => Ok(Self::Sns(sns::SnsOpts::from_arg_matches(args)?)),
             Some(("start", args)) => Ok(Self::Start(start::StartOpts::from_arg_matches(args)?)),
             Some(("stop", args)) => Ok(Self::Stop(stop::StopOpts::from_arg_matches(args)?)),
             Some(("toolchain", args)) => Ok(Self::Toolchain(
@@ -293,15 +292,26 @@ impl FromArgMatches for DfxCommand {
                 Ok(Self::Upgrade(upgrade::UpgradeOpts::from_arg_matches(args)?))
             }
             Some(("wallet", args)) => Ok(Self::Wallet(wallet::WalletOpts::from_arg_matches(args)?)),
-            Some((_, _)) => {
+            Some((subcmd, args)) => {
+                let installed_extensions =
+                    ExtensionManager::new(dfx_version(), false).map_or(vec![], |mgr| {
+                        mgr.list_installed_extensions()
+                            .unwrap_or_default()
+                            .iter()
+                            .map(Extension::to_string)
+                            .collect::<Vec<String>>()
+                    });
+                if subcmd == "sns" && !installed_extensions.contains(&"sns".to_string()) {
+                    return Ok(Self::Sns(sns::SnsOpts::from_arg_matches(args)?));
+                } else if subcmd == "nns" && !installed_extensions.contains(&"nns".to_string()) {
+                    return Ok(Self::Nns(nns::NnsOpts::from_arg_matches(args)?));
+                }
                 let args = &std::env::args_os().collect::<Vec<_>>()[1..];
                 let args = args.to_vec();
                 Ok(Self::ExtensionRun(args))
             }
-            None => Err(Error::raw(
-                ErrorKind::MissingSubcommand,
-                "A subcommand is required.",
-            )),
+            // note: insteadd of error, clap will print CliOpts::help
+            None => Err(Error::raw(ErrorKind::MissingSubcommand, "")),
         }
     }
 
@@ -312,7 +322,7 @@ impl FromArgMatches for DfxCommand {
     }
 }
 
-/// sort subcommands alphabetically, help still gets printed as the last one
+/// sort subcommands alphabetically (despite this clap prints help as the last one)
 fn sort_clap_commands(cmd: &mut Command) {
     let mut cli_subcommands: Vec<String> = cmd
         .get_subcommands()
