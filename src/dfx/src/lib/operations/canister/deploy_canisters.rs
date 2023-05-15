@@ -43,7 +43,7 @@ pub async fn deploy_canisters(
     argument_type: Option<&str>,
     deploy_mode: &DeployMode,
     upgrade_unchanged: bool,
-    with_cycles: Option<&str>,
+    with_cycles: Option<u128>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     no_wallet: bool,
@@ -58,9 +58,19 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = env.get_canister_id_store()?;
 
+    let pull_canisters_in_config = config.get_config().get_pull_canisters()?;
+    if let Some(canister_name) = some_canister {
+        if pull_canisters_in_config.contains_key(canister_name) {
+            bail!(
+                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
+                canister_name
+            );
+        }
+    }
+
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
-    let canisters_to_deploy = match deploy_mode {
+    let canisters_to_build = match deploy_mode {
         PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
             vec![canister_name.clone()]
         }
@@ -80,8 +90,14 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
+    let canisters_to_install: Vec<String> = canisters_to_build
+        .clone()
+        .into_iter()
+        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
+        .collect();
+
     if some_canister.is_some() {
-        info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
+        info!(log, "Deploying: {}", canisters_to_install.join(" "));
     } else {
         info!(log, "Deploying all canisters.");
     }
@@ -122,7 +138,7 @@ pub async fn deploy_canisters(
     let pool = build_canisters(
         env,
         &canisters_to_load,
-        &canisters_to_deploy,
+        &canisters_to_build,
         &config,
         env_file.clone(),
     )
@@ -133,7 +149,7 @@ pub async fn deploy_canisters(
             let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
-                &canisters_to_deploy,
+                &canisters_to_install,
                 &initial_canister_id_store,
                 &config,
                 argument,
@@ -147,7 +163,6 @@ pub async fn deploy_canisters(
                 assets_upgrade,
             )
             .await?;
-
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
@@ -180,7 +195,7 @@ async fn register_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
-    with_cycles: Option<&str>,
+    with_cycles: Option<u128>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     config: &Config,
@@ -236,7 +251,7 @@ async fn register_canisters(
     Ok(())
 }
 
-#[context("Failed to build call canisters.")]
+#[context("Failed to build all canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
     referenced_canisters: &[String],

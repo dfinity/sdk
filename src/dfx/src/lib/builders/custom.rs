@@ -6,21 +6,15 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::util::download_file_to_path;
 
-use crate::lib::wasm::file::is_wasm_format;
-use anyhow::{anyhow, bail, Context};
-use backoff::backoff::Backoff;
-use backoff::ExponentialBackoff;
-use bytes::Bytes;
+use anyhow::{anyhow, Context};
+
 use candid::Principal as CanisterId;
 use console::style;
 use fn_error_context::context;
-use hyper_rustls::ConfigBuilderExt;
-use reqwest::{Client, StatusCode};
 use slog::info;
 use slog::Logger;
-use std::fs;
-use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use url::Url;
@@ -146,22 +140,6 @@ impl CanisterBuilder for CustomBuilder {
             }
         }
 
-        let optimize = info.get_optimize();
-        let shrink = info.get_shrink().unwrap_or(false);
-        // Custom canister may have WASM gzipped
-        if is_wasm_format(&wasm)? {
-            if let Some(level) = optimize {
-                info!(
-                    self.logger,
-                    "Optimize and shrink WASM module at level {}", level
-                );
-                super::optimize_wasm(&wasm, level)?;
-            } else if shrink {
-                info!(self.logger, "Shrink WASM module size.");
-                super::shrink_wasm(&wasm)?;
-            }
-        }
-
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
@@ -248,60 +226,11 @@ pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxRes
     } = CustomBuilderExtra::try_from(info, pool)?;
 
     if let Some(url) = input_wasm_url {
-        download_file(&url, &wasm).await?;
+        download_file_to_path(&url, &wasm).await?;
     }
     if let Some(url) = input_candid_url {
-        download_file(&url, &candid).await?;
+        download_file_to_path(&url, &candid).await?;
     }
 
     Ok(())
-}
-
-#[context("Failed to download {} to {}.", from, to.display())]
-async fn download_file(from: &Url, to: &Path) -> DfxResult {
-    let parent_dir = to.parent().unwrap();
-    create_dir_all(parent_dir).with_context(|| {
-        format!(
-            "Failed to create output directory {}.",
-            parent_dir.display()
-        )
-    })?;
-
-    let tls_config = rustls::ClientConfig::builder()
-        .with_safe_defaults()
-        .with_webpki_roots()
-        .with_no_client_auth();
-
-    let client = reqwest::Client::builder()
-        .use_preconfigured_tls(tls_config)
-        .build()
-        .context("Could not create HTTP client.")?;
-
-    let mut retry_policy = ExponentialBackoff::default();
-
-    let body = loop {
-        match attempt_download(&client, from).await {
-            Ok(Some(body)) => break body,
-            Ok(None) => bail!("Not found: {}", from),
-            Err(request_error) => match retry_policy.next_backoff() {
-                Some(duration) => tokio::time::sleep(duration).await,
-                None => bail!(request_error),
-            },
-        }
-    };
-
-    fs::write(to, body).with_context(|| format!("Failed to write {}", to.display()))?;
-
-    Ok(())
-}
-
-async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>> {
-    let response = client.get(url.clone()).send().await?;
-
-    if response.status() == StatusCode::NOT_FOUND {
-        Ok(None)
-    } else {
-        let body = response.error_for_status()?.bytes().await?;
-        Ok(Some(body))
-    }
 }

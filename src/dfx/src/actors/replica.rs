@@ -348,8 +348,7 @@ fn replica_start_thread(
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             if let Some(port_path) = write_port_to.as_ref() {
                 let _ = std::fs::remove_file(port_path);
             }
@@ -388,7 +387,7 @@ fn replica_start_thread(
                     debug!(logger, "Got signal to stop. Killing replica process...");
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "Replica process failed.");

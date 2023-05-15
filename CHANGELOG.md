@@ -2,8 +2,54 @@
 
 # UNRELEASED
 
+## DFX
+
+### feat: gzip option in dfx.json
+
+`dfx` can gzip wasm module as the final step in building canisters. 
+
+This behavior is disabled by default.
+
+You can enable it in `dfx.json`:
+
+```json
+{
+  "canisters" : {
+    "app" : {
+      "gzip" : true
+    }
+  }
+}
+```
+
+You can still specify `.wasm.gz` file for custom canisters directly. If any metadata/optimize/shrink options are set in `dfx.json`, the `.wasm.gz` file will be decompressed, applied all the wasm modifications, and compressed as `.wasm.gz` in the end.
+
+### fix: prevented using --argument with --all in canister installation
+
+Removed `dfx deploy`'s behavior of providing the same argument to all canisters, and `dfx canister install`'s behavior of providing an empty argument to all canisters regardless of what was specified. Now installing multiple canisters and providing an installation argument is an error in both commands.
+
+### chore: make `sns` subcommands visible in `dfx help`
+
+### chore: upgraded to clap v4
+
+Updated the command-parsing library to v4. Some colors may be different.
+
+### feat: dfx deps subcommands
+
+This feature was named `dfx pull` before. To make a complete, intuitive user experience, we present a set of subcommands under `dfx deps`:
+
+- `dfx deps pull`: pull the dependencies from mainnet and generate `deps/pulled.json`, the candid files of direct dependencies will also be put into `deps/candid/`;
+- `dfx deps init`: set the init arguments for the pulled dependencies and save the data in `deps/init.json`;
+- `dfx deps deploy`: deploy the pulled dependencies on local replica with the init arguments recorded in `deps/init.json`;
+
+All generated files in `deps/` are encouraged to be version controlled.
+
 ### chore: Add the `nns-dapp` and `internet_identity` to the local canister IDs set by `dfx nns import`
-`dfx nns install` installs a set of canisters in a local repolica.  `dfx nns import` complements this by setting the canister IDs so that they can be queried by the user.  But `dfx nns import` is incomplete.  Now it will also provide the IDs of the `nns-dapp` and `internet_identity` canisters.
+`dfx nns install` installs a set of canisters in a local replica.  `dfx nns import` complements this by setting the canister IDs so that they can be queried by the user.  But `dfx nns import` is incomplete.  Now it will also provide the IDs of the `nns-dapp` and `internet_identity` canisters.
+
+### feat: `.env` file includes all created canister IDs
+Previously the `.env` file only included canister IDs for canisters that were listed as explicit dependencies during the build process.
+Now all canisters that have a canister ID for the specified network are included in `.env`.
 
 ## Asset Canister Synchronization
 
@@ -16,6 +62,22 @@ Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or
 In order to allow larger changes without exceeding the per-message instruction limit, the sync process now:
 - sets properties of assets already in the canister separately from the rest of the batch.
 - splits up the rest of the batch into groups of up to 500 operations.
+
+## Dependencies
+
+### Frontend canister
+
+The asset canister now properly removes the v2-certified response when `/index.html` is deleted.
+
+The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field instead of implicitly returning `None` all the time.
+
+- Module hash: 651425d92d3796ddae581191452e0e87484eeff4ff6352fe9a59c7e1f97a2310
+- https://github.com/dfinity/sdk/pull/3120
+- https://github.com/dfinity/sdk/pull/3112
+
+### Motoko
+
+Updated Motoko to 0.8.8
 
 # 0.14.0
 
@@ -102,8 +164,6 @@ The identity may be specified using the environment variable `DFX_IDENTITY`.
 ### feat: Add DFX_ASSETS_WASM
 
 Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
-
-### feat: dfx pull can download wasm
 
 ### fix: dfx deploy and icx-asset no longer retry on permission failure
 
@@ -298,8 +358,6 @@ Callable only by a controller.  Clears list of authorized principals and adds th
 
 As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
 
-### feat: write canister metadata sections for dfx pull
-
 ### feat: add `--argument-file` argument to the `dfx canister sign` command
 
 Similar to how this argument works in `dfx canister call`, this argument allows providing arguments for the request from a file.
@@ -318,11 +376,6 @@ To force the use of one specific storage mode, use the `--storage-mode` flag wit
 This works for both `dfx identity new` and `dfx identity import`.
 
 The flag `--disable-encryption` is deprecated in favour of `--storage-mode plaintext`. It has the same behavior.
-
-### feat: dfx pull
-
-- write canister metadata for dfx pull.
-- `dfx pull` can fetch `dfx:deps` metadata and resolve dependencies recursively.
 
 ### feat(frontend-canister): better control and overview for asset canister authorized principals
 

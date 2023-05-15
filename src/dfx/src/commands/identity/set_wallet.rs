@@ -19,7 +19,7 @@ pub struct SetWalletOpts {
     canister_name: String,
 
     /// Skip verification that the ID points to a correct wallet canister. Only useful for the local network.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 

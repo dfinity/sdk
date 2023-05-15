@@ -1,11 +1,18 @@
-use crate::certification_types::CertificateExpression;
-use crate::rc_bytes::RcBytes;
-use crate::state_machine::{encoding_certification_order, Asset, AssetEncoding};
+use crate::{
+    asset_certification::types::certification::{CertificateExpression, ResponseHash},
+    state_machine::{encoding_certification_order, Asset, AssetEncoding},
+};
+
 use candid::{CandidType, Deserialize, Func, Nat};
-use ic_certified_map::{Hash, HashTree};
-use serde::Serialize;
+use ic_certified_map::Hash;
+use ic_response_verification::hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
+
+use super::rc_bytes::RcBytes;
+
+/// The file to serve if the requested file wasn't found.
+pub const FALLBACK_FILE: &str = "/index.html";
 
 const HTTP_REDIRECT_PERMANENT: u16 = 308;
 
@@ -27,6 +34,7 @@ pub struct HttpResponse {
     pub status_code: u16,
     pub headers: Vec<HeaderField>,
     pub body: RcBytes,
+    pub upgrade: Option<bool>,
     pub streaming_strategy: Option<StreamingStrategy>,
 }
 
@@ -178,6 +186,7 @@ impl HttpResponse {
             status_code,
             headers: headers.into_iter().collect::<_>(),
             body,
+            upgrade: None,
             streaming_strategy,
         }
     }
@@ -270,6 +279,7 @@ impl HttpResponse {
             status_code: 400,
             headers: vec![],
             body: RcBytes::from(ByteBuf::from(err_msg)),
+            upgrade: None,
             streaming_strategy: None,
         }
     }
@@ -279,6 +289,7 @@ impl HttpResponse {
             status_code: 404,
             headers: vec![certificate_header],
             body: RcBytes::from(ByteBuf::from("not found")),
+            upgrade: None,
             streaming_strategy: None,
         }
     }
@@ -288,59 +299,81 @@ impl HttpResponse {
             status_code,
             headers: vec![("Location".to_string(), location)],
             body: RcBytes::from(ByteBuf::default()),
+            upgrade: None,
             streaming_strategy: None,
         }
     }
 }
 
-pub fn build_ic_certificate_expression_from_headers_and_encoding(
-    header_names: &[&str],
-    encoding_name: &str,
+pub fn response_hash(
+    certified_headers: &[(String, Value)],
+    status_code: u16,
+    body_hash: &[u8; 32],
+) -> ResponseHash {
+    // certification v2 spec:
+    // Response hash is the hash of the concatenation of
+    //   - representation-independent hash of headers
+    //   - hash of the response body
+    //
+    // The representation-independent hash of headers consist of
+    //    - all certified headers (here all headers), plus
+    //    - synthetic header `:ic-cert-status` with value <HTTP status code of response>
+
+    let mut headers = Vec::from(certified_headers);
+    headers.push((
+        ":ic-cert-status".to_string(),
+        Value::Number(status_code.into()),
+    ));
+    let header_hash = representation_independent_hash(&headers);
+    let hash: [u8; 32] = sha2::Sha256::digest(&[header_hash.as_ref(), body_hash].concat()).into();
+    ResponseHash(hash)
+}
+
+pub fn build_ic_certificate_expression_from_headers_and_encoding<T>(
+    headers: &[(String, T)],
+    encoding_name: Option<&str>,
 ) -> CertificateExpression {
-    let mut headers = header_names
+    let mut headers = headers
         .iter()
-        .map(|h| format!(", \"{}\"", h))
+        .map(|(h, _)| format!(", \"{}\"", h))
         .collect::<Vec<_>>()
         .join("");
-    if encoding_name != "identity" {
-        headers = format!(", \"content-encoding\"{}", headers);
+    if let Some(encoding) = encoding_name {
+        if encoding != "identity" {
+            headers = format!(", \"content-encoding\"{}", headers);
+        }
     }
 
     let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
-    let hash = sha2::Sha256::digest(expression.as_bytes())
-        .into_iter()
-        .collect();
-    CertificateExpression { expression, hash }
+    let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
+    CertificateExpression {
+        expression,
+        expression_hash: hash,
+    }
 }
 
-pub fn witness_to_header_v1(witness: HashTree, certificate: &[u8]) -> HeaderField {
-    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
-    serializer.self_describe().unwrap();
-    witness.serialize(&mut serializer).unwrap();
-    (
-        "IC-Certificate".to_string(),
-        String::from("certificate=:")
-            + &base64::encode(certificate)
-            + ":, tree=:"
-            + &base64::encode(&serializer.into_inner())
-            + ":",
-    )
+pub fn build_ic_certificate_expression_from_headers<T>(
+    headers: &[(String, T)],
+) -> CertificateExpression {
+    let headers = headers
+        .iter()
+        .map(|(h, _)| format!(", \"{}\"", h))
+        .collect::<Vec<_>>()
+        .join("");
+
+    let expression = IC_CERTIFICATE_EXPRESSION_VALUE.replace("{headers}", &headers);
+    let hash: [u8; 32] = sha2::Sha256::digest(expression.as_bytes()).into();
+    CertificateExpression {
+        expression,
+        expression_hash: hash,
+    }
 }
 
-pub fn witness_to_header_v2(witness: HashTree, certificate: &[u8], expr_path: &str) -> HeaderField {
-    let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
-    serializer.self_describe().unwrap();
-    witness.serialize(&mut serializer).unwrap();
-
+pub fn build_ic_certificate_expression_header(
+    certificate_expression: &CertificateExpression,
+) -> HeaderField {
     (
-        "IC-Certificate".to_string(),
-        String::from("version=2, ")
-            + "certificate=:"
-            + &base64::encode(certificate)
-            + ":, tree=:"
-            + &base64::encode(&serializer.into_inner())
-            + ":, expr_path=:"
-            + expr_path
-            + ":",
+        "ic-certificateexpression".to_string(),
+        certificate_expression.expression.clone(),
     )
 }
