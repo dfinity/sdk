@@ -120,8 +120,8 @@ teardown() {
     assert_command dfx canister update-settings hello_backend --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}" --yes
     assert_match "Set controller of \"hello_backend\" to: ${BOB_WALLET}"
 
-    assert_command dfx canister update-settings "${ID}" --set-controller alice --identity bob --wallet "${BOB_WALLET}" --yes
-    assert_match "Set controller of \"${ID}\" to: alice"
+    assert_command dfx canister update-settings "${ID}" --set-controller "${ALICE_WALLET}" --identity bob --wallet "${BOB_WALLET}" --yes
+    assert_match "Set controller of \"${ID}\" to: ${ALICE_WALLET}"
 
     # Set controller using invalid principal/identity fails
     assert_command_fail dfx canister update-settings hello_backend --set-controller charlie --identity alice --wallet "${ALICE_WALLET}" --yes
@@ -175,8 +175,8 @@ teardown() {
     assert_command dfx canister update-settings hello_backend --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}" --yes
     assert_match "Set controller of \"hello_backend\" to: ${BOB_WALLET}"
 
-    assert_command dfx canister update-settings "${ID}" --set-controller alice --identity bob --wallet "${BOB_WALLET}" --yes
-    assert_match "Set controller of \"${ID}\" to: alice"
+    assert_command dfx canister update-settings "${ID}" --set-controller "${ALICE_WALLET}" --identity bob --wallet "${BOB_WALLET}" --yes
+    assert_match "Set controller of \"${ID}\" to: ${ALICE_WALLET}"
 
     # Set controller using invalid principal/identity fails
     assert_command_fail dfx canister update-settings hello_backend --set-controller charlie --identity alice --yes
