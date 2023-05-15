@@ -244,17 +244,11 @@ fn user_is_removing_themselves_as_controller(
             .to_string(),
         CallSender::Wallet(principal) => principal.to_string(),
     };
-    let removes_themselves = opts
-        .remove_controller
-        .as_ref()
-        .map(|remove| remove.contains(&caller_principal))
-        .unwrap_or_default();
-    let not_in_new_controllers = opts
-        .set_controller
-        .as_ref()
-        .map(|set| !set.contains(&caller_principal))
-        .unwrap_or_default();
-    Ok(removes_themselves || not_in_new_controllers)
+    let removes_themselves =
+        matches!(&opts.remove_controller, Some(remove) if remove.contains(&caller_principal));
+    let sets_without_themselves =
+        matches!(&opts.set_controller, Some(set) if !set.contains(&caller_principal));
+    Ok(removes_themselves || sets_without_themselves)
 }
 
 #[context("Failed to convert controller '{}' to a principal", controller)]
