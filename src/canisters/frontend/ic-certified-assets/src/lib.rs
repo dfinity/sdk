@@ -1,7 +1,6 @@
 //! This module declares canister methods expected by the assets canister client.
+pub mod asset_certification;
 pub mod evidence;
-pub mod http;
-pub mod rc_bytes;
 pub mod state_machine;
 pub mod types;
 mod url_decode;
@@ -11,11 +10,13 @@ mod tests;
 
 pub use crate::state_machine::StableState;
 use crate::{
-    http::{HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken},
-    rc_bytes::RcBytes,
+    asset_certification::types::http::{
+        HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+    },
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
 };
+use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{candid_method, Principal};
 use ic_cdk::api::{
     call::ManualReply,
@@ -27,6 +28,10 @@ use ic_cdk_macros::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
+#[cfg(target_arch = "wasm32")]
+#[link_section = "icp:public supported_certificate_versions"]
+pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
+
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
@@ -34,7 +39,7 @@ thread_local! {
 #[query]
 #[candid_method(query)]
 fn api_version() -> u16 {
-    0
+    1
 }
 
 #[update]
@@ -138,7 +143,7 @@ async fn validate_take_ownership() -> Result<String, String> {
 
 #[query]
 #[candid_method(query)]
-fn retrieve(key: Key) -> RcBytes {
+fn retrieve(key: AssetKey) -> RcBytes {
     STATE.with(|s| match s.borrow().retrieve(&key) {
         Ok(bytes) => bytes,
         Err(msg) => trap(&msg),
@@ -254,6 +259,23 @@ fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
     })
 }
 
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
+    STATE.with(|s| {
+        if let Err(msg) = s.borrow_mut().commit_proposed_batch(arg, time()) {
+            trap(&msg);
+        }
+        set_certified_data(&s.borrow().root_hash());
+    });
+}
+
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
+    STATE.with(|s| s.borrow_mut().validate_commit_proposed_batch(arg))
+}
+
 #[update(guard = "can_prepare")]
 #[candid_method(update)]
 fn delete_batch(arg: DeleteBatchArguments) {
@@ -325,7 +347,7 @@ fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCa
 
 #[query]
 #[candid_method(query)]
-fn get_asset_properties(key: Key) -> AssetProperties {
+fn get_asset_properties(key: AssetKey) -> AssetProperties {
     STATE.with(|s| {
         s.borrow()
             .get_asset_properties(key)

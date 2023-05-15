@@ -38,6 +38,8 @@ type BatchOperationKind = variant {
   CreateAsset: CreateAssetArguments;
   SetAssetContent: SetAssetContentArguments;
 
+  SetAssetProperties: SetAssetPropertiesArguments;
+
   UnsetAssetContent: UnsetAssetContentArguments;
   DeleteAsset: DeleteAssetArguments;
 
@@ -47,6 +49,11 @@ type BatchOperationKind = variant {
 type CommitBatchArguments = record {
   batch_id: BatchId;
   operations: vec BatchOperationKind
+};
+
+type CommitProposedBatchArguments = record {
+  batch_id: BatchId;
+  evidence: blob;
 };
 
 type ComputeEvidenceArguments = record {
@@ -65,6 +72,7 @@ type HttpRequest = record {
   url: text;
   headers: vec HeaderField;
   body: blob;
+  certificate_version: opt nat16;
 };
 
 type HttpResponse = record {
@@ -168,6 +176,9 @@ service: {
   // Save the batch operations for later commit
   propose_commit_batch: (CommitBatchArguments) -> ();
 
+  // Given a batch already proposed, perform all operations successfully, or reject
+  commit_proposed_batch: (CommitProposedBatchArguments) -> ();
+
   // Compute a hash over the CommitBatchArguments.  Call until it returns Some(evidence).
   compute_evidence: (ComputeEvidenceArguments) -> (opt blob);
 
@@ -213,4 +224,5 @@ service: {
   validate_grant_permission: (GrantPermission) -> (ValidationResult);
   validate_revoke_permission: (RevokePermission) -> (ValidationResult);
   validate_take_ownership: () -> (ValidationResult);
+  validate_commit_proposed_batch: (CommitProposedBatchArguments) -> (ValidationResult);
 }

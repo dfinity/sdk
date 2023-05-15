@@ -23,6 +23,7 @@ globset = "0.4.9"
 hex = { workspace = true, features = ["serde"] }
 ic-agent = { workspace = true, features = ["pem"] }
 ic-utils = { workspace = true }
+itertools.workspace = true
 json5 = "0.4.1"
 mime.workspace = true
 mime_guess.workspace = true

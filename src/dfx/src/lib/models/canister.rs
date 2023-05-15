@@ -5,10 +5,11 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::metadata::names::{CANDID_SERVICE, DFX_DEPS, DFX_INIT, DFX_WASM_URL};
-use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::metadata::dfx::DfxMetadata;
+use crate::lib::metadata::names::{CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::is_wasm_format;
 use crate::util::{assets, check_candid_file};
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 
 use anyhow::{anyhow, bail, Context};
@@ -104,7 +105,7 @@ impl Canister {
     #[context("Failed while trying to apply metadata for canister '{}'.", self.info.get_name())]
     pub(crate) fn apply_metadata(&self, logger: &Logger) -> DfxResult {
         let mut metadata_sections = self.info.metadata().sections.clone();
-        // Default to write public candid:service unless overwrited
+        // Default to write public candid:service unless overwritten
         if (self.info.is_rust() || self.info.is_motoko())
             && !metadata_sections.contains_key(CANDID_SERVICE)
         {
@@ -118,62 +119,21 @@ impl Canister {
             );
         }
 
-        if self.info.is_pull_ready() {
-            // Check DFX_WASM_URL
-            match metadata_sections.get(DFX_WASM_URL) {
-                Some(s) => {
-                    if s.visibility != MetadataVisibility::Public {
-                        warn!(
-                            logger,
-                            "`{}` metadata should be public. section: {:?}", DFX_WASM_URL, s
-                        );
-                    }
-                }
-                None => bail!("pull_ready canister must set `{}` metadata.", DFX_WASM_URL),
-            }
-            // Check DFX_INIT
-            match metadata_sections.get(DFX_INIT) {
-                Some(s) => {
-                    if s.visibility != MetadataVisibility::Public {
-                        warn!(
-                            logger,
-                            "`{}` metadata should be public. section: {:?}", DFX_INIT, s
-                        );
-                    }
-                }
-                None => warn!(
-                    logger,
-                    "pull_ready canister should better set `{}` metadata as a initialization guide.",
-                    DFX_INIT
-                ),
-            }
-            // Check DFX_DEPS
-            match metadata_sections.get(DFX_DEPS) {
-                Some(s) => warn!(
-                    logger,
-                    "Overwriting `{}` metadata which should be set by dfx. section: {:?}",
-                    DFX_DEPS,
-                    s
-                ),
-                None => {
-                    let mut s = String::new();
-                    for (name, id) in self.info.get_pull_dependencies() {
-                        s.push_str(name);
-                        s.push(':');
-                        s.push_str(&id.to_text());
-                        s.push(';');
-                    }
-                    metadata_sections.insert(
-                        DFX_DEPS.to_string(),
-                        CanisterMetadataSection {
-                            name: DFX_DEPS.to_string(),
-                            visibility: MetadataVisibility::Public,
-                            content: Some(s),
-                            ..Default::default()
-                        },
-                    );
-                }
-            }
+        if let Some(pullable) = self.info.get_pullable() {
+            let mut dfx_metadata = DfxMetadata::default();
+            dfx_metadata.set_pullable(pullable);
+            let content = serde_json::to_string_pretty(&dfx_metadata)
+                .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
+
+            metadata_sections.insert(
+                DFX.to_string(),
+                CanisterMetadataSection {
+                    name: DFX.to_string(),
+                    visibility: MetadataVisibility::Public,
+                    content: Some(content),
+                    ..Default::default()
+                },
+            );
         }
 
         if metadata_sections.is_empty() {
@@ -192,8 +152,10 @@ impl Canister {
             return Ok(());
         }
 
-        let mut m = std::fs::read(&wasm_path)
+        let wasm = std::fs::read(&wasm_path)
             .with_context(|| format!("Failed to read wasm at {}", wasm_path.display()))?;
+        let mut m = ic_wasm::utils::parse_wasm(&wasm, true)
+            .with_context(|| format!("Failed to parse wasm at {}", wasm_path.display()))?;
 
         for (name, section) in &metadata_sections {
             if section.name == CANDID_SERVICE && self.info.is_motoko() {
@@ -232,12 +194,12 @@ impl Canister {
 
             // if the metadata already exists in the wasm with a different visibility,
             // then we have to remove it
-            m = remove_metadata(&m, name)?;
+            remove_metadata(&mut m, name);
 
-            m = add_metadata(&m, visibility, name, data)?;
+            add_metadata(&mut m, visibility, name, data);
         }
 
-        std::fs::write(&wasm_path, &m)
+        m.emit_wasm_file(&wasm_path)
             .with_context(|| format!("Could not write WASM to {:?}", wasm_path))
     }
 }
@@ -288,10 +250,7 @@ impl CanisterPool {
         Ok(())
     }
 
-    #[context(
-        "Failed to load canister pool for given canisters: {:?}",
-        canister_names
-    )]
+    #[context("Failed to load canister pool.")]
     pub fn load(
         env: &dyn Environment,
         generate_cid: bool,
@@ -307,7 +266,7 @@ impl CanisterPool {
         let mut pool_helper = PoolConstructHelper {
             config: &config,
             builder_pool: BuilderPool::new(env)?,
-            canister_id_store: CanisterIdStore::for_env(env)?,
+            canister_id_store: env.get_canister_id_store()?,
             generate_cid,
             canisters_map: &mut canisters_map,
         };
@@ -425,14 +384,8 @@ impl CanisterPool {
                         from.to_string_lossy(),
                         to.to_string_lossy()
                     );
-                    std::fs::copy(from, &to).with_context(|| {
-                        format!(
-                            "Failed to copy canister '{}' candid from {} to {}.",
-                            canister.get_name(),
-                            from.to_string_lossy(),
-                            to.to_string_lossy()
-                        )
-                    })?;
+                    dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
+                    dfx_core::fs::copy(from, &to)?;
                 } else {
                     warn!(
                         log,
@@ -484,10 +437,6 @@ impl CanisterPool {
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
-        // No need to run for Pull canister
-        if canister.get_info().is_pull() {
-            return Ok(());
-        }
         // Copy the WASM and IDL files to canisters/NAME/...
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
         let idl_file_path = canister.info.get_build_idl_path();

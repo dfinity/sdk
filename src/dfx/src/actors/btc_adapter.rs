@@ -179,8 +179,7 @@ fn btc_adapter_start_thread(
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             if let Some(socket_path) = &config.socket_path {
                 if socket_path.exists() {
                     std::fs::remove_file(socket_path).expect("Could not remove btc-adapter socket");
@@ -208,7 +207,7 @@ fn btc_adapter_start_thread(
                     debug!(logger, "Got signal to stop. Killing btc-adapter process...");
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "ic-btc-adapter process failed.");

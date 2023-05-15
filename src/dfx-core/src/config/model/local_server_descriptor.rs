@@ -9,7 +9,7 @@ use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
 
-use slog::{debug, Logger};
+use slog::{debug, info, Logger};
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 
@@ -165,6 +165,11 @@ impl LocalServerDescriptor {
     /// This is the port that the agent connects to.
     pub fn webserver_port_path(&self) -> PathBuf {
         self.data_directory.join("webserver-port")
+    }
+
+    /// This file contains the effective config the replica was started with.
+    pub fn effective_config_path(&self) -> PathBuf {
+        self.data_directory.join("replica-effective-config.json")
     }
 }
 
@@ -331,5 +336,55 @@ impl LocalServerDescriptor {
         };
         debug!(log, "  timeout: {}{}", self.bootstrap.timeout, diffs);
         debug!(log, "");
+    }
+    /// Gets the port of a local replica.
+    ///
+    /// # Prerequisites
+    /// - A local replica or emulator needs to be running, e.g. with `dfx start`.
+    pub fn get_running_replica_port(
+        &self,
+        logger: Option<&Logger>,
+    ) -> Result<Option<u16>, NetworkConfigError> {
+        let emulator_port_path = self.ic_ref_port_path();
+        let replica_port_path = self.replica_port_path();
+
+        match read_port_from(&replica_port_path)? {
+            Some(port) => {
+                if let Some(logger) = logger {
+                    info!(logger, "Found local replica running on port {}", port);
+                }
+                Ok(Some(port))
+            }
+            None => match read_port_from(&emulator_port_path)? {
+                Some(port) => {
+                    if let Some(logger) = logger {
+                        info!(logger, "Found local emulator running on port {}", port);
+                    }
+                    Ok(Some(port))
+                }
+                None => Ok(None),
+            },
+        }
+    }
+}
+
+/// Reads a port number from a file.
+///
+/// # Prerequisites
+/// The file is expected to contain the port number only, as utf8 text.
+fn read_port_from(path: &Path) -> Result<Option<u16>, NetworkConfigError> {
+    if path.exists() {
+        let s = crate::fs::read_to_string(path)?;
+        let s = s.trim();
+        if s.is_empty() {
+            Ok(None)
+        } else {
+            let port = s.parse::<u16>().map_err(|e| {
+                NetworkConfigError::ParsePortValueFailed(Box::new(path.to_path_buf()), Box::new(e))
+            })?;
+            Ok(Some(port))
+        }
+    } else {
+        Ok(None)
     }
 }

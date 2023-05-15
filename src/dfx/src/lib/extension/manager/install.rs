@@ -11,6 +11,9 @@ use std::io::Cursor;
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::PermissionsExt;
 
+const DFINITY_DFX_EXTENSIONS_RELEASES_URL: &str =
+    "https://github.com/dfinity/dfx-extensions/releases/download";
+
 impl ExtensionManager {
     pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
         if self.get_extension_directory(extension_name).exists() {
@@ -19,11 +22,14 @@ impl ExtensionManager {
             ));
         }
 
-        let url = self.get_extension_download_url(extension_name)?;
+        let extension_version = self.get_extension_compatible_version(extension_name)?;
+        let github_release_tag = get_git_release_tag(extension_name, &extension_version);
+        let extension_archive = get_extension_archive_name(extension_name, &extension_version)?;
+        let url = get_extension_download_url(&github_release_tag, &extension_archive)?;
 
         let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
 
-        self.finalize_installation(extension_name, temp_dir)?;
+        self.finalize_installation(extension_name, &extension_archive, temp_dir)?;
 
         Ok(())
     }
@@ -38,20 +44,13 @@ impl ExtensionManager {
         dfx_version
     }
 
-    fn get_extension_download_url(&self, extension_name: &str) -> Result<Url, ExtensionError> {
+    fn get_extension_compatible_version(
+        &self,
+        extension_name: &str,
+    ) -> Result<Version, ExtensionError> {
         let manifest = ExtensionCompatibilityMatrix::fetch()?;
         let dfx_version = self.dfx_version_strip_semver();
-        let extension_version =
-            manifest.find_latest_compatible_extension_version(extension_name, dfx_version)?;
-        let download_url = format!(
-            "https://github.com/dfinity/dfx-extensions/releases/download/{name}-{version}/{name}-{version}-{platform}-{arch}.tar.gz",
-            name = extension_name,
-            version = extension_version,
-            platform = std::env::consts::OS,
-            arch = std::env::consts::ARCH,
-        );
-        Url::parse(&download_url)
-            .map_err(|e| ExtensionError::MalformedExtensionDownloadUrl(download_url, e))
+        manifest.find_latest_compatible_extension_version(extension_name, dfx_version)
     }
 
     fn download_and_unpack_extension_to_tempdir(
@@ -70,7 +69,6 @@ impl ExtensionManager {
         })?;
 
         let mut archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
-
         archive
             .unpack(temp_dir.path())
             .map_err(|e| ExtensionError::DecompressFailed(download_url, e))?;
@@ -81,16 +79,55 @@ impl ExtensionManager {
     fn finalize_installation(
         &self,
         extension_name: &str,
+        extension_unarchived_dir_name: &str,
         temp_dir: TempDir,
     ) -> Result<(), ExtensionError> {
         #[cfg(not(target_os = "windows"))]
         {
-            let bin = temp_dir.path().join(extension_name);
+            let bin = temp_dir
+                .path()
+                .join(extension_unarchived_dir_name)
+                .join(extension_name);
             dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
         }
 
         let extension_dir = self.dir.join(extension_name);
-        dfx_core::fs::rename(temp_dir.path(), &extension_dir)?;
+        dfx_core::fs::rename(
+            &temp_dir.path().join(extension_unarchived_dir_name),
+            &extension_dir,
+        )?;
         Ok(())
     }
+}
+
+fn get_extension_download_url(
+    github_release_tag: &str,
+    extension_archive_name: &str,
+) -> Result<Url, ExtensionError> {
+    let download_url = format!("{DFINITY_DFX_EXTENSIONS_RELEASES_URL}/{github_release_tag}/{extension_archive_name}.tar.gz",);
+    Url::parse(&download_url)
+        .map_err(|e| ExtensionError::MalformedExtensionDownloadUrl(download_url, e))
+}
+
+fn get_git_release_tag(extension_name: &str, extension_verion: &Version) -> String {
+    format!("{extension_name}-v{extension_verion}",)
+}
+
+fn get_extension_archive_name(
+    extension_name: &str,
+    extension_version: &Version,
+) -> Result<String, ExtensionError> {
+    Ok(format!(
+        "{extension_name}-v{extension_version}-{arch}-{platform}",
+        platform = match std::env::consts::OS {
+            "linux" => "unknown-linux-gnu",
+            "macos" => "apple-darwin",
+            // "windows" => "pc-windows-msvc",
+            unsupported_platform =>
+                return Err(ExtensionError::PlatformNotSupported(
+                    unsupported_platform.to_string()
+                )),
+        },
+        arch = std::env::consts::ARCH,
+    ))
 }

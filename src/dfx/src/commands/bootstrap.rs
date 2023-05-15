@@ -3,7 +3,6 @@ use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::get_reusable_socket_addr;
-use crate::util::network::get_replica_urls;
 use crate::NetworkOpt;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
@@ -18,19 +17,19 @@ use std::net::{IpAddr, SocketAddr};
 #[derive(Parser, Clone)]
 pub struct BootstrapOpts {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
-    #[clap(long)]
+    #[arg(long)]
     ip: Option<String>,
 
     /// Specifies the port number that the bootstrap server listens on. Defaults to 8081.
-    #[clap(long)]
+    #[arg(long)]
     port: Option<String>,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
     /// Specifies the maximum number of seconds that the bootstrap server
     /// will wait for upstream requests to complete. Defaults to 30.
-    #[clap(long)]
+    #[arg(long)]
     timeout: Option<String>,
 }
 
@@ -66,7 +65,7 @@ pub fn exec(
 
     let icx_proxy_pid_file_path = local_server_descriptor.icx_proxy_pid_path();
 
-    let replica_urls = get_replica_urls(env, &network_descriptor)?;
+    let replica_urls = network_descriptor.get_replica_urls(Some(env.get_logger()))?;
 
     // Since the user may have provided port "0", we need to grab a dynamically
     // allocated port and construct a resuable SocketAddr which the actix

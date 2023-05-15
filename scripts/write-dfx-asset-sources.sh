@@ -95,4 +95,5 @@ do
         write_entry "$name" "x86_64-${platform}"
     done
     write_entry "motoko-base" "x86_64-${platform}" "motoko-base" "$motoko_base_sha"
+    write_entry "ic-btc-canister" "x86_64-${platform}" "ic-btc-canister"
 done

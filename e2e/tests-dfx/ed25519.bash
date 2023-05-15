@@ -14,7 +14,7 @@ teardown() {
 
 @test "can call a canister using an ed25519 identity" {
     install_asset ed25519
-    assert_command dfx identity import --disable-encryption ed25519 identity.pem
+    assert_command dfx identity import --storage-mode plaintext ed25519 identity.pem
     dfx_new # This installs replica and other binaries
     dfx identity use ed25519
     install_asset whoami
