@@ -1,12 +1,20 @@
 #![allow(special_module_name)]
 
+use crate::commands::nns::NnsOpts;
+use crate::commands::sns::SnsOpts;
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use crate::lib::environment::{Environment, EnvironmentImpl};
+use crate::lib::extension::Extension;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
-use clap::{ArgAction, Args, Parser};
+// use clap::{ArgAction, Args, CommandFactory, FromArgMatches as _, Parser, Subcommand as _};
+use clap::{ArgAction, Args, CommandFactory, FromArgMatches as _, Parser};
+
+use commands::DfxCommand;
+// use lib::error::ExtensionError;
+use lib::extension::manager::ExtensionManager;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -46,6 +54,71 @@ pub struct CliOpts {
 
     #[command(subcommand)]
     command: commands::DfxCommand,
+}
+
+impl CliOpts {
+    fn parse_and_load_extensions() -> clap::Command {
+        let mut cli_opts: clap::Command = CliOpts::command_for_update();
+        let installed_extensions =
+            ExtensionManager::new(dfx_version(), false).map_or(vec![], |mgr| {
+                mgr.list_installed_extensions()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|ext| ext.into_clap_command(&mgr))
+                    .collect::<Vec<clap::Command>>()
+            });
+        if installed_extensions
+            .iter()
+            .find(|ext| ext.get_name() == "sns")
+            .is_some()
+        {
+            cli_opts = cli_opts.mut_subcommand("sns", |subcmd| {
+                subcmd
+                    .hide(true)
+                    .name("_sns_deprecated")
+                    .bin_name("_sns_deprecated")
+                    .display_name("_sns_deprecated")
+            });
+        }
+        if installed_extensions
+            .iter()
+            .find(|ext| ext.get_name() == "nns")
+            .is_some()
+        {
+            cli_opts = cli_opts.mut_subcommand("nns", |subcmd| {
+                subcmd
+                    .hide(true)
+                    .name("_nns_deprecated")
+                    .bin_name("_nns")
+                    .display_name("_nns")
+            });
+        }
+
+        let mut cmd = cli_opts
+            .subcommands(installed_extensions)
+            .arg_required_else_help(true);
+        sort_clap_commands(&mut cmd);
+        cmd
+    }
+}
+
+/// sort subcommands alphabetically (despite this clap prints help as the last one)
+fn sort_clap_commands(cmd: &mut clap::Command) {
+    let mut cli_subcommands: Vec<String> = cmd
+        .get_subcommands()
+        .map(|v| v.get_display_name().unwrap_or_default().to_string())
+        .collect();
+    cli_subcommands.sort();
+    let cli_subcommands: std::collections::HashMap<String, usize> = cli_subcommands
+        .into_iter()
+        .enumerate()
+        .map(|(i, v)| (v, i))
+        .collect();
+    for c in cmd.get_subcommands_mut() {
+        let name = c.get_display_name().unwrap_or_default().to_string();
+        let ord = *cli_subcommands.get(&name).unwrap_or(&999);
+        *c = c.clone().display_order(ord);
+    }
 }
 
 #[derive(Args, Clone, Debug)]
@@ -108,13 +181,18 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
+fn setup_logging(
+    verbose: u8,
+    quiet: u8,
+    logmode: String,
+    logfile: Option<String>,
+) -> (i64, slog::Logger) {
     // Create a logger with our argument matches.
-    let verbose_level = opts.verbose as i64 - opts.quiet as i64;
+    let verbose_level = verbose as i64 - quiet as i64;
 
-    let mode = match opts.logmode.as_str() {
-        "tee" => LoggingMode::Tee(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
-        "file" => LoggingMode::File(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
+    let mode = match logmode.as_str() {
+        "tee" => LoggingMode::Tee(PathBuf::from(logfile.as_deref().unwrap_or("log.txt"))),
+        "file" => LoggingMode::File(PathBuf::from(logfile.as_deref().unwrap_or("log.txt"))),
         _ => LoggingMode::Stderr,
     };
 
@@ -178,14 +256,31 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 }
 
 fn main() {
-    let cli_opts = CliOpts::parse();
-    let (verbose_level, log) = setup_logging(&cli_opts);
-    let identity = cli_opts.identity;
-    let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
-    let command = cli_opts.command;
+    let cli_opts = CliOpts::parse_and_load_extensions();
+    let matches = cli_opts.get_matches();
+    let (verbose_level, log) = {
+        let verbose = matches
+            .get_one::<u8>("identity")
+            .map(|v| v.clone())
+            .unwrap_or_default();
+        let quiet = matches
+            .get_one::<u8>("identity")
+            .map(|v| v.clone())
+            .unwrap_or_default();
+        let logfile = matches
+            .get_one::<String>("identity")
+            .map(|v| v.clone())
+            .unwrap_or_default();
+        let logmode = matches.get_one::<String>("identity").map(|v| v.clone());
+        setup_logging(verbose, quiet, logfile, logmode)
+    };
+    let identity = matches.get_one::<String>("identity").map(|v| v.clone());
+    let effective_canister_id = matches
+        .get_one::<String>("provisional_create_canister_effective_canister_id")
+        .map(|v| v.clone());
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
-    let result = match EnvironmentImpl::new() {
-        Ok(env) => {
+    let result = match (EnvironmentImpl::new(), matches.subcommand()) {
+        (Ok(env), Some((cmd, arg_matches))) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
             match EnvironmentImpl::new().map(|env| {
                 env.with_logger(log)
@@ -198,6 +293,31 @@ fn main() {
                         env.get_logger(),
                         "Trace mode enabled. Lots of logs coming up."
                     );
+                    let mgr = ExtensionManager::new(dfx_version(), false);
+                    let installed_extensions = mgr.map_or(vec![], |mgr| {
+                        mgr.list_installed_extensions()
+                            .unwrap_or_default()
+                            .iter()
+                            .map(Extension::to_string)
+                            .collect::<Vec<String>>()
+                    });
+                    // let _args = dbg!(matches.get_many::<std::ffi::OsString>(""));
+                    let command = if installed_extensions.contains(&cmd.to_string()) {
+                        let args = &std::env::args_os().collect::<Vec<_>>()[1..];
+                        let args = args.to_vec();
+
+                        DfxCommand::ExtensionRun(args)
+                    } else if cmd == "_sns_deprecated" {
+                        DfxCommand::Sns(SnsOpts::from_arg_matches(arg_matches).unwrap())
+                    } else if cmd == "_nns_deprecated" {
+                        DfxCommand::Nns(NnsOpts::from_arg_matches(arg_matches).unwrap())
+                    } else {
+                        let q = DfxCommand::from_arg_matches(&matches);
+                        if let Err(ref e) = q {
+                            dbg!(&e);
+                        } // TODO
+                        q.unwrap()
+                    };
                     match commands::exec(&env, command) {
                         Err(e) => {
                             error_diagnosis = diagnose(&env, &e);
@@ -209,10 +329,13 @@ fn main() {
                 Err(e) => Err(e),
             }
         }
-        Err(e) => match command {
-            commands::DfxCommand::Schema(_) => commands::exec_without_env(command),
-            _ => Err(e),
-        },
+        (Err(e), Some((_, arg_matches))) => {
+            match DfxCommand::from_arg_matches(arg_matches).unwrap() {
+                v @ commands::DfxCommand::Schema(_) => commands::exec_without_env(v),
+                _ => Err(e),
+            }
+        }
+        (_, _) => Ok(()),
     };
     if let Err(err) = result {
         print_error_and_diagnosis(err, error_diagnosis);
