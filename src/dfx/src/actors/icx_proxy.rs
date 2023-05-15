@@ -212,8 +212,7 @@ fn icx_proxy_start_thread(
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting icx-proxy...");
             let mut child = cmd.spawn().expect("Could not start icx-proxy.");
@@ -230,7 +229,7 @@ fn icx_proxy_start_thread(
                     debug!(logger, "Got signal to stop. Killing icx-proxy process...");
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "icx-proxy process failed.");
