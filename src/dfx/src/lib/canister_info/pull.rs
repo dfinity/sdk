@@ -11,7 +11,6 @@ use dfx_core::config::model::dfinity::CanisterTypeProperties;
 pub struct PullCanisterInfo {
     name: String,
     canister_id: Principal,
-    // output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
 }
 

@@ -33,6 +33,8 @@ pub use custom::custom_download;
 pub enum WasmBuildOutput {
     // Wasm(Vec<u8>),
     File(PathBuf),
+    // pull dependencies has no wasm output to be installed by `dfx canister install` or `dfx deploy`
+    None,
 }
 
 #[derive(Debug)]
@@ -508,34 +510,6 @@ impl BuildConfig {
         Self { env_file, ..self }
     }
 }
-
-// #[context("Failed to shrink wasm at {}.", &wasm_path.as_ref().display())]
-// fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
-//     let wasm_path = wasm_path.as_ref();
-//     let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
-//     let mut module =
-//         ic_wasm::utils::parse_wasm(&wasm, true).context("Could not parse the WASM module.")?;
-//     ic_wasm::shrink::shrink(&mut module);
-//     module
-//         .emit_wasm_file(wasm_path)
-//         .with_context(|| format!("Could not write shrunk WASM to {:?}.", wasm_path))?;
-//     Ok(())
-// }
-
-// #[context("Failed to optimize wasm at {}.", &wasm_path.as_ref().display())]
-// fn optimize_wasm(wasm_path: impl AsRef<Path>, level: WasmOptLevel) -> DfxResult {
-//     let wasm_path = wasm_path.as_ref();
-//     let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
-//     let mut module =
-//         ic_wasm::utils::parse_wasm(&wasm, true).context("Could not parse the WASM module.")?;
-//     ic_wasm::shrink::shrink_with_wasm_opt(&mut module, &level.to_string())
-//         .context("Could not optimize the WASM module.")?;
-
-//     module
-//         .emit_wasm_file(wasm_path)
-//         .with_context(|| format!("Could not write optimized WASM to {:?}.", wasm_path))?;
-//     Ok(())
-// }
 
 pub struct BuilderPool {
     builders: BTreeMap<&'static str, Arc<dyn CanisterBuilder>>,

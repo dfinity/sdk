@@ -25,17 +25,17 @@ pub struct PulledJson {
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledCanister {
-    /// Name of `type: pull` in dfx.json. None if indirect dependency.
+    /// Name of `type: pull` in dfx.json. Omitted if indirect dependency.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// From the dfx metadata of the downloaded wasm module
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub dependencies: Vec<Principal>,
-    /// The hash of the canister wasm on chain
-    ///
-    /// wasm_hash if defined in the dfx metadata
-    /// or get from canister_status
+    /// The expected module hash of the canister wasm
+    /// Will be one of the following:
+    ///   - wasm_hash if defined in the dfx metadata
+    ///   - otherwise read from canister_status
     pub wasm_hash: String,
     /// From the dfx metadata of the downloaded wasm module
     pub init_guide: String,
@@ -69,13 +69,16 @@ pub struct InitJson {
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct InitItem {
-    // init argument in IDL string
+    /// Init argument in IDL string
     arg_str: Option<String>,
-    // hex encoded bytes of init argument
+    /// Hex encoded bytes of init argument
     arg_raw: Option<String>,
 }
 
 impl InitJson {
+    /// Set `init_arg` for a pull dependency.
+    ///
+    /// The input `arg_str` is optional since users may specify the raw argument directly.
     pub fn set_init_arg(
         &mut self,
         canister_id: &Principal,
@@ -91,10 +94,12 @@ impl InitJson {
         );
     }
 
+    /// Set empty `init_arg` for a pull dependency.
     pub fn set_empty_init(&mut self, canister_id: &Principal) {
         self.canisters.insert(*canister_id, InitItem::default());
     }
 
+    /// Whether already set `init
     pub fn contains(&self, canister_id: &Principal) -> bool {
         self.canisters.contains_key(canister_id)
     }
@@ -113,6 +118,7 @@ impl InitJson {
     }
 }
 
+/// Map from canister name to its Principal as defined in `dfx.json.
 #[context("Failed to get pull canisters defined in dfx.json.")]
 pub fn get_pull_canisters_in_config(
     env: &dyn Environment,
@@ -123,8 +129,9 @@ pub fn get_pull_canisters_in_config(
         .get_pull_canisters()?)
 }
 
-// 1. whether pulled.json is consistent with dfx.json
-// 2. whether downloaded wasm modules are consistent with pulled.json
+/// Validate following properties:
+///   - whether `pulled.json` is consistent with `dfx.json`
+///   - whether downloaded wasm modules are consistent with `pulled.json`
 pub fn validate_pulled(
     pulled_json: &PulledJson,
     pull_canisters_in_config: &BTreeMap<String, Principal>,
@@ -171,6 +178,9 @@ fn get_deps_dir(project_root: &Path) -> PathBuf {
     project_root.join("deps")
 }
 
+/// The path of the candid file of a direct dependency.
+///
+/// `deps/candid/<PRINCIPAL>.did`.
 pub fn get_candid_path_in_project(project_root: &Path, canister_id: &Principal) -> PathBuf {
     get_deps_dir(project_root)
         .join("candid")
@@ -186,6 +196,7 @@ fn get_pulled_json_path(project_root: &Path) -> PathBuf {
     get_deps_dir(project_root).join("pulled.json")
 }
 
+/// Load `pulled.json` in `deps/`.
 #[context("Failed to read pulled.json. Please (re)run `dfx deps pull`.")]
 pub fn load_pulled_json(project_root: &Path) -> DfxResult<PulledJson> {
     let pulled_json_path = get_pulled_json_path(project_root);
@@ -193,6 +204,7 @@ pub fn load_pulled_json(project_root: &Path) -> DfxResult<PulledJson> {
     Ok(pulled_json)
 }
 
+/// Save `pulled.json` in `deps/`.
 #[context("Failed to save pulled.json")]
 pub fn save_pulled_json(project_root: &Path, pulled_json: &PulledJson) -> DfxResult {
     let pulled_json_path = get_pulled_json_path(project_root);
@@ -201,6 +213,7 @@ pub fn save_pulled_json(project_root: &Path, pulled_json: &PulledJson) -> DfxRes
     Ok(())
 }
 
+/// Create `init.json` in `deps/`.
 #[context("Failed to create init.json")]
 pub fn create_init_json_if_not_existed(project_root: &Path) -> DfxResult {
     let init_json_path = get_init_json_path(project_root);
@@ -212,6 +225,7 @@ pub fn create_init_json_if_not_existed(project_root: &Path) -> DfxResult {
     Ok(())
 }
 
+/// Load the `init.json` in `deps/`.
 #[context("Failed to read init.json. Please run `dfx deps init`.")]
 pub fn load_init_json(project_root: &Path) -> DfxResult<InitJson> {
     let init_json_path = get_init_json_path(project_root);
@@ -219,6 +233,7 @@ pub fn load_init_json(project_root: &Path) -> DfxResult<InitJson> {
     Ok(init_json)
 }
 
+/// Save `init.json` in `deps/`.
 #[context("Failed to save init.json")]
 pub fn save_init_json(project_root: &Path, init_json: &InitJson) -> DfxResult {
     let init_json_path = get_init_json_path(project_root);
@@ -227,6 +242,7 @@ pub fn save_init_json(project_root: &Path, init_json: &InitJson) -> DfxResult {
     Ok(())
 }
 
+/// The path of the downloaded .wasm or .wasm.gz file.
 #[context("Failed to get the wasm path of pulled canister \"{canister_id}\"")]
 pub fn get_pulled_wasm_path(canister_id: &Principal, gzip: bool) -> DfxResult<PathBuf> {
     let p = get_pulled_canister_dir(canister_id)?.join("canister");
@@ -236,20 +252,22 @@ pub fn get_pulled_wasm_path(canister_id: &Principal, gzip: bool) -> DfxResult<Pa
     }
 }
 
-// #[context("Failed to get the wasm.gz path of pulled canister \"{canister_id}\"")]
-// pub fn get_pulled_wasm_gz_path(canister_id: &Principal) -> DfxResult<PathBuf> {
-//     Ok(get_pulled_canister_dir(canister_id)?.join("canister.wasm.gz"))
-// }
-
+/// The path of service.did file extracted from the downloaded wasm.
 #[context("Failed to get the service candid path of pulled canister \"{canister_id}\"")]
 pub fn get_pulled_service_candid_path(canister_id: &Principal) -> DfxResult<PathBuf> {
     Ok(get_pulled_canister_dir(canister_id)?.join("service.did"))
 }
 
-fn get_pulled_canister_dir(canister_id: &Principal) -> DfxResult<PathBuf> {
+/// The path of the dir contains wasm and service.did.
+pub fn get_pulled_canister_dir(canister_id: &Principal) -> DfxResult<PathBuf> {
     Ok(get_cache_root()?.join("pulled").join(canister_id.to_text()))
 }
 
+/// Get the principal of a pull dependency which must exist in `pulled.json`.
+///
+/// The input can be one of:
+///   - <PRINCIPAL> of any pull dependency
+///   - <NAME> of direct dependencies defined in `dfx.json`
 pub fn get_pull_canister_or_principal(
     canister: &str,
     pull_canisters_in_config: &BTreeMap<String, Principal>,
@@ -269,6 +287,11 @@ pub fn get_pull_canister_or_principal(
     }
 }
 
+/// The prompt of a pull dependency.
+///
+/// Will be one of the following:
+///   - "<CANISTER_ID>" if it is not a direct dependency
+///   - "<CANISTER_ID> (<NAME>)" if it is a direct dependency with NAME defined in `dfx.json`
 pub fn get_canister_prompt(canister_id: &Principal, pulled_canister: &PulledCanister) -> String {
     match &pulled_canister.name {
         Some(name) => format!("{canister_id} ({name})"),

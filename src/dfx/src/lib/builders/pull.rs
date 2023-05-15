@@ -48,9 +48,8 @@ impl CanisterBuilder for PullBuilder {
         let pull_info = canister_info.as_info::<PullCanisterInfo>()?;
         Ok(BuildOutput {
             canister_id: *pull_info.get_canister_id(),
-            // It's even to know if the downloaded wasm is gzip or not only with the info in `dfx.json`.
-            // The wasm here should not be used anywhere.
-            wasm: WasmBuildOutput::File(PathBuf::new()),
+            // It's impossible to know if the downloaded wasm is gzip or not with only the info in `dfx.json`.
+            wasm: WasmBuildOutput::None,
             idl: IdlBuildOutput::File(pull_info.get_output_idl_path().to_path_buf()),
         })
     }

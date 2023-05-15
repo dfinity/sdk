@@ -255,6 +255,8 @@ impl CanisterInfo {
             if wasm.ends_with(".gz") {
                 gzip_original = true;
             }
+        } else if self.is_assets() {
+            gzip_original = true;
         }
         let ext = if self.gzip || gzip_original {
             "wasm.gz"

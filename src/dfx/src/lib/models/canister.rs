@@ -103,17 +103,21 @@ impl Canister {
         self.builder.generate(pool, &self.info, build_config)
     }
 
-    #[context("Failed to process wasm of canister '{}'.", self.info.get_name())]
+    #[context("Failed to post-process wasm of canister '{}'.", self.info.get_name())]
     pub(crate) fn wasm_post_process(
         &self,
         logger: &Logger,
         build_output: &BuildOutput,
     ) -> DfxResult {
-        let WasmBuildOutput::File(build_output_wasm_path) = &build_output.wasm;
+        let build_output_wasm_path = match &build_output.wasm {
+            WasmBuildOutput::File(p) => p,
+            WasmBuildOutput::None => {
+                return Ok(());
+            }
+        };
         let wasm_path = self.info.get_build_wasm_path();
-        dfx_core::fs::create_dir_all(&dfx_core::fs::parent(&wasm_path)?)?;
+        dfx_core::fs::composite::ensure_parent_dir_exists(&wasm_path)?;
         let info = &self.info;
-        let mut metadata_sections = info.metadata().sections.clone();
         if info.is_pull() || info.is_remote() {
             // We won't install such canisters with `dfx canister install` or `dfx deploy`.
             // So no need to copy the wasm.
@@ -141,6 +145,7 @@ impl Canister {
         // metadata
         trace!(logger, "Attaching metadata");
         // Default to write public candid:service unless overwritten
+        let mut metadata_sections = info.metadata().sections.clone();
         if (info.is_rust() || info.is_motoko()) && !metadata_sections.contains_key(CANDID_SERVICE) {
             metadata_sections.insert(
                 CANDID_SERVICE.to_string(),
@@ -219,20 +224,16 @@ impl Canister {
             return Ok(());
         }
 
-        let new_bytes = m.emit_wasm();
-
-        // gzip
-        // Unlike using gzip CLI, the compression below only takes the wasm bytes
-        // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
-        if wasm_path.extension() == Some(OsStr::new("gz")) {
+        let new_bytes = if wasm_path.extension() == Some(OsStr::new("gz")) {
+            // gzip
+            // Unlike using gzip CLI, the compression below only takes the wasm bytes
+            // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
             trace!(logger, "Compressing WASM");
-            let gzip_bytes = compress_bytes(&new_bytes)?;
-            dfx_core::fs::write(&wasm_path, &gzip_bytes)
-                .with_context(|| format!("Failed to write gzip WASM to {:?}", &wasm_path))?;
+            compress_bytes(&m.emit_wasm())?
         } else {
-            dfx_core::fs::write(&wasm_path, new_bytes)
-                .with_context(|| format!("Failed to write WASM to {:?}", &wasm_path))?;
-        }
+            m.emit_wasm()
+        };
+        dfx_core::fs::write(&wasm_path, new_bytes)?;
 
         Ok(())
     }
@@ -498,7 +499,7 @@ impl CanisterPool {
             if &target == build_idl_path {
                 continue;
             }
-            dfx_core::fs::create_dir_all(&dfx_core::fs::parent(&target)?)?;
+            dfx_core::fs::composite::ensure_parent_dir_exists(&target)?;
             dfx_core::fs::copy(build_idl_path, &target)?;
             set_perms_readwrite(&target)?;
         }
