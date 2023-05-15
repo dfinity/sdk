@@ -112,16 +112,14 @@ impl Canister {
         let build_output_wasm_path = match &build_output.wasm {
             WasmBuildOutput::File(p) => p,
             WasmBuildOutput::None => {
+                // exclude pull canisters
                 return Ok(());
             }
         };
         let wasm_path = self.info.get_build_wasm_path();
         dfx_core::fs::composite::ensure_parent_dir_exists(&wasm_path)?;
         let info = &self.info;
-        if info.is_pull() || info.is_remote() {
-            // We won't install such canisters with `dfx canister install` or `dfx deploy`.
-            // So no need to copy the wasm.
-            // Pull type canisters have empty `build_output_wasm_path`. Impossible to copy it.
+        if info.is_remote() {
             return Ok(());
         }
 
@@ -186,23 +184,23 @@ impl Canister {
             }
 
             let data = match (section.path.as_ref(), section.content.as_ref()) {
-                (None, None) if section.name == CANDID_SERVICE =>
-                    std::fs::read(build_idl_path)
-                .with_context(|| format!("Failed to read {}", build_idl_path.to_string_lossy()))?
-                ,
-
-                (Some(path), None)=> std::fs::read(path)
-                .with_context(|| format!("Failed to read {}", path.to_string_lossy()))?,
+                (None, None) if section.name == CANDID_SERVICE => {
+                    dfx_core::fs::read(build_idl_path)?
+                }
+                (Some(path), None) => dfx_core::fs::read(path)?,
                 (None, Some(s)) => s.clone().into_bytes(),
-
-                (Some(_), Some(_)) => bail!(
+                (Some(_), Some(_)) => {
+                    bail!(
                     "Metadata section could not specify path and content at the same time. section: {:?}",
                     &section
-                ),
-                (None, None) => bail!(
-                    "Metadata section must specify a path or content. section: {:?}",
-                    &section
-                ),
+                )
+                }
+                (None, None) => {
+                    bail!(
+                        "Metadata section must specify a path or content. section: {:?}",
+                        &section
+                    )
+                }
             };
 
             let visibility = match section.visibility {
