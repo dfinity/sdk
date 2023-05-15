@@ -273,7 +273,7 @@ fn construct_ui_canister_url(
 ) -> DfxResult<Option<Url>> {
     if network.is_ic {
         let url = format!(
-            "https://{}.raw.icp0.io/?id={}",
+            "https://{}.raw.ic0.app/?id={}",
             MAINNET_CANDID_INTERFACE_PRINCIPAL, canister_id
         );
         let url = Url::parse(&url).with_context(|| {
