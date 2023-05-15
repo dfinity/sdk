@@ -132,9 +132,9 @@ teardown() {
     assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
 
     # Fails if no consent is given
-    echo "no" | assert_command_fail dfx canister update-settings "${ID}" --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}
+    echo "no" | assert_command_fail dfx canister update-settings "${ID}" --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}"
     # But works with typing "yes"
-    echo "yes" | assert_command dfx canister update-settings "${ID}" --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}
+    echo "yes" | assert_command dfx canister update-settings "${ID}" --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}"
 }
 
 @test "set controller with wallet 0.7.2" {
@@ -187,9 +187,9 @@ teardown() {
     assert_match "Cannot find canister id. Please issue 'dfx canister create hello_assets'."
 
     # Fails if no consent is given
-    echo "no" | assert_command_fail dfx canister update-settings "${ID}" --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}
+    echo "no" | assert_command_fail dfx canister update-settings "${ID}" --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}"
     # But works with typing "yes"
-    echo "yes" | assert_command dfx canister update-settings "${ID}" --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}
+    echo "yes" | assert_command dfx canister update-settings "${ID}" --set-controller "${BOB_WALLET}" --identity alice --wallet "${ALICE_WALLET}"
 }
 
 @test "set controller without wallet but using wallet 0.7.2" {
