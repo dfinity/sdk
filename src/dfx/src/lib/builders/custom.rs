@@ -6,7 +6,6 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::wasm::file::is_wasm_format;
 use crate::util::download_file_to_path;
 
 use anyhow::{anyhow, Context};
@@ -138,22 +137,6 @@ impl CanisterBuilder for CustomBuilder {
             if !args.is_empty() {
                 run_command(args, &vars, info.get_workspace_root())
                     .with_context(|| format!("Failed to run {}.", command))?;
-            }
-        }
-
-        let optimize = info.get_optimize();
-        let shrink = info.get_shrink().unwrap_or(false);
-        // Custom canister may have WASM gzipped
-        if is_wasm_format(&wasm)? {
-            if let Some(level) = optimize {
-                info!(
-                    self.logger,
-                    "Optimize and shrink WASM module at level {}", level
-                );
-                super::optimize_wasm(&wasm, level)?;
-            } else if shrink {
-                info!(self.logger, "Shrink WASM module size.");
-                super::shrink_wasm(&wasm)?;
             }
         }
 
