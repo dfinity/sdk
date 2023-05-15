@@ -153,6 +153,7 @@ jobs:
           export
       - name: Download bats-support as a git submodule
         run: git submodule update --init --recursive
+      - run: node -v
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 
