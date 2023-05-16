@@ -348,6 +348,14 @@
             "type": "string"
           }
         },
+        "gzip": {
+          "title": "Gzip Canister WASM",
+          "description": "Disabled by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "initialization_values": {
           "title": "Resource Allocation Settings",
           "description": "Defines initial values for resource allocation settings.",
@@ -381,7 +389,7 @@
         },
         "optimize": {
           "title": "Optimize Canister WASM",
-          "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default.",
+          "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
           "default": null,
           "anyOf": [
             {

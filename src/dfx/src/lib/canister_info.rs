@@ -60,6 +60,7 @@ pub struct CanisterInfo {
     metadata: CanisterMetadataConfig,
     pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
+    gzip: bool,
 }
 
 impl CanisterInfo {
@@ -144,6 +145,8 @@ impl CanisterInfo {
         let post_install = canister_config.post_install.clone().into_vec();
         let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
 
+        let gzip = canister_config.gzip.unwrap_or(false);
+
         let canister_info = CanisterInfo {
             name: name.to_string(),
             declarations_config,
@@ -163,6 +166,7 @@ impl CanisterInfo {
             metadata,
             pullable: canister_config.pullable.clone(),
             pull_dependencies,
+            gzip,
         };
 
         Ok(canister_info)
@@ -244,8 +248,22 @@ impl CanisterInfo {
         })
     }
 
+    /// Path to the wasm module in .dfx that will be install.
     pub fn get_build_wasm_path(&self) -> PathBuf {
-        self.output_root.join(&self.name).with_extension("wasm")
+        let mut gzip_original = false;
+        if let CanisterTypeProperties::Custom { wasm, .. } = &self.type_specific {
+            if wasm.ends_with(".gz") {
+                gzip_original = true;
+            }
+        } else if self.is_assets() {
+            gzip_original = true;
+        }
+        let ext = if self.gzip || gzip_original {
+            "wasm.gz"
+        } else {
+            "wasm"
+        };
+        self.output_root.join(&self.name).with_extension(ext)
     }
 
     pub fn get_build_idl_path(&self) -> PathBuf {
@@ -321,5 +339,9 @@ impl CanisterInfo {
 
     pub fn get_pull_dependencies(&self) -> &[(String, CanisterId)] {
         &self.pull_dependencies
+    }
+
+    pub fn get_gzip(&self) -> bool {
+        self.gzip
     }
 }

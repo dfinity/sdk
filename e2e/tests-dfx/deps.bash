@@ -26,7 +26,7 @@ setup_onchain() {
     cd onchain || exit
 
     jq '.canisters.a.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/a.wasm"'"' dfx.json | sponge dfx.json
-    jq '.canisters.b.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm"'"' dfx.json | sponge dfx.json
+    jq '.canisters.b.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm.gz"'"' dfx.json | sponge dfx.json
     jq '.canisters.c.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm"'"' dfx.json | sponge dfx.json
 
     dfx canister create a --specified-id "$CANISTER_ID_A"
@@ -40,7 +40,7 @@ setup_onchain() {
 
     # copy wasm files to web server dir
     cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
-    cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
+    cp .dfx/local/canisters/b/b.wasm.gz ../www/b.wasm.gz
     cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
     cd .. || exit
@@ -111,7 +111,7 @@ ERROR: Failed to pull canister $CANISTER_ID_A.
 Failed to download from url: http://example.com/a.wasm."
     assert_contains "Pulling canister $CANISTER_ID_B...
 ERROR: Failed to pull canister $CANISTER_ID_B.
-Failed to download from url: http://example.com/b.wasm."
+Failed to download from url: http://example.com/b.wasm.gz."
     assert_contains "Pulling canister $CANISTER_ID_C...
 ERROR: Failed to pull canister $CANISTER_ID_C.
 Failed to download from url: http://example.com/c.wasm."
@@ -141,7 +141,7 @@ Failed to download from url: http://example.com/c.wasm."
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
     PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
-    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
+    assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm.gz"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
     assert_file_not_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
@@ -160,7 +160,7 @@ Failed to download from url: http://example.com/c.wasm."
     assert_file_not_exists "deps/pulled.json"
 
     assert_command dfx deps pull --network local
-    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm"
+    assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/canister.wasm.gz"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_A/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_C/canister.wasm"
     assert_file_exists "$PULLED_DIR/$CANISTER_ID_B/service.did"
@@ -218,7 +218,7 @@ Failed to download from url: http://example.com/c.wasm."
     cd onchain
 
     jq '.canisters.a.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/a.wasm"'"' dfx.json | sponge dfx.json
-    jq '.canisters.b.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm"'"' dfx.json | sponge dfx.json
+    jq '.canisters.b.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm.gz"'"' dfx.json | sponge dfx.json
     jq '.canisters.c.pullable.wasm_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm"'"' dfx.json | sponge dfx.json
 
     dfx canister create a --specified-id "$CANISTER_ID_A"
@@ -228,7 +228,7 @@ Failed to download from url: http://example.com/c.wasm."
 
     # copy wasm files to web server dir
     cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
-    cp .dfx/local/canisters/b/b.wasm ../www/b.wasm
+    cp .dfx/local/canisters/b/b.wasm.gz ../www/b.wasm.gz
     cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
     CUSTOM_HASH="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
