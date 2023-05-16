@@ -51,6 +51,12 @@ All generated files in `deps/` are encouraged to be version controlled.
 Previously the `.env` file only included canister IDs for canisters that were listed as explicit dependencies during the build process.
 Now all canisters that have a canister ID for the specified network are included in `.env`.
 
+### feat!: Ask for user consent when removing themselves as principal
+
+Removing oneself (or the wallet one uses) can result in the loss of control over a canister.
+Therefore `dfx canister update-settings` now asks for extra confirmation when removing the currently used principal/wallet from the list of controllers.
+To skip this check in CI, use either the `--yes`/`-y` argument or use `echo "yes" | dfx canister update-settings <...>`.
+
 ## Asset Canister Synchronization
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
