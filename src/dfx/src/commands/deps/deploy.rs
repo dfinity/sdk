@@ -1,13 +1,14 @@
+use crate::lib::deps::deploy::try_create_canister;
 use crate::lib::deps::{
     get_canister_prompt, get_pull_canister_or_principal, get_pull_canisters_in_config,
     get_pulled_wasm_path, load_init_json, load_pulled_json, validate_pulled, InitJson,
+    PulledCanister,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::state_tree::canister_info::read_state_tree_canister_controllers;
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
@@ -54,8 +55,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
         // Safe to unwrap:
         // canister_ids are guaranteed to exist in pulled.json
         let pulled_canister = pulled_json.canisters.get(&canister_id).unwrap();
-        let canister_prompt = get_canister_prompt(&canister_id, pulled_canister);
-        create_and_install(agent, logger, &canister_id, &init_json, &canister_prompt).await?;
+        create_and_install(agent, logger, &canister_id, &init_json, pulled_canister).await?;
     }
 
     Ok(())
@@ -67,37 +67,12 @@ async fn create_and_install(
     logger: &Logger,
     canister_id: &Principal,
     init_json: &InitJson,
-    canister_prompt: &str,
+    pulled_canister: &PulledCanister,
 ) -> DfxResult {
     let arg_raw = init_json.get_arg_raw(canister_id)?;
-    try_create_canister(agent, logger, canister_id, canister_prompt).await?;
-    install_pulled_canister(agent, logger, canister_id, arg_raw, canister_prompt).await?;
+    try_create_canister(agent, logger, canister_id, pulled_canister).await?;
+    install_pulled_canister(agent, logger, canister_id, arg_raw, pulled_canister).await?;
     Ok(())
-}
-
-// not use operations::canister::create_canister because we don't want to modify canister_id_store
-#[context("Failed to create canister {}", canister_id)]
-async fn try_create_canister(
-    agent: &Agent,
-    logger: &Logger,
-    canister_id: &Principal,
-    canister_prompt: &str,
-) -> DfxResult {
-    match read_state_tree_canister_controllers(agent, *canister_id).await? {
-        Some(cs) if cs.len() == 1 && cs[0] == Principal::anonymous() => Ok(()),
-        Some(_) => {
-            bail!("Canister {canister_id} has been created before and its controller is not the anonymous identity. Please stop and delete it and then deploy again.");
-        }
-        None => {
-            let mgr = ManagementCanister::create(agent);
-            info!(logger, "Creating canister: {canister_prompt}");
-            mgr.create_canister()
-                .as_provisional_create_with_specified_id(*canister_id)
-                .call_and_wait()
-                .await?;
-            Ok(())
-        }
-    }
 }
 
 #[context("Failed to install canister {}", canister_id)]
@@ -106,10 +81,11 @@ async fn install_pulled_canister(
     logger: &Logger,
     canister_id: &Principal,
     install_args: Vec<u8>,
-    canister_prompt: &str,
+    pulled_canister: &PulledCanister,
 ) -> DfxResult {
+    let canister_prompt = get_canister_prompt(canister_id, pulled_canister);
     info!(logger, "Installing canister: {canister_prompt}");
-    let pulled_canister_path = get_pulled_wasm_path(canister_id)?;
+    let pulled_canister_path = get_pulled_wasm_path(canister_id, pulled_canister.gzip)?;
     let wasm = dfx_core::fs::read(&pulled_canister_path)?;
     let mgr = ManagementCanister::create(agent);
     mgr.install_code(canister_id, &wasm)

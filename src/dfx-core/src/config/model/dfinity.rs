@@ -241,6 +241,7 @@ pub struct ConfigCanistersCanister {
     /// # Optimize Canister WASM
     /// Invoke wasm level optimizations after building the canister. Optimization level can be set to "cycles" to optimize for cycle usage, "size" to optimize for binary size, or any of "O4, O3, O2, O1, O0, Oz, Os".
     /// Disabled by default.
+    /// If this option is specified, the `shrink` option will be ignored.
     #[serde(default)]
     pub optimize: Option<WasmOptLevel>,
 
@@ -253,6 +254,10 @@ pub struct ConfigCanistersCanister {
     /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
     pub pullable: Option<Pullable>,
+
+    /// # Gzip Canister WASM
+    /// Disabled by default.
+    pub gzip: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]

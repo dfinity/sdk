@@ -251,7 +251,7 @@ async fn register_canisters(
     Ok(())
 }
 
-#[context("Failed to build call canisters.")]
+#[context("Failed to build all canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
     referenced_canisters: &[String],
