@@ -1,5 +1,5 @@
 [dependencies]
-base = "https://github.com/dfinity/motoko#moc-0.8.5"
+base = "https://github.com/dfinity/motoko-base#moc-0.8.5"
 
 [dev-dependencies]
 test = "https://github.com/ZenVoich/test#866ab1d39f3715a803c3dbff14757a0b38157b8c"
