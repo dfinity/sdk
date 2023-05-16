@@ -16,12 +16,13 @@
                 "a"
             ],
             "pullable": {
-                "wasm_url": "http://example.com/b.wasm",
+                "wasm_url": "http://example.com/b.wasm.gz",
                 "dependencies": [
                     "yofga-2qaaa-aaaaa-aabsq-cai"
                 ],
                 "init_guide": "No init arguments required"
-            }
+            },
+            "gzip": true
         },
         "c": {
             "type": "motoko",

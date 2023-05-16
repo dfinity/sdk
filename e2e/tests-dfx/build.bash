@@ -112,13 +112,6 @@ teardown() {
     assert_command dfx build
 }
 
-@test "build succeeds if disable shrink" {
-    jq '.canisters.e2e_project_backend.shrink=false' dfx.json | sponge dfx.json
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
-}
-
 @test "build succeeds if enable optimize" {
     jq '.canisters.e2e_project_backend.optimize="cycles"' dfx.json | sponge dfx.json
     dfx_start
@@ -132,12 +125,12 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command dfx build custom
-    assert_not_match "Shrink"
+    assert_command dfx build custom -vvv
+    assert_not_match "Shrinking WASM"
 
     jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
-    assert_command dfx build custom
-    assert_match "Shrink"
+    assert_command dfx build custom -vvv
+    assert_match "Shrinking WASM"
 }
 
 @test "build custom canister default no optimize" {
@@ -146,12 +139,29 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command dfx build custom
-    assert_not_match "Optimize"
+    assert_command dfx build custom -vvv
+    assert_not_match "Optimizing"
 
     jq '.canisters.custom.optimize="size"' dfx.json | sponge dfx.json
-    assert_command dfx build custom
-    assert_match "Optimize"
+    assert_command dfx build custom -vvv
+    assert_match "Optimizing WASM at level"
+}
+
+@test "build succeeds if enable gzip" {
+    install_asset base
+    jq '.canisters.e2e_project_backend.gzip=true' dfx.json | sponge dfx.json
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
+    assert_file_exists .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm.gz
+}
+
+@test "build succeeds if specify gzip wasm" {
+    install_asset gzip
+    install_asset wasm/identity
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
 }
 
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
