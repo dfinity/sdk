@@ -17,9 +17,9 @@ use actix::{
 };
 use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use slog::{debug, info, Logger};
+use slog::{debug, error, info, Logger};
 use std::path::{Path, PathBuf};
-use std::thread::{self, JoinHandle};
+use std::thread::JoinHandle;
 use std::time::Duration;
 use tokio::runtime::Builder;
 
@@ -365,20 +365,19 @@ fn replica_start_thread(
             });
             addr.do_send(signals::ReplicaRestarted { port });
             let log_clone = logger.clone();
-            thread::spawn(move || {
-                Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(async move {
-                        crate::lib::replica::status::ping_and_wait(&format!(
-                            "http://localhost:{port}"
-                        ))
-                        .await
-                        .unwrap();
-                        info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
-                    })
-            });
+
+            if let Err(e) = block_on_initialize_replica(port) {
+                error!(logger, "Failed to initialize replica: {}", e);
+                let _ = child.kill();
+                let _ = child.wait();
+                if receiver.try_recv().is_ok() {
+                    debug!(logger, "Got signal to stop.");
+                    break;
+                } else {
+                    continue;
+                }
+            }
+            info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.
@@ -410,4 +409,16 @@ fn replica_start_thread(
         .name("replica-actor".to_owned())
         .spawn(thread_handler)
         .map_err(DfxError::from)
+}
+
+fn block_on_initialize_replica(port: u16) -> DfxResult {
+    Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async move { initialize_replica(port).await })
+}
+
+async fn initialize_replica(port: u16) -> DfxResult {
+    crate::lib::replica::status::ping_and_wait(&format!("http://localhost:{port}")).await
 }
