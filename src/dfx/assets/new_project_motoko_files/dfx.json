@@ -17,8 +17,7 @@
   },
   "defaults": {
     "build": {
-      "packtool": "",
-      "args": ""
+      "packtool": "npx --no ic-mops sources"
     }
   },
   "output_env_file": ".env"
