@@ -57,6 +57,11 @@ Removing oneself (or the wallet one uses) can result in the loss of control over
 Therefore `dfx canister update-settings` now asks for extra confirmation when removing the currently used principal/wallet from the list of controllers.
 To skip this check in CI, use either the `--yes`/`-y` argument or use `echo "yes" | dfx canister update-settings <...>`.
 
+### fix: dfx start will restart replica if it does not report healthy after launch
+
+If the replica does not report healthy at least once after launch,
+dfx will terminate and restart it.
+
 ## Asset Canister Synchronization
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
