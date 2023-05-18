@@ -9,6 +9,7 @@ use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
+use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
 use crate::lib::replica_config::ReplicaConfig;
@@ -83,7 +84,12 @@ pub struct StartOpts {
 // Because the user may have specified to start on port 0, here we wait for
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
-async fn fg_ping_and_wait(webserver_port_path: &Path, frontend_url: &str) -> DfxResult {
+async fn fg_ping_and_wait(
+    webserver_port_path: &Path,
+    frontend_url: &str,
+    logger: &Logger,
+    local_server_descriptor: &LocalServerDescriptor,
+) -> DfxResult {
     let port = wait_for_port(webserver_port_path).await?;
 
     let mut frontend_url_mod = frontend_url.to_string();
@@ -92,7 +98,9 @@ async fn fg_ping_and_wait(webserver_port_path: &Path, frontend_url: &str) -> Dfx
         .rfind(':')
         .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
-    ping_and_wait(&frontend_url_mod).await
+    ping_and_wait(&frontend_url_mod).await?;
+
+    wait_for_integrations_initialized(&frontend_url_mod, logger, local_server_descriptor).await
 }
 
 async fn wait_for_port(webserver_port_path: &Path) -> DfxResult<String> {
@@ -231,7 +239,15 @@ pub fn exec(
         send_background()?;
         return Runtime::new()
             .expect("Unable to create a runtime")
-            .block_on(async { fg_ping_and_wait(&webserver_port_path, &frontend_url).await });
+            .block_on(async {
+                fg_ping_and_wait(
+                    &webserver_port_path,
+                    &frontend_url,
+                    &env.get_logger(),
+                    &local_server_descriptor,
+                )
+                .await
+            });
     }
     local_server_descriptor.describe(env.get_logger(), true, false);
 
