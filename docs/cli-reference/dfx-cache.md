@@ -44,7 +44,7 @@ You can specify the following argument for the `dfx cache delete` command.
 
 ### Examples
 
-You can use the `dfx cache delete` command to permanently delete versions of the IC SDK u that you no longer want to use. For example, you can run the following command to delete the IC SDK u version `0.6.2`:
+You can use the `dfx cache delete` command to permanently delete versions of the IC SDK that you no longer want to use. For example, you can run the following command to delete the IC SDK version `0.6.2`:
 
 ``` bash
 dfx cache delete 0.6.2
