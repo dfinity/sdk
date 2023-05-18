@@ -56,7 +56,7 @@ dfx help
 
 See our contributing guidelines [here](.github/CONTRIBUTING.md).
 
-### Building DFX
+### Building the IC SDK
 
 Building the `IC SDK` is very simple:
 
@@ -73,7 +73,7 @@ cargo build
 2. Publishing a new `manifest.json` and `install.sh` to instruct the installer
    to actually download and install the new `IC SDK` release.
 
-### Publishing DFX
+### Publishing the IC SDK
 
 1. The release manager makes sure the `dfx` `stable` branch points to the revision
    that should be released and that the revision is tagged with a version (like
