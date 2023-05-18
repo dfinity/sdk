@@ -82,7 +82,7 @@ dfx cache list [flag]
 
 ### Examples
 
-You can use the `dfx cache list` command to list the the IC SDK versions you have currently installed and used in projects. For example, you can run the following command to list versions of the IC SDK found in the cache:
+You can use the `dfx cache list` command to list the IC SDK versions you have currently installed and used in projects. For example, you can run the following command to list versions of the IC SDK found in the cache:
 
 ``` bash
 dfx cache list
