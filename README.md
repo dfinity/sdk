@@ -1,6 +1,13 @@
 # IC SDK
 
-This repo contains the `IC SDK`: a Software Development Kit for creating and managing [canister smart contracts on the ICP blockchain](https://wiki.internetcomputer.org/wiki/Canister_smart_contract).
+This repo contains the `IC SDK`: a Software Development Kit for creating and managing [canister smart contracts on the Internet Computer (ICP blockchain)](https://wiki.internetcomputer.org/wiki/Canister_smart_contract).
+
+For further reading:
+* [Introduction to the ICP blockchain](https://wiki.internetcomputer.org/wiki/Introduction_to_ICP)
+* [Internet Computer dashboard](https://dashboard.internetcomputer.org/)
+* [Developer docs for ICP smart contracts](https://internetcomputer.org/docs/current/home)
+* [Sample code of ICP smart contracts](https://internetcomputer.org/samples)
+* [IC wiki](https://wiki.internetcomputer.org/wiki/Main_Page)
 
 ## What gets installed
 
@@ -56,7 +63,7 @@ dfx help
 
 See our contributing guidelines [here](.github/CONTRIBUTING.md).
 
-### Building DFX
+### Building the IC SDK
 
 Building the `IC SDK` is very simple:
 
@@ -73,7 +80,7 @@ cargo build
 2. Publishing a new `manifest.json` and `install.sh` to instruct the installer
    to actually download and install the new `IC SDK` release.
 
-### Publishing DFX
+### Publishing the IC SDK
 
 1. The release manager makes sure the `dfx` `stable` branch points to the revision
    that should be released and that the revision is tagged with a version (like

@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: cleanup of documentation
+
+Cleaned up documentation of IC SDK.
+
 ### feat: gzip option in dfx.json
 
 `dfx` can gzip wasm module as the final step in building canisters. 
