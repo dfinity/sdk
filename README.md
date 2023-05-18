@@ -3,6 +3,8 @@
 This repo contains the `IC SDK`: a Software Development Kit for creating and managing [canister smart contracts on the Internet Computer (ICP blockchain)](https://wiki.internetcomputer.org/wiki/Canister_smart_contract).
 
 For further reading:
+* [Introduction to the ICP blockchain](https://wiki.internetcomputer.org/wiki/Introduction_to_ICP)
+* [Internet Computer dashboard](https://dashboard.internetcomputer.org/)
 * [Developer docs for ICP smart contracts](https://internetcomputer.org/docs/current/home)
 * [Sample code of ICP smart contracts](https://internetcomputer.org/samples)
 * [IC wiki](https://wiki.internetcomputer.org/wiki/Main_Page)
