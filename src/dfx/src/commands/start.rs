@@ -243,8 +243,8 @@ pub fn exec(
                 fg_ping_and_wait(
                     &webserver_port_path,
                     &frontend_url,
-                    &env.get_logger(),
-                    &local_server_descriptor,
+                    env.get_logger(),
+                    local_server_descriptor,
                 )
                 .await
             });
