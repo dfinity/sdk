@@ -66,6 +66,12 @@ To skip this check in CI, use either the `--yes`/`-y` argument or use `echo "yes
 If the replica does not report healthy at least once after launch,
 dfx will terminate and restart it.
 
+### fix: dfx start now installs the bitcoin canister when bitcoin support is enabled
+
+This is required for future replica versions.
+
+Adds a new field `canister_init_arg` to the bitcoin configuration in dfx.json and networks.json.  Its default is documented in the JSON schema and is appropriate for the canister wasm bundled with dfx.
+
 ## Asset Canister Synchronization
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:

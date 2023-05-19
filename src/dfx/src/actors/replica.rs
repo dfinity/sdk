@@ -1,16 +1,18 @@
-use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
-use crate::actors::replica::signals::ReplicaRestarted;
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
-use crate::actors::shutdown_controller::ShutdownController;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::replica_config::ReplicaConfig;
-
 use crate::actors::btc_adapter::signals::{BtcAdapterReady, BtcAdapterReadySubscribe};
 use crate::actors::canister_http_adapter::signals::{
     CanisterHttpAdapterReady, CanisterHttpAdapterReadySubscribe,
 };
+use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::replica::signals::ReplicaRestarted;
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::ShutdownController;
+use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
+use crate::lib::integrations::create_integrations_agent;
+use crate::lib::replica_config::ReplicaConfig;
+
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -35,10 +37,16 @@ pub mod signals {
     }
 }
 
+#[derive(Clone)]
+pub struct BitcoinIntegrationConfig {
+    pub canister_init_arg: String,
+}
+
 /// The configuration for the replica actor.
 pub struct Config {
     pub ic_starter_path: PathBuf,
     pub replica_config: ReplicaConfig,
+    pub bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
     pub replica_path: PathBuf,
     pub replica_pid_path: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
@@ -137,6 +145,7 @@ impl Replica {
             replica_start_thread(
                 logger,
                 config.clone(),
+                self.config.bitcoin_integration_config.clone(),
                 port,
                 write_port_to,
                 ic_starter_path,
@@ -268,6 +277,7 @@ impl Handler<Shutdown> for Replica {
 fn replica_start_thread(
     logger: Logger,
     config: ReplicaConfig,
+    bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
     port: Option<u16>,
     write_port_to: Option<PathBuf>,
     ic_starter_path: PathBuf,
@@ -366,8 +376,12 @@ fn replica_start_thread(
             addr.do_send(signals::ReplicaRestarted { port });
             let log_clone = logger.clone();
 
-            if let Err(e) = block_on_initialize_replica(port) {
-                error!(logger, "Failed to initialize replica: {}", e);
+            if let Err(e) = block_on_initialize_replica(
+                port,
+                logger.clone(),
+                bitcoin_integration_config.clone(),
+            ) {
+                error!(logger, "Failed to initialize replica: {:#}", e);
                 let _ = child.kill();
                 let _ = child.wait();
                 if receiver.try_recv().is_ok() {
@@ -411,14 +425,35 @@ fn replica_start_thread(
         .map_err(DfxError::from)
 }
 
-fn block_on_initialize_replica(port: u16) -> DfxResult {
+fn block_on_initialize_replica(
+    port: u16,
+    logger: Logger,
+    bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
+) -> DfxResult {
     Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()
-        .block_on(async move { initialize_replica(port).await })
+        .block_on(async move { initialize_replica(port, logger, bitcoin_integration_config).await })
 }
 
-async fn initialize_replica(port: u16) -> DfxResult {
-    crate::lib::replica::status::ping_and_wait(&format!("http://localhost:{port}")).await
+async fn initialize_replica(
+    port: u16,
+    logger: Logger,
+    bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
+) -> DfxResult {
+    let agent_url = format!("http://localhost:{port}");
+
+    debug!(logger, "Waiting for replica to report healthy status");
+    crate::lib::replica::status::ping_and_wait(&agent_url).await?;
+
+    let agent = create_integrations_agent(&agent_url, &logger).await?;
+
+    if let Some(bitcoin_integration_config) = bitcoin_integration_config {
+        initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config).await?;
+    }
+
+    info!(logger, "Initialized replica.");
+
+    Ok(())
 }

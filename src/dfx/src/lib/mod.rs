@@ -12,6 +12,7 @@ pub mod ic_attributes;
 pub mod identity;
 pub mod info;
 pub mod installers;
+pub mod integrations;
 pub mod ledger_types;
 pub mod logger;
 pub mod manifest;

@@ -384,8 +384,21 @@ pub struct ConfigDefaultsBitcoin {
 
     /// # Logging Level
     /// The logging level of the adapter.
-    #[serde(default)]
+    #[serde(default = "default_bitcoin_log_level")]
     pub log_level: BitcoinAdapterLogLevel,
+
+    /// # Initialization Argument
+    /// The initialization argument for the bitcoin canister.
+    #[serde(default = "default_bitcoin_canister_init_arg")]
+    pub canister_init_arg: String,
+}
+
+pub fn default_bitcoin_log_level() -> BitcoinAdapterLogLevel {
+    BitcoinAdapterLogLevel::Info
+}
+
+pub fn default_bitcoin_canister_init_arg() -> String {
+    "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})".to_string()
 }
 
 impl Default for ConfigDefaultsBitcoin {
@@ -393,7 +406,8 @@ impl Default for ConfigDefaultsBitcoin {
         ConfigDefaultsBitcoin {
             enabled: false,
             nodes: None,
-            log_level: BitcoinAdapterLogLevel::Info,
+            log_level: default_bitcoin_log_level(),
+            canister_init_arg: default_bitcoin_canister_init_arg(),
         }
     }
 }
