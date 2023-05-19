@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat: `dfx canister delete` without stopping first
+
+When running `dfx canister delete` on a canister that has not been stopped, dfx will now confirm the deletion instead of erroring.
+
 ### fix: cleanup of documentation
 
 Cleaned up documentation of IC SDK.
