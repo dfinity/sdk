@@ -121,7 +121,7 @@ pub fn exec(
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
-    local_server_descriptor.describe(env.get_logger(), true, true);
+    local_server_descriptor.describe(env.get_logger());
 
     let temp_dir = &local_server_descriptor.data_directory;
     create_dir_all(temp_dir).with_context(|| {

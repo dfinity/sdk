@@ -72,6 +72,8 @@ This is required for future replica versions.
 
 Adds a new field `canister_init_arg` to the bitcoin configuration in dfx.json and networks.json.  Its default is documented in the JSON schema and is appropriate for the canister wasm bundled with dfx.
 
+### fix: dfx start now respects the network replica port configuration in dfx.json or networks.json
+
 ## Asset Canister Synchronization
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
