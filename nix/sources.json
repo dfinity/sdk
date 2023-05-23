@@ -72,7 +72,7 @@
         "url_template": "https://github.com/dfinity/bitcoin-canister/releases/download/<version>/ic-btc-canister.wasm.gz",
         "version": "release%2F2023-03-31"
     },
-    "ic-canister-http-adapter-x86_64-darwin": {
+    "ic-https-outcalls-adapter-x86_64-darwin": {
         "builtin": false,
         "rev": "742d0a8399476a83878bb87c74eb46b2d8e05000",
         "sha256": "1287s0mbdbs7vz7shs0xrsvzkfg8f1jazlpli82crx5n0dqvmzwn",
