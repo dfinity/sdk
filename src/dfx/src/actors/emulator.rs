@@ -32,6 +32,7 @@ pub mod signals {
 #[derive(Clone)]
 pub struct Config {
     pub ic_ref_path: PathBuf,
+    pub port: Option<u16>,
     pub write_port_to: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
@@ -195,7 +196,11 @@ fn emulator_start_thread(
 
         // form the ic-start command here similar to emulator command
         let mut cmd = std::process::Command::new(ic_ref_path);
-        cmd.args(["--pick-port"]);
+        if let Some(port) = config.port {
+            cmd.args(["--listen-port", &port.to_string()]);
+        } else {
+            cmd.args(["--pick-port"]);
+        }
         cmd.args(["--write-port-to", &config.write_port_to.to_string_lossy()]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());

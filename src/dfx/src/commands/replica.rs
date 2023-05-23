@@ -218,7 +218,12 @@ pub fn exec(
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
         if emulator {
-            start_emulator_actor(env, shutdown_controller, emulator_port_path)?;
+            start_emulator_actor(
+                env,
+                local_server_descriptor,
+                shutdown_controller,
+                emulator_port_path,
+            )?;
         } else {
             let btc_adapter_ready_subscribe = btc_adapter_config
                 .map(|btc_adapter_config| {

@@ -332,8 +332,12 @@ pub fn exec(
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let emulator =
-                start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
+            let emulator = start_emulator_actor(
+                env,
+                local_server_descriptor,
+                shutdown_controller.clone(),
+                emulator_port_path,
+            )?;
             emulator.recipient()
         } else {
             let btc_adapter_ready_subscribe = btc_adapter_config
