@@ -1,14 +1,13 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::deploy_canisters;
 use crate::lib::operations::canister::DeployMode::{
-    ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+    ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
-use crate::util::clap::validators::cycle_amount_validator;
+use crate::util::clap::parsers::cycle_amount_parser;
 use crate::NetworkOpt;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
@@ -37,67 +36,70 @@ pub struct DeployOpts {
     canister_name: Option<String>,
 
     /// Specifies the argument to pass to the method.
-    #[clap(long)]
+    #[arg(long, requires("canister_name"))]
     argument: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     argument_type: Option<String>,
 
     /// Force the type of deployment to be reinstall, which overwrites the module.
     /// In other words, this erases all data in the canister.
     /// By default, upgrade will be chosen automatically if the module already exists,
     /// or install if it does not.
-    #[clap(long, short('m'),
-    possible_values(&["reinstall"]))]
+    #[arg(long, short, value_parser = ["reinstall"])]
     mode: Option<String>,
 
     /// Upgrade the canister even if the .wasm did not change.
-    #[clap(long)]
+    #[arg(long)]
     upgrade_unchanged: bool,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[clap(long, validator(cycle_amount_validator))]
-    with_cycles: Option<String>,
+    #[arg(long, value_parser = cycle_amount_parser)]
+    with_cycles: Option<u128>,
 
     /// Attempts to create the canister with this Canister ID.
     ///
     /// This option only works with non-mainnet replica.
     /// This option implies the --no-wallet flag.
-    #[clap(long, value_name = "PRINCIPAL", requires = "canister-name")]
+    #[arg(long, value_name = "PRINCIPAL", requires = "canister_name")]
     specified_id: Option<Principal>,
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
-    #[clap(long)]
+    #[arg(long)]
     wallet: Option<String>,
 
     /// Performs the create call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
-    #[clap(long, conflicts_with("wallet"))]
+    #[arg(long, conflicts_with("wallet"))]
     no_wallet: bool,
 
     /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
-    #[clap(long)]
+    #[arg(long)]
     output_env_file: Option<PathBuf>,
 
     /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
     /// so this is not recommended outside of CI.
-    #[clap(long, short)]
+    #[arg(long, short)]
     yes: bool,
 
     /// Skips upgrading the asset canister, to only install the assets themselves.
-    #[clap(long)]
+    #[arg(long)]
     no_asset_upgrade: bool,
 
     /// Prepare (upload) assets for later commit by proposal.
-    #[clap(long)]
+    #[arg(long, conflicts_with("compute_evidence"))]
     by_proposal: bool,
+
+    /// Compute evidence and compare it against expected evidence
+    #[arg(long, conflicts_with("by_proposal"))]
+    compute_evidence: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -118,7 +120,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .output_env_file
         .or_else(|| config.get_config().output_env_file.clone());
 
-    let with_cycles = opts.with_cycles.as_deref();
+    let with_cycles = opts.with_cycles;
 
     let deploy_mode = match (mode, canister_name) {
         (Some(InstallMode::Reinstall), Some(canister_name)) => {
@@ -144,6 +146,12 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         (None, Some(canister_name)) if opts.by_proposal => {
             PrepareForProposal(canister_name.to_string())
         }
+        (None, None) if opts.compute_evidence => {
+            bail!("The --compute-evidence flag is only valid when deploying a single canister.");
+        }
+        (None, Some(canister_name)) if opts.compute_evidence => {
+            ComputeEvidence(canister_name.to_string())
+        }
         (None, _) => NormalDeploy,
     };
 
@@ -151,21 +159,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
-    let proxy_sender;
-    let create_call_sender = if opts.specified_id.is_none()
-        && !opts.no_wallet
-        && !matches!(call_sender, CallSender::Wallet(_))
-    {
-        let wallet = runtime.block_on(get_or_create_wallet_canister(
-            &env,
-            env.get_network_descriptor(),
-            env.get_selected_identity().expect("No selected identity"),
-        ))?;
-        proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-        &proxy_sender
-    } else {
-        &call_sender
-    };
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(
@@ -178,7 +171,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         with_cycles,
         opts.specified_id,
         &call_sender,
-        create_call_sender,
+        opts.no_wallet,
         opts.yes,
         env_file,
         !opts.no_asset_upgrade,

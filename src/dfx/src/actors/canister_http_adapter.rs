@@ -184,8 +184,7 @@ fn canister_http_adapter_start_thread(
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             if let Some(socket_path) = &config.socket_path {
                 if socket_path.exists() {
                     std::fs::remove_file(socket_path)
@@ -217,7 +216,7 @@ fn canister_http_adapter_start_thread(
                     );
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "ic-https-outcalls-adapter process failed.");

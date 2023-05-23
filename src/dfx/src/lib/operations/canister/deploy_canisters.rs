@@ -1,12 +1,14 @@
 use crate::lib::builders::BuildConfig;
+use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
-    ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+    ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::operations::canister::{create_canister, install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
@@ -30,6 +32,7 @@ pub enum DeployMode {
     NormalDeploy,
     ForceReinstallSingleCanister(String),
     PrepareForProposal(String),
+    ComputeEvidence(String),
 }
 
 #[context("Failed while trying to deploy canisters.")]
@@ -40,10 +43,10 @@ pub async fn deploy_canisters(
     argument_type: Option<&str>,
     deploy_mode: &DeployMode,
     upgrade_unchanged: bool,
-    with_cycles: Option<&str>,
+    with_cycles: Option<u128>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
-    create_call_sender: &CallSender,
+    no_wallet: bool,
     skip_consent: bool,
     env_file: Option<PathBuf>,
     assets_upgrade: bool,
@@ -55,10 +58,22 @@ pub async fn deploy_canisters(
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = env.get_canister_id_store()?;
 
+    let pull_canisters_in_config = config.get_config().get_pull_canisters()?;
+    if let Some(canister_name) = some_canister {
+        if pull_canisters_in_config.contains_key(canister_name) {
+            bail!(
+                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
+                canister_name
+            );
+        }
+    }
+
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
-    let canisters_to_deploy = match deploy_mode {
-        PrepareForProposal(canister_name) => vec![canister_name.clone()],
+    let canisters_to_build = match deploy_mode {
+        PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
+            vec![canister_name.clone()]
+        }
         ForceReinstallSingleCanister(canister_name) => {
             // don't force-reinstall the dependencies too.
             vec![String::from(canister_name)]
@@ -75,27 +90,55 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
+    let canisters_to_install: Vec<String> = canisters_to_build
+        .clone()
+        .into_iter()
+        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
+        .collect();
+
     if some_canister.is_some() {
-        info!(log, "Deploying: {}", canisters_to_deploy.join(" "));
+        info!(log, "Deploying: {}", canisters_to_install.join(" "));
     } else {
         info!(log, "Deploying all canisters.");
     }
-
-    register_canisters(
-        env,
-        &canisters_to_load,
-        &initial_canister_id_store,
-        with_cycles,
-        specified_id,
-        create_call_sender,
-        &config,
-    )
-    .await?;
+    if canisters_to_load
+        .iter()
+        .any(|canister| initial_canister_id_store.find(canister).is_none())
+    {
+        let proxy_sender;
+        let create_call_sender = if no_wallet
+            || specified_id.is_some()
+            || matches!(call_sender, CallSender::Wallet(_))
+        {
+            call_sender
+        } else {
+            let wallet = get_or_create_wallet_canister(
+                env,
+                env.get_network_descriptor(),
+                env.get_selected_identity().expect("No selected identity"),
+            )
+            .await?;
+            proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+            &proxy_sender
+        };
+        register_canisters(
+            env,
+            &canisters_to_load,
+            &initial_canister_id_store,
+            with_cycles,
+            specified_id,
+            create_call_sender,
+            &config,
+        )
+        .await?;
+    } else {
+        info!(env.get_logger(), "All canisters have already been created.");
+    }
 
     let pool = build_canisters(
         env,
         &canisters_to_load,
-        &canisters_to_deploy,
+        &canisters_to_build,
         &config,
         env_file.clone(),
     )
@@ -106,7 +149,7 @@ pub async fn deploy_canisters(
             let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
-                &canisters_to_deploy,
+                &canisters_to_install,
                 &initial_canister_id_store,
                 &config,
                 argument,
@@ -120,12 +163,14 @@ pub async fn deploy_canisters(
                 assets_upgrade,
             )
             .await?;
-
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
             prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
-                .await?;
+                .await?
+        }
+        ComputeEvidence(canister_name) => {
+            compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
         }
     }
 
@@ -150,7 +195,7 @@ async fn register_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
-    with_cycles: Option<&str>,
+    with_cycles: Option<u128>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     config: &Config,
@@ -160,58 +205,53 @@ async fn register_canisters(
         .filter(|n| canister_id_store.find(n).is_none())
         .cloned()
         .collect::<Vec<String>>();
-    if canisters_to_create.is_empty() {
-        info!(env.get_logger(), "All canisters have already been created.");
-    } else {
-        info!(env.get_logger(), "Creating canisters...");
-        for canister_name in &canisters_to_create {
-            let config_interface = config.get_config();
-            let compute_allocation = config_interface
-                .get_compute_allocation(canister_name)?
+    info!(env.get_logger(), "Creating canisters...");
+    for canister_name in &canisters_to_create {
+        let config_interface = config.get_config();
+        let compute_allocation = config_interface
+            .get_compute_allocation(canister_name)?
+            .map(|arg| {
+                ComputeAllocation::try_from(arg).context("Compute Allocation must be a percentage.")
+            })
+            .transpose()?;
+        let memory_allocation = config_interface
+            .get_memory_allocation(canister_name)?
+            .map(|arg| {
+                u64::try_from(arg.get_bytes())
+                    .map_err(|e| anyhow!(e))
+                    .and_then(|n| Ok(MemoryAllocation::try_from(n)?))
+                    .context(
+                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                    )
+            })
+            .transpose()?;
+        let freezing_threshold =
+            config_interface
+                .get_freezing_threshold(canister_name)?
                 .map(|arg| {
-                    ComputeAllocation::try_from(arg)
-                        .context("Compute Allocation must be a percentage.")
-                })
-                .transpose()?;
-            let memory_allocation = config_interface
-                .get_memory_allocation(canister_name)?
-                .map(|arg| {
-                    u64::try_from(arg.get_bytes())
-                        .map_err(|e| anyhow!(e))
-                        .and_then(|n| Ok(MemoryAllocation::try_from(n)?))
-                        .context(
-                            "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
-                        )
-                })
-                .transpose()?;
-            let freezing_threshold =
-                config_interface
-                    .get_freezing_threshold(canister_name)?
-                    .map(|arg| {
-                        FreezingThreshold::try_from(arg.as_secs())
-                            .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
-                    });
-            let controllers = None;
-            create_canister(
-                env,
-                canister_name,
-                with_cycles,
-                specified_id,
-                call_sender,
-                CanisterSettings {
-                    controllers,
-                    compute_allocation,
-                    memory_allocation,
-                    freezing_threshold,
-                },
-            )
-            .await?;
-        }
+                    FreezingThreshold::try_from(arg.as_secs())
+                        .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
+                });
+        let controllers = None;
+        create_canister(
+            env,
+            canister_name,
+            with_cycles,
+            specified_id,
+            call_sender,
+            CanisterSettings {
+                controllers,
+                compute_allocation,
+                memory_allocation,
+                freezing_threshold,
+            },
+        )
+        .await?;
     }
     Ok(())
 }
 
-#[context("Failed to build call canisters.")]
+#[context("Failed to build all canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
     referenced_canisters: &[String],
@@ -313,6 +353,47 @@ async fn prepare_assets_for_commit(
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
+
+    Ok(())
+}
+
+#[context("Failed to compute evidence.")]
+async fn compute_evidence(
+    env: &dyn Environment,
+    canister_id_store: &CanisterIdStore,
+    config: &Config,
+    canister_name: &str,
+) -> DfxResult {
+    let canister_id = canister_id_store.get(canister_name)?;
+    let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
+
+    if !canister_info.is_assets() {
+        bail!(
+            "Expected canister {} to be an asset canister.",
+            canister_name
+        );
+    }
+
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+
+    let assets_canister_info = canister_info.as_info::<AssetsCanisterInfo>()?;
+    let source_paths = assets_canister_info.get_source_paths();
+    let source_paths: Vec<&Path> = source_paths.iter().map(|p| p.as_path()).collect::<_>();
+
+    let canister_id = canister_info
+        .get_canister_id()
+        .context("Could not find canister ID.")?;
+
+    let canister = ic_utils::Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(canister_id)
+        .build()
+        .context("Failed to build asset canister caller.")?;
+
+    let evidence = ic_asset::compute_evidence(&canister, &source_paths, env.get_logger()).await?;
+    println!("{}", evidence);
 
     Ok(())
 }

@@ -5,6 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::named_canister;
+use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
 use dfx_core::canister::{build_wallet_canister, install_canister_wasm};
@@ -18,7 +19,7 @@ use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::Principal;
 use fn_error_context::context;
-use ic_agent::{Agent, AgentError};
+use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
@@ -51,17 +52,7 @@ pub async fn install_canister(
         named_canister::install_ui_canister(env, canister_id_store, None).await?;
     }
     let canister_id = canister_info.get_canister_id()?;
-    let installed_module_hash = match agent
-        .read_state_canister_info(canister_id, "module_hash")
-        .await
-    {
-        Ok(installed_module_hash) => Some(installed_module_hash),
-        // If the canister is empty, this path does not exist.
-        // The replica doesn't support negative lookups, therefore if the canister
-        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-        Err(AgentError::LookupPathUnknown(_) | AgentError::LookupPathAbsent(_)) => None,
-        Err(x) => bail!(x),
-    };
+    let installed_module_hash = read_state_tree_canister_module_hash(agent, canister_id).await?;
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
             InstallMode::Upgrade
@@ -132,11 +123,8 @@ pub async fn install_canister(
     let mut retry_policy = ExponentialBackoff::default();
     let mut times = 0;
     loop {
-        match agent
-            .read_state_canister_info(canister_id, "module_hash")
-            .await
-        {
-            Ok(reported_hash) => {
+        match read_state_tree_canister_module_hash(agent, canister_id).await? {
+            Some(reported_hash) => {
                 if reported_hash[..] == new_hash[..] {
                     break;
                 } else if installed_module_hash
@@ -166,7 +154,7 @@ pub async fn install_canister(
                     )
                 }
             }
-            Err(AgentError::LookupPathAbsent(_) | AgentError::LookupPathUnknown(_)) => {
+            None => {
                 times += 1;
                 if times > 3 {
                     info!(
@@ -180,7 +168,6 @@ pub async fn install_canister(
                         No post-installation tasks have been run, including asset uploads.")?;
                 tokio::time::sleep(interval).await;
             }
-            Err(e) => bail!(e),
         }
     }
     if canister_info.is_assets() {

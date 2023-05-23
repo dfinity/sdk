@@ -36,7 +36,7 @@ pub struct CreateChunkResponse {
 
 /// Create a new asset.  Has no effect if the asset already exists and the content type matches.
 /// Traps if the asset already exists but with a different content type.
-#[derive(CandidType, Debug, PartialOrd, PartialEq, Eq, Ord)]
+#[derive(CandidType, Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
 pub struct CreateAssetArguments {
     /// The key identifies the asset.
     pub key: String,
@@ -53,7 +53,7 @@ pub struct CreateAssetArguments {
 }
 
 /// Set the data for a particular content encoding for the given asset.
-#[derive(CandidType, Debug, PartialOrd, PartialEq, Eq, Ord)]
+#[derive(CandidType, Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
 pub struct SetAssetContentArguments {
     /// The key identifies the asset.
     pub key: String,
@@ -66,7 +66,7 @@ pub struct SetAssetContentArguments {
 }
 
 /// Remove a specific content encoding for the asset.
-#[derive(CandidType, Debug, PartialOrd, PartialEq, Eq, Ord)]
+#[derive(CandidType, Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
 pub struct UnsetAssetContentArguments {
     /// The key identifies the asset.
     pub key: String,
@@ -75,14 +75,14 @@ pub struct UnsetAssetContentArguments {
 }
 
 /// Remove the specified asset.
-#[derive(CandidType, Debug, PartialOrd, PartialEq, Eq, Ord)]
+#[derive(CandidType, Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
 pub struct DeleteAssetArguments {
     /// The key identifies the asset to delete.
     pub key: String,
 }
 
 /// Remove all assets, batches, and chunks, and reset the next batch and chunk IDs.
-#[derive(CandidType, Debug, PartialOrd, PartialEq, Eq, Ord)]
+#[derive(CandidType, Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
 pub struct ClearArguments {}
 
 /// Compute a hash over the proposed CommitBatchArguments.  This may take more than one call.

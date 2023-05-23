@@ -27,6 +27,7 @@ You can use the following options with the `dfx deploy` command.
 | `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                            |
 | `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                 |
 | `--by-proposal`                    | Upload proposed changed assets, but do not commit them.  Follow up by calling either commit_proposed_batch() or delete_batch().                                             |
+| `--compute-evidence`               | Build a frontend canister, determine batch operations required to synchronize asset canister contents, and compute a hash over those operations.  Displays this hash ("evidence"), which should match the evidence displayed by `dfx deploy --by-proposal`. |
 
 ### Arguments
 

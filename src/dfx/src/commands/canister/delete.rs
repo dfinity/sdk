@@ -46,30 +46,30 @@ pub struct CanisterDeleteOpts {
     canister: Option<String>,
 
     /// Deletes all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 
     /// Do not withdrawal cycles, just delete the canister.
-    #[clap(long)]
+    #[arg(long)]
     no_withdrawal: bool,
 
     /// Withdraw cycles from canister(s) to the specified canister/wallet before deleting.
-    #[clap(long, conflicts_with("no-withdrawal"))]
+    #[arg(long, conflicts_with("no_withdrawal"))]
     withdraw_cycles_to_canister: Option<String>,
 
     /// Withdraw cycles to dank with the current principal.
-    #[clap(
+    #[arg(
         long,
-        conflicts_with("withdraw-cycles-to-canister"),
-        conflicts_with("no-withdrawal")
+        conflicts_with("withdraw_cycles_to_canister"),
+        conflicts_with("no_withdrawal")
     )]
     withdraw_cycles_to_dank: bool,
 
     /// Withdraw cycles to dank with the given principal.
-    #[clap(
+    #[arg(
         long,
-        conflicts_with("withdraw-cycles-to-canister"),
-        conflicts_with("no-withdrawal")
+        conflicts_with("withdraw_cycles_to_canister"),
+        conflicts_with("no_withdrawal")
     )]
     withdraw_cycles_to_dank_principal: Option<String>,
 }

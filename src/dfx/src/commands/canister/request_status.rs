@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators;
+use crate::util::clap::parsers;
 use crate::util::print_idl_blob;
 
 use anyhow::{anyhow, Context};
@@ -18,7 +18,7 @@ use std::str::FromStr;
 pub struct RequestStatusOpts {
     /// Specifies the request identifier.
     /// The request identifier is an hexadecimal string starting with 0x.
-    #[clap(validator(validators::is_request_id))]
+    #[arg(value_parser = parsers::request_id_parser)]
     request_id: String,
 
     /// Specifies the name or id of the canister onto which the request was made.
@@ -30,8 +30,7 @@ pub struct RequestStatusOpts {
     canister: String,
 
     /// Specifies the format for displaying the method's return result.
-    #[clap(long,
-        possible_values(&["idl", "raw", "pp"]))]
+    #[arg(long, value_parser = ["idl", "raw", "pp"])]
     output: Option<String>,
 }
 

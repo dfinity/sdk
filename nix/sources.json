@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "6078097fb6a241b55fb1c80f60d54b02a3929225",
-        "sha256": "1mg32dzvyzphqvyjs2jrsgw2wmfp9lsq3gk6dff6pz2sm71iwlyk",
+        "rev": "5f4eca136204fb9e86d6297b20f149d225276824",
+        "sha256": "0c8b2vnhr33kdskj11gf19zafmxrg94k8x512ilxn053wlah68x8",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/6078097fb6a241b55fb1c80f60d54b02a3929225.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/5f4eca136204fb9e86d6297b20f149d225276824.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister_sandbox-x86_64-darwin": {
@@ -64,7 +64,15 @@
         "url": "https://download.dfinity.systems/ic/742d0a8399476a83878bb87c74eb46b2d8e05000/binaries/x86_64-linux/ic-btc-adapter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/ic-btc-adapter.gz"
     },
-    "ic-https-outcalls-adapter-x86_64-darwin": {
+    "ic-btc-canister": {
+        "owner": "dfinity",
+        "sha256": "0izvazr0cpdwjga12zim2cwp3rgm5n3w7ag5yplfl8rxrhwk65f4",
+        "type": "file",
+        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-03-31/ic-btc-canister.wasm.gz",
+        "url_template": "https://github.com/dfinity/bitcoin-canister/releases/download/<version>/ic-btc-canister.wasm.gz",
+        "version": "release%2F2023-03-31"
+    },
+    "ic-canister-http-adapter-x86_64-darwin": {
         "builtin": false,
         "rev": "742d0a8399476a83878bb87c74eb46b2d8e05000",
         "sha256": "1287s0mbdbs7vz7shs0xrsvzkfg8f1jazlpli82crx5n0dqvmzwn",
@@ -154,27 +162,27 @@
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
-        "sha256": "0gflzcsqwki6i7d883yiq3fwah1iiihm0n1c604yhq8fhijn8ykz",
+        "sha256": "039j55x0hknlhgy7x812f76nz6qsi2ld4svap5hw6kvx5pj43ksp",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.8.4/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.8/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.8.4"
+        "version": "0.8.8"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "0di87lv0s2ji8c4nmw35f61rd3mqkg16r25x68jm801a9lag76wd",
+        "sha256": "003mp2a4llzpq22fq64ivpjqynijyvcmjy9m0fxnpbk08jv2yjik",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.8.4/motoko-macos-0.8.4.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.8/motoko-macos-0.8.8.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
-        "version": "0.8.4"
+        "version": "0.8.8"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "06ksady77fqxq4im2vzqf6rw3dg0lisl36qb78g19mgjwmhxcj99",
+        "sha256": "05826d775yjiqvi5bam9qfw4xygafyqzf6wfdcyqj6wbm7a6lgdk",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.8.4/motoko-linux64-0.8.4.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.8.8/motoko-linux64-0.8.8.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
-        "version": "0.8.4"
+        "version": "0.8.8"
     },
     "replica-x86_64-darwin": {
         "builtin": false,

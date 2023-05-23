@@ -2,9 +2,8 @@ use crate::batch_upload::retryable::retryable;
 use crate::canister_api::methods::method_names::{
     COMMIT_BATCH, COMPUTE_EVIDENCE, CREATE_BATCH, PROPOSE_COMMIT_BATCH,
 };
-use crate::canister_api::types::batch_upload::{
-    common::{ComputeEvidenceArguments, CreateBatchRequest, CreateBatchResponse},
-    v0::CommitBatchArguments,
+use crate::canister_api::types::batch_upload::common::{
+    ComputeEvidenceArguments, CreateBatchRequest, CreateBatchResponse,
 };
 
 use anyhow::bail;
@@ -78,16 +77,16 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
     }
 }
 
-pub(crate) async fn commit_batch(
+pub(crate) async fn commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
-    arg: CommitBatchArguments,
+    arg: T, // CommitBatchArguments_{v0,v1,etc}
 ) -> anyhow::Result<()> {
     submit_commit_batch(canister, COMMIT_BATCH, arg).await
 }
 
-pub(crate) async fn propose_commit_batch(
+pub(crate) async fn propose_commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
-    arg: CommitBatchArguments,
+    arg: T, // CommitBatchArguments_{v0,v1,etc}
 ) -> anyhow::Result<()> {
     submit_commit_batch(canister, PROPOSE_COMMIT_BATCH, arg).await
 }

@@ -2,13 +2,13 @@
 //! endpoints.
 use std::collections::HashMap;
 
-use crate::rc_bytes::RcBytes;
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde_bytes::ByteBuf;
 
+use crate::asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
+
 pub type BatchId = Nat;
 pub type ChunkId = Nat;
-pub type AssetKey = String;
 
 // IDL Types
 
@@ -51,6 +51,7 @@ pub enum BatchOperation {
     UnsetAssetContent(UnsetAssetContentArguments),
     DeleteAsset(DeleteAssetArguments),
     Clear(ClearArguments),
+    SetAssetProperties(SetAssetPropertiesArguments),
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]

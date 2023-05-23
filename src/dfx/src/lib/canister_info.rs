@@ -1,15 +1,13 @@
 #![allow(dead_code)]
-use crate::lib::canister_info::assets::AssetsCanisterInfo;
-use crate::lib::canister_info::custom::CustomCanisterInfo;
-use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::DfxResult;
+use crate::lib::metadata::config::CanisterMetadataConfig;
 use dfx_core::config::model::dfinity::{
-    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
+    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
+    WasmOptLevel,
 };
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 
-use crate::lib::metadata::config::CanisterMetadataConfig;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
@@ -17,12 +15,18 @@ use core::panic;
 use fn_error_context::context;
 use std::path::{Path, PathBuf};
 
-use self::rust::RustCanisterInfo;
-
 pub mod assets;
 pub mod custom;
 pub mod motoko;
+pub mod pull;
 pub mod rust;
+
+use assets::AssetsCanisterInfo;
+use custom::CustomCanisterInfo;
+use motoko::MotokoCanisterInfo;
+use rust::RustCanisterInfo;
+
+use self::pull::PullCanisterInfo;
 
 pub trait CanisterInfoFactory {
     fn create(info: &CanisterInfo) -> DfxResult<Self>
@@ -52,9 +56,11 @@ pub struct CanisterInfo {
     post_install: Vec<String>,
     main: Option<PathBuf>,
     shrink: Option<bool>,
+    optimize: Option<WasmOptLevel>,
     metadata: CanisterMetadataConfig,
-    pull_ready: bool,
+    pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
+    gzip: bool,
 }
 
 impl CanisterInfo {
@@ -139,6 +145,8 @@ impl CanisterInfo {
         let post_install = canister_config.post_install.clone().into_vec();
         let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
 
+        let gzip = canister_config.gzip.unwrap_or(false);
+
         let canister_info = CanisterInfo {
             name: name.to_string(),
             declarations_config,
@@ -154,9 +162,11 @@ impl CanisterInfo {
             post_install,
             main: canister_config.main.clone(),
             shrink: canister_config.shrink,
+            optimize: canister_config.optimize,
             metadata,
-            pull_ready: canister_config.pull_ready,
+            pullable: canister_config.pullable.clone(),
             pull_dependencies,
+            gzip,
         };
 
         Ok(canister_info)
@@ -229,8 +239,31 @@ impl CanisterInfo {
         self.shrink
     }
 
+    pub fn get_optimize(&self) -> Option<WasmOptLevel> {
+        // Cycles defaults to O3, Size defaults to Oz
+        self.optimize.map(|level| match level {
+            WasmOptLevel::Cycles => WasmOptLevel::O3,
+            WasmOptLevel::Size => WasmOptLevel::Oz,
+            other => other,
+        })
+    }
+
+    /// Path to the wasm module in .dfx that will be install.
     pub fn get_build_wasm_path(&self) -> PathBuf {
-        self.output_root.join(&self.name).with_extension("wasm")
+        let mut gzip_original = false;
+        if let CanisterTypeProperties::Custom { wasm, .. } = &self.type_specific {
+            if wasm.ends_with(".gz") {
+                gzip_original = true;
+            }
+        } else if self.is_assets() {
+            gzip_original = true;
+        }
+        let ext = if self.gzip || gzip_original {
+            "wasm.gz"
+        } else {
+            "wasm"
+        };
+        self.output_root.join(&self.name).with_extension(ext)
     }
 
     pub fn get_build_idl_path(&self) -> PathBuf {
@@ -255,9 +288,9 @@ impl CanisterInfo {
             CanisterTypeProperties::Rust { .. } => self
                 .as_info::<RustCanisterInfo>()
                 .map(|x| x.get_output_idl_path().to_path_buf()),
-            CanisterTypeProperties::Pull { .. } => {
-                unreachable!("Should not get output idl from pull type canister")
-            }
+            CanisterTypeProperties::Pull { .. } => self
+                .as_info::<PullCanisterInfo>()
+                .map(|x| x.get_output_idl_path().to_path_buf()),
         }
         .ok()
         .or_else(|| self.remote_candid.clone())
@@ -300,11 +333,15 @@ impl CanisterInfo {
         &self.metadata
     }
 
-    pub fn is_pull_ready(&self) -> bool {
-        self.pull_ready
+    pub fn get_pullable(&self) -> Option<Pullable> {
+        self.pullable.clone()
     }
 
     pub fn get_pull_dependencies(&self) -> &[(String, CanisterId)] {
         &self.pull_dependencies
+    }
+
+    pub fn get_gzip(&self) -> bool {
+        self.gzip
     }
 }

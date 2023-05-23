@@ -28,7 +28,7 @@ teardown() {
 
 @test "import and export identity with a password are inverse operations" {
     # key generated using `openssl ecparam -genkey -name secp256k1`
-    cat >import.pem <<XXX
+    cat >import.pem <<EOF
 -----BEGIN EC PARAMETERS-----
 BgUrgQQACg==
 -----END EC PARAMETERS-----
@@ -37,7 +37,7 @@ MHQCAQEEIIPXmSpdZwI5YUwzukz8+GC9fikjMELmdbH4tHcQ9iD2oAcGBSuBBAAK
 oUQDQgAEjjBKAxko3RPG8ot7PoeXM7ZHtek2xcbRN/JZVfKKNEnNG4wdnMdpRGyk
 37fJkz9WEHR+Wol+nGAuQNnCOIVXdw==
 -----END EC PRIVATE KEY-----
-XXX
+EOF
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/import_export_identity_with_password.exp"
     assert_eq "$(cat import.pem)" "$(cat export.pem)"
 

@@ -33,6 +33,8 @@ pub use custom::custom_download;
 pub enum WasmBuildOutput {
     // Wasm(Vec<u8>),
     File(PathBuf),
+    // pull dependencies has no wasm output to be installed by `dfx canister install` or `dfx deploy`
+    None,
 }
 
 #[derive(Debug)]
@@ -42,6 +44,7 @@ pub enum IdlBuildOutput {
 }
 
 /// The output of a build.
+#[derive(Debug)]
 pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
@@ -274,18 +277,26 @@ export const {0} = createActor(canisterId);"#,
             data.insert("canister_name".to_string(), canister_name);
             data.insert("actor_export".to_string(), &actor_export);
 
-            let process_string: String = match &info.get_declarations_config().env_override {
+            // Switches to prefixing the canister id with the env variable for frontend declarations as new default
+            let process_string_prefix: String = match &info.get_declarations_config().env_override {
                 Some(s) => format!(r#""{}""#, s.clone()),
                 None => {
                     format!(
-                        "process.env.{}{}",
+                        "process.env.{}{} ||\n  process.env.{}{}",
+                        "CANISTER_ID_",
                         &canister_name.to_ascii_uppercase(),
-                        "_CANISTER_ID"
+                        // TODO: remove this fallback in 0.16.x
+                        // https://dfinity.atlassian.net/browse/SDK-1083
+                        &canister_name.to_ascii_uppercase(),
+                        "_CANISTER_ID",
                     )
                 }
             };
 
-            data.insert("canister_name_process_env".to_string(), &process_string);
+            data.insert(
+                "canister_name_process_env".to_string(),
+                &process_string_prefix,
+            );
 
             let new_file_contents = handlebars.render_template(&file_contents, &data).unwrap();
             let new_path = generate_output_dir.join(pathname.with_extension(""));
@@ -359,9 +370,31 @@ pub fn get_and_write_environment_variables<'a>(
                 )),
                 Borrowed(candid_path),
             ));
+            vars.push((
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_").to_ascii_uppercase()
+                )),
+                Borrowed(candid_path),
+            ));
         }
     }
     for canister in pool.get_canister_list() {
+        // Insert both suffixed and prefixed versions of the canister name for backwards compatibility
+        vars.push((
+            Owned(format!(
+                "{}_CANISTER_ID",
+                canister.get_name().replace('-', "_").to_ascii_uppercase(),
+            )),
+            Owned(canister.canister_id().to_text().into()),
+        ));
+        vars.push((
+            Owned(format!(
+                "CANISTER_ID_{}",
+                canister.get_name().replace('-', "_").to_ascii_uppercase(),
+            )),
+            Owned(canister.canister_id().to_text().into()),
+        ));
         vars.push((
             Owned(format!(
                 "CANISTER_ID_{}",
@@ -476,17 +509,6 @@ impl BuildConfig {
     pub fn with_env_file(self, env_file: Option<PathBuf>) -> Self {
         Self { env_file, ..self }
     }
-}
-
-#[context("Failed to shrink wasm at {}.", &wasm_path.as_ref().display())]
-fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
-    let wasm_path = wasm_path.as_ref();
-    let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
-    let shrinked_wasm =
-        ic_wasm::shrink::shrink(&wasm).context("Could not shrink the WASM module.")?;
-    std::fs::write(wasm_path, &shrinked_wasm)
-        .with_context(|| format!("Could not write shrinked WASM to {:?}", wasm_path))?;
-    Ok(())
 }
 
 pub struct BuilderPool {
