@@ -373,7 +373,7 @@ get_btc_adapter_pid() {
 }
 
 get_canister_http_adapter_pid() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 get_icx_proxy_pid() {
