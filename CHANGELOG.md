@@ -104,6 +104,35 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 
 Updated Motoko to 0.8.8
 
+### Replica
+
+Updated replica to elected commit b3b00ba59c366384e3e0cd53a69457e9053ec987.
+This incorporates the following executed proposals:
+- [122529](https://dashboard.internetcomputer.org/proposal/122529)
+- [122284](https://dashboard.internetcomputer.org/proposal/122284)
+- [122198](https://dashboard.internetcomputer.org/proposal/122198)
+- [120591](https://dashboard.internetcomputer.org/proposal/120591)
+- [119318](https://dashboard.internetcomputer.org/proposal/119318)
+- [118023](https://dashboard.internetcomputer.org/proposal/118023)
+- [116294](https://dashboard.internetcomputer.org/proposal/116294)
+- [116135](https://dashboard.internetcomputer.org/proposal/116135)
+- [114479](https://dashboard.internetcomputer.org/proposal/114479)
+- [113136](https://dashboard.internetcomputer.org/proposal/113136)
+- [111932](https://dashboard.internetcomputer.org/proposal/111932)
+- [111724](https://dashboard.internetcomputer.org/proposal/111724)
+- [110724](https://dashboard.internetcomputer.org/proposal/110724)
+- [109500](https://dashboard.internetcomputer.org/proposal/109500)
+- [108153](https://dashboard.internetcomputer.org/proposal/108153)
+- [107668](https://dashboard.internetcomputer.org/proposal/107668)
+- [107667](https://dashboard.internetcomputer.org/proposal/107667)
+- [106868](https://dashboard.internetcomputer.org/proposal/106868)
+- [106817](https://dashboard.internetcomputer.org/proposal/106817)
+- [105666](https://dashboard.internetcomputer.org/proposal/105666)
+- [104470](https://dashboard.internetcomputer.org/proposal/104470)
+- [103281](https://dashboard.internetcomputer.org/proposal/103281)
+- [103231](https://dashboard.internetcomputer.org/proposal/103231)
+- [101987](https://dashboard.internetcomputer.org/proposal/101987)
+
 # 0.14.0
 
 ## DFX

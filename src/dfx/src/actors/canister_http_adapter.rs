@@ -41,7 +41,7 @@ pub struct Config {
     pub logger: Option<Logger>,
 }
 
-/// An actor for the ic-canister-http-adapter process.  Publishes information about
+/// An actor for the ic-https-outcalls-adapter process.  Publishes information about
 /// the process starting or restarting, so that other processes can reconnect.
 pub struct CanisterHttpAdapter {
     config: Config,
@@ -188,7 +188,7 @@ fn canister_http_adapter_start_thread(
             if let Some(socket_path) = &config.socket_path {
                 if socket_path.exists() {
                     std::fs::remove_file(socket_path)
-                        .expect("Could not remove ic-canister-http-adapter socket");
+                        .expect("Could not remove ic-https-outcalls-adapter socket");
                 }
             }
             let last_start = std::time::Instant::now();
@@ -212,14 +212,14 @@ fn canister_http_adapter_start_thread(
                 ChildOrReceiver::Receiver => {
                     debug!(
                         logger,
-                        "Got signal to stop. Killing ic-canister-http-adapter process..."
+                        "Got signal to stop. Killing ic-https-outcalls-adapter process..."
                     );
                     let _ = child.kill();
                     let _ = child.wait();
                     break;
                 }
                 ChildOrReceiver::Child => {
-                    debug!(logger, "ic-canister-http-adapter process failed.");
+                    debug!(logger, "ic-https-outcalls-adapter process failed.");
                     // If it took less than two seconds to exit, wait a bit before trying again.
                     if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
@@ -227,7 +227,7 @@ fn canister_http_adapter_start_thread(
                     } else {
                         debug!(
                             logger,
-                            "Last ic-canister-http-adapter seemed to have been healthy, not waiting..."
+                            "Last ic-https-outcalls-adapter seemed to have been healthy, not waiting..."
                         );
                     }
                 }
