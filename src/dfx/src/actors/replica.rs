@@ -318,7 +318,6 @@ fn replica_start_thread(
         // change is rolled out without any issues.
         cmd.args(["--subnet-features", "canister_sandboxing"]);
         if config.btc_adapter.enabled {
-            cmd.args(["--subnet-features", "bitcoin_regtest"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
                 cmd.args([
                     "--bitcoin-testnet-uds-path",
