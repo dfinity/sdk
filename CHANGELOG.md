@@ -100,6 +100,13 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 
 Updated Motoko to 0.8.8
 
+### Replica
+
+Updated replica to elected commit b3b00ba59c366384e3e0cd53a69457e9053ec987.
+This incorporates the following executed proposals:
+
+--todo--
+
 # 0.14.0
 
 ## DFX
