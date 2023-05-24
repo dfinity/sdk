@@ -438,6 +438,10 @@ Installing canister: $CANISTER_ID_C (dep_c)"
     assert_eq "(2 : nat)" "$output"
     assert_command dfx canister call app get_c
     assert_eq "(33 : nat)" "$output" # corresponding to "--argument 33" above
+    assert_command dfx canister call app get_b_times_a
+    assert_eq "(22 : nat)" "$output" # 2 * 11
+    assert_command dfx canister call app get_c_times_a
+    assert_eq "(363 : nat)" "$output" # 33 * 11
 
     # start a clean local replica
     dfx canister stop app
