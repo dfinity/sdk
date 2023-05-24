@@ -319,12 +319,19 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
     } else {
         (actor, vec![])
     };
-    let service_did = candid::bindings::candid::compile(&env, &actor);
-    use candid::bindings::candid::pp_ty;
-    use candid::pretty::{concat, enclose};
-    let doc = concat(args.iter().map(pp_ty), ",");
-    let init_args = enclose("(", doc, ")").pretty(80).to_string();
-    Ok((service_did, init_args))
+    if args.is_empty() {
+        // avoid reordering items in the candid file
+        let service_did = dfx_core::fs::read_to_string(path)?;
+        let init_args = String::from("()");
+        Ok((service_did, init_args))
+    } else {
+        let service_did = candid::bindings::candid::compile(&env, &actor);
+        use candid::bindings::candid::pp_ty;
+        use candid::pretty::{concat, enclose};
+        let doc = concat(args.iter().map(pp_ty), ",");
+        let init_args = enclose("(", doc, ")").pretty(80).to_string();
+        Ok((service_did, init_args))
+    }
 }
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
