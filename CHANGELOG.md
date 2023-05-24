@@ -4,7 +4,18 @@
 
 ## DFX
 
-### feat: `dfx canister delete` without stopping first
+### fix: motoko canisters can import other canisters with service constructor
+
+After specific canister builder output wasm and candid file, `dfx` will do some post processing on the candid file.
+
+The complete IDL will be copied into `.dfx` folder with name `constructor.did`.
+It will be used for type checking during canister installation.
+
+Then it is separated into two parts: `service.did` and `init_args.txt`, corresponding to canister metadata `candid:service` and `candid:args`.
+
+`service.did` will be imported during dependent canisters building. And it will also be used by the Motoko LSP to provide IDE support.
+
+### fix: `dfx canister delete` without stopping first
 
 When running `dfx canister delete` on a canister that has not been stopped, dfx will now confirm the deletion instead of erroring.
 
