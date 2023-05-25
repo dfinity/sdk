@@ -216,8 +216,10 @@ fn check_candid_compatibility(
     candid: &str,
 ) -> anyhow::Result<Option<String>> {
     use crate::util::check_candid_file;
-    let candid_path = canister_info.get_build_idl_path();
-    let deployed_path = canister_info.get_build_idl_path().with_extension("old.did");
+    let candid_path = canister_info.get_constructor_idl_path();
+    let deployed_path = canister_info
+        .get_constructor_idl_path()
+        .with_extension("old.did");
     std::fs::write(&deployed_path, candid).with_context(|| {
         format!(
             "Failed to write candid to {}.",

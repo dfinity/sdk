@@ -266,14 +266,33 @@ impl CanisterInfo {
         self.output_root.join(&self.name).with_extension(ext)
     }
 
-    pub fn get_build_idl_path(&self) -> PathBuf {
-        self.output_root.join(&self.name).with_extension("did")
+    /// Path to the candid file which contains no init types.
+    ///
+    /// To be imported by dependents.
+    pub fn get_service_idl_path(&self) -> PathBuf {
+        self.output_root.join("service.did")
+    }
+
+    /// Path to the candid file which contains init types.
+    ///
+    /// To be used when installing the canister.
+    pub fn get_constructor_idl_path(&self) -> PathBuf {
+        self.output_root.join("constructor.did")
+    }
+
+    /// Path to the init_args.txt file which only contains init types.
+    ///
+    pub fn get_init_args_txt_path(&self) -> PathBuf {
+        self.output_root.join("init_args.txt")
     }
 
     pub fn get_index_js_path(&self) -> PathBuf {
         self.output_root.join("index").with_extension("js")
     }
 
+    /// Path to the candid file from canister builder which should contain init types.
+    ///
+    /// To be separated into service.did and init_args.
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
         match &self.type_specific {
             CanisterTypeProperties::Motoko { .. } => self

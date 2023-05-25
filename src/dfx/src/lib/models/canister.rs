@@ -6,7 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
-use crate::lib::metadata::names::{CANDID_SERVICE, DFX};
+use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
 use crate::util::{assets, check_candid_file};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -142,17 +142,14 @@ impl Canister {
 
         // metadata
         trace!(logger, "Attaching metadata");
-        // Default to write public candid:service unless overwritten
         let mut metadata_sections = info.metadata().sections.clone();
-        if (info.is_rust() || info.is_motoko()) && !metadata_sections.contains_key(CANDID_SERVICE) {
-            metadata_sections.insert(
-                CANDID_SERVICE.to_string(),
-                CanisterMetadataSection {
-                    name: CANDID_SERVICE.to_string(),
-                    visibility: MetadataVisibility::Public,
-                    ..Default::default()
-                },
-            );
+        // Default to write public candid:service unless overwritten
+        let mut public_candid = false;
+        if (info.is_rust() || info.is_motoko())
+            && !metadata_sections.contains_key(CANDID_SERVICE)
+            && !metadata_sections.contains_key(CANDID_ARGS)
+        {
+            public_candid = true;
         }
 
         if let Some(pullable) = info.get_pullable() {
@@ -160,7 +157,6 @@ impl Canister {
             dfx_metadata.set_pullable(pullable);
             let content = serde_json::to_string_pretty(&dfx_metadata)
                 .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
-
             metadata_sections.insert(
                 DFX.to_string(),
                 CanisterMetadataSection {
@@ -170,13 +166,33 @@ impl Canister {
                     ..Default::default()
                 },
             );
+            public_candid = true;
         }
 
-        let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
+        if public_candid {
+            metadata_sections.insert(
+                CANDID_SERVICE.to_string(),
+                CanisterMetadataSection {
+                    name: CANDID_SERVICE.to_string(),
+                    visibility: MetadataVisibility::Public,
+                    ..Default::default()
+                },
+            );
+
+            metadata_sections.insert(
+                CANDID_ARGS.to_string(),
+                CanisterMetadataSection {
+                    name: CANDID_ARGS.to_string(),
+                    visibility: MetadataVisibility::Public,
+                    ..Default::default()
+                },
+            );
+        }
+
         for (name, section) in &metadata_sections {
             if section.name == CANDID_SERVICE && info.is_motoko() {
                 if let Some(specified_path) = &section.path {
-                    check_valid_subtype(build_idl_path, specified_path)?
+                    check_valid_subtype(&info.get_service_idl_path(), specified_path)?
                 } else {
                     // Motoko compiler handles this
                     continue;
@@ -185,7 +201,10 @@ impl Canister {
 
             let data = match (section.path.as_ref(), section.content.as_ref()) {
                 (None, None) if section.name == CANDID_SERVICE => {
-                    dfx_core::fs::read(build_idl_path)?
+                    dfx_core::fs::read(&info.get_service_idl_path())?
+                }
+                (None, None) if section.name == CANDID_ARGS => {
+                    dfx_core::fs::read(&info.get_init_args_txt_path())?
                 }
                 (Some(path), None) => dfx_core::fs::read(path)?,
                 (None, Some(s)) => s.clone().into_bytes(),
@@ -234,6 +253,82 @@ impl Canister {
         dfx_core::fs::write(&wasm_path, new_bytes)?;
 
         Ok(())
+    }
+
+    pub(crate) fn candid_post_process(
+        &self,
+        logger: &Logger,
+        build_config: &BuildConfig,
+        build_output: &BuildOutput,
+    ) -> DfxResult {
+        trace!(logger, "Post processing candid file");
+
+        let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
+
+        // 1. Copy the complete IDL file to .dfx/local/canisters/NAME/constructor.did.
+        let constructor_idl_path = self.info.get_constructor_idl_path();
+        dfx_core::fs::composite::ensure_parent_dir_exists(&constructor_idl_path)?;
+        dfx_core::fs::copy(build_idl_path, &constructor_idl_path)?;
+        set_perms_readwrite(&constructor_idl_path)?;
+
+        // 2. Separate into service.did and init_args
+        let (service_did, init_args) = separate_candid(build_idl_path)?;
+
+        // 3. Save service.did into following places in .dfx/local/:
+        //   - canisters/NAME/service.did
+        //   - IDL_ROOT/CANISTER_ID.did
+        //   - LSP_ROOT/CANISTER_ID.did
+        let mut targets = vec![];
+        targets.push(self.info.get_service_idl_path());
+        let canister_id = self.canister_id();
+        targets.push(
+            build_config
+                .idl_root
+                .join(canister_id.to_text())
+                .with_extension("did"),
+        );
+        targets.push(
+            build_config
+                .lsp_root
+                .join(canister_id.to_text())
+                .with_extension("did"),
+        );
+
+        for target in targets {
+            if &target == build_idl_path {
+                continue;
+            }
+            dfx_core::fs::composite::ensure_parent_dir_exists(&target)?;
+            dfx_core::fs::write(&target, &service_did)?;
+            set_perms_readwrite(&target)?;
+        }
+
+        // 4. Save init_args into .dfx/local/canisters/NAME/init_args.txt
+        let init_args_txt_path = self.info.get_init_args_txt_path();
+        dfx_core::fs::composite::ensure_parent_dir_exists(&init_args_txt_path)?;
+        dfx_core::fs::write(&init_args_txt_path, &init_args)?;
+        set_perms_readwrite(&init_args_txt_path)?;
+        Ok(())
+    }
+}
+
+fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
+    let (env, actor) = check_candid_file(path)?;
+    if let Some(candid::types::internal::Type::Class(args, ty)) = actor {
+        use candid::bindings::candid::pp_ty;
+        use candid::pretty::{concat, enclose};
+
+        let actor = Some(*ty);
+        let service_did = candid::bindings::candid::compile(&env, &actor);
+        let doc = concat(args.iter().map(pp_ty), ",");
+        let init_args = enclose("(", doc, ")").pretty(80).to_string();
+        Ok((service_did, init_args))
+    } else {
+        // The original candid from builder output doesn't contain init_args
+        // Use it directly to avoid items reordering
+        let service_did = dfx_core::fs::read_to_string(path)?;
+        let init_args = String::from("()");
+        Ok((service_did, init_args))
     }
 }
 
@@ -470,37 +565,9 @@ impl CanisterPool {
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
+        canister.candid_post_process(self.get_logger(), build_config, build_output)?;
+
         canister.wasm_post_process(self.get_logger(), build_output)?;
-
-        // Copy the IDL file to three places in .dfx/local/:
-        // 1. canisters/NAME/NAME.did
-        // 2. IDL_ROOT/CANISTER_ID.did
-        // 3. LSP_ROOT/CANISTER_ID.did
-        let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
-        let mut targets = vec![];
-        targets.push(canister.info.get_build_idl_path());
-        let canister_id = canister.canister_id();
-        targets.push(
-            build_config
-                .idl_root
-                .join(canister_id.to_text())
-                .with_extension("did"),
-        );
-        targets.push(
-            build_config
-                .lsp_root
-                .join(canister_id.to_text())
-                .with_extension("did"),
-        );
-
-        for target in targets {
-            if &target == build_idl_path {
-                continue;
-            }
-            dfx_core::fs::composite::ensure_parent_dir_exists(&target)?;
-            dfx_core::fs::copy(build_idl_path, &target)?;
-            set_perms_readwrite(&target)?;
-        }
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 
@@ -709,12 +776,14 @@ fn decode_path_to_str(path: &Path) -> DfxResult<&str> {
 /// Create a canister JavaScript DID and Actor Factory.
 #[context("Failed to build canister js for canister '{}'.", canister_info.get_name())]
 fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> DfxResult {
-    let output_did_js_path = canister_info.get_build_idl_path().with_extension("did.js");
+    let output_did_js_path = canister_info
+        .get_service_idl_path()
+        .with_extension("did.js");
     let output_did_ts_path = canister_info
-        .get_build_idl_path()
+        .get_service_idl_path()
         .with_extension("did.d.ts");
 
-    let (env, ty) = check_candid_file(&canister_info.get_build_idl_path())?;
+    let (env, ty) = check_candid_file(&canister_info.get_service_idl_path())?;
     let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(
