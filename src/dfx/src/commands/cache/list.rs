@@ -8,7 +8,7 @@ use std::io::Write;
 
 /// Lists installed and used version.
 #[derive(Parser)]
-#[clap(name("list"))]
+#[command(name = "list")]
 pub struct CacheListOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: CacheListOpts) -> DfxResult {

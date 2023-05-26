@@ -5,7 +5,7 @@ use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::metadata::names::CANDID_SERVICE;
+use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 use dfx_core::config::cache::Cache;
@@ -150,6 +150,11 @@ impl CanisterBuilder for MotokoBuilder {
             .map(|m| m.visibility)
             .unwrap_or(MetadataVisibility::Public);
 
+        let candid_args_metadata_visibility = canister_info
+            .get_metadata(CANDID_ARGS)
+            .map(|m| m.visibility)
+            .unwrap_or(MetadataVisibility::Public);
+
         // Generate wasm
         let params = MotokoParams {
             build_target: match profile {
@@ -160,24 +165,13 @@ impl CanisterBuilder for MotokoBuilder {
             input: input_path,
             package_arguments: &moc_arguments,
             candid_service_metadata_visibility,
+            candid_args_metadata_visibility,
             output: output_wasm_path,
             idl_path: idl_dir_path,
             idl_map: &id_map,
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
-        let optimize = canister_info.get_optimize();
-        let shrink = canister_info.get_shrink().unwrap_or(true);
-        if let Some(level) = optimize {
-            info!(
-                self.logger,
-                "Optimize and shrink WASM module at level {}", level
-            );
-            super::optimize_wasm(motoko_info.get_output_wasm_path(), level)?;
-        } else if shrink {
-            info!(self.logger, "Shrink WASM module size.");
-            super::shrink_wasm(motoko_info.get_output_wasm_path())?;
-        }
         Ok(BuildOutput {
             canister_id: canister_info
                 .get_canister_id()
@@ -238,6 +232,7 @@ struct MotokoParams<'a> {
     idl_map: &'a CanisterIdMap,
     package_arguments: &'a PackageArguments,
     candid_service_metadata_visibility: MetadataVisibility,
+    candid_args_metadata_visibility: MetadataVisibility,
     output: &'a Path,
     input: &'a Path,
     // The following fields are control flags for dfx and will not be used by self.to_args()
@@ -256,6 +251,10 @@ impl MotokoParams<'_> {
         if self.candid_service_metadata_visibility == MetadataVisibility::Public {
             // moc defaults to private metadata, if this argument is not present.
             cmd.arg("--public-metadata").arg(CANDID_SERVICE);
+        }
+        if self.candid_args_metadata_visibility == MetadataVisibility::Public {
+            // moc defaults to private metadata, if this argument is not present.
+            cmd.arg("--public-metadata").arg(CANDID_ARGS);
         }
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);

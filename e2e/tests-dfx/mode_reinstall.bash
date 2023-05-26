@@ -29,8 +29,9 @@ teardown() {
 
     dfx_start
     assert_command_fail dfx canister install --mode=reinstall
-    assert_match "required arguments were not provided"
-    assert_match "--all"
+    assert_match \
+"error: the following required arguments were not provided:
+  --all"
 }
 
 @test "reinstall succeeds when a canister name is provided" {

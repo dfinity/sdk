@@ -118,17 +118,17 @@ impl LocalServerDescriptor {
         self.data_directory.join("ic-btc-adapter-socket-path")
     }
 
-    /// This file contains the configuration for the ic-canister-http-adapter
+    /// This file contains the configuration for the ic-https-outcalls-adapter
     pub fn canister_http_adapter_config_path(&self) -> PathBuf {
         self.data_directory.join("ic-canister-http-config.json")
     }
 
-    /// This file contains the pid of the ic-canister-http-adapter process
+    /// This file contains the pid of the ic-https-outcalls-adapter process
     pub fn canister_http_adapter_pid_path(&self) -> PathBuf {
-        self.data_directory.join("ic-canister-http-adapter-pid")
+        self.data_directory.join("ic-https-outcalls-adapter-pid")
     }
 
-    /// This file contains the PATH of the unix domain socket for the ic-canister-http-adapter
+    /// This file contains the PATH of the unix domain socket for the ic-https-outcalls-adapter
     pub fn canister_http_adapter_socket_holder_path(&self) -> PathBuf {
         self.data_directory.join("ic-canister-http-socket-path")
     }

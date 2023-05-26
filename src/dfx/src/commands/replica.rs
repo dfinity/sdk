@@ -16,7 +16,7 @@ use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::{bail, Context};
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use std::default::Default;
 use std::fs;
@@ -30,31 +30,31 @@ use super::start::CachedConfig;
 #[derive(Parser)]
 pub struct ReplicaOpts {
     /// Specifies the port the local replica should listen to.
-    #[clap(long)]
+    #[arg(long)]
     port: Option<String>,
 
     /// Runs a dedicated emulator instead of the replica
-    #[clap(long)]
+    #[arg(long)]
     emulator: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
 
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
-    #[clap(long, conflicts_with("emulator"), default_value = "600")]
+    #[arg(long, conflicts_with("emulator"), default_value_t = 600)]
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 

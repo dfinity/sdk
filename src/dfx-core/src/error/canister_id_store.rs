@@ -1,4 +1,7 @@
-use crate::error::{fs::FsError, structured_file::StructuredFileError, unified_io::UnifiedIoError};
+use crate::error::{
+    dfx_config::DfxConfigError, fs::FsError, structured_file::StructuredFileError,
+    unified_io::UnifiedIoError,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -32,6 +35,9 @@ pub enum CanisterIdStoreError {
         canister_id: String,
         cause: UnifiedIoError,
     },
+
+    #[error(transparent)]
+    DfxConfigError(#[from] DfxConfigError),
 }
 
 impl From<FsError> for CanisterIdStoreError {

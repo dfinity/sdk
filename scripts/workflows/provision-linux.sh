@@ -35,7 +35,7 @@ fi
 if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] || [ "$E2E_TEST" = "tests-dfx/identity.bash" ] || [ "$E2E_TEST" = "tests-dfx/generate.bash" ]; then
     sudo apt-get install --yes expect
 fi
-if [ "$E2E_TEST" = "tests-dfx/pull.bash" ]; then
+if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
      cargo install ic-wasm
 fi
 
