@@ -83,8 +83,9 @@ teardown() {
 }
 
 @test "dfx uses a custom build command if one is provided" {
-    jq '.canisters.dfx_test_frontend.source = ["dist/dfx_test_frontend/"]' dfx.json | sponge dfx.json
-    jq '.scripts["custom-build"] = "cp -r ./src/e2e_project_frontend/assets/ ./dist/e2e_project_frontend"' package.json | sponge package.json
+    jq '.canisters.e2e_project_frontend.source = ["dist/e2e_project_frontend/"]' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project_frontend.build = ["npm run custom-build"]' dfx.json | sponge dfx.json
+    jq '.scripts["custom-build"] = "mkdir -p ./dist/e2e_project_frontend/assets/ && cp -r ./src/e2e_project_frontend/assets/* ./dist/e2e_project_frontend"' package.json | sponge package.json
 
     dfx_start
     dfx canister create --all
