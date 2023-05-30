@@ -237,7 +237,7 @@ teardown() {
   # This test makes sure that the file is created under the .dfx/ directory,
   # which is where other temporary / build artifacts go.
   assert_file_not_exists ./main.old.did
-  assert_file_exists .dfx/local/canisters/custom/custom.old.did
+  assert_file_exists .dfx/local/canisters/custom/constructor.old.did
 }
 
 @test "custom canister build script picks local executable first" {
