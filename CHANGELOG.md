@@ -105,6 +105,12 @@ In order to allow larger changes without exceeding the per-message instruction l
 
 ## Dependencies
 
+### Cycles wallet
+
+Updated cycles wallet to `20230530` release:
+- Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
+- https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
+
 ### Frontend canister
 
 The asset canister now properly removes the v2-certified response when `/index.html` is deleted.
