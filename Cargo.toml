@@ -20,8 +20,8 @@ license = "Apache-2.0"
 candid = "0.8.4"
 ic-agent = "0.23.1"
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
-ic-cdk = "0.6.0"
-ic-cdk-macros = "0.6.0"
+ic-cdk = "0.8.0"
+ic-cdk-macros = "0.6.7"
 ic-identity-hsm = "0.23.1"
 ic-utils = "0.23.1"
 
