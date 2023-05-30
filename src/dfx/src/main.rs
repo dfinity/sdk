@@ -12,7 +12,7 @@ use anyhow::Error;
 // use clap::{ArgAction, Args, CommandFactory, FromArgMatches as _, Parser, Subcommand as _};
 use clap::{ArgAction, ArgMatches, Args, CommandFactory, FromArgMatches as _, Parser};
 
-use commands::DfxCommand;
+use commands::Command;
 // use lib::error::ExtensionError;
 use lib::extension::manager::ExtensionManager;
 use semver::Version;
@@ -53,7 +53,7 @@ pub struct CliOpts {
     provisional_create_canister_effective_canister_id: Option<String>,
 
     #[command(subcommand)]
-    command: commands::DfxCommand,
+    command: commands::Command,
 }
 
 impl CliOpts {
@@ -257,13 +257,13 @@ fn main() {
                         let args = &std::env::args_os().collect::<Vec<_>>()[1..];
                         let args = args.to_vec();
 
-                        DfxCommand::ExtensionRun(args)
+                        Command::ExtensionRun(args)
                     } else if cmd == "_sns_deprecated" {
-                        DfxCommand::Sns(SnsOpts::from_arg_matches(arg_matches).unwrap())
+                        Command::Sns(SnsOpts::from_arg_matches(arg_matches).unwrap())
                     } else if cmd == "_nns_deprecated" {
-                        DfxCommand::Nns(NnsOpts::from_arg_matches(arg_matches).unwrap())
+                        Command::Nns(NnsOpts::from_arg_matches(arg_matches).unwrap())
                     } else {
-                        let q = DfxCommand::from_arg_matches(&matches);
+                        let q = Command::from_arg_matches(&matches);
                         if let Err(ref e) = q {
                             dbg!(&e);
                         } // TODO
@@ -280,12 +280,10 @@ fn main() {
                 Err(e) => Err(e),
             }
         }
-        (Err(e), Some((_, arg_matches))) => {
-            match DfxCommand::from_arg_matches(arg_matches).unwrap() {
-                v @ commands::DfxCommand::Schema(_) => commands::exec_without_env(v),
-                _ => Err(e),
-            }
-        }
+        (Err(e), Some((_, arg_matches))) => match Command::from_arg_matches(arg_matches).unwrap() {
+            v @ commands::Command::Schema(_) => commands::exec_without_env(v),
+            _ => Err(e),
+        },
         (_, _) => Ok(()),
     };
     if let Err(err) = result {

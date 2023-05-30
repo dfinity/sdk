@@ -41,12 +41,14 @@ lazy_static! {
         .split("pub enum DfxCommand {")
         .nth(2)
         .unwrap()
-        .split('}').next()
+        .split('}')
+        .next()
         .unwrap()
         .lines()
         .filter(|l| !l.trim().starts_with(r#"//"#) && !l.trim().is_empty())
         .map(|variant| variant
-            .split('(').next()
+            .split('(')
+            .next()
             .unwrap_or_default()
             .trim()
             .to_lowercase())
@@ -55,7 +57,7 @@ lazy_static! {
 }
 
 #[derive(Subcommand)]
-pub enum DfxCommand {
+pub enum Command {
     #[command(hide = true)]
     Beta(beta::BetaOpts),
     Bootstrap(bootstrap::BootstrapOpts),
@@ -92,43 +94,43 @@ pub enum DfxCommand {
     Wallet(wallet::WalletOpts),
 }
 
-pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
+pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
     match cmd {
-        DfxCommand::Beta(v) => beta::exec(env, v),
-        DfxCommand::Bootstrap(v) => bootstrap::exec(env, v),
-        DfxCommand::Build(v) => build::exec(env, v),
-        DfxCommand::Cache(v) => cache::exec(env, v),
-        DfxCommand::Canister(v) => canister::exec(env, v),
-        DfxCommand::Deploy(v) => deploy::exec(env, v),
-        DfxCommand::Deps(v) => deps::exec(env, v),
-        DfxCommand::Diagnose(v) => diagnose::exec(env, v),
-        DfxCommand::Fix(v) => fix::exec(env, v),
-        DfxCommand::Extension(v) => extension::exec(env, v),
-        DfxCommand::ExtensionRun(v) => extension::run::exec(env, v.into()),
-        DfxCommand::Generate(v) => generate::exec(env, v),
-        DfxCommand::Identity(v) => identity::exec(env, v),
-        DfxCommand::Info(v) => info::exec(env, v),
-        DfxCommand::LanguageServices(v) => language_service::exec(env, v),
-        DfxCommand::Ledger(v) => ledger::exec(env, v),
-        DfxCommand::New(v) => new::exec(env, v),
-        DfxCommand::Nns(v) => nns::exec(env, v),
-        DfxCommand::Ping(v) => ping::exec(env, v),
-        DfxCommand::Quickstart(v) => quickstart::exec(env, v),
-        DfxCommand::Remote(v) => remote::exec(env, v),
-        DfxCommand::Replica(v) => replica::exec(env, v),
-        DfxCommand::Schema(v) => schema::exec(v),
-        DfxCommand::Sns(v) => sns::exec(env, v),
-        DfxCommand::Start(v) => start::exec(env, v),
-        DfxCommand::Stop(v) => stop::exec(env, v),
-        DfxCommand::Toolchain(v) => toolchain::exec(env, v),
-        DfxCommand::Upgrade(v) => upgrade::exec(env, v),
-        DfxCommand::Wallet(v) => wallet::exec(env, v),
+        Command::Beta(v) => beta::exec(env, v),
+        Command::Bootstrap(v) => bootstrap::exec(env, v),
+        Command::Build(v) => build::exec(env, v),
+        Command::Cache(v) => cache::exec(env, v),
+        Command::Canister(v) => canister::exec(env, v),
+        Command::Deploy(v) => deploy::exec(env, v),
+        Command::Deps(v) => deps::exec(env, v),
+        Command::Diagnose(v) => diagnose::exec(env, v),
+        Command::Fix(v) => fix::exec(env, v),
+        Command::Extension(v) => extension::exec(env, v),
+        Command::ExtensionRun(v) => extension::run::exec(env, v.into()),
+        Command::Generate(v) => generate::exec(env, v),
+        Command::Identity(v) => identity::exec(env, v),
+        Command::Info(v) => info::exec(env, v),
+        Command::LanguageServices(v) => language_service::exec(env, v),
+        Command::Ledger(v) => ledger::exec(env, v),
+        Command::New(v) => new::exec(env, v),
+        Command::Nns(v) => nns::exec(env, v),
+        Command::Ping(v) => ping::exec(env, v),
+        Command::Quickstart(v) => quickstart::exec(env, v),
+        Command::Remote(v) => remote::exec(env, v),
+        Command::Replica(v) => replica::exec(env, v),
+        Command::Schema(v) => schema::exec(v),
+        Command::Sns(v) => sns::exec(env, v),
+        Command::Start(v) => start::exec(env, v),
+        Command::Stop(v) => stop::exec(env, v),
+        Command::Toolchain(v) => toolchain::exec(env, v),
+        Command::Upgrade(v) => upgrade::exec(env, v),
+        Command::Wallet(v) => wallet::exec(env, v),
     }
 }
 
-pub fn exec_without_env(cmd: DfxCommand) -> DfxResult {
+pub fn exec_without_env(cmd: Command) -> DfxResult {
     match cmd {
-        DfxCommand::Schema(v) => schema::exec(v),
+        Command::Schema(v) => schema::exec(v),
         _ => bail!("Cannot execute this command without environment."),
     }
 }
