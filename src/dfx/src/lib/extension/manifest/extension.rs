@@ -22,7 +22,7 @@ pub struct ExtensionManifest {
     pub categories: Vec<String>,
     pub keywords: Option<Vec<String>>,
     pub description: Option<String>,
-    pub subcommands: Option<BTreeMap<SubcmdName, ExtensionSubcommandOpts>>,
+    pub subcommands: Option<ExtensionSubcommandsOpts>,
     pub dependencies: Option<HashMap<String, String>>,
 }
 
@@ -34,12 +34,17 @@ impl ExtensionManifest {
         }
         dfx_core::json::load_json_file(&manifest_path)
             .map_err(ExtensionError::ExtensionManifestIsNotValid)
+            .map(|mut m: ExtensionManifest| {
+                m.name = name.to_string();
+                m
+            })
     }
 
     pub fn into_clap_commands(self) -> Option<Vec<clap::Command>> {
         if let Some(subcmds) = self.subcommands {
             return Some(
                 subcmds
+                    .0
                     .into_iter()
                     .map(|(k, v)| v.into_clap_command(k))
                     .collect(),
@@ -50,10 +55,13 @@ impl ExtensionManifest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct ExtensionSubcommandsOpts(BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
+
+#[derive(Debug, Deserialize)]
 pub struct ExtensionSubcommandOpts {
     pub about: Option<String>,
     pub args: Option<BTreeMap<ArgName, ExtensionSubcommandArgOpts>>,
-    pub subcommands: Option<BTreeMap<SubcmdName, ExtensionSubcommandOpts>>,
+    pub subcommands: Option<ExtensionSubcommandsOpts>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -98,7 +106,7 @@ impl ExtensionSubcommandOpts {
         }
 
         if let Some(subcommands) = self.subcommands {
-            for (name, subcommand) in subcommands {
+            for (name, subcommand) in subcommands.0 {
                 cmd = cmd.subcommand(subcommand.into_clap_command(name));
             }
         }

@@ -10,7 +10,7 @@ use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
 // use clap::{ArgAction, Args, CommandFactory, FromArgMatches as _, Parser, Subcommand as _};
-use clap::{ArgAction, Args, CommandFactory, FromArgMatches as _, Parser};
+use clap::{ArgAction, ArgMatches, Args, CommandFactory, FromArgMatches as _, Parser};
 
 use commands::DfxCommand;
 // use lib::error::ExtensionError;
@@ -57,67 +57,32 @@ pub struct CliOpts {
 }
 
 impl CliOpts {
-    fn parse_and_load_extensions() -> clap::Command {
-        let mut cli_opts: clap::Command = CliOpts::command_for_update();
-        let installed_extensions =
-            ExtensionManager::new(dfx_version(), false).map_or(vec![], |mgr| {
-                mgr.list_installed_extensions()
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(|ext| ext.into_clap_command(&mgr))
-                    .collect::<Vec<clap::Command>>()
-            });
-        if installed_extensions
-            .iter()
-            .find(|ext| ext.get_name() == "sns")
-            .is_some()
-        {
-            cli_opts = cli_opts.mut_subcommand("sns", |subcmd| {
-                subcmd
-                    .hide(true)
-                    .name("_sns_deprecated")
-                    .bin_name("_sns_deprecated")
-                    .display_name("_sns_deprecated")
-            });
-        }
-        if installed_extensions
-            .iter()
-            .find(|ext| ext.get_name() == "nns")
-            .is_some()
-        {
-            cli_opts = cli_opts.mut_subcommand("nns", |subcmd| {
-                subcmd
-                    .hide(true)
-                    .name("_nns_deprecated")
-                    .bin_name("_nns")
-                    .display_name("_nns")
-            });
-        }
-
+    fn parse_and_load_extensions() -> clap::ArgMatches {
+        let cli_opts: clap::Command = CliOpts::command_for_update();
         let mut cmd = cli_opts
-            .subcommands(installed_extensions)
+            .subcommands(ExtensionManager::command().get_subcommands())
             .arg_required_else_help(true);
-        sort_clap_commands(&mut cmd);
-        cmd
+        Self::sort_clap_commands(&mut cmd);
+        cmd.get_matches()
     }
-}
 
-/// sort subcommands alphabetically (despite this clap prints help as the last one)
-fn sort_clap_commands(cmd: &mut clap::Command) {
-    let mut cli_subcommands: Vec<String> = cmd
-        .get_subcommands()
-        .map(|v| v.get_display_name().unwrap_or_default().to_string())
-        .collect();
-    cli_subcommands.sort();
-    let cli_subcommands: std::collections::HashMap<String, usize> = cli_subcommands
-        .into_iter()
-        .enumerate()
-        .map(|(i, v)| (v, i))
-        .collect();
-    for c in cmd.get_subcommands_mut() {
-        let name = c.get_display_name().unwrap_or_default().to_string();
-        let ord = *cli_subcommands.get(&name).unwrap_or(&999);
-        *c = c.clone().display_order(ord);
+    /// sort subcommands alphabetically (despite this clap will print `help` as the last one)
+    fn sort_clap_commands(cmd: &mut clap::Command) {
+        let mut cli_subcommands: Vec<String> = cmd
+            .get_subcommands()
+            .map(|v| v.get_display_name().unwrap_or_default().to_string())
+            .collect();
+        cli_subcommands.sort();
+        let cli_subcommands: std::collections::HashMap<String, usize> = cli_subcommands
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (v, i))
+            .collect();
+        for c in cmd.get_subcommands_mut() {
+            let name = c.get_display_name().unwrap_or_default().to_string();
+            let ord = *cli_subcommands.get(&name).unwrap_or(&999);
+            *c = c.clone().display_order(ord);
+        }
     }
 }
 
@@ -181,18 +146,23 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(
-    verbose: u8,
-    quiet: u8,
-    logmode: String,
-    logfile: Option<String>,
-) -> (i64, slog::Logger) {
+fn setup_logging(matches: &ArgMatches) -> (i64, slog::Logger) {
+    let verbose = matches
+        .get_one::<u8>("verbose")
+        .map(|v| v.clone())
+        .unwrap_or_default();
+    let quiet = matches
+        .get_one::<u8>("quiet")
+        .map(|v| v.clone())
+        .unwrap_or_default();
+    let logfile = matches.get_one::<String>("logfile").map(|v| v.as_str());
+    let logmode = matches.get_one::<String>("logmode").map(|v| v.as_str());
     // Create a logger with our argument matches.
     let verbose_level = verbose as i64 - quiet as i64;
 
-    let mode = match logmode.as_str() {
-        "tee" => LoggingMode::Tee(PathBuf::from(logfile.as_deref().unwrap_or("log.txt"))),
-        "file" => LoggingMode::File(PathBuf::from(logfile.as_deref().unwrap_or("log.txt"))),
+    let mode = match logmode {
+        Some("tee") => LoggingMode::Tee(PathBuf::from(logfile.as_deref().unwrap_or("log.txt"))),
+        Some("file") => LoggingMode::File(PathBuf::from(logfile.as_deref().unwrap_or("log.txt"))),
         _ => LoggingMode::Stderr,
     };
 
@@ -256,32 +226,16 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 }
 
 fn main() {
-    let cli_opts = CliOpts::parse_and_load_extensions();
-    let matches = cli_opts.get_matches();
-    let (verbose_level, log) = {
-        let verbose = matches
-            .get_one::<u8>("identity")
-            .map(|v| v.clone())
-            .unwrap_or_default();
-        let quiet = matches
-            .get_one::<u8>("identity")
-            .map(|v| v.clone())
-            .unwrap_or_default();
-        let logfile = matches
-            .get_one::<String>("identity")
-            .map(|v| v.clone())
-            .unwrap_or_default();
-        let logmode = matches.get_one::<String>("identity").map(|v| v.clone());
-        setup_logging(verbose, quiet, logfile, logmode)
-    };
-    let identity = matches.get_one::<String>("identity").map(|v| v.clone());
-    let effective_canister_id = matches
-        .get_one::<String>("provisional_create_canister_effective_canister_id")
-        .map(|v| v.clone());
+    let matches = CliOpts::parse_and_load_extensions();
+    let (verbose_level, log) = setup_logging(&matches);
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match (EnvironmentImpl::new(), matches.subcommand()) {
         (Ok(env), Some((cmd, arg_matches))) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+            let identity = matches.get_one::<String>("identity").map(|v| v.clone());
+            let effective_canister_id = matches
+                .get_one::<String>("provisional_create_canister_effective_canister_id")
+                .map(|v| v.clone());
             match EnvironmentImpl::new().map(|env| {
                 env.with_logger(log)
                     .with_identity_override(identity)

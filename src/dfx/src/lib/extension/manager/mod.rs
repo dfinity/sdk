@@ -1,4 +1,5 @@
-use crate::lib::error::ExtensionError;
+use crate::{config::dfx_version, lib::error::ExtensionError};
+use clap::CommandFactory;
 use dfx_core::config::cache::{get_bin_cache, get_cache_root};
 
 use semver::Version;
@@ -12,6 +13,22 @@ mod uninstall;
 pub struct ExtensionManager {
     pub dir: PathBuf,
     pub dfx_version: Version,
+}
+
+impl CommandFactory for ExtensionManager {
+    fn command() -> clap::Command {
+        let m = ExtensionManager::new(dfx_version(), false).unwrap();
+        clap::Command::new("installed-extensions").subcommands(
+            m.list_installed_extensions()
+                .unwrap_or_default()
+                .into_iter()
+                .map(|v| v.into_clap_command(&m)),
+        )
+    }
+
+    fn command_for_update() -> clap::Command {
+        Self::command()
+    }
 }
 
 impl ExtensionManager {
@@ -59,5 +76,9 @@ impl ExtensionManager {
         } else {
             Ok(std::process::Command::new(bin))
         }
+    }
+
+    pub fn is_extension_installed(&self, extension_name: &str) -> bool {
+        self.get_extension_directory(extension_name).exists()
     }
 }
