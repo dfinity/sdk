@@ -10,6 +10,7 @@ use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
 };
 use byte_unit::Byte;
+use dfx_core::cli::ask_for_consent;
 use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 
@@ -20,7 +21,7 @@ use fn_error_context::context;
 use ic_agent::identity::Identity;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 pub struct UpdateSettingsOpts {
     /// Specifies the canister name or id to update. You must specify either canister name/id or the --all option.
     canister: Option<String>,
@@ -65,6 +66,11 @@ pub struct UpdateSettingsOpts {
     /// Freezing thresholds above ~1.5 years require this flag as confirmation.
     #[arg(long)]
     confirm_very_long_freezing_threshold: bool,
+
+    /// Skips yes/no checks by answering 'yes'. Such checks can result in loss of control,
+    /// so this is not recommended outside of CI.
+    #[arg(long, short)]
+    yes: bool,
 }
 
 pub async fn exec(
@@ -84,6 +90,10 @@ pub async fn exec(
     }
 
     fetch_root_key_if_needed(env).await?;
+
+    if !opts.yes && user_is_removing_themselves_as_controller(env, call_sender, &opts)? {
+        ask_for_consent("You are trying to remove yourself as a controller of this canister. This may leave this canister un-upgradeable.")?
+    }
 
     let controllers: Option<DfxResult<Vec<_>>> = opts.set_controller.as_ref().map(|controllers| {
         let y: DfxResult<Vec<_>> = controllers
@@ -220,6 +230,25 @@ pub async fn exec(
     }
 
     Ok(())
+}
+
+fn user_is_removing_themselves_as_controller(
+    env: &dyn Environment,
+    call_sender: &CallSender,
+    opts: &UpdateSettingsOpts,
+) -> DfxResult<bool> {
+    let caller_principal = match call_sender {
+        CallSender::SelectedId => env
+            .get_selected_identity_principal()
+            .context("Selected identity is not instantiated")?
+            .to_string(),
+        CallSender::Wallet(principal) => principal.to_string(),
+    };
+    let removes_themselves =
+        matches!(&opts.remove_controller, Some(remove) if remove.contains(&caller_principal));
+    let sets_without_themselves =
+        matches!(&opts.set_controller, Some(set) if !set.contains(&caller_principal));
+    Ok(removes_themselves || sets_without_themselves)
 }
 
 #[context("Failed to convert controller '{}' to a principal", controller)]

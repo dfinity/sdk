@@ -51,7 +51,7 @@ pub const NNS_CYCLES_MINTING: IcNnsInitCanister = IcNnsInitCanister {
 /// Canister used to restore functionality in an emergency.
 pub const NNS_LIFELINE: IcNnsInitCanister = IcNnsInitCanister {
     canister_name: "nns-lifeline",
-    wasm_name: "lifeline.wasm",
+    wasm_name: "lifeline_canister.wasm",
     test_wasm_name: None,
     canister_id: "rno2w-sqaaa-aaaaa-aaacq-cai",
 };

@@ -7,9 +7,11 @@ use crate::actors::{
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
+use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
+use crate::lib::replica::status::ping_and_wait;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 use candid::Deserialize;
@@ -77,53 +79,52 @@ pub struct StartOpts {
     force: bool,
 }
 
-fn ping_and_wait(frontend_url: &str) -> DfxResult {
-    let runtime = Runtime::new().expect("Unable to create a runtime");
-    // wait for frontend to come up
-    runtime.block_on(async { crate::lib::replica::status::ping_and_wait(frontend_url).await })?;
-    Ok(())
-}
-
 // The frontend webserver is brought up by the bg process; thus, the fg process
 // needs to wait and verify it's up before exiting.
 // Because the user may have specified to start on port 0, here we wait for
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
-fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxResult {
-    let runtime = Runtime::new().expect("Unable to create a runtime");
-    let port = runtime
-        .block_on(async {
-            let mut retries = 0;
-            let mut contents = String::new();
-            loop {
-                let tokio_file = tokio::fs::File::open(&webserver_port_path)
-                    .await
-                    .with_context(|| {
-                        format!("Failed to open {}.", webserver_port_path.to_string_lossy())
-                    })?;
-                let mut std_file = tokio_file.into_std().await;
-                std_file.read_to_string(&mut contents).with_context(|| {
-                    format!("Failed to read {}.", webserver_port_path.to_string_lossy())
-                })?;
-                if !contents.is_empty() {
-                    break;
-                }
-                if retries >= 30 {
-                    bail!("Timed out waiting for replica to become healthy");
-                }
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                retries += 1;
-            }
-            Ok::<String, DfxError>(contents.clone())
-        })
-        .context("Failed to get port.")?;
-    let mut frontend_url_mod = frontend_url.clone();
+async fn fg_ping_and_wait(
+    webserver_port_path: &Path,
+    frontend_url: &str,
+    logger: &Logger,
+    local_server_descriptor: &LocalServerDescriptor,
+) -> DfxResult {
+    let port = wait_for_port(webserver_port_path).await?;
+
+    let mut frontend_url_mod = frontend_url.to_string();
     let port_offset = frontend_url_mod
         .as_str()
         .rfind(':')
         .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
-    ping_and_wait(&frontend_url_mod)
+    ping_and_wait(&frontend_url_mod).await?;
+
+    wait_for_integrations_initialized(&frontend_url_mod, logger, local_server_descriptor).await
+}
+
+async fn wait_for_port(webserver_port_path: &Path) -> DfxResult<String> {
+    let mut retries = 0;
+    loop {
+        let tokio_file = tokio::fs::File::open(&webserver_port_path)
+            .await
+            .with_context(|| {
+                format!("Failed to open {}.", webserver_port_path.to_string_lossy())
+            })?;
+        let mut std_file = tokio_file.into_std().await;
+        let mut contents = String::new();
+        std_file.read_to_string(&mut contents).with_context(|| {
+            format!("Failed to read {}.", webserver_port_path.to_string_lossy())
+        })?;
+        if !contents.is_empty() {
+            break Ok(contents);
+        }
+        if retries >= 30 {
+            bail!("Timed out waiting for replica to become healthy");
+        }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        retries += 1;
+    }
 }
 
 /// Start the Internet Computer locally. Spawns a proxy to forward and
@@ -236,9 +237,19 @@ pub fn exec(
 
     if background {
         send_background()?;
-        return fg_ping_and_wait(webserver_port_path, frontend_url);
+        return Runtime::new()
+            .expect("Unable to create a runtime")
+            .block_on(async {
+                fg_ping_and_wait(
+                    &webserver_port_path,
+                    &frontend_url,
+                    env.get_logger(),
+                    local_server_descriptor,
+                )
+                .await
+            });
     }
-    local_server_descriptor.describe(env.get_logger(), true, false);
+    local_server_descriptor.describe(env.get_logger());
 
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
@@ -277,9 +288,13 @@ pub fn exec(
         .unwrap_or_default();
 
     let replica_config = {
-        let mut replica_config =
-            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay)
-                .with_random_port(&replica_port_path);
+        let replica_config =
+            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
+        let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
+            replica_config.with_port(port)
+        } else {
+            replica_config.with_random_port(&replica_port_path)
+        };
         if let Some(btc_adapter_config) = btc_adapter_config.as_ref() {
             replica_config = replica_config.with_btc_adapter_enabled();
             if let Some(btc_adapter_socket) = btc_adapter_config.get_socket_path() {
@@ -317,8 +332,12 @@ pub fn exec(
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let emulator =
-                start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
+            let emulator = start_emulator_actor(
+                env,
+                local_server_descriptor,
+                shutdown_controller.clone(),
+                emulator_port_path,
+            )?;
             emulator.recipient()
         } else {
             let btc_adapter_ready_subscribe = btc_adapter_config
@@ -647,7 +666,7 @@ pub fn configure_canister_http_adapter_if_enabled(
     };
 
     let socket_path =
-        get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
+        get_persistent_socket_path(uds_holder_path, "ic-https-outcalls-adapter-socket")?;
 
     let log_level = local_server_descriptor.canister_http.log_level;
     let adapter_config = canister_http_adapter::Config::new(socket_path, log_level);

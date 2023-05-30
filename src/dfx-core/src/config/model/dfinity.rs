@@ -241,6 +241,7 @@ pub struct ConfigCanistersCanister {
     /// # Optimize Canister WASM
     /// Invoke wasm level optimizations after building the canister. Optimization level can be set to "cycles" to optimize for cycle usage, "size" to optimize for binary size, or any of "O4, O3, O2, O1, O0, Oz, Os".
     /// Disabled by default.
+    /// If this option is specified, the `shrink` option will be ignored.
     #[serde(default)]
     pub optimize: Option<WasmOptLevel>,
 
@@ -253,6 +254,10 @@ pub struct ConfigCanistersCanister {
     /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
     pub pullable: Option<Pullable>,
+
+    /// # Gzip Canister WASM
+    /// Disabled by default.
+    pub gzip: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -379,8 +384,21 @@ pub struct ConfigDefaultsBitcoin {
 
     /// # Logging Level
     /// The logging level of the adapter.
-    #[serde(default)]
+    #[serde(default = "default_bitcoin_log_level")]
     pub log_level: BitcoinAdapterLogLevel,
+
+    /// # Initialization Argument
+    /// The initialization argument for the bitcoin canister.
+    #[serde(default = "default_bitcoin_canister_init_arg")]
+    pub canister_init_arg: String,
+}
+
+pub fn default_bitcoin_log_level() -> BitcoinAdapterLogLevel {
+    BitcoinAdapterLogLevel::Info
+}
+
+pub fn default_bitcoin_canister_init_arg() -> String {
+    "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})".to_string()
 }
 
 impl Default for ConfigDefaultsBitcoin {
@@ -388,7 +406,8 @@ impl Default for ConfigDefaultsBitcoin {
         ConfigDefaultsBitcoin {
             enabled: false,
             nodes: None,
-            log_level: BitcoinAdapterLogLevel::Info,
+            log_level: default_bitcoin_log_level(),
+            canister_init_arg: default_bitcoin_canister_init_arg(),
         }
     }
 }

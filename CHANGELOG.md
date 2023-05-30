@@ -4,6 +4,45 @@
 
 ## DFX
 
+### fix: motoko canisters can import other canisters with service constructor
+
+After specific canister builder output wasm and candid file, `dfx` will do some post processing on the candid file.
+
+The complete IDL will be copied into `.dfx` folder with name `constructor.did`.
+It will be used for type checking during canister installation.
+
+Then it is separated into two parts: `service.did` and `init_args.txt`, corresponding to canister metadata `candid:service` and `candid:args`.
+
+`service.did` will be imported during dependent canisters building. And it will also be used by the Motoko LSP to provide IDE support.
+
+### fix: `dfx canister delete` without stopping first
+
+When running `dfx canister delete` on a canister that has not been stopped, dfx will now confirm the deletion instead of erroring.
+
+### fix: cleanup of documentation
+
+Cleaned up documentation of IC SDK.
+
+### feat: gzip option in dfx.json
+
+`dfx` can gzip wasm module as the final step in building canisters. 
+
+This behavior is disabled by default.
+
+You can enable it in `dfx.json`:
+
+```json
+{
+  "canisters" : {
+    "app" : {
+      "gzip" : true
+    }
+  }
+}
+```
+
+You can still specify `.wasm.gz` file for custom canisters directly. If any metadata/optimize/shrink options are set in `dfx.json`, the `.wasm.gz` file will be decompressed, applied all the wasm modifications, and compressed as `.wasm.gz` in the end.
+
 ### fix: prevented using --argument with --all in canister installation
 
 Removed `dfx deploy`'s behavior of providing the same argument to all canisters, and `dfx canister install`'s behavior of providing an empty argument to all canisters regardless of what was specified. Now installing multiple canisters and providing an installation argument is an error in both commands.
@@ -31,6 +70,27 @@ All generated files in `deps/` are encouraged to be version controlled.
 Previously the `.env` file only included canister IDs for canisters that were listed as explicit dependencies during the build process.
 Now all canisters that have a canister ID for the specified network are included in `.env`.
 
+### feat!: Ask for user consent when removing themselves as principal
+
+Removing oneself (or the wallet one uses) can result in the loss of control over a canister.
+Therefore `dfx canister update-settings` now asks for extra confirmation when removing the currently used principal/wallet from the list of controllers.
+To skip this check in CI, use either the `--yes`/`-y` argument or use `echo "yes" | dfx canister update-settings <...>`.
+
+### fix: dfx start will restart replica if it does not report healthy after launch
+
+If the replica does not report healthy at least once after launch,
+dfx will terminate and restart it.
+
+### fix: dfx start now installs the bitcoin canister when bitcoin support is enabled
+
+This is required for future replica versions.
+
+Adds a new field `canister_init_arg` to the bitcoin configuration in dfx.json and networks.json.  Its default is documented in the JSON schema and is appropriate for the canister wasm bundled with dfx.
+
+### fix: dfx start now respects the network replica port configuration in dfx.json or networks.json
+
+### fix: no longer enable the bitcoin_regtest feature
+
 ## Asset Canister Synchronization
 
 Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
@@ -45,6 +105,12 @@ In order to allow larger changes without exceeding the per-message instruction l
 
 ## Dependencies
 
+### Cycles wallet
+
+Updated cycles wallet to `20230530` release:
+- Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
+- https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
+
 ### Frontend canister
 
 The asset canister now properly removes the v2-certified response when `/index.html` is deleted.
@@ -54,6 +120,39 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 - Module hash: 651425d92d3796ddae581191452e0e87484eeff4ff6352fe9a59c7e1f97a2310
 - https://github.com/dfinity/sdk/pull/3120
 - https://github.com/dfinity/sdk/pull/3112
+
+### Motoko
+
+Updated Motoko to 0.8.8
+
+### Replica
+
+Updated replica to elected commit b3b00ba59c366384e3e0cd53a69457e9053ec987.
+This incorporates the following executed proposals:
+- [122529](https://dashboard.internetcomputer.org/proposal/122529)
+- [122284](https://dashboard.internetcomputer.org/proposal/122284)
+- [122198](https://dashboard.internetcomputer.org/proposal/122198)
+- [120591](https://dashboard.internetcomputer.org/proposal/120591)
+- [119318](https://dashboard.internetcomputer.org/proposal/119318)
+- [118023](https://dashboard.internetcomputer.org/proposal/118023)
+- [116294](https://dashboard.internetcomputer.org/proposal/116294)
+- [116135](https://dashboard.internetcomputer.org/proposal/116135)
+- [114479](https://dashboard.internetcomputer.org/proposal/114479)
+- [113136](https://dashboard.internetcomputer.org/proposal/113136)
+- [111932](https://dashboard.internetcomputer.org/proposal/111932)
+- [111724](https://dashboard.internetcomputer.org/proposal/111724)
+- [110724](https://dashboard.internetcomputer.org/proposal/110724)
+- [109500](https://dashboard.internetcomputer.org/proposal/109500)
+- [108153](https://dashboard.internetcomputer.org/proposal/108153)
+- [107668](https://dashboard.internetcomputer.org/proposal/107668)
+- [107667](https://dashboard.internetcomputer.org/proposal/107667)
+- [106868](https://dashboard.internetcomputer.org/proposal/106868)
+- [106817](https://dashboard.internetcomputer.org/proposal/106817)
+- [105666](https://dashboard.internetcomputer.org/proposal/105666)
+- [104470](https://dashboard.internetcomputer.org/proposal/104470)
+- [103281](https://dashboard.internetcomputer.org/proposal/103281)
+- [103231](https://dashboard.internetcomputer.org/proposal/103231)
+- [101987](https://dashboard.internetcomputer.org/proposal/101987)
 
 # 0.14.0
 

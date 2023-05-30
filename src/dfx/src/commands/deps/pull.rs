@@ -1,7 +1,7 @@
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::deps::{
-    get_candid_path_in_project, get_pull_canisters_in_config, get_pulled_service_candid_path,
-    get_pulled_wasm_path, save_pulled_json,
+    get_candid_path_in_project, get_pull_canisters_in_config, get_pulled_canister_dir,
+    get_pulled_service_candid_path, get_pulled_wasm_path, save_pulled_json,
 };
 use crate::lib::deps::{PulledCanister, PulledJson};
 use crate::lib::environment::Environment;
@@ -10,10 +10,9 @@ use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
-use crate::lib::wasm::file::read_wasm_module;
+use crate::lib::wasm::file::{decompress_bytes, read_wasm_module};
 use crate::util::download_file;
 use crate::NetworkOpt;
-use dfx_core::config::cache::get_cache_root;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -173,25 +172,31 @@ async fn download_and_generate_pulled_canister(
 
     pulled_canister.wasm_hash = hex::encode(&hash_on_chain);
 
-    // will save wasm and candid in $(cache_root)/pulled/{canister_id}/
-    let canister_dir = get_cache_root()?
-        .join("pulled")
-        .join(canister_id.to_string());
-    dfx_core::fs::create_dir_all(&canister_dir)?;
-
-    let wasm_path = get_pulled_wasm_path(&canister_id)?;
-
     // skip download if cache hit
     let mut cache_hit = false;
-    if wasm_path.exists() {
-        let bytes = dfx_core::fs::read(&wasm_path)?;
-        let hash_cache = Sha256::digest(bytes);
-        if hash_cache.as_slice() == hash_on_chain {
-            cache_hit = true;
-            trace!(logger, "The canister wasm was found in the cache.");
+
+    for gzip in [false, true] {
+        let path = get_pulled_wasm_path(&canister_id, gzip)?;
+        if path.exists() {
+            let bytes = dfx_core::fs::read(&path)?;
+            let hash_cache = Sha256::digest(bytes);
+            if hash_cache.as_slice() == hash_on_chain {
+                cache_hit = true;
+                pulled_canister.gzip = gzip;
+                trace!(logger, "The canister wasm was found in the cache.");
+            }
+            break;
         }
     }
+
     if !cache_hit {
+        // delete files from previous pull
+        let pulled_canister_dir = get_pulled_canister_dir(&canister_id)?;
+        if pulled_canister_dir.exists() {
+            dfx_core::fs::remove_dir_all(&pulled_canister_dir)?;
+        }
+        dfx_core::fs::create_dir_all(&pulled_canister_dir)?;
+
         // lookup `wasm_url` in dfx metadata
         let wasm_url = reqwest::Url::parse(&pullable.wasm_url)?;
 
@@ -210,8 +215,14 @@ download: {}",
             );
         }
 
+        let gzip = decompress_bytes(&content).is_ok();
+        pulled_canister.gzip = gzip;
+        let wasm_path = get_pulled_wasm_path(&canister_id, gzip)?;
+
         write_to_tempfile_then_rename(&content, &wasm_path)?;
     }
+
+    let wasm_path = get_pulled_wasm_path(&canister_id, pulled_canister.gzip)?;
 
     // extract `candid:service` and save as candid file in shared cache
     let module = read_wasm_module(&wasm_path)?;

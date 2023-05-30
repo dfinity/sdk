@@ -348,6 +348,14 @@
             "type": "string"
           }
         },
+        "gzip": {
+          "title": "Gzip Canister WASM",
+          "description": "Disabled by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "initialization_values": {
           "title": "Resource Allocation Settings",
           "description": "Defines initial values for resource allocation settings.",
@@ -381,7 +389,7 @@
         },
         "optimize": {
           "title": "Optimize Canister WASM",
-          "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default.",
+          "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
           "default": null,
           "anyOf": [
             {
@@ -524,6 +532,12 @@
       "title": "Bitcoin Adapter Configuration",
       "type": "object",
       "properties": {
+        "canister_init_arg": {
+          "title": "Initialization Argument",
+          "description": "The initialization argument for the bitcoin canister.",
+          "default": "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})",
+          "type": "string"
+        },
         "enabled": {
           "title": "Enable Bitcoin Adapter",
           "default": false,

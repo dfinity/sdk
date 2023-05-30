@@ -38,7 +38,7 @@ set_shared_local_network_canister_http_empty() {
 @test "canister http feature is enabled by default" {
     dfx_start
 
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 @test "canister http feature is enabled by default with empty json element" {
@@ -46,10 +46,10 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_start
 
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
-@test "dfx restarts replica when ic-canister-http-adapter restarts" {
+@test "dfx restarts replica when ic-https-outcalls-adapter restarts" {
     dfx_new hello
     dfx_start
 
@@ -62,7 +62,7 @@ set_shared_local_network_canister_http_empty() {
     CANISTER_HTTP_ADAPTER_PID=$(get_canister_http_adapter_pid)
 
     echo "replica pid is $REPLICA_PID"
-    echo "ic-canister-http-adapter pid is $CANISTER_HTTP_ADAPTER_PID"
+    echo "ic-https-outcalls-adapter pid is $CANISTER_HTTP_ADAPTER_PID"
 
     kill -KILL "$CANISTER_HTTP_ADAPTER_PID"
     assert_process_exits "$CANISTER_HTTP_ADAPTER_PID" 15s
@@ -99,7 +99,7 @@ set_shared_local_network_canister_http_empty() {
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx restarts replica when ic-canister-http-adapter restarts - replica and bootstrap" {
+@test "dfx restarts replica when ic-https-outcalls-adapter restarts - replica and bootstrap" {
     dfx_new hello
     dfx_replica
     dfx_bootstrap
@@ -114,7 +114,7 @@ set_shared_local_network_canister_http_empty() {
 
     echo "replica pid is $REPLICA_PID"
     echo "replica port is $(get_replica_port)"
-    echo "ic-canister-http-adapter pid is $CANISTER_HTTP_ADAPTER_PID"
+    echo "ic-https-outcalls-adapter pid is $CANISTER_HTTP_ADAPTER_PID"
 
     kill -KILL "$CANISTER_HTTP_ADAPTER_PID"
     assert_process_exits "$CANISTER_HTTP_ADAPTER_PID" 15s
@@ -151,7 +151,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_start --enable-canister-http
 
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 @test "dfx replica --enable-canister-http with no other configuration succeeds" {
@@ -159,7 +159,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_replica --enable-canister-http
 
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 @test "can enable http through project default configuration - dfx start" {
@@ -169,7 +169,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_start
 
-    assert_file_not_empty .dfx/network/local/ic-canister-http-adapter-pid
+    assert_file_not_empty .dfx/network/local/ic-https-outcalls-adapter-pid
 }
 
 @test "can disable http through project default configuration - dfx start" {
@@ -179,7 +179,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_start
 
-    assert_file_empty .dfx/network/local/ic-canister-http-adapter-pid
+    assert_file_empty .dfx/network/local/ic-https-outcalls-adapter-pid
 }
 
 @test "can enable http through project local network - dfx start" {
@@ -189,7 +189,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_start
 
-    assert_file_not_empty .dfx/network/local/ic-canister-http-adapter-pid
+    assert_file_not_empty .dfx/network/local/ic-https-outcalls-adapter-pid
 }
 
 @test "can disable http through project local network - dfx start" {
@@ -199,7 +199,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_start
 
-    assert_file_empty .dfx/network/local/ic-canister-http-adapter-pid
+    assert_file_empty .dfx/network/local/ic-https-outcalls-adapter-pid
 }
 
 @test "can enable http through shared local network - dfx start" {
@@ -208,7 +208,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_start
 
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 @test "can disable http through shared local network - dfx start" {
@@ -217,7 +217,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_start
 
-    assert_file_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 
@@ -228,7 +228,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_replica
 
-    assert_file_not_empty .dfx/network/local/ic-canister-http-adapter-pid
+    assert_file_not_empty .dfx/network/local/ic-https-outcalls-adapter-pid
 }
 
 @test "can disable http through project default configuration - dfx replica" {
@@ -238,7 +238,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_replica
 
-    assert_file_empty .dfx/network/local/ic-canister-http-adapter-pid
+    assert_file_empty .dfx/network/local/ic-https-outcalls-adapter-pid
 }
 
 @test "can enable http through project local network - dfx replica" {
@@ -248,7 +248,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_replica
 
-    assert_file_not_empty .dfx/network/local/ic-canister-http-adapter-pid
+    assert_file_not_empty .dfx/network/local/ic-https-outcalls-adapter-pid
 }
 
 @test "can disable http through project local network - dfx replica" {
@@ -258,7 +258,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_replica
 
-    assert_file_empty .dfx/network/local/ic-canister-http-adapter-pid
+    assert_file_empty .dfx/network/local/ic-https-outcalls-adapter-pid
 }
 
 @test "can enable http through shared local network - dfx replica" {
@@ -267,7 +267,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_replica
 
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 @test "can disable http through shared local network - dfx replica" {
@@ -276,7 +276,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx_replica
 
-    assert_file_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 @test "dfx starts http adapter with correct log level - project defaults" {

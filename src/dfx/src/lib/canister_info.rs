@@ -60,6 +60,7 @@ pub struct CanisterInfo {
     metadata: CanisterMetadataConfig,
     pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
+    gzip: bool,
 }
 
 impl CanisterInfo {
@@ -144,6 +145,8 @@ impl CanisterInfo {
         let post_install = canister_config.post_install.clone().into_vec();
         let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
 
+        let gzip = canister_config.gzip.unwrap_or(false);
+
         let canister_info = CanisterInfo {
             name: name.to_string(),
             declarations_config,
@@ -163,6 +166,7 @@ impl CanisterInfo {
             metadata,
             pullable: canister_config.pullable.clone(),
             pull_dependencies,
+            gzip,
         };
 
         Ok(canister_info)
@@ -244,18 +248,51 @@ impl CanisterInfo {
         })
     }
 
+    /// Path to the wasm module in .dfx that will be install.
     pub fn get_build_wasm_path(&self) -> PathBuf {
-        self.output_root.join(&self.name).with_extension("wasm")
+        let mut gzip_original = false;
+        if let CanisterTypeProperties::Custom { wasm, .. } = &self.type_specific {
+            if wasm.ends_with(".gz") {
+                gzip_original = true;
+            }
+        } else if self.is_assets() {
+            gzip_original = true;
+        }
+        let ext = if self.gzip || gzip_original {
+            "wasm.gz"
+        } else {
+            "wasm"
+        };
+        self.output_root.join(&self.name).with_extension(ext)
     }
 
-    pub fn get_build_idl_path(&self) -> PathBuf {
-        self.output_root.join(&self.name).with_extension("did")
+    /// Path to the candid file which contains no init types.
+    ///
+    /// To be imported by dependents.
+    pub fn get_service_idl_path(&self) -> PathBuf {
+        self.output_root.join("service.did")
+    }
+
+    /// Path to the candid file which contains init types.
+    ///
+    /// To be used when installing the canister.
+    pub fn get_constructor_idl_path(&self) -> PathBuf {
+        self.output_root.join("constructor.did")
+    }
+
+    /// Path to the init_args.txt file which only contains init types.
+    ///
+    pub fn get_init_args_txt_path(&self) -> PathBuf {
+        self.output_root.join("init_args.txt")
     }
 
     pub fn get_index_js_path(&self) -> PathBuf {
         self.output_root.join("index").with_extension("js")
     }
 
+    /// Path to the candid file from canister builder which should contain init types.
+    ///
+    /// To be separated into service.did and init_args.
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
         match &self.type_specific {
             CanisterTypeProperties::Motoko { .. } => self
@@ -321,5 +358,9 @@ impl CanisterInfo {
 
     pub fn get_pull_dependencies(&self) -> &[(String, CanisterId)] {
         &self.pull_dependencies
+    }
+
+    pub fn get_gzip(&self) -> bool {
+        self.gzip
     }
 }

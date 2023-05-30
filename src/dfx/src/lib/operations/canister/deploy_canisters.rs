@@ -251,7 +251,7 @@ async fn register_canisters(
     Ok(())
 }
 
-#[context("Failed to build call canisters.")]
+#[context("Failed to build all canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
     referenced_canisters: &[String],
@@ -307,7 +307,7 @@ async fn install_canisters(
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
-        let idl_path = canister_info.get_build_idl_path();
+        let idl_path = canister_info.get_constructor_idl_path();
         let init_type = get_candid_init_type(&idl_path);
         let install_args = || blob_from_arguments(argument, None, argument_type, &init_type);
 

@@ -118,17 +118,17 @@ impl LocalServerDescriptor {
         self.data_directory.join("ic-btc-adapter-socket-path")
     }
 
-    /// This file contains the configuration for the ic-canister-http-adapter
+    /// This file contains the configuration for the ic-https-outcalls-adapter
     pub fn canister_http_adapter_config_path(&self) -> PathBuf {
         self.data_directory.join("ic-canister-http-config.json")
     }
 
-    /// This file contains the pid of the ic-canister-http-adapter process
+    /// This file contains the pid of the ic-https-outcalls-adapter process
     pub fn canister_http_adapter_pid_path(&self) -> PathBuf {
-        self.data_directory.join("ic-canister-http-adapter-pid")
+        self.data_directory.join("ic-https-outcalls-adapter-pid")
     }
 
-    /// This file contains the PATH of the unix domain socket for the ic-canister-http-adapter
+    /// This file contains the PATH of the unix domain socket for the ic-https-outcalls-adapter
     pub fn canister_http_adapter_socket_holder_path(&self) -> PathBuf {
         self.data_directory.join("ic-canister-http-socket-path")
     }
@@ -231,7 +231,7 @@ impl LocalServerDescriptor {
 }
 
 impl LocalServerDescriptor {
-    pub fn describe(&self, log: &Logger, include_replica: bool, include_replica_port: bool) {
+    pub fn describe(&self, log: &Logger) {
         debug!(log, "Local server configuration:");
         let default_bind: SocketAddr = match self.scope {
             LocalNetworkScopeDescriptor::Project => DEFAULT_PROJECT_LOCAL_BIND,
@@ -279,30 +279,29 @@ impl LocalServerDescriptor {
             debug!(log, "  canister http: disabled (default: enabled)");
         }
 
-        if include_replica {
-            debug!(log, "  replica:");
-            if include_replica_port {
-                debug!(log, "    port: ");
-            }
-            let subnet_type = self
-                .replica
-                .subnet_type
-                .unwrap_or(ReplicaSubnetType::Application);
-            let diffs: String = if subnet_type != ReplicaSubnetType::Application {
-                format!(" (default: {:?})", ReplicaSubnetType::Application)
-            } else {
-                "".to_string()
-            };
-            debug!(log, "    subnet type: {:?}{}", subnet_type, diffs);
-
-            let log_level = self.replica.log_level.unwrap_or_default();
-            let diffs: String = if log_level != ReplicaLogLevel::default() {
-                format!(" (default: {:?})", ReplicaLogLevel::default())
-            } else {
-                "".to_string()
-            };
-            debug!(log, "    log level: {:?}{}", log_level, diffs);
+        debug!(log, "  replica:");
+        if let Some(port) = self.replica.port {
+            debug!(log, "    port: {}", port);
         }
+        let subnet_type = self
+            .replica
+            .subnet_type
+            .unwrap_or(ReplicaSubnetType::Application);
+        let diffs: String = if subnet_type != ReplicaSubnetType::Application {
+            format!(" (default: {:?})", ReplicaSubnetType::Application)
+        } else {
+            "".to_string()
+        };
+        debug!(log, "    subnet type: {:?}{}", subnet_type, diffs);
+
+        let log_level = self.replica.log_level.unwrap_or_default();
+        let diffs: String = if log_level != ReplicaLogLevel::default() {
+            format!(" (default: {:?})", ReplicaLogLevel::default())
+        } else {
+            "".to_string()
+        };
+        debug!(log, "    log level: {:?}{}", log_level, diffs);
+
         debug!(log, "  data directory: {}", self.data_directory.display());
         let scope = match self.scope {
             LocalNetworkScopeDescriptor::Project => "project",
@@ -362,7 +361,7 @@ impl LocalServerDescriptor {
                     }
                     Ok(Some(port))
                 }
-                None => Ok(None),
+                None => Ok(self.replica.port),
             },
         }
     }
