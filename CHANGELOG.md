@@ -119,7 +119,8 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 
 The asset canister no longer needs to use `await` for access control checks. This will speed up certain operations.
 
-- Module hash: 651425d92d3796ddae581191452e0e87484eeff4ff6352fe9a59c7e1f97a2310
+- Module hash: 6963fd7765c3f69a64de691ebd1b313e3706bc233a721c60274adccb99a8f4a7
+- https://github.com/dfinity/sdk/pull/3144
 - https://github.com/dfinity/sdk/pull/3120
 - https://github.com/dfinity/sdk/pull/3112
 
