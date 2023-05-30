@@ -164,6 +164,9 @@ dfx_start() {
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f "${dfx_config_root}/replica-1.port"
         port=$(cat "${dfx_config_root}/replica-1.port")
+        if [ "$port" == "" ]; then
+          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
+        fi
     fi
 
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
@@ -395,4 +398,10 @@ use_test_specific_cache_root() {
     # The effect is to ignore the E2E_CACHE_ROOT environment variable, if set.
     export DFX_CACHE_ROOT="$E2E_TEMP_DIR/cache-root"
     mkdir -p "$DFX_CACHE_ROOT"
+}
+
+get_ephemeral_port() {
+    local script_dir
+    script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    python3 "$script_dir/get_ephemeral_port.py"
 }

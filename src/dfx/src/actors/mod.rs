@@ -86,6 +86,7 @@ pub fn start_canister_http_adapter_actor(
 #[context("Failed to start emulator actor.")]
 pub fn start_emulator_actor(
     env: &dyn Environment,
+    local_server_descriptor: &LocalServerDescriptor,
     shutdown_controller: Addr<ShutdownController>,
     emulator_port_path: PathBuf,
 ) -> DfxResult<Addr<Emulator>> {
@@ -104,6 +105,7 @@ pub fn start_emulator_actor(
 
     let actor_config = actors::emulator::Config {
         ic_ref_path,
+        port: local_server_descriptor.replica.port,
         write_port_to: emulator_port_path,
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
