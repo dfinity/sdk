@@ -25,10 +25,7 @@ impl ExtensionManager {
                 extension_name.to_string(),
             ));
         }
-        if DEFAULT_COMMANDS.contains(&extension_name.to_string())
-            && extension_name != "nns"
-            && extension_name != "sns"
-        {
+        if DEFAULT_COMMANDS.contains(&extension_name.to_string()) {
             return Err(ExtensionError::CommandAlreadyExists(
                 extension_name.to_string(),
             ));

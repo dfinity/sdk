@@ -37,6 +37,10 @@ mod upgrade;
 mod wallet;
 
 lazy_static! {
+    /// This is needed because lib/extension/manager/install.rs checks if the subcommand
+    /// is already present. We're rolling our own list of commands instead of using
+    /// `self::Command::has_subcommand()`, because `has_subcommand()` will always return `true`
+    /// because it uses uses `external_subcommand`.
     pub static ref DEFAULT_COMMANDS: Vec<String> = include_str!("mod.rs")
         .split("pub enum DfxCommand {")
         .nth(2)
@@ -142,7 +146,7 @@ fn test_name() {
     assert_eq!(
         dc.len(),
         DEFAULT_COMMANDS_LEN,
-        "You probably added or removed subcomman. Adjust DEFAULT_COMMANDS_LEN"
+        "You probably added or removed subcommand. Adjust DEFAULT_COMMANDS_LEN"
     );
     let commands = vec![
         "beta",

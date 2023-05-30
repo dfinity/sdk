@@ -26,7 +26,7 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Parser)]
-#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style())]
+#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style(), arg_required_else_help = true)]
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
     #[arg(long, short, action = ArgAction::Count, global = true)]
@@ -59,11 +59,9 @@ pub struct CliOpts {
 impl CliOpts {
     fn parse_and_load_extensions() -> clap::ArgMatches {
         let cli_opts: clap::Command = CliOpts::command_for_update();
-        let mut cmd = cli_opts
-            .subcommands(ExtensionManager::command().get_subcommands())
-            .arg_required_else_help(true);
+        let mut cmd = cli_opts.subcommands(ExtensionManager::command().get_subcommands());
         Self::sort_clap_commands(&mut cmd);
-        cmd.get_matches()
+        cmd.arg_required_else_help(true).get_matches()
     }
 
     /// sort subcommands alphabetically (despite this clap will print `help` as the last one)
