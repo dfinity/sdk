@@ -45,7 +45,7 @@ pub struct CliOpts {
     logfile: Option<String>,
 
     /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
-    #[arg(long, env = "DFX_IDENTITY", global = true)]
+    #[arg(long, env = "DFX_IDENTITY", global = true, value_parser = clap::value_parser!(String))]
     identity: Option<String>,
 
     /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
@@ -149,20 +149,17 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
 fn setup_logging(matches: &ArgMatches) -> (i64, slog::Logger) {
     let verbose = matches
         .get_one::<u8>("verbose")
-        .map(|v| v.clone())
+        .copied()
         .unwrap_or_default();
-    let quiet = matches
-        .get_one::<u8>("quiet")
-        .map(|v| v.clone())
-        .unwrap_or_default();
+    let quiet = matches.get_one::<u8>("quiet").copied().unwrap_or_default();
     let logfile = matches.get_one::<String>("logfile").map(|v| v.as_str());
     let logmode = matches.get_one::<String>("logmode").map(|v| v.as_str());
     // Create a logger with our argument matches.
     let verbose_level = verbose as i64 - quiet as i64;
 
     let mode = match logmode {
-        Some("tee") => LoggingMode::Tee(PathBuf::from(logfile.as_deref().unwrap_or("log.txt"))),
-        Some("file") => LoggingMode::File(PathBuf::from(logfile.as_deref().unwrap_or("log.txt"))),
+        Some("tee") => LoggingMode::Tee(PathBuf::from(logfile.unwrap_or("log.txt"))),
+        Some("file") => LoggingMode::File(PathBuf::from(logfile.unwrap_or("log.txt"))),
         _ => LoggingMode::Stderr,
     };
 
@@ -232,10 +229,10 @@ fn main() {
     let result = match (EnvironmentImpl::new(), matches.subcommand()) {
         (Ok(env), Some((cmd, arg_matches))) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
-            let identity = matches.get_one::<String>("identity").map(|v| v.clone());
+            let identity = matches.get_one::<String>("identity").cloned();
             let effective_canister_id = matches
                 .get_one::<String>("provisional_create_canister_effective_canister_id")
-                .map(|v| v.clone());
+                .cloned();
             match EnvironmentImpl::new().map(|env| {
                 env.with_logger(log)
                     .with_identity_override(identity)
