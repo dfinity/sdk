@@ -93,15 +93,27 @@ Adds a new field `canister_init_arg` to the bitcoin configuration in dfx.json an
 
 ## Asset Canister Synchronization
 
-Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
+### feat: Added more detailed logging to `ic-asset`.
+Now, `dfx deploy -v` (or `-vv`) will print the following information:
 - The count for each `BatchOperationKind` in `CommitBatchArgs`
 - The number of chunks uploaded and the total bytes
 - The API version of both the `ic-asset` and the canister
 - (Only for `-vv`) The value of `CommitBatchArgs`
 
+### fix: Commit batches incrementally in order to account for more expensive v2 certification calculation
 In order to allow larger changes without exceeding the per-message instruction limit, the sync process now:
 - sets properties of assets already in the canister separately from the rest of the batch.
 - splits up the rest of the batch into groups of up to 500 operations.
+
+### fix: now retries failed `create_chunk()` calls
+
+Previously, it would only retry when waiting for the request to complete.
+
+### fix: now considers fewer error types to be retryable
+
+Previously, errors were assumed to be retryable, except for a few specific error messages and 403/unauthorized responses.  This could cause deployment to appear to hang until timeout.  
+
+Now, only transport errors and timeout errors are considered retryable.
 
 ## Dependencies
 

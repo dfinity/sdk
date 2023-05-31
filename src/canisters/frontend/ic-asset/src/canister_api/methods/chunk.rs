@@ -29,17 +29,21 @@ pub(crate) async fn create_chunk(
     loop {
         let builder = canister.update_(CREATE_CHUNK);
         let builder = builder.with_arg(&args);
-        let request_id = {
+        let request_id_result = {
             let _releaser = semaphores.create_chunk_call.acquire(1).await;
             builder
                 .build()
                 .map(|result: (CreateChunkResponse,)| (result.0.chunk_id,))
                 .call()
-                .await?
+                .await
         };
-        let wait_result = {
-            let _releaser = semaphores.create_chunk_wait.acquire(1).await;
-            canister.wait(request_id).await
+
+        let wait_result = match request_id_result {
+            Ok(request_id) => {
+                let _releaser = semaphores.create_chunk_wait.acquire(1).await;
+                canister.wait(request_id).await
+            }
+            Err(agent_err) => Err(agent_err),
         };
 
         match wait_result {
