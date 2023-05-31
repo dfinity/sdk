@@ -2,8 +2,8 @@
 replica-rev = 'b3b00ba59c366384e3e0cd53a69457e9053ec987'
 
 [x86_64-darwin.ic-ref]
-url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ca6aca90-x86_64-darwin.tar.gz'
-sha256 = 'a9f66cd5a9e8df3e05ffbf8bec9253754f2e0b051ca2d735db16a8ee98a9302c'
+url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-a9f73dba-x86_64-darwin.tar.gz'
+sha256 = 'e1c1694579f46d544aa87f6387d7e5a4b096fe65015b1609a459efcbaf15890f'
 
 [x86_64-darwin.icx-proxy]
 url = 'https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-macos.tar.gz'
@@ -60,8 +60,8 @@ url = 'https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2
 sha256 = 'c4153339cc3d23eae8f5e5a9c3872df5e5713913357e11d493bc5d06f257fb47'
 
 [x86_64-linux.ic-ref]
-url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-ca6aca90-x86_64-linux.tar.gz'
-sha256 = '45faade9aaa0de586f0c2160c8510ead48cd3f9784978d165fd40fdf02012002'
+url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-a9f73dba-x86_64-linux.tar.gz'
+sha256 = '5c4967764e87d1b2945b1db027422633b48f08cd01d96ba2f622753fcb62c2a4'
 
 [x86_64-linux.icx-proxy]
 url = 'https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-linux.tar.gz'
