@@ -18,12 +18,7 @@ use crate::{
 };
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{candid_method, Principal};
-use ic_cdk::api::{
-    call::ManualReply,
-    caller, data_certificate,
-    management_canister::{main::canister_status, provisional::CanisterIdRecord},
-    set_certified_data, time, trap,
-};
+use ic_cdk::api::{call::ManualReply, caller, data_certificate, set_certified_data, time, trap};
 use ic_cdk_macros::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
@@ -42,25 +37,19 @@ fn api_version() -> u16 {
     1
 }
 
-#[update]
+#[update(guard = "is_manager_or_controller")]
 #[candid_method(update)]
-async fn authorize(other: Principal) {
-    match has_permission_or_is_controller(&Permission::ManagePermissions).await {
-        Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| s.borrow_mut().grant_permission(other, &Permission::Commit)),
-    }
+fn authorize(other: Principal) {
+    STATE.with(|s| s.borrow_mut().grant_permission(other, &Permission::Commit))
 }
 
-#[update]
+#[update(guard = "is_manager_or_controller")]
 #[candid_method(update)]
-async fn grant_permission(arg: GrantPermissionArguments) {
-    match has_permission_or_is_controller(&Permission::ManagePermissions).await {
-        Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| {
-            s.borrow_mut()
-                .grant_permission(arg.to_principal, &arg.permission)
-        }),
-    }
+fn grant_permission(arg: GrantPermissionArguments) {
+    STATE.with(|s| {
+        s.borrow_mut()
+            .grant_permission(arg.to_principal, &arg.permission)
+    })
 }
 
 #[update]
@@ -78,9 +67,9 @@ async fn deauthorize(other: Principal) {
     let check_access_result = if other == caller() {
         // this isn't "ManagePermissions" because these legacy methods only
         // deal with the Commit permission
-        has_permission_or_is_controller(&Permission::Commit).await
+        has_permission_or_is_controller(&Permission::Commit)
     } else {
-        is_controller().await
+        is_controller()
     };
     match check_access_result {
         Err(e) => trap(&e),
@@ -92,9 +81,9 @@ async fn deauthorize(other: Principal) {
 #[candid_method(update)]
 async fn revoke_permission(arg: RevokePermissionArguments) {
     let check_access_result = if arg.of_principal == caller() {
-        has_permission_or_is_controller(&arg.permission).await
+        has_permission_or_is_controller(&arg.permission)
     } else {
-        has_permission_or_is_controller(&Permission::ManagePermissions).await
+        has_permission_or_is_controller(&Permission::ManagePermissions)
     };
     match check_access_result {
         Err(e) => trap(&e),
@@ -126,15 +115,13 @@ fn list_permitted(arg: ListPermittedArguments) -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&arg.permission)))
 }
 
-#[update]
+#[update(guard = "is_controller")]
 #[candid_method(update)]
 async fn take_ownership() {
-    let caller = caller();
-    match is_controller().await {
-        Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| s.borrow_mut().take_ownership(caller)),
-    }
+    let caller = ic_cdk::api::caller();
+    STATE.with(|s| s.borrow_mut().take_ownership(caller))
 }
+
 #[update]
 #[candid_method(update)]
 async fn validate_take_ownership() -> Result<String, String> {
@@ -382,51 +369,30 @@ fn can_prepare() -> Result<(), String> {
     can(Permission::Prepare)
 }
 
-async fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String> {
+fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String> {
     let caller = caller();
     let has_permission = STATE.with(|s| s.borrow().has_permission(&caller, permission));
-    if has_permission {
+    let is_controller = ic_cdk::api::is_controller(&caller);
+    if has_permission || is_controller {
         Ok(())
     } else {
-        match canister_status(CanisterIdRecord {
-            canister_id: ic_cdk::api::id(),
-        })
-        .await
-        {
-            Err((code, msg)) => trap(&format!(
-                "Caller does not have {} permission. Failed to determine if caller is canister controller with code {:?} and message '{}'",
-                permission,
-                code, msg
-            )),
-            Ok((a,)) => {
-                if a.settings.controllers.contains(&caller) {
-                    Ok(())
-                } else {
-                    Err(format!("Caller does not have {} permission and is not a controller.", permission))
-                }
-            }
-        }
+        Err(format!(
+            "Caller does not have {} permission and is not a controller.",
+            permission
+        ))
     }
 }
 
-async fn is_controller() -> Result<(), String> {
+fn is_manager_or_controller() -> Result<(), String> {
+    has_permission_or_is_controller(&Permission::ManagePermissions)
+}
+
+fn is_controller() -> Result<(), String> {
     let caller = caller();
-    match canister_status(CanisterIdRecord {
-        canister_id: ic_cdk::api::id(),
-    })
-    .await
-    {
-        Err((code, msg)) => trap(&format!(
-            "Failed to determine if caller is canister controller with code {:?} and message '{}'",
-            code, msg
-        )),
-        Ok((a,)) => {
-            if a.settings.controllers.contains(&caller) {
-                Ok(())
-            } else {
-                Err("Caller is not a controller.".to_string())
-            }
-        }
+    if ic_cdk::api::is_controller(&caller) {
+        Ok(())
+    } else {
+        Err("Caller is not a controller.".to_string())
     }
 }
 
