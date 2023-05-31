@@ -128,6 +128,10 @@ The asset canister no longer needs to use `await` for access control checks. Thi
 
 Updated Motoko to 0.8.8
 
+### ic-ref
+
+Updated ic-ref to 0.0.1-a9f73dba
+
 ### Replica
 
 Updated replica to elected commit b3b00ba59c366384e3e0cd53a69457e9053ec987.
