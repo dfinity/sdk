@@ -51,7 +51,6 @@ jobs:
     - name: install niv (dependency manager for Nix projects)
       run: |
         nix-env -i niv -f '<nixpkgs>'
-        printenv PATH
 
     - name: intall packages from nix/sources.json
       run: niv update
