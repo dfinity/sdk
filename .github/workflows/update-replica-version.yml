@@ -44,7 +44,7 @@ jobs:
         grep -s "REPLICA_VERSION" $GITHUB_ENV
    
     - name: install Nix
-      uses: cachix/install-nix-action@v18
+      uses: cachix/install-nix-action@v21
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
