@@ -4,6 +4,21 @@
 
 ## DFX
 
+### feat: add optional custom build command for asset canisters
+
+The custom build command can be set in `dfx.json` the same way it is set for `custom` type canisters. If the command is not provided, DFX will fallback to the default `npm run build` command.
+
+```json
+{
+  "canisters": {
+    "ui": {
+      "type": "assets",
+      "build": ["<custom build command>"]
+    }
+  }
+}
+```
+
 ### fix: motoko canisters can import other canisters with service constructor
 
 After specific canister builder output wasm and candid file, `dfx` will do some post processing on the candid file.

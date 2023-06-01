@@ -278,6 +278,13 @@ pub enum CanisterTypeProperties {
         /// # Asset Source Folder
         /// Folders from which assets are uploaded.
         source: Vec<PathBuf>,
+
+        /// # Build Commands
+        /// Commands that are executed in order to produce this canister's assets.
+        /// Expected to produce assets in one of the paths specified by the 'source' field.
+        /// Optional if there is no build necessary or the assets can be built using the default `npm run build` command.
+        #[schemars(default)]
+        build: SerdeVec<String>,
     },
     /// # Custom-Specific Properties
     Custom {
@@ -1031,6 +1038,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             },
             Some("assets") => CanisterTypeProperties::Assets {
                 source: source.ok_or_else(|| missing_field("source"))?,
+                build: build.unwrap_or_default(),
             },
             Some("custom") => CanisterTypeProperties::Custom {
                 build: build.unwrap_or_default(),
