@@ -49,7 +49,7 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: install niv (dependency manager for Nix projects)
-      run: nix-env -i niv -f '<nixpkgs>'
+      run: nix-env -iA nixpkgs.niv
 
     - name: intall packages from nix/sources.json
       run: niv update
