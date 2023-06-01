@@ -130,6 +130,17 @@ teardown() {
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
+@test "dfx start honors replica port configuration" {
+    create_networks_json
+    replica_port=$(get_ephemeral_port)
+    jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+    dfx_start
+
+    assert_command dfx info replica-port
+    assert_eq "$replica_port"
+}
+
 @test "dfx starts replica with subnet_type application - project defaults" {
     install_asset subnet_type/project_defaults/application
     define_project_network
