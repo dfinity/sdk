@@ -1,0 +1,128 @@
+type wasm_module = blob;
+type definite_canister_settings = 
+ record {
+   compute_allocation: nat;
+   controllers: vec principal;
+   freezing_threshold: nat;
+   memory_allocation: nat;
+ };
+type canister_settings = 
+ record {
+   compute_allocation: opt nat;
+   controllers: opt vec principal;
+   freezing_threshold: opt nat;
+   memory_allocation: opt nat;
+ };
+type canister_id = principal;
+type Stats = 
+ record {
+   cycles_used: nat;
+   error_mismatch: nat;
+   error_out_of_capacity: nat;
+   error_total_wait_time: nat;
+   num_of_canisters: nat;
+   num_of_installs: nat;
+ };
+type Self = 
+ service {
+   GCCanisters: () -> () oneway;
+   balance: () -> (nat) query;
+   callForward: (CanisterInfo, text, blob) -> (blob);
+   canister_status: (record {canister_id: canister_id;}) ->
+    (record {
+       cycles: nat;
+       memory_size: nat;
+       module_hash: opt blob;
+       settings: definite_canister_settings;
+       status: variant {
+                 running;
+                 stopped;
+                 stopping;
+               };
+     });
+   create_canister: (record {settings: opt canister_settings;}) ->
+    (record {canister_id: canister_id;});
+   delete_canister: (record {canister_id: canister_id;}) -> ();
+   dump: () -> (vec CanisterInfo) query;
+   getCanisterId: (Nonce) -> (CanisterInfo);
+   getInitParams: () -> (InitParams) query;
+   getStats: () -> (Stats) query;
+   getSubtree: (CanisterInfo) ->
+    (vec record {
+           principal;
+           vec CanisterInfo;
+         }) query;
+   http_request: (HttpRequest) -> (HttpResponse) query;
+   installCode: (CanisterInfo, InstallArgs, bool) -> (CanisterInfo);
+   install_code:
+    (record {
+       arg: blob;
+       canister_id: canister_id;
+       mode: variant {
+               install;
+               reinstall;
+               upgrade;
+             };
+       wasm_module: wasm_module;
+     }) -> ();
+   removeCode: (CanisterInfo) -> ();
+   resetStats: () -> ();
+   start_canister: (record {canister_id: canister_id;}) -> ();
+   stop_canister: (record {canister_id: canister_id;}) -> ();
+   uninstall_code: (record {canister_id: canister_id;}) -> ();
+   update_settings:
+    (record {
+       canister_id: canister_id;
+       settings: canister_settings;
+     }) -> ();
+   wallet_receive: () -> ();
+ };
+type Nonce = 
+ record {
+   nonce: nat;
+   timestamp: int;
+ };
+type InstallArgs = 
+ record {
+   arg: blob;
+   canister_id: principal;
+   mode: variant {
+           install;
+           reinstall;
+           upgrade;
+         };
+   wasm_module: blob;
+ };
+type InitParams = 
+ record {
+   canister_time_to_live: nat;
+   cycles_per_canister: nat;
+   max_family_tree_size: nat;
+   max_num_canisters: nat;
+   nonce_time_to_live: nat;
+ };
+type HttpResponse = 
+ record {
+   body: blob;
+   headers: vec record {
+                  text;
+                  text;
+                };
+   status_code: nat16;
+ };
+type HttpRequest = 
+ record {
+   body: blob;
+   headers: vec record {
+                  text;
+                  text;
+                };
+   method: text;
+   url: text;
+ };
+type CanisterInfo = 
+ record {
+   id: principal;
+   timestamp: int;
+ };
+service : (opt InitParams) -> Self

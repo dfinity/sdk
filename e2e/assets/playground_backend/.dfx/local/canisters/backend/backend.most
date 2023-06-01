@@ -1,0 +1,26 @@
+// Version: 1.0.0
+type CanisterInfo = {id : Principal; timestamp : Int};
+type InitParams =
+  {
+    canister_time_to_live : Nat;
+    cycles_per_canister : Nat;
+    max_family_tree_size : Nat;
+    max_num_canisters : Nat;
+    nonce_time_to_live : Nat
+  };
+actor {
+  stable controller : Principal;
+  stable var previousParam : ?InitParams;
+  stable var stableChildren : [(Principal, [Principal])];
+  stable var stableMetadata : [(Principal, (Int, Bool))];
+  stable var stablePool : [CanisterInfo];
+  stable var stats :
+    {
+      cycles_used : Nat;
+      error_mismatch : Nat;
+      error_out_of_capacity : Nat;
+      error_total_wait_time : Nat;
+      num_of_canisters : Nat;
+      num_of_installs : Nat
+    }
+};

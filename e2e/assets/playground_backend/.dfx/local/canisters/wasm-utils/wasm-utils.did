@@ -1,0 +1,5 @@
+type Config = record { profiling: bool; remove_cycles_add: bool; limit_stable_memory_page: opt nat32; backend_canister_id: opt principal};
+
+service : {
+  transform : (blob, Config) -> (blob);
+}

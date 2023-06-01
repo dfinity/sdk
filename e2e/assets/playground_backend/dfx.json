@@ -2,10 +2,10 @@
   "canisters": {
     "wasm-utils": {
       "type": "custom",
-      "candid": "service/wasm-utils/wasm-utils.did",
-      "wasm": "service/wasm-utils/target/wasm32-unknown-unknown/release/wasm_opt.wasm",
+      "candid": "wasm-utils.did",
+      "wasm": "wasm-utils.wasm",
       "build": [
-        "sh -c 'cd service/wasm-utils && ./build.sh'"
+        "echo ok"
       ]
     },
     "backend": {
