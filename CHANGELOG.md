@@ -134,8 +134,10 @@ Updated ic-ref to 0.0.1-a9f73dba
 
 ### Replica
 
-Updated replica to elected commit b3b00ba59c366384e3e0cd53a69457e9053ec987.
+Updated replica to elected commit 794fc5b9341fa8f6a0e8f219201c35f0b5727ab9.
 This incorporates the following executed proposals:
+- [122617](https://dashboard.internetcomputer.org/proposal/122617)
+- [122615](https://dashboard.internetcomputer.org/proposal/122615)
 - [122529](https://dashboard.internetcomputer.org/proposal/122529)
 - [122284](https://dashboard.internetcomputer.org/proposal/122284)
 - [122198](https://dashboard.internetcomputer.org/proposal/122198)
