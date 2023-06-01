@@ -1,9 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::cycle_amount_validator;
+use crate::util::clap::parsers::cycle_amount_parser;
+use dfx_core::identity::CallSender;
 
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use anyhow::Context;
@@ -16,15 +16,15 @@ use slog::info;
 pub struct DepositCyclesOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
-    #[clap(validator(cycle_amount_validator))]
-    cycles: String,
+    #[arg(value_parser = cycle_amount_parser)]
+    cycles: u128,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.
     /// You must specify either a canister name/id or the --all option.
     canister: Option<String>,
 
     /// Deposit cycles to all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 
@@ -76,7 +76,7 @@ pub async fn exec(
     }
 
     // amount has been validated by cycle_amount_validator
-    let cycles = opts.cycles.parse::<u128>().unwrap();
+    let cycles = opts.cycles;
 
     let config = env.get_config_or_anyhow()?;
 

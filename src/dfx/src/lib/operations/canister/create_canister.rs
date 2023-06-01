@@ -1,9 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::wallet::build_wallet_canister;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
+use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
 use dfx_core::network::provider::get_network_context;
 
 use anyhow::{anyhow, bail, Context};
@@ -25,7 +25,7 @@ const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
 pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
-    with_cycles: Option<&str>,
+    with_cycles: Option<u128>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     settings: CanisterSettings,
@@ -67,12 +67,10 @@ pub async fn create_canister(
                 non_default_network,
                 canister_id.to_text()
             );
-            Ok(())
         }
         None => {
             if env.get_network_descriptor().is_playground() {
                 reserve_canister_with_playground(env, canister_name).await?;
-                Ok(())
             } else {
                 let agent = env
                     .get_agent()
@@ -80,11 +78,9 @@ pub async fn create_canister(
                 let mgr = ManagementCanister::create(agent);
                 let cid = match call_sender {
                     CallSender::SelectedId => {
-                        // amount has been validated by cycle_amount_validator, which is u128
-                        let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
                         let mut builder = mgr
                             .create_canister()
-                            .as_provisional_create_with_amount(cycles)
+                            .as_provisional_create_with_amount(with_cycles)
                             .with_effective_canister_id(env.get_effective_canister_id());
                         if let Some(sid) = specified_id {
                             builder = builder.as_provisional_create_with_specified_id(sid);
@@ -111,12 +107,9 @@ pub async fn create_canister(
                         res.context("Canister creation call failed.")?.0
                     }
                     CallSender::Wallet(wallet_id) => {
-                        let wallet = build_wallet_canister(*wallet_id, env).await?;
-                        // amount has been validated by cycle_amount_validator
-                        let cycles = with_cycles.map_or(
-                            CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
-                            |amount| amount.parse::<u128>().unwrap(),
-                        );
+                        let wallet = build_wallet_canister(*wallet_id, agent).await?;
+                        let cycles = with_cycles
+                            .unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
                         match wallet
                             .wallet_create_canister(
                                 cycles,
@@ -147,8 +140,9 @@ pub async fn create_canister(
                     &canister_id
                 );
                 canister_id_store.add(canister_name, &canister_id, None)?;
-                Ok(())
             }
         }
     }
+
+    Ok(())
 }

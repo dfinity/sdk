@@ -237,6 +237,7 @@ fn add_assets(sources: Sources) {
     add_asset_archive("assetstorage_canister", &mut f, &dfx_assets);
     add_asset_archive("wallet_canister", &mut f, &dfx_assets);
     add_asset_archive("ui_canister", &mut f, &dfx_assets);
+    add_asset_archive("btc_canister", &mut f, &dfx_assets);
     add_assets_from_directory("language_bindings", &mut f, "assets/language_bindings");
     add_assets_from_directory(
         "new_project_motoko_files",
@@ -277,8 +278,9 @@ fn define_replica_rev(replica_rev: &str) {
 }
 
 fn main() {
-    let sources: Sources = toml::from_slice(
-        &fs::read("assets/dfx-asset-sources.toml").expect("unable to read dfx-asset-sources.toml"),
+    let sources: Sources = toml::from_str(
+        &fs::read_to_string("assets/dfx-asset-sources.toml")
+            .expect("unable to read dfx-asset-sources.toml"),
     )
     .expect("unable to parse dfx-asset-sources.toml");
     define_replica_rev(&sources.replica_rev);

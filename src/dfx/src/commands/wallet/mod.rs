@@ -30,12 +30,12 @@ mod upgrade;
 
 /// Helper commands to manage the user's cycles wallet.
 #[derive(Parser)]
-#[clap(name("wallet"))]
+#[command(name = "wallet")]
 pub struct WalletOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

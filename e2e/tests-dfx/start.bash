@@ -130,6 +130,17 @@ teardown() {
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
+@test "dfx start honors replica port configuration" {
+    create_networks_json
+    replica_port=$(get_ephemeral_port)
+    jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+    dfx_start
+
+    assert_command dfx info replica-port
+    assert_eq "$replica_port"
+}
+
 @test "dfx starts replica with subnet_type application - project defaults" {
     install_asset subnet_type/project_defaults/application
     define_project_network
@@ -227,7 +238,7 @@ teardown() {
     assert_command dfx stop
 
     jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
@@ -241,7 +252,7 @@ teardown() {
     assert_command dfx stop
 
     jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
@@ -255,7 +266,7 @@ teardown() {
     assert_command dfx stop
 
     jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
@@ -270,4 +281,52 @@ teardown() {
     sleep 2
     run tail -2 stderr.txt
     assert_match "Hello, World! from DFINITY"
+}
+
+@test "modifying networks.json requires --clean on restart" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+    dfx_start
+    dfx stop
+    assert_command dfx_start 
+    dfx stop
+    jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
+    dfx stop
+    assert_command dfx_start --clean
+}
+
+@test "project-local networks require --clean if dfx.json was updated" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+    dfx_new
+    define_project_network
+    dfx_start
+    dfx stop
+    assert_command dfx_start
+    dfx stop
+    jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
+    assert_command dfx_start
+    dfx stop
+    jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
+    dfx stop
+    assert_command dfx_start --clean
+}
+
+@test "flags count as configuration modification and require --clean" {
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+    dfx_start
+    dfx stop
+    assert_command_fail dfx_start --enable-bitcoin
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --enable-bitcoin --clean
+    dfx stop
+    assert_command dfx_start --enable-bitcoin
+    dfx stop
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
 }

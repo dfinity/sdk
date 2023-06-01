@@ -1,6 +1,7 @@
 use crate::error::config::ConfigError;
 use crate::error::fs::FsError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
+use crate::error::uri::UriError;
 
 use candid::types::principal::PrincipalError;
 use std::num::ParseIntError;
@@ -10,7 +11,19 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum NetworkConfigError {
     #[error(transparent)]
+    FsError(#[from] crate::error::fs::FsError),
+
+    #[error(transparent)]
     Config(#[from] ConfigError),
+
+    #[error(transparent)]
+    UriError(#[from] UriError),
+
+    #[error("Failed to get replica endpoint for network '{network_name}': {cause}")]
+    GettingReplicaUrlsFailed {
+        network_name: String,
+        cause: UriError,
+    },
 
     #[error("Network '{0}' does not specify any network providers.")]
     NetworkHasNoProviders(String),

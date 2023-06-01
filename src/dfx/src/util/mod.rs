@@ -1,24 +1,30 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
+use dfx_core::fs::create_dir_all;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
+use bytes::Bytes;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
 use candid::{parser::value::IDLValue, IDLArgs};
 use fn_error_context::context;
+use hyper_rustls::ConfigBuilderExt;
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
 use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
+use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
 use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
+use std::path::Path;
 use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
 pub mod currency_conversion;
-pub mod network;
 pub mod stderr_wrapper;
 
 const DECIMAL_POINT: char = '.';
@@ -142,8 +148,8 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
     })
 }
 
-pub fn arguments_from_file(file_name: &str) -> DfxResult<String> {
-    if file_name == "-" {
+pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
+    if file_name == Path::new("-") {
         let mut content = String::new();
         stdin().read_to_string(&mut content).map_err(|e| {
             error_invalid_argument!("Could not read arguments from stdin to string: {}", e)
@@ -180,25 +186,7 @@ pub fn blob_from_arguments(
                 }
                 Some((env, func)) => {
                     if let Some(arguments) = arguments {
-                        let first_char = arguments.chars().next();
-                        let is_candid_format = first_char.map_or(false, |c| c == '(');
-                        // If parsing fails and method expects a single value, try parsing as IDLValue.
-                        // If it still fails, and method expects a text type, send arguments as text.
-                        let args = arguments.parse::<IDLArgs>().or_else(|_| {
-                            if func.args.len() == 1 && !is_candid_format {
-                                let is_quote = first_char.map_or(false, |c| c == '"');
-                                if candid::types::Type::Text == func.args[0] && !is_quote {
-                                    Ok(IDLValue::Text(arguments.to_string()))
-                                } else {
-                                    candid::pretty_parse::<IDLValue>("Candid argument", arguments)
-                                }
-                                .map(|v| IDLArgs::new(&[v]))
-                            } else {
-                                candid::pretty_parse::<IDLArgs>("Candid argument", arguments)
-                            }
-                        });
-                        args.map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
-                            .to_bytes_with_types(env, &func.args)
+                        fuzzy_parse_argument(arguments, env, &func.args)
                     } else if func.args.is_empty() {
                         use candid::Encode;
                         Encode!()
@@ -234,6 +222,35 @@ pub fn blob_from_arguments(
         }
         v => Err(error_unknown!("Invalid type: {}", v)),
     }
+}
+
+pub fn fuzzy_parse_argument(
+    arg_str: &str,
+    env: &TypeEnv,
+    types: &[Type],
+) -> Result<Vec<u8>, candid::Error> {
+    let first_char = arg_str.chars().next();
+    let is_candid_format = first_char.map_or(false, |c| c == '(');
+    // If parsing fails and method expects a single value, try parsing as IDLValue.
+    // If it still fails, and method expects a text type, send arguments as text.
+    let args = arg_str.parse::<IDLArgs>().or_else(|_| {
+        if types.len() == 1 && !is_candid_format {
+            let is_quote = first_char.map_or(false, |c| c == '"');
+            if candid::types::Type::Text == types[0] && !is_quote {
+                Ok(IDLValue::Text(arg_str.to_string()))
+            } else {
+                candid::pretty_parse::<IDLValue>("Candid argument", arg_str)
+            }
+            .map(|v| IDLArgs::new(&[v]))
+        } else {
+            candid::pretty_parse::<IDLArgs>("Candid argument", arg_str)
+        }
+    });
+    let bytes = args
+        .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
+        .to_bytes_with_types(env, types)
+        .map_err(|e| error_invalid_data!("Unable to serialize Candid values: {}", e))?;
+    Ok(bytes)
 }
 
 pub fn format_as_trillions(amount: u128) -> String {
@@ -295,6 +312,54 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .chars()
         .rev()
         .collect::<_>()
+}
+
+#[context("Failed to download {} to {}.", from, to.display())]
+pub async fn download_file_to_path(from: &Url, to: &Path) -> DfxResult {
+    let parent_dir = to.parent().unwrap();
+    create_dir_all(parent_dir)?;
+    let body = download_file(from).await?;
+    dfx_core::fs::write(to, body)?;
+    Ok(())
+}
+
+#[context("Failed to download from url: {}.", from)]
+pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
+    let tls_config = rustls::ClientConfig::builder()
+        .with_safe_defaults()
+        .with_webpki_roots()
+        .with_no_client_auth();
+
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls_config)
+        .build()
+        .context("Could not create HTTP client.")?;
+
+    let mut retry_policy = ExponentialBackoff::default();
+
+    let body = loop {
+        match attempt_download(&client, from).await {
+            Ok(Some(body)) => break body,
+            Ok(None) => bail!("Not found: {}", from),
+            Err(request_error) => match retry_policy.next_backoff() {
+                Some(duration) => tokio::time::sleep(duration).await,
+                None => bail!(request_error),
+            },
+        }
+    };
+
+    Ok(body.to_vec())
+}
+
+async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>> {
+    let response = client.get(url.clone()).send().await?;
+
+    if response.status() == StatusCode::NOT_FOUND {
+        Ok(None)
+    } else {
+        let body = response.error_for_status()?.bytes().await?;
+        Ok(Some(body))
+    }
 }
 
 #[cfg(test)]

@@ -6,6 +6,7 @@ use crate::error::keyring::KeyringError;
 use crate::error::structured_file::StructuredFileError;
 use crate::error::wallet_config::WalletConfigError;
 
+use ic_agent::export::PrincipalError;
 use ic_agent::identity::PemError;
 use ic_identity_hsm::HardwareIdentityError;
 
@@ -98,6 +99,9 @@ pub enum IdentityError {
 
     #[error("Failed to migrate legacy identity")]
     MigrateLegacyIdentityFailed(FsError),
+
+    #[error("Failed to read principal from id '{0}': {1}")]
+    ParsePrincipalFromIdFailed(String, PrincipalError),
 
     #[error("Cannot read identity file '{0}': {1:#}")]
     ReadIdentityFileFailed(String, Box<PemError>),

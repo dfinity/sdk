@@ -47,7 +47,7 @@ You can use the following optional flags with the `dfx ledger account-id` comman
 | `-V`, `--version`            | Displays version information.                          |
 | `--of-canister <ALIAS>`      | Alias or principal of the canister controlling the account  |
 | `--of-principal <PRINCIPAL>` | Principal controlling the account                      |
-| `-subaccount <SUBACCOUNT>`   | Subaccount identifier (64 character long hex string)   |
+| `--subaccount <SUBACCOUNT>`   | Subaccount identifier (64 character long hex string)   |
 
 ### Examples
 
@@ -121,7 +121,7 @@ You can specify the following argument for the `dfx ledger create-canister` comm
 | `--icp <icp>`                 | Specify ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`.                                                                                                                                             |
 | `--max-fee <max-fee>`         | Specify a maximum transaction fee. The default is 10000 e8s.                                                                                                                                                                                         |
 | `--subnet-type <subnet-type>` | Specify the optional subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                      |
-
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 
 ### Examples
 
@@ -291,6 +291,7 @@ You can specify the following options for the `dfx ledger top-up` command.
 | `--fee <fee>`         | Specifies the transaction fee for the operation. The default is 10000 e8s.                                                                                                                                                                                  |
 | `--icp <icp>`         | Specifies ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`.                                                                                                                                                  |
 | `--max-fee <max-fee>` | Specifies a maximum transaction fee. The default is 10000 e8s.                                                                                                                                                                                              |
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 
 ### Examples
 
@@ -336,6 +337,7 @@ You can specify the following argument for the `dfx ledger transfer` command.
 | `--e8s <e8s>`       | Specifies e8s as a whole number, where one e8 is smallest partition of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option alone or in conjunction with the `--icp` option. |
 | `--fee <fee>`       | Specifies a transaction fee. The default is 10000 e8s.                                                                                                                                                          |
 | `--icp <icp>`       | Specifies ICP as a whole number. You can use this option alone or in conjunction with `--e8s`.                                                                                                                  |
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 
 ### Examples
 

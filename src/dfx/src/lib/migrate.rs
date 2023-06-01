@@ -12,7 +12,7 @@ use ic_utils::{
 use itertools::Itertools;
 
 use crate::lib::identity::wallet::wallet_canister_id;
-use crate::lib::operations::canister::install_wallet;
+use crate::lib::operations::canister::install_canister::install_wallet;
 use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 

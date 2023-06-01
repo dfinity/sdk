@@ -4,10 +4,13 @@ use crate::config::model::dfinity::{
 use crate::config::model::local_server_descriptor::LocalServerDescriptor;
 use crate::error::network_config::NetworkConfigError;
 use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, NetworkMustBeLocal};
+use crate::error::uri::UriError;
 
 use candid::Principal;
 use num_bigint::BigInt;
+use slog::Logger;
 use std::path::{Path, PathBuf};
+use url::Url;
 
 //"rrkah-fqaaa-aaaaa-aaaaq-cai"
 const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal = Principal::from_slice(&[
@@ -129,6 +132,36 @@ impl NetworkDescriptor {
             is_ic: true,
             local_server_descriptor: None,
         }
+    }
+
+    fn replica_endpoints(&self) -> Result<Vec<Url>, NetworkConfigError> {
+        self.providers
+            .iter()
+            .map(|s| {
+                Url::parse(s).map_err(|e| {
+                    NetworkConfigError::ParseProviderUrlFailed(Box::new(s.to_string()), e)
+                })
+            })
+            .collect()
+    }
+
+    pub fn get_replica_urls(
+        &self,
+        logger: Option<&Logger>,
+    ) -> Result<Vec<Url>, NetworkConfigError> {
+        if self.name == "local" {
+            let local_server_descriptor = self.local_server_descriptor()?;
+
+            if let Some(port) = local_server_descriptor.get_running_replica_port(logger)? {
+                let mut socket_addr = local_server_descriptor.bind_address;
+                socket_addr.set_port(port);
+                let url = format!("http://{}", socket_addr);
+                let url =
+                    Url::parse(&url).map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
+                return Ok(vec![url]);
+            }
+        }
+        self.replica_endpoints()
     }
 }
 

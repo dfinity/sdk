@@ -19,7 +19,6 @@ use clap::Parser;
 use fn_error_context::context;
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
-use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 
@@ -38,12 +37,12 @@ mod transfer;
 
 /// Ledger commands.
 #[derive(Parser)]
-#[clap(name("ledger"))]
+#[command(name = "ledger")]
 pub struct LedgerOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
@@ -78,33 +77,24 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
 
 #[context("Failed to determine icp amount from supplied arguments.")]
 fn get_icpts_from_args(
-    amount: &Option<String>,
-    icp: &Option<String>,
-    e8s: &Option<String>,
+    amount: Option<ICPTs>,
+    icp: Option<u64>,
+    e8s: Option<u64>,
 ) -> DfxResult<ICPTs> {
     match amount {
         None => {
             let icp = match icp {
-                Some(s) => {
-                    // validated by e8s_validator
-                    let icps = s.parse::<u64>().unwrap();
-                    ICPTs::from_icpts(icps).map_err(|err| anyhow!(err))?
-                }
+                Some(icps) => ICPTs::from_icpts(icps).map_err(|err| anyhow!(err))?,
                 None => ICPTs::from_e8s(0),
             };
             let icp_from_e8s = match e8s {
-                Some(s) => {
-                    // validated by e8s_validator
-                    let e8s = s.parse::<u64>().unwrap();
-                    ICPTs::from_e8s(e8s)
-                }
+                Some(e8s) => ICPTs::from_e8s(e8s),
                 None => ICPTs::from_e8s(0),
             };
             let amount = icp + icp_from_e8s;
             Ok(amount.map_err(|err| anyhow!(err))?)
         }
-        Some(amount) => Ok(ICPTs::from_str(amount)
-            .map_err(|err| anyhow!("Could not add ICPs and e8s: {}", err))?),
+        Some(amount) => Ok(amount),
     }
 }
 
@@ -117,11 +107,14 @@ pub async fn transfer(
     fee: ICPTs,
     from_subaccount: Option<Subaccount>,
     to: AccountIdBlob,
+    created_at_time: Option<u64>,
 ) -> DfxResult<BlockHeight> {
-    let timestamp_nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos() as u64;
+    let timestamp_nanos = created_at_time.unwrap_or(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64,
+    );
 
     let mut retry_policy = ExponentialBackoff::default();
 
@@ -147,22 +140,28 @@ pub async fn transfer(
                     .context("Failed to decode transfer response.")?;
                 match result {
                     Ok(block_height) => break block_height,
-                    Err(TransferError::TxDuplicate { duplicate_of }) => break duplicate_of,
+                    Err(TransferError::TxDuplicate { duplicate_of }) => {
+                        println!("{}", TransferError::TxDuplicate { duplicate_of });
+                        break duplicate_of;
+                    }
                     Err(transfer_err) => bail!(transfer_err),
                 }
             }
             Err(agent_err) if !retryable(&agent_err) => {
                 bail!(agent_err);
             }
-            Err(agent_err) => {
-                eprintln!("Waiting to retry after error: {:?}", &agent_err);
-                match retry_policy.next_backoff() {
-                    Some(duration) => tokio::time::sleep(duration).await,
-                    None => bail!(agent_err),
+            Err(agent_err) => match retry_policy.next_backoff() {
+                Some(duration) => {
+                    eprintln!("Waiting to retry after error: {:?}", &agent_err);
+                    tokio::time::sleep(duration).await;
+                    println!("Sending duplicate transaction");
                 }
-            }
+                None => bail!(agent_err),
+            },
         }
     };
+
+    println!("Transfer sent at block height {block_height}");
 
     Ok(block_height)
 }
@@ -174,6 +173,7 @@ pub async fn transfer_cmc(
     fee: ICPTs,
     from_subaccount: Option<Subaccount>,
     to_principal: Principal,
+    created_at_time: Option<u64>,
 ) -> DfxResult<BlockHeight> {
     let to_subaccount = Subaccount::from(&to_principal);
     let to =
@@ -186,6 +186,7 @@ pub async fn transfer_cmc(
         fee,
         from_subaccount,
         to,
+        created_at_time,
     )
     .await
 }

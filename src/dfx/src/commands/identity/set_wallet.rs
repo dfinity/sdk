@@ -2,8 +2,9 @@ use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::identity::wallet::{build_wallet_canister, set_wallet_id};
+use crate::lib::identity::wallet::set_wallet_id;
 use crate::NetworkOpt;
+use dfx_core::canister::build_wallet_canister;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -19,7 +20,7 @@ pub struct SetWalletOpts {
     canister_name: String,
 
     /// Skip verification that the ID points to a correct wallet canister. Only useful for the local network.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 
@@ -70,7 +71,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: NetworkOpt) -> 
                     "Checking availability of the canister on the network..."
                 );
 
-                let canister = build_wallet_canister(canister_id, env).await?;
+                let canister = build_wallet_canister(canister_id, agent).await?;
                 let balance = canister.wallet_balance().await;
 
                 match balance {

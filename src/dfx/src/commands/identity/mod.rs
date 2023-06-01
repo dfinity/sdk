@@ -20,12 +20,12 @@ mod whoami;
 /// Manages identities used to communicate with the Internet Computer network.
 /// Setting an identity enables you to test user-based access controls.
 #[derive(Parser)]
-#[clap(name("identity"))]
+#[command(name = "identity")]
 pub struct IdentityOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

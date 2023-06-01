@@ -22,7 +22,7 @@ pub struct PingOpts {
     network: NetworkOpt,
 
     /// Repeatedly ping until the replica is healthy
-    #[clap(long)]
+    #[arg(long)]
     wait_healthy: bool,
 }
 

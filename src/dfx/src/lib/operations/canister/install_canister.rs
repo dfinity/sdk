@@ -2,32 +2,33 @@ use crate::lib::builders::get_and_write_environment_variables;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::wallet::build_wallet_canister;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::named_canister;
 use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
+use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
+use dfx_core::canister::{build_wallet_canister, install_canister_wasm};
+use dfx_core::cli::ask_for_consent;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::Principal;
 use fn_error_context::context;
-use ic_agent::{Agent, AgentError};
+use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::builders::{CanisterInstall, InstallMode};
+use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
 use sha2::{Digest, Sha256};
 use slog::info;
 use std::collections::HashSet;
-use std::io::stdin;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -36,35 +37,28 @@ use super::motoko_playground::playground_install_code;
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
 pub async fn install_canister(
     env: &dyn Environment,
-    agent: &Agent,
     canister_id_store: &mut CanisterIdStore,
     canister_info: &CanisterInfo,
-    args: impl FnOnce() -> DfxResult<Vec<u8>>,
+    wasm_path_override: Option<&Path>,
+    args: Vec<u8>,
     mode: Option<InstallMode>,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
     pool: Option<&CanisterPool>,
     skip_consent: bool,
     env_file: Option<&Path>,
-    assets_upgrade: bool,
+    no_asset_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
     let network = env.get_network_descriptor();
     if !network.is_ic && named_canister::get_ui_canister_id(canister_id_store).is_none() {
         named_canister::install_ui_canister(env, canister_id_store, None).await?;
     }
     let canister_id = canister_info.get_canister_id()?;
-    let installed_module_hash = match agent
-        .read_state_canister_info(canister_id, "module_hash")
-        .await
-    {
-        Ok(installed_module_hash) => Some(installed_module_hash),
-        // If the canister is empty, this path does not exist.
-        // The replica doesn't support negative lookups, therefore if the canister
-        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-        Err(AgentError::LookupPathUnknown(_) | AgentError::LookupPathAbsent(_)) => None,
-        Err(x) => bail!(x),
-    };
+    let installed_module_hash = read_state_tree_canister_module_hash(agent, canister_id).await?;
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
             InstallMode::Upgrade
@@ -105,7 +99,8 @@ pub async fn install_canister(
         }
     }
 
-    let wasm_path = canister_info.get_build_wasm_path();
+    let default_wasm_path = canister_info.get_build_wasm_path();
+    let wasm_path = wasm_path_override.unwrap_or(&default_wasm_path);
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
     let new_hash = Sha256::digest(&wasm_module);
@@ -118,36 +113,36 @@ pub async fn install_canister(
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
-    } else if assets_upgrade || canister_info.is_assets() {
-        if let Some(new_timestamp) = install_canister_wasm(
-            env,
-            agent,
-            canister_id,
-            Some(canister_info.get_name()),
-            canister_id_store.get_timestamp(canister_info.get_name()),
-            &args()?,
-            mode,
-            call_sender,
-            wasm_module,
-            skip_consent,
-        )
-        .await?
-        {
+    } else if canister_info.is_assets() && !no_asset_upgrade {
+        if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
+            let new_timestamp =
+                playground_install_code(env, canister_id, timestamp, &args, &wasm_module, mode)
+                    .await?;
             canister_id_store.add(
                 canister_info.get_name(),
                 &canister_id.to_string(),
                 Some(new_timestamp),
             )?;
+        } else {
+            install_canister_wasm(
+                agent,
+                canister_id,
+                Some(canister_info.get_name()),
+                &args,
+                mode,
+                call_sender,
+                wasm_module,
+                skip_consent,
+                env.get_logger(),
+            )
+            .await?;
         }
     }
     let mut retry_policy = ExponentialBackoff::default();
     let mut times = 0;
     loop {
-        match agent
-            .read_state_canister_info(canister_id, "module_hash")
-            .await
-        {
-            Ok(reported_hash) => {
+        match read_state_tree_canister_module_hash(agent, canister_id).await? {
+            Some(reported_hash) => {
                 if env.get_network_descriptor().is_playground() {
                     // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
                     info!(
@@ -155,7 +150,8 @@ pub async fn install_canister(
                         "Something is installed in the canister. Assuming new code is installed."
                     );
                     break;
-                } else if reported_hash[..] == new_hash[..] {
+                }
+                if reported_hash[..] == new_hash[..] {
                     break;
                 } else if installed_module_hash
                     .as_deref()
@@ -184,7 +180,7 @@ pub async fn install_canister(
                     )
                 }
             }
-            Err(AgentError::LookupPathAbsent(_) | AgentError::LookupPathUnknown(_)) => {
+            None => {
                 times += 1;
                 if times > 3 {
                     info!(
@@ -198,7 +194,6 @@ pub async fn install_canister(
                         No post-installation tasks have been run, including asset uploads.")?;
                 tokio::time::sleep(interval).await;
             }
-            Err(e) => bail!(e),
         }
     }
     if canister_info.is_assets() {
@@ -216,7 +211,7 @@ pub async fn install_canister(
             .await?;
         }
         if let CallSender::Wallet(wallet_id) = call_sender {
-            let wallet = build_wallet_canister(*wallet_id, env).await?;
+            let wallet = build_wallet_canister(*wallet_id, agent).await?;
             let identity_name = env.get_selected_identity().expect("No selected identity.");
             info!(
                 log,
@@ -260,8 +255,10 @@ fn check_candid_compatibility(
     candid: &str,
 ) -> anyhow::Result<Option<String>> {
     use crate::util::check_candid_file;
-    let candid_path = canister_info.get_build_idl_path();
-    let deployed_path = canister_info.get_build_idl_path().with_extension("old.did");
+    let candid_path = canister_info.get_constructor_idl_path();
+    let deployed_path = canister_info
+        .get_constructor_idl_path()
+        .with_extension("old.did");
     std::fs::write(&deployed_path, candid).with_context(|| {
         format!(
             "Failed to write candid to {}.",
@@ -387,99 +384,6 @@ fn run_post_install_task(
     Ok(())
 }
 
-#[context("Failed to install wasm in canister '{}'.", canister_id)]
-pub async fn install_canister_wasm(
-    env: &dyn Environment,
-    agent: &Agent,
-    canister_id: Principal,
-    canister_name: Option<&str>,
-    canister_timestamp: Option<candid::Int>,
-    args: &[u8],
-    mode: InstallMode,
-    call_sender: &CallSender,
-    wasm_module: Vec<u8>,
-    skip_consent: bool,
-) -> DfxResult<Option<num_bigint::BigInt>> {
-    let log = env.get_logger();
-    let mgr = ManagementCanister::create(agent);
-    if !skip_consent && mode == InstallMode::Reinstall {
-        let msg = if let Some(name) = canister_name {
-            format!("You are about to reinstall the {name} canister")
-        } else {
-            format!("You are about to reinstall the canister {canister_id}")
-        } + r#"
-This will OVERWRITE all the data and code in the canister.
-
-YOU WILL LOSE ALL DATA IN THE CANISTER.");
-
-"#;
-        ask_for_consent(&msg)?;
-    }
-    let mode_str = match mode {
-        InstallMode::Install => "Installing",
-        InstallMode::Reinstall => "Reinstalling",
-        InstallMode::Upgrade => "Upgrading",
-    };
-    if let Some(name) = canister_name {
-        info!(
-            log,
-            "{mode_str} code for canister {name}, with canister ID {canister_id}",
-        );
-    } else {
-        info!(log, "{mode_str} code for canister {canister_id}");
-    }
-    if let (Some(canister_timestamp), true) = (
-        canister_timestamp,
-        env.get_network_descriptor().is_playground(),
-    ) {
-        let new_timestamp = playground_install_code(
-            env,
-            canister_id,
-            canister_timestamp,
-            args,
-            wasm_module.as_slice(),
-            mode,
-        )
-        .await?;
-        Ok(Some(new_timestamp))
-    } else {
-        match call_sender {
-            CallSender::SelectedId => {
-                let install_builder = mgr
-                    .install_code(&canister_id, &wasm_module)
-                    .with_raw_arg(args.to_vec())
-                    .with_mode(mode);
-                install_builder
-                    .build()
-                    .context("Failed to build call sender.")?
-                    .call_and_wait()
-                    .await
-                    .context("Failed to install wasm.")?;
-            }
-            CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
-                let install_args = CanisterInstall {
-                    mode,
-                    canister_id,
-                    wasm_module,
-                    arg: args.to_vec(),
-                };
-                wallet
-                    .call(
-                        *mgr.canister_id_(),
-                        "install_code",
-                        Argument::from_candid((install_args,)),
-                        0,
-                    )
-                    .call_and_wait()
-                    .await
-                    .context("Failed during wasm installation call.")?;
-            }
-        }
-        Ok(None)
-    }
-}
-
 pub async fn install_wallet(
     env: &dyn Environment,
     agent: &Agent,
@@ -496,27 +400,11 @@ pub async fn install_wallet(
         .call_and_wait()
         .await
         .context("Failed to install wallet wasm.")?;
-    let wallet = build_wallet_canister(id, env).await?;
+    let wallet = build_wallet_canister(id, agent).await?;
     wallet
         .wallet_store_wallet_wasm(wasm)
         .call_and_wait()
         .await
         .context("Failed to store wallet wasm in container.")?;
-    Ok(())
-}
-
-fn ask_for_consent(message: &str) -> DfxResult {
-    eprintln!("WARNING!");
-    eprintln!("{}", message);
-    eprintln!("Do you want to proceed? yes/No");
-    let mut input_string = String::new();
-    stdin()
-        .read_line(&mut input_string)
-        .map_err(|err| anyhow!(err))
-        .context("Unable to read input")?;
-    let input_string = input_string.trim_end();
-    if input_string != "yes" {
-        bail!("Refusing to install canister without approval");
-    }
     Ok(())
 }

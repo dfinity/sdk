@@ -713,7 +713,8 @@ mod tests {
             &ConfigDefaultsBitcoin {
                 enabled: true,
                 nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: BitcoinAdapterLogLevel::Info
+                log_level: BitcoinAdapterLogLevel::Info,
+                ..ConfigDefaultsBitcoin::default()
             }
         );
     }
@@ -755,7 +756,8 @@ mod tests {
             &ConfigDefaultsBitcoin {
                 enabled: true,
                 nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: BitcoinAdapterLogLevel::Info // A default log level of "info" is assumed
+                log_level: BitcoinAdapterLogLevel::Info, // A default log level of "info" is assumed
+                ..ConfigDefaultsBitcoin::default()
             }
         );
     }
@@ -796,8 +798,8 @@ mod tests {
             bitcoin_config,
             &ConfigDefaultsBitcoin {
                 enabled: true,
-                nodes: None,
-                log_level: BitcoinAdapterLogLevel::Debug
+                log_level: BitcoinAdapterLogLevel::Debug,
+                ..ConfigDefaultsBitcoin::default()
             }
         );
     }
@@ -838,7 +840,8 @@ mod tests {
             &ConfigDefaultsBitcoin {
                 enabled: true,
                 nodes: Some(vec![SocketAddr::from_str("127.0.0.1:18444").unwrap()]),
-                log_level: BitcoinAdapterLogLevel::Info
+                log_level: BitcoinAdapterLogLevel::Info,
+                ..ConfigDefaultsBitcoin::default()
             }
         );
     }

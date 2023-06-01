@@ -9,7 +9,7 @@ use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
 
-use slog::{debug, Logger};
+use slog::{debug, info, Logger};
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 
@@ -118,17 +118,17 @@ impl LocalServerDescriptor {
         self.data_directory.join("ic-btc-adapter-socket-path")
     }
 
-    /// This file contains the configuration for the ic-canister-http-adapter
+    /// This file contains the configuration for the ic-https-outcalls-adapter
     pub fn canister_http_adapter_config_path(&self) -> PathBuf {
         self.data_directory.join("ic-canister-http-config.json")
     }
 
-    /// This file contains the pid of the ic-canister-http-adapter process
+    /// This file contains the pid of the ic-https-outcalls-adapter process
     pub fn canister_http_adapter_pid_path(&self) -> PathBuf {
-        self.data_directory.join("ic-canister-http-adapter-pid")
+        self.data_directory.join("ic-https-outcalls-adapter-pid")
     }
 
-    /// This file contains the PATH of the unix domain socket for the ic-canister-http-adapter
+    /// This file contains the PATH of the unix domain socket for the ic-https-outcalls-adapter
     pub fn canister_http_adapter_socket_holder_path(&self) -> PathBuf {
         self.data_directory.join("ic-canister-http-socket-path")
     }
@@ -165,6 +165,11 @@ impl LocalServerDescriptor {
     /// This is the port that the agent connects to.
     pub fn webserver_port_path(&self) -> PathBuf {
         self.data_directory.join("webserver-port")
+    }
+
+    /// This file contains the effective config the replica was started with.
+    pub fn effective_config_path(&self) -> PathBuf {
+        self.data_directory.join("replica-effective-config.json")
     }
 }
 
@@ -226,7 +231,7 @@ impl LocalServerDescriptor {
 }
 
 impl LocalServerDescriptor {
-    pub fn describe(&self, log: &Logger, include_replica: bool, include_replica_port: bool) {
+    pub fn describe(&self, log: &Logger) {
         debug!(log, "Local server configuration:");
         let default_bind: SocketAddr = match self.scope {
             LocalNetworkScopeDescriptor::Project => DEFAULT_PROJECT_LOCAL_BIND,
@@ -274,30 +279,29 @@ impl LocalServerDescriptor {
             debug!(log, "  canister http: disabled (default: enabled)");
         }
 
-        if include_replica {
-            debug!(log, "  replica:");
-            if include_replica_port {
-                debug!(log, "    port: ");
-            }
-            let subnet_type = self
-                .replica
-                .subnet_type
-                .unwrap_or(ReplicaSubnetType::Application);
-            let diffs: String = if subnet_type != ReplicaSubnetType::Application {
-                format!(" (default: {:?})", ReplicaSubnetType::Application)
-            } else {
-                "".to_string()
-            };
-            debug!(log, "    subnet type: {:?}{}", subnet_type, diffs);
-
-            let log_level = self.replica.log_level.unwrap_or_default();
-            let diffs: String = if log_level != ReplicaLogLevel::default() {
-                format!(" (default: {:?})", ReplicaLogLevel::default())
-            } else {
-                "".to_string()
-            };
-            debug!(log, "    log level: {:?}{}", log_level, diffs);
+        debug!(log, "  replica:");
+        if let Some(port) = self.replica.port {
+            debug!(log, "    port: {}", port);
         }
+        let subnet_type = self
+            .replica
+            .subnet_type
+            .unwrap_or(ReplicaSubnetType::Application);
+        let diffs: String = if subnet_type != ReplicaSubnetType::Application {
+            format!(" (default: {:?})", ReplicaSubnetType::Application)
+        } else {
+            "".to_string()
+        };
+        debug!(log, "    subnet type: {:?}{}", subnet_type, diffs);
+
+        let log_level = self.replica.log_level.unwrap_or_default();
+        let diffs: String = if log_level != ReplicaLogLevel::default() {
+            format!(" (default: {:?})", ReplicaLogLevel::default())
+        } else {
+            "".to_string()
+        };
+        debug!(log, "    log level: {:?}{}", log_level, diffs);
+
         debug!(log, "  data directory: {}", self.data_directory.display());
         let scope = match self.scope {
             LocalNetworkScopeDescriptor::Project => "project",
@@ -331,5 +335,55 @@ impl LocalServerDescriptor {
         };
         debug!(log, "  timeout: {}{}", self.bootstrap.timeout, diffs);
         debug!(log, "");
+    }
+    /// Gets the port of a local replica.
+    ///
+    /// # Prerequisites
+    /// - A local replica or emulator needs to be running, e.g. with `dfx start`.
+    pub fn get_running_replica_port(
+        &self,
+        logger: Option<&Logger>,
+    ) -> Result<Option<u16>, NetworkConfigError> {
+        let emulator_port_path = self.ic_ref_port_path();
+        let replica_port_path = self.replica_port_path();
+
+        match read_port_from(&replica_port_path)? {
+            Some(port) => {
+                if let Some(logger) = logger {
+                    info!(logger, "Found local replica running on port {}", port);
+                }
+                Ok(Some(port))
+            }
+            None => match read_port_from(&emulator_port_path)? {
+                Some(port) => {
+                    if let Some(logger) = logger {
+                        info!(logger, "Found local emulator running on port {}", port);
+                    }
+                    Ok(Some(port))
+                }
+                None => Ok(self.replica.port),
+            },
+        }
+    }
+}
+
+/// Reads a port number from a file.
+///
+/// # Prerequisites
+/// The file is expected to contain the port number only, as utf8 text.
+fn read_port_from(path: &Path) -> Result<Option<u16>, NetworkConfigError> {
+    if path.exists() {
+        let s = crate::fs::read_to_string(path)?;
+        let s = s.trim();
+        if s.is_empty() {
+            Ok(None)
+        } else {
+            let port = s.parse::<u16>().map_err(|e| {
+                NetworkConfigError::ParsePortValueFailed(Box::new(path.to_path_buf()), Box::new(e))
+            })?;
+            Ok(Some(port))
+        }
+    } else {
+        Ok(None)
     }
 }

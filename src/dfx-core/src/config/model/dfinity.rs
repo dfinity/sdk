@@ -9,7 +9,7 @@ use crate::error::dfx_config::DfxConfigError;
 use crate::error::dfx_config::DfxConfigError::{
     CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
     GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
-    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed,
+    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed, PullCanistersSameId,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
@@ -75,6 +75,31 @@ pub struct ConfigCanistersCanisterRemote {
     pub id: BTreeMap<String, Principal>,
 }
 
+/// # Wasm Optimization Levels
+/// Wasm optimization levels that are passed to `wasm-opt`. "cycles" defaults to O3, "size" defaults to Oz.
+/// O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os.
+/// O3 and Oz empirically give best cycle savings and code size savings respectively.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub enum WasmOptLevel {
+    #[serde(rename = "cycles")]
+    Cycles,
+    #[serde(rename = "size")]
+    Size,
+    O4,
+    O3,
+    O2,
+    O1,
+    O0,
+    Oz,
+    Os,
+}
+
+impl std::fmt::Display for WasmOptLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum MetadataVisibility {
@@ -132,6 +157,24 @@ impl CanisterMetadataSection {
             .map(|networks| networks.contains(network))
             .unwrap_or(true)
     }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct Pullable {
+    /// # wasm_url
+    /// The Url to download canister wasm.
+    pub wasm_url: String,
+    /// # wasm_hash
+    /// SHA256 hash of the wasm module located at wasm_url.
+    /// Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.
+    pub wasm_hash: Option<String>,
+    /// # dependencies
+    /// Canister IDs (Principal) of direct dependencies.
+    #[schemars(with = "Vec::<String>")]
+    pub dependencies: Vec<Principal>,
+    /// # init_guide
+    /// A message to guide consumers how to initialize the canister.
+    pub init_guide: String,
 }
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
@@ -195,17 +238,26 @@ pub struct ConfigCanistersCanister {
     /// Disabled by default for custom canisters.
     pub shrink: Option<bool>,
 
+    /// # Optimize Canister WASM
+    /// Invoke wasm level optimizations after building the canister. Optimization level can be set to "cycles" to optimize for cycle usage, "size" to optimize for binary size, or any of "O4, O3, O2, O1, O0, Oz, Os".
+    /// Disabled by default.
+    /// If this option is specified, the `shrink` option will be ignored.
+    #[serde(default)]
+    pub optimize: Option<WasmOptLevel>,
+
     /// # Metadata
     /// Defines metadata sections to set in the canister .wasm
     #[serde(default)]
     pub metadata: Vec<CanisterMetadataSection>,
 
-    /// # Ready for dfx Pull
-    /// Whether or not to make this canister ready for dfx pull by other project.
-    /// If true, several required metadata fields must be also set with the correct format.
-    // TODO: Add a link to `dfx pull` document.
+    /// # Pullable
+    /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
-    pub pull_ready: bool,
+    pub pullable: Option<Pullable>,
+
+    /// # Gzip Canister WASM
+    /// Disabled by default.
+    pub gzip: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -252,7 +304,7 @@ pub enum CanisterTypeProperties {
         /// # Canister ID
         /// Principal of the canister on the ic network.
         #[schemars(with = "String")]
-        id: candid::Principal,
+        id: Principal,
     },
 }
 
@@ -332,8 +384,21 @@ pub struct ConfigDefaultsBitcoin {
 
     /// # Logging Level
     /// The logging level of the adapter.
-    #[serde(default)]
+    #[serde(default = "default_bitcoin_log_level")]
     pub log_level: BitcoinAdapterLogLevel,
+
+    /// # Initialization Argument
+    /// The initialization argument for the bitcoin canister.
+    #[serde(default = "default_bitcoin_canister_init_arg")]
+    pub canister_init_arg: String,
+}
+
+pub fn default_bitcoin_log_level() -> BitcoinAdapterLogLevel {
+    BitcoinAdapterLogLevel::Info
+}
+
+pub fn default_bitcoin_canister_init_arg() -> String {
+    "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})".to_string()
 }
 
 impl Default for ConfigDefaultsBitcoin {
@@ -341,7 +406,8 @@ impl Default for ConfigDefaultsBitcoin {
         ConfigDefaultsBitcoin {
             enabled: false,
             nodes: None,
-            log_level: BitcoinAdapterLogLevel::Info,
+            log_level: default_bitcoin_log_level(),
+            canister_init_arg: default_bitcoin_canister_init_arg(),
         }
     }
 }
@@ -781,6 +847,23 @@ impl ConfigInterface {
             .ok_or(CanistersFieldDoesNotExist())?
             .get(canister_name)
             .ok_or_else(|| CanisterNotFound(canister_name.to_string()))
+    }
+
+    pub fn get_pull_canisters(&self) -> Result<BTreeMap<String, Principal>, DfxConfigError> {
+        let mut res = BTreeMap::new();
+        let mut id_to_name: BTreeMap<Principal, &String> = BTreeMap::new();
+        if let Some(map) = &self.canisters {
+            for (k, v) in map {
+                if let CanisterTypeProperties::Pull { id } = v.type_specific {
+                    if let Some(other_name) = id_to_name.get(&id) {
+                        return Err(PullCanistersSameId(other_name.to_string(), k.clone(), id));
+                    }
+                    res.insert(k.clone(), id);
+                    id_to_name.insert(id, k);
+                }
+            }
+        };
+        Ok(res)
     }
 }
 

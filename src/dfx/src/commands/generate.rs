@@ -4,9 +4,7 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::NetworkOpt;
 
-use anyhow::bail;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
@@ -17,12 +15,14 @@ pub struct GenerateOpts {
     /// If you do not specify a canister name, generates types for all canisters.
     canister_name: Option<String>,
 
-    #[clap(flatten)]
-    network: NetworkOpt,
+    // Deprecated/hidden because it had/has no effect.
+    // Cannot use 'hide' on a flattened  object - inlined the flattened network specifier
+    #[arg(long, global = true, hide = true)]
+    network: Option<String>,
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let env = create_anonymous_agent_environment(env, opts.network.network)?;
+    let env = create_anonymous_agent_environment(env, None)?;
     let log = env.get_logger();
 
     // Read the config.
@@ -49,9 +49,6 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
 
     let canister_pool_load = CanisterPool::load(&env, false, &canisters_to_load)?;
 
-    // This is just to display an error if trying to generate before creating the canister(s).
-    let store = env.get_canister_id_store()?;
-
     // If generate for motoko canister, build first
     let mut build_before_generate = Vec::new();
     let mut build_dependees = Vec::new();
@@ -59,18 +56,15 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         let canister_name = canister.get_name();
         if let Some(info) = canister_pool_load.get_first_canister_with_name(canister_name) {
             if info.get_info().is_motoko() {
-                for dependent_canister in config
-                    .get_config()
-                    .get_canister_names_with_dependencies(Some(canister_name))?
-                {
-                    if store.get(&dependent_canister).is_err() {
-                        bail!(format!("Motoko canisters require canister IDs for themselves and their dependencies for dfx generate. Please create canister '{}' before generating.", dependent_canister));
-                    }
-                    if !build_dependees.contains(&dependent_canister) {
-                        build_dependees.push(dependent_canister);
-                    }
-                }
                 build_before_generate.push(canister_name.to_string());
+            }
+            for dependent_canister in config
+                .get_config()
+                .get_canister_names_with_dependencies(Some(canister_name))?
+            {
+                if !build_dependees.contains(&dependent_canister) {
+                    build_dependees.push(dependent_canister);
+                }
             }
         }
     }
@@ -87,7 +81,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         .map(|v| !v.is_empty())
         .unwrap_or(false)
     {
-        let canister_pool_build = CanisterPool::load(&env, false, &build_dependees)?;
+        let canister_pool_build = CanisterPool::load(&env, true, &build_dependees)?;
         slog::info!(log, "Building canisters before generate for Motoko");
         let runtime = Runtime::new().expect("Unable to create a runtime");
         runtime.block_on(canister_pool_build.build_or_fail(log, &build_config))?;
