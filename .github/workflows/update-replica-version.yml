@@ -50,9 +50,8 @@ jobs:
 
     - name: install niv (dependency manager for Nix projects)
       run: |
-        nix-env -iA niv -f https://github.com/nmattia/niv/tarball/master \
-          --substituters https://niv.cachix.org \
-          --trusted-public-keys niv.cachix.org-1:X32PCg2e/zAm3/uD1ScqW2z/K0LtDyNV7RdaxIuLgQM=
+        nix-env -i niv -f '<nixpkgs>'
+        printenv PATH
 
     - name: intall packages from nix/sources.json
       run: niv update
