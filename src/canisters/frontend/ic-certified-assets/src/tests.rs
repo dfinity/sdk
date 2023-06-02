@@ -426,6 +426,82 @@ fn serve_correct_encoding_v2() {
 }
 
 #[test]
+fn serve_fallback_v2() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/index.html", "text/html")
+            .with_encoding("identity", vec![INDEX_BODY])],
+    );
+
+    let identity_response = state.http_request(
+        RequestBuilder::get("/index.html")
+            .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(identity_response.status_code, 200);
+    assert_eq!(identity_response.body.as_ref(), INDEX_BODY);
+    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
+
+    let fallback_response = state.http_request(
+        RequestBuilder::get("/nonexistent")
+            .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(fallback_response.status_code, 200);
+    assert_eq!(fallback_response.body.as_ref(), INDEX_BODY);
+    assert!(lookup_header(&fallback_response, "IC-Certificate").is_some());
+}
+
+#[test]
+fn serve_fallback_v1() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/index.html", "text/html")
+            .with_encoding("identity", vec![INDEX_BODY])],
+    );
+
+    let identity_response = state.http_request(
+        RequestBuilder::get("/index.html")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(identity_response.status_code, 200);
+    assert_eq!(identity_response.body.as_ref(), INDEX_BODY);
+    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
+
+    let fallback_response = state.http_request(
+        RequestBuilder::get("/nonexistent")
+            .with_header("Accept-Encoding", "identity")
+            .build(),
+        &[],
+        unused_callback(),
+    );
+    assert_eq!(fallback_response.status_code, 200);
+    assert_eq!(fallback_response.body.as_ref(), INDEX_BODY);
+    assert!(lookup_header(&fallback_response, "IC-Certificate").is_some());
+}
+
+#[test]
 fn can_create_assets_using_batch_proposal_api() {
     let mut state = State::default();
     let time_now = 100_000_000_000;

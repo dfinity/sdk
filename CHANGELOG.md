@@ -142,6 +142,8 @@ Updated cycles wallet to `20230530` release:
 
 The asset canister now properly removes the v2-certified response when `/index.html` is deleted.
 
+Fix: The fallback file (`/index.html`) will now be served when using certification v2 if the requested path was not found.
+
 The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field instead of implicitly returning `None` all the time.
 
 The asset canister no longer needs to use `await` for access control checks. This will speed up certain operations.
