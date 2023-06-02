@@ -762,8 +762,6 @@ impl State {
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        ic_cdk::println!("building response for v{}", req.get_certificate_version());
-
         if let Ok(asset) = self.get_asset(&path.into()) {
             if !asset.allow_raw_access() && req.is_raw_domain() {
                 return req.redirect_from_raw_to_certified_domain();
@@ -780,12 +778,8 @@ impl State {
             self.asset_hashes.witness_to_header(path, certificate)
         };
 
-        ic_cdk::println!("WitnessResult: {:?}", &witness_result);
-
         if witness_result == WitnessResult::FallbackFound {
-            ic_cdk::println!("into FallbackFound");
             if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
-                ic_cdk::println!("into Ok(get_fallback)");
                 if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
                     asset,
                     &requested_encodings,
@@ -796,13 +790,8 @@ impl State {
                     &etags,
                     req.get_certificate_version(),
                 ) {
-                    ic_cdk::println!("into Ok(http response)");
                     return response;
-                } else {
-                    ic_cdk::println!("failed to build HTTP response");
                 }
-            } else {
-                ic_cdk::println!("FALLBACK_FILE not found! {}", FALLBACK_FILE);
             }
         } else if witness_result == WitnessResult::PathFound {
             if let Ok(asset) = self.get_asset(&path.into()) {
