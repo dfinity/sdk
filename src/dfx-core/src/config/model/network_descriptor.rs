@@ -12,10 +12,9 @@ use slog::Logger;
 use std::path::{Path, PathBuf};
 use url::Url;
 
-//"rrkah-fqaaa-aaaaa-aaaaq-cai"
-const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal = Principal::from_slice(&[
-    0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-]);
+//"mwrha-maaaa-aaaab-qabqq-cai"
+const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
+    Principal::from_slice(&[0, 0, 0, 0, 0, 48, 0, 97, 1, 1]);
 pub const PLAYGROUND_NETWORK_NAME: &str = "playground";
 const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u128 = 1200;
 

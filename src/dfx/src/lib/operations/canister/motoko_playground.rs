@@ -48,6 +48,7 @@ pub async fn reserve_canister_with_playground(
     let mut canister_id_store = env.get_canister_id_store()?;
     let (timestamp, nonce) = create_nonce();
     let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce })?;
+    println!("Playground backend: {}", &playground_cid);
     let result = agent
         .update(&playground_cid, "getCanisterId")
         .with_arg(get_can_arg)

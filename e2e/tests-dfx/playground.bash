@@ -17,7 +17,6 @@ teardown() {
 setup_playground() {
   dfx_new hello
   create_networks_json
-  jq '.local.replica.subnet_type="system"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON" # use system subnet for local tests because current dfx (0.13.1) has an older replica that doesn't have DTS enabled yet - tested manually against mainnet
   mv dfx.json dfx.json.previous
   install_asset playground_backend
   dfx_start
@@ -73,4 +72,11 @@ setup_playground() {
   assert_command dfx canister create hello_backend --playground -vv
   assert_match "Canister 'hello_backend' has timed out."
   assert_match "Reserved canister 'hello_backend'"
+}
+
+@test "mainnet" {
+  rm "$E2E_NETWORKS_JSON"
+  assert_command dfx deploy --playground
+  assert_command dfx canister --playground call hello_backend greet '("player")'
+  assert_match "Hello, player!"
 }
