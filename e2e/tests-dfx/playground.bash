@@ -24,11 +24,12 @@ setup_playground() {
   echo "STARTED"
   dfx deploy backend
   dfx ledger fabricate-cycles --t 9999999 --canister backend
-  export PLAYGROUND_CANISTER_ID=$(dfx canister id backend)
+  PLAYGROUND_CANISTER_ID=$(dfx canister id backend)
+  export PLAYGROUND_CANISTER_ID
   echo "PLAYGROUND_CANISTER_ID is $PLAYGROUND_CANISTER_ID"
   WEBSERVER_PORT=$(get_webserver_port)
-  jq '.playground.bind="127.0.0.1:'$WEBSERVER_PORT'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-  jq '.playground.playground.playground_cid="'$PLAYGROUND_CANISTER_ID'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+  jq '.playground.bind="127.0.0.1:'"$WEBSERVER_PORT"'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+  jq '.playground.playground.playground_cid="'"$PLAYGROUND_CANISTER_ID"'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   cd ..
   rm -rf hello
 }
@@ -66,7 +67,7 @@ setup_playground() {
   assert_command dfx canister create hello_backend --playground -vv
   assert_match "Reserved canister 'hello_backend'"
   assert_command dfx canister create hello_backend --playground -vv
-  assert_match "hello_backend canister was already created" "$stderr"
+  assert_match "hello_backend canister was already created"
   sleep 10
   jq '.playground.playground.timeout="5"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   assert_command dfx canister create hello_backend --playground -vv
