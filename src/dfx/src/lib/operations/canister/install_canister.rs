@@ -66,7 +66,6 @@ pub async fn install_canister(
             InstallMode::Install
         }
     });
-    let is_playground_deployment = env.get_network_descriptor().is_playground();
     if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = &candid {
@@ -105,6 +104,7 @@ pub async fn install_canister(
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
     let new_hash = Sha256::digest(&wasm_module);
+    println!("Expecting new hash: {}", hex::encode(&new_hash));
 
     if mode == InstallMode::Upgrade
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
@@ -114,7 +114,7 @@ pub async fn install_canister(
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
-    } else if canister_info.is_assets() && !no_asset_upgrade {
+    } else if !(canister_info.is_assets() && no_asset_upgrade) {
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp =
                 playground_install_code(env, canister_id, timestamp, &args, &wasm_module, mode)
@@ -125,6 +125,7 @@ pub async fn install_canister(
                 Some(new_timestamp),
             )?;
         } else {
+            println!("Installing");
             install_canister_wasm(
                 agent,
                 canister_id,
@@ -139,51 +140,26 @@ pub async fn install_canister(
             .await?;
         }
     }
-    // in playground deployments we can't use module hashes - the wasm can be modified before installation
-    if !is_playground_deployment {
-        let mut retry_policy = ExponentialBackoff::default();
-        let mut times = 0;
-        loop {
-            match read_state_tree_canister_module_hash(agent, canister_id).await? {
-                Some(reported_hash) => {
-                    if env.get_network_descriptor().is_playground() {
-                        // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
-                        info!(
-                            log,
-                            "Something is installed in the canister. Assuming new code is installed."
-                        );
-                        break;
-                    }
-                    if reported_hash[..] == new_hash[..] {
-                        break;
-                    } else if installed_module_hash
-                        .as_deref()
-                        .map_or(true, |old_hash| old_hash == reported_hash)
-                    {
-                        times += 1;
-                        if times > 3 {
-                            info!(
-                                env.get_logger(),
-                                "Waiting for module change to be reflected in system state tree..."
-                            )
-                        }
-                        let interval = retry_policy.next_backoff()
-                            .context("Timed out waiting for the module to update to the new hash in the state tree. \
-                                Something may have gone wrong with the upload. \
-                                No post-installation tasks have been run, including asset uploads.")?;
-                        tokio::time::sleep(interval).await;
-                    } else {
-                        bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
-                            It has likely been modified while this command is running. \
-                            The state of the canister is unknown. \
-                            For this reason, no post-installation tasks have been run, including asset uploads.",
-                            old = installed_module_hash.map_or_else(|| "none".to_string(), hex::encode),
-                            new = hex::encode(new_hash),
-                            reported = hex::encode(reported_hash),
-                        )
-                    }
+    let mut retry_policy = ExponentialBackoff::default();
+    let mut times = 0;
+    loop {
+        match read_state_tree_canister_module_hash(agent, canister_id).await? {
+            Some(reported_hash) => {
+                println!("Reported hash: {}", hex::encode(&reported_hash));
+                if env.get_network_descriptor().is_playground() {
+                    // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
+                    info!(
+                        log,
+                        "Something is installed in the canister. Assuming new code is installed."
+                    );
+                    break;
                 }
-                None => {
+                if reported_hash[..] == new_hash[..] {
+                    break;
+                } else if installed_module_hash
+                    .as_deref()
+                    .map_or(true, |old_hash| old_hash == reported_hash)
+                {
                     times += 1;
                     if times > 3 {
                         info!(
@@ -192,14 +168,39 @@ pub async fn install_canister(
                         )
                     }
                     let interval = retry_policy.next_backoff()
+                            .context("Timed out waiting for the module to update to the new hash in the state tree. \
+                                Something may have gone wrong with the upload. \
+                                No post-installation tasks have been run, including asset uploads.")?;
+                    tokio::time::sleep(interval).await;
+                } else {
+                    bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
+                            It has likely been modified while this command is running. \
+                            The state of the canister is unknown. \
+                            For this reason, no post-installation tasks have been run, including asset uploads.",
+                            old = installed_module_hash.map_or_else(|| "none".to_string(), hex::encode),
+                            new = hex::encode(new_hash),
+                            reported = hex::encode(reported_hash),
+                        )
+                }
+            }
+            None => {
+                println!("it's None!");
+                times += 1;
+                if times > 3 {
+                    info!(
+                        env.get_logger(),
+                        "Waiting for module change to be reflected in system state tree..."
+                    )
+                }
+                let interval = retry_policy.next_backoff()
                         .context("Timed out waiting for the module to update to the new hash in the state tree. \
                             Something may have gone wrong with the upload. \
                             No post-installation tasks have been run, including asset uploads.")?;
-                    tokio::time::sleep(interval).await;
-                }
+                tokio::time::sleep(interval).await;
             }
         }
     }
+
     if canister_info.is_assets() {
         if let Some(canister_timeout) = canister_id_store.get_timestamp(canister_info.get_name()) {
             // playground installed the code, so playground has to authorize call_sender to upload files

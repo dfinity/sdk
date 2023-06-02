@@ -105,12 +105,10 @@ impl CanisterBuilder for AssetsBuilder {
         let compressed_wasm_path = info
             .get_output_root()
             .join(Path::new("assetstorage.wasm.gz"));
-        let wasm_path = info
-            .get_output_root()
-            .join(Path::new("assetstorage.wasm.gz"));
         unpack_did(info.get_output_root())?;
         let canister_assets = util::assets::assets_wasm(&self.logger)?;
-        fs::write(&wasm_path, &canister_assets).context("Failed to write asset canister wasm")?;
+        fs::write(&compressed_wasm_path, &canister_assets)
+            .context("Failed to write asset canister wasm")?;
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
         if config.network_is_playground {
             let zipped_wasm =

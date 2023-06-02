@@ -2,6 +2,7 @@ mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
 
+use anyhow::bail;
 pub use create_canister::create_canister;
 
 use crate::lib::canister_info::CanisterInfo;
@@ -128,6 +129,10 @@ pub async fn stop_canister(
     canister_id: Principal,
     call_sender: &CallSender,
 ) -> DfxResult {
+    if env.get_network_descriptor().is_playground() {
+        bail!("Canisters borrowed from a playground cannot be stopped.");
+    }
+
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,

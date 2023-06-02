@@ -108,6 +108,7 @@ pub async fn deploy_canisters(
         let create_call_sender = if no_wallet
             || specified_id.is_some()
             || matches!(call_sender, CallSender::Wallet(_))
+            || env.get_network_descriptor().is_playground()
         {
             call_sender
         } else {

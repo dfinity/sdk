@@ -1,6 +1,6 @@
 let upstream =
-      https://github.com/dfinity/vessel-package-set/releases/download/mo-0.6.18-20220107/package-set.dhall
-        sha256:af8b8dbe762468ce9b002fb0c62e65e1a3ee0d003e793c4404a16f8531a71b59
+      https://github.com/dfinity/vessel-package-set/releases/download/mo-0.9.1-20230516/package-set.dhall
+        sha256:1ec31bbdea0234767f35941608d4c763b9dd9951858158057fa92a4a71b574d6
 
 let Package =
       { name : Text, version : Text, repo : Text, dependencies : List Text }
@@ -10,7 +10,7 @@ let
     additions =
         [ { name = "base"
           , repo = "https://github.com/dfinity/motoko-base"
-          , version = "master"
+          , version = "5d225a427fb785aacb3051acab4be69651c19101"
           , dependencies = [] : List Text
           }
         ]

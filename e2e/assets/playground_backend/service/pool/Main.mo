@@ -359,7 +359,7 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
         msg : {
             #GCCanisters : Any;
             #balance : Any;
-            #callForward : Any;
+            #callForward: Any;
             #dump : Any;
             #getCanisterId : Any;
             #getSubtree : Any;

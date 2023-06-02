@@ -56,7 +56,7 @@ let init = opt record {
 };
 let S = install(wasm, init, opt 100_000_000_000);
 fail call S.getCanisterId(nonce);
-assert _ ~= "105000000000 cycles";
+assert _ ~= "105_000_000_000 cycles";
 call ic.provisional_top_up_canister(
   record {
     canister_id = S;
