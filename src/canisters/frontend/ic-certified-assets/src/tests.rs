@@ -223,6 +223,12 @@ fn assemble_create_assets_and_set_contents_operations(
     operations
 }
 
+fn delete_batch(state: &mut State, batch_id: BatchId) {
+    state
+        .delete_batch(DeleteBatchArguments { batch_id })
+        .unwrap();
+}
+
 fn lookup_header<'a>(response: &'a HttpResponse, header: &str) -> Option<&'a str> {
     response
         .headers
@@ -1992,11 +1998,12 @@ mod evidence_computation {
                 .is_ok());
             let evidence_1 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_1,
+                    batch_id: batch_1.clone(),
                     max_iterations: Some(3),
                 })
                 .unwrap()
                 .unwrap();
+            delete_batch(&mut state, batch_1);
 
             let batch_2 = state.create_batch(time_now).unwrap();
             assert!(state
@@ -2014,11 +2021,12 @@ mod evidence_computation {
                 .is_ok());
             let evidence_2 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_2,
+                    batch_id: batch_2.clone(),
                     max_iterations: Some(3),
                 })
                 .unwrap()
                 .unwrap();
+            delete_batch(&mut state, batch_2);
 
             assert_eq!(evidence_1, evidence_2);
         }
@@ -2043,11 +2051,12 @@ mod evidence_computation {
                 .is_ok());
             let evidence_1 = state
                 .compute_evidence(ComputeEvidenceArguments {
-                    batch_id: batch_1,
+                    batch_id: batch_1.clone(),
                     max_iterations: Some(3),
                 })
                 .unwrap()
                 .unwrap();
+            delete_batch(&mut state, batch_1);
 
             let batch_2 = state.create_batch(time_now).unwrap();
             assert!(state
@@ -2098,11 +2107,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2150,11 +2160,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2202,11 +2213,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2225,11 +2237,12 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_2);
 
         let batch_3 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2279,11 +2292,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2301,11 +2315,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_2);
 
         let batch_3 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2324,11 +2339,12 @@ mod evidence_computation {
 
         let evidence_3 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_3,
+                batch_id: batch_3.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_3);
 
         let batch_4 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2384,11 +2400,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2407,11 +2424,12 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_2);
 
         let batch_3 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2461,11 +2479,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2484,11 +2503,12 @@ mod evidence_computation {
 
         let evidence_2 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_2,
+                batch_id: batch_2.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_2);
 
         let batch_3 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2536,11 +2556,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2584,11 +2605,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2644,11 +2666,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         let chunk_2 = state
@@ -2725,11 +2748,12 @@ mod evidence_computation {
         }
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(4),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         {
@@ -2796,11 +2820,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2844,11 +2869,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2892,11 +2918,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2938,11 +2965,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -2978,11 +3006,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
@@ -3027,11 +3056,12 @@ mod evidence_computation {
             .is_ok());
         let evidence_1 = state
             .compute_evidence(ComputeEvidenceArguments {
-                batch_id: batch_1,
+                batch_id: batch_1.clone(),
                 max_iterations: Some(3),
             })
             .unwrap()
             .unwrap();
+        delete_batch(&mut state, batch_1);
 
         let batch_2 = state.create_batch(time_now).unwrap();
         assert!(state
