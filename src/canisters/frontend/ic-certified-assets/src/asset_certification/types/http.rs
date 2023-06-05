@@ -126,7 +126,10 @@ impl HttpRequest {
     #[cfg(test)]
     pub fn get_canister_id(&self) -> &str {
         if let Some(host_header) = self.get_header_value("Host") {
-            if host_header.contains(".localhost") || host_header.contains(".io") {
+            if host_header.contains(".localhost")
+                || host_header.contains(".io")
+                || host_header.contains(".app")
+            {
                 return host_header.split('.').next().unwrap();
             } else if let Some(t) = self.url.split("canisterId=").nth(1) {
                 let x = t.split_once('&');
