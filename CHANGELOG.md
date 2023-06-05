@@ -150,7 +150,7 @@ The asset canister no longer needs to use `await` for access control checks. Thi
 
 The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
 
-- Module hash: fe65a9da03a42fd84decfcf915c8ce47ff0bd0c39c1264c8454db47c8c21690b
+- Module hash: f570109c04f6d997aa7addd0697831d15775b272db0764642f37c576d64065b6
 - https://github.com/dfinity/sdk/pull/3158
 - https://github.com/dfinity/sdk/pull/3144
 - https://github.com/dfinity/sdk/pull/3120
