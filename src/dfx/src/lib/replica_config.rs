@@ -91,7 +91,6 @@ impl ReplicaConfig {
         }
     }
 
-    #[allow(dead_code)]
     pub fn with_port(self, port: u16) -> Self {
         ReplicaConfig {
             http_handler: self.http_handler.with_port(port),

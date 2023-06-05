@@ -4,6 +4,21 @@
 
 ## DFX
 
+### feat: add optional custom build command for asset canisters
+
+The custom build command can be set in `dfx.json` the same way it is set for `custom` type canisters. If the command is not provided, DFX will fallback to the default `npm run build` command.
+
+```json
+{
+  "canisters": {
+    "ui": {
+      "type": "assets",
+      "build": ["<custom build command>"]
+    }
+  }
+}
+```
+
 ### fix: motoko canisters can import other canisters with service constructor
 
 After specific canister builder output wasm and candid file, `dfx` will do some post processing on the candid file.
@@ -87,29 +102,54 @@ This is required for future replica versions.
 
 Adds a new field `canister_init_arg` to the bitcoin configuration in dfx.json and networks.json.  Its default is documented in the JSON schema and is appropriate for the canister wasm bundled with dfx.
 
+### fix: dfx start now respects the network replica port configuration in dfx.json or networks.json
+
 ### fix: no longer enable the bitcoin_regtest feature
 
 ## Asset Canister Synchronization
 
-Added more detailed logging to `ic-asset`. Now, when running `dfx deploy -v` (or `-vv`), the following information will be printed:
+### feat: Added more detailed logging to `ic-asset`.
+Now, `dfx deploy -v` (or `-vv`) will print the following information:
 - The count for each `BatchOperationKind` in `CommitBatchArgs`
 - The number of chunks uploaded and the total bytes
 - The API version of both the `ic-asset` and the canister
 - (Only for `-vv`) The value of `CommitBatchArgs`
 
+### fix: Commit batches incrementally in order to account for more expensive v2 certification calculation
 In order to allow larger changes without exceeding the per-message instruction limit, the sync process now:
 - sets properties of assets already in the canister separately from the rest of the batch.
 - splits up the rest of the batch into groups of up to 500 operations.
 
+### fix: now retries failed `create_chunk()` calls
+
+Previously, it would only retry when waiting for the request to complete.
+
+### fix: now considers fewer error types to be retryable
+
+Previously, errors were assumed to be retryable, except for a few specific error messages and 403/unauthorized responses.  This could cause deployment to appear to hang until timeout.  
+
+Now, only transport errors and timeout errors are considered retryable.
+
 ## Dependencies
+
+### Cycles wallet
+
+Updated cycles wallet to `20230530` release:
+- Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
+- https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
 
 ### Frontend canister
 
 The asset canister now properly removes the v2-certified response when `/index.html` is deleted.
 
+Fix: The fallback file (`/index.html`) will now be served when using certification v2 if the requested path was not found.
+
 The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field instead of implicitly returning `None` all the time.
 
-- Module hash: 651425d92d3796ddae581191452e0e87484eeff4ff6352fe9a59c7e1f97a2310
+The asset canister no longer needs to use `await` for access control checks. This will speed up certain operations.
+
+- Module hash: 6963fd7765c3f69a64de691ebd1b313e3706bc233a721c60274adccb99a8f4a7
+- https://github.com/dfinity/sdk/pull/3144
 - https://github.com/dfinity/sdk/pull/3120
 - https://github.com/dfinity/sdk/pull/3112
 
@@ -117,10 +157,16 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 
 Updated Motoko to 0.8.8
 
+### ic-ref
+
+Updated ic-ref to 0.0.1-a9f73dba
+
 ### Replica
 
-Updated replica to elected commit b3b00ba59c366384e3e0cd53a69457e9053ec987.
+Updated replica to elected commit 794fc5b9341fa8f6a0e8f219201c35f0b5727ab9.
 This incorporates the following executed proposals:
+- [122617](https://dashboard.internetcomputer.org/proposal/122617)
+- [122615](https://dashboard.internetcomputer.org/proposal/122615)
 - [122529](https://dashboard.internetcomputer.org/proposal/122529)
 - [122284](https://dashboard.internetcomputer.org/proposal/122284)
 - [122198](https://dashboard.internetcomputer.org/proposal/122198)

@@ -249,7 +249,7 @@ pub fn exec(
                 .await
             });
     }
-    local_server_descriptor.describe(env.get_logger(), true, false);
+    local_server_descriptor.describe(env.get_logger());
 
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
@@ -288,9 +288,13 @@ pub fn exec(
         .unwrap_or_default();
 
     let replica_config = {
-        let mut replica_config =
-            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay)
-                .with_random_port(&replica_port_path);
+        let replica_config =
+            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
+        let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
+            replica_config.with_port(port)
+        } else {
+            replica_config.with_random_port(&replica_port_path)
+        };
         if let Some(btc_adapter_config) = btc_adapter_config.as_ref() {
             replica_config = replica_config.with_btc_adapter_enabled();
             if let Some(btc_adapter_socket) = btc_adapter_config.get_socket_path() {
@@ -328,8 +332,12 @@ pub fn exec(
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let emulator =
-                start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
+            let emulator = start_emulator_actor(
+                env,
+                local_server_descriptor,
+                shutdown_controller.clone(),
+                emulator_port_path,
+            )?;
             emulator.recipient()
         } else {
             let btc_adapter_ready_subscribe = btc_adapter_config

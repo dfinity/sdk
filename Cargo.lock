@@ -1988,12 +1988,11 @@ dependencies = [
 
 [[package]]
 name = "ic-cdk"
-version = "0.6.10"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c98b304a2657bad15bcb547625a018e13cf596676d834cfd93023395a6e2e03a"
+checksum = "401ddc246ab0d80e5e0bd2c926c6a0feef7b82ddbed81f1e752784c4aac58928"
 dependencies = [
  "candid 0.8.4",
- "cfg-if 1.0.0",
  "ic-cdk-macros",
  "ic0",
  "serde",
@@ -2157,9 +2156,9 @@ dependencies = [
 
 [[package]]
 name = "ic0"
-version = "0.18.9"
+version = "0.18.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "978b91fc78de9d2eb0144db717839cde3b35470199ea51aca362cb6310e93dfd"
+checksum = "187fa0cecf46628330b7a390a1a65fb0637ea00d3a1121aa847ecbebc0f3ff79"
 
 [[package]]
 name = "icx-asset"
