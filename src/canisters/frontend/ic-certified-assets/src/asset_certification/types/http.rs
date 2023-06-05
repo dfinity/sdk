@@ -115,7 +115,7 @@ impl HttpRequest {
         let canister_id = self.get_canister_id();
 
         let location = match self.get_header_value("Host") {
-            Some(host_header) if host_header.contains("ic0.app") => {
+            Some(host_header) if host_header.ends_with("ic0.app") => {
                 format!("https://{canister_id}.ic0.app{path}", path = self.url)
             }
             _ => format!("https://{canister_id}.icp0.io{path}", path = self.url),

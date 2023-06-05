@@ -2,6 +2,15 @@
 
 # UNRELEASED
 
+## DFX
+
+### Frontend canister
+
+The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
+
+- Module hash: ???
+- https://github.com/dfinity/sdk/pull/3158
+
 # 0.14.1
 
 ## DFX
@@ -150,10 +159,7 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 
 The asset canister no longer needs to use `await` for access control checks. This will speed up certain operations.
 
-The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
-
-- Module hash: f570109c04f6d997aa7addd0697831d15775b272db0764642f37c576d64065b6
-- https://github.com/dfinity/sdk/pull/3158
+- Module hash: 6963fd7765c3f69a64de691ebd1b313e3706bc233a721c60274adccb99a8f4a7
 - https://github.com/dfinity/sdk/pull/3144
 - https://github.com/dfinity/sdk/pull/3120
 - https://github.com/dfinity/sdk/pull/3112
