@@ -114,7 +114,12 @@ impl HttpRequest {
         #[cfg(test)]
         let canister_id = self.get_canister_id();
 
-        let location = format!("https://{canister_id}.icp0.io{path}", path = self.url);
+        let location = match self.get_header_value("Host") {
+            Some(host_header) if host_header.contains("ic0.app") => {
+                format!("https://{canister_id}.ic0.app{path}", path = self.url)
+            }
+            _ => format!("https://{canister_id}.icp0.io{path}", path = self.url),
+        };
         HttpResponse::build_redirect(HTTP_REDIRECT_PERMANENT, location)
     }
 
