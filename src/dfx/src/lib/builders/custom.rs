@@ -15,7 +15,7 @@ use console::style;
 use fn_error_context::context;
 use slog::info;
 use slog::Logger;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use url::Url;
 
 /// Set of extras that can be specified in the dfx.json.

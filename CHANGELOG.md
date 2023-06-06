@@ -2,6 +2,15 @@
 
 # UNRELEASED
 
+## DFX
+
+### Frontend canister
+
+The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
+
+- Module hash: df1a2cf4ebaeef6a5a8d3302d9c64aad21a83796bacd3dde4d9a4b013a8f5905
+- https://github.com/dfinity/sdk/pull/3158
+
 # 0.14.1
 
 ## DFX
