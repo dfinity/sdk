@@ -1462,6 +1462,13 @@ mod allow_raw_access {
             lookup_header(&response, "Location").unwrap(),
             "https://a-b-c.icp0.io/page"
         );
+        let response = state.fake_http_request("a-b-c.raw.ic0.app", "/page");
+        dbg!(&response);
+        assert_eq!(response.status_code, 308);
+        assert_eq!(
+            lookup_header(&response, "Location").unwrap(),
+            "https://a-b-c.ic0.app/page"
+        );
 
         state.create_test_asset(AssetBuilder::new("/page2.html", "text/html"));
         let response = state.fake_http_request("a-b-c.raw.icp0.io", "/page2");
