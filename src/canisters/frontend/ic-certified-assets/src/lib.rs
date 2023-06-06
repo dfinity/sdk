@@ -258,7 +258,7 @@ fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
     });
 }
 
-#[update(guard = "can_commit")]
+#[update]
 #[candid_method(update)]
 fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
     STATE.with(|s| s.borrow_mut().validate_commit_proposed_batch(arg))
@@ -365,7 +365,7 @@ fn configure(arg: ConfigureArguments) {
     STATE.with(|s| s.borrow_mut().configure(arg))
 }
 
-#[update(guard = "can_commit")]
+#[update]
 #[candid_method(update)]
 fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
     Ok(format!("configure: {:?}", arg))

@@ -8,8 +8,28 @@
 
 The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
 
-- Module hash: df1a2cf4ebaeef6a5a8d3302d9c64aad21a83796bacd3dde4d9a4b013a8f5905
-- https://github.com/dfinity/sdk/pull/3158
+The `validate_commit_proposed_batch()` method no longer requires any permission to call.
+
+The asset canister now enforces limits during upload.  These limits to not apply to assets already uploaded.
+
+Unconditional limits:
+- `create_batch()` now fails if `dfx deploy --by-proposal` got as far as calling `propose_commit_batch()`, and the batch has not since been committed or deleted.
+
+Configurable limits:
+- `max_batches`: limits number of batches being uploaded.
+- `max_chunks`: limits total number of chunks across all batches being uploaded.
+- `max_bytes`: limits total size of content bytes across all chunks being uploaded.
+
+Added methods:
+- `configure()` to set limits
+- `validate_configure()`: companion method for SNS
+- `get_configuration()`: to view limits
+
+Suggestions for configured limits:
+- dapps controlled by SNS: max_batches=1; max_chunks and max_bytes based on asset composition.
+- dapps not controlled by SNS: unlimited (which is the default)
+
+Note that as always, if `dfx deploy` does not completely upload and commit a batch, the asset canister will retain the batch until 5 minutes have passed since the last chunk was uploaded.  If you have configured limits and the combination of an unsuccessful deployment and a subsequent attempt would exceed those limits, you can either wait 5 minutes before running `dfx deploy` again, or delete the incomplete batch with `delete_batch()`.
 
 ## Dependencies
 
@@ -17,6 +37,7 @@ The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.i
 
 - Module hash: 88777a911f41389de47719549b32e734a8ba2d65a5a1258b6edfdf35859479d8
 - https://github.com/dfinity/sdk/pull/3154
+- https://github.com/dfinity/sdk/pull/3158
 
 # 0.14.1
 
@@ -166,29 +187,7 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 
 The asset canister no longer needs to use `await` for access control checks. This will speed up certain operations.
 
-The asset canister now enforces limits during upload.  These limits to not apply to assets already uploaded.
-
-Unconditional limits:
-- `create_batch()` now fails if `dfx deploy --by-proposal` got as far as calling `propose_commit_batch()`, and the batch has not since been committed or deleted.
-
-Configurable limits:
-- `max_batches`: limits number of batches being uploaded.
-- `max_chunks`: limits total number of chunks across all batches being uploaded.
-- `max_bytes`: limits total size of content bytes across all chunks being uploaded.
-
-Added methods:
-- `configure()` to set limits
-- `validate_configure()`: companion method for SNS
-- `get_configuration()`: to view limits
-
-Suggestions for configured limits:
-- dapps controlled by SNS: max_batches=1; max_chunks and max_bytes based on asset composition.
-- dapps not controlled by SNS: unlimited (which is the default)
-
-Note that as always, if `dfx deploy` does not completely upload and commit a batch, the asset canister will retain the batch until 5 minutes have passed since the last chunk was uploaded.  If you have configured limits and the combination of an unsuccessful deployment and a subsequent attempt would exceed those limits, you can either wait 5 minutes before running `dfx deploy` again, or delete the incomplete batch with `delete_batch()`.
-
-- Module hash: beeb9cc2954b8de14d76e3bd4cf5d0e0b3aee492a619ca9ae5872d7e0c3ddce9
-- https://github.com/dfinity/sdk/pull/3154
+- Module hash: 6963fd7765c3f69a64de691ebd1b313e3706bc233a721c60274adccb99a8f4a7
 - https://github.com/dfinity/sdk/pull/3144
 - https://github.com/dfinity/sdk/pull/3120
 - https://github.com/dfinity/sdk/pull/3112
