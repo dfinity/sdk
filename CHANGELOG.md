@@ -35,7 +35,7 @@ Note that as always, if `dfx deploy` does not completely upload and commit a bat
 
 ### Frontend canister
 
-- Module hash: 88777a911f41389de47719549b32e734a8ba2d65a5a1258b6edfdf35859479d8
+- Module hash: 99eae7ce78e59352817faf811c2337707e8de955d00f62b98fdd49d35f99a2f4
 - https://github.com/dfinity/sdk/pull/3154
 - https://github.com/dfinity/sdk/pull/3158
 
