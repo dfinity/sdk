@@ -106,7 +106,7 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
     };
 
     public shared ({ caller }) func getCanisterId(nonce : PoW.Nonce) : async Types.CanisterInfo {
-        if (caller != controller and not nonceCache.checkProofOfWork(nonce)) {
+        if (not nonceCache.checkProofOfWork(nonce)) {
             stats := Logs.updateStats(stats, #mismatch);
             throw Error.reject "Proof of work check failed";
         };
@@ -359,7 +359,7 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
         msg : {
             #GCCanisters : Any;
             #balance : Any;
-            #callForward: Any;
+            #callForward : Any;
             #dump : Any;
             #getCanisterId : Any;
             #getSubtree : Any;
