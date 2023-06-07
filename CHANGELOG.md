@@ -84,6 +84,12 @@ Now, only transport errors and timeout errors are considered retryable.
 
 Updated ic-ref to 0.0.1-a9f73dba
 
+### Cycles wallet
+
+Updated cycles wallet to `20230530` release:
+- Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
+- https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
+
 ### Replica
 
 Updated replica to elected commit 794fc5b9341fa8f6a0e8f219201c35f0b5727ab9.
@@ -196,12 +202,6 @@ Previously, errors were assumed to be retryable, except for a few specific error
 Now, only transport errors and timeout errors are considered retryable.
 
 ## Dependencies
-
-### Cycles wallet
-
-Updated cycles wallet to `20230530` release:
-- Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
-- https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
 
 ### Frontend canister
 
