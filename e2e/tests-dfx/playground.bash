@@ -21,9 +21,9 @@ setup_playground() {
   create_networks_json
   mv dfx.json dfx.json.previous
   install_asset playground_backend
+  # TODO: remove once discussion with Yan is resolved
   jq '.local.replica.subnet_type="system"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   dfx_start
-  echo "STARTED"
   dfx deploy backend
   dfx ledger fabricate-cycles --t 9999999 --canister backend
   PLAYGROUND_CANISTER_ID=$(dfx canister id backend)
@@ -39,9 +39,9 @@ setup_playground() {
 
 @test "--playground aliases to --network playground" {
   assert_command dfx canister create hello_backend --playground -vv
+  NETWORK_PLAYGROUND_ID=$(dfx canister id hello_backend --network playground)
   assert_command dfx canister id hello_backend --playground
-  CANISTER_ID=$(dfx canister id hello_backend --network playground)
-  assert_match "${CANISTER_ID}"
+  assert_match "${NETWORK_PLAYGROUND_ID}"
 }
 
 @test "canister lifecycle" {
@@ -55,7 +55,6 @@ setup_playground() {
   assert_command_fail dfx canister stop "${CANISTER}"
   assert_match "403 Forbidden"
 
-  find .
   sed -i '' 's/Hello/Goodbye/g' src/hello_backend/main.mo
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'
@@ -63,6 +62,7 @@ setup_playground() {
 
   assert_command dfx canister --playground delete hello_backend
   assert_command_fail dfx canister --playground info hello_backend
+  # canister is not actually deleted - the playground would have to do that
   assert_command dfx canister --playground info "$CANISTER"
 }
 
@@ -78,7 +78,7 @@ setup_playground() {
   assert_match "Reserved canister 'hello_backend'"
 }
 
-@test "mainnet" {
+@test "Can deploy to mainnet playground" {
   rm "$E2E_NETWORKS_JSON"
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'

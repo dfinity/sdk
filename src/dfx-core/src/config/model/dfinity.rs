@@ -592,7 +592,7 @@ impl ReplicaSubnetType {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct PlaygroundConfig {
     /// Canister ID of the playground canister
-    pub playground_cid: String,
+    pub playground_canister: String,
 
     /// How many seconds a canister can be borrowed for
     #[schemars(with = "Option<u32>")]

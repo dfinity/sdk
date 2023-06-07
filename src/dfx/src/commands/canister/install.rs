@@ -111,8 +111,7 @@ pub async fn exec(
         let arg_type = opts.argument_type.as_deref();
         let canister_info = config.as_ref()
             .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
-            .and_then(|config| CanisterInfo::load(config, canister, Some(canister_id)))
-            .with_context(|| format!("Failed to load canister info for {}.", canister))?;
+            .and_then(|config| CanisterInfo::load(config, canister, Some(canister_id)))?;
         if let Some(wasm_path) = opts.wasm {
             // streamlined version, we can ignore most of the environment
             let mode = mode.context("The install mode cannot be auto when using --wasm")?;

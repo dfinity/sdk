@@ -43,12 +43,11 @@ pub async fn reserve_canister_with_playground(
         debug!(log, "playground canister is {}", playground_cid);
         playground_cid
     } else {
-        bail!("Unreachable - trying to reserve canister with playground on non-playground network.")
+        bail!("Trying to reserve canister with playground on non-playground network.")
     };
     let mut canister_id_store = env.get_canister_id_store()?;
     let (timestamp, nonce) = create_nonce();
     let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce })?;
-    println!("Playground backend: {}", &playground_cid);
     let result = agent
         .update(&playground_cid, "getCanisterId")
         .with_arg(get_can_arg)
@@ -66,7 +65,7 @@ pub async fn reserve_canister_with_playground(
         env.get_logger(),
         "Reserved canister '{}' with id {} with the playground.",
         canister_name,
-        reserved_canister.id.to_string()
+        reserved_canister.id
     );
 
     Ok(())
@@ -85,15 +84,15 @@ pub async fn authorize_asset_uploader(
     {
         playground_cid
     } else {
-        bail!("Unreachable - trying to authorize asset uploader on non-playground network.")
+        bail!("Trying to authorize asset uploader on non-playground network.")
     };
     let canister_info = CanisterInfo {
         id: canister_id,
         timestamp: canister_timestamp,
     };
 
-    let level_2_arg = Encode!(&principal_to_authorize)?;
-    let call_arg = Encode!(&canister_info, &"authorize", &level_2_arg)?;
+    let nested_arg = Encode!(&principal_to_authorize)?;
+    let call_arg = Encode!(&canister_info, &"authorize", &nested_arg)?;
 
     let _ = agent
         .update(&playground_cid, "callForward")
@@ -125,7 +124,7 @@ pub async fn playground_install_code(
     {
         playground_cid
     } else {
-        bail!("Unreachable - trying to install wasm through playground on non-playground network.")
+        bail!("Trying to install wasm through playground on non-playground network.")
     };
     let install_arg = InstallArgs {
         arg,
@@ -161,22 +160,13 @@ fn proof_of_work(timestamp: candid::Int) -> (candid::Int, candid::Nat) {
     let mut nonce = candid::Nat::from(rng.gen::<i32>());
     let prefix = format!("{}{}", POW_DOMAIN, timestamp);
     loop {
-        let to_hash = format!("{}{}", prefix, nonce).replace("_", "");
+        let to_hash = format!("{}{}", prefix, nonce).replace('_', "");
         let hash = motoko_hash(&to_hash);
         if check_hash(hash) {
-            println!(
-                "Found {} as a valid to_hash thing, which hashes to {}",
-                &to_hash, &hash
-            );
             return (timestamp, nonce);
         }
         nonce += 1;
     }
-}
-
-#[test]
-fn motoko_hash_print() {
-    panic!("{}", motoko_hash("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."));
 }
 
 // djb2 hash function, from http://www.cse.yorku.ca/~oz/hash.html

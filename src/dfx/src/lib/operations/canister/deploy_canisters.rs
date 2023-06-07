@@ -7,6 +7,9 @@ use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::operations::canister::deploy_canisters::DeployMode::{
+    ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+};
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
@@ -69,15 +72,14 @@ pub async fn deploy_canisters(
     let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_build = match deploy_mode {
-        DeployMode::PrepareForProposal(canister_name)
-        | DeployMode::ComputeEvidence(canister_name) => {
+        PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
             vec![canister_name.clone()]
         }
-        DeployMode::ForceReinstallSingleCanister(canister_name) => {
+        ForceReinstallSingleCanister(canister_name) => {
             // don't force-reinstall the dependencies too.
             vec![String::from(canister_name)]
         }
-        DeployMode::NormalDeploy => canisters_to_load
+        NormalDeploy => canisters_to_load
             .clone()
             .into_iter()
             .filter(|canister_name| {
@@ -145,9 +147,8 @@ pub async fn deploy_canisters(
     .await?;
 
     match deploy_mode {
-        DeployMode::NormalDeploy | DeployMode::ForceReinstallSingleCanister(_) => {
-            let force_reinstall =
-                matches!(deploy_mode, DeployMode::ForceReinstallSingleCanister(_));
+        NormalDeploy | ForceReinstallSingleCanister(_) => {
+            let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
                 &canisters_to_install,
@@ -166,11 +167,11 @@ pub async fn deploy_canisters(
             .await?;
             info!(log, "Deployed canisters.");
         }
-        DeployMode::PrepareForProposal(canister_name) => {
+        PrepareForProposal(canister_name) => {
             prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
                 .await?
         }
-        DeployMode::ComputeEvidence(canister_name) => {
+        ComputeEvidence(canister_name) => {
             compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
         }
     }

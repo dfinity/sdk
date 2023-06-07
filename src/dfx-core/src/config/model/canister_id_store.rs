@@ -94,7 +94,7 @@ impl CanisterIdStore {
             BTreeMap::new()
         };
         let ids = match &canister_ids_path {
-            Some(path) if path.is_file() => crate::json::load_json_file(path)?,
+            Some(path) => crate::json::load_json_file(path)?,
             _ => CanisterIds::new(),
         };
         let timestamps = match &canister_timestamps_path {
@@ -126,13 +126,8 @@ impl CanisterIdStore {
         let a = self
             .timestamps
             .get(canister_name)
-            .and_then(|n_to_t| n_to_t.get(&self.network_descriptor.name))
+            .and_then(|timestamp_map| timestamp_map.get(&self.network_descriptor.name))
             .map(|a| candid::Int::from(a.clone()));
-        println!(
-            "Fetching timestamp for canister {}: {}",
-            canister_name,
-            a.clone().unwrap_or_else(|| 0.into())
-        );
         a
     }
 
@@ -176,7 +171,6 @@ impl CanisterIdStore {
     }
 
     fn save_timestamps(&self) -> Result<(), CanisterIdStoreError> {
-        println!("Saving timestamps {:#?}", &self.timestamps);
         let path = self
             .canister_timestamps_path
             .as_ref()
@@ -287,6 +281,7 @@ impl CanisterIdStore {
         timeout_seconds: BigInt,
     ) -> Result<(), CanisterIdStoreError> {
         let network_name = &self.network_descriptor.name;
+        //scaled to match Motoko playground timestamps
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()

@@ -47,14 +47,13 @@ impl NetworkTypeDescriptor {
     ) -> Result<Self, NetworkConfigError> {
         if let Some(playground_config) = playground {
             Ok(NetworkTypeDescriptor::Playground {
-                playground_cid: Principal::from_text(&playground_config.playground_cid).map_err(
-                    |e| {
+                playground_cid: Principal::from_text(&playground_config.playground_canister)
+                    .map_err(|e| {
                         NetworkConfigError::ParsePrincipalFailed(
-                            playground_config.playground_cid,
+                            playground_config.playground_canister,
                             e,
                         )
-                    },
-                )?,
+                    })?,
                 canister_timeout_seconds: playground_config
                     .timeout
                     .map(|t| t.into())
@@ -120,7 +119,6 @@ impl NetworkDescriptor {
 
     /// Playground on mainnet
     pub(crate) fn default_playground_network() -> Self {
-        println!("using default playground definition");
         Self {
             name: PLAYGROUND_NETWORK_NAME.to_string(),
             providers: vec![DEFAULT_IC_GATEWAY.to_string()],

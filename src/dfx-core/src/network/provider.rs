@@ -145,13 +145,13 @@ fn config_network_to_network_descriptor(
 pub fn create_network_descriptor(
     project_config: Option<Arc<Config>>,
     shared_config: Arc<NetworksConfig>,
-    preferred_network: Option<String>,
+    network: Option<String>,
     logger: Option<Logger>,
     local_bind_determination: LocalBindDetermination,
 ) -> Result<NetworkDescriptor, NetworkConfigError> {
     let logger = (logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
 
-    set_network_context(preferred_network);
+    set_network_context(network);
     let network_name = get_network_context()?;
 
     create_mainnet_network_descriptor(&network_name, &logger)

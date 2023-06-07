@@ -101,19 +101,14 @@ pub async fn install_canister(
 
     let default_wasm_path = canister_info.get_build_wasm_path();
     let wasm_path = wasm_path_override.unwrap_or(&default_wasm_path);
-    let wasm_module = std::fs::read(&wasm_path)
+    let wasm_module = std::fs::read(wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
     let new_hash = Sha256::digest(&wasm_module);
-    println!("Expecting new hash: {}", hex::encode(&new_hash));
 
     if mode == InstallMode::Upgrade
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
-        println!(
-            "Module hash {} is already installed.",
-            hex::encode(installed_module_hash.as_ref().unwrap())
-        );
     } else if !(canister_info.is_assets() && no_asset_upgrade) {
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp =
@@ -125,7 +120,6 @@ pub async fn install_canister(
                 Some(new_timestamp),
             )?;
         } else {
-            println!("Installing");
             install_canister_wasm(
                 agent,
                 canister_id,
@@ -145,7 +139,6 @@ pub async fn install_canister(
     loop {
         match read_state_tree_canister_module_hash(agent, canister_id).await? {
             Some(reported_hash) => {
-                println!("Reported hash: {}", hex::encode(&reported_hash));
                 if env.get_network_descriptor().is_playground() {
                     // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
                     info!(
@@ -184,7 +177,6 @@ pub async fn install_canister(
                 }
             }
             None => {
-                println!("it's None!");
                 times += 1;
                 if times > 3 {
                     info!(
@@ -396,7 +388,7 @@ pub async fn install_wallet(
     mode: InstallMode,
 ) -> DfxResult {
     if env.get_network_descriptor().is_playground() {
-        bail!("Refusing to install wallet. Wallets do not work in the playground.");
+        bail!("Refusing to install wallet. Wallets do not work for playground networks.");
     }
     let mgmt = ManagementCanister::create(agent);
     let wasm = wallet_wasm(env.get_logger())?;
