@@ -1,0 +1,69 @@
+name: Canister Upgrade Deploy
+
+on:
+  pull_request:
+    branches: 
+      - 'dontrun'
+  merge_group:
+  workflow_dispatch:
+
+env:
+  DFX_VERSION: ${{ vars.DFX_VERSION }}
+  PROJECT_DIR: ./.github/canisters/dummydeploy
+
+jobs:
+  deploy-upgrade:
+    name: Canister Upgrade Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y curl cmake
+          curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          rustup target add wasm32-unknown-unknown
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt install -y nodejs
+        shell: bash
+
+      - name: Install DFX
+        run: |
+          mkdir dfx
+          cd dfx
+          DFX_VERSION=${DFX_VERSION:-0.14.1}
+          curl -LO https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz
+          tar -xzf dfx-${DFX_VERSION}-x86_64-linux.tar.gz
+          echo "$(pwd)" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Configure Identity
+        run: |
+          mkdir -p /dev/shm/.config/dfx/identity/default ~/.config
+          chmod 700 /dev/shm/.config
+          ln -s /dev/shm/.config/dfx ~/.config/dfx
+          echo $IDENTITY | base64 -d > ~/.config/dfx/identity/default/identity.pem
+          chmod 400 ~/.config/dfx/identity/default/identity.pem
+          dfx identity use default
+          dfx identity  get-principal
+        env:
+          IDENTITY: ${{ secrets.DEPLOYMENT_KEY }}
+        shell: bash
+
+      - name: Build Canisters
+        run: |
+          cd "$PROJECT_DIR"
+          npm install
+          cargo build --target wasm32-unknown-unknown
+          dfx build --check
+        shell: bash
+
+      - name: Deploy Canisters
+        run: |
+          cd "$PROJECT_DIR"
+          dfx deploy --network=ic
+          dfx canister status --network ic --all
+        shell: bash
