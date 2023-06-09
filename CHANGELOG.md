@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+Note: Canister http functionality is broken.  Do not release dfx until this is corrected.  See https://dfinity.atlassian.net/browse/SDK-1129
+
 ## DFX
 
 ### Frontend canister
