@@ -154,7 +154,7 @@ pub struct Asset {
     pub encodings: HashMap<String, AssetEncoding>,
     pub max_age: Option<u64>,
     pub headers: Option<HashMap<String, String>>,
-    pub is_aliased: Option<bool>,
+    pub enable_aliasing: Option<bool>,
     pub allow_raw_access: Option<bool>,
 }
 
@@ -310,7 +310,7 @@ impl State {
                     .into_iter()
                     .find_map(|alias_key| self.assets.get(&alias_key));
                 if let Some(asset) = aliased {
-                    if asset.is_aliased.unwrap_or(DEFAULT_ALIAS_ENABLED) {
+                    if asset.enable_aliasing.unwrap_or(DEFAULT_ALIAS_ENABLED) {
                         aliased
                     } else {
                         None
@@ -360,7 +360,7 @@ impl State {
                     encodings: HashMap::new(),
                     max_age: arg.max_age,
                     headers: arg.headers,
-                    is_aliased: arg.enable_aliasing,
+                    enable_aliasing: arg.enable_aliasing,
                     allow_raw_access: arg.allow_raw_access,
                 },
             );
@@ -504,7 +504,7 @@ impl State {
         let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
-        asset.is_aliased = arg.aliased;
+        asset.enable_aliasing = arg.aliased;
 
         let hash = sha2::Sha256::digest(&arg.content).into();
         if let Some(provided_hash) = arg.sha256 {
@@ -947,7 +947,7 @@ impl State {
             max_age: asset.max_age,
             headers: asset.headers.clone(),
             allow_raw_access: asset.allow_raw_access,
-            is_aliased: asset.is_aliased,
+            is_aliased: asset.enable_aliasing,
         })
     }
 
@@ -969,7 +969,7 @@ impl State {
         }
 
         if let Some(is_aliased) = arg.is_aliased {
-            asset.is_aliased = is_aliased
+            asset.enable_aliasing = is_aliased
         }
 
         on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
@@ -982,7 +982,7 @@ impl State {
         if self
             .assets
             .get(key)
-            .and_then(|asset| asset.is_aliased)
+            .and_then(|asset| asset.enable_aliasing)
             .unwrap_or(DEFAULT_ALIAS_ENABLED)
         {
             aliased_by(key)
