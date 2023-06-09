@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+Note: Canister http functionality is broken.  Do not release dfx until this is corrected.  See https://dfinity.atlassian.net/browse/SDK-1129
+
 ## DFX
 
 ### feat: add optional custom build command for asset canisters
