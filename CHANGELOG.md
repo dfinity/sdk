@@ -2,44 +2,7 @@
 
 # UNRELEASED
 
-## DFX
-
-### Frontend canister
-
-The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
-
-The `validate_commit_proposed_batch()` method no longer requires any permission to call.
-
-The asset canister now enforces limits during upload.  These limits to not apply to assets already uploaded.
-
-Unconditional limits:
-- `create_batch()` now fails if `dfx deploy --by-proposal` got as far as calling `propose_commit_batch()`, and the batch has not since been committed or deleted.
-
-Configurable limits:
-- `max_batches`: limits number of batches being uploaded.
-- `max_chunks`: limits total number of chunks across all batches being uploaded.
-- `max_bytes`: limits total size of content bytes across all chunks being uploaded.
-
-Added methods:
-- `configure()` to set limits
-- `validate_configure()`: companion method for SNS
-- `get_configuration()`: to view limits
-
-Suggestions for configured limits:
-- dapps controlled by SNS: max_batches=1; max_chunks and max_bytes based on asset composition.
-- dapps not controlled by SNS: unlimited (which is the default)
-
-Note that as always, if `dfx deploy` does not completely upload and commit a batch, the asset canister will retain the batch until 5 minutes have passed since the last chunk was uploaded.  If you have configured limits and the combination of an unsuccessful deployment and a subsequent attempt would exceed those limits, you can either wait 5 minutes before running `dfx deploy` again, or delete the incomplete batch with `delete_batch()`.
-
-## Dependencies
-
-### Frontend canister
-
-- Module hash: 99eae7ce78e59352817faf811c2337707e8de955d00f62b98fdd49d35f99a2f4
-- https://github.com/dfinity/sdk/pull/3154
-- https://github.com/dfinity/sdk/pull/3158
-
-# 0.14.1
+Note: Canister http functionality is broken.  Do not release dfx until this is corrected.  See https://dfinity.atlassian.net/browse/SDK-1129
 
 ## DFX
 
@@ -69,13 +32,80 @@ Then it is separated into two parts: `service.did` and `init_args.txt`, correspo
 
 `service.did` will be imported during dependent canisters building. And it will also be used by the Motoko LSP to provide IDE support.
 
+### fix: dfx start now respects the network replica port configuration in dfx.json or networks.json
+
+## Frontend canister
+
+The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
+
+The `validate_commit_proposed_batch()` method no longer requires any permission to call.
+
+The asset canister now enforces limits during upload.  These limits to not apply to assets already uploaded.
+
+Unconditional limits:
+- `create_batch()` now fails if `dfx deploy --by-proposal` got as far as calling `propose_commit_batch()`, and the batch has not since been committed or deleted.
+
+Configurable limits:
+- `max_batches`: limits number of batches being uploaded.
+- `max_chunks`: limits total number of chunks across all batches being uploaded.
+- `max_bytes`: limits total size of content bytes across all chunks being uploaded.
+
+Added methods:
+- `configure()` to set limits
+- `validate_configure()`: companion method for SNS
+- `get_configuration()`: to view limits
+
+Suggestions for configured limits:
+- dapps controlled by SNS: max_batches=1; max_chunks and max_bytes based on asset composition.
+- dapps not controlled by SNS: unlimited (which is the default)
+
+Note that as always, if `dfx deploy` does not completely upload and commit a batch, the asset canister will retain the batch until 5 minutes have passed since the last chunk was uploaded.  If you have configured limits and the combination of an unsuccessful deployment and a subsequent attempt would exceed those limits, you can either wait 5 minutes before running `dfx deploy` again, or delete the incomplete batch with `delete_batch()`.
+
+## Frontend canister assets synchronization
+
+### fix: now retries failed `create_chunk()` calls
+
+Previously, it would only retry when waiting for the request to complete.
+
+### fix: now considers fewer error types to be retryable
+
+Previously, errors were assumed to be retryable, except for a few specific error messages and 403/unauthorized responses.  This could cause deployment to appear to hang until timeout.  
+
+Now, only transport errors and timeout errors are considered retryable.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 99eae7ce78e59352817faf811c2337707e8de955d00f62b98fdd49d35f99a2f4
+- https://github.com/dfinity/sdk/pull/3154
+- https://github.com/dfinity/sdk/pull/3158
+- https://github.com/dfinity/sdk/pull/3144
+
+### ic-ref
+
+Updated ic-ref to 0.0.1-a9f73dba
+
+### Cycles wallet
+
+Updated cycles wallet to `20230530` release:
+- Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
+- https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
+
+### Replica
+
+Updated replica to elected commit 794fc5b9341fa8f6a0e8f219201c35f0b5727ab9.
+This incorporates the following executed proposals:
+- [122617](https://dashboard.internetcomputer.org/proposal/122617)
+- [122615](https://dashboard.internetcomputer.org/proposal/122615)
+
+# 0.14.1
+
+## DFX
+
 ### fix: `dfx canister delete` without stopping first
 
 When running `dfx canister delete` on a canister that has not been stopped, dfx will now confirm the deletion instead of erroring.
-
-### fix: cleanup of documentation
-
-Cleaned up documentation of IC SDK.
 
 ### feat: gzip option in dfx.json
 
@@ -141,13 +171,16 @@ This is required for future replica versions.
 
 Adds a new field `canister_init_arg` to the bitcoin configuration in dfx.json and networks.json.  Its default is documented in the JSON schema and is appropriate for the canister wasm bundled with dfx.
 
-### fix: dfx start now respects the network replica port configuration in dfx.json or networks.json
-
 ### fix: no longer enable the bitcoin_regtest feature
+
+### docs: cleanup of documentation
+
+Cleaned up documentation of IC SDK.
 
 ## Asset Canister Synchronization
 
 ### feat: Added more detailed logging to `ic-asset`.
+
 Now, `dfx deploy -v` (or `-vv`) will print the following information:
 - The count for each `BatchOperationKind` in `CommitBatchArgs`
 - The number of chunks uploaded and the total bytes
@@ -155,6 +188,7 @@ Now, `dfx deploy -v` (or `-vv`) will print the following information:
 - (Only for `-vv`) The value of `CommitBatchArgs`
 
 ### fix: Commit batches incrementally in order to account for more expensive v2 certification calculation
+
 In order to allow larger changes without exceeding the per-message instruction limit, the sync process now:
 - sets properties of assets already in the canister separately from the rest of the batch.
 - splits up the rest of the batch into groups of up to 500 operations.
@@ -171,12 +205,6 @@ Now, only transport errors and timeout errors are considered retryable.
 
 ## Dependencies
 
-### Cycles wallet
-
-Updated cycles wallet to `20230530` release:
-- Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
-- https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
-
 ### Frontend canister
 
 The asset canister now properly removes the v2-certified response when `/index.html` is deleted.
@@ -187,8 +215,7 @@ The HttpResponse type now explicitly mentions the `upgrade : Option<bool>` field
 
 The asset canister no longer needs to use `await` for access control checks. This will speed up certain operations.
 
-- Module hash: 6963fd7765c3f69a64de691ebd1b313e3706bc233a721c60274adccb99a8f4a7
-- https://github.com/dfinity/sdk/pull/3144
+- Module hash: 651425d92d3796ddae581191452e0e87484eeff4ff6352fe9a59c7e1f97a2310
 - https://github.com/dfinity/sdk/pull/3120
 - https://github.com/dfinity/sdk/pull/3112
 
@@ -196,16 +223,10 @@ The asset canister no longer needs to use `await` for access control checks. Thi
 
 Updated Motoko to 0.8.8
 
-### ic-ref
-
-Updated ic-ref to 0.0.1-a9f73dba
-
 ### Replica
 
-Updated replica to elected commit 794fc5b9341fa8f6a0e8f219201c35f0b5727ab9.
+Updated replica to elected commit b3b00ba59c366384e3e0cd53a69457e9053ec987.
 This incorporates the following executed proposals:
-- [122617](https://dashboard.internetcomputer.org/proposal/122617)
-- [122615](https://dashboard.internetcomputer.org/proposal/122615)
 - [122529](https://dashboard.internetcomputer.org/proposal/122529)
 - [122284](https://dashboard.internetcomputer.org/proposal/122284)
 - [122198](https://dashboard.internetcomputer.org/proposal/122198)
