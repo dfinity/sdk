@@ -6,6 +6,12 @@ Note: Canister http functionality is broken.  Do not release dfx until this is c
 
 ## DFX
 
+### feat: deprecate `dfx bootstrap` and `dfx replica` commands
+
+Please use `dfx start` instead, which is a combination of the two commands.
+
+If you have a good reason why we should keep these commands, please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163
+
 ### feat: add optional custom build command for asset canisters
 
 The custom build command can be set in `dfx.json` the same way it is set for `custom` type canisters. If the command is not provided, DFX will fallback to the default `npm run build` command.
