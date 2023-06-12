@@ -1,3 +1,6 @@
+use dfx_core::config::cache::get_bin_cache;
+use semver::Version;
+
 use super::ExtensionManager;
 use crate::lib::error::ExtensionError;
 use std::ffi::OsString;
@@ -5,14 +8,26 @@ use std::ffi::OsString;
 impl ExtensionManager {
     pub fn run_extension(
         &self,
+        dfx_version: &Version,
         extension_name: OsString,
-        params: Vec<OsString>,
+        mut params: Vec<OsString>,
     ) -> Result<(), ExtensionError> {
         let extension_name = extension_name
             .into_string()
             .map_err(ExtensionError::InvalidExtensionName)?;
 
         let mut extension_binary = self.get_extension_binary(&extension_name)?;
+
+        params.extend(
+            [
+                "--dfx-cache-path",
+                get_bin_cache(&dfx_version.to_string())
+                    .unwrap()
+                    .to_str()
+                    .unwrap(),
+            ]
+            .map(OsString::from),
+        );
 
         let mut child = extension_binary
             .args(&params)
