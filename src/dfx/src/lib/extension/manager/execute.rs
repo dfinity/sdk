@@ -8,7 +8,7 @@ use std::ffi::OsString;
 impl ExtensionManager {
     pub fn run_extension(
         &self,
-        dfx_version: &Version,
+        path_to_dfx_cache: &str,
         extension_name: OsString,
         mut params: Vec<OsString>,
     ) -> Result<(), ExtensionError> {
@@ -18,16 +18,7 @@ impl ExtensionManager {
 
         let mut extension_binary = self.get_extension_binary(&extension_name)?;
 
-        params.extend(
-            [
-                "--dfx-cache-path",
-                get_bin_cache(&dfx_version.to_string())
-                    .unwrap()
-                    .to_str()
-                    .unwrap(),
-            ]
-            .map(OsString::from),
-        );
+        params.extend(["--dfx-cache-path", path_to_dfx_cache].map(OsString::from));
 
         let mut child = extension_binary
             .args(&params)
