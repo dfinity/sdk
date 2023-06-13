@@ -15,13 +15,19 @@ shared actor class HttpQuery() = this {
             { name = "User-Agent"; value = "sdk-e2e-test" },
         ];
 
+        let transform_context : Types.TransformContext = {
+            function = transform;
+            context = Blob.fromArray([]);
+        };
+
+
         let request : Types.CanisterHttpRequestArgs = {
             url = url;
             max_response_bytes = ?MAX_RESPONSE_BYTES;
             headers = request_headers;
             body = null;
             method = #get;
-            transform = ?(#function(transform));
+            transform = ?transform_context;
         };
 
         Cycles.add(CYCLES_TO_PAY);
@@ -34,10 +40,10 @@ shared actor class HttpQuery() = this {
         result
     };
 
-    public query func transform(raw : Types.CanisterHttpResponsePayload) : async Types.CanisterHttpResponsePayload {
+    public query func transform(raw : Types.TransformArgs) : async Types.CanisterHttpResponsePayload {
         let transformed : Types.CanisterHttpResponsePayload = {
-            status = raw.status;
-            body = raw.body;
+            status = raw.response.status;
+            body = raw.response.body;
             headers = [];
         };
         transformed;

@@ -1,3 +1,4 @@
+import Blob "mo:base/Blob";
 import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
 
@@ -26,8 +27,14 @@ module Types {
         #head;
     };
 
-    public type TransformType = {
-        #function : shared CanisterHttpResponsePayload -> async CanisterHttpResponsePayload;
+    public type TransformArgs = {
+        response : CanisterHttpResponsePayload;
+        context : Blob;
+    };
+
+    public type TransformContext = {
+        function : shared query TransformArgs -> async CanisterHttpResponsePayload;
+        context : Blob;
     };
 
     public type CanisterHttpRequestArgs = {
@@ -36,9 +43,7 @@ module Types {
         headers : [HttpHeader];
         body : ?[Nat8];
         method : HttpMethod;
-        transform : ?{
-            #function : shared query CanisterHttpResponsePayload -> async CanisterHttpResponsePayload;
-        };
+        transform : ?TransformContext;
     };
 
     public type CanisterHttpResponsePayload = {

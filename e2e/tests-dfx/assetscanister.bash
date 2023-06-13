@@ -23,6 +23,10 @@ create_batch() {
     echo "$BATCH_ID"
 }
 
+delete_batch() {
+    assert_command dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$1; })"
+}
+
 check_permission_failure() {
     assert_contains "$1"
 }
@@ -106,6 +110,9 @@ check_permission_failure() {
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
   assert_contains "Proposed commit of batch 2 with evidence 4301263f1fcc0d19ef92cfb6774c4da92bf1a9d2002a293a9d95d97819c02958.  Either commit it by proposal, or delete it."
+
+  assert_command_fail dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_contains "Batch 2 is already proposed.  Delete or execute it to propose another."
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
@@ -365,14 +372,17 @@ check_permission_failure() {
   BATCH_ID="$(create_batch)"
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
   assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  delete_batch "$BATCH_ID"
 
   BATCH_ID="$(create_batch)"
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
   assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity commit
+  delete_batch "$BATCH_ID"
 
   BATCH_ID="$(create_batch)"
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
   assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity prepare
+  delete_batch "$BATCH_ID"
 
   assert_command_fail dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity manage-permissions
   assert_contains "Caller does not have Prepare permission"
@@ -409,18 +419,21 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
   args="(record { batch_id=$BATCH_ID })"
   assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+  delete_batch "$BATCH_ID"
 
   BATCH_ID="$(create_batch)"
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
   assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity commit
   args="(record { batch_id=$BATCH_ID })"
   assert_command      dfx canister call e2e_project_frontend compute_evidence "$args" --identity commit
+  delete_batch "$BATCH_ID"
 
   BATCH_ID="$(create_batch)"
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
   assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity prepare
   args="(record { batch_id=$BATCH_ID })"
   assert_command      dfx canister call e2e_project_frontend compute_evidence "$args" --identity prepare
+  delete_batch "$BATCH_ID"
 
   assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity manage-permissions
   assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity manage-permissions
@@ -459,6 +472,39 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity anonymous
   assert_contains "Caller does not have Commit permission"
 
+  # get_configuration()
+  args="()"
+  assert_command      dfx canister call e2e_project_frontend get_configuration "$args" --identity commit
+  assert_command      dfx canister call e2e_project_frontend get_configuration "$args" --identity prepare
+
+  assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
+  # configure()
+  args="(record { })"
+  assert_command      dfx canister call e2e_project_frontend configure "$args" --identity commit
+
+  assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity prepare
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity manage-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity no-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity anonymous
+  assert_contains "Caller does not have Commit permission"
+
+  # validate_configure()
+  args="(record { })"
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity commit
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity prepare
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity manage-permissions
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity no-permissions
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity anonymous
+
   # validate_commit_proposed_batch
   BATCH_ID="$(create_batch)"
   args="(record { batch_id=$BATCH_ID; operations=vec{} })"
@@ -468,24 +514,12 @@ check_permission_failure() {
   args="(record { batch_id=$BATCH_ID; evidence=$EVIDENCE_BLOB })"
   assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args"
   assert_contains "commit proposed batch $BATCH_ID with evidence"
-
-  BATCH_ID="$(create_batch)"
-  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
-  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
-  args="(record { batch_id=$BATCH_ID })"
-  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
-  args="(record { batch_id=$BATCH_ID; evidence=$EVIDENCE_BLOB })"
   assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity commit
-  assert_contains "commit proposed batch $BATCH_ID with evidence"
-
-  assert_command_fail dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity prepare
-  assert_contains "Caller does not have Commit permission"
-  assert_command_fail dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity manage-permissions
-  assert_contains "Caller does not have Commit permission"
-  assert_command_fail dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity no-permissions
-  assert_contains "Caller does not have Commit permission"
-  assert_command_fail dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity anonymous
-  assert_contains "Caller does not have Commit permission"
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity prepare
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity manage-permissions
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity no-permissions
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity anonymous
+  delete_batch "$BATCH_ID"
 
   # revoking permissions
 
@@ -1538,4 +1572,37 @@ WARN: {
     max_age = opt (2_000 : nat64);
   },
 )'
+}
+
+@test "upload limits" {
+  # Upload limits are covered in detail in state machine tests.  This verifies the integration.
+
+  dfx_start
+  dfx deploy
+
+  dd if=/dev/urandom of='src/e2e_project_frontend/assets/f1.bin' bs=3000 count=1
+  dd if=/dev/urandom of='src/e2e_project_frontend/assets/f2.bin' bs=1500 count=1
+  dd if=/dev/urandom of='src/e2e_project_frontend/assets/f3.bin' bs=1000 count=1
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_batches= opt opt 1 })'
+  EXTRA_BATCH=$(create_batch)
+  assert_command_fail dfx deploy
+  assert_contains "batch limit exceeded"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$EXTRA_BATCH })"
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_batches= opt null })'
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_bytes= opt opt 5499 })'
+  assert_command_fail dfx deploy
+  assert_contains "byte limit exceeded"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=3 })"
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_bytes= opt null })'
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 2 })'
+  assert_command_fail dfx deploy
+  assert_contains "chunk limit exceeded"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=4 })"
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 3; max_bytes = opt opt 5500 })'
+  assert_command      dfx deploy
 }

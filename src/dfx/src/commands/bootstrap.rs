@@ -10,6 +10,7 @@ use dfx_core::network::provider::{create_network_descriptor, LocalBindDeterminat
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
+use slog::warn;
 use std::fs::create_dir_all;
 use std::net::{IpAddr, SocketAddr};
 
@@ -43,6 +44,13 @@ pub fn exec(
         timeout,
     }: BootstrapOpts,
 ) -> DfxResult {
+    warn!(
+        env.get_logger(),
+        "The bootstrap command is deprecated. \
+        Please use the start command instead. \
+        If you have a good reason to use the bootstrap command, \
+        please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163"
+    );
     let network_descriptor = create_network_descriptor(
         env.get_config(),
         env.get_networks_config(),

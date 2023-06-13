@@ -7,6 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
+use console::style;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
@@ -24,6 +25,10 @@ use std::sync::Arc;
 struct AssetsBuilderExtra {
     /// A list of canister names to use as dependencies.
     dependencies: Vec<CanisterId>,
+    /// A command to run to build this canister's assets. This is optional if
+    /// the canister does not have a frontend or can be built using the default
+    /// `npm run build` command.
+    build: Vec<String>,
 }
 
 impl AssetsBuilderExtra {
@@ -40,8 +45,13 @@ impl AssetsBuilderExtra {
                     )
             })
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
+        let info = info.as_info::<AssetsCanisterInfo>()?;
+        let build = info.get_build_tasks().to_owned();
 
-        Ok(AssetsBuilderExtra { dependencies })
+        Ok(AssetsBuilderExtra {
+            dependencies,
+            build,
+        })
     }
 }
 pub struct AssetsBuilder {
@@ -140,17 +150,10 @@ impl CanisterBuilder for AssetsBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult {
-        let dependencies = info.get_dependencies()
-            .iter()
-            .map(|name| {
-                pool.get_first_canister_with_name(name)
-                    .map(|c| c.canister_id())
-                    .map_or_else(
-                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
-                        DfxResult::Ok,
-                    )
-            })
-            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
+        let AssetsBuilderExtra {
+            build,
+            dependencies,
+        } = AssetsBuilderExtra::try_from(info, pool)?;
 
         let vars = super::get_and_write_environment_variables(
             info,
@@ -165,6 +168,7 @@ impl CanisterBuilder for AssetsBuilder {
             info.get_workspace_root(),
             &config.network_name,
             vars,
+            &build,
         )?;
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
@@ -234,11 +238,31 @@ fn build_frontend(
     project_root: &Path,
     network_name: &str,
     vars: Vec<super::Env<'_>>,
+    build: &[String],
 ) -> DfxResult {
+    let custom_build_frontend = !build.is_empty();
     let build_frontend = project_root.join("package.json").exists();
-    // If there is not a package.json, we don't have a frontend and can quit early.
+    // If there is no package.json or custom build command, we don't have a frontend and can quit early.
 
-    if build_frontend {
+    if custom_build_frontend {
+        for command in build {
+            slog::info!(
+                logger,
+                r#"{} '{}'"#,
+                style("Executing").green().bold(),
+                command
+            );
+
+            // First separate everything as if it was read from a shell.
+            let args = shell_words::split(command)
+                .with_context(|| format!("Cannot parse command '{}'.", command))?;
+            // No commands, noop.
+            if !args.is_empty() {
+                super::run_command(args, &vars, project_root)
+                    .with_context(|| format!("Failed to run {}.", command))?;
+            }
+        }
+    } else if build_frontend {
         // Frontend build.
         slog::info!(logger, "Building frontend...");
         let mut cmd = std::process::Command::new("npm");

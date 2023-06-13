@@ -197,11 +197,20 @@ pub struct Batch {
     pub expires_at: Timestamp,
     pub commit_batch_arguments: Option<CommitBatchArguments>,
     pub evidence_computation: Option<EvidenceComputation>,
+    pub chunk_content_total_size: usize,
+}
+
+#[derive(Clone, Debug, Default, CandidType, Deserialize)]
+pub struct Configuration {
+    pub max_batches: Option<u64>,
+    pub max_chunks: Option<u64>,
+    pub max_bytes: Option<u64>,
 }
 
 #[derive(Default)]
 pub struct State {
     assets: HashMap<AssetKey, Asset>,
+    configuration: Configuration,
 
     chunks: HashMap<ChunkId, Chunk>,
     next_chunk_id: ChunkId,
@@ -231,6 +240,7 @@ pub struct StableState {
     stable_assets: HashMap<String, Asset>,
 
     next_batch_id: Option<BatchId>,
+    configuration: Option<Configuration>,
 }
 
 impl Asset {
@@ -513,7 +523,30 @@ impl State {
         Ok(())
     }
 
-    pub fn create_batch(&mut self, now: u64) -> BatchId {
+    pub fn create_batch(&mut self, now: u64) -> Result<BatchId, String> {
+        self.batches.retain(|_, b| {
+            b.expires_at > now || matches!(b.evidence_computation, Some(Computed(_)))
+        });
+        self.chunks
+            .retain(|_, c| self.batches.contains_key(&c.batch_id));
+
+        if let Some((batch_id, batch)) = self
+            .batches
+            .iter()
+            .find(|(_batch_id, batch)| batch.commit_batch_arguments.is_some())
+        {
+            let message = match batch.evidence_computation {
+                Some(Computed(_)) => format!("Batch {} is already proposed.  Delete or execute it to propose another.", batch_id),
+                _ => format!("Batch {} has not completed evidence computation.  Wait for it to expire or delete it to propose another.", batch_id),
+            };
+            return Err(message);
+        }
+
+        if let Some(max_batches) = self.configuration.max_batches {
+            if self.batches.len() as u64 >= max_batches {
+                return Err("batch limit exceeded".to_string());
+            }
+        }
         let batch_id = self.next_batch_id.clone();
         self.next_batch_id += 1;
 
@@ -523,18 +556,28 @@ impl State {
                 expires_at: Int::from(now + BATCH_EXPIRY_NANOS),
                 commit_batch_arguments: None,
                 evidence_computation: None,
+                chunk_content_total_size: 0,
             },
         );
-        self.batches.retain(|_, b| {
-            b.expires_at > now || matches!(b.evidence_computation, Some(Computed(_)))
-        });
-        self.chunks
-            .retain(|_, c| self.batches.contains_key(&c.batch_id));
 
-        batch_id
+        Ok(batch_id)
     }
 
     pub fn create_chunk(&mut self, arg: CreateChunkArg, now: u64) -> Result<ChunkId, String> {
+        if let Some(max_chunks) = self.configuration.max_chunks {
+            if self.chunks.len() + 1 > max_chunks as usize {
+                return Err("chunk limit exceeded".to_string());
+            }
+        }
+        if let Some(max_bytes) = self.configuration.max_bytes {
+            let current_total_bytes = &self.batches.iter().fold(0, |acc, (_batch_id, batch)| {
+                acc + batch.chunk_content_total_size
+            });
+
+            if current_total_bytes + arg.content.as_ref().len() > max_bytes as usize {
+                return Err("byte limit exceeded".to_string());
+            }
+        }
         let mut batch = self
             .batches
             .get_mut(&arg.batch_id)
@@ -547,6 +590,7 @@ impl State {
 
         let chunk_id = self.next_chunk_id.clone();
         self.next_chunk_id += 1;
+        batch.chunk_content_total_size += arg.content.as_ref().len();
 
         self.chunks.insert(
             chunk_id.clone(),
@@ -949,6 +993,29 @@ impl State {
             Vec::new()
         }
     }
+
+    pub fn get_configuration(&self) -> ConfigurationResponse {
+        let max_batches = self.configuration.max_batches;
+        let max_chunks = self.configuration.max_chunks;
+        let max_bytes = self.configuration.max_bytes;
+        ConfigurationResponse {
+            max_batches,
+            max_chunks,
+            max_bytes,
+        }
+    }
+
+    pub fn configure(&mut self, args: ConfigureArguments) {
+        if let Some(max_batches) = args.max_batches {
+            self.configuration.max_batches = max_batches;
+        }
+        if let Some(max_chunks) = args.max_chunks {
+            self.configuration.max_chunks = max_chunks;
+        }
+        if let Some(max_bytes) = args.max_bytes {
+            self.configuration.max_bytes = max_bytes;
+        }
+    }
 }
 
 impl From<State> for StableState {
@@ -963,6 +1030,7 @@ impl From<State> for StableState {
             permissions: Some(permissions),
             stable_assets: state.assets,
             next_batch_id: Some(state.next_batch_id),
+            configuration: Some(state.configuration),
         }
     }
 }
@@ -989,6 +1057,7 @@ impl From<StableState> for State {
             manage_permissions_principals,
             assets: stable_state.stable_assets,
             next_batch_id: stable_state.next_batch_id.unwrap_or_else(|| Nat::from(1)),
+            configuration: stable_state.configuration.unwrap_or_default(),
             ..Self::default()
         };
 
