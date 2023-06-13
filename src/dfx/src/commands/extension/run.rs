@@ -27,11 +27,7 @@ impl From<Vec<OsString>> for RunOpts {
 pub fn exec(env: &dyn Environment, opts: RunOpts) -> DfxResult<()> {
     let mgr = env.new_extension_manager()?;
     let dfx_version = &env.get_version().to_string();
-    let path_to_dfx_cache = get_bin_cache(&dfx_version).unwrap();
-    mgr.run_extension(
-        &*path_to_dfx_cache.to_string_lossy(),
-        opts.name,
-        opts.params,
-    )?;
+    let path_to_dfx_cache = get_bin_cache(&dfx_version)?;
+    mgr.run_extension(&path_to_dfx_cache, opts.name, opts.params)?;
     Ok(())
 }
