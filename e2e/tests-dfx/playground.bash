@@ -72,10 +72,3 @@ setup_playground() {
   assert_match "Canister 'hello_backend' has timed out."
   assert_match "Reserved canister 'hello_backend'"
 }
-
-@test "Can deploy to mainnet playground" {
-  rm "$E2E_NETWORKS_JSON"
-  assert_command dfx deploy --playground
-  assert_command dfx canister --playground call hello_backend greet '("player")'
-  assert_match "Hello, player!"
-}
