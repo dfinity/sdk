@@ -8,7 +8,7 @@ use ic_utils::interfaces::management_canister::builders::InstallMode;
 use rand::Rng;
 use slog::{debug, info};
 
-use crate::lib::{environment::Environment, error::DfxResult, wasm::file::is_wasm_module};
+use crate::lib::{environment::Environment, error::DfxResult};
 
 /// Arguments for the `getCanisterId` call.
 #[derive(CandidType)]
@@ -37,11 +37,13 @@ pub async fn reserve_canister_with_playground(
 ) -> DfxResult {
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
     let log = env.get_logger();
-    let playground_cid = if let NetworkTypeDescriptor::Playground { playground_cid, .. } =
-        env.get_network_descriptor().r#type
+    let playground_canister = if let NetworkTypeDescriptor::Playground {
+        playground_canister,
+        ..
+    } = env.get_network_descriptor().r#type
     {
-        debug!(log, "playground canister is {}", playground_cid);
-        playground_cid
+        debug!(log, "playground canister is {}", playground_canister);
+        playground_canister
     } else {
         bail!("Trying to reserve canister with playground on non-playground network.")
     };
@@ -49,7 +51,7 @@ pub async fn reserve_canister_with_playground(
     let (timestamp, nonce) = create_nonce();
     let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce })?;
     let result = agent
-        .update(&playground_cid, "getCanisterId")
+        .update(&playground_canister, "getCanisterId")
         .with_arg(get_can_arg)
         .call_and_wait()
         .await
@@ -79,10 +81,12 @@ pub async fn authorize_asset_uploader(
     principal_to_authorize: &Principal,
 ) -> DfxResult {
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
-    let playground_cid = if let NetworkTypeDescriptor::Playground { playground_cid, .. } =
-        env.get_network_descriptor().r#type
+    let playground_canister = if let NetworkTypeDescriptor::Playground {
+        playground_canister,
+        ..
+    } = env.get_network_descriptor().r#type
     {
-        playground_cid
+        playground_canister
     } else {
         bail!("Trying to authorize asset uploader on non-playground network.")
     };
@@ -95,7 +99,7 @@ pub async fn authorize_asset_uploader(
     let call_arg = Encode!(&canister_info, &"authorize", &nested_arg)?;
 
     let _ = agent
-        .update(&playground_cid, "callForward")
+        .update(&playground_canister, "callForward")
         .with_arg(call_arg)
         .call_and_wait()
         .await
@@ -110,19 +114,19 @@ pub async fn playground_install_code(
     arg: &[u8],
     wasm_module: &[u8],
     mode: InstallMode,
+    is_asset_canister: bool,
 ) -> DfxResult<num_bigint::BigInt> {
-    if !is_wasm_module(wasm_module) {
-        bail!("Invalid WASM detected. Is your file maybe zipped? Playground can only deploy .wasm files.");
-    }
     let canister_info = CanisterInfo {
         id: canister_id,
         timestamp: canister_timestamp,
     };
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
-    let playground_cid = if let NetworkTypeDescriptor::Playground { playground_cid, .. } =
-        env.get_network_descriptor().r#type
+    let playground_canister = if let NetworkTypeDescriptor::Playground {
+        playground_canister,
+        ..
+    } = env.get_network_descriptor().r#type
     {
-        playground_cid
+        playground_canister
     } else {
         bail!("Trying to install wasm through playground on non-playground network.")
     };
@@ -132,9 +136,9 @@ pub async fn playground_install_code(
         mode,
         canister_id: canister_info.id,
     };
-    let encoded_arg = encode_args((canister_info, install_arg, false))?;
+    let encoded_arg = encode_args((canister_info, install_arg, false, is_asset_canister))?;
     let result = agent
-        .update(&playground_cid, "installCode")
+        .update(&playground_canister, "installCode")
         .with_arg(encoded_arg.as_slice())
         .call_and_wait()
         .await

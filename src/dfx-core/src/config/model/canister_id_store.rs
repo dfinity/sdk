@@ -94,7 +94,7 @@ impl CanisterIdStore {
             BTreeMap::new()
         };
         let ids = match &canister_ids_path {
-            Some(path) => crate::json::load_json_file(path)?,
+            Some(path) if path.is_file() => crate::json::load_json_file(path)?,
             _ => CanisterIds::new(),
         };
         let timestamps = match &canister_timestamps_path {

@@ -15,14 +15,10 @@ teardown() {
 }
 
 setup_playground() {
-  dfx identity new --storage-mode plaintext playground-setup
-  dfx identity use playground-setup
   dfx_new hello
   create_networks_json
   mv dfx.json dfx.json.previous
   install_asset playground_backend
-  # TODO: remove once discussion with Yan is resolved
-  jq '.local.replica.subnet_type="system"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   dfx_start
   dfx deploy backend
   dfx ledger fabricate-cycles --t 9999999 --canister backend
@@ -31,10 +27,9 @@ setup_playground() {
   echo "PLAYGROUND_CANISTER_ID is $PLAYGROUND_CANISTER_ID"
   WEBSERVER_PORT=$(get_webserver_port)
   jq '.playground.bind="127.0.0.1:'"$WEBSERVER_PORT"'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-  jq '.playground.playground.playground_cid="'"$PLAYGROUND_CANISTER_ID"'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+  jq '.playground.playground.playground_canister="'"$PLAYGROUND_CANISTER_ID"'"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   cd ..
   rm -rf hello
-  dfx identity use default
 }
 
 @test "--playground aliases to --network playground" {

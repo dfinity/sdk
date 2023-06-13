@@ -111,9 +111,16 @@ pub async fn install_canister(
     {
     } else if !(canister_info.is_assets() && no_asset_upgrade) {
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
-            let new_timestamp =
-                playground_install_code(env, canister_id, timestamp, &args, &wasm_module, mode)
-                    .await?;
+            let new_timestamp = playground_install_code(
+                env,
+                canister_id,
+                timestamp,
+                &args,
+                &wasm_module,
+                mode,
+                canister_info.is_assets(),
+            )
+            .await?;
             canister_id_store.add(
                 canister_info.get_name(),
                 &canister_id.to_string(),

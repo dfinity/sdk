@@ -50,7 +50,3 @@ pub fn decompress_bytes(bytes: &[u8]) -> DfxResult<Vec<u8>> {
     d.read_to_end(&mut unzipped_bytes)?;
     Ok(unzipped_bytes)
 }
-
-pub fn is_wasm_module(wasm: &[u8]) -> bool {
-    wasm.starts_with(b"\0asm")
-}

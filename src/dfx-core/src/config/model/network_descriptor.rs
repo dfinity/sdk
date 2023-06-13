@@ -24,7 +24,7 @@ pub enum NetworkTypeDescriptor {
         wallet_config_path: PathBuf,
     },
     Playground {
-        playground_cid: Principal,
+        playground_canister: Principal,
         canister_timeout_seconds: BigInt,
     },
     Persistent,
@@ -47,13 +47,13 @@ impl NetworkTypeDescriptor {
     ) -> Result<Self, NetworkConfigError> {
         if let Some(playground_config) = playground {
             Ok(NetworkTypeDescriptor::Playground {
-                playground_cid: Principal::from_text(&playground_config.playground_canister)
+                playground_canister: Principal::from_text(&playground_config.playground_canister)
                     .map_err(|e| {
-                        NetworkConfigError::ParsePrincipalFailed(
-                            playground_config.playground_canister,
-                            e,
-                        )
-                    })?,
+                    NetworkConfigError::ParsePrincipalFailed(
+                        playground_config.playground_canister,
+                        e,
+                    )
+                })?,
                 canister_timeout_seconds: playground_config
                     .timeout
                     .map(|t| t.into())
@@ -123,7 +123,7 @@ impl NetworkDescriptor {
             name: PLAYGROUND_NETWORK_NAME.to_string(),
             providers: vec![DEFAULT_IC_GATEWAY.to_string()],
             r#type: NetworkTypeDescriptor::Playground {
-                playground_cid: MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+                playground_canister: MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
                 canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS.into(),
             },
             is_ic: true,

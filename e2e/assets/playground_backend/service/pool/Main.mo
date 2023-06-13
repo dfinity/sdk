@@ -17,6 +17,9 @@ import PoW "./PoW";
 import Logs "./Logs";
 import Metrics "./Metrics";
 import Wasm "canister:wasm-utils";
+import Blob "mo:base/Blob";
+import Buffer "mo:base/Buffer";
+import Nat32 "mo:base/Nat32";
 
 shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
     let IC : ICType.Self = actor "aaaaa-aa";
@@ -106,7 +109,7 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
     };
 
     public shared ({ caller }) func getCanisterId(nonce : PoW.Nonce) : async Types.CanisterInfo {
-        if (not nonceCache.checkProofOfWork(nonce)) {
+        if (caller != controller and not nonceCache.checkProofOfWork(nonce)) {
             stats := Logs.updateStats(stats, #mismatch);
             throw Error.reject "Proof of work check failed";
         };
@@ -119,7 +122,7 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
         await getExpiredCanisterInfo();
     };
 
-    public func installCode(info : Types.CanisterInfo, args : Types.InstallArgs, profiling : Bool) : async Types.CanisterInfo {
+    public shared ({ caller }) func installCode(info : Types.CanisterInfo, args : Types.InstallArgs, profiling : Bool, is_whitelisted : Bool) : async Types.CanisterInfo {
         if (info.timestamp == 0) {
             stats := Logs.updateStats(stats, #mismatch);
             throw Error.reject "Cannot install removed canister";
@@ -134,7 +137,13 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
                 limit_stable_memory_page = ?(16384 : Nat32); // Limit to 1G of stable memory
                 backend_canister_id = ?Principal.fromActor(this);
             };
-            let wasm = await Wasm.transform(args.wasm_module, config);
+            let wasm = if (caller == controller) {
+                args.wasm_module;
+            } else if (is_whitelisted) {
+                await Wasm.is_whitelisted(args.wasm_module);
+            } else {
+                await Wasm.transform(args.wasm_module, config);
+            };
             let newArgs = {
                 arg = args.arg;
                 wasm_module = wasm;
@@ -290,11 +299,12 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
         wasm_module : ICType.wasm_module;
         mode : { #reinstall; #upgrade; #install };
         canister_id : ICType.canister_id;
+        is_whitelisted : Bool;
     }) : async () {
         switch (sanitizeInputs(caller, canister_id)) {
             case (#ok info) {
                 let args = { arg; wasm_module; mode; canister_id };
-                ignore await installCode(info, args, pool.profiling caller); // inherit the profiling of the parent
+                ignore await installCode(info, args, pool.profiling caller, is_whitelisted); // inherit the profiling of the parent
             };
             case (#err makeMsg) throw Error.reject(makeMsg "install_code");
         };
