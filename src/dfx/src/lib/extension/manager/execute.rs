@@ -1,21 +1,20 @@
 use super::ExtensionManager;
 use crate::lib::error::ExtensionError;
-use std::{ffi::OsString, path::Path};
+use std::path::Path;
 
 impl ExtensionManager {
     pub fn run_extension(
         &self,
         dfx_cache: &Path,
-        extension_name: OsString,
-        mut params: Vec<OsString>,
+        extension_name: String,
+        mut params: Vec<String>,
     ) -> Result<(), ExtensionError> {
-        let extension_name = extension_name
-            .into_string()
-            .map_err(ExtensionError::InvalidExtensionName)?;
-
         let mut extension_binary = self.get_extension_binary(&extension_name)?;
 
-        params.extend(["--dfx-cache-path", &dfx_cache.display().to_string()].map(OsString::from));
+        params.extend([
+            "--dfx-cache-path".into(),
+            dfx_cache.to_string_lossy().into(),
+        ]);
 
         let mut child = extension_binary
             .args(&params)

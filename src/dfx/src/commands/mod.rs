@@ -47,9 +47,9 @@ pub enum Command {
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
     // Extension(extension::ExtensionOpts),
-    // // Executes an extension
-    // #[arg(external_subcommand)]
-    // ExtensionRun(Vec<OsString>),
+    // Executes an extension
+    // #[clap(external_subcommand)]
+    // ExtensionRun(Vec<String>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),

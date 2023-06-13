@@ -4,18 +4,16 @@ use crate::lib::error::DfxResult;
 use clap::Parser;
 use dfx_core::config::cache::get_bin_cache;
 
-use std::ffi::OsString;
-
 #[derive(Parser, Debug)]
 pub struct RunOpts {
     /// Specifies the name of the extension to run.
-    name: OsString,
+    name: String,
     /// Specifies the parameters to pass to the extension.
-    params: Vec<OsString>,
+    params: Vec<String>,
 }
 
-impl From<Vec<OsString>> for RunOpts {
-    fn from(value: Vec<OsString>) -> Self {
+impl From<Vec<String>> for RunOpts {
+    fn from(value: Vec<String>) -> Self {
         let (extension_name, params) = value.split_first().unwrap();
         RunOpts {
             name: extension_name.clone(),
