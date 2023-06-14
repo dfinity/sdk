@@ -19,7 +19,7 @@
   "defaults": {
     "build": {
       "output": "build",
-      "packtool": "vessel sources"
+      "packtool": "mops sources"
     }
   }
 }

@@ -15,6 +15,7 @@ teardown() {
 }
 
 setup_playground() {
+  npm i -g ic-mops
   dfx_new hello
   create_networks_json
   mv dfx.json dfx.json.previous

@@ -96,9 +96,9 @@ pub async fn create_canister(
                             .with_optional_freezing_threshold(settings.freezing_threshold)
                             .call_and_wait()
                             .await;
-                        if let Err(AgentError::HttpError(HttpErrorPayload {
-                            status: 404, ..
-                        })) = &res
+                        if matches!(res, Err(AgentError::HttpError(HttpErrorPayload {
+                            status, ..
+                        })) if status == 404_u16 || status == 403_u16)
                         {
                             bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
                             To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
