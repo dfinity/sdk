@@ -111,7 +111,7 @@ pub async fn exec(
         let arg_type = opts.argument_type.as_deref();
         let canister_info = config.as_ref()
             .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
-            .and_then(|config| CanisterInfo::load(config, canister, Some(canister_id)))?;
+            .and_then(|config| CanisterInfo::load(config, canister, Some(canister_id)));
         if let Some(wasm_path) = opts.wasm {
             // streamlined version, we can ignore most of the environment
             let mode = mode.context("The install mode cannot be auto when using --wasm")?;
@@ -119,7 +119,8 @@ pub async fn exec(
             install_canister(
                 env,
                 &mut canister_id_store,
-                &canister_info,
+                canister_id,
+                canister_info.ok().as_ref(),
                 Some(&wasm_path),
                 install_args,
                 Some(mode),
@@ -133,6 +134,7 @@ pub async fn exec(
             .await
             .map_err(Into::into)
         } else {
+            let canister_info = canister_info?;
             let config = config.unwrap();
             let env_file = opts
                 .output_env_file
@@ -143,7 +145,8 @@ pub async fn exec(
             install_canister(
                 env,
                 &mut canister_id_store,
-                &canister_info,
+                canister_id,
+                Some(&canister_info),
                 None,
                 install_args,
                 mode,
@@ -190,7 +193,8 @@ pub async fn exec(
                 install_canister(
                     env,
                     &mut canister_id_store,
-                    &canister_info,
+                    canister_id,
+                    Some(&canister_info),
                     None,
                     install_args,
                     mode,

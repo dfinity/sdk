@@ -324,7 +324,8 @@ async fn install_canisters(
         install_canister(
             env,
             &mut canister_id_store,
-            &canister_info,
+            canister_id,
+            Some(&canister_info),
             None,
             install_args,
             install_mode,

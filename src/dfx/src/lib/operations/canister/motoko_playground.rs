@@ -121,14 +121,12 @@ pub async fn playground_install_code(
         timestamp: canister_timestamp,
     };
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
-    let playground_canister = if let NetworkTypeDescriptor::Playground {
-        playground_canister,
-        ..
-    } = env.get_network_descriptor().r#type
-    {
-        playground_canister
-    } else {
-        bail!("Trying to install wasm through playground on non-playground network.")
+    let playground_canister = match env.get_network_descriptor().r#type {
+        NetworkTypeDescriptor::Playground {
+            playground_canister,
+            ..
+        } => playground_canister,
+        _ => bail!("Trying to install wasm through playground on non-playground network."),
     };
     let install_arg = InstallArgs {
         arg,
