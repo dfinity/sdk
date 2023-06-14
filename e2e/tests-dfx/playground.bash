@@ -51,7 +51,12 @@ setup_playground() {
   assert_command_fail dfx canister stop "${CANISTER}"
   assert_match "The principal you are using to call a management function is not part of the controllers."
 
-  sed -i '' 's/Hello/Goodbye/g' src/hello_backend/main.mo
+  if [ "$(uname)" == "Darwin" ]; then
+        sed -i '' 's/Hello/Goodbye/g' src/hello_backend/main.mo
+    elif [ "$(uname)" == "Linux" ]; then
+        sed -i 's/Hello/Goodbye/g' src/hello_backend/main.mo
+    fi
+  
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'
   assert_match "Goodbye, player!"
