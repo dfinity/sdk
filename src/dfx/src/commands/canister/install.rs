@@ -115,7 +115,7 @@ pub async fn exec(
         if let Some(wasm_path) = opts.wasm {
             // streamlined version, we can ignore most of the environment
             let mode = mode.context("The install mode cannot be auto when using --wasm")?;
-            let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
+            let install_args = || blob_from_arguments(arguments, None, arg_type, &None);
             install_canister(
                 env,
                 &mut canister_id_store,
@@ -139,7 +139,7 @@ pub async fn exec(
                 .or_else(|| config.get_config().output_env_file.clone());
             let idl_path = canister_info.get_constructor_idl_path();
             let init_type = get_candid_init_type(&idl_path);
-            let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
+            let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
             install_canister(
                 env,
                 &mut canister_id_store,
@@ -185,7 +185,7 @@ pub async fn exec(
                     Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
 
-                let install_args = vec![];
+                let install_args = || Ok(vec![]);
 
                 install_canister(
                     env,
