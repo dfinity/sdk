@@ -49,7 +49,7 @@ setup_playground() {
   assert_command_fail dfx canister --playground stop hello_backend
   assert_match "Canisters borrowed from a playground cannot be stopped."
   assert_command_fail dfx canister stop "${CANISTER}"
-  assert_match "403 Forbidden"
+  assert_match "The principal you are using to call a management function is not part of the controllers."
 
   sed -i '' 's/Hello/Goodbye/g' src/hello_backend/main.mo
   assert_command dfx deploy --playground
