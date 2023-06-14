@@ -27,7 +27,7 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
 use sha2::{Digest, Sha256};
-use slog::info;
+use slog::{debug, info};
 use std::collections::HashSet;
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -59,6 +59,11 @@ pub async fn install_canister(
     }
     let canister_id = canister_info.get_canister_id()?;
     let installed_module_hash = read_state_tree_canister_module_hash(agent, canister_id).await?;
+    debug!(
+        log,
+        "Installed module hash: {:?}",
+        installed_module_hash.as_ref().map(|hash| hex::encode(hash))
+    );
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
             InstallMode::Upgrade
@@ -104,11 +109,16 @@ pub async fn install_canister(
     let wasm_module = std::fs::read(wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
     let new_hash = Sha256::digest(&wasm_module);
+    debug!(log, "New wasm module hash: {}", hex::encode(&new_hash));
 
     if mode == InstallMode::Upgrade
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
+        println!(
+            "Module hash {} is already installed.",
+            hex::encode(installed_module_hash.as_ref().unwrap())
+        );
     } else if !(canister_info.is_assets() && no_asset_upgrade) {
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(

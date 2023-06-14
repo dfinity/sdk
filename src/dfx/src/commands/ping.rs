@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use crate::lib::environment::{create_agent, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::NetworkOpt;
 use dfx_core::identity::Identity;
 use dfx_core::network::provider::{
     command_line_provider_to_url, create_network_descriptor, get_network_context,
@@ -18,8 +17,11 @@ use tokio::runtime::Runtime;
 /// Pings an Internet Computer network and returns its status.
 #[derive(Parser)]
 pub struct PingOpts {
-    #[clap(flatten)]
-    network: NetworkOpt,
+    /// The provider to use.
+    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
+    /// ephemeral network will be created specifically for this request. E.g.
+    /// "http://localhost:12345/" is a valid network name.
+    network: Option<String>,
 
     /// Repeatedly ping until the replica is healthy
     #[arg(long)]
@@ -32,7 +34,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     let agent_url = create_network_descriptor(
         env.get_config(),
         env.get_networks_config(),
-        opts.network.to_network_name(),
+        opts.network,
         None,
         LocalBindDetermination::ApplyRunningWebserverPort,
     )
