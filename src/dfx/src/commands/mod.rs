@@ -49,7 +49,7 @@ pub enum Command {
     // Extension(extension::ExtensionOpts),
     // Executes an extension
     // #[clap(external_subcommand)]
-    // ExtensionRun(Vec<String>),
+    // ExtensionRun(Vec<OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
