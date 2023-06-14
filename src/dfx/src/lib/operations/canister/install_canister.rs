@@ -62,7 +62,7 @@ pub async fn install_canister(
     debug!(
         log,
         "Installed module hash: {:?}",
-        installed_module_hash.as_ref().map(|hash| hex::encode(hash))
+        installed_module_hash.as_ref().map(hex::encode)
     );
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
@@ -109,7 +109,7 @@ pub async fn install_canister(
     let wasm_module = std::fs::read(wasm_path)
         .with_context(|| format!("Failed to read {}.", wasm_path.to_string_lossy()))?;
     let new_hash = Sha256::digest(&wasm_module);
-    debug!(log, "New wasm module hash: {}", hex::encode(&new_hash));
+    debug!(log, "New wasm module hash: {}", hex::encode(new_hash));
 
     if mode == InstallMode::Upgrade
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
