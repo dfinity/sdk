@@ -1,22 +1,31 @@
 {
   "name": "{project_name}_frontend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Internet Computer starter application",
-  "keywords": ["Internet Computer", "Motoko", "JavaScript", "Canister"],
+  "keywords": [
+    "Internet Computer",
+    "Motoko",
+    "JavaScript",
+    "Canister"
+  ],
   "scripts": {
     "build": "webpack",
-    "prebuild": "npm run generate",
+    "prebuild": "dfx generate",
     "start": "webpack serve --mode development --env development",
-    "prestart": "npm run generate",
+    "deploy:local": "dfx deploy --network=local",
+    "deploy:ic": "dfx deploy --network=ic",
     "generate": "dfx generate {project_name}_backend"
   },
+  "dependencies": {
+    "@dfinity/agent": "^{js_agent_version}",
+    "@dfinity/candid": "^{js_agent_version}",
+    "@dfinity/principal": "^{js_agent_version}"
+  },
   "devDependencies": {
-    "@dfinity/agent": "{js_agent_version}",
-    "@dfinity/candid": "{js_agent_version}",
-    "@dfinity/principal": "{js_agent_version}",
     "assert": "2.0.0",
     "buffer": "6.0.3",
     "copy-webpack-plugin": "^11.0.0",
+    "dotenv": "^16.0.3",
     "events": "3.3.0",
     "html-webpack-plugin": "5.5.0",
     "process": "0.11.10",

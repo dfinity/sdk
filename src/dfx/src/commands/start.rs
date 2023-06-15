@@ -7,21 +7,28 @@ use crate::actors::{
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
+use crate::lib::info::replica_rev;
+use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
+use crate::lib::replica::status::ping_and_wait;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
+use candid::Deserialize;
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
+use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
+use serde::Serialize;
 use slog::{info, warn, Logger};
+use std::borrow::Cow;
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -36,39 +43,40 @@ use tokio::runtime::Runtime;
 #[derive(Parser)]
 pub struct StartOpts {
     /// Specifies the host name and port number to bind the frontend to.
-    #[clap(long)]
+    #[arg(long)]
     host: Option<String>,
 
     /// Exits the dfx leaving the replica running. Will wait until the replica replies before exiting.
-    #[clap(long)]
+    #[arg(long)]
     background: bool,
 
     /// Cleans the state of the current project.
-    #[clap(long)]
+    #[arg(long)]
     clean: bool,
 
     /// Runs a dedicated emulator instead of the replica
-    #[clap(long)]
+    #[arg(long)]
     emulator: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
-}
 
-fn ping_and_wait(frontend_url: &str) -> DfxResult {
-    let runtime = Runtime::new().expect("Unable to create a runtime");
-    // wait for frontend to come up
-    runtime.block_on(async { crate::lib::replica::status::ping_and_wait(frontend_url).await })?;
-    Ok(())
+    /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
+    #[arg(long, conflicts_with("emulator"), default_value_t = 600)]
+    artificial_delay: u32,
+
+    /// Start even if the network config was modified.
+    #[arg(long)]
+    force: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -76,41 +84,47 @@ fn ping_and_wait(frontend_url: &str) -> DfxResult {
 // Because the user may have specified to start on port 0, here we wait for
 // webserver_port_path to get written to and modify the frontend_url so we
 // ping the correct address.
-fn fg_ping_and_wait(webserver_port_path: PathBuf, frontend_url: String) -> DfxResult {
-    let runtime = Runtime::new().expect("Unable to create a runtime");
-    let port = runtime
-        .block_on(async {
-            let mut retries = 0;
-            let mut contents = String::new();
-            loop {
-                let tokio_file = tokio::fs::File::open(&webserver_port_path)
-                    .await
-                    .with_context(|| {
-                        format!("Failed to open {}.", webserver_port_path.to_string_lossy())
-                    })?;
-                let mut std_file = tokio_file.into_std().await;
-                std_file.read_to_string(&mut contents).with_context(|| {
-                    format!("Failed to read {}.", webserver_port_path.to_string_lossy())
-                })?;
-                if !contents.is_empty() {
-                    break;
-                }
-                if retries >= 30 {
-                    bail!("Timed out waiting for replica to become healthy");
-                }
-                tokio::time::sleep(Duration::from_secs(1)).await;
-                retries += 1;
-            }
-            Ok::<String, DfxError>(contents.clone())
-        })
-        .context("Failed to get port.")?;
-    let mut frontend_url_mod = frontend_url.clone();
+async fn fg_ping_and_wait(
+    webserver_port_path: &Path,
+    frontend_url: &str,
+    logger: &Logger,
+    local_server_descriptor: &LocalServerDescriptor,
+) -> DfxResult {
+    let port = wait_for_port(webserver_port_path).await?;
+
+    let mut frontend_url_mod = frontend_url.to_string();
     let port_offset = frontend_url_mod
         .as_str()
         .rfind(':')
         .ok_or_else(|| anyhow!("Malformed frontend url: {}", frontend_url))?;
     frontend_url_mod.replace_range((port_offset + 1).., port.as_str());
-    ping_and_wait(&frontend_url_mod)
+    ping_and_wait(&frontend_url_mod).await?;
+
+    wait_for_integrations_initialized(&frontend_url_mod, logger, local_server_descriptor).await
+}
+
+async fn wait_for_port(webserver_port_path: &Path) -> DfxResult<String> {
+    let mut retries = 0;
+    loop {
+        let tokio_file = tokio::fs::File::open(&webserver_port_path)
+            .await
+            .with_context(|| {
+                format!("Failed to open {}.", webserver_port_path.to_string_lossy())
+            })?;
+        let mut std_file = tokio_file.into_std().await;
+        let mut contents = String::new();
+        std_file.read_to_string(&mut contents).with_context(|| {
+            format!("Failed to read {}.", webserver_port_path.to_string_lossy())
+        })?;
+        if !contents.is_empty() {
+            break Ok(contents);
+        }
+        if retries >= 30 {
+            bail!("Timed out waiting for replica to become healthy");
+        }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        retries += 1;
+    }
 }
 
 /// Start the Internet Computer locally. Spawns a proxy to forward and
@@ -123,9 +137,11 @@ pub fn exec(
         background,
         emulator,
         clean,
+        force,
         bitcoin_node,
         enable_bitcoin,
         enable_canister_http,
+        artificial_delay,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -204,6 +220,8 @@ pub fn exec(
         empty_writable_path(local_server_descriptor.icx_proxy_pid_path())?;
     let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
+    let previous_config_path = local_server_descriptor.effective_config_path();
+
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
@@ -219,9 +237,19 @@ pub fn exec(
 
     if background {
         send_background()?;
-        return fg_ping_and_wait(webserver_port_path, frontend_url);
+        return Runtime::new()
+            .expect("Unable to create a runtime")
+            .block_on(async {
+                fg_ping_and_wait(
+                    &webserver_port_path,
+                    &frontend_url,
+                    env.get_logger(),
+                    local_server_descriptor,
+                )
+                .await
+            });
     }
-    local_server_descriptor.describe(env.get_logger(), true, false);
+    local_server_descriptor.describe(env.get_logger());
 
     write_pid(&pid_file_path);
     std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
@@ -258,6 +286,45 @@ pub fn exec(
         .replica
         .log_level
         .unwrap_or_default();
+
+    let replica_config = {
+        let replica_config =
+            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
+        let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
+            replica_config.with_port(port)
+        } else {
+            replica_config.with_random_port(&replica_port_path)
+        };
+        if let Some(btc_adapter_config) = btc_adapter_config.as_ref() {
+            replica_config = replica_config.with_btc_adapter_enabled();
+            if let Some(btc_adapter_socket) = btc_adapter_config.get_socket_path() {
+                replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+            }
+        }
+        if let Some(canister_http_adapter_config) = canister_http_adapter_config.as_ref() {
+            replica_config = replica_config.with_canister_http_adapter_enabled();
+            if let Some(socket_path) = canister_http_adapter_config.get_socket_path() {
+                replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
+            }
+        }
+        replica_config
+    };
+
+    let effective_config = if emulator {
+        CachedConfig::emulator()
+    } else {
+        CachedConfig::replica(&replica_config)
+    };
+    if !clean && !force && previous_config_path.exists() {
+        let previous_config = load_json_file(&previous_config_path)
+            .context("Failed to read replica configuration. Rerun with `--clean`.")?;
+        if effective_config != previous_config {
+            bail!("The network configuration was changed. Rerun with `--clean`.")
+        }
+    }
+    save_json_file(&previous_config_path, &effective_config)
+        .context("Failed to write replica configuration")?;
+
     let network_descriptor = network_descriptor.clone();
 
     let system = actix::System::new();
@@ -265,54 +332,36 @@ pub fn exec(
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let emulator =
-                start_emulator_actor(env, shutdown_controller.clone(), emulator_port_path)?;
+            let emulator = start_emulator_actor(
+                env,
+                local_server_descriptor,
+                shutdown_controller.clone(),
+                emulator_port_path,
+            )?;
             emulator.recipient()
         } else {
-            let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                if let Some(ref btc_adapter_config) = btc_adapter_config {
-                    let socket_path = btc_adapter_config.get_socket_path();
-                    let ready_subscribe = start_btc_adapter_actor(
+            let btc_adapter_ready_subscribe = btc_adapter_config
+                .map(|btc_adapter_config| {
+                    start_btc_adapter_actor(
                         env,
                         btc_adapter_config_path,
-                        socket_path.clone(),
+                        btc_adapter_config.get_socket_path(),
                         shutdown_controller.clone(),
                         btc_adapter_pid_file_path,
-                    )?
-                    .recipient();
-                    (Some(ready_subscribe), socket_path)
-                } else {
-                    (None, None)
-                };
-            let (canister_http_adapter_ready_subscribe, canister_http_socket_path) =
-                if let Some(ref canister_http_adapter_config) = canister_http_adapter_config {
-                    let socket_path = canister_http_adapter_config.get_socket_path();
-                    let ready_subscribe = start_canister_http_adapter_actor(
+                    )
+                })
+                .transpose()?;
+            let canister_http_adapter_ready_subscribe = canister_http_adapter_config
+                .map(|canister_http_adapter_config| {
+                    start_canister_http_adapter_actor(
                         env,
                         canister_http_adapter_config_path,
-                        socket_path.clone(),
+                        canister_http_adapter_config.get_socket_path(),
                         shutdown_controller.clone(),
                         canister_http_adapter_pid_file_path,
-                    )?
-                    .recipient();
-                    (Some(ready_subscribe), socket_path)
-                } else {
-                    (None, None)
-                };
-            let mut replica_config = ReplicaConfig::new(&state_root, subnet_type, log_level)
-                .with_random_port(&replica_port_path);
-            if btc_adapter_config.is_some() {
-                replica_config = replica_config.with_btc_adapter_enabled();
-                if let Some(btc_adapter_socket) = btc_adapter_socket_path {
-                    replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
-                }
-            }
-            if canister_http_adapter_config.is_some() {
-                replica_config = replica_config.with_canister_http_adapter_enabled();
-                if let Some(socket_path) = canister_http_socket_path {
-                    replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
-                }
-            }
+                    )
+                })
+                .transpose()?;
 
             let replica = start_replica_actor(
                 env,
@@ -351,6 +400,38 @@ pub fn exec(
     }
 
     Ok(())
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
+pub enum CachedReplicaConfig<'a> {
+    Replica { config: Cow<'a, ReplicaConfig> },
+    Emulator,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+pub struct CachedConfig<'a> {
+    pub replica_rev: String,
+    #[serde(flatten)]
+    pub config: CachedReplicaConfig<'a>,
+}
+
+impl<'a> CachedConfig<'a> {
+    pub fn replica(config: &'a ReplicaConfig) -> Self {
+        Self {
+            replica_rev: replica_rev().into(),
+            config: CachedReplicaConfig::Replica {
+                config: Cow::Borrowed(config),
+            },
+        }
+    }
+    pub fn emulator() -> Self {
+        Self {
+            replica_rev: replica_rev().into(),
+            config: CachedReplicaConfig::Emulator,
+        }
+    }
 }
 
 pub fn apply_command_line_parameters(
@@ -585,7 +666,7 @@ pub fn configure_canister_http_adapter_if_enabled(
     };
 
     let socket_path =
-        get_persistent_socket_path(uds_holder_path, "ic-canister-http-adapter-socket")?;
+        get_persistent_socket_path(uds_holder_path, "ic-https-outcalls-adapter-socket")?;
 
     let log_level = local_server_descriptor.canister_http.log_level;
     let adapter_config = canister_http_adapter::Config::new(socket_path, log_level);

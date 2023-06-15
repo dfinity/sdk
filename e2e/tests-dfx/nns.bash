@@ -48,22 +48,6 @@ teardown() {
     assert_command dfx nns install --help
 }
 
-# Tries to start dfx on the default port, repeating until it succeeds or times out.
-#
-# Motivation: dfx nns install works only on port 8080, as URLs are compiled into the wasms.  This means that multiple
-# tests MAY compete for the same port.
-# - It may be possible in future for the wasms to detect their own URL and recompute signatures accordingly,
-#   however until such a time, we have this restriction.
-# - It may also be that ic-nns-install, if used on a non-standard port, installs only the core canisters not the UI.
-# - However until we have implemented good solutions, all tests on ic-nns-install must run on port 8080.
-dfx_start_for_nns_install() {
-    # TODO: When nns-dapp supports dynamic ports, this wait can be removed.
-    assert_command timeout 300 sh -c \
-        "until dfx start --clean --background --host 127.0.0.1:8080 --verbose; do echo waiting for port 8080 to become free; sleep 3; done" \
-        || (echo "could not connect to replica on port 8080" && exit 1)
-    assert_match "subnet type: System"
-    assert_match "127.0.0.1:8080"
-}
 
 # The nns canisters should be installed without changing any of the developer's project files,
 # so we cannot rely on `dfx canister id` when testing.  We rely on these hard-wired values instead:
@@ -106,8 +90,8 @@ assert_nns_canister_id_matches() {
     # assert_nns_canister_id_matches nns-ic-ckbtc-minter
     assert_nns_canister_id_matches nns-sns-wasm
     # TODO: No source provides these canister IDs - yet.
-    #assert_nns_canister_id_matches internet_identity
-    #assert_nns_canister_id_matches nns-dapp
+    assert_nns_canister_id_matches internet_identity
+    assert_nns_canister_id_matches nns-dapp
 }
 
 @test "dfx nns install runs" {
@@ -140,7 +124,7 @@ assert_nns_canister_id_matches() {
     wasm_matches nns-ledger ledger-canister_notify-method.wasm
     wasm_matches nns-root root-canister.wasm
     wasm_matches nns-cycles-minting cycles-minting-canister.wasm
-    wasm_matches nns-lifeline lifeline.wasm
+    wasm_matches nns-lifeline lifeline_canister.wasm
     wasm_matches nns-genesis-token genesis-token-canister.wasm
     wasm_matches nns-sns-wasm sns-wasm-canister.wasm
     wasm_matches internet_identity internet_identity_dev.wasm
@@ -158,7 +142,7 @@ assert_nns_canister_id_matches() {
 
     echo "    The secp256k1 account can be controlled from the command line"
     install_asset nns
-    dfx identity import --force --disable-encryption ident-1 ident-1/identity.pem
+    dfx identity import --force --storage-mode plaintext ident-1 ident-1/identity.pem
     assert_command dfx ledger account-id --identity ident-1
     assert_eq "$SECP256K1_ACCOUNT_ID"
 

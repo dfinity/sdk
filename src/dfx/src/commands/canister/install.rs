@@ -1,11 +1,12 @@
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::operations::canister::{install_canister, install_canister_wasm};
+use crate::lib::operations::canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use dfx_core::canister::install_canister_wasm;
+use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -23,33 +24,33 @@ pub struct CanisterInstallOpts {
     canister: Option<String>,
 
     /// Deploys all canisters configured in the project dfx.json files.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"), conflicts_with("argument"))]
     all: bool,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
-    #[clap(long)]
+    #[arg(long)]
     async_call: bool,
 
     /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
     /// If auto is selected, either install or upgrade will be used depending on if the canister has already been installed.
-    #[clap(long, short('m'), default_value("install"),
-        possible_values(&["install", "reinstall", "upgrade", "auto"]))]
+    #[arg(long, short, default_value("install"),
+        value_parser = ["install", "reinstall", "upgrade", "auto"])]
     mode: String,
 
     /// Upgrade the canister even if the .wasm did not change.
-    #[clap(long)]
+    #[arg(long)]
     upgrade_unchanged: bool,
 
     /// Specifies the argument to pass to the method.
-    #[clap(long)]
+    #[arg(long)]
     argument: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     argument_type: Option<String>,
 
     /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
-    #[clap(long, conflicts_with("all"))]
+    #[arg(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 
     /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
@@ -57,11 +58,11 @@ pub struct CanisterInstallOpts {
 
     /// Skips yes/no checks by answering 'yes'. Such checks usually result in data loss,
     /// so this is not recommended outside of CI.
-    #[clap(long, short)]
+    #[arg(long, short)]
     yes: bool,
 
     /// Skips upgrading the asset canister, to only install the assets themselves.
-    #[clap(long)]
+    #[arg(long)]
     no_asset_upgrade: bool,
 }
 
@@ -81,14 +82,22 @@ pub async fn exec(
     } else {
         Some(InstallMode::from_str(&opts.mode).map_err(|err| anyhow!(err))?)
     };
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
     let network = env.get_network_descriptor();
 
     if mode == Some(InstallMode::Reinstall) && (opts.canister.is_none() || opts.all) {
         bail!("The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister.");
     }
 
+    let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
+
     if let Some(canister) = opts.canister.as_deref() {
+        if pull_canisters_in_config.contains_key(canister) {
+            bail!(
+                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
+                canister
+            );
+        }
         let config = env.get_config();
         let is_remote = config
             .as_ref()
@@ -114,7 +123,6 @@ pub async fn exec(
             let mode = mode.context("The install mode cannot be auto when using --wasm")?;
             let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
             install_canister_wasm(
-                env,
                 agent,
                 canister_id,
                 canister_info.as_ref().map(|info| info.get_name()).ok(),
@@ -124,8 +132,10 @@ pub async fn exec(
                 fs::read(&wasm_path)
                     .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
                 opts.yes,
+                env.get_logger(),
             )
             .await
+            .map_err(Into::into)
         } else {
             let canister_info = canister_info
                 .with_context(|| format!("Failed to load canister info for {}.", canister))?;
@@ -133,7 +143,7 @@ pub async fn exec(
             let env_file = opts
                 .output_env_file
                 .or_else(|| config.get_config().output_env_file.clone());
-            let idl_path = canister_info.get_build_idl_path();
+            let idl_path = canister_info.get_constructor_idl_path();
             let init_type = get_candid_init_type(&idl_path);
             let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
             install_canister(
@@ -151,6 +161,7 @@ pub async fn exec(
                 !opts.no_asset_upgrade,
             )
             .await
+            .map_err(Into::into)
         }
     } else if opts.all {
         // Install all canisters.
@@ -160,6 +171,9 @@ pub async fn exec(
             .or_else(|| config.get_config().output_env_file.clone());
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
+                if pull_canisters_in_config.contains_key(canister) {
+                    continue;
+                }
                 let canister_is_remote = config
                     .get_config()
                     .is_remote_canister(canister, &network.name)?;
@@ -195,6 +209,9 @@ pub async fn exec(
                 )
                 .await?;
             }
+        }
+        if !pull_canisters_in_config.is_empty() {
+            info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`.");
         }
         Ok(())
     } else {

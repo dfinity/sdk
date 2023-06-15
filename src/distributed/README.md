@@ -2,7 +2,7 @@
 # Building the Wallet Canister
 
 The `wallet.wasm` and `wallet.did` files here are built using `dfx build` in the
-https://github.com/dfinity/rust-wallet repo.
+https://github.com/dfinity/cycles-wallet repo.
 
 To build, clone that repo, run `dfx build`, then copy the `wallet.wasm`.  Or, run
 ./update-wallet from this directory.  For either, in order for `dfx build` to work,

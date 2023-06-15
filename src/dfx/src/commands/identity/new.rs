@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::clap::validators::is_hsm_key_id;
+use crate::util::clap::parsers::hsm_key_id_parser;
 use dfx_core::error::identity::IdentityError::SwitchBackToIdentityFailed;
 use dfx_core::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
@@ -16,7 +16,7 @@ use slog::{info, warn, Logger};
 /// Creates a new identity.
 #[derive(Parser)]
 pub struct NewIdentityOpts {
-    /// The identity to create.
+    /// The name of the identity to create.
     new_identity: String,
 
     #[cfg_attr(
@@ -27,26 +27,26 @@ pub struct NewIdentityOpts {
         windows,
         doc = r#"The file path to the opensc-pkcs11 library e.g. "C:\Program Files (x86)\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll"#
     )]
-    #[clap(long, requires("hsm-key-id"))]
+    #[arg(long, requires("hsm_key_id"))]
     hsm_pkcs11_lib_path: Option<String>,
 
     /// A sequence of pairs of hex digits
-    #[clap(long, requires("hsm-pkcs11-lib-path"), validator(is_hsm_key_id))]
+    #[arg(long, requires("hsm_pkcs11_lib_path"), value_parser = hsm_key_id_parser)]
     hsm_key_id: Option<String>,
 
     /// DEPRECATED: Please use --storage-mode=plaintext instead
-    #[clap(long)]
+    #[arg(long)]
     disable_encryption: bool,
 
     /// How your private keys are stored. By default, if keyring/keychain is available, keys are stored there.
     /// Otherwise, a password-protected file is used as fallback.
     /// Mode 'plaintext' is not safe, but convenient for use in CI.
-    #[clap(long, conflicts_with("disable-encryption"),
-    possible_values(&["keyring", "password-protected", "plaintext"]))]
+    #[arg(long, conflicts_with("disable_encryption"),
+        value_parser = ["keyring", "password-protected", "plaintext"])]
     storage_mode: Option<String>,
 
     /// If the identity already exists, remove and re-create it.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 

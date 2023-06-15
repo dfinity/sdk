@@ -5,7 +5,7 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
-use clap::{Args, Parser};
+use clap::{ArgAction, Args, Parser};
 use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use semver::Version;
 use std::path::PathBuf;
@@ -18,33 +18,33 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Parser)]
-#[clap(name("dfx"), version = dfx_version_str())]
+#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style())]
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
-    #[clap(long, short('v'), parse(from_occurrences), global(true))]
-    verbose: u64,
+    #[arg(long, short, action = ArgAction::Count, global = true)]
+    verbose: u8,
 
     /// Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.
-    #[clap(long, short('q'), parse(from_occurrences), global(true))]
-    quiet: u64,
+    #[arg(long, short, action = ArgAction::Count, global = true)]
+    quiet: u8,
 
     /// The logging mode to use. You can log to stderr, a file, or both.
-    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]), global(true))]
+    #[arg(long = "log", default_value = "stderr", value_parser = ["stderr", "tee", "file"], global = true)]
     logmode: String,
 
     /// The file to log to, if logging to a file (see --logmode).
-    #[clap(long, global(true))]
+    #[arg(long, global = true)]
     logfile: Option<String>,
 
     /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
-    #[clap(long, env("DFX_IDENTITY"), global(true))]
+    #[arg(long, env = "DFX_IDENTITY", global = true)]
     identity: Option<String>,
 
     /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
-    #[clap(long, global(true))]
+    #[arg(long, global = true, value_name = "PRINCIPAL")]
     provisional_create_canister_effective_canister_id: Option<String>,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     command: commands::Command,
 }
 
@@ -54,7 +54,7 @@ struct NetworkOpt {
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
     /// ephemeral network will be created specifically for this request. E.g.
     /// "http://localhost:12345/" is a valid network name.
-    #[clap(long, global(true))]
+    #[arg(long, global = true)]
     network: Option<String>,
 }
 
@@ -93,7 +93,7 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
             );
         }
 
-        match crate::config::cache::call_cached_dfx(version) {
+        match dfx_core::config::cache::call_cached_dfx(version) {
             Ok(status) => std::process::exit(status.code().unwrap_or(0)),
             Err(e) => {
                 eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
@@ -217,5 +217,17 @@ fn main() {
     if let Err(err) = result {
         print_error_and_diagnosis(err, error_diagnosis);
         std::process::exit(255);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    use crate::CliOpts;
+
+    #[test]
+    fn validate_cli() {
+        CliOpts::command().debug_assert();
     }
 }

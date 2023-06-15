@@ -10,6 +10,7 @@ mod build;
 mod cache;
 mod canister;
 mod deploy;
+mod deps;
 mod diagnose;
 mod extension;
 mod fix;
@@ -21,7 +22,6 @@ mod ledger;
 mod new;
 mod nns;
 mod ping;
-mod pull;
 mod quickstart;
 mod remote;
 mod replica;
@@ -35,35 +35,34 @@ mod wallet;
 
 #[derive(Subcommand)]
 pub enum Command {
-    #[clap(hide(true))]
+    #[command(hide = true)]
     Beta(beta::BetaOpts),
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
     Deploy(deploy::DeployOpts),
+    #[command(hide = true)]
+    Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
     // Extension(extension::ExtensionOpts),
     // Executes an extension
     // #[clap(external_subcommand)]
-    // ExtensionRun(Vec<std::ffi::OsString>),
+    // ExtensionRun(Vec<OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
-    #[clap(name("_language-service"))]
+    #[command(name = "_language-service")]
     LanguageServices(language_service::LanguageServiceOpts),
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
     Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
-    #[clap(hide(true))]
-    Pull(pull::PullOpts),
     Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
     Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
-    #[clap(hide(true))]
     Sns(sns::SnsOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
@@ -80,6 +79,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Cache(v) => cache::exec(env, v),
         Command::Canister(v) => canister::exec(env, v),
         Command::Deploy(v) => deploy::exec(env, v),
+        Command::Deps(v) => deps::exec(env, v),
         Command::Diagnose(v) => diagnose::exec(env, v),
         Command::Fix(v) => fix::exec(env, v),
         // Command::Extension(v) => extension::exec(env, v),
@@ -92,7 +92,6 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::New(v) => new::exec(env, v),
         Command::Nns(v) => nns::exec(env, v),
         Command::Ping(v) => ping::exec(env, v),
-        Command::Pull(v) => pull::exec(env, v),
         Command::Quickstart(v) => quickstart::exec(env, v),
         Command::Remote(v) => remote::exec(env, v),
         Command::Replica(v) => replica::exec(env, v),

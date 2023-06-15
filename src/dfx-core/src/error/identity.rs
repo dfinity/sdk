@@ -1,11 +1,12 @@
 use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
 use crate::error::foundation::FoundationError;
-use crate::error::io::IoError;
+use crate::error::fs::FsError;
 use crate::error::keyring::KeyringError;
 use crate::error::structured_file::StructuredFileError;
 use crate::error::wallet_config::WalletConfigError;
 
+use ic_agent::export::PrincipalError;
 use ic_agent::identity::PemError;
 use ic_identity_hsm::HardwareIdentityError;
 
@@ -25,19 +26,19 @@ pub enum IdentityError {
     CannotCreateAnonymousIdentity(),
 
     #[error("Failed to clean up previous creation attempts: {0}")]
-    CleanupPreviousCreationAttemptsFailed(IoError),
+    CleanupPreviousCreationAttemptsFailed(FsError),
 
     #[error("Convert secret key to sec1 Pem failed: {0}")]
     ConvertSecretKeyToSec1PemFailed(Box<sec1::Error>),
 
     #[error("Cannot create identity directory: {0}")]
-    CreateIdentityDirectoryFailed(IoError),
+    CreateIdentityDirectoryFailed(FsError),
 
     #[error("Failed to create mnemonic from phrase: {0}")]
     CreateMnemonicFromPhraseFailed(String),
 
     #[error("Failed to create temporary identity directory: {0}")]
-    CreateTemporaryIdentityDirectoryFailed(IoError),
+    CreateTemporaryIdentityDirectoryFailed(FsError),
 
     #[error("Cannot save PEM content for an HSM.")]
     CannotSavePemContentForHsm(),
@@ -58,7 +59,7 @@ pub enum IdentityError {
     EncryptPemFileFailed(PathBuf, EncryptionError),
 
     #[error("Failed to ensure identity configuration directory exists: {0}")]
-    EnsureIdentityConfigurationDirExistsFailed(IoError),
+    EnsureIdentityConfigurationDirExistsFailed(FsError),
 
     #[error("Failed to generate a fresh encryption configuration: {0}")]
     GenerateFreshEncryptionConfigurationFailed(EncryptionError),
@@ -97,28 +98,31 @@ pub enum IdentityError {
     LoadPemFromKeyringFailed(Box<String>, KeyringError),
 
     #[error("Failed to migrate legacy identity")]
-    MigrateLegacyIdentityFailed(IoError),
+    MigrateLegacyIdentityFailed(FsError),
+
+    #[error("Failed to read principal from id '{0}': {1}")]
+    ParsePrincipalFromIdFailed(String, PrincipalError),
 
     #[error("Cannot read identity file '{0}': {1:#}")]
     ReadIdentityFileFailed(String, Box<PemError>),
 
     #[error("Failed to read pem file: {0}")]
-    ReadPemFileFailed(IoError),
+    ReadPemFileFailed(FsError),
 
     #[error("Failed to remove identity directory: {0}")]
-    RemoveIdentityDirectoryFailed(IoError),
+    RemoveIdentityDirectoryFailed(FsError),
 
     #[error("Failed to remove identity from keyring: {0}")]
     RemoveIdentityFromKeyringFailed(KeyringError),
 
     #[error("Failed to remove identity file: {0}")]
-    RemoveIdentityFileFailed(IoError),
+    RemoveIdentityFileFailed(FsError),
 
     #[error("Cannot rename identity directory: {0}")]
-    RenameIdentityDirectoryFailed(IoError),
+    RenameIdentityDirectoryFailed(FsError),
 
     #[error("Failed to rename temporary directory to permanent identity directory: {0}")]
-    RenameTemporaryIdentityDirectoryFailed(IoError),
+    RenameTemporaryIdentityDirectoryFailed(FsError),
 
     #[error("Failed to rename '{0}' to '{1}' in the global wallet config: {2}")]
     RenameWalletFailed(Box<String>, Box<String>, WalletConfigError),
@@ -153,7 +157,7 @@ pub enum IdentityError {
     ValidatePemContentFailed(Box<PemError>),
 
     #[error("Cannot write PEM file: {0}")]
-    WritePemFileFailed(IoError),
+    WritePemFileFailed(FsError),
 
     #[error("Failed to write PEM to keyring: {0}")]
     WritePemToKeyringFailed(KeyringError),
