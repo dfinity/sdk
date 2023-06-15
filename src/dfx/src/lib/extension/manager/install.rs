@@ -22,13 +22,12 @@ impl ExtensionManager {
     ) -> Result<(), ExtensionError> {
         let effective_extension_name = install_as.unwrap_or(extension_name);
 
-        if self.get_extension_directory(effective_extension_name).exists() {
+        if self
+            .get_extension_directory(effective_extension_name)
+            .exists()
+        {
             return Err(ExtensionError::ExtensionAlreadyInstalled(
                 effective_extension_name.to_string(),
-            ));
-        }
-            return Err(ExtensionError::ExtensionAlreadyInstalled(
-                extension_name.to_string(),
             ));
         }
 
@@ -39,7 +38,12 @@ impl ExtensionManager {
 
         let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
 
-        self.finalize_installation(extension_name,  &extension_archive, temp_dir, install_as)?;
+        self.finalize_installation(
+            extension_name,
+            effective_extension_name,
+            &extension_archive,
+            temp_dir,
+        )?;
 
         Ok(())
     }
@@ -60,7 +64,7 @@ impl ExtensionManager {
     ) -> Result<Version, ExtensionError> {
         let manifest = ExtensionCompatibilityMatrix::fetch()?;
         let dfx_version = self.dfx_version_strip_semver();
-        manifest.find_latest_compatible_extension_version(extension_name, dfx_version)
+        manifest.find_latest_compatible_extension_version(extension_name, &dfx_version)
     }
 
     fn download_and_unpack_extension_to_tempdir(
@@ -83,16 +87,18 @@ impl ExtensionManager {
             .unpack(temp_dir.path())
             .map_err(|e| ExtensionError::DecompressFailed(download_url, e))?;
 
+        dbg!(std::fs::read_dir(temp_dir.path()).unwrap().count());
         Ok(temp_dir)
     }
 
     fn finalize_installation(
         &self,
         extension_name: &str,
+        effective_extension_name: &str,
         extension_unarchived_dir_name: &str,
         temp_dir: TempDir,
-        install_as: Option<&str>,
     ) -> Result<(), ExtensionError> {
+        let effective_extension_dir = &self.get_extension_directory(effective_extension_name);
         #[cfg(not(target_os = "windows"))]
         {
             let bin = temp_dir
@@ -101,19 +107,17 @@ impl ExtensionManager {
                 .join(extension_name);
             dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
         }
-
-        if let Some(install_as) = install_as {
-            // rename the binary
-            dfx_core::fs::rename(
-                temp_dir.path().join(extension_name).as_path(),
-                temp_dir.path().join(install_as).as_path(),
-            )?;
-        }
-        let extension_dir = self.get_extension_directory(install_as.unwrap_or(extension_name));
         dfx_core::fs::rename(
             &temp_dir.path().join(extension_unarchived_dir_name),
-            &extension_dir,
+            &effective_extension_dir,
         )?;
+        if extension_name != effective_extension_name {
+            // rename the binary
+            dfx_core::fs::rename(
+                &effective_extension_dir.join(extension_name),
+                &effective_extension_dir.join(effective_extension_name),
+            )?;
+        }
         Ok(())
     }
 }
