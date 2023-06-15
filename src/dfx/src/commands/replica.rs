@@ -18,6 +18,7 @@ use dfx_core::network::provider::{create_network_descriptor, LocalBindDeterminat
 use anyhow::{bail, Context};
 use clap::{ArgAction, Parser};
 use fn_error_context::context;
+use slog::warn;
 use std::default::Default;
 use std::fs;
 use std::fs::create_dir_all;
@@ -101,6 +102,13 @@ pub fn exec(
         force,
     }: ReplicaOpts,
 ) -> DfxResult {
+    warn!(
+        env.get_logger(),
+        "The replica command is deprecated. \
+        Please use the start command instead. \
+        If you have a good reason to use the replica command, \
+        please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163"
+    );
     let system = actix::System::new();
 
     let network_descriptor = create_network_descriptor(

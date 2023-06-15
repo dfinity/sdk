@@ -4,7 +4,7 @@ use crate::lib::builders::{
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::util::download_file_to_path;
 
@@ -15,8 +15,7 @@ use console::style;
 use fn_error_context::context;
 use slog::info;
 use slog::Logger;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::PathBuf;
 use url::Url;
 
 /// Set of extras that can be specified in the dfx.json.
@@ -135,7 +134,7 @@ impl CanisterBuilder for CustomBuilder {
                 .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &vars, info.get_workspace_root())
+                super::run_command(args, &vars, info.get_workspace_root())
                     .with_context(|| format!("Failed to run {}.", command))?;
             }
         }
@@ -182,36 +181,6 @@ impl CanisterBuilder for CustomBuilder {
         })?;
 
         Ok(output_idl_path)
-    }
-}
-
-fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
-    let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = cwd
-        .join(command_name)
-        .canonicalize()
-        .or_else(|_| which::which(command_name))
-        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(&canonicalized);
-
-    cmd.args(arguments)
-        .current_dir(cwd)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-
-    for (key, value) in vars {
-        cmd.env(key.as_ref(), value);
-    }
-
-    let output = cmd
-        .output()
-        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(DfxError::new(BuildError::CustomToolError(
-            output.status.code(),
-        )))
     }
 }
 

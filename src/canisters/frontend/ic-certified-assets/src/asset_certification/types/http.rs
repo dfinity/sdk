@@ -114,14 +114,22 @@ impl HttpRequest {
         #[cfg(test)]
         let canister_id = self.get_canister_id();
 
-        let location = format!("https://{canister_id}.icp0.io{path}", path = self.url);
+        let location = match self.get_header_value("Host") {
+            Some(host_header) if host_header.ends_with("ic0.app") => {
+                format!("https://{canister_id}.ic0.app{path}", path = self.url)
+            }
+            _ => format!("https://{canister_id}.icp0.io{path}", path = self.url),
+        };
         HttpResponse::build_redirect(HTTP_REDIRECT_PERMANENT, location)
     }
 
     #[cfg(test)]
     pub fn get_canister_id(&self) -> &str {
         if let Some(host_header) = self.get_header_value("Host") {
-            if host_header.contains(".localhost") || host_header.contains(".io") {
+            if host_header.contains(".localhost")
+                || host_header.contains(".io")
+                || host_header.contains(".app")
+            {
                 return host_header.split('.').next().unwrap();
             } else if let Some(t) = self.url.split("canisterId=").nth(1) {
                 let x = t.split_once('&');

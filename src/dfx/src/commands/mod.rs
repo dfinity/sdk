@@ -73,10 +73,10 @@ pub enum Command {
     Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
-    Extension(extension::ExtensionOpts),
+    // Extension(extension::ExtensionOpts),
     // Executes an extension
-    #[command(external_subcommand)]
-    ExtensionRun(Vec<OsString>),
+    // #[clap(external_subcommand)]
+    // ExtensionRun(Vec<OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),

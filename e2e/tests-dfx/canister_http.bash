@@ -322,6 +322,8 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can query a website" {
+    skip "Canister http functionality is broken.  See https://dfinity.atlassian.net/browse/SDK-1129"
+
     dfx_start
 
     dfx_new

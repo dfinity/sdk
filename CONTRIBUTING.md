@@ -31,8 +31,8 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
 #### Setup
 
 1. Install `bats`, `jq` and `sponge`. See the CI provisioning scripts for examples (search for the line with the comment `# Install Bats + moreutils.`):
-    - [Linux](../scripts/workflows/provision-linux.sh)
-    - [Darwin](../scripts/workflows/provision-darwin.sh)
+    - [Linux](./scripts/workflows/provision-linux.sh)
+    - [Darwin](./scripts/workflows/provision-darwin.sh)
 1. Download `bats-support` (which is included as this repository' submodule) 
     ```bash
     git submodule update --init --recursive
