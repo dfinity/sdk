@@ -17,13 +17,13 @@ impl ExtensionManager {
         extension_name: &str,
         install_as: Option<&str>,
     ) -> Result<(), ExtensionError> {
-        if let Some(install_as) = install_as {
-            if self.get_extension_directory(install_as).exists() {
-                return Err(ExtensionError::ExtensionAlreadyInstalled(
-                    install_as.to_string(),
-                ));
-            }
-        } else if self.get_extension_directory(extension_name).exists() {
+        let effective_extension_name = install_as.unwrap_or(extension_name);
+
+        if self.get_extension_directory(effective_extension_name).exists() {
+            return Err(ExtensionError::ExtensionAlreadyInstalled(
+                effective_extension_name.to_string(),
+            ));
+        }
             return Err(ExtensionError::ExtensionAlreadyInstalled(
                 extension_name.to_string(),
             ));
@@ -106,13 +106,9 @@ impl ExtensionManager {
                 temp_dir.path().join(extension_name).as_path(),
                 temp_dir.path().join(install_as).as_path(),
             )?;
-            // and directory
-            let install_as_dir = self.get_extension_directory(install_as);
-            dfx_core::fs::rename(temp_dir.path(), &install_as_dir)?;
-        } else {
-            let extension_dir = self.dir.join(extension_name);
-            dfx_core::fs::rename(temp_dir.path(), &extension_dir)?;
         }
+        let extension_dir = self.get_extension_directory(install_as.unwrap_or(extension_name));
+        dfx_core::fs::rename(temp_dir.path(), &extension_dir)?;
         Ok(())
     }
 }
