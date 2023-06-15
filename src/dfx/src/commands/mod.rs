@@ -3,7 +3,6 @@ use crate::lib::error::DfxResult;
 
 use anyhow::bail;
 use clap::Subcommand;
-use tokio::runtime::Runtime;
 
 mod beta;
 mod bootstrap;
@@ -87,10 +86,7 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         // Command::ExtensionRun(v) => extension::run::exec(env, v.into()),
         Command::Generate(v) => generate::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
-        Command::Info(v) => {
-            let runtime = Runtime::new().expect("Unable to create a runtime");
-            runtime.block_on(info::exec(env, v))
-        }
+        Command::Info(v) => info::exec(env, v),
         Command::LanguageServices(v) => language_service::exec(env, v),
         Command::Ledger(v) => ledger::exec(env, v),
         Command::New(v) => new::exec(env, v),

@@ -14,7 +14,7 @@ use crate::error::network_config::NetworkConfigError::{
     ParseProviderUrlFailed, ReadWebserverPortFailed,
 };
 use crate::identity::WALLET_CONFIG_FILENAME;
-use crate::util::network_to_pathcompat;
+use crate::util;
 
 use lazy_static::lazy_static;
 use slog::{debug, info, warn, Logger};
@@ -197,7 +197,7 @@ fn create_url_based_network_descriptor(
     parse_provider_url(network_name).ok().map(|url| {
         // Replace any non-ascii-alphanumeric characters with `_`, to create an
         // OS-friendly directory name for it.
-        let name = network_to_pathcompat(network_name);
+        let name = util::network_to_pathcompat(network_name);
         let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
         let data_directory = get_shared_network_data_directory(network_name)?;
         let network_type = NetworkTypeDescriptor::new(

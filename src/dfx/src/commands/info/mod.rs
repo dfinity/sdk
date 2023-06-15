@@ -31,7 +31,7 @@ pub struct InfoOpts {
     info_type: InfoType,
 }
 
-pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
     let value = match opts.info_type {
         InfoType::ReplicaPort => get_replica_port(env)?,
         InfoType::ReplicaRev => info::replica_rev().to_string(),

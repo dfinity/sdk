@@ -20,7 +20,6 @@ teardown() {
     dfx build
 
     assert_command dfx canister install --all
-    echo "FIRST INSTALL DONE"
 
     assert_command dfx canister install --all --mode upgrade
     assert_match "Module hash.*is already installed"

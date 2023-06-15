@@ -17,11 +17,13 @@ pub struct GetCanisterIdArgs {
     pub nonce: candid::Nat,
 }
 
+/// Used to uniquely identify a canister with the playground
 #[derive(CandidType, Deserialize, Debug)]
 pub struct CanisterInfo {
     pub id: Principal,
     pub timestamp: candid::Int,
 }
+
 #[derive(CandidType, Deserialize, Debug)]
 pub struct InstallArgs<'a> {
     pub arg: &'a [u8],
@@ -152,27 +154,30 @@ fn create_nonce() -> (candid::Int, candid::Nat) {
         .unwrap()
         .as_millis();
     let timestamp = candid::Int::from(now * 1_000_000);
-    proof_of_work(timestamp)
-}
-
-const POW_DOMAIN: &str = "motoko-playground";
-
-fn proof_of_work(timestamp: candid::Int) -> (candid::Int, candid::Nat) {
     let mut rng = rand::thread_rng();
     let mut nonce = candid::Nat::from(rng.gen::<i32>());
     let prefix = format!("{}{}", POW_DOMAIN, timestamp);
     loop {
         let to_hash = format!("{}{}", prefix, nonce).replace('_', "");
         let hash = motoko_hash(&to_hash);
-        if check_hash(hash) {
+        if (hash & 0xc0000000) == 0 {
             return (timestamp, nonce);
         }
         nonce += 1;
     }
 }
 
+const POW_DOMAIN: &str = "motoko-playground";
+
 // djb2 hash function, from http://www.cse.yorku.ca/~oz/hash.html
 fn motoko_hash(s: &str) -> i64 {
+    fn to_utf16_code_point(c: char) -> u16 {
+        let mut b = [0; 2];
+        let result = c.encode_utf16(&mut b);
+
+        result[0]
+    }
+
     let mut hash = 5381_u32;
     for c in s.chars() {
         let c_val = to_utf16_code_point(c);
@@ -183,15 +188,4 @@ fn motoko_hash(s: &str) -> i64 {
             .0;
     }
     hash.into()
-}
-
-fn to_utf16_code_point(c: char) -> u16 {
-    let mut b = [0; 2];
-    let result = c.encode_utf16(&mut b);
-
-    result[0]
-}
-
-fn check_hash(hash: i64) -> bool {
-    (hash & 0xc0000000) == 0
 }

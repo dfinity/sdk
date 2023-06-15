@@ -34,7 +34,7 @@ use std::process::{Command, Stdio};
 
 use super::motoko_playground::playground_install_code;
 
-#[context("Failed to install wasm module to canister '{}'.", canister_id)]
+#[context("Failed to install wasm module to canister '{}'.", canister_info.map(|info|info.get_name()).unwrap_or(&canister_id.to_string()))]
 pub async fn install_canister(
     env: &dyn Environment,
     canister_id_store: &mut CanisterIdStore,
@@ -61,7 +61,7 @@ pub async fn install_canister(
     let installed_module_hash = read_state_tree_canister_module_hash(agent, canister_id).await?;
     debug!(
         log,
-        "Installed module hash: {:?}",
+        "Previously installed module hash: {:?}",
         installed_module_hash.as_ref().map(hex::encode)
     );
     let mode = mode.unwrap_or_else(|| {

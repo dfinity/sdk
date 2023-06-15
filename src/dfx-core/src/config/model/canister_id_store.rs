@@ -77,14 +77,11 @@ impl CanisterIdStore {
                 name,
                 r#type: NetworkTypeDescriptor::Playground { .. },
                 ..
-            } => match &config {
-                None => None,
-                Some(config) => {
-                    let dir = config.get_temp_path().join(name);
-                    ensure_cohesive_network_directory(network_descriptor, &dir)?;
-                    Some(dir.join("canister_timestamps.json"))
-                }
-            },
+            } => config.as_ref().and_then(|config| {
+                let dir = config.get_temp_path().join(name);
+                ensure_cohesive_network_directory(network_descriptor, &dir).ok()?;
+                Some(dir.join("canister_timestamps.json"))
+            }),
             _ => None,
         };
         let remote_ids = get_remote_ids(config.clone());
@@ -116,7 +113,7 @@ impl CanisterIdStore {
             ..
         } = &network_descriptor.r#type
         {
-            store.prune_expired_canisters(log, canister_timeout_seconds.clone())?;
+            store.prune_expired_canisters(log, canister_timeout_seconds)?;
         }
 
         Ok(store)
@@ -278,15 +275,13 @@ impl CanisterIdStore {
     fn prune_expired_canisters(
         &mut self,
         log: &Logger,
-        timeout_seconds: BigInt,
+        timeout_seconds: &BigInt,
     ) -> Result<(), CanisterIdStoreError> {
         let network_name = &self.network_descriptor.name;
-        //scaled to match Motoko playground timestamps
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap()
-            .as_millis()
-            * 1_000_000;
+            .as_nanos();
         let prune_cutoff: BigInt = now - timeout_seconds * 1_000_000_000;
 
         let mut canisters_to_prune: Vec<String> = Vec::new();

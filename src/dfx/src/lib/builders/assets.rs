@@ -13,11 +13,9 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
-use flate2::read::GzDecoder;
 use fn_error_context::context;
 use slog::{o, Logger};
 use std::fs;
-use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -84,64 +82,20 @@ impl CanisterBuilder for AssetsBuilder {
         &self,
         _pool: &CanisterPool,
         info: &CanisterInfo,
-        config: &BuildConfig,
+        _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let mut canister_assets = util::assets::assetstorage_canister()
-            .context("Failed to get asset canister archive.")?;
-        for file in canister_assets
-            .entries()
-            .context("Failed to read asset canister archive entries.")?
-        {
-            let mut file = file.context("Failed to read asset canister archive entry.")?;
-
-            if file.header().entry_type().is_dir() {
-                continue;
-            }
-            // See https://github.com/alexcrichton/tar-rs/issues/261
-            fs::create_dir_all(info.get_output_root()).with_context(|| {
-                format!(
-                    "Failed to create {}.",
-                    info.get_output_root().to_string_lossy()
-                )
-            })?;
-            file.unpack_in(info.get_output_root()).with_context(|| {
-                format!(
-                    "Failed to unpack archive to {}.",
-                    info.get_output_root().to_string_lossy()
-                )
-            })?;
-        }
-
-        let compressed_wasm_path = info
+        let wasm_path = info
             .get_output_root()
             .join(Path::new("assetstorage.wasm.gz"));
         unpack_did(info.get_output_root())?;
         let canister_assets = util::assets::assets_wasm(&self.logger)?;
-        fs::write(&compressed_wasm_path, &canister_assets)
-            .context("Failed to write asset canister wasm")?;
+        fs::write(&wasm_path, &canister_assets).context("Failed to write asset canister wasm")?;
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
-        if config.network_is_playground {
-            let zipped_wasm =
-                std::fs::read(compressed_wasm_path).context("failed to read compressed wasm")?;
-            let mut compressed_wasm = GzDecoder::new(zipped_wasm.as_slice());
-            let outfile = info.get_output_root().join(Path::new("assetstorage.wasm"));
-            let mut v = Vec::new();
-            compressed_wasm.read_to_end(&mut v).unwrap();
-            std::fs::write(&outfile, v).unwrap();
-            let decompressed_wasm_path =
-                info.get_output_root().join(Path::new("assetstorage.wasm"));
-            Ok(BuildOutput {
-                canister_id: info.get_canister_id().expect("Could not find canister ID."),
-                wasm: WasmBuildOutput::File(decompressed_wasm_path),
-                idl: IdlBuildOutput::File(idl_path),
-            })
-        } else {
-            Ok(BuildOutput {
-                canister_id: info.get_canister_id().expect("Could not find canister ID."),
-                wasm: WasmBuildOutput::File(compressed_wasm_path),
-                idl: IdlBuildOutput::File(idl_path),
-            })
-        }
+        Ok(BuildOutput {
+            canister_id: info.get_canister_id().expect("Could not find canister ID."),
+            wasm: WasmBuildOutput::File(wasm_path),
+            idl: IdlBuildOutput::File(idl_path),
+        })
     }
 
     fn postbuild(

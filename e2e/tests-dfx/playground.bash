@@ -10,15 +10,16 @@ setup() {
 
 teardown() {
     dfx_stop
-
     standard_teardown
 }
 
 setup_playground() {
-  npm i -g ic-mops
+  if ! command -v ic-mops &> /dev/null
+  then
+    npm i -g ic-mops
+  fi
   dfx_new hello
   create_networks_json
-  mv dfx.json dfx.json.previous
   install_asset playground_backend
   dfx_start
   dfx deploy backend
@@ -67,7 +68,7 @@ setup_playground() {
   assert_command dfx canister --playground info "$CANISTER"
 }
 
-@test "timeout" {
+@test "Handle timeout correctly" {
   assert_command dfx canister create hello_backend --playground -vv
   assert_match "Reserved canister 'hello_backend'"
   assert_command dfx canister create hello_backend --playground -vv
@@ -77,4 +78,16 @@ setup_playground() {
   assert_command dfx canister create hello_backend --playground -vv
   assert_match "Canister 'hello_backend' has timed out."
   assert_match "Reserved canister 'hello_backend'"
+}
+
+# This is important for whitelisting wasm hashes in the playground.
+# If the hashes didn't match then the playground would attempt to
+# instrument the asset canister during upload which would run into execution limits.
+@test "playground-installed asset canister is same wasm as normal asset canister" {
+  assert_command dfx deploy --playground
+  PLAYGROUND_HASH=$(dfx canister --playground info hello_frontend | grep hash)
+  echo "PLAYGROUND_HASH: ${PLAYGROUND_HASH}"
+  assert_command dfx deploy
+  assert_command bash -c 'dfx canister info hello_frontend | grep hash'
+  assert_match "${PLAYGROUND_HASH}"
 }
