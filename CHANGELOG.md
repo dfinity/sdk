@@ -100,8 +100,14 @@ Updated cycles wallet to `20230530` release:
 
 ### Replica
 
-Updated replica to elected commit 794fc5b9341fa8f6a0e8f219201c35f0b5727ab9.
+Updated replica to elected commit 0f1a0e6587fd36733a74c677ff3438c3cb3ee4f5.
 This incorporates the following executed proposals:
+- [122923](https://dashboard.internetcomputer.org/proposal/122923)
+- [122924](https://dashboard.internetcomputer.org/proposal/122924)
+- [122910](https://dashboard.internetcomputer.org/proposal/122910)
+- [122911](https://dashboard.internetcomputer.org/proposal/122911)
+- [122746](https://dashboard.internetcomputer.org/proposal/122746)
+- [122748](https://dashboard.internetcomputer.org/proposal/122748)
 - [122617](https://dashboard.internetcomputer.org/proposal/122617)
 - [122615](https://dashboard.internetcomputer.org/proposal/122615)
 
