@@ -99,17 +99,9 @@ impl ExtensionManager {
         temp_dir: TempDir,
     ) -> Result<(), ExtensionError> {
         let effective_extension_dir = &self.get_extension_directory(effective_extension_name);
-        #[cfg(not(target_os = "windows"))]
-        {
-            let bin = temp_dir
-                .path()
-                .join(extension_unarchived_dir_name)
-                .join(extension_name);
-            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
-        }
         dfx_core::fs::rename(
             &temp_dir.path().join(extension_unarchived_dir_name),
-            &effective_extension_dir,
+            effective_extension_dir,
         )?;
         if extension_name != effective_extension_name {
             // rename the binary
@@ -117,6 +109,11 @@ impl ExtensionManager {
                 &effective_extension_dir.join(extension_name),
                 &effective_extension_dir.join(effective_extension_name),
             )?;
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let bin = effective_extension_dir.join(effective_extension_name);
+            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
         }
         Ok(())
     }
