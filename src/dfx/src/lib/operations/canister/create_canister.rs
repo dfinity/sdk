@@ -98,7 +98,7 @@ pub async fn create_canister(
                             .await;
                         if matches!(&res, Err(AgentError::HttpError(HttpErrorPayload {
                             status, ..
-                        })) if *status >= 404 || *status < 403)
+                        })) if *status >= 400 || *status < 500)
                         {
                             bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
                             To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
