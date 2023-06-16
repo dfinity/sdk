@@ -20,8 +20,8 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         format!(
             "Extension '{}' installed successfully{}",
             opts.name,
-            if opts.install_as.is_some() {
-                format!(", and is available as '{}'", opts.install_as.unwrap())
+            if let Some(install_as) = opts.install_as {
+                format!(", and is available as '{}'", install_as)
             } else {
                 "".to_string()
             }

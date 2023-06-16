@@ -87,7 +87,6 @@ impl ExtensionManager {
             .unpack(temp_dir.path())
             .map_err(|e| ExtensionError::DecompressFailed(download_url, e))?;
 
-        dbg!(std::fs::read_dir(temp_dir.path()).unwrap().count());
         Ok(temp_dir)
     }
 
