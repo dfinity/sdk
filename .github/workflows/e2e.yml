@@ -153,6 +153,12 @@ jobs:
           export
       - name: Download bats-support as a git submodule
         run: git submodule update --init --recursive
+      - name: Cache mops files
+        uses: actions/cache@v3
+        with:
+          path: |
+            e2e/assets/playground_backend/.mops
+          key: playground-backend-mops-${{ hashFiles('e2e/assets/playground_backend/mops.toml') }}
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 

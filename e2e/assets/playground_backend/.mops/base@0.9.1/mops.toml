@@ -1,6 +1,0 @@
-[package]
-name = "base"
-version = "0.9.1"
-description = "The Motoko base library"
-repository = "https://github.com/dfinity/motoko-base"
-license = "Apache-2.0"
