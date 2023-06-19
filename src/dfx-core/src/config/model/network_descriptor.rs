@@ -7,7 +7,6 @@ use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, Ne
 use crate::error::uri::UriError;
 
 use candid::Principal;
-use num_bigint::BigInt;
 use slog::Logger;
 use std::path::{Path, PathBuf};
 use url::Url;
@@ -16,7 +15,7 @@ use url::Url;
 const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 48, 0, 97, 1, 1]);
 pub const PLAYGROUND_NETWORK_NAME: &str = "playground";
-const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u128 = 1200;
+const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u64 = 1200;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NetworkTypeDescriptor {
@@ -25,7 +24,7 @@ pub enum NetworkTypeDescriptor {
     },
     Playground {
         playground_canister: Principal,
-        canister_timeout_seconds: BigInt,
+        canister_timeout_seconds: u64,
     },
     Persistent,
 }
@@ -55,7 +54,7 @@ impl NetworkTypeDescriptor {
                     )
                 })?,
                 canister_timeout_seconds: playground_config
-                    .timeout
+                    .timeout_seconds
                     .map(|t| t.into())
                     .unwrap_or_else(|| MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS.into()),
             })

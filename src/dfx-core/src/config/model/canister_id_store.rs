@@ -5,12 +5,12 @@ use crate::error::unified_io::UnifiedIoError;
 use crate::network::directory::ensure_cohesive_network_directory;
 
 use candid::Principal as CanisterId;
-use num_bigint::BigInt;
 use slog::{warn, Logger};
 use std::collections::BTreeMap;
+use std::ops::Sub;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 pub type CanisterName = String;
 pub type NetworkName = String;
@@ -20,7 +20,7 @@ pub type NetworkNametoCanisterId = BTreeMap<NetworkName, CanisterIdString>;
 pub type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 
 // Canister timestamp is saved as a num_bigint::BigInt because of serialization problems with candid::Int
-pub type NetworkNametoCanisterTimestamp = BTreeMap<NetworkName, BigInt>;
+pub type NetworkNametoCanisterTimestamp = BTreeMap<NetworkName, SystemTime>;
 pub type CanisterTimestamps = BTreeMap<CanisterName, NetworkNametoCanisterTimestamp>;
 
 #[derive(Clone, Debug)]
@@ -117,19 +117,16 @@ impl CanisterIdStore {
             ..
         } = &network_descriptor.r#type
         {
-            store.prune_expired_canisters(log, canister_timeout_seconds)?;
+            store.prune_expired_canisters(log, &Duration::from_secs(*canister_timeout_seconds))?;
         }
 
         Ok(store)
     }
 
-    pub fn get_timestamp(&self, canister_name: &str) -> Option<candid::Int> {
-        let a = self
-            .timestamps
+    pub fn get_timestamp(&self, canister_name: &str) -> Option<&SystemTime> {
+        self.timestamps
             .get(canister_name)
             .and_then(|timestamp_map| timestamp_map.get(&self.network_descriptor.name))
-            .map(|a| candid::Int::from(a.clone()));
-        a
     }
 
     pub fn get_name(&self, canister_id: &str) -> Option<&String> {
@@ -220,7 +217,7 @@ impl CanisterIdStore {
         &mut self,
         canister_name: &str,
         canister_id: &str,
-        timestamp: Option<BigInt>,
+        timestamp: Option<SystemTime>,
     ) -> Result<(), CanisterIdStoreError> {
         let network_name = &self.network_descriptor.name;
         match self.ids.get_mut(canister_name) {
@@ -279,14 +276,11 @@ impl CanisterIdStore {
     fn prune_expired_canisters(
         &mut self,
         log: &Logger,
-        timeout_seconds: &BigInt,
+        timeout: &Duration,
     ) -> Result<(), CanisterIdStoreError> {
         let network_name = &self.network_descriptor.name;
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let prune_cutoff: BigInt = now - timeout_seconds * 1_000_000_000;
+        let now = SystemTime::now();
+        let prune_cutoff = now.sub(*timeout);
 
         let mut canisters_to_prune: Vec<String> = Vec::new();
         for (canister_name, timestamp) in

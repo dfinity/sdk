@@ -1,5 +1,6 @@
 use dfx_core::config::model::network_descriptor::NetworkTypeDescriptor;
-use std::time::SystemTime;
+use num_traits::ToPrimitive;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{bail, Context};
 use candid::{encode_args, CandidType, Decode, Deserialize, Encode, Principal};
@@ -22,6 +23,23 @@ pub struct GetCanisterIdArgs {
 pub struct CanisterInfo {
     pub id: Principal,
     pub timestamp: candid::Int,
+}
+
+impl CanisterInfo {
+    #[context("Failed to construct playground canister info.")]
+    pub fn from(id: Principal, timestamp: &SystemTime) -> DfxResult<Self> {
+        let timestamp = candid::Int::from(timestamp.duration_since(UNIX_EPOCH)?.as_nanos());
+        Ok(Self { id, timestamp })
+    }
+
+    #[context("Failed to turn CanisterInfo into SystemTime")]
+    pub fn get_timestamp(&self) -> DfxResult<SystemTime> {
+        Ok(UNIX_EPOCH
+            .checked_add(Duration::from_nanos(
+                self.timestamp.0.to_u64().context("u64 overflow")?,
+            ))
+            .context("Failed to make absolute time from offset")?)
+    }
 }
 
 #[derive(CandidType, Deserialize, Debug)]
@@ -62,7 +80,7 @@ pub async fn reserve_canister_with_playground(
     canister_id_store.add(
         canister_name,
         &reserved_canister.id.to_string(),
-        Some(reserved_canister.timestamp.into()),
+        Some(reserved_canister.get_timestamp()?),
     )?;
 
     info!(
@@ -79,7 +97,7 @@ pub async fn reserve_canister_with_playground(
 pub async fn authorize_asset_uploader(
     env: &dyn Environment,
     canister_id: Principal,
-    canister_timestamp: candid::Int,
+    canister_timestamp: &SystemTime,
     principal_to_authorize: &Principal,
 ) -> DfxResult {
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
@@ -92,10 +110,7 @@ pub async fn authorize_asset_uploader(
     } else {
         bail!("Trying to authorize asset uploader on non-playground network.")
     };
-    let canister_info = CanisterInfo {
-        id: canister_id,
-        timestamp: canister_timestamp,
-    };
+    let canister_info = CanisterInfo::from(canister_id, canister_timestamp)?;
 
     let nested_arg = Encode!(&principal_to_authorize)?;
     let call_arg = Encode!(&canister_info, &"authorize", &nested_arg)?;
@@ -112,16 +127,13 @@ pub async fn authorize_asset_uploader(
 pub async fn playground_install_code(
     env: &dyn Environment,
     canister_id: Principal,
-    canister_timestamp: candid::Int,
+    canister_timestamp: &SystemTime,
     arg: &[u8],
     wasm_module: &[u8],
     mode: InstallMode,
     is_asset_canister: bool,
-) -> DfxResult<num_bigint::BigInt> {
-    let canister_info = CanisterInfo {
-        id: canister_id,
-        timestamp: canister_timestamp,
-    };
+) -> DfxResult<SystemTime> {
+    let canister_info = CanisterInfo::from(canister_id, canister_timestamp)?;
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
     let playground_canister = match env.get_network_descriptor().r#type {
         NetworkTypeDescriptor::Playground {
@@ -144,8 +156,7 @@ pub async fn playground_install_code(
         .await
         .context("install failed")?;
     let out = Decode!(&result, CanisterInfo)?;
-    let refreshed_timestamp = out.timestamp;
-    Ok(refreshed_timestamp.into())
+    Ok(out.get_timestamp()?)
 }
 
 fn create_nonce() -> (candid::Int, candid::Nat) {

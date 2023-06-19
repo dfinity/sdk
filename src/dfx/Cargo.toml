@@ -66,7 +66,6 @@ lazy_static.workspace = true
 mime.workspace = true
 mime_guess.workspace = true
 net2 = "0.2.34"
-num-bigint = "0.4.3"
 num-traits.workspace = true
 os_str_bytes = "6.3.0"
 pem.workspace = true

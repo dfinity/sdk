@@ -602,8 +602,7 @@ pub struct PlaygroundConfig {
     pub playground_canister: String,
 
     /// How many seconds a canister can be borrowed for
-    #[schemars(with = "Option<u32>")]
-    pub timeout: Option<candid::Int>,
+    pub timeout_seconds: Option<u64>,
 }
 
 /// # Custom Network Configuration
