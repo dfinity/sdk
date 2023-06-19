@@ -115,7 +115,7 @@ pub async fn install_canister(
             .context("Failed to find wasm")?
     };
     let wasm_module = std::fs::read(&wasm_path)
-        .with_context(|| format!("Failed to read {}.", &wasm_path.to_string_lossy()))?;
+        .with_context(|| format!("Failed to read {}.", &wasm_path.display()))?;
     let new_hash = Sha256::digest(&wasm_module);
     debug!(log, "New wasm module hash: {}", hex::encode(new_hash));
 
