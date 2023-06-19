@@ -5,7 +5,7 @@
       "candid": "wasm-utils.did",
       "wasm": "wasm-utils.wasm",
       "build": [
-        "echo 'build wasm-utils'"
+        "echo 'the wasm-utils canister is prebuilt'"
       ]
     },
     "backend": {
