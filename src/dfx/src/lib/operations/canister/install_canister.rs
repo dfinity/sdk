@@ -241,7 +241,7 @@ pub async fn install_canister(
                 // playground installed the code, so playground has to authorize call_sender to upload files
                 let uploader_principal = env
                     .get_selected_identity_principal()
-                    .context("Failed to figure out seleted identity's principal.")?;
+                    .context("Failed to figure out selected identity's principal.")?;
                 authorize_asset_uploader(
                     env,
                     canister_info.get_canister_id()?,
