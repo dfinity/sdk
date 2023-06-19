@@ -17,10 +17,19 @@ const DFINITY_DFX_EXTENSIONS_RELEASES_URL: &str =
     "https://github.com/dfinity/dfx-extensions/releases/download";
 
 impl ExtensionManager {
-    pub fn install_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {
-        if self.get_extension_directory(extension_name).exists() {
+    pub fn install_extension(
+        &self,
+        extension_name: &str,
+        install_as: Option<&str>,
+    ) -> Result<(), ExtensionError> {
+        let effective_extension_name = install_as.unwrap_or(extension_name);
+
+        if self
+            .get_extension_directory(effective_extension_name)
+            .exists()
+        {
             return Err(ExtensionError::ExtensionAlreadyInstalled(
-                extension_name.to_string(),
+                effective_extension_name.to_string(),
             ));
         }
         if DfxCommand::has_subcommand(&extension_name.to_string()) {
@@ -36,7 +45,12 @@ impl ExtensionManager {
 
         let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
 
-        self.finalize_installation(extension_name, &extension_archive, temp_dir)?;
+        self.finalize_installation(
+            extension_name,
+            effective_extension_name,
+            &extension_archive,
+            temp_dir,
+        )?;
 
         Ok(())
     }
@@ -57,7 +71,7 @@ impl ExtensionManager {
     ) -> Result<Version, ExtensionError> {
         let manifest = ExtensionCompatibilityMatrix::fetch()?;
         let dfx_version = self.dfx_version_strip_semver();
-        manifest.find_latest_compatible_extension_version(extension_name, dfx_version)
+        manifest.find_latest_compatible_extension_version(extension_name, &dfx_version)
     }
 
     fn download_and_unpack_extension_to_tempdir(
@@ -86,23 +100,27 @@ impl ExtensionManager {
     fn finalize_installation(
         &self,
         extension_name: &str,
+        effective_extension_name: &str,
         extension_unarchived_dir_name: &str,
         temp_dir: TempDir,
     ) -> Result<(), ExtensionError> {
-        #[cfg(not(target_os = "windows"))]
-        {
-            let bin = temp_dir
-                .path()
-                .join(extension_unarchived_dir_name)
-                .join(extension_name);
-            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
-        }
-
-        let extension_dir = self.dir.join(extension_name);
+        let effective_extension_dir = &self.get_extension_directory(effective_extension_name);
         dfx_core::fs::rename(
             &temp_dir.path().join(extension_unarchived_dir_name),
-            &extension_dir,
+            effective_extension_dir,
         )?;
+        if extension_name != effective_extension_name {
+            // rename the binary
+            dfx_core::fs::rename(
+                &effective_extension_dir.join(extension_name),
+                &effective_extension_dir.join(effective_extension_name),
+            )?;
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let bin = effective_extension_dir.join(effective_extension_name);
+            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
+        }
         Ok(())
     }
 }
