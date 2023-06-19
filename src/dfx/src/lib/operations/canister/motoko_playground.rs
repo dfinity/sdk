@@ -152,8 +152,8 @@ fn create_nonce() -> (candid::Int, candid::Nat) {
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
-        .as_millis();
-    let timestamp = candid::Int::from(now * 1_000_000);
+        .as_nanos();
+    let timestamp = candid::Int::from(now);
     let mut rng = rand::thread_rng();
     let mut nonce = candid::Nat::from(rng.gen::<i32>());
     let prefix = format!("{}{}", POW_DOMAIN, timestamp);
