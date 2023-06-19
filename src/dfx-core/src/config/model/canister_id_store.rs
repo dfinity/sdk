@@ -173,7 +173,7 @@ impl CanisterIdStore {
             .as_ref()
             .unwrap_or_else(|| {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
-                unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister ids")
+                unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister timestamps")
             });
         crate::json::save_json_file(path, &self.timestamps)?;
         Ok(())
