@@ -176,6 +176,7 @@ impl CanisterIdStore {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister timestamps")
             });
+        crate::fs::composite::ensure_parent_dir_exists(path)?;
         crate::json::save_json_file(path, &self.timestamps)?;
         Ok(())
     }

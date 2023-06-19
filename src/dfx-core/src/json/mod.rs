@@ -21,10 +21,5 @@ pub fn load_json_file<T: for<'a> serde::de::Deserialize<'a>>(
 pub fn save_json_file<T: Serialize>(path: &Path, value: &T) -> Result<(), StructuredFileError> {
     let content = serde_json::to_string_pretty(&value)
         .map_err(|err| SerializeJsonFileFailed(Box::new(path.to_path_buf()), err))?;
-    if let Some(parent) = path.parent() {
-        if !parent.exists() {
-            crate::fs::create_dir_all(parent).map_err(WriteJsonFileFailed)?;
-        }
-    }
     crate::fs::write(path, content).map_err(WriteJsonFileFailed)
 }
