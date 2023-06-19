@@ -55,8 +55,7 @@ impl NetworkTypeDescriptor {
                 })?,
                 canister_timeout_seconds: playground_config
                     .timeout_seconds
-                    .map(|t| t.into())
-                    .unwrap_or_else(|| MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS.into()),
+                    .unwrap_or_else(|| MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS),
             })
         } else {
             match r#type {
@@ -123,7 +122,7 @@ impl NetworkDescriptor {
             providers: vec![DEFAULT_IC_GATEWAY.to_string()],
             r#type: NetworkTypeDescriptor::Playground {
                 playground_canister: MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
-                canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS.into(),
+                canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS,
             },
             is_ic: true,
             local_server_descriptor: None,
