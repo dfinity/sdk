@@ -24,9 +24,9 @@ jobs:
         rust: [ '1.65.0' ]
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
-        os: [ macos-11, ubuntu-20.04, ubuntu-22.04 ]
+        os: [ macos-12, ubuntu-20.04, ubuntu-22.04 ]
         include:
-          - os: macos-11
+          - os: macos-12
             target: x86_64-apple-darwin
             binary_path: target/x86_64-apple-darwin/release
           - os: ubuntu-20.04
