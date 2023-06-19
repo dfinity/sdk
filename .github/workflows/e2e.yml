@@ -88,11 +88,11 @@ jobs:
       fail-fast: false
       matrix:
         backend: ["ic-ref", "replica"]
-        # macos-latest is currently macos-11, ubuntu-latest is currently ubuntu-20.04
+        # macos-latest is currently macos-12, ubuntu-latest is currently ubuntu-20.04
         # ubuntu-18.04 not supported due to:
         #     /home/runner/.cache/dfinity/versions/0.8.3-34-g36e39809/ic-starter:
         #     /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found
-        os: [macos-11, ubuntu-20.04, ubuntu-22.04]
+        os: [macos-12, ubuntu-20.04, ubuntu-22.04]
         rust: ["1.65.0"]
     steps:
       - uses: actions/checkout@v3
