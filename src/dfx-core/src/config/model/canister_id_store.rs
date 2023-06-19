@@ -77,11 +77,15 @@ impl CanisterIdStore {
                 name,
                 r#type: NetworkTypeDescriptor::Playground { .. },
                 ..
-            } => config.as_ref().and_then(|config| {
-                let dir = config.get_temp_path().join(name);
-                ensure_cohesive_network_directory(network_descriptor, &dir).ok()?;
-                Some(dir.join("canister_timestamps.json"))
-            }),
+            } => {
+                if let Some(config) = config.as_ref() {
+                    let dir = config.get_temp_path().join(name);
+                    ensure_cohesive_network_directory(network_descriptor, &dir)?;
+                    Some(dir.join("canister_timestamps.json"))
+                } else {
+                    None
+                }
+            }
             _ => None,
         };
         let remote_ids = get_remote_ids(config.clone());
