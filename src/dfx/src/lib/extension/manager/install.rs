@@ -1,11 +1,9 @@
-// use crate::commands::{DfxCommand, DEFAULT_COMMANDS};
-use crate::commands::DEFAULT_COMMANDS;
+use crate::commands::DfxCommand;
 use crate::lib::error::extension::ExtensionError;
 use crate::lib::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
 
-// use clap::Subcommand;
+use clap::Subcommand;
 use flate2::read::GzDecoder;
-// use itertools::Itertools;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
 use tar::Archive;
@@ -25,7 +23,7 @@ impl ExtensionManager {
                 extension_name.to_string(),
             ));
         }
-        if DEFAULT_COMMANDS.contains(&extension_name.to_string()) {
+        if DfxCommand::has_subcommand(&extension_name.to_string()) {
             return Err(ExtensionError::CommandAlreadyExists(
                 extension_name.to_string(),
             ));
