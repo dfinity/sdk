@@ -55,7 +55,7 @@ impl NetworkTypeDescriptor {
                 })?,
                 canister_timeout_seconds: playground_config
                     .timeout_seconds
-                    .unwrap_or_else(|| MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS),
+                    .unwrap_or(MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS),
             })
         } else {
             match r#type {

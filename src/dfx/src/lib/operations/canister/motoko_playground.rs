@@ -34,11 +34,11 @@ impl CanisterInfo {
 
     #[context("Failed to turn CanisterInfo into SystemTime")]
     pub fn get_timestamp(&self) -> DfxResult<SystemTime> {
-        Ok(UNIX_EPOCH
+        UNIX_EPOCH
             .checked_add(Duration::from_nanos(
                 self.timestamp.0.to_u64().context("u64 overflow")?,
             ))
-            .context("Failed to make absolute time from offset")?)
+            .context("Failed to make absolute time from offset")
     }
 }
 
@@ -156,7 +156,7 @@ pub async fn playground_install_code(
         .await
         .context("install failed")?;
     let out = Decode!(&result, CanisterInfo)?;
-    Ok(out.get_timestamp()?)
+    out.get_timestamp()
 }
 
 fn create_nonce() -> (candid::Int, candid::Nat) {
