@@ -15,7 +15,7 @@ mod uninstall;
 #[command(name = "extension")]
 pub struct ExtensionOpts {
     #[command(subcommand)]
-    subcmd: SubCommand,
+    pub subcmd: SubCommand,
 }
 
 #[derive(Subcommand)]

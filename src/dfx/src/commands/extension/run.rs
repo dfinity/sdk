@@ -9,13 +9,14 @@ use std::ffi::OsString;
 #[derive(Parser, Debug)]
 pub struct RunOpts {
     /// Specifies the name of the extension to run.
-    name: OsString,
+    pub name: OsString,
     /// Specifies the parameters to pass to the extension.
-    params: Vec<OsString>,
+    pub params: Vec<OsString>,
 }
 
 impl From<Vec<OsString>> for RunOpts {
     fn from(value: Vec<OsString>) -> Self {
+        dbg!(&value);
         let (extension_name, params) = value.split_first().unwrap();
         RunOpts {
             name: extension_name.clone(),

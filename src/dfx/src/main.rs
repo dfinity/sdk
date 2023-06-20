@@ -6,7 +6,9 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use anyhow::Error;
-use clap::{ArgAction, Args, Parser};
+use clap::{ArgAction, Args, CommandFactory, FromArgMatches, Parser, Subcommand};
+use dfx_core::config::cache::{get_bin_cache, get_bin_cache_root};
+use lib::extension::manager::ExtensionManager;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -178,7 +180,17 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 }
 
 fn main() {
-    let cli_opts = CliOpts::parse();
+    let mut app = CliOpts::command().subcommands(ExtensionManager::command().get_subcommands());
+    dbg!(&app);
+
+    commands::sort_clap_commands(&mut app);
+    let matches = app.get_matches();
+
+    let cli_opts = CliOpts::from_arg_matches(&matches).unwrap_or_else(|err| {
+        print_error_and_diagnosis(anyhow::Error::from(err), NULL_DIAGNOSIS);
+        std::process::exit(255);
+    });
+    // let cli_opts = CliOpts::parse();
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
@@ -200,8 +212,23 @@ fn main() {
                     );
                     match commands::exec(&env, command) {
                         Err(e) => {
-                            error_diagnosis = diagnose(&env, &e);
-                            Err(e)
+                            let r = crate::lib::extension::manager::ExtensionManager::new(
+                                dfx_version(),
+                                true,
+                            )
+                            .map(|manager| {
+                                manager.run_extension(
+                                    get_bin_cache(dfx_version_str()).unwrap(),
+                                    matches.subcommand().unwrap().0.into(),
+                                    vec![],
+                                )
+                            });
+                            if let Ok(Ok(_)) = r {
+                                Ok(())
+                            } else {
+                                error_diagnosis = diagnose(&env, &e);
+                                Err(e)
+                            }
                         }
                         ok => ok,
                     }

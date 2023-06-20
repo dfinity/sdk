@@ -662,6 +662,7 @@ pub struct ConfigInterface {
     pub dfx: Option<String>,
 
     /// Mapping between canisters and their settings.
+    // #[serde(deserialize_with = "deserialize_canisters")]
     pub canisters: Option<BTreeMap<String, ConfigCanistersCanister>>,
 
     /// Defaults for dfx start.
@@ -938,9 +939,10 @@ impl Config {
     }
 
     fn from_slice(path: PathBuf, content: &[u8]) -> Result<Config, StructuredFileError> {
-        let config = serde_json::from_slice(content)
-            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
+        // let content = transform_via_extension(content);
         let json = serde_json::from_slice(content)
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
+        let config = serde_json::from_slice(content)
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
         Ok(Config { path, json, config })
     }
