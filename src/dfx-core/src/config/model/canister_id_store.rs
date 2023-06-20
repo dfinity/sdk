@@ -5,12 +5,15 @@ use crate::error::unified_io::UnifiedIoError;
 use crate::network::directory::ensure_cohesive_network_directory;
 
 use candid::Principal as CanisterId;
+use serde::{Deserialize, Serialize, Serializer};
 use slog::{warn, Logger};
 use std::collections::BTreeMap;
-use std::ops::Sub;
+use std::ops::{Deref, DerefMut, Sub};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+use time::format_description::well_known::Rfc3339;
+use time::OffsetDateTime;
 
 pub type CanisterName = String;
 pub type NetworkName = String;
@@ -19,9 +22,62 @@ pub type CanisterIdString = String;
 pub type NetworkNametoCanisterId = BTreeMap<NetworkName, CanisterIdString>;
 pub type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 
-// Canister timestamp is saved as a num_bigint::BigInt because of serialization problems with candid::Int
-pub type NetworkNametoCanisterTimestamp = BTreeMap<NetworkName, SystemTime>;
 pub type CanisterTimestamps = BTreeMap<CanisterName, NetworkNametoCanisterTimestamp>;
+
+#[derive(Debug, Clone, Default)]
+pub struct NetworkNametoCanisterTimestamp(BTreeMap<NetworkName, SystemTime>);
+
+impl Deref for NetworkNametoCanisterTimestamp {
+    type Target = BTreeMap<NetworkName, SystemTime>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for NetworkNametoCanisterTimestamp {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Serialize for NetworkNametoCanisterTimestamp {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let out = self.0.iter().map(|(key, time)| {
+            (
+                key,
+                OffsetDateTime::from(*time)
+                    .format(&Rfc3339)
+                    .expect("Failed to serialise timestamp"),
+            )
+        });
+        serializer.collect_map(out)
+    }
+}
+
+impl<'de> Deserialize<'de> for NetworkNametoCanisterTimestamp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let map: BTreeMap<NetworkName, String> = Deserialize::deserialize(deserializer)?;
+        let btree: BTreeMap<NetworkName, SystemTime> = map
+            .into_iter()
+            .map(|(key, timestamp)| (key, OffsetDateTime::parse(&timestamp, &Rfc3339)))
+            .try_fold(BTreeMap::new(), |mut map, (key, result)| match result {
+                Ok(value) => {
+                    map.insert(key, SystemTime::from(value));
+                    Ok(map)
+                }
+                Err(err) => Err(err),
+            })
+            .map_err(|err| serde::de::Error::custom(err.to_string()))?;
+        Ok(Self(btree))
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct CanisterIdStore {
@@ -246,7 +302,7 @@ impl CanisterIdStore {
                     network_name_to_timestamp.insert(network_name.to_string(), timestamp);
                 }
                 None => {
-                    let mut network_name_to_timestamp = NetworkNametoCanisterTimestamp::new();
+                    let mut network_name_to_timestamp = NetworkNametoCanisterTimestamp::default();
                     network_name_to_timestamp.insert(network_name.to_string(), timestamp);
                     self.timestamps
                         .insert(canister_name.to_string(), network_name_to_timestamp);

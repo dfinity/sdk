@@ -74,7 +74,7 @@ setup_playground() {
   assert_command dfx canister create hello_backend --playground -vv
   assert_match "hello_backend canister was already created"
   sleep 10
-  jq '.playground.playground.timeout="5"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+  jq '.playground.playground.timeout_seconds=5' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   assert_command dfx canister create hello_backend --playground -vv
   assert_match "Canister 'hello_backend' has timed out."
   assert_match "Reserved canister 'hello_backend'"
