@@ -348,7 +348,7 @@ impl CanisterIdStore {
                     .map(|timestamp| (canister_name, timestamp))
             },
         ) {
-            if *timestamp < prune_cutoff {
+            if *timestamp <= prune_cutoff {
                 canisters_to_prune.push(canister_name.clone());
             }
         }
