@@ -43,6 +43,8 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
+
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
@@ -595,14 +597,19 @@ impl ReplicaSubnetType {
     }
 }
 
+fn default_playground_timeout_seconds() -> u64 {
+    MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS
+}
+
 /// Playground config to borrow canister from instead of creating new canisters.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct PlaygroundConfig {
     /// Canister ID of the playground canister
     pub playground_canister: String,
 
     /// How many seconds a canister can be borrowed for
-    pub timeout_seconds: Option<u64>,
+    #[serde(default = "default_playground_timeout_seconds")]
+    pub timeout_seconds: u64,
 }
 
 /// # Custom Network Configuration

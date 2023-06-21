@@ -15,7 +15,7 @@ use url::Url;
 const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 48, 0, 97, 1, 1]);
 pub const PLAYGROUND_NETWORK_NAME: &str = "playground";
-const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u64 = 1200;
+pub const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u64 = 1200;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NetworkTypeDescriptor {
@@ -53,9 +53,7 @@ impl NetworkTypeDescriptor {
                         e,
                     )
                 })?,
-                canister_timeout_seconds: playground_config
-                    .timeout_seconds
-                    .unwrap_or(MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS),
+                canister_timeout_seconds: playground_config.timeout_seconds,
             })
         } else {
             match r#type {

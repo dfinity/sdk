@@ -293,10 +293,8 @@
         },
         "timeout_seconds": {
           "description": "How many seconds a canister can be borrowed for",
-          "type": [
-            "integer",
-            "null"
-          ],
+          "default": 1200,
+          "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         }
