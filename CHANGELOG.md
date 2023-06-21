@@ -98,6 +98,10 @@ Updated cycles wallet to `20230530` release:
 - Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
 - https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
 
+### Motoko
+
+Updated Motoko to 0.9.3
+
 ### Replica
 
 Updated replica to elected commit e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28.
