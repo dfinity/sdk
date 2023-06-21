@@ -1154,7 +1154,6 @@ dependencies = [
  "k256",
  "keyring",
  "lazy_static",
- "num-bigint 0.4.3",
  "proptest",
  "ring",
  "schemars",

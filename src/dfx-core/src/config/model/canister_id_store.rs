@@ -90,7 +90,7 @@ pub struct CanisterIdStore {
     ids: CanisterIds,
 
     // Only canisters that will time out at some point have their timestamp of acquisition saved
-    timestamps: CanisterTimestamps,
+    acquisition_timestamps: CanisterTimestamps,
 
     // Remote ids read from dfx.json, never written to canister_ids.json
     remote_ids: Option<CanisterIds>,
@@ -154,7 +154,7 @@ impl CanisterIdStore {
             Some(path) if path.is_file() => crate::json::load_json_file(path)?,
             _ => CanisterIds::new(),
         };
-        let timestamps = match &canister_timestamps_path {
+        let acquisition_timestamps = match &canister_timestamps_path {
             Some(path) if path.is_file() => crate::json::load_json_file(path)?,
             _ => CanisterTimestamps::new(),
         };
@@ -163,7 +163,7 @@ impl CanisterIdStore {
             canister_ids_path,
             canister_timestamps_path,
             ids,
-            timestamps,
+            acquisition_timestamps,
             remote_ids,
             pull_ids,
         };
@@ -180,7 +180,7 @@ impl CanisterIdStore {
     }
 
     pub fn get_timestamp(&self, canister_name: &str) -> Option<&SystemTime> {
-        self.timestamps
+        self.acquisition_timestamps
             .get(canister_name)
             .and_then(|timestamp_map| timestamp_map.get(&self.network_descriptor.name))
     }
@@ -233,7 +233,7 @@ impl CanisterIdStore {
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister timestamps")
             });
         crate::fs::composite::ensure_parent_dir_exists(path)?;
-        crate::json::save_json_file(path, &self.timestamps)?;
+        crate::json::save_json_file(path, &self.acquisition_timestamps)?;
         Ok(())
     }
 
@@ -297,14 +297,14 @@ impl CanisterIdStore {
                 cause: e,
             })?;
         if let Some(timestamp) = timestamp {
-            match self.timestamps.get_mut(canister_name) {
+            match self.acquisition_timestamps.get_mut(canister_name) {
                 Some(network_name_to_timestamp) => {
                     network_name_to_timestamp.insert(network_name.to_string(), timestamp);
                 }
                 None => {
                     let mut network_name_to_timestamp = NetworkNametoCanisterTimestamp::default();
                     network_name_to_timestamp.insert(network_name.to_string(), timestamp);
-                    self.timestamps
+                    self.acquisition_timestamps
                         .insert(canister_name.to_string(), network_name_to_timestamp);
                 }
             }
@@ -323,7 +323,8 @@ impl CanisterIdStore {
                     cause: e,
                 })?
         };
-        if let Some(network_name_to_timestamp) = self.timestamps.get_mut(canister_name) {
+        if let Some(network_name_to_timestamp) = self.acquisition_timestamps.get_mut(canister_name)
+        {
             network_name_to_timestamp.remove(network_name);
             self.save_timestamps()?;
         }
@@ -340,15 +341,13 @@ impl CanisterIdStore {
         let prune_cutoff = now.sub(*timeout);
 
         let mut canisters_to_prune: Vec<String> = Vec::new();
-        for (canister_name, timestamp) in
-            self.timestamps
-                .iter()
-                .filter_map(|(canister_name, network_to_timestamp)| {
-                    network_to_timestamp
-                        .get(network_name)
-                        .map(|timestamp| (canister_name, timestamp))
-                })
-        {
+        for (canister_name, timestamp) in self.acquisition_timestamps.iter().filter_map(
+            |(canister_name, network_to_timestamp)| {
+                network_to_timestamp
+                    .get(network_name)
+                    .map(|timestamp| (canister_name, timestamp))
+            },
+        ) {
             if *timestamp < prune_cutoff {
                 canisters_to_prune.push(canister_name.clone());
             }
