@@ -11,7 +11,6 @@ use slog::Logger;
 use std::path::{Path, PathBuf};
 use url::Url;
 
-//"mwrha-maaaa-aaaab-qabqq-cai"
 const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 48, 0, 97, 1, 1]);
 pub const PLAYGROUND_NETWORK_NAME: &str = "playground";
@@ -206,5 +205,13 @@ mod test {
                 "some_other_provider".to_string()
             ]
         ));
+    }
+
+    #[test]
+    fn playground_canister_id() {
+        assert_eq!(
+            MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+            Principal::from_text("mwrha-maaaa-aaaab-qabqq-cai").unwrap()
+        )
     }
 }
