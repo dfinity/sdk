@@ -1,6 +1,6 @@
 # dfx deps
 
-Use the `dfx deps` command with flags and subcommands to pull dependencies from mainnet and deploy locally.
+Use the `dfx deps` command with flags and subcommands to pull dependencies from the mainnet and deploy locally.
 
 The basic syntax for running `dfx deps` commands is:
 
