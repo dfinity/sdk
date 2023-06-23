@@ -4,7 +4,8 @@ use crate::batch_upload::retryable::retryable;
 use crate::batch_upload::semaphores::Semaphores;
 use crate::canister_api::methods::method_names::CREATE_CHUNK;
 use crate::canister_api::types::batch_upload::common::{CreateChunkRequest, CreateChunkResponse};
-use anyhow::bail;
+use crate::error::create_chunk::CreateChunkError;
+
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{Decode, Nat};
@@ -15,7 +16,7 @@ pub(crate) async fn create_chunk(
     batch_id: &Nat,
     content: &[u8],
     semaphores: &Semaphores,
-) -> anyhow::Result<Nat> {
+) -> Result<Nat, CreateChunkError> {
     let _chunk_releaser = semaphores.create_chunk.acquire(1).await;
     let batch_id = batch_id.clone();
     let args = CreateChunkRequest { batch_id, content };
@@ -49,14 +50,16 @@ pub(crate) async fn create_chunk(
         match wait_result {
             Ok(response) => {
                 // failure to decode the response is not retryable
-                return Ok(Decode!(&response, CreateChunkResponse)?.chunk_id);
+                let response = Decode!(&response, CreateChunkResponse)
+                    .map_err(CreateChunkError::DecodeCreateChunkResponseFailed)?;
+                return Ok(response.chunk_id);
             }
             Err(agent_err) if !retryable(&agent_err) => {
-                bail!(agent_err);
+                return Err(CreateChunkError::Agent(agent_err));
             }
             Err(agent_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => bail!(agent_err),
+                None => return Err(CreateChunkError::Agent(agent_err)),
             },
         }
     }

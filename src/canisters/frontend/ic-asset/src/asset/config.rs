@@ -1,11 +1,14 @@
-use anyhow::{bail, Context};
+use crate::error::get_asset_config::GetAssetConfigError;
+use crate::error::get_asset_config::GetAssetConfigError::{AssetConfigNotFound, InvalidPath};
+use crate::error::load_config::AssetLoadConfigError;
+use crate::error::load_config::AssetLoadConfigError::{LoadRuleFailed, MalformedAssetConfigFile};
+
 use derivative::Derivative;
 use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::{
     collections::HashMap,
-    fs,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -106,9 +109,9 @@ struct AssetConfigTreeNode {
 
 impl AssetSourceDirectoryConfiguration {
     /// Constructs config tree for assets directory.
-    pub fn load(root_dir: &Path) -> anyhow::Result<Self> {
+    pub fn load(root_dir: &Path) -> Result<Self, AssetLoadConfigError> {
         if !root_dir.has_root() {
-            bail!("root_dir paramenter is expected to be canonical path")
+            return Err(AssetLoadConfigError::InvalidRootDir(root_dir.to_path_buf()));
         }
         let mut config_map = HashMap::new();
         AssetConfigTreeNode::load(None, root_dir, &mut config_map)?;
@@ -117,22 +120,15 @@ impl AssetSourceDirectoryConfiguration {
     }
 
     /// Fetches the configuration for the asset.
-    pub fn get_asset_config(&mut self, canonical_path: &Path) -> anyhow::Result<AssetConfig> {
-        let parent_dir = canonical_path.parent().with_context(|| {
-            format!(
-                "unable to get the parent directory for asset path: {:?}",
-                canonical_path
-            )
-        })?;
+    pub fn get_asset_config(
+        &mut self,
+        canonical_path: &Path,
+    ) -> Result<AssetConfig, GetAssetConfigError> {
+        let parent_dir = dfx_core::fs::parent(canonical_path).map_err(InvalidPath)?;
         Ok(self
             .config_map
-            .get(parent_dir)
-            .with_context(|| {
-                format!(
-                    "unable to find asset config for following path: {:?}",
-                    parent_dir
-                )
-            })?
+            .get(&parent_dir)
+            .ok_or_else(|| AssetConfigNotFound(parent_dir.to_path_buf()))?
             .lock()
             .unwrap()
             .get_config(canonical_path))
@@ -175,38 +171,34 @@ impl AssetSourceDirectoryConfiguration {
 
 impl AssetConfigTreeNode {
     /// Constructs config tree for assets directory in a recursive fashion.
-    fn load(parent: Option<ConfigNode>, dir: &Path, configs: &mut ConfigMap) -> anyhow::Result<()> {
-        let config_path: Option<PathBuf>;
-        match (
+    fn load(
+        parent: Option<ConfigNode>,
+        dir: &Path,
+        configs: &mut ConfigMap,
+    ) -> Result<(), AssetLoadConfigError> {
+        let config_path = match (
             dir.join(ASSETS_CONFIG_FILENAME_JSON).exists(),
             dir.join(ASSETS_CONFIG_FILENAME_JSON5).exists(),
         ) {
             (true, true) => {
-                return Err(anyhow::anyhow!(
-                    "both {} and {} files exist in the same directory (dir = {:?})",
-                    ASSETS_CONFIG_FILENAME_JSON,
-                    ASSETS_CONFIG_FILENAME_JSON5,
-                    dir
-                ))
+                return Err(AssetLoadConfigError::MultipleConfigurationFiles(
+                    dir.to_path_buf(),
+                ));
             }
-            (true, false) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON)),
-            (false, true) => config_path = Some(dir.join(ASSETS_CONFIG_FILENAME_JSON5)),
-            (false, false) => config_path = None,
-        }
+            (true, false) => Some(dir.join(ASSETS_CONFIG_FILENAME_JSON)),
+            (false, true) => Some(dir.join(ASSETS_CONFIG_FILENAME_JSON5)),
+            (false, false) => None,
+        };
         let mut rules = vec![];
         if let Some(config_path) = config_path {
-            let content = fs::read_to_string(&config_path).with_context(|| {
-                format!("unable to read config file: {}", config_path.display())
-            })?;
+            let content = dfx_core::fs::read_to_string(&config_path)?;
+
             let interim_rules: Vec<rule_utils::InterimAssetConfigRule> = json5::from_str(&content)
-                .with_context(|| {
-                    format!(
-                        "malformed JSON asset config file: {}",
-                        config_path.display()
-                    )
-                })?;
+                .map_err(|e| MalformedAssetConfigFile(config_path.to_path_buf(), e))?;
             for interim_rule in interim_rules {
-                rules.push(AssetConfigRule::from_interim(interim_rule, dir)?);
+                let rule = AssetConfigRule::from_interim(interim_rule, dir)
+                    .map_err(|e| LoadRuleFailed(config_path.to_path_buf(), e))?;
+                rules.push(rule);
             }
         }
 
@@ -220,8 +212,7 @@ impl AssetConfigTreeNode {
         };
 
         configs.insert(dir.to_path_buf(), parent_ref.clone());
-        for f in std::fs::read_dir(dir)
-            .with_context(|| format!("Unable to read directory {}", &dir.display()))?
+        for f in dfx_core::fs::read_dir(dir)?
             .filter_map(|x| x.ok())
             .filter(|x| x.file_type().map_or_else(|_e| false, |ft| ft.is_dir()))
         {
@@ -278,7 +269,7 @@ impl AssetConfig {
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
     use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
-    use anyhow::Context;
+    use crate::error::load_rule::LoadRuleError;
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
     use serde_json::Value;
@@ -373,23 +364,20 @@ mod rule_utils {
                 allow_raw_access,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
-        ) -> anyhow::Result<Self> {
-            let glob = Glob::new(
-            config_file_parent_dir
-                .join(&r#match)
-                .to_str()
-                .with_context(|| {
-                    format!(
-                        "cannot combine {} and {} into a string (to be later used as a glob pattern)",
-                        config_file_parent_dir.display(),
-                        r#match
-                    )
-                })?,
-        )
-        .with_context(|| format!("{} is not a valid glob pattern", r#match))?.compile_matcher();
+        ) -> Result<Self, LoadRuleError> {
+            let glob = config_file_parent_dir.join(&r#match);
+            let glob = glob.to_str().ok_or_else(|| {
+                LoadRuleError::FormGlobPatternFailed(
+                    config_file_parent_dir.to_path_buf(),
+                    r#match.clone(),
+                )
+            })?;
+            let matcher = Glob::new(glob)
+                .map_err(|e| LoadRuleError::InvalidGlobPattern(r#match, e))?
+                .compile_matcher();
 
             Ok(Self {
-                r#match: glob,
+                r#match: matcher,
                 cache,
                 headers,
                 ignore,
