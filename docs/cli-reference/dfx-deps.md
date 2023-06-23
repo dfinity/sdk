@@ -42,7 +42,7 @@ You can specify the following argument for the `dfx deps delete` command.
 
 ### Examples
 
-You can use the `dfx deps pull` command to pull the dependencies as defined in `dfx.json` from mainnet. It will resolve all indirect dependencies.
+You can use the `dfx deps pull` command to pull the dependencies as defined in `dfx.json` from the mainnet. It will resolve all indirect dependencies.
 
 ``` bash
 dfx deps pull
