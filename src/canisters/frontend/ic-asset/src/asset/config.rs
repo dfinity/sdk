@@ -474,8 +474,12 @@ mod with_tempdir {
     fn create_temporary_assets_directory(
         config_files: Option<HashMap<String, String>>,
         assets_count: usize,
-    ) -> anyhow::Result<TempDir> {
-        let assets_dir = Builder::new().prefix("assets").rand_bytes(5).tempdir()?;
+    ) -> TempDir {
+        let assets_dir = Builder::new()
+            .prefix("assets")
+            .rand_bytes(5)
+            .tempdir()
+            .unwrap();
 
         let _subdirs = ["css", "js", "nested/deep"]
             .map(|d| assets_dir.as_ref().join(d))
@@ -517,22 +521,24 @@ mod with_tempdir {
             write!(file, "{}", content).unwrap();
         });
 
-        Ok(assets_dir)
+        assets_dir
     }
 
     #[test]
-    fn match_only_nested_files() -> anyhow::Result<()> {
+    fn match_only_nested_files() {
         let cfg = HashMap::from([(
             "nested".to_string(),
             r#"[{"match": "*", "cache": {"max_age": 333}}]"#.to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(Some(cfg), 7).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_temp_dir = create_temporary_assets_directory(Some(cfg), 7);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
 
-        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
         for f in ["nested/the-thing.txt", "nested/deep/the-next-thing.toml"] {
             assert_eq!(
-                assets_config.get_asset_config(assets_dir.join(f).as_path())?,
+                assets_config
+                    .get_asset_config(assets_dir.join(f).as_path())
+                    .unwrap(),
                 AssetConfig {
                     cache: Some(CacheConfig { max_age: Some(333) }),
                     ..Default::default()
@@ -547,16 +553,16 @@ mod with_tempdir {
             "css/stylish.css",
         ] {
             assert_eq!(
-                assets_config.get_asset_config(assets_dir.join(f).as_path())?,
+                assets_config
+                    .get_asset_config(assets_dir.join(f).as_path())
+                    .unwrap(),
                 AssetConfig::default()
             );
         }
-
-        Ok(())
     }
 
     #[test]
-    fn overriding_cache_rules() -> anyhow::Result<()> {
+    fn overriding_cache_rules() {
         let cfg = Some(HashMap::from([
             (
                 "nested".to_string(),
@@ -567,13 +573,15 @@ mod with_tempdir {
                 r#"[{"match": "*", "cache": {"max_age": 333}}]"#.to_string(),
             ),
         ]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 7).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 7);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
 
-        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
         for f in ["nested/the-thing.txt", "nested/deep/the-next-thing.toml"] {
             assert_eq!(
-                assets_config.get_asset_config(assets_dir.join(f).as_path())?,
+                assets_config
+                    .get_asset_config(assets_dir.join(f).as_path())
+                    .unwrap(),
                 AssetConfig {
                     cache: Some(CacheConfig { max_age: Some(111) }),
                     ..Default::default()
@@ -588,19 +596,19 @@ mod with_tempdir {
             "css/stylish.css",
         ] {
             assert_eq!(
-                assets_config.get_asset_config(assets_dir.join(f).as_path())?,
+                assets_config
+                    .get_asset_config(assets_dir.join(f).as_path())
+                    .unwrap(),
                 AssetConfig {
                     cache: Some(CacheConfig { max_age: Some(333) }),
                     ..Default::default()
                 }
             );
         }
-
-        Ok(())
     }
 
     #[test]
-    fn overriding_headers() -> anyhow::Result<()> {
+    fn overriding_headers() {
         use serde_json::Value::*;
         let cfg = Some(HashMap::from([(
             "".to_string(),
@@ -643,11 +651,12 @@ mod with_tempdir {
     "#
             .to_string(),
         )]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 1).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
-        let parsed_asset_config =
-            assets_config.get_asset_config(assets_dir.join("index.html").as_path())?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 1);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+        let parsed_asset_config = assets_config
+            .get_asset_config(assets_dir.join("index.html").as_path())
+            .unwrap();
         let expected_asset_config = AssetConfig {
             cache: Some(CacheConfig { max_age: Some(88) }),
             headers: Some(BTreeMap::from([
@@ -677,12 +686,10 @@ mod with_tempdir {
                 .iter()
                 .collect::<BTreeMap<_, _>>(),
         );
-
-        Ok(())
     }
 
     #[test]
-    fn prioritization() -> anyhow::Result<()> {
+    fn prioritization() {
         // 1. the most deeply nested config file takes precedens over the one in parent dir
         // 2. order of rules withing file matters - last rule in config file takes precedens over the first one
         let cfg = Some(HashMap::from([
@@ -715,10 +722,10 @@ mod with_tempdir {
                 .to_string(),
             ),
         ]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 7).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 7);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
 
-        let mut assets_config = dbg!(AssetSourceDirectoryConfiguration::load(&assets_dir))?;
+        let mut assets_config = dbg!(AssetSourceDirectoryConfiguration::load(&assets_dir)).unwrap();
         for f in [
             "index.html",
             "js/index.js",
@@ -727,7 +734,9 @@ mod with_tempdir {
             "css/stylish.css",
         ] {
             assert_eq!(
-                assets_config.get_asset_config(assets_dir.join(f).as_path())?,
+                assets_config
+                    .get_asset_config(assets_dir.join(f).as_path())
+                    .unwrap(),
                 AssetConfig {
                     cache: Some(CacheConfig { max_age: Some(999) }),
                     ..Default::default()
@@ -736,7 +745,9 @@ mod with_tempdir {
         }
 
         assert_eq!(
-            assets_config.get_asset_config(assets_dir.join("nested/the-thing.txt").as_path())?,
+            assets_config
+                .get_asset_config(assets_dir.join("nested/the-thing.txt").as_path())
+                .unwrap(),
             AssetConfig {
                 cache: Some(CacheConfig { max_age: Some(400) }),
                 ..Default::default()
@@ -744,18 +755,17 @@ mod with_tempdir {
         );
         assert_eq!(
             assets_config
-                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())?,
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
+                .unwrap(),
             AssetConfig {
                 cache: Some(CacheConfig { max_age: Some(100) }),
                 ..Default::default()
             },
         );
-
-        Ok(())
     }
 
     #[test]
-    fn json5_config_file_with_comments() -> anyhow::Result<()> {
+    fn json5_config_file_with_comments() {
         let cfg = Some(HashMap::from([(
             "".to_string(),
             r#"[
@@ -768,21 +778,22 @@ mod with_tempdir {
 ]"#
             .to_string(),
         )]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
         assert_eq!(
-            assets_config.get_asset_config(assets_dir.join("index.html").as_path())?,
+            assets_config
+                .get_asset_config(assets_dir.join("index.html").as_path())
+                .unwrap(),
             AssetConfig {
                 cache: Some(CacheConfig { max_age: Some(999) }),
                 ..Default::default()
             },
         );
-        Ok(())
     }
 
     #[test]
-    fn no_content_config_file() -> anyhow::Result<()> {
+    fn no_content_config_file() {
         let cfg = Some(HashMap::from([
             ("".to_string(), "".to_string()),
             ("css".to_string(), "".to_string()),
@@ -790,8 +801,8 @@ mod with_tempdir {
             ("nested".to_string(), "".to_string()),
             ("nested/deep".to_string(), "".to_string()),
         ]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
         let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
             assets_config.err().unwrap().to_string(),
@@ -803,14 +814,13 @@ mod with_tempdir {
                     .unwrap()
             )
         );
-        Ok(())
     }
 
     #[test]
-    fn invalid_json_config_file() -> anyhow::Result<()> {
+    fn invalid_json_config_file() {
         let cfg = Some(HashMap::from([("".to_string(), "[[[{{{".to_string())]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
         let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
             assets_config.err().unwrap().to_string(),
@@ -822,11 +832,10 @@ mod with_tempdir {
                     .unwrap()
             )
         );
-        Ok(())
     }
 
     #[test]
-    fn invalid_glob_pattern() -> anyhow::Result<()> {
+    fn invalid_glob_pattern() {
         let cfg = Some(HashMap::from([(
             "".to_string(),
             r#"[
@@ -834,8 +843,8 @@ mod with_tempdir {
     ]"#
             .to_string(),
         )]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
         let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
             assets_config.err().unwrap().to_string(),
@@ -847,25 +856,25 @@ mod with_tempdir {
                     .unwrap()
             )
         );
-        Ok(())
     }
 
     #[test]
-    fn invalid_asset_path() -> anyhow::Result<()> {
+    fn invalid_asset_path() {
         let cfg = Some(HashMap::new());
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
         assert_eq!(
-            assets_config.get_asset_config(assets_dir.join("doesnt.exists").as_path())?,
+            assets_config
+                .get_asset_config(assets_dir.join("doesnt.exists").as_path())
+                .unwrap(),
             AssetConfig::default()
         );
-        Ok(())
     }
 
     #[cfg(target_family = "unix")]
     #[test]
-    fn no_read_permission() -> anyhow::Result<()> {
+    fn no_read_permission() {
         let cfg = Some(HashMap::from([(
             "".to_string(),
             r#"[
@@ -873,8 +882,8 @@ mod with_tempdir {
     ]"#
             .to_string(),
         )]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 1).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 1);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
         std::fs::set_permissions(
             assets_dir.join(ASSETS_CONFIG_FILENAME_JSON).as_path(),
             std::fs::Permissions::from_mode(0o000),
@@ -893,12 +902,10 @@ mod with_tempdir {
                     .unwrap()
             )
         );
-
-        Ok(())
     }
 
     #[test]
-    fn allow_raw_access_flag() -> anyhow::Result<()> {
+    fn allow_raw_access_flag() {
         let cfg = Some(HashMap::from([(
             "".to_string(),
             r#"[
@@ -909,32 +916,34 @@ mod with_tempdir {
 ]"#
             .to_string(),
         )]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
         assert_eq!(
-            assets_config.get_asset_config(assets_dir.join("index.html").as_path())?,
+            assets_config
+                .get_asset_config(assets_dir.join("index.html").as_path())
+                .unwrap(),
             AssetConfig {
                 allow_raw_access: Some(true),
                 ..Default::default()
             },
         );
-        Ok(())
     }
 
     #[test]
-    fn default_value_for_allow_raw_access_flag() -> anyhow::Result<()> {
+    fn default_value_for_allow_raw_access_flag() {
         let cfg = Some(HashMap::from([("".to_string(), "[]".to_string())]));
-        let assets_temp_dir = create_temporary_assets_directory(cfg, 0).unwrap();
-        let assets_dir = assets_temp_dir.path().canonicalize()?;
-        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir)?;
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
         assert_eq!(
-            assets_config.get_asset_config(assets_dir.join("index.html").as_path())?,
+            assets_config
+                .get_asset_config(assets_dir.join("index.html").as_path())
+                .unwrap(),
             AssetConfig {
                 allow_raw_access: Some(false),
                 ..Default::default()
             },
         );
-        Ok(())
     }
 }
