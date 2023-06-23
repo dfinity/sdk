@@ -306,9 +306,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
     };
     use tempfile::{Builder, TempDir};
 
-    fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescriptor>> {
+    fn gather_asset_descriptors(dirs: &[&Path]) -> Vec<AssetDescriptor> {
         let logger = slog::Logger::root(slog::Discard, slog::o!());
-        super::gather_asset_descriptors(dirs, &logger)
+        super::gather_asset_descriptors(dirs, &logger).unwrap()
     }
 
     impl AssetDescriptor {
@@ -369,10 +369,12 @@ mod test_gathering_asset_descriptors_with_tempdir {
     ///    ├── .ic-assets.json
     ///    ├── .hfile
     ///    └── file
-    fn create_temporary_assets_directory(
-        modified_files: HashMap<PathBuf, String>,
-    ) -> anyhow::Result<TempDir> {
-        let assets_tempdir = Builder::new().prefix("assets").rand_bytes(5).tempdir()?;
+    fn create_temporary_assets_directory(modified_files: HashMap<PathBuf, String>) -> TempDir {
+        let assets_tempdir = Builder::new()
+            .prefix("assets")
+            .rand_bytes(5)
+            .tempdir()
+            .unwrap();
 
         let mut default_files = HashMap::from([
             (Path::new(".ic-assets.json").to_path_buf(), "[]".to_string()),
@@ -420,7 +422,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             fs::write(path, v).unwrap();
         }
 
-        Ok(assets_tempdir)
+        assets_tempdir
     }
 
     #[test]
@@ -434,9 +436,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             .to_string(),
         )]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, ".hfile"),
@@ -467,9 +469,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 ]"#
             .to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
         let expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
         assert_eq!(asset_descriptors, expected_asset_descriptors);
@@ -482,9 +484,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 ]"#
             .to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
         let expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
         assert_eq!(asset_descriptors, expected_asset_descriptors);
@@ -497,9 +499,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 ]"#
             .to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
         let expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
         assert_eq!(asset_descriptors, expected_asset_descriptors);
@@ -512,9 +514,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 ]"#
             .to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
         let expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
         assert_eq!(asset_descriptors, expected_asset_descriptors);
@@ -553,9 +555,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             .to_string(),
         )]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
@@ -592,9 +594,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
@@ -644,9 +646,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![AssetDescriptor::default_from_path(
             &assets_dir,
@@ -678,9 +680,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
@@ -722,9 +724,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
@@ -761,9 +763,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
@@ -817,9 +819,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let mut asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, ".hfile")
