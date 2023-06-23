@@ -19,6 +19,7 @@ teardown() {
 }
 
 @test "using an invalid command fails" {
+    skip "remove this skip once https://github.com/dfinity/sdk/pull/3096 is merged"
     run dfx blurp
     if [[ $status -eq 0 ]]; then
         echo "$@" >&2
