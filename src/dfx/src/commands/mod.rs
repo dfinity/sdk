@@ -44,7 +44,6 @@ pub enum Command {
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
     Deploy(deploy::DeployOpts),
-    #[command(hide = true)]
     Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
