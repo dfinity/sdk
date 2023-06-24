@@ -1,7 +1,5 @@
 use slog::{Drain, Logger};
 
-pub type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
-
 pub struct TermLogFormat<D>
 where
     D: slog_term::Decorator,
