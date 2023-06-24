@@ -795,11 +795,12 @@ mod with_tempdir {
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
-                "malformed JSON asset config file: {}",
+                "Malformed JSON asset config file '{}':  {}",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .to_str()
-                    .unwrap()
+                    .unwrap(),
+                "--> 1:1\n  |\n1 | \n  | ^---\n  |\n  = expected array, boolean, null, number, object, or string"
             )
         );
     }
@@ -813,11 +814,12 @@ mod with_tempdir {
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
-                "malformed JSON asset config file: {}",
+                "Malformed JSON asset config file '{}':  {}",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .to_str()
-                    .unwrap()
+                    .unwrap(),
+                "--> 1:5\n  |\n1 | [[[{{{\n  |     ^---\n  |\n  = expected identifier or string"
             )
         );
     }
@@ -837,11 +839,12 @@ mod with_tempdir {
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
-                "malformed JSON asset config file: {}",
+                "Malformed JSON asset config file '{}':  {}",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .to_str()
-                    .unwrap()
+                    .unwrap(),
+                "--> 2:19\n  |\n2 |         {\"match\": \"{{{\\\\\\\", \"cache\": {\"max_age\": 900}},\n  |                   ^---\n  |\n  = expected boolean or null"
             )
         );
     }
@@ -882,7 +885,7 @@ mod with_tempdir {
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
-                "unable to read config file: {}",
+                "Failed to read {} as string: Permission denied (os error 13)",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .as_path()
