@@ -1,7 +1,7 @@
-use crate::error::get_asset_config::GetAssetConfigError;
-use crate::error::get_asset_config::GetAssetConfigError::{AssetConfigNotFound, InvalidPath};
-use crate::error::load_config::AssetLoadConfigError;
-use crate::error::load_config::AssetLoadConfigError::{LoadRuleFailed, MalformedAssetConfigFile};
+use crate::error::AssetLoadConfigError;
+use crate::error::AssetLoadConfigError::{LoadRuleFailed, MalformedAssetConfigFile};
+use crate::error::GetAssetConfigError;
+use crate::error::GetAssetConfigError::{AssetConfigNotFound, InvalidPath};
 
 use derivative::Derivative;
 use globset::GlobMatcher;
@@ -269,7 +269,7 @@ impl AssetConfig {
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
     use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
-    use crate::error::load_rule::LoadRuleError;
+    use crate::error::LoadRuleError;
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
     use serde_json::Value;

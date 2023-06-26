@@ -4,10 +4,10 @@ use crate::asset::content_encoder::ContentEncoder;
 use crate::batch_upload::semaphores::Semaphores;
 use crate::canister_api::methods::chunk::create_chunk;
 use crate::canister_api::types::asset::AssetDetails;
-use crate::error::create_chunk::CreateChunkError;
-use crate::error::create_encoding::CreateEncodingError;
-use crate::error::create_encoding::CreateEncodingError::EncodeContentFailed;
-use crate::error::create_project_asset::CreateProjectAssetError;
+use crate::error::CreateChunkError;
+use crate::error::CreateEncodingError;
+use crate::error::CreateEncodingError::EncodeContentFailed;
+use crate::error::CreateProjectAssetError;
 
 use candid::Nat;
 use futures::future::try_join_all;

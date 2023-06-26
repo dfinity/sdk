@@ -4,7 +4,7 @@ use crate::batch_upload::retryable::retryable;
 use crate::batch_upload::semaphores::Semaphores;
 use crate::canister_api::methods::method_names::CREATE_CHUNK;
 use crate::canister_api::types::batch_upload::common::{CreateChunkRequest, CreateChunkResponse};
-use crate::error::create_chunk::CreateChunkError;
+use crate::error::CreateChunkError;
 
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
@@ -51,15 +51,15 @@ pub(crate) async fn create_chunk(
             Ok(response) => {
                 // failure to decode the response is not retryable
                 let response = Decode!(&response, CreateChunkResponse)
-                    .map_err(CreateChunkError::DecodeCreateChunkResponseFailed)?;
+                    .map_err(CreateChunkError::DecodeCreateChunkResponse)?;
                 return Ok(response.chunk_id);
             }
             Err(agent_err) if !retryable(&agent_err) => {
-                return Err(CreateChunkError::Agent(agent_err));
+                return Err(CreateChunkError::CreateChunk(agent_err));
             }
             Err(agent_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => return Err(CreateChunkError::Agent(agent_err)),
+                None => return Err(CreateChunkError::CreateChunk(agent_err)),
             },
         }
     }
