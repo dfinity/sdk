@@ -8,11 +8,13 @@ use crate::canister_api::{
     methods::method_names::GET_ASSET_PROPERTIES,
     types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
 };
+use crate::error::get_asset_properties::GetAssetPropertiesError;
+use crate::error::get_asset_properties::GetAssetPropertiesError::GetAssetPropertiesFailed;
 
 pub(crate) async fn get_assets_properties(
     canister: &Canister<'_>,
     canister_assets: &HashMap<String, AssetDetails>,
-) -> anyhow::Result<HashMap<String, AssetProperties>> {
+) -> Result<HashMap<String, AssetProperties>, GetAssetPropertiesError> {
     let mut all_assets_properties = HashMap::new();
     for asset_id in canister_assets.keys() {
         match get_asset_properties(canister, asset_id).await {
@@ -32,7 +34,7 @@ pub(crate) async fn get_assets_properties(
                 break;
             }
             Err(e) => {
-                return Err(anyhow::anyhow!("Failed to get asset properties: {e}"));
+                return Err(GetAssetPropertiesFailed(asset_id.clone(), e));
             }
         }
     }

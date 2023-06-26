@@ -1959,10 +1959,10 @@ dependencies = [
 name = "ic-asset"
 version = "0.20.0"
 dependencies = [
- "anyhow",
  "backoff",
  "candid 0.8.4",
  "derivative",
+ "dfx-core",
  "flate2",
  "futures",
  "futures-intrusive",
@@ -1982,6 +1982,7 @@ dependencies = [
  "sha2 0.10.6",
  "slog",
  "tempfile",
+ "thiserror",
  "tokio",
  "walkdir",
 ]

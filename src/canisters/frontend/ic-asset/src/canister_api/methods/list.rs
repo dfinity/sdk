@@ -4,11 +4,12 @@ use crate::canister_api::types::{asset::AssetDetails, list::ListAssetsRequest};
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 
+use ic_agent::AgentError;
 use std::collections::HashMap;
 
 pub(crate) async fn list_assets(
     canister: &Canister<'_>,
-) -> anyhow::Result<HashMap<String, AssetDetails>> {
+) -> Result<HashMap<String, AssetDetails>, AgentError> {
     let (entries,): (Vec<AssetDetails>,) = canister
         .query_(LIST)
         .with_arg(ListAssetsRequest {})
