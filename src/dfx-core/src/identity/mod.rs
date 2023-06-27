@@ -14,6 +14,7 @@ use crate::error::wallet_config::WalletConfigError::{
 };
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::json::{load_json_file, save_json_file};
+use ic_agent::agent::EnvelopeContent;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
     IdentityManager,
@@ -249,8 +250,8 @@ impl ic_agent::Identity for Identity {
         self.inner.sender()
     }
 
-    fn sign(&self, blob: &[u8]) -> Result<Signature, String> {
-        self.inner.sign(blob)
+    fn sign(&self, content: &EnvelopeContent) -> Result<Signature, String> {
+        self.inner.sign(content)
     }
 }
 

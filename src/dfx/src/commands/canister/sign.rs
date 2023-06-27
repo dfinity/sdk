@@ -2,7 +2,7 @@ use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
-use crate::lib::sign::sign_transport::SignReplicaV2Transport;
+use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
 use dfx_core::identity::CallSender;
 
@@ -174,10 +174,7 @@ pub async fn exec(
     }
 
     let mut sign_agent = agent.clone();
-    sign_agent.set_transport(SignReplicaV2Transport::new(
-        file_name.clone(),
-        message_template,
-    ));
+    sign_agent.set_transport(SignTransport::new(file_name.clone(), message_template));
 
     let is_management_canister = canister_id == Principal::management_canister();
     let effective_canister_id =
@@ -187,7 +184,7 @@ pub async fn exec(
         let res = sign_agent
             .query(&canister_id, method_name)
             .with_effective_canister_id(effective_canister_id)
-            .with_arg(&arg_value)
+            .with_arg(arg_value)
             .expire_at(expiration_system_time)
             .call()
             .await;
@@ -203,7 +200,7 @@ pub async fn exec(
         let res = sign_agent
             .update(&canister_id, method_name)
             .with_effective_canister_id(effective_canister_id)
-            .with_arg(&arg_value)
+            .with_arg(arg_value)
             .expire_at(expiration_system_time)
             .call()
             .await;
