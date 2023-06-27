@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use ic_agent::AgentError;
+use ic_agent::{
+    agent::{RejectCode, RejectResponse},
+    AgentError,
+};
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 
@@ -8,8 +11,8 @@ use crate::canister_api::{
     methods::method_names::GET_ASSET_PROPERTIES,
     types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
 };
-use crate::error::get_asset_properties::GetAssetPropertiesError;
-use crate::error::get_asset_properties::GetAssetPropertiesError::GetAssetPropertiesFailed;
+use crate::error::GetAssetPropertiesError;
+use crate::error::GetAssetPropertiesError::GetAssetPropertiesFailed;
 
 pub(crate) async fn get_assets_properties(
     canister: &Canister<'_>,
@@ -23,10 +26,11 @@ pub(crate) async fn get_assets_properties(
             }
             // older canisters don't have get_assets_properties method
             // therefore we can break the loop
-            Err(AgentError::ReplicaError {
+            Err(AgentError::ReplicaError(RejectResponse {
                 reject_code,
                 reject_message,
-            }) if reject_code == 3
+                ..
+            })) if reject_code == RejectCode::DestinationInvalid
                 && (reject_message
                     .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'"))
                     || reject_message.contains("query method does not exist")) =>
