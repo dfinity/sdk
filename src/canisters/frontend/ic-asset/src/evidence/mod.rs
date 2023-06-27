@@ -11,9 +11,9 @@ use crate::canister_api::types::batch_upload::common::{
     UnsetAssetContentArguments,
 };
 use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
-use crate::error::compute_evidence::ComputeEvidenceError;
-use crate::error::hash_content::HashContentError;
-use crate::error::hash_content::HashContentError::{EncodeContentFailed, LoadContentFailed};
+use crate::error::ComputeEvidenceError;
+use crate::error::HashContentError;
+use crate::error::HashContentError::{EncodeContentFailed, LoadContentFailed};
 use crate::sync::gather_asset_descriptors;
 use ic_utils::Canister;
 use sha2::{Digest, Sha256};
