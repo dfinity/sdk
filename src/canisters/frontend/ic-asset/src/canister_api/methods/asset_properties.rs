@@ -11,8 +11,8 @@ use crate::canister_api::{
     methods::method_names::GET_ASSET_PROPERTIES,
     types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
 };
-use crate::error::get_asset_properties::GetAssetPropertiesError;
-use crate::error::get_asset_properties::GetAssetPropertiesError::GetAssetPropertiesFailed;
+use crate::error::GetAssetPropertiesError;
+use crate::error::GetAssetPropertiesError::GetAssetPropertiesFailed;
 
 pub(crate) async fn get_assets_properties(
     canister: &Canister<'_>,

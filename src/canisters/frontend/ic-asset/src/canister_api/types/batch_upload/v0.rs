@@ -1,6 +1,6 @@
 use super::common::*;
-use crate::error::downgrade_commit_batch_arguments::DowngradeCommitBatchArgumentsV1ToV0Error;
-use crate::error::downgrade_commit_batch_arguments::DowngradeCommitBatchArgumentsV1ToV0Error::V0SetAssetPropertiesNotSupported;
+use crate::error::DowngradeCommitBatchArgumentsV1ToV0Error;
+use crate::error::DowngradeCommitBatchArgumentsV1ToV0Error::V0SetAssetPropertiesNotSupported;
 
 use candid::{CandidType, Nat};
 
