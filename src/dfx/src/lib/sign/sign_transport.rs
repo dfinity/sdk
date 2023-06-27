@@ -1,7 +1,7 @@
 use super::signed_message::SignedMessageV1;
 
 use candid::Principal;
-use ic_agent::agent::ReplicaV2Transport;
+use ic_agent::agent::Transport;
 use ic_agent::{AgentError, RequestId};
 
 use std::fs::{File, OpenOptions};
@@ -17,12 +17,12 @@ enum SerializeStatus {
     Success(String),
 }
 
-pub(crate) struct SignReplicaV2Transport {
+pub(crate) struct SignTransport {
     file_name: PathBuf,
     message_template: SignedMessageV1,
 }
 
-impl SignReplicaV2Transport {
+impl SignTransport {
     pub fn new<U: Into<PathBuf>>(file_name: U, message_template: SignedMessageV1) -> Self {
         Self {
             file_name: file_name.into(),
@@ -31,13 +31,13 @@ impl SignReplicaV2Transport {
     }
 }
 
-impl ReplicaV2Transport for SignReplicaV2Transport {
+impl Transport for SignTransport {
     fn read_state<'a>(
         &'a self,
         _effective_canister_id: Principal,
         envelope: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(s: &SignReplicaV2Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
+        async fn run(s: &SignTransport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
             let path = &s.file_name;
             let mut file = File::open(path).map_err(|x| AgentError::MessageError(x.to_string()))?;
             let mut json = String::new();
@@ -74,7 +74,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
         request_id: RequestId,
     ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
         async fn run(
-            s: &SignReplicaV2Transport,
+            s: &SignTransport,
             envelope: Vec<u8>,
             request_id: RequestId,
         ) -> Result<(), AgentError> {
@@ -108,7 +108,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
         _effective_canister_id: Principal,
         envelope: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(s: &SignReplicaV2Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
+        async fn run(s: &SignTransport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
             let message = s
                 .message_template
                 .clone()
@@ -136,7 +136,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
     fn status<'a>(
         &'a self,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(_: &SignReplicaV2Transport) -> Result<Vec<u8>, AgentError> {
+        async fn run(_: &SignTransport) -> Result<Vec<u8>, AgentError> {
             Err(AgentError::MessageError(
                 "status calls not supported".to_string(),
             ))
