@@ -11,6 +11,7 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::IdentityError;
 use dfx_core::identity::identity_manager::IdentityManager;
+use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -280,7 +281,10 @@ impl<'a> AgentEnvironment<'a> {
         } else {
             identity_manager.instantiate_selected_identity(&logger)?
         };
-        if network_descriptor.is_ic && identity.insecure {
+        if network_descriptor.is_ic
+            && identity.insecure
+            && !is_warning_disabled(MainnetPlainTextIdentity)
+        {
             warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
