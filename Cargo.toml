@@ -18,12 +18,12 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 candid = "0.8.4"
-ic-agent = "0.23.1"
+ic-agent = "0.24.1"
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
 ic-cdk = "0.8.0"
 ic-cdk-macros = "0.6.7"
-ic-identity-hsm = "0.23.1"
-ic-utils = "0.23.1"
+ic-identity-hsm = "0.24.1"
+ic-utils = "0.24.1"
 
 aes-gcm = "0.9.4"
 anyhow = "1.0.56"
@@ -68,19 +68,19 @@ url = "2.1.0"
 walkdir = "2.3.2"
 
 [patch.crates-io.ic-agent]
-version = "0.23.2"
+version = "0.24.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "862ddb2871db426d0e42e816a2f792d224d7bdf5"
+rev = "b9c57f8bab23cc9936dca4560293ffe485471c6d"
 
 [patch.crates-io.ic-identity-hsm]
-version = "0.23.2"
+version = "0.24.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "862ddb2871db426d0e42e816a2f792d224d7bdf5"
+rev = "b9c57f8bab23cc9936dca4560293ffe485471c6d"
 
 [patch.crates-io.ic-utils]
-version = "0.23.2"
+version = "0.24.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "862ddb2871db426d0e42e816a2f792d224d7bdf5"
+rev = "b9c57f8bab23cc9936dca4560293ffe485471c6d"
 
 [profile.release]
 panic = 'abort'
