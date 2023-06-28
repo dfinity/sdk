@@ -1,6 +1,6 @@
 # dfx changelog
 
-# UNRELEASED
+# 0.14.2
 
 Note: Canister http functionality is broken.  Do not release dfx until this is corrected.  See https://dfinity.atlassian.net/browse/SDK-1129
 
