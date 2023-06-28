@@ -453,9 +453,12 @@ fn serve_fallback_v2() {
         &[],
         unused_callback(),
     );
+    let certificate_header = lookup_header(&identity_response, "IC-Certificate").unwrap();
+    println!("certificate_header: {}", certificate_header);
+
     assert_eq!(identity_response.status_code, 200);
     assert_eq!(identity_response.body.as_ref(), INDEX_BODY);
-    assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
+    assert!(certificate_header.contains("expr_path=:2dn3g2lodHRwX2V4cHJqaW5kZXguaHRtbGM8JD4=:"));
 
     let fallback_response = state.http_request(
         RequestBuilder::get("/nonexistent")
@@ -465,9 +468,11 @@ fn serve_fallback_v2() {
         &[],
         unused_callback(),
     );
+    let certificate_header = lookup_header(&fallback_response, "IC-Certificate").unwrap();
+
     assert_eq!(fallback_response.status_code, 200);
     assert_eq!(fallback_response.body.as_ref(), INDEX_BODY);
-    assert!(lookup_header(&fallback_response, "IC-Certificate").is_some());
+    assert!(certificate_header.contains("expr_path=:2dn3gmlodHRwX2V4cHJjPCo+:"));
 }
 
 #[test]
