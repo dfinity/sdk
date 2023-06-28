@@ -27,6 +27,10 @@ The custom build command can be set in `dfx.json` the same way it is set for `cu
 }
 ```
 
+### fix: Diagnose duplicate assets and display upgrade steps
+
+If `dfx deploy` detects duplicate assets in the dist/ and frontend assets/ directories, it will now suggest upgrade steps.
+
 ### fix: motoko canisters can import other canisters with service constructor
 
 After specific canister builder output wasm and candid file, `dfx` will do some post processing on the candid file.
