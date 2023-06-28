@@ -3,7 +3,7 @@ use crate::lib::project::import::import_canister_definitions;
 use crate::lib::project::network_mappings::get_network_mappings;
 use crate::Environment;
 
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use tokio::runtime::Runtime;
 
 /// Imports canister definitions from another project, as remote canisters
@@ -16,11 +16,11 @@ pub struct ImportOpts {
     canister_name: Option<String>,
 
     /// Imports all canisters found in the other project.
-    #[clap(long, required_unless_present("canister-name"))]
+    #[arg(long, required_unless_present("canister_name"))]
     all: bool,
 
     /// An optional prefix for canisters names to add to the project
-    #[clap(long)]
+    #[arg(long)]
     prefix: Option<String>,
 
     /// Networks to import canisters ids for.
@@ -29,7 +29,7 @@ pub struct ImportOpts {
     /// Examples:
     ///   --network-mapping ic
     ///   --network-mapping ic=mainnet
-    #[clap(long, default_value = "ic", multiple_occurrences(true))]
+    #[arg(long, default_value = "ic", action = ArgAction::Append)]
     network_mapping: Vec<String>,
 }
 
@@ -50,5 +50,6 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
             &network_mappings,
         )
         .await
-    })
+    })?;
+    Ok(())
 }

@@ -1,6 +1,9 @@
 use anyhow::{bail, ensure, Context};
 use candid::{Encode, Principal};
-use ic_agent::{hash_tree::LookupResult, ic_types::HashTree, lookup_value, Agent};
+use ic_agent::{
+    hash_tree::{HashTree, LookupResult},
+    lookup_value, Agent,
+};
 use ic_utils::{call::SyncCall, Canister};
 
 use crate::lib::{
@@ -49,7 +52,7 @@ pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
     // check certificate, this is a query call
     let cert = serde_cbor::from_slice(&certified_rate.certificate)?;
     agent
-        .verify(&cert, MAINNET_CYCLE_MINTER_CANISTER_ID, false)
+        .verify(&cert, MAINNET_CYCLE_MINTER_CANISTER_ID)
         .context(
             "The origin of the certificate for the XDR <> ICP exchange rate could not be verified",
         )?;
@@ -57,19 +60,19 @@ pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
     let witness = lookup_value(
         &cert,
         [
-            "canister".into(),
-            MAINNET_CYCLE_MINTER_CANISTER_ID.into(),
-            "certified_data".into(),
+            b"canister",
+            MAINNET_CYCLE_MINTER_CANISTER_ID.as_slice(),
+            b"certified_data",
         ],
     )
     .context("The IC's certificate for the XDR <> ICP exchange rate could not be verified")?;
-    let tree = serde_cbor::from_slice::<HashTree>(&certified_rate.hash_tree)?;
+    let tree = serde_cbor::from_slice::<HashTree<Vec<u8>>>(&certified_rate.hash_tree)?;
     ensure!(
         tree.digest() == witness,
         "The CMC's certificate for the XDR <> ICP exchange rate did not match the IC's certificate"
     );
     // we can trust the hash tree
-    let lookup = tree.lookup_path([&"ICP_XDR_CONVERSION_RATE".into()]);
+    let lookup = tree.lookup_path([b"ICP_XDR_CONVERSION_RATE"]);
     let certified_data = if let LookupResult::Found(content) = lookup {
         content
     } else {

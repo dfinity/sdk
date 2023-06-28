@@ -45,5 +45,5 @@ teardown() {
     assert_match "Already up to date"
 
     assert_command ./dfx --version
-    assert_match "$version"
+    assert_contains "$version"
 }

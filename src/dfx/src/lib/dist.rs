@@ -1,6 +1,8 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::Manifest;
 use crate::{error_invalid_argument, error_invalid_data};
+#[cfg(windows)]
+use dfx_core::config::directories::project_dirs;
 
 use anyhow::Context;
 use flate2::read::GzDecoder;
@@ -9,12 +11,11 @@ use indicatif::{ProgressBar, ProgressDrawTarget};
 use semver::Version;
 use std::fs;
 use std::io::Write;
-use std::path::Path;
 use tar::Archive;
 
 pub static DEFAULT_RELEASE_ROOT: &str = "https://sdk.dfinity.org";
-pub static CACHE_ROOT: &str = ".cache/dfinity/versions/";
-pub static DOWNLOADS_DIR: &str = ".cache/dfinity/downloads/";
+pub static CACHE_SUBDIR: &str = "versions";
+pub static DOWNLOADS_SUBDIR: &str = "downloads";
 
 #[context("Failed to get distribution manifest.")]
 pub fn get_manifest() -> DfxResult<Manifest> {
@@ -58,10 +59,15 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
     ))
     .map_err(|e| error_invalid_argument!("invalid url: {}", e))?;
 
-    let home = std::env::var("HOME").context("Failed to resolve env var HOME.")?;
-    let home = Path::new(&home);
+    // directories-next is not used for *nix to preserve existing paths
+    #[cfg(not(windows))]
+    let cache_dir =
+        std::path::Path::new(&std::env::var_os("HOME").context("Failed to resolve env var HOME.")?)
+            .join(".cache/dfinity");
+    #[cfg(windows)]
+    let cache_dir = project_dirs()?.cache_dir();
 
-    let download_dir = home.join(DOWNLOADS_DIR);
+    let download_dir = cache_dir.join(DOWNLOADS_SUBDIR);
     if !download_dir.exists() {
         fs::create_dir_all(&download_dir)
             .with_context(|| format!("Failed to create dir {}.", download_dir.to_string_lossy()))?;
@@ -79,7 +85,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         b.enable_steady_tick(80);
         let response = reqwest::blocking::get(url).map_err(DfxError::new)?;
         let content = response.bytes().context("Failed to get response body.")?;
-        dest.write_all(&*content).with_context(|| {
+        dest.write_all(&content).with_context(|| {
             format!(
                 "Failed to write response content to {}.",
                 download_file.to_string_lossy()
@@ -88,11 +94,12 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         b.finish_with_message("Download complete");
     }
 
-    let mut cache_dir = home.join(CACHE_ROOT);
-    cache_dir.push(version.to_string());
-    if !cache_dir.exists() {
-        fs::create_dir_all(&cache_dir)
-            .with_context(|| format!("Failed to create {}.", cache_dir.to_string_lossy()))?;
+    let mut version_cache_dir = cache_dir.join(CACHE_SUBDIR);
+    version_cache_dir.push(version.to_string());
+    if !version_cache_dir.exists() {
+        fs::create_dir_all(&version_cache_dir).with_context(|| {
+            format!("Failed to create {}.", version_cache_dir.to_string_lossy())
+        })?;
     }
 
     let b = ProgressBar::new_spinner();
@@ -106,7 +113,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         .with_context(|| format!("Failed to open {}.", download_file.to_string_lossy()))?;
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
-    archive.unpack(&cache_dir).with_context(|| {
+    archive.unpack(&version_cache_dir).with_context(|| {
         format!(
             "Failed to unpack archive at {}.",
             download_file.to_string_lossy()
@@ -115,9 +122,9 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
     b.finish_with_message("Unpack complete");
 
     // Install components
-    let dfx = cache_dir.join("dfx");
+    let dfx = version_cache_dir.join("dfx");
     std::process::Command::new(dfx)
-        .args(&["cache", "install"])
+        .args(["cache", "install"])
         .status()
         .map_err(DfxError::from)?;
 

@@ -5,17 +5,27 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.60.0' ]
+        rust: [ '1.65.0' ]
         os: [ ubuntu-latest, macos-latest ]
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry

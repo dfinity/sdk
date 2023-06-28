@@ -3,26 +3,15 @@ import { Actor, HttpAgent } from "@dfinity/agent";
 // Imports and re-exports candid interface
 import { idlFactory } from "./{{canister_name}}.did.js";
 export { idlFactory } from "./{{canister_name}}.did.js";
-// CANISTER_ID is replaced by webpack based on node environment
-export const canisterId = {{{canister_name_process_env}}};
 
-{{{{raw}}}}
-/**
- * @typedef CreateActorOptions
- * @property {(import("@dfinity/agent").Agent)} [agent]
- * @property {(import("@dfinity/agent").HttpAgentOptions)} [agentOptions]
- * @property {(import("@dfinity/agent").ActorConfig)} [actorOptions]
+/* CANISTER_ID is replaced by webpack based on node environment
+ * Note: canister environment variable will be standardized as
+ * process.env.CANISTER_ID_<CANISTER_NAME_UPPERCASE>
+ * beginning in dfx 0.15.0
  */
+export const canisterId =
+  {{{canister_name_process_env}}};
 
-/**
- *
- * @param {string | import("@dfinity/principal").Principal} canisterId Canister ID of Agent
- * @param {CreateActorOptions} options {@link CreateActorOptions}
- * @param {CreateActorOptions["agent"]} [options.agent] An initialized agent
- * @param {CreateActorOptions["agentOptions"]} [options.agentOptions] Options to initialize an {@link HttpAgent}. Overridden if an `agent` is passed.
- * @param {CreateActorOptions["actorOptions"]} [options.actorOptions] Options of to pass during the actor initialization.
- * @return {import("@dfinity/agent").ActorSubclass<import("{{{{/raw}}}}./{{canister_name}}.did.js")._SERVICE>} ActorSubclass configured for the canister
- */
 export const createActor = (canisterId, options = {}) => {
   const agent = options.agent || new HttpAgent({ ...options.agentOptions });
 

@@ -1,33 +1,41 @@
-use crate::config::dfinity::{Config, Profile};
 use crate::config::dfx_version_str;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
-
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::provider::get_network_context;
-use crate::util::{self, check_candid_file};
+use crate::util::check_candid_file;
+use dfx_core::config::model::dfinity::{Config, Profile};
+use dfx_core::network::provider::get_network_context;
+use dfx_core::util;
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
 use handlebars::Handlebars;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
+use std::fmt::Write;
+use std::fs;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 
 mod assets;
 mod custom;
 mod motoko;
+mod pull;
 mod rust;
+
+pub use custom::custom_download;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
     // Wasm(Vec<u8>),
     File(PathBuf),
+    // pull dependencies has no wasm output to be installed by `dfx canister install` or `dfx deploy`
+    None,
 }
 
 #[derive(Debug)]
@@ -37,11 +45,11 @@ pub enum IdlBuildOutput {
 }
 
 /// The output of a build.
+#[derive(Debug)]
 pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
-    pub add_candid_service_metadata: bool,
 }
 
 /// A stateless canister builder. This is meant to not keep any state and be passed everything.
@@ -116,16 +124,6 @@ pub trait CanisterBuilder {
                 )
             })?;
         }
-        std::fs::create_dir_all(&generate_output_dir).with_context(|| {
-            format!(
-                "Failed to create dir: {}",
-                generate_output_dir.to_string_lossy()
-            )
-        })?;
-
-        let generated_idl_path = self.generate_idl(pool, info, config)?;
-
-        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
 
         let bindings = info
             .get_declarations_config()
@@ -143,6 +141,17 @@ pub trait CanisterBuilder {
             );
         }
 
+        std::fs::create_dir_all(generate_output_dir).with_context(|| {
+            format!(
+                "Failed to create dir: {}",
+                generate_output_dir.to_string_lossy()
+            )
+        })?;
+
+        let generated_idl_path = self.generate_idl(pool, info, config)?;
+
+        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
+
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
@@ -156,6 +165,8 @@ pub trait CanisterBuilder {
                 )
             })?;
             eprintln!("  {}", &output_did_ts_path.display());
+
+            compile_handlebars_files("ts", info, generate_output_dir)?;
         }
 
         // Javascript
@@ -172,78 +183,8 @@ pub trait CanisterBuilder {
                 )
             })?;
             eprintln!("  {}", &output_did_js_path.display());
-            // index.js
-            let mut language_bindings = crate::util::assets::language_bindings()
-                .context("Failed to get language bindings archive.")?;
-            for f in language_bindings
-                .entries()
-                .context("Failed to read language bindings archive entries.")?
-            {
-                let mut file = f.context("Failed to read language bindings archive entry.")?;
 
-                let pathname: PathBuf = file
-                    .path()
-                    .context("Failed to read language bindings entry path name.")?
-                    .to_path_buf();
-                let extension = pathname.extension();
-                let is_template = matches! (extension, Some (ext ) if ext == OsStr::new("hbs"));
-
-                if is_template {
-                    let mut file_contents = String::new();
-                    file.read_to_string(&mut file_contents)
-                        .context("Failed to read language bindings archive file content.")?;
-
-                    // create the handlebars registry
-                    let handlebars = Handlebars::new();
-
-                    let mut data: BTreeMap<String, &String> = BTreeMap::new();
-
-                    let canister_name = &info.get_name().to_string();
-
-                    let node_compatibility = info.get_declarations_config().node_compatibility;
-
-                    // Insert only if node outputs are specified
-                    let actor_export = if node_compatibility {
-                        // leave empty for nodejs
-                        "".to_string()
-                    } else {
-                        format!(
-                            r#"
-
-/**
- * A ready-to-use agent for the {0} canister
- * @type {{import("@dfinity/agent").ActorSubclass<import("./{0}.did.js")._SERVICE>}}
-*/
-export const {0} = createActor(canisterId);"#,
-                            canister_name
-                        )
-                        .to_string()
-                    };
-
-                    data.insert("canister_name".to_string(), canister_name);
-                    data.insert("actor_export".to_string(), &actor_export);
-
-                    let process_string: String = match &info.get_declarations_config().env_override
-                    {
-                        Some(s) => format!(r#""{}""#, s.clone()),
-                        None => {
-                            format!(
-                                "process.env.{}{}",
-                                &canister_name.to_ascii_uppercase(),
-                                "_CANISTER_ID"
-                            )
-                        }
-                    };
-
-                    data.insert("canister_name_process_env".to_string(), &process_string);
-
-                    let new_file_contents =
-                        handlebars.render_template(&file_contents, &data).unwrap();
-                    let new_path = generate_output_dir.join(pathname.with_extension(""));
-                    std::fs::write(&new_path, new_file_contents)
-                        .with_context(|| format!("Failed to write to {}.", new_path.display()))?;
-                }
-            }
+            compile_handlebars_files("js", info, generate_output_dir)?;
         }
 
         // Motoko
@@ -264,8 +205,12 @@ export const {0} = createActor(canisterId);"#,
                 format!("Failed to remove {}.", generated_idl_path.to_string_lossy())
             })?;
         } else {
-            eprintln!("  {}", &generated_idl_path.display());
+            let relative_idl_path = generated_idl_path
+                .strip_prefix(info.get_workspace_root())
+                .unwrap_or(&generated_idl_path);
+            eprintln!("  {}", &relative_idl_path.display());
         }
+
         Ok(())
     }
 
@@ -279,6 +224,91 @@ export const {0} = createActor(canisterId);"#,
     }
 }
 
+fn compile_handlebars_files(
+    lang: &str,
+    info: &CanisterInfo,
+    generate_output_dir: &Path,
+) -> DfxResult {
+    // index.js
+    let mut language_bindings = crate::util::assets::language_bindings()
+        .context("Failed to get language bindings archive.")?;
+    for f in language_bindings
+        .entries()
+        .context("Failed to read language bindings archive entries.")?
+    {
+        let mut file = f.context("Failed to read language bindings archive entry.")?;
+
+        let pathname: PathBuf = file
+            .path()
+            .context("Failed to read language bindings entry path name.")?
+            .to_path_buf();
+        let file_extension = format!("{}.hbs", lang);
+        let is_template = pathname
+            .to_str()
+            .map_or(false, |name| name.ends_with(&file_extension));
+
+        if is_template {
+            let mut file_contents = String::new();
+            file.read_to_string(&mut file_contents)
+                .context("Failed to read language bindings archive file content.")?;
+
+            // create the handlebars registry
+            let handlebars = Handlebars::new();
+
+            let mut data: BTreeMap<String, &String> = BTreeMap::new();
+
+            let canister_name = &info.get_name().to_string();
+
+            let node_compatibility = info.get_declarations_config().node_compatibility;
+
+            // Insert only if node outputs are specified
+            let actor_export = if node_compatibility {
+                // leave empty for nodejs
+                "".to_string()
+            } else {
+                format!(
+                    r#"
+
+export const {0} = createActor(canisterId);"#,
+                    canister_name
+                )
+                .to_string()
+            };
+
+            data.insert("canister_name".to_string(), canister_name);
+            data.insert("actor_export".to_string(), &actor_export);
+
+            // Switches to prefixing the canister id with the env variable for frontend declarations as new default
+            let process_string_prefix: String = match &info.get_declarations_config().env_override {
+                Some(s) => format!(r#""{}""#, s.clone()),
+                None => {
+                    format!(
+                        "process.env.{}{} ||\n  process.env.{}{}",
+                        "CANISTER_ID_",
+                        &canister_name.to_ascii_uppercase(),
+                        // TODO: remove this fallback in 0.16.x
+                        // https://dfinity.atlassian.net/browse/SDK-1083
+                        &canister_name.to_ascii_uppercase(),
+                        "_CANISTER_ID",
+                    )
+                }
+            };
+
+            data.insert(
+                "canister_name_process_env".to_string(),
+                &process_string_prefix,
+            );
+
+            let new_file_contents = handlebars.render_template(&file_contents, &data).unwrap();
+            let new_path = generate_output_dir.join(pathname.with_extension(""));
+            std::fs::write(&new_path, new_file_contents)
+                .with_context(|| format!("Failed to write to {}.", new_path.display()))?;
+        }
+    }
+
+    Ok(())
+}
+
 // TODO: this function was copied from src/lib/models/canister.rs
 fn ensure_trailing_newline(s: String) -> String {
     if s.ends_with('\n') {
@@ -290,14 +320,65 @@ fn ensure_trailing_newline(s: String) -> String {
     }
 }
 
+pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
+    let (command_name, arguments) = args.split_first().unwrap();
+    let canonicalized = cwd
+        .join(command_name)
+        .canonicalize()
+        .or_else(|_| which::which(command_name))
+        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
+    let mut cmd = Command::new(&canonicalized);
+
+    cmd.args(arguments)
+        .current_dir(cwd)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    for (key, value) in vars {
+        cmd.env(key.as_ref(), value);
+    }
+
+    let output = cmd
+        .output()
+        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(DfxError::new(BuildError::CustomToolError(
+            output.status.code(),
+        )))
+    }
+}
+
+/// Set the permission of the given file to be writeable.
+pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
+    let mut perms = std::fs::metadata(file_path)
+        .with_context(|| {
+            format!(
+                "Failed to read metadata for file {}.",
+                file_path.to_string_lossy()
+            )
+        })?
+        .permissions();
+    perms.set_readonly(false);
+    std::fs::set_permissions(file_path, perms).with_context(|| {
+        format!(
+            "Failed to set permissions for file {}.",
+            file_path.to_string_lossy()
+        )
+    })
+}
+
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
 
-pub fn environment_variables<'a>(
+pub fn get_and_write_environment_variables<'a>(
     info: &CanisterInfo,
     network_name: &'a str,
     pool: &'a CanisterPool,
     dependencies: &[CanisterId],
-) -> Vec<Env<'a>> {
+    write_path: Option<&Path>,
+) -> DfxResult<Vec<Env<'a>>> {
+    // should not return Err unless write_environment_variables does
     use Cow::*;
     let mut vars = vec![
         (
@@ -314,14 +395,42 @@ pub fn environment_variables<'a>(
             };
 
             vars.push((
-                Owned(format!("CANISTER_CANDID_PATH_{}", canister.get_name())),
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_")
+                )),
+                Borrowed(candid_path),
+            ));
+            vars.push((
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_").to_ascii_uppercase()
+                )),
                 Borrowed(candid_path),
             ));
         }
     }
     for canister in pool.get_canister_list() {
+        // Insert both suffixed and prefixed versions of the canister name for backwards compatibility
         vars.push((
-            Owned(format!("CANISTER_ID_{}", canister.get_name())),
+            Owned(format!(
+                "{}_CANISTER_ID",
+                canister.get_name().replace('-', "_").to_ascii_uppercase(),
+            )),
+            Owned(canister.canister_id().to_text().into()),
+        ));
+        vars.push((
+            Owned(format!(
+                "CANISTER_ID_{}",
+                canister.get_name().replace('-', "_").to_ascii_uppercase(),
+            )),
+            Owned(canister.canister_id().to_text().into()),
+        ));
+        vars.push((
+            Owned(format!(
+                "CANISTER_ID_{}",
+                canister.get_name().replace('-', "_")
+            )),
             Owned(canister.canister_id().to_text().into()),
         ));
     }
@@ -331,10 +440,51 @@ pub fn environment_variables<'a>(
     if let Some(path) = info.get_output_idl_path() {
         vars.push((Borrowed("CANISTER_CANDID_PATH"), Owned(path.into())))
     }
-    vars
+
+    if let Some(write_path) = write_path {
+        write_environment_variables(&vars, write_path)?;
+    }
+    Ok(vars)
 }
 
-#[derive(Clone)]
+fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult {
+    const START_TAG: &str = "\n# DFX CANISTER ENVIRONMENT VARIABLES";
+    const END_TAG: &str = "\n# END DFX CANISTER ENVIRONMENT VARIABLES";
+    let mut write_string = String::from(START_TAG);
+    for (var, val) in vars {
+        if let Some(val) = val.to_str() {
+            write!(write_string, "\n{var}='{val}'").unwrap();
+        }
+    }
+    write_string.push_str(END_TAG);
+    if write_path.try_exists()? {
+        // modify the existing file
+        let mut existing_file = fs::read_to_string(write_path)?;
+        let start_pos = existing_file.rfind(START_TAG);
+        if let Some(start_pos) = start_pos {
+            // the file exists and already contains our variables, modify only that section
+            let end_pos = existing_file[start_pos + START_TAG.len()..].find(END_TAG);
+            if let Some(end_pos) = end_pos {
+                // the section is correctly formed
+                let end_pos = end_pos + END_TAG.len() + start_pos + START_TAG.len();
+                existing_file.replace_range(start_pos..end_pos, &write_string);
+                fs::write(write_path, existing_file)?;
+                return Ok(());
+            } else {
+                // the file has been edited, so we don't know how much to delete, so we append instead
+            }
+        }
+        // append to the existing file
+        existing_file.push_str(&write_string);
+        fs::write(write_path, existing_file)?;
+    } else {
+        // no existing file, okay to clobber
+        fs::write(write_path, write_string)?;
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug)]
 pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
@@ -346,6 +496,11 @@ pub struct BuildConfig {
     pub lsp_root: PathBuf,
     /// The root for all build files.
     pub build_root: PathBuf,
+    /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
+    /// If all canisters should be built, then this is None.
+    pub canisters_to_build: Option<Vec<String>>,
+    /// If environment variables should be output to a `.env` file, `env_file` is set to its path.
+    pub env_file: Option<PathBuf>,
 }
 
 impl BuildConfig {
@@ -363,6 +518,8 @@ impl BuildConfig {
             build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
+            canisters_to_build: None,
+            env_file: config_intf.output_env_file.clone(),
         })
     }
 
@@ -371,6 +528,17 @@ impl BuildConfig {
             build_mode_check,
             ..self
         }
+    }
+
+    pub fn with_canisters_to_build(self, canisters: Vec<String>) -> Self {
+        Self {
+            canisters_to_build: Some(canisters),
+            ..self
+        }
+    }
+
+    pub fn with_env_file(self, env_file: Option<PathBuf>) -> Self {
+        Self { env_file, ..self }
     }
 }
 
@@ -389,6 +557,7 @@ impl BuilderPool {
             ("custom", Arc::new(custom::CustomBuilder::new(env)?)),
             ("motoko", Arc::new(motoko::MotokoBuilder::new(env)?)),
             ("rust", Arc::new(rust::RustBuilder::new(env)?)),
+            ("pull", Arc::new(pull::PullBuilder::new(env)?)),
         ]);
 
         Ok(Self { builders })

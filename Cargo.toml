@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "src/dfx",
+    "src/dfx-core",
     "src/canisters/frontend/ic-asset",
     "src/canisters/frontend/icx-asset",
     "src/canisters/frontend/ic-certified-assets",
@@ -8,24 +9,78 @@ members = [
 ]
 default-members = ["src/dfx"]
 
-[patch.crates-io.ic-agent]
-version = "0.20.0"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
+[workspace.package]
+authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
+edition = "2021"
+repository = "https://github.com/dfinity/sdk"
+rust-version = "1.65.0"
+license = "Apache-2.0"
 
-[patch.crates-io.ic-asset]
-version = "0.20.0"
-path = "src/canisters/frontend/ic-asset"
+[workspace.dependencies]
+candid = "0.8.4"
+ic-agent = "0.24.1"
+ic-asset = { path = "src/canisters/frontend/ic-asset" }
+ic-cdk = "0.8.0"
+ic-cdk-macros = "0.6.7"
+ic-identity-hsm = "0.24.1"
+ic-utils = "0.24.1"
+
+aes-gcm = "0.9.4"
+anyhow = "1.0.56"
+anstyle = "1.0.0"
+argon2 = "0.4.0"
+backoff = "0.4.0"
+base64 = "0.13.0"
+byte-unit = "4.0.14"
+clap = "4.2.0"
+dialoguer = "0.10.0"
+directories-next = "2.0.0"
+flate2 = "1.0.11"
+futures = "0.3.21"
+hex = "0.4.3"
+humantime = "2.1.0"
+itertools = "0.10.3"
+keyring = "1.2.0"
+lazy_static = "1.4.0"
+mime = "0.3.16"
+mime_guess = "2.0.4"
+num-traits = "0.2.14"
+pem = "1.0.2"
+proptest = "1.0.0"
+ring = "0.16.11"
+schemars = "0.8"
+sec1 = "0.3.0"
+serde = "1.0"
+serde_bytes = "0.11.5"
+serde_cbor = "0.11.1"
+serde_json = "1.0.79"
+sha2 = "0.10.6"
+slog = "2.5.2"
+slog-async = "2.4.0"
+slog-term = "2.9.0"
+tar = "0.4.38"
+semver = "1.0.6"
+tempfile = "3.3.0"
+thiserror = "1.0.24"
+time = "0.3.9"
+tokio = "1.24.2"
+url = "2.1.0"
+walkdir = "2.3.2"
+
+[patch.crates-io.ic-agent]
+version = "0.24.1"
+git = "https://github.com/dfinity/agent-rs.git"
+rev = "b9c57f8bab23cc9936dca4560293ffe485471c6d"
 
 [patch.crates-io.ic-identity-hsm]
-version = "0.20.0"
+version = "0.24.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
+rev = "b9c57f8bab23cc9936dca4560293ffe485471c6d"
 
 [patch.crates-io.ic-utils]
-version = "0.20.0"
+version = "0.24.1"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "2da883fc92eab3422c9b89bcec3966d06ddf0ae7"
+rev = "b9c57f8bab23cc9936dca4560293ffe485471c6d"
 
 [profile.release]
 panic = 'abort'
@@ -36,4 +91,3 @@ opt-level = 3
 
 [profile.release.package.ic-frontend-canister]
 opt-level = 'z'
-

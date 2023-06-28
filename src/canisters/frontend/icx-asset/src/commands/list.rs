@@ -1,13 +1,13 @@
-use crate::support::Result;
 use candid::{CandidType, Int, Nat};
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 
 use num_traits::ToPrimitive;
 use serde::Deserialize;
+use slog::{info, Logger};
 use time::{format_description, OffsetDateTime};
 
-pub async fn list(canister: &Canister<'_>) -> Result {
+pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()> {
     #[derive(CandidType, Deserialize)]
     struct Encoding {
         modified: Int,
@@ -41,7 +41,8 @@ pub async fn list(canister: &Canister<'_>) -> Result {
             let timestamp_format =
                 format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second] UTC")?;
 
-            eprintln!(
+            info!(
+                logger,
                 "{:>20} {:>15} {:50} ({}, {})",
                 modified.format(&timestamp_format)?,
                 encoding.length.0,

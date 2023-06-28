@@ -7,8 +7,8 @@
 use anyhow::Context;
 use candid::CandidType;
 use candid::Principal;
-use openssl::sha::Sha224;
 use serde::{de, de::Error, Deserialize, Serialize};
+use sha2::{Digest, Sha224};
 use std::convert::{TryFrom, TryInto};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -38,7 +38,7 @@ impl AccountIdentifier {
         hash.update(&sub_account.0[..]);
 
         AccountIdentifier {
-            hash: hash.finish(),
+            hash: hash.finalize().into(),
         }
     }
 

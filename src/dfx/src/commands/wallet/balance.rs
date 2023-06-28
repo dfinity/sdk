@@ -10,7 +10,7 @@ use clap::Parser;
 #[derive(Parser)]
 pub struct WalletBalanceOpts {
     /// Get balance raw value (without upscaling to trillions of cycles).
-    #[clap(long)]
+    #[arg(long)]
     precise: bool,
 }
 

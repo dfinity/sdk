@@ -9,9 +9,8 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::anyhow;
+use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -33,6 +32,7 @@ pub mod signals {
 #[derive(Clone)]
 pub struct Config {
     pub ic_ref_path: PathBuf,
+    pub port: Option<u16>,
     pub write_port_to: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
@@ -78,22 +78,18 @@ impl Emulator {
     }
 
     fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(100))
-            .timeout(Duration::from_secs(30))
-            .build();
-
-        waiter.start();
+        let mut retries = 0;
         loop {
             if let Ok(content) = std::fs::read_to_string(file_path) {
                 if let Ok(port) = content.parse::<u16>() {
                     return Ok(port);
                 }
             }
-            waiter
-                .wait()
-                .map_err(|err| anyhow!("Cannot start ic-ref: {:?}", err))?;
+            if retries >= 3000 {
+                bail!("Cannot start ic-ref: timed out");
+            }
+            std::thread::sleep(Duration::from_millis(100));
+            retries += 1;
         }
     }
 
@@ -114,7 +110,7 @@ impl Emulator {
 
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(PortReadySignal { port });
+            sub.do_send(PortReadySignal { port });
         }
     }
 }
@@ -152,7 +148,7 @@ impl Handler<PortReadySubscribe> for Emulator {
     fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
-            let _ = msg.0.do_send(PortReadySignal { port });
+            msg.0.do_send(PortReadySignal { port });
         }
 
         self.ready_subscribers.push(msg.0);
@@ -195,28 +191,20 @@ fn emulator_start_thread(
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), 1.2)
-            .build();
-        waiter.start();
-
         // Start the process, then wait for the file.
         let ic_ref_path = config.ic_ref_path.as_os_str();
 
         // form the ic-start command here similar to emulator command
         let mut cmd = std::process::Command::new(ic_ref_path);
-        cmd.args(&["--pick-port"]);
-        cmd.args(&[
-            "--write-port-to",
-            &config.write_port_to.to_string_lossy().to_string(),
-        ]);
+        match config.port {
+            Some(port) if port != 0 => cmd.args(["--listen-port", &port.to_string()]),
+            _ => cmd.args(["--pick-port"]),
+        };
+        cmd.args(["--write-port-to", &config.write_port_to.to_string_lossy()]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             let _ = std::fs::remove_file(&config.write_port_to);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting emulator...");
@@ -232,22 +220,19 @@ fn emulator_start_thread(
                     debug!(logger, "Got signal to stop. Killing emulator process...");
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "Emulator process failed.");
-                    // Reset waiter if last start was over 2 seconds ago, and do not wait.
-                    if std::time::Instant::now().duration_since(last_start)
-                        >= Duration::from_secs(2)
+                    // If it took less than two seconds to exit, wait a bit before trying again.
+                    if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
+                        std::thread::sleep(Duration::from_secs(2));
+                    } else {
                         debug!(
                             logger,
                             "Last emulator seemed to have been healthy, not waiting..."
                         );
-                        waiter.start();
-                    } else {
-                        // Wait before we start it again.
-                        let _ = waiter.wait();
                     }
                 }
             }

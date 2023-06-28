@@ -1,16 +1,13 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::expiry_duration;
+use dfx_core::identity::CallSender;
 
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use slog::info;
-use std::time::Duration;
 
 /// Returns the current status of a canister: Running, Stopping, or Stopped. Also carries information like balance, current settings, memory used and everything returned by 'info'.
 #[derive(Parser)]
@@ -20,7 +17,7 @@ pub struct CanisterStatusOpts {
     canister: Option<String>,
 
     /// Returns status information for all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 
@@ -28,15 +25,14 @@ pub struct CanisterStatusOpts {
 async fn canister_status(
     env: &dyn Environment,
     canister: &str,
-    timeout: Duration,
     call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
-    let status = canister::get_canister_status(env, canister_id, timeout, call_sender).await?;
+    let status = canister::get_canister_status(env, canister_id, call_sender).await?;
 
     let mut controllers: Vec<_> = status
         .settings
@@ -66,15 +62,14 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
-    let timeout = expiry_duration();
 
     if let Some(canister) = opts.canister.as_deref() {
-        canister_status(env, canister, timeout, call_sender).await
+        canister_status(env, canister, call_sender).await
     } else if opts.all {
         let config = env.get_config_or_anyhow()?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                canister_status(env, canister, timeout, call_sender).await?;
+                canister_status(env, canister, call_sender).await?;
             }
         }
         Ok(())

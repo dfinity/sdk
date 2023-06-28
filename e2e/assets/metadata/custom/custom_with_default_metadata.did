@@ -1,0 +1,5 @@
+service : {
+  // custom_with_default_metadata
+  getCanisterId: () -> (principal) query;
+  amInitializer: () -> (bool) query;
+}

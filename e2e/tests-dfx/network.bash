@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
     standard_setup
 
-    dfx identity new --disable-encryption test_id
+    dfx identity new --storage-mode plaintext test_id
     dfx identity use test_id
     dfx_new
 }
@@ -73,7 +73,8 @@ teardown() {
 @test "failure message does not include network if for local network" {
     dfx_start
     assert_command_fail dfx build --network local
-    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend"
+    assert_match "Cannot find canister id."
+    assert_not_contains "--network local"
 }
 
 @test "failure message does include network if for non-local network" {
@@ -82,5 +83,6 @@ teardown() {
     setup_actuallylocal_shared_network
 
     assert_command_fail dfx build --network actuallylocal
-    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend --network actuallylocal"
+    assert_match "Cannot find canister id."
+    assert_match "--network actuallylocal"
 }

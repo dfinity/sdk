@@ -26,6 +26,8 @@ When you have the SDK installed, you can use the following commands to specify t
 
 -   [dfx deploy](./dfx-deploy.md)
 
+-   [dfx deps](./dfx-deps.md)
+
 -   [dfx help](./dfx-help.md)
 
 -   [dfx identity](./dfx-identity.md)
@@ -37,6 +39,8 @@ When you have the SDK installed, you can use the following commands to specify t
 -   [dfx new](./dfx-new.md)
 
 -   [dfx ping](./dfx-ping.md)
+
+-   [dfx quickstart](./dfx-quickstart.md)
 
 -   [dfx replica](./dfx-replica.md)
 

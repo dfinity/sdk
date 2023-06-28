@@ -1,12 +1,14 @@
+use crate::commands::identity::new::create_new_dfx_identity;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::{IdentityCreationParameters, IdentityManager};
+use dfx_core::identity::identity_manager::{IdentityCreationParameters, IdentityStorageMode};
 
 use anyhow::Context;
 use clap::Parser;
-use slog::info;
+use slog::{info, warn};
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 /// Creates a new identity from a PEM file.
 #[derive(Parser)]
@@ -18,37 +20,51 @@ pub struct ImportOpts {
     pem_file: Option<PathBuf>,
 
     /// The path to a file with your seed phrase.
-    #[clap(long, conflicts_with("pem-file"), required_unless_present("pem-file"))]
+    #[arg(long, conflicts_with("pem_file"), required_unless_present("pem_file"))]
     seed_file: Option<PathBuf>,
 
-    /// DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk.
-    /// If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption.
-    #[clap(long)]
+    /// DEPRECATED: Please use --storage-mode=plaintext instead
+    #[arg(long)]
     disable_encryption: bool,
 
+    /// How your private keys are stored. By default, if keyring/keychain is available, keys are stored there.
+    /// Otherwise, a password-protected file is used as fallback.
+    /// Mode 'plaintext' is not safe, but convenient for use in CI.
+    #[arg(long, conflicts_with("disable_encryption"),
+        value_parser = ["keyring", "password-protected", "plaintext"])]
+    storage_mode: Option<String>,
+
     /// If the identity already exists, remove and re-import it.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 
 /// Executes the import subcommand.
 pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let log = env.get_logger();
+
+    if opts.disable_encryption {
+        warn!(log, "The flag --disable-encryption has been deprecated. Please use --storage-mode=plaintext instead.");
+    }
+
+    let mode = if opts.disable_encryption {
+        IdentityStorageMode::Plaintext
+    } else if let Some(mode_str) = opts.storage_mode {
+        IdentityStorageMode::from_str(&mode_str)?
+    } else {
+        IdentityStorageMode::default()
+    };
     let name = opts.new_identity.as_str();
     let params = if let Some(src_pem_file) = opts.pem_file {
-        IdentityCreationParameters::PemFile {
-            src_pem_file,
-            disable_encryption: opts.disable_encryption,
-        }
+        IdentityCreationParameters::PemFile { src_pem_file, mode }
     } else {
         let mnemonic =
             fs::read_to_string(opts.seed_file.unwrap()).context("Failed to read seed file")?;
-        IdentityCreationParameters::SeedPhrase {
-            mnemonic,
-            disable_encryption: opts.disable_encryption,
-        }
+        IdentityCreationParameters::SeedPhrase { mnemonic, mode }
     };
-    IdentityManager::new(env)?.create_new_identity(name, params, opts.force)?;
+
+    create_new_dfx_identity(env, log, name, params, opts.force)?;
+
     info!(log, r#"Imported identity: "{}"."#, name);
     Ok(())
 }

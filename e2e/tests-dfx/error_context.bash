@@ -23,11 +23,11 @@ teardown() {
     echo "invalid json" >"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
 
     assert_command_fail dfx identity get-wallet
-    assert_match "Unable to parse contents of .*/network/local/wallets.json as json"
+    assert_match "Failed to parse contents of .*/network/local/wallets.json as json"
     assert_match "expected value at line 1 column 1"
 
     assert_command_fail dfx wallet upgrade
-    assert_match "Unable to parse contents of .*/network/local/wallets.json as json"
+    assert_match "Failed to parse contents of .*/network/local/wallets.json as json"
     assert_match "expected value at line 1 column 1"
 
     echo '{ "identities": {} }' >"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
@@ -35,18 +35,18 @@ teardown() {
     # maybe you were sudo when you made it
     chmod u=w,go= "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
     assert_command_fail dfx identity get-wallet
-    assert_match "Unable to open .*/network/local/wallets.json"
+    assert_match "Failed to read .*/network/local/wallets.json"
     assert_match "Permission denied"
 
     assert_command_fail dfx wallet upgrade
-    assert_match "Unable to open .*/network/local/wallets.json"
+    assert_match "Failed to read .*/network/local/wallets.json"
     assert_match "Permission denied"
 
     # can't write it?
     chmod u=r,go= "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
-    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --storage-mode plaintext alice
     assert_command_fail dfx identity get-wallet --identity alice
-    assert_match "Unable to write .*/local/wallets.json"
+    assert_match "Failed to write to .*/local/wallets.json"
     assert_match "Permission denied"
 }
 
@@ -118,7 +118,7 @@ teardown() {
     assert_match "moc"
 
     # expect to see the full path of the binary
-    assert_match "$(dfx cache show)/moc"
+    assert_contains "$(dfx cache show)/moc"
 
     # expect to see the underlying cause
     assert_match "No such file or directory"
@@ -173,4 +173,10 @@ teardown() {
     assert_match "custom_bad_build_step"
     # expect to see the underlying cause
     assert_match "Cannot find command or file"
+}
+
+@test "invalid optimization level" {
+    jq '.canisters.bad_optimization_level.optimize="bad_level"' dfx.json | sponge dfx.json
+    assert_command_fail dfx_start
+    assert_match "expected one of "
 }

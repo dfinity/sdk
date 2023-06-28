@@ -1,13 +1,13 @@
 use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
-use crate::lib::sign::sign_transport::SignReplicaV2Transport;
+use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
+use dfx_core::identity::CallSender;
 
-use crate::util::{blob_from_arguments, get_candid_type};
+use crate::util::clap::parsers::file_or_stdin_parser;
+use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
 
 use candid::Principal;
 use ic_agent::AgentError;
@@ -21,7 +21,7 @@ use time::OffsetDateTime;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::SystemTime;
 
@@ -35,31 +35,40 @@ pub struct CanisterSignOpts {
     method_name: String,
 
     /// Sends a query request to a canister.
-    #[clap(long)]
+    #[arg(long)]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("query"))]
+    #[arg(long, conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
 
+    /// Specifies the file from which to read the argument to pass to the method.
+    #[arg(
+        long,
+        value_parser = file_or_stdin_parser,
+        conflicts_with("random"),
+        conflicts_with("argument")
+    )]
+    argument_file: Option<PathBuf>,
+
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"))]
+    #[arg(long, conflicts_with("argument"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     r#type: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
-    #[clap(long, default_value("5m"))]
+    #[arg(long, default_value = "5m")]
     expire_after: String,
 
     /// Specifies the output file name.
-    #[clap(long, default_value("message.json"))]
-    file: String,
+    #[arg(long, default_value = "message.json")]
+    file: PathBuf,
 }
 
 pub async fn exec(
@@ -74,7 +83,7 @@ pub async fn exec(
 
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
         Ok(id) => {
@@ -94,7 +103,13 @@ pub async fn exec(
     let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
+    let arguments_from_file = opts
+        .argument_file
+        .map(|v| arguments_from_file(&v))
+        .transpose()?;
     let arguments = opts.argument.as_deref();
+    let arguments = arguments_from_file.as_deref().or(arguments);
+
     let arg_type = opts.r#type.as_deref();
     let is_query = match is_query_method {
         Some(true) => !opts.update,
@@ -154,15 +169,12 @@ pub async fn exec(
     if Path::new(&file_name).exists() {
         bail!(
             "[{}] already exists, please specify a different output file name.",
-            file_name
+            file_name.display(),
         );
     }
 
     let mut sign_agent = agent.clone();
-    sign_agent.set_transport(SignReplicaV2Transport::new(
-        file_name.clone(),
-        message_template,
-    ));
+    sign_agent.set_transport(SignTransport::new(file_name.clone(), message_template));
 
     let is_management_canister = canister_id == Principal::management_canister();
     let effective_canister_id =
@@ -172,7 +184,7 @@ pub async fn exec(
         let res = sign_agent
             .query(&canister_id, method_name)
             .with_effective_canister_id(effective_canister_id)
-            .with_arg(&arg_value)
+            .with_arg(arg_value)
             .expire_at(expiration_system_time)
             .call()
             .await;
@@ -188,7 +200,7 @@ pub async fn exec(
         let res = sign_agent
             .update(&canister_id, method_name)
             .with_effective_canister_id(effective_canister_id)
-            .with_arg(&arg_value)
+            .with_arg(arg_value)
             .expire_at(expiration_system_time)
             .call()
             .await;
@@ -201,7 +213,7 @@ pub async fn exec(
             Ok(_) => unreachable!(),
         }
         let path = Path::new(&file_name);
-        let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
+        let mut file = File::open(path).map_err(|_| anyhow!("Message file doesn't exist."))?;
         let mut json = String::new();
         file.read_to_string(&mut json)
             .map_err(|_| anyhow!("Cannot read the message file."))?;
@@ -211,7 +223,7 @@ pub async fn exec(
         let request_id = RequestId::from_str(&message.request_id.unwrap())
             .context("Failed to parse request id.")?;
         let res = sign_agent
-            .request_status_raw(&request_id, canister_id, false)
+            .request_status_raw(&request_id, canister_id)
             .await;
         match res {
             Err(AgentError::TransportError(b)) => {

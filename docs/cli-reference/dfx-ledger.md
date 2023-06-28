@@ -47,7 +47,7 @@ You can use the following optional flags with the `dfx ledger account-id` comman
 | `-V`, `--version`            | Displays version information.                          |
 | `--of-canister <ALIAS>`      | Alias or principal of the canister controlling the account  |
 | `--of-principal <PRINCIPAL>` | Principal controlling the account                      |
-| `-subaccount <SUBACCOUNT>`   | Subaccount identifier (64 character long hex string)   |
+| `--subaccount <SUBACCOUNT>`   | Subaccount identifier (64 character long hex string)   |
 
 ### Examples
 
@@ -70,15 +70,6 @@ Use the `dfx ledger balance` command to print your account balance or that of an
 ``` bash
 dfx ledger balance [of] [flag] --network ic
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx ledger balance` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -110,15 +101,6 @@ Use the `dfx ledger create-canister` command to convert ICP tokens to cycles and
 dfx ledger create-canister <controller> [options]  [flag] --network ic
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx ledger create-canister` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Arguments
 
 You can specify the following argument for the `dfx ledger create-canister` command.
@@ -133,11 +115,13 @@ You can specify the following argument for the `dfx ledger create-canister` comm
 
 | Option                | Description                                                                                                                                                                                                                                          |
 |-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--amount <amount>`   | Specify the number of ICP tokens to mint into cycles and deposit into destination canister. You can specify an amount as a number with up to eight (8) decimal places.                                                                               |
-| `--e8s <e8s>`         | Specify ICP token fractional units—called e8s—as a whole number, where one e8 is smallest partition of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option on its own or in conjunction with the `--icp` option. |
-| `--fee <fee>`         | Specify a transaction fee. The default is 10000 e8s.                                                                                                                                                                                                 |
-| `--icp <icp>`         | Specify ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`.                                                                                                                                             |
-| `--max-fee <max-fee>` | Specify a maximum transaction fee. The default is 10000 e8s.                                                                                                                                                                                         |
+| `--amount <amount>`           | Specify the number of ICP tokens to mint into cycles and deposit into destination canister. You can specify an amount as a number with up to eight (8) decimal places.                                                                               |
+| `--e8s <e8s>`                 | Specify ICP token fractional units—called e8s—as a whole number, where one e8 is smallest partition of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option on its own or in conjunction with the `--icp` option. |
+| `--fee <fee>`                 | Specify a transaction fee. The default is 10000 e8s.                                                                                                                                                                                                 |
+| `--icp <icp>`                 | Specify ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`.                                                                                                                                             |
+| `--max-fee <max-fee>`         | Specify a maximum transaction fee. The default is 10000 e8s.                                                                                                                                                                                         |
+| `--subnet-type <subnet-type>` | Specify the optional subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                      |
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 
 ### Examples
 
@@ -171,15 +155,6 @@ Use the `dfx ledger fabricate-cycles` add cycles to a canister while developing 
 ```
 dfx ledger fabricate-cycles [options]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx ledger fabricate-cycles` command.
-
-| Flag | Description |
-|------|-------------|
-|`+-h+`, `+--help+` |Displays usage information. |
-|`+-V+`, `+--version+` |Displays version information. |
 
 ### Options
 
@@ -238,15 +213,6 @@ Use the `dfx ledger notify` command to notify the ledger about a send transactio
 dfx ledger notify [options] _block-height_ _destination-principal_
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx ledger notify` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Arguments
 
 You can specify the following argument for the `dfx ledger notify` command.
@@ -264,6 +230,38 @@ The following example illustrates sending a `notify` message to the ledger in re
 dfx ledger notify 75948 tsqwz-udeik-5migd-ehrev-pvoqv-szx2g-akh5s-fkyqc-zy6q7-snav6-uqe --network ic
 ```
 
+## dfx ledger show-subnet-types
+
+Use the `dfx ledger show-subnet-types` command to list the available subnet types that can be chosen to create a canister on.
+
+### Basic usage
+
+``` bash
+dfx ledger show-subnet-types [options] [flag]
+```
+
+### Options
+
+You can specify the following options for the `dfx ledger show-subnet-types` command.
+
+| Option                | Description                                                                                                                                                                                                                                                 |
+|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--cycles-minting-canister-id <cycles-minting-canister-id>`   | Canister id of the cycles minting canister. Useful if you want to test locally with a different id for the cycles minting canister. |
+
+### Examples
+
+You can use the `dfx ledger show-subnet-types` command to list the available subnet types that can be chosen to create a canister on. If a specific cycles minting canister id is not provided, then the mainnet cycles minting canister id will be used.
+
+For example, you can run the following command to get the subnet types available on mainnet:
+
+``` bash
+dfx ledger show-subnet-types
+```
+
+This command displays output similar to the following:
+
+    ["Type1", "Type2", ..., "TypeN"]
+
 ## dfx ledger top-up
 
 Use the `dfx ledger top-up` command to top up a canister with cycles minted from ICP tokens.
@@ -273,15 +271,6 @@ Use the `dfx ledger top-up` command to top up a canister with cycles minted from
 ``` bash
 dfx ledger top-up [options] canister [flag] --network ic
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx ledger top-up` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -302,6 +291,7 @@ You can specify the following options for the `dfx ledger top-up` command.
 | `--fee <fee>`         | Specifies the transaction fee for the operation. The default is 10000 e8s.                                                                                                                                                                                  |
 | `--icp <icp>`         | Specifies ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`.                                                                                                                                                  |
 | `--max-fee <max-fee>` | Specifies a maximum transaction fee. The default is 10000 e8s.                                                                                                                                                                                              |
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 
 ### Examples
 
@@ -328,22 +318,14 @@ Use the `dfx ledger transfer` command to transfer ICP tokens from your account a
 dfx ledger transfer [options] to --memo memo
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx ledger transfer` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Arguments
 
 You can specify the following argument for the `dfx ledger transfer` command.
 
-| Argument | Description                                                                         |
-|----------|-------------------------------------------------------------------------------------|
-| `<to>`   | Specify the Account Identifier or address to which you want to transfer ICP tokens. |
+| Argument            | Description                                                                         |
+|---------------------|-------------------------------------------------------------------------------------|
+| `<to>`              | Specify the Account Identifier or address to which you want to transfer ICP tokens. |
+| `--memo <memo>`     | Specifies a numeric memo for this transaction.                                      |
 
 ### Options
 
@@ -355,7 +337,7 @@ You can specify the following argument for the `dfx ledger transfer` command.
 | `--e8s <e8s>`       | Specifies e8s as a whole number, where one e8 is smallest partition of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option alone or in conjunction with the `--icp` option. |
 | `--fee <fee>`       | Specifies a transaction fee. The default is 10000 e8s.                                                                                                                                                          |
 | `--icp <icp>`       | Specifies ICP as a whole number. You can use this option alone or in conjunction with `--e8s`.                                                                                                                  |
-| `--memo <memo>`     | Specifies a numeric memo for this transaction.                                                                                                                                                                  |
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 
 ### Examples
 

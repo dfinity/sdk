@@ -17,6 +17,7 @@ check_help_for() {
             10.15*) ;; # Catalina
             11.*) ;;   # Big Sur
             12.*) ;;   # Monterey
+            13.*) ;;   # Ventura
             *)
                 warn "Detected OS X platform older than 10.15 (Catalina)"
                 _ok="n"

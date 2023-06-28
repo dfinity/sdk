@@ -16,9 +16,9 @@ For example, if you have a `whoami_frontend` canister that lists `whoami` under 
 
 ## CANISTER_ID\_{canister.name}
 
-Use environment variables with the `CANISTER_ID` prefix to reference the canister identifier for each canister in the `dfx.json` file for your project.
+Use environment variables with the `CANISTER_ID` prefix to reference the canister identifier for each canister in the `dfx.json` file for your project. Hyphens are invalid in environment variables and are replaced by underscores.  Lowercase characters are replaced by uppercase characters.
 
-For example, if you have a `linkedup` project that consists of the `linkedup` and `connectd` canisters, you could use the `CANISTER_ID_linkedup` and `CANISTER_ID_connectd` environment variables to refer to the canister identifiers—for example `ryjl3-tyaaa-aaaaa-aaaba-cai` and `rrkah-fqaaa-aaaaa-aaaaq-cai`—created for your project.
+For example, if you have a `linkedup` project that consists of the `linkedup` and `connect-d` canisters, you could use the `CANISTER_ID_LINKEDUP` and `CANISTER_ID_CONNECT_D` environment variables to refer to the canister identifiers—for example `ryjl3-tyaaa-aaaaa-aaaba-cai` and `rrkah-fqaaa-aaaaa-aaaaq-cai`—created for your project.
 
 ## DFX_CONFIG_ROOT
 
@@ -38,4 +38,8 @@ The `.cache/dfinity/uninstall.sh` script uses this environment variable to ident
 
 Use the `DFX_VERSION` environment variable to identify a specific version of the SDK that you want to install.
 
-    DFX_VERSION=0.10.0 sh -ci "$(curl -fsSL https://smartcontracts.org/install.sh)"
+    DFX_VERSION=0.10.0 sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+
+## DFX_MOC_PATH
+
+Use the `DFX_MOC_PATH` environment variable to use a different version of the Motoko compiler than the one bundled with a given dfx version.

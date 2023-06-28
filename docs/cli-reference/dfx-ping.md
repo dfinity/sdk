@@ -12,15 +12,6 @@ To ping mainnet, you can run `dfx ping ic` from any directory.
 dfx ping [provider] [flag]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx ping` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ## Arguments
 
 You can specify the following argument for the `dfx ping` command.

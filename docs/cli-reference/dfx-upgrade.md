@@ -8,15 +8,6 @@ Use the `dfx upgrade` command to upgrade the SDK components running on your loca
 dfx upgrade [flag] [option]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx upgrade` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ## Options
 
 You can use the following option with the `dfx upgrade` command.
@@ -37,6 +28,6 @@ This command checks the version of `dfx` you have currently installed and the la
 
 ``` bash
 Current version: 0.6.8
-Fetching manifest \https://smartcontracts.org/manifest.json
+Fetching manifest \https://sdk.dfinity.org/manifest.json
 Already up to date
 ```

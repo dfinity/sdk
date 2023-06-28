@@ -22,6 +22,12 @@
       "title": "Bitcoin Adapter Configuration",
       "type": "object",
       "properties": {
+        "canister_init_arg": {
+          "title": "Initialization Argument",
+          "description": "The initialization argument for the bitcoin canister.",
+          "default": "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})",
+          "type": "string"
+        },
         "enabled": {
           "title": "Enable Bitcoin Adapter",
           "default": false,
@@ -83,8 +89,18 @@
       "properties": {
         "enabled": {
           "title": "Enable HTTP Adapter",
-          "default": false,
+          "default": true,
           "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "error",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
         }
       }
     },
@@ -92,6 +108,17 @@
       "title": "Local Replica Configuration",
       "type": "object",
       "properties": {
+        "log_level": {
+          "description": "Run replica with the provided log level. Default is 'error'. Debug prints still get displayed",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaLogLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "port": {
           "description": "Port the replica listens on.",
           "type": [
@@ -212,6 +239,18 @@
         }
       }
     },
+    "HttpAdapterLogLevel": {
+      "description": "Represents the log level of the HTTP adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
     "NetworkType": {
       "title": "Network Type",
       "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
@@ -219,6 +258,17 @@
       "enum": [
         "ephemeral",
         "persistent"
+      ]
+    },
+    "ReplicaLogLevel": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
       ]
     },
     "ReplicaSubnetType": {

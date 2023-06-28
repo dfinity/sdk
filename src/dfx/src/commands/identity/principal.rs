@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
 
 use anyhow::anyhow;
 use clap::Parser;
@@ -11,7 +10,9 @@ use ic_agent::identity::Identity;
 pub struct GetPrincipalOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: GetPrincipalOpts) -> DfxResult {
-    let identity = IdentityManager::new(env)?.instantiate_selected_identity()?;
+    let identity = env
+        .new_identity_manager()?
+        .instantiate_selected_identity(env.get_logger())?;
     let principal_id = identity
         .as_ref()
         .sender()

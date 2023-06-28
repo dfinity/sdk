@@ -23,6 +23,12 @@
       "candid": "prebuilt_custom_blank_build.did",
       "wasm": "main.wasm",
       "build": []
+    },
+    "prebuilt_no_metadata_defined": {
+      "type": "custom",
+      "candid": "custom_with_build_step.did",
+      "wasm": "main.wasm",
+      "build": "echo just a build step"
     }
   },
   "networks": {

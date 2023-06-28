@@ -10,10 +10,10 @@ use semver::Version;
 #[derive(Parser)]
 pub struct UpgradeOpts {
     /// Current Version.
-    #[clap(long)]
+    #[arg(long)]
     current_version: Option<String>,
 
-    #[clap(long, default_value = "https://sdk.dfinity.org", hide(true))]
+    #[arg(long, default_value = "https://sdk.dfinity.org", hide = true)]
     release_root: String,
 }
 

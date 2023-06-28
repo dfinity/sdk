@@ -18,8 +18,8 @@ teardown() {
 
     dfx_start
     dfx canister create --all
-    assert_command dfx build hello_backend
-    assert_match "Optimizing WASM module."
+    assert_command dfx build hello_backend -vvv
+    assert_match "Shrinking WASM"
     assert_command dfx canister install hello_backend
     assert_command dfx canister call hello_backend greet dfinity
     assert_match '("Hello, dfinity!")'
@@ -27,7 +27,6 @@ teardown() {
     # dfx sets the candid:service metadata
     dfx canister metadata hello_backend candid:service >installed.did
     assert_command diff src/hello_backend/hello_backend.did installed.did
-
 }
 
 @test "rust canister can resolve dependencies" {
@@ -45,7 +44,10 @@ teardown() {
 
 @test "rust canister can have nonstandard target dir location" {
     dfx_new_rust
-    CARGO_TARGET_DIR="$(echo -ne '\x81')"
+    # We used to set CARGO_TARGET_DIR="$(echo -ne '\x81')"
+    # But since rust 1.69, `cargo metadata` returns
+    #   error: path contains invalid UTF-8 characters
+    CARGO_TARGET_DIR="custom-target"
     export CARGO_TARGET_DIR
     dfx_start
     assert_command dfx deploy

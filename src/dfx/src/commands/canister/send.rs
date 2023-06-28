@@ -1,9 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::sign::signed_message::SignedMessageV1;
+use dfx_core::identity::CallSender;
 
-use ic_agent::agent::ReplicaV2Transport;
+use ic_agent::agent::Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 
 use anyhow::{anyhow, bail, Context};
@@ -19,7 +19,7 @@ pub struct CanisterSendOpts {
     file_name: String,
 
     /// Send the signed request-status call in the message
-    #[clap(long)]
+    #[arg(long)]
     status: bool,
 }
 
@@ -33,7 +33,7 @@ pub async fn exec(
     }
     let file_name = opts.file_name;
     let path = Path::new(&file_name);
-    let mut file = File::open(&path).map_err(|_| anyhow!("Message file doesn't exist."))?;
+    let mut file = File::open(path).map_err(|_| anyhow!("Message file doesn't exist."))?;
     let mut json = String::new();
     file.read_to_string(&mut json)
         .map_err(|_| anyhow!("Cannot read the message file."))?;

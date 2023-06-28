@@ -72,16 +72,6 @@ A controller is also a custodian and can perform the following actions associate
 dfx wallet add-controller [option] <controller> [flag]
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx wallet add-controller` command.
-
-
-|Flag |Description |
-------|---------------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
-
 ### Options
 
 You can use the following options with the `dfx canister call` command.
@@ -125,17 +115,6 @@ Use the `dfx wallet addresses` command to display the wallet's address book.The 
 dfx wallet addresses
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx wallet add-controller` command.
-
-
-|Flag |Description
--------|--------------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
-
-
 ### Examples
 
 You can use the `dfx wallet addresses` command to retrieve information on the addresses in your wallet's address book. For example:
@@ -170,16 +149,6 @@ Use the `dfx wallet authorize` command to authorize a custodian for the wallet. 
 ```
 dfx wallet authorize <custodian> [flag]
 ```
-
-## Flags
-
-You can use the following optional flags with the `dfx wallet authorize` command.
-
-
-|Flag |Description
--------|-------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
 
 ### Arguments
 
@@ -220,8 +189,6 @@ You can use the following optional flags with the `dfx wallet balance` command.
 
 |Flag |Description
 -------|---------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
 |`--precise` |Displays the exact balance, without scaling to trillions of cycles.
 
 ### Examples
@@ -249,14 +216,6 @@ Use the `dfx wallet controllers` command to list the principals of the identitie
 dfx wallet controllers
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx wallet controllers` command.
-
-|Flag |Description
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
-
 ### Examples
 
 List the controllers of your selected identity's cycles wallet. 
@@ -283,15 +242,6 @@ Use the `dfx wallet custodians` command to list the principals of the identities
 ```
 dfx wallet custodians
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx wallet custodians` command.
-
-|Flag |Description
--------|------------
-|`-h`, `--help` |Displays usage information.
-
 
 ### Examples
 
@@ -322,16 +272,6 @@ NOTE:  that this will also remove the role of controller if the custodian is als
 ```
 dfx wallet deauthorize <custodian> [flag]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx wallet deauthorize` command.
-
-
-|Flag |Description
-----------|--------------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
 
 ### Arguments
 
@@ -367,15 +307,6 @@ Use the `dfx wallet name` command to display the name of the selected identity's
 ```
 dfx wallet name [flag] 
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx wallet name` command.
-
-|Flag |Description
--------|-------------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
 
 ### Example
 
@@ -413,9 +344,7 @@ You can use the following optional flags with the `dfx wallet redeem-faucet-coup
 
 |Flag |Description|
 |-----|-----------|
-|`--faucet`|Alternative faucet address. If not set, this uses the DFINTITY faucet.|
-|`-h`, `--help` |Displays usage information.|
-|`-V`, `--version` |Displays version information.|
+|`--faucet`|Alternative faucet address. If not set, this uses the DFINITY faucet.|
 
 ### Example
 
@@ -451,16 +380,6 @@ Use the `dfx wallet remove-controller` command to remove a controller of your se
 dfx wallet remove-controller <controller> [flag]
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx wallet remove-controller` command.
-
-|Flag |Description
------------|----------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
-
-
 ### Arguments
 
 Use the following necessary argument with the `dfx wallet remove-controller` command.
@@ -493,16 +412,6 @@ Use the `dfx wallet send` command to send cycles from the selected identity's cy
 ```
 dfx wallet [network] send [flag] <destination> <amount> 
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx wallet send` command.
-
-
-|Flag |Description
------------|----------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
 
 ### Options
 
@@ -553,16 +462,6 @@ You must specify the following arguments for the `dfx wallet set-name` command.
 |`<name>` |Specify a name for the cycles wallet.
 
 
-### Flags
-
-You can use the following optional flags with the `dfx wallet set-name` command.
-
-|Flag |Description
--------|-----------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
-
-
 ### Example
 
 If you want to set the name of the current identity's cycles wallet to "Terrances_wallet" you can run the following command:
@@ -582,15 +481,6 @@ Use the `dfx wallet upgrade` command to upgrade the cycle wallet's Wasm module t
 ```
     dfx wallet upgrade [flag] 
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx wallet upgrade` command.
-
-|Flag |Description
--------|------------
-|`-h`, `--help` |Displays usage information.
-|`-V`, `--version` |Displays version information.
 
 ### Example
 To upgrade the Wasm module to the latest version, run the following command:

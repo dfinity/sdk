@@ -50,5 +50,5 @@ fn post_upgrade() {
 
 ```
 cd assets
-icx-asset --pem ~/.config/dfx/identity/default/identity.pem --replica https://ic0.app sync <canister_id> .
+icx-asset --pem ~/.config/dfx/identity/default/identity.pem --replica https://icp0.io sync <canister_id> .
 ```

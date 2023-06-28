@@ -1,5 +1,3 @@
-use crate::config::cache::Cache;
-use crate::config::dfinity::Profile;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -7,9 +5,11 @@ use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::metadata::names::CANDID_SERVICE;
+use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
+use dfx_core::config::cache::Cache;
+use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 
 use anyhow::Context;
 use candid::Principal as CanisterId;
@@ -59,8 +59,10 @@ impl CanisterBuilder for MotokoBuilder {
                 return Ok(());
             }
 
+            result.insert(MotokoImport::Relative(file.to_path_buf()));
+
             let mut command = cache.get_binary_command("moc")?;
-            let command = command.arg("--print-deps").arg(&file);
+            let command = command.arg("--print-deps").arg(file);
             let output = command
                 .output()
                 .with_context(|| format!("Error executing {:#?}", command))?;
@@ -128,7 +130,7 @@ impl CanisterBuilder for MotokoBuilder {
         })?;
         let cache = &self.cache;
         let idl_dir_path = &config.idl_root;
-        std::fs::create_dir_all(&idl_dir_path)
+        std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
         let package_arguments =
@@ -143,6 +145,16 @@ impl CanisterBuilder for MotokoBuilder {
             None => package_arguments,
         };
 
+        let candid_service_metadata_visibility = canister_info
+            .get_metadata(CANDID_SERVICE)
+            .map(|m| m.visibility)
+            .unwrap_or(MetadataVisibility::Public);
+
+        let candid_args_metadata_visibility = canister_info
+            .get_metadata(CANDID_ARGS)
+            .map(|m| m.visibility)
+            .unwrap_or(MetadataVisibility::Public);
+
         // Generate wasm
         let params = MotokoParams {
             build_target: match profile {
@@ -152,6 +164,8 @@ impl CanisterBuilder for MotokoBuilder {
             suppress_warning: false,
             input: input_path,
             package_arguments: &moc_arguments,
+            candid_service_metadata_visibility,
+            candid_args_metadata_visibility,
             output: output_wasm_path,
             idl_path: idl_dir_path,
             idl_map: &id_map,
@@ -164,7 +178,6 @@ impl CanisterBuilder for MotokoBuilder {
                 .expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
-            add_candid_service_metadata: false,
         })
     }
 
@@ -218,6 +231,8 @@ struct MotokoParams<'a> {
     idl_path: &'a Path,
     idl_map: &'a CanisterIdMap,
     package_arguments: &'a PackageArguments,
+    candid_service_metadata_visibility: MetadataVisibility,
+    candid_args_metadata_visibility: MetadataVisibility,
     output: &'a Path,
     input: &'a Path,
     // The following fields are control flags for dfx and will not be used by self.to_args()
@@ -229,16 +244,22 @@ impl MotokoParams<'_> {
         cmd.arg(self.input);
         cmd.arg("-o").arg(self.output);
         match self.build_target {
-            BuildTarget::Release => cmd.args(&["-c", "--release"]),
-            BuildTarget::Debug => cmd.args(&["-c", "--debug"]),
+            BuildTarget::Release => cmd.args(["-c", "--release"]),
+            BuildTarget::Debug => cmd.args(["-c", "--debug"]),
         };
         cmd.arg("--idl").arg("--stable-types");
-        // TODO add a flag in dfx.json to opt-out public interface
-        cmd.arg("--public-metadata").arg(CANDID_SERVICE);
+        if self.candid_service_metadata_visibility == MetadataVisibility::Public {
+            // moc defaults to private metadata, if this argument is not present.
+            cmd.arg("--public-metadata").arg(CANDID_SERVICE);
+        }
+        if self.candid_args_metadata_visibility == MetadataVisibility::Public {
+            // moc defaults to private metadata, if this argument is not present.
+            cmd.arg("--public-metadata").arg(CANDID_ARGS);
+        }
         if !self.idl_map.is_empty() {
             cmd.arg("--actor-idl").arg(self.idl_path);
             for (name, canister_id) in self.idl_map.iter() {
-                cmd.args(&["--actor-alias", name, canister_id]);
+                cmd.args(["--actor-alias", name, canister_id]);
             }
         };
         cmd.args(self.package_arguments);

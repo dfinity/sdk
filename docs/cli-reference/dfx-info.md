@@ -10,18 +10,12 @@ dfx info [type] [flag]
 
 These are the types of information that the `dfx info` command can display.
 
-| Option         | Description                          |
-|----------------|--------------------------------------|
-| replica-rev    | The revision of the bundled replica  |
-| webserver-port | The local webserver (icx-proxy) port |
-
-## Flags
-
-You can use the following optional flags with the `dfx info` command.
-
-| Flag              | Description |
-|-------------------|-------------|
-| `-h`, `--help`    | Displays usage information. |
+| Option              | Description                                    |
+|---------------------|------------------------------------------------|
+| networks-json-path  | Path to network definition file networks.json. |
+| replica-port        | The listening port of the replica.             |
+| replica-rev         | The revision of the bundled replica.           |
+| webserver-port      | The local webserver (icx-proxy) port.          |
 
 ## Examples
 

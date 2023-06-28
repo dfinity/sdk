@@ -1,20 +1,19 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::identity::Identity;
-use crate::lib::models::canister_id_store::CanisterIdStore;
-use crate::lib::provider::get_network_context;
-use crate::lib::waiter::waiter_with_timeout;
+use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
+use dfx_core::network::provider::get_network_context;
 
 use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use fn_error_context::context;
+use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::AgentError;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
-use std::time::Duration;
 
 // The cycle fee for create request is 0.1T cycles.
 const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
@@ -26,8 +25,8 @@ const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
 pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
-    timeout: Duration,
-    with_cycles: Option<&str>,
+    with_cycles: Option<u128>,
+    specified_id: Option<Principal>,
     call_sender: &CallSender,
     settings: CanisterSettings,
 ) -> DfxResult {
@@ -36,7 +35,7 @@ pub async fn create_canister(
 
     let config = env.get_config_or_anyhow()?;
 
-    let mut canister_id_store = CanisterIdStore::for_env(env)?;
+    let mut canister_id_store = env.get_canister_id_store()?;
 
     let network_name = get_network_context()?;
 
@@ -77,11 +76,13 @@ pub async fn create_canister(
             let mgr = ManagementCanister::create(agent);
             let cid = match call_sender {
                 CallSender::SelectedId => {
-                    // amount has been validated by cycle_amount_validator, which is u128
-                    let cycles = with_cycles.and_then(|amount| amount.parse::<u128>().ok());
                     let mut builder = mgr
                         .create_canister()
-                        .as_provisional_create_with_amount(cycles);
+                        .as_provisional_create_with_amount(with_cycles)
+                        .with_effective_canister_id(env.get_effective_canister_id());
+                    if let Some(sid) = specified_id {
+                        builder = builder.as_provisional_create_with_specified_id(sid);
+                    }
                     if let Some(controllers) = settings.controllers {
                         for controller in controllers {
                             builder = builder.with_controller(controller);
@@ -91,22 +92,32 @@ pub async fn create_canister(
                         .with_optional_compute_allocation(settings.compute_allocation)
                         .with_optional_memory_allocation(settings.memory_allocation)
                         .with_optional_freezing_threshold(settings.freezing_threshold)
-                        .call_and_wait(waiter_with_timeout(timeout))
+                        .call_and_wait()
                         .await;
-                    if let Err(AgentError::HttpError(HttpErrorPayload { status: 404, .. })) = &res {
-                        bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
-                            To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
-                            using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.")
+                    const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
+                        To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
+                        using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.";
+                    match res {
+                        Ok((o,)) => o,
+                        Err(AgentError::HttpError(HttpErrorPayload { status, .. }))
+                            if (400..500).contains(&status) =>
+                        {
+                            bail!(NEEDS_WALLET)
+                        }
+                        Err(AgentError::ReplicaError(RejectResponse {
+                            reject_code: RejectCode::CanisterReject,
+                            reject_message,
+                            ..
+                        })) if reject_message.contains("is not allowed to call ic00 method") => {
+                            bail!(NEEDS_WALLET)
+                        }
+                        Err(e) => return Err(e).context("Canister creation call failed."),
                     }
-                    res.context("Canister creation call failed.")?.0
                 }
                 CallSender::Wallet(wallet_id) => {
-                    let wallet = Identity::build_wallet_canister(*wallet_id, env).await?;
-                    // amount has been validated by cycle_amount_validator
-                    let cycles = with_cycles.map_or(
-                        CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE,
-                        |amount| amount.parse::<u128>().unwrap(),
-                    );
+                    let wallet = build_wallet_canister(*wallet_id, agent).await?;
+                    let cycles =
+                        with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
                     match wallet
                         .wallet_create_canister(
                             cycles,
@@ -114,7 +125,6 @@ pub async fn create_canister(
                             settings.compute_allocation,
                             settings.memory_allocation,
                             settings.freezing_threshold,
-                            waiter_with_timeout(timeout),
                         )
                         .await
                     {

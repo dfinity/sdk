@@ -148,3 +148,20 @@ teardown() {
     assert_match "$(jq -r .hello_backend.actuallylocal <.dfx/actuallylocal/canister_ids.json)"
 }
 
+
+@test "dfx start and stop take into account dfx 0.11.x pid files" {
+    dfx_new hello
+    define_project_network
+    dfx_start
+
+    mv .dfx/network/local/pid .dfx/pid
+
+    assert_command_fail dfx start
+    assert_match 'dfx is already running'
+
+    assert_command dfx stop
+    assert_file_not_exists .dfx/pid
+    assert_not_match "Nothing to do"
+    assert_command dfx stop
+    assert_match "Nothing to do"
+}

@@ -16,15 +16,6 @@ Note that you can only run this command from within the project directory struct
 dfx deploy [flag] [option] [canister_name]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx deploy` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ## Options
 
 You can use the following options with the `dfx deploy` command.
@@ -34,6 +25,9 @@ You can use the following options with the `dfx deploy` command.
 | `--network <network>`              | Overrides the environment to connect to. By default, the local canister execution environment is used.                                                                      |
 | `--argument <argument>`            | Specifies an argument using Candid syntax to pass to the canister during deployment. Note that this option requires you to define an actor class in the Motoko program. |
 | `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                            |
+| `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                 |
+| `--by-proposal`                    | Upload proposed changed assets, but do not commit them.  Follow up by calling either commit_proposed_batch() or delete_batch().                                             |
+| `--compute-evidence`               | Build a frontend canister, determine batch operations required to synchronize asset canister contents, and compute a hash over those operations.  Displays this hash ("evidence"), which should match the evidence displayed by `dfx deploy --by-proposal`. |
 
 ### Arguments
 

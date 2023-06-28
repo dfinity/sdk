@@ -1,7 +1,7 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::provider::create_agent_environment;
 use crate::util::check_candid_file;
 
 use anyhow::Context;
@@ -17,14 +17,14 @@ pub struct GenerateBindingOpts {
     canister: Option<String>,
 
     /// Builds bindings for all canisters.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     // destructive operations (see --overwrite) can happen
     // therefore it is safer to require the explicit --all flag
     #[allow(dead_code)]
     all: bool,
 
     /// Overwrite main file if it already exists.
-    #[clap(long)]
+    #[arg(long)]
     overwrite: bool,
 }
 
@@ -92,7 +92,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 };
 
                 if let Some(bindings_string) = bindings {
-                    std::fs::write(&main, &bindings_string).with_context(|| {
+                    std::fs::write(main, &bindings_string).with_context(|| {
                         format!("Failed to write bindings to {}.", main.display())
                     })?;
                     info!(

@@ -5,6 +5,16 @@ on:
     branches:
       - master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   publish-manifest:
     runs-on: ubuntu-latest
@@ -14,7 +24,7 @@ jobs:
         run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
       - name: Generate
         run: |
-          shellcheck --shell=sh public/install/*.sh --exclude SC2039,SC2154,SC2034
+          shellcheck --shell=sh public/install/*.sh --exclude SC2154,SC2034,SC3003,SC3014,SC3043
           ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install/*.sh
           sed -i "s/@revision@/${GITHUB_SHA}/" public/install/999_footer.sh
           mkdir _out

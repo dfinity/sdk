@@ -56,6 +56,6 @@ RUN binary="cycles-minting-canister" && \
 
 FROM scratch AS scratch
 COPY --from=builder /ic/rs/rosetta-api/ledger.did /ledger.private.did
-COPY --from=builder /ic/rs/rosetta-api/ledger_canister/ledger.did /ledger.public.did
+COPY --from=builder /ic/rs/rosetta-api/icp_ledger/ledger.did /ledger.public.did
 COPY --from=builder /ic/rs/nns/governance/canister/governance.did /governance.did
 COPY --from=builder /ic/rs/target/*.wasm /

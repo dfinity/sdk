@@ -1,54 +1,217 @@
-use crate::asset_canister::batch::{commit_batch, create_batch};
-use crate::asset_canister::list::list_assets;
-use crate::asset_canister::protocol::{AssetDetails, BatchOperationKind};
-use crate::asset_config::{
+use crate::asset::config::{
     AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
 };
-use crate::params::CanisterCallParams;
-
-use crate::operations::{
-    create_new_assets, delete_obsolete_assets, set_encodings, unset_obsolete_encodings,
+use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
+use crate::batch_upload::plumbing::ChunkUploader;
+use crate::batch_upload::{
+    self,
+    operations::AssetDeletionReason,
+    plumbing::{make_project_assets, AssetDescriptor},
 };
-use crate::plumbing::{make_project_assets, AssetDescriptor, ProjectAsset};
-use anyhow::{bail, Context};
+use crate::canister_api::methods::batch::{compute_evidence, propose_commit_batch};
+use crate::canister_api::methods::{
+    api_version::api_version,
+    asset_properties::get_assets_properties,
+    batch::{commit_batch, create_batch},
+    list::list_assets,
+};
+use crate::canister_api::types::batch_upload::v0;
+use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
+use crate::canister_api::types::batch_upload::{
+    common::ComputeEvidenceArguments, v1::CommitBatchArguments,
+};
+use crate::error::CompatibilityError::DowngradeV1TOV0Failed;
+use crate::error::GatherAssetDescriptorsError;
+use crate::error::GatherAssetDescriptorsError::{
+    DuplicateAssetKey, InvalidDirectoryEntry, InvalidSourceDirectory, LoadConfigFailed,
+};
+use crate::error::PrepareSyncForProposalError;
+use crate::error::SyncError;
+use crate::error::SyncError::CommitBatchFailed;
+use crate::error::UploadContentError;
+use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
+
+use candid::Nat;
+use ic_agent::AgentError;
 use ic_utils::Canister;
+use slog::{debug, info, trace, warn, Logger};
 use std::collections::HashMap;
 use std::path::Path;
-use std::time::Duration;
 use walkdir::WalkDir;
+
+/// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
+pub async fn upload_content_and_assemble_sync_operations(
+    canister: &Canister<'_>,
+    dirs: &[&Path],
+    logger: &Logger,
+) -> Result<CommitBatchArguments, UploadContentError> {
+    let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
+
+    let canister_assets = list_assets(canister).await.map_err(ListAssetsFailed)?;
+    info!(
+        logger,
+        "Fetching properties for all assets in the canister."
+    );
+    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+
+    info!(logger, "Starting batch.");
+
+    let batch_id = create_batch(canister).await.map_err(CreateBatchFailed)?;
+
+    info!(
+        logger,
+        "Staging contents of new and changed assets in batch {}:", batch_id
+    );
+
+    let chunk_uploader = ChunkUploader::new(canister.clone(), batch_id.clone());
+
+    let project_assets = make_project_assets(
+        Some(&chunk_uploader),
+        asset_descriptors,
+        &canister_assets,
+        logger,
+    )
+    .await?;
+
+    let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
+        project_assets,
+        canister_assets,
+        AssetDeletionReason::Obsolete,
+        canister_asset_properties,
+        batch_id,
+    );
+
+    // -v
+    debug!(
+        logger,
+        "Count of each Batch Operation Kind: {:?}",
+        commit_batch_args.group_by_kind_then_count()
+    );
+    debug!(
+        logger,
+        "Chunks: {}  Bytes: {}",
+        chunk_uploader.chunks(),
+        chunk_uploader.bytes()
+    );
+
+    // -vv
+    trace!(logger, "Value of CommitBatch: {:?}", commit_batch_args);
+
+    Ok(commit_batch_args)
+}
 
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
 pub async fn sync(
     canister: &Canister<'_>,
     dirs: &[&Path],
-    timeout: Duration,
-) -> anyhow::Result<()> {
-    let asset_descriptors = gather_asset_descriptors(dirs)?;
+    logger: &Logger,
+) -> Result<(), SyncError> {
+    let commit_batch_args =
+        upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+    let canister_api_version = api_version(canister).await;
+    debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
+    info!(logger, "Committing batch.");
+    match canister_api_version {
+        0 => {
+            let commit_batch_args_v0 = v0::CommitBatchArguments::try_from(commit_batch_args).map_err(DowngradeV1TOV0Failed)?;
+            warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
+            commit_batch(canister, commit_batch_args_v0).await
+        }
+        BATCH_UPLOAD_API_VERSION.. => commit_in_stages(canister, commit_batch_args, logger).await,
+    }.map_err(CommitBatchFailed)
+}
 
-    let canister_call_params = CanisterCallParams { canister, timeout };
+async fn commit_in_stages(
+    canister: &Canister<'_>,
+    commit_batch_args: CommitBatchArguments,
+    logger: &Logger,
+) -> Result<(), AgentError> {
+    // Note that SetAssetProperties operations are only generated for assets that
+    // already exist, since CreateAsset operations set all properties.
+    let (set_properties_operations, other_operations): (Vec<_>, Vec<_>) = commit_batch_args
+        .operations
+        .into_iter()
+        .partition(|op| matches!(op, BatchOperationKind::SetAssetProperties(_)));
 
-    let container_assets = list_assets(&canister_call_params).await?;
+    // This part seems reasonable in general as a separate batch
+    for operations in set_properties_operations.chunks(500) {
+        info!(logger, "Setting properties of {} assets.", operations.len());
+        commit_batch(
+            canister,
+            CommitBatchArguments {
+                batch_id: Nat::from(0),
+                operations: operations.into(),
+            },
+        )
+        .await?
+    }
 
-    println!("Starting batch.");
+    // Seen to work at 800 ({"SetAssetContent": 932, "Delete": 47, "CreateAsset": 58})
+    // so 500 shouldn't exceed per-message instruction limit
+    for operations in other_operations.chunks(500) {
+        info!(
+            logger,
+            "Committing batch with {} operations.",
+            operations.len()
+        );
+        commit_batch(
+            canister,
+            CommitBatchArguments {
+                batch_id: Nat::from(0),
+                operations: operations.into(),
+            },
+        )
+        .await?
+    }
 
-    let batch_id = create_batch(&canister_call_params).await?;
-
-    println!("Staging contents of new and changed assets:");
-
-    let project_assets = make_project_assets(
-        &canister_call_params,
-        &batch_id,
-        asset_descriptors,
-        &container_assets,
+    // this just deletes the batch
+    commit_batch(
+        canister,
+        CommitBatchArguments {
+            batch_id: commit_batch_args.batch_id,
+            operations: vec![],
+        },
     )
-    .await?;
+    .await
+}
 
-    let operations = assemble_synchronization_operations(project_assets, container_assets);
+/// Stage changes and propose the batch for commit.
+pub async fn prepare_sync_for_proposal(
+    canister: &Canister<'_>,
+    dirs: &[&Path],
+    logger: &Logger,
+) -> Result<(), PrepareSyncForProposalError> {
+    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+    let arg = sort_batch_operations(arg);
+    let batch_id = arg.batch_id.clone();
 
-    println!("Committing batch.");
-    commit_batch(&canister_call_params, &batch_id, operations).await?;
+    info!(logger, "Preparing batch {}.", batch_id);
+    propose_commit_batch(canister, arg)
+        .await
+        .map_err(PrepareSyncForProposalError::ProposeCommitBatch)?;
+
+    let compute_evidence_arg = ComputeEvidenceArguments {
+        batch_id: batch_id.clone(),
+        max_iterations: Some(97), // 75% of max(130) = 97.5
+    };
+    info!(logger, "Computing evidence.");
+    let evidence = loop {
+        if let Some(evidence) = compute_evidence(canister, &compute_evidence_arg)
+            .await
+            .map_err(PrepareSyncForProposalError::ComputeEvidence)?
+        {
+            break evidence;
+        }
+    };
+
+    info!(logger, "Proposed commit of batch {} with evidence {}.  Either commit it by proposal, or delete it.", batch_id, hex::encode(evidence));
 
     Ok(())
+}
+
+fn sort_batch_operations(mut args: CommitBatchArguments) -> CommitBatchArguments {
+    args.operations.sort();
+    args
 }
 
 fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
@@ -64,18 +227,17 @@ fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
     }
 }
 
-fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescriptor>> {
+pub(crate) fn gather_asset_descriptors(
+    dirs: &[&Path],
+    logger: &Logger,
+) -> Result<Vec<AssetDescriptor>, GatherAssetDescriptorsError> {
     let mut asset_descriptors: HashMap<String, AssetDescriptor> = HashMap::new();
     for dir in dirs {
-        let dir = dir.canonicalize().with_context(|| {
-            format!(
-                "unable to canonicalize the following path: {}",
-                dir.display()
-            )
-        })?;
-        let configuration = AssetSourceDirectoryConfiguration::load(&dir)?;
+        let dir = dfx_core::fs::canonicalize(dir).map_err(InvalidSourceDirectory)?;
+        let mut configuration =
+            AssetSourceDirectoryConfiguration::load(&dir).map_err(LoadConfigFailed)?;
         let mut asset_descriptors_interim = vec![];
-        for e in WalkDir::new(&dir)
+        let entries = WalkDir::new(&dir)
             .into_iter()
             .filter_entry(|entry| {
                 if let Ok(canonical_path) = &entry.path().canonicalize() {
@@ -91,19 +253,13 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
             .filter(|entry| {
                 entry.file_type().is_file() && entry.file_name() != ASSETS_CONFIG_FILENAME_JSON
             })
-        {
-            let source = e.path().canonicalize().with_context(|| {
-                format!(
-                    "unable to canonicalize the path when gathering asset descriptors: {}",
-                    dir.display()
-                )
-            })?;
+            .collect::<Vec<_>>();
+
+        for e in entries {
+            let source = dfx_core::fs::canonicalize(e.path()).map_err(InvalidDirectoryEntry)?;
             let relative = source.strip_prefix(&dir).expect("cannot strip prefix");
             let key = String::from("/") + relative.to_string_lossy().as_ref();
-            let config = configuration.get_asset_config(&source).context(format!(
-                "failed to get config for asset: {}",
-                source.display()
-            ))?;
+            let config = configuration.get_asset_config(&source)?;
 
             asset_descriptors_interim.push(AssetDescriptor {
                 source,
@@ -114,47 +270,48 @@ fn gather_asset_descriptors(dirs: &[&Path]) -> anyhow::Result<Vec<AssetDescripto
 
         for asset_descriptor in asset_descriptors_interim {
             if let Some(already_seen) = asset_descriptors.get(&asset_descriptor.key) {
-                bail!(
-                    "Asset with key '{}' defined at {} and {}",
-                    &asset_descriptor.key,
-                    asset_descriptor.source.display(),
-                    already_seen.source.display()
-                )
+                return Err(DuplicateAssetKey(
+                    asset_descriptor.key.clone(),
+                    Box::new(asset_descriptor.source.clone()),
+                    Box::new(already_seen.source.clone()),
+                ));
             }
             asset_descriptors.insert(asset_descriptor.key.clone(), asset_descriptor);
+        }
+
+        for (config_path, rules) in configuration.get_unused_configs() {
+            warn!(
+                logger,
+                "{count} unmatched configuration{s} in {path}/.ic-assets.json config file:",
+                count = rules.len(),
+                s = if rules.len() > 1 { "s" } else { "" },
+                path = config_path.display()
+            );
+            for rule in rules {
+                warn!(logger, "{}", serde_json::to_string_pretty(&rule).unwrap());
+            }
         }
     }
     Ok(asset_descriptors.into_values().collect())
 }
 
-fn assemble_synchronization_operations(
-    project_assets: HashMap<String, ProjectAsset>,
-    container_assets: HashMap<String, AssetDetails>,
-) -> Vec<BatchOperationKind> {
-    let mut container_assets = container_assets;
-
-    let mut operations = vec![];
-
-    delete_obsolete_assets(&mut operations, &project_assets, &mut container_assets);
-    create_new_assets(&mut operations, &project_assets, &container_assets);
-    unset_obsolete_encodings(&mut operations, &project_assets, &container_assets);
-    set_encodings(&mut operations, project_assets);
-
-    operations
-}
-
 #[cfg(test)]
 mod test_gathering_asset_descriptors_with_tempdir {
 
-    use crate::asset_config::{CacheConfig, HeadersConfig};
+    use crate::asset::config::{CacheConfig, HeadersConfig};
 
-    use super::{gather_asset_descriptors, AssetDescriptor};
+    use super::AssetDescriptor;
     use std::{
         collections::HashMap,
         fs,
         path::{Path, PathBuf},
     };
     use tempfile::{Builder, TempDir};
+
+    fn gather_asset_descriptors(dirs: &[&Path]) -> Vec<AssetDescriptor> {
+        let logger = slog::Logger::root(slog::Discard, slog::o!());
+        super::gather_asset_descriptors(dirs, &logger).unwrap()
+    }
 
     impl AssetDescriptor {
         fn default_from_path(assets_dir: &Path, relative_path: &str) -> Self {
@@ -214,10 +371,12 @@ mod test_gathering_asset_descriptors_with_tempdir {
     ///    ├── .ic-assets.json
     ///    ├── .hfile
     ///    └── file
-    fn create_temporary_assets_directory(
-        modified_files: HashMap<PathBuf, String>,
-    ) -> anyhow::Result<TempDir> {
-        let assets_tempdir = Builder::new().prefix("assets").rand_bytes(5).tempdir()?;
+    fn create_temporary_assets_directory(modified_files: HashMap<PathBuf, String>) -> TempDir {
+        let assets_tempdir = Builder::new()
+            .prefix("assets")
+            .rand_bytes(5)
+            .tempdir()
+            .unwrap();
 
         let mut default_files = HashMap::from([
             (Path::new(".ic-assets.json").to_path_buf(), "[]".to_string()),
@@ -265,7 +424,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             fs::write(path, v).unwrap();
         }
 
-        Ok(assets_tempdir)
+        assets_tempdir
     }
 
     #[test]
@@ -279,9 +438,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             .to_string(),
         )]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, ".hfile"),
@@ -312,9 +471,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 ]"#
             .to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
         let expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
         assert_eq!(asset_descriptors, expected_asset_descriptors);
@@ -327,9 +486,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 ]"#
             .to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
         let expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
         assert_eq!(asset_descriptors, expected_asset_descriptors);
@@ -342,9 +501,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 ]"#
             .to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
         let expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
         assert_eq!(asset_descriptors, expected_asset_descriptors);
@@ -357,9 +516,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 ]"#
             .to_string(),
         )]);
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
         let expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
         assert_eq!(asset_descriptors, expected_asset_descriptors);
@@ -398,9 +557,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             .to_string(),
         )]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors =
             vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
@@ -437,9 +596,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
@@ -489,9 +648,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![AssetDescriptor::default_from_path(
             &assets_dir,
@@ -523,9 +682,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
@@ -567,9 +726,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
@@ -606,9 +765,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
@@ -662,9 +821,9 @@ mod test_gathering_asset_descriptors_with_tempdir {
             ),
         ]);
 
-        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_temp_dir = create_temporary_assets_directory(files);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
-        let mut asset_descriptors = gather_asset_descriptors(&[&assets_dir]).unwrap();
+        let mut asset_descriptors = gather_asset_descriptors(&[&assets_dir]);
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, ".hfile")

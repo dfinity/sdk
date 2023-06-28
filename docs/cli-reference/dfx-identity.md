@@ -18,6 +18,7 @@ For reference information and examples that illustrate using `dfx identity` comm
 
 | Command                                         | Description                                                                                                               |
 |-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| [`deploy-wallet`](#dfx-identity-deploy-wallet) | Installs the wallet WASM to the provided canister id.                                                                     |
 | [`get-principal`](#dfx-identity-get-principal) | Shows the textual representation of the principal associated with the current identity.                                   |
 | [`get-wallet`](#dfx-identity-get-wallet)       | Shows the canister identifier for the wallet associated with your current identity principal.                             |
 | `help`                                          | Displays this usage message or the help of the given subcommand(s).                                                       |
@@ -40,6 +41,26 @@ You can then use `dfx identity new` to create new user identities and store cred
 
 This command adds a private key for the `ic_admin` user identity in the `~/.config/dfx/identity/ic_admin/identity.pem` file.
 
+## dfx identity deploy-wallet
+
+Use the `dfx identity deploy-wallet` command to turn a canister into a wallet canister by installing the wallet WASM to it.
+
+Note that you must be connected to the IC or the local canister execution environment to run this command. In addition, you must be a controller of the canister you want to deploy the wallet to.
+
+### Basic usage
+
+``` bash
+dfx identity deploy-wallet [flag] <canister id>
+```
+
+### Arguments
+
+You must specify the following argument for the `dfx identity deploy-wallet` command.
+
+| Argument        | Description                                                    |
+|-----------------|----------------------------------------------------------------|
+| `<canister id>` | The ID of the canister where the wallet WASM will be deployed. |
+
 ## dfx identity get-principal
 
 Use the `dfx identity get-principal` command to display the textual representation of a principal associated with the current user identity context.
@@ -51,15 +72,6 @@ If you haven’t created any user identities, you can use this command to displa
 ``` bash
 dfx identity get-principal [flag]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx identity get-principal` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Example
 
@@ -83,15 +95,6 @@ Note that you must be connected to the IC or the local canister execution enviro
 ``` bash
 dfx identity get-wallet [flag]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx identity get-wallet` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Example
 
@@ -117,22 +120,13 @@ Use the `dfx identity import` command to create a user identity by importing the
 dfx identity import [options] identity-name pem_file-name
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx identity import` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Options
 
 You can specify the following options for the `dfx identity import` command.
 
 |Argument|Description|
 |--------|-----------|
-|`--disable-encryption` |DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk. If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption with this flag.|
+|`--storage-mode` | By default, PEM files are stored in the OS-provided keyring. If that is not available, they are encrypted with a password when writing them to disk. Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk. To force the use of one specific storage mode, use the `--storage-mode` flag with either `--storage-mode password-protected` or `--storage-mode plaintext`.|
 |`--force` |If the identity already exists, remove and re-import it.|
 
 ### Examples
@@ -154,15 +148,6 @@ Use the `dfx identity list` command to display the list of user identities avail
 ``` bash
 dfx identity list [flag]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx identity list` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Examples
 
@@ -194,15 +179,6 @@ Use the `dfx identity new` command to add new user identities. You should note t
 dfx identity new [options] _identity-name_
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx identity new` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Arguments
 
 You must specify the following argument for the `dfx identity new` command.
@@ -217,7 +193,7 @@ You can specify the following options for the `+dfx identity new+` command.
 
 |Argument|Description|
 |--------|-----------|
-|`--disable-encryption` |DANGEROUS: By default, PEM files are encrypted with a password when writing them to disk. If you want the convenience of not having to type your password (but at the risk of having your PEM file compromised), you can disable the encryption with this flag.|
+|`--storage-mode` |By default, PEM files are stored in the OS-provided keyring. If that is not available, they are encrypted with a password when writing them to disk. Plaintext PEM files are still available (e.g. for use in non-interactive situations like CI), but not recommended for use since they put the keys at risk. To force the use of one specific storage mode, use the `--storage-mode` flag with either `--storage-mode password-protected` or `--storage-mode plaintext`.|
 |`--force` |If the identity already exists, remove and re-import it.|
 |`--hsm-key-id <hsm key id>` |A sequence of pairs of hex digits.|
 |`--hsm-pkcs11-lib-path <hsm pkcs11 lib path>` |The file path to the opensc-pkcs11 library e.g. "/usr/local/lib/opensc-pkcs11.so"|
@@ -251,8 +227,7 @@ You can use the following optional flags with the `dfx identity remove` command.
 
 | Flag              | Description                   |
 |-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. || `--drop-wallets`  | Required if the identity has wallets configured so that users do not accidentally lose access to wallets.   |
+| `--drop-wallets`  | Required if the identity has wallets configured so that users do not accidentally lose access to wallets.   |
 
 ### Arguments
 
@@ -293,15 +268,6 @@ Use the `dfx identity rename` command to rename an existing user identity. You s
 dfx identity rename [flag] _from_identity-name_ _to_identity-name_
 ```
 
-### Flags
-
-You can use the following optional flags with the `dfx identity rename` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ### Arguments
 
 You must specify the following arguments for the `dfx identity rename` command.
@@ -333,9 +299,7 @@ You can use the following optional flags with the `dfx identity set-wallet` comm
 
 | Flag              | Description                                                                                                                                                |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `force`           | Skips verification that the canister you specify is a valid wallet canister. This option is only useful if you are connecting to the IC running locally. |
-| `-h`, `--help`    | Displays usage information.                                                                                                                                |
-| `-V`, `--version` | Displays version information.                                                                                                                              |
+| `--force`           | Skips verification that the canister you specify is a valid wallet canister. This option is only useful if you are connecting to the IC running locally. |
 
 ### Example
 
@@ -350,20 +314,16 @@ For example, you might store the wallet canister identifier in an environment va
 
 Use the `dfx identity use` command to specify the user identity you want to active. You should note that the identities you have available to use are global. They are not confined to a specific project context. Therefore, you can use any identity you have previously created in any project.
 
+The identity used by a command is:
+- the identity specified in the command with `--identity <NAME>`, if defined
+- else the identity specified by the environment variable `export DFX_IDENTITY=<NAME>`, if defined
+- the identity specified by `dfx identity use <NAME>`.
+
 ### Basic usage
 
 ``` bash
 dfx identity use [flag] _identity-name_
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx identity use` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Arguments
 
@@ -390,15 +350,6 @@ Use the `dfx identity whoami` command to display the name of the currently-activ
 ``` bash
 dfx identity whoami [flag]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx identity whoami` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
 
 ### Example
 

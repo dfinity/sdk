@@ -10,15 +10,6 @@ You can run this command from any directory unless you are working with a dfx.js
 dfx stop [flag]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx stop` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ## Examples
 
 You can stop the local canister execution environment processes that are running in the background by changing to a project directory then running the following command:

@@ -7,9 +7,9 @@ mod project;
 
 /// Beta commands.
 #[derive(Parser)]
-#[clap(name("beta"))]
+#[command(name = "beta")]
 pub struct BetaOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

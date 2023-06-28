@@ -1,0 +1,21 @@
+{
+    "canisters": {
+        "basic": {
+            "type": "custom",
+            "candid": "main.did",
+            "wasm": "main.wasm",
+            "build": "bash -c 'echo \"CANISTER_ID_remote: $CANISTER_ID_remote\"'",
+            "dependencies": [
+                "remote"
+            ]
+        },
+        "remote": {
+            "main": "remote.mo",
+            "remote": {
+                "id": {
+                    "actuallylocal": "qoctq-giaaa-aaaaa-aaaea-cai"
+                }
+            }
+        }
+    }
+}

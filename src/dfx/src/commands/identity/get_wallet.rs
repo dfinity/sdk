@@ -1,9 +1,9 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
-use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
+use crate::lib::identity::wallet::get_or_create_wallet;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
@@ -26,7 +26,7 @@ pub fn exec(env: &dyn Environment, _opts: GetWalletOpts, network: Option<String>
     runtime.block_on(async {
         println!(
             "{}",
-            Identity::get_or_create_wallet(&agent_env, network, &identity_name).await?
+            get_or_create_wallet(&agent_env, network, &identity_name).await?
         );
         DfxResult::Ok(())
     })?;

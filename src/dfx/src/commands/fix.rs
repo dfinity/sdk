@@ -3,8 +3,8 @@ use tokio::runtime::Runtime;
 
 use crate::{
     lib::{
-        environment::Environment, error::DfxResult, migrate::migrate,
-        provider::create_agent_environment,
+        agent::create_agent_environment, environment::Environment, error::DfxResult,
+        migrate::migrate,
     },
     NetworkOpt,
 };
@@ -13,7 +13,7 @@ use crate::{
 /// Makes no changes that would not have been suggested by `dfx diagnose`.
 #[derive(Parser)]
 pub struct FixOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 }
 

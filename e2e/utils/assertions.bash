@@ -73,6 +73,42 @@ assert_match() {
     fi
 }
 
+# Asserts that a string contains another string
+# Arguments:
+#    $1 - The string to search for.
+#    $2 - The string to search in.
+assert_contains() {
+    search_for="$1"
+    if [[ $# -lt 2 ]]; then
+        search_in="$output"
+    else
+        search_in="$2"
+    fi
+    if [[ ! "$search_in" == *"$search_for"* ]]; then
+        batslib_print_kv_single_or_multi 10 "search phrase" "$search_for" "actual output" "$search_in" \
+            | batslib_decorate "output does not match" \
+            | fail
+    fi
+}
+
+# Asserts that a string does not contain another string
+# Arguments:
+#    $1 - The string to search for.
+#    $2 - The string to search in.
+assert_not_contains() {
+    search_for="$1"
+    if [[ $# -lt 2 ]]; then
+        search_in="$output"
+    else
+        search_in="$2"
+    fi
+    if [[ "$search_in" == *"$search_for"* ]]; then
+        batslib_print_kv_single_or_multi 10 "search phrase" "$search_for" "actual output" "$search_in" \
+            | batslib_decorate "output does match even though it shouldn't" \
+            | fail
+    fi
+}
+
 # Asserts that a string does not contain another string, using regexp.
 # Arguments:
 #    $1 - The regex to use to match.
@@ -88,6 +124,29 @@ assert_not_match() {
     if [[ "$text" =~ $regex ]]; then
         batslib_print_kv_single_or_multi 10 "regex" "$regex" "actual" "$text" \
             | batslib_decorate "output matches but is expected not to" \
+            | fail
+    fi
+}
+
+# Asserts that a string occurs a number of times in another string.
+# Arguments:
+#    $1 - Expected number of occurance.
+#    $2 - The string to search for.
+#    $3 - The string to search in. By default it will use $output.
+assert_occurs() {
+    expect="$1"
+    search_for="$2"
+    if [[ $# -lt 3 ]]; then
+        search_in="$output"
+    else
+        search_in="$3"
+    fi
+
+    actual="$( echo "$search_in" | grep -o "$search_for" | wc -l | xargs )"
+
+    if [[ "$expect" -ne "$actual" ]]; then
+        batslib_print_kv_single_or_multi 6 "Expect" "$expect" "Actual" "$actual" \
+            | batslib_decorate "Occurrences of \"$search_for\" in \"$search_in\" didn't match expectation." \
             | fail
     fi
 }

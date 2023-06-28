@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
 
 use clap::Parser;
 use std::io::Write;
@@ -10,8 +9,8 @@ use std::io::Write;
 pub struct ListOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: ListOpts) -> DfxResult {
-    let mgr = IdentityManager::new(env)?;
-    let identities = mgr.get_identity_names()?;
+    let mgr = env.new_identity_manager()?;
+    let identities = mgr.get_identity_names(env.get_logger())?;
     let current_identity = mgr.get_selected_identity_name();
     for identity in identities {
         if current_identity == &identity {

@@ -39,7 +39,7 @@ read_flags() {
     # shellcheck disable=SC2199
     # https://github.com/koalaman/shellcheck/wiki/SC2199
     while [ -n "$*" ]; do
-        local ARG=$1
+        local ARG="$1"
         shift
 
         OLD_IFS="$IFS"

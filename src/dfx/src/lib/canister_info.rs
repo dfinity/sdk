@@ -1,11 +1,12 @@
 #![allow(dead_code)]
-use crate::config::dfinity::{CanisterDeclarationsConfig, CanisterTypeProperties, Config};
-use crate::lib::canister_info::assets::AssetsCanisterInfo;
-use crate::lib::canister_info::custom::CustomCanisterInfo;
-use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::get_network_context;
-use crate::util;
+use crate::lib::metadata::config::CanisterMetadataConfig;
+use dfx_core::config::model::dfinity::{
+    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
+    WasmOptLevel,
+};
+use dfx_core::network::provider::get_network_context;
+use dfx_core::util;
 
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
@@ -14,12 +15,18 @@ use core::panic;
 use fn_error_context::context;
 use std::path::{Path, PathBuf};
 
-use self::rust::RustCanisterInfo;
-
 pub mod assets;
 pub mod custom;
 pub mod motoko;
+pub mod pull;
 pub mod rust;
+
+use assets::AssetsCanisterInfo;
+use custom::CustomCanisterInfo;
+use motoko::MotokoCanisterInfo;
+use rust::RustCanisterInfo;
+
+use self::pull::PullCanisterInfo;
 
 pub trait CanisterInfoFactory {
     fn create(info: &CanisterInfo) -> DfxResult<Self>
@@ -48,6 +55,12 @@ pub struct CanisterInfo {
     dependencies: Vec<String>,
     post_install: Vec<String>,
     main: Option<PathBuf>,
+    shrink: Option<bool>,
+    optimize: Option<WasmOptLevel>,
+    metadata: CanisterMetadataConfig,
+    pullable: Option<Pullable>,
+    pull_dependencies: Vec<(String, CanisterId)>,
+    gzip: bool,
 }
 
 impl CanisterInfo {
@@ -67,13 +80,33 @@ impl CanisterInfo {
         std::fs::create_dir_all(&build_root)
             .with_context(|| format!("Failed to create {}.", build_root.to_string_lossy()))?;
 
-        let canister_map = (&config.get_config().canisters)
+        let canister_map = config
+            .get_config()
+            .canisters
             .as_ref()
             .ok_or_else(|| anyhow!("No canisters in the configuration file."))?;
 
         let canister_config = canister_map
             .get(name)
             .ok_or_else(|| anyhow!("Cannot find canister '{}',", name.to_string()))?;
+
+        let dependencies = canister_config.dependencies.clone();
+
+        let mut pull_dependencies = vec![];
+
+        for dep in &dependencies {
+            let dep_config = canister_map.get(dep).ok_or_else(|| {
+                anyhow!(
+                    "Cannot find canister '{}' which is a dependency of '{}'",
+                    dep,
+                    name.to_string()
+                )
+            })?;
+
+            if let CanisterTypeProperties::Pull { id } = dep_config.type_specific {
+                pull_dependencies.push((dep.to_string(), id))
+            }
+        }
 
         let declarations_config_pre = canister_config.declarations.clone();
 
@@ -110,6 +143,9 @@ impl CanisterInfo {
         };
 
         let post_install = canister_config.post_install.clone().into_vec();
+        let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
+
+        let gzip = canister_config.gzip.unwrap_or(false);
 
         let canister_info = CanisterInfo {
             name: name.to_string(),
@@ -122,9 +158,15 @@ impl CanisterInfo {
             packtool: build_defaults.get_packtool(),
             args,
             type_specific,
-            dependencies: canister_config.dependencies.clone(),
+            dependencies,
             post_install,
             main: canister_config.main.clone(),
+            shrink: canister_config.shrink,
+            optimize: canister_config.optimize,
+            metadata,
+            pullable: canister_config.pullable.clone(),
+            pull_dependencies,
+            gzip,
         };
 
         Ok(canister_info)
@@ -193,18 +235,64 @@ impl CanisterInfo {
         &self.args
     }
 
-    pub fn get_build_wasm_path(&self) -> PathBuf {
-        self.output_root.join(&self.name).with_extension("wasm")
+    pub fn get_shrink(&self) -> Option<bool> {
+        self.shrink
     }
 
-    pub fn get_build_idl_path(&self) -> PathBuf {
-        self.output_root.join(&self.name).with_extension("did")
+    pub fn get_optimize(&self) -> Option<WasmOptLevel> {
+        // Cycles defaults to O3, Size defaults to Oz
+        self.optimize.map(|level| match level {
+            WasmOptLevel::Cycles => WasmOptLevel::O3,
+            WasmOptLevel::Size => WasmOptLevel::Oz,
+            other => other,
+        })
+    }
+
+    /// Path to the wasm module in .dfx that will be install.
+    pub fn get_build_wasm_path(&self) -> PathBuf {
+        let mut gzip_original = false;
+        if let CanisterTypeProperties::Custom { wasm, .. } = &self.type_specific {
+            if wasm.ends_with(".gz") {
+                gzip_original = true;
+            }
+        } else if self.is_assets() {
+            gzip_original = true;
+        }
+        let ext = if self.gzip || gzip_original {
+            "wasm.gz"
+        } else {
+            "wasm"
+        };
+        self.output_root.join(&self.name).with_extension(ext)
+    }
+
+    /// Path to the candid file which contains no init types.
+    ///
+    /// To be imported by dependents.
+    pub fn get_service_idl_path(&self) -> PathBuf {
+        self.output_root.join("service.did")
+    }
+
+    /// Path to the candid file which contains init types.
+    ///
+    /// To be used when installing the canister.
+    pub fn get_constructor_idl_path(&self) -> PathBuf {
+        self.output_root.join("constructor.did")
+    }
+
+    /// Path to the init_args.txt file which only contains init types.
+    ///
+    pub fn get_init_args_txt_path(&self) -> PathBuf {
+        self.output_root.join("init_args.txt")
     }
 
     pub fn get_index_js_path(&self) -> PathBuf {
         self.output_root.join("index").with_extension("js")
     }
 
+    /// Path to the candid file from canister builder which should contain init types.
+    ///
+    /// To be separated into service.did and init_args.
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
         match &self.type_specific {
             CanisterTypeProperties::Motoko { .. } => self
@@ -218,6 +306,9 @@ impl CanisterInfo {
                 .map(|x| x.get_output_idl_path().to_path_buf()),
             CanisterTypeProperties::Rust { .. } => self
                 .as_info::<RustCanisterInfo>()
+                .map(|x| x.get_output_idl_path().to_path_buf()),
+            CanisterTypeProperties::Pull { .. } => self
+                .as_info::<PullCanisterInfo>()
                 .map(|x| x.get_output_idl_path().to_path_buf()),
         }
         .ok()
@@ -247,5 +338,29 @@ impl CanisterInfo {
 
     pub fn is_assets(&self) -> bool {
         matches!(self.type_specific, CanisterTypeProperties::Assets { .. })
+    }
+
+    pub fn is_pull(&self) -> bool {
+        matches!(self.type_specific, CanisterTypeProperties::Pull { .. })
+    }
+
+    pub fn get_metadata(&self, name: &str) -> Option<&CanisterMetadataSection> {
+        self.metadata.get(name)
+    }
+
+    pub fn metadata(&self) -> &CanisterMetadataConfig {
+        &self.metadata
+    }
+
+    pub fn get_pullable(&self) -> Option<Pullable> {
+        self.pullable.clone()
+    }
+
+    pub fn get_pull_dependencies(&self) -> &[(String, CanisterId)] {
+        &self.pull_dependencies
+    }
+
+    pub fn get_gzip(&self) -> bool {
+        self.gzip
     }
 }

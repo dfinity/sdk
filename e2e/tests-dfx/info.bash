@@ -14,6 +14,20 @@ teardown() {
     standard_teardown
 }
 
+@test "displays the replica port" {
+    assert_command_fail dfx info replica-port
+    assert_contains "No replica port found"
+
+    dfx_start
+    assert_command dfx info replica-port
+    if [ "$USE_IC_REF" ]
+    then
+        assert_eq "$(get_ic_ref_port)"
+    else
+        assert_eq "$(get_replica_port)"
+    fi
+}
+
 @test "displays the default webserver port for the local shared network" {
     assert_command dfx info webserver-port
     assert_eq "4943"
@@ -23,6 +37,11 @@ teardown() {
     define_project_network
     assert_command dfx info webserver-port
     assert_eq "8000"
+}
+
+@test "displays path to networks.json" {
+    assert_command dfx info networks-json-path
+    assert_eq "$E2E_NETWORKS_JSON"
 }
 
 @test "displays the replica revision included in dfx" {

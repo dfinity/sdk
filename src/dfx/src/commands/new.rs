@@ -1,9 +1,10 @@
-use crate::config::dfinity::CONFIG_FILE_NAME;
+use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
-use crate::util::clap::validators::project_name_validator;
+use crate::util::clap::parsers::project_name_parser;
+use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
 
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
@@ -42,27 +43,28 @@ lazy_static! {
 #[derive(Parser)]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
-    #[clap(validator(project_name_validator))]
+    #[arg(value_parser = project_name_parser)]
     project_name: String,
 
     /// Choose the type of canister in the starter project. Default to be motoko.
-    #[clap(long, possible_values(&["motoko", "rust"]), default_value = "motoko")]
+    #[arg(long, value_parser = ["motoko", "rust"], default_value = "motoko")]
     r#type: String,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
-    #[clap(long)]
+    #[arg(long)]
     dry_run: bool,
 
     /// Installs the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.
-    #[clap(long)]
+    #[arg(long)]
     frontend: bool,
 
-    #[clap(long, conflicts_with = "frontend")]
+    /// Skip installing the frontend code example.
+    #[arg(long, conflicts_with = "frontend")]
     no_frontend: bool,
 
     /// Overrides which version of the JavaScript Agent to install. By default, will contact
     /// NPM to decide.
-    #[clap(long, requires("frontend"))]
+    #[arg(long, requires("frontend"))]
     agent_version: Option<String>,
 }
 
@@ -99,7 +101,7 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
             std::fs::create_dir_all(p)
                 .with_context(|| format!("Failed to create directory {}.", p.to_string_lossy()))?;
         }
-        std::fs::write(&path, content)
+        std::fs::write(path, content)
             .with_context(|| format!("Failed to write to {}.", path.to_string_lossy()))?;
     }
 
@@ -115,7 +117,7 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
     }
 
     if !dry_run {
-        std::fs::create_dir_all(&path)
+        std::fs::create_dir_all(path)
             .with_context(|| format!("Failed to create directory {}.", path.to_string_lossy()))?;
     }
 
@@ -367,7 +369,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         warn_upgrade(log, latest_version.as_ref(), current_version);
     }
 
-    env.get_cache().install()?;
+    DiskBasedCache::install(&env.get_cache().version_str())?;
 
     info!(
         log,
@@ -515,28 +517,28 @@ mod tests {
 
     #[test]
     fn project_name_is_valid() {
-        assert!(project_name_validator("a").is_ok());
-        assert!(project_name_validator("a_").is_ok());
-        assert!(project_name_validator("a_1").is_ok());
-        assert!(project_name_validator("A").is_ok());
-        assert!(project_name_validator("A1").is_ok());
-        assert!(project_name_validator("a_good_name_").is_ok());
-        assert!(project_name_validator("a_good_name").is_ok());
+        assert!(project_name_parser("a").is_ok());
+        assert!(project_name_parser("a_").is_ok());
+        assert!(project_name_parser("a_1").is_ok());
+        assert!(project_name_parser("A").is_ok());
+        assert!(project_name_parser("A1").is_ok());
+        assert!(project_name_parser("a_good_name_").is_ok());
+        assert!(project_name_parser("a_good_name").is_ok());
     }
 
     #[test]
     fn project_name_is_invalid() {
-        assert!(project_name_validator("_a_good_name_").is_err());
-        assert!(project_name_validator("__also_good").is_err());
-        assert!(project_name_validator("_1").is_err());
-        assert!(project_name_validator("_a").is_err());
-        assert!(project_name_validator("1").is_err());
-        assert!(project_name_validator("1_").is_err());
-        assert!(project_name_validator("-").is_err());
-        assert!(project_name_validator("_").is_err());
-        assert!(project_name_validator("a-b-c").is_err());
-        assert!(project_name_validator("🕹").is_err());
-        assert!(project_name_validator("不好").is_err());
-        assert!(project_name_validator("a:b").is_err());
+        assert!(project_name_parser("_a_good_name_").is_err());
+        assert!(project_name_parser("__also_good").is_err());
+        assert!(project_name_parser("_1").is_err());
+        assert!(project_name_parser("_a").is_err());
+        assert!(project_name_parser("1").is_err());
+        assert!(project_name_parser("1_").is_err());
+        assert!(project_name_parser("-").is_err());
+        assert!(project_name_parser("_").is_err());
+        assert!(project_name_parser("a-b-c").is_err());
+        assert!(project_name_parser("🕹").is_err());
+        assert!(project_name_parser("不好").is_err());
+        assert!(project_name_parser("a:b").is_err());
     }
 }

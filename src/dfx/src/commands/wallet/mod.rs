@@ -1,12 +1,10 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::Identity;
-use crate::lib::provider::create_agent_environment;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
-use crate::util::expiry_duration;
 use crate::NetworkOpt;
 
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use anyhow::Context;
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
@@ -32,12 +30,12 @@ mod upgrade;
 
 /// Helper commands to manage the user's cycles wallet.
 #[derive(Parser)]
-#[clap(name("wallet"))]
+#[command(name = "wallet")]
 pub struct WalletOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
@@ -92,7 +90,7 @@ where
         .to_string();
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
-    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name).await?;
+    let wallet = get_or_create_wallet_canister(env, network, &identity_name).await?;
 
     let out: O = wallet
         .query_(method)
@@ -115,7 +113,7 @@ where
         .update_(method)
         .with_arg(arg)
         .build()
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await?;
     Ok(out)
 }
@@ -129,6 +127,6 @@ async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
     // Network descriptor will always be set.
     let network = env.get_network_descriptor();
     fetch_root_key_if_needed(env).await?;
-    let wallet = Identity::get_or_create_wallet_canister(env, network, &identity_name).await?;
+    let wallet = get_or_create_wallet_canister(env, network, &identity_name).await?;
     Ok(wallet)
 }

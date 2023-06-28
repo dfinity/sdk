@@ -1,7 +1,7 @@
-use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
 use anyhow::{bail, Context};
+use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};

@@ -1,13 +1,14 @@
-use crate::config::cache;
 use crate::lib::dist;
 use crate::lib::error::{DfxError, DfxResult};
+use dfx_core::config::cache;
 
 use anyhow::{bail, Context};
+use directories_next::BaseDirs;
 use fn_error_context::context;
 use semver::{Version, VersionReq};
 use std::fmt;
 use std::fmt::Formatter;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 
 const TOOLCHAINS_ROOT: &str = ".dfinity/toolchains/";
@@ -113,11 +114,22 @@ impl Toolchain {
                     format!("Failed to remove {}.", toolchain_path.to_string_lossy())
                 })?;
             }
+            #[cfg(unix)]
             std::os::unix::fs::symlink(&cache_path, &toolchain_path).with_context(|| {
                 format!(
                     "Failed to create symlink from {} to {}.",
-                    toolchain_path.to_string_lossy(),
-                    cache_path.to_string_lossy()
+                    toolchain_path.display(),
+                    cache_path.display(),
+                )
+            })?;
+            // On Windows, symlinks require admin permission or developer mode,
+            // and junctions are preferable anyway as the filesystem parses them instead of the OS.
+            #[cfg(windows)]
+            junction::create(&cache_path, &toolchain_path).with_context(|| {
+                format!(
+                    "Failed to create junction from {} to {}.",
+                    toolchain_path.display(),
+                    cache_path.display(),
                 )
             })?;
         }
@@ -147,9 +159,8 @@ impl Toolchain {
 
     #[context("Failed to get toolchain path.")]
     pub fn get_path(&self) -> DfxResult<PathBuf> {
-        let home = std::env::var("HOME").context("Failed to resolve env var 'HOME'.")?;
-        let home = Path::new(&home);
-        let toolchains_dir = home.join(TOOLCHAINS_ROOT);
+        let dirs = BaseDirs::new().context("Failed to resolve home dir.")?;
+        let toolchains_dir = dirs.home_dir().join(TOOLCHAINS_ROOT);
         std::fs::create_dir_all(&toolchains_dir).with_context(|| {
             format!(
                 "Failed to create toolchain dir {}.",
@@ -172,11 +183,22 @@ impl Toolchain {
                 )
             })?;
         }
+        #[cfg(unix)]
         std::os::unix::fs::symlink(&toolchain_path, &default_path).with_context(|| {
             format!(
                 "Failed to create symlink from {} to {}.",
-                toolchain_path.to_string_lossy(),
-                default_path.to_string_lossy()
+                toolchain_path.display(),
+                default_path.display(),
+            )
+        })?;
+        // On Windows, symlinks require admin permission or developer mode,
+        // and junctions are preferable anyway as the filesystem parses them instead of the OS.
+        #[cfg(windows)]
+        junction::create(&toolchain_path, &default_path).with_context(|| {
+            format!(
+                "Failed to create junction from {} to {}.",
+                toolchain_path.display(),
+                default_path.display(),
             )
         })?;
         println!("Default toolchain set to {}", self);
@@ -186,9 +208,8 @@ impl Toolchain {
 
 #[context("Failed to get installed toolchains.")]
 pub fn list_installed_toolchains() -> DfxResult<Vec<Toolchain>> {
-    let home = std::env::var("HOME").context("Failed to resolve env var 'HOME'.")?;
-    let home = Path::new(&home);
-    let toolchains_dir = home.join(TOOLCHAINS_ROOT);
+    let dirs = BaseDirs::new().context("Failed to resolve home dir.")?;
+    let toolchains_dir = dirs.home_dir().join(TOOLCHAINS_ROOT);
     let mut toolchains = vec![];
     for entry in std::fs::read_dir(&toolchains_dir).with_context(|| {
         format!(
@@ -230,9 +251,8 @@ pub fn get_default_toolchain() -> DfxResult<Toolchain> {
 
 #[context("Failed to get default toolchain path.")]
 fn get_default_path() -> DfxResult<PathBuf> {
-    let home = std::env::var("HOME").context("Failed to read env var 'HOME'.")?;
-    let home = Path::new(&home);
-    let default_path = home.join(DEFAULT_PATH);
+    let dirs = BaseDirs::new().context("Failed to resolve home dir.")?;
+    let default_path = dirs.home_dir().join(DEFAULT_PATH);
     let parent = default_path.parent().unwrap();
     std::fs::create_dir_all(parent)
         .with_context(|| format!("Failed to create dir {}.", parent.to_string_lossy()))?;

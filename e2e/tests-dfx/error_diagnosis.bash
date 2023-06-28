@@ -22,7 +22,7 @@ teardown() {
     assert_command dfx canister status hello_backend
 
     # create a non-controller ID
-    assert_command dfx identity new alice --disable-encryption
+    assert_command dfx identity new alice --storage-mode plaintext
     assert_command dfx identity use alice
 
     # calling canister status with different identity provokes HTTP 403
@@ -34,7 +34,7 @@ teardown() {
 @test "Instruct user to set a wallet" {
     dfx_new hello
     install_asset greet
-    assert_command dfx identity new alice --disable-encryption
+    assert_command dfx identity new alice --storage-mode plaintext
     assert_command dfx identity use alice
 
     # this will fail because no wallet is configured for alice on network ic

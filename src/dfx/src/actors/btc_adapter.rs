@@ -8,9 +8,8 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::anyhow;
+use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use garcon::{Delay, Waiter};
 use slog::{debug, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -69,20 +68,15 @@ impl BtcAdapter {
     }
 
     fn wait_for_socket(socket_path: &Path) -> DfxResult {
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(100))
-            .timeout(Duration::from_secs(30))
-            .build();
-
-        waiter.start();
-        loop {
-            if socket_path.exists() {
-                return Ok(());
+        let mut retries = 0;
+        while !socket_path.exists() {
+            if retries >= 3000 {
+                bail!("Cannot start btc-adapter: timed out");
             }
-            waiter
-                .wait()
-                .map_err(|err| anyhow!("Cannot start btc-adapter: {:?}", err))?;
+            std::thread::sleep(Duration::from_millis(100));
+            retries += 1;
         }
+        Ok(())
     }
 
     fn start_btc_adapter(&mut self, addr: Addr<Self>) -> DfxResult {
@@ -102,7 +96,7 @@ impl BtcAdapter {
 
     fn send_ready_signal(&self) {
         for sub in &self.ready_subscribers {
-            let _ = sub.do_send(BtcAdapterReady {});
+            sub.do_send(BtcAdapterReady {});
         }
     }
 }
@@ -149,7 +143,7 @@ impl Handler<BtcAdapterReadySubscribe> for BtcAdapter {
     fn handle(&mut self, msg: BtcAdapterReadySubscribe, _: &mut Self::Context) {
         // If the adapter is already ready, let the new subscriber know! Yeah!
         if self.ready {
-            let _ = msg.0.do_send(BtcAdapterReady {});
+            msg.0.do_send(BtcAdapterReady {});
         }
 
         self.ready_subscribers.push(msg.0);
@@ -178,13 +172,6 @@ fn btc_adapter_start_thread(
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Use a Waiter for waiting for the file to be created.
-        let mut waiter = Delay::builder()
-            .throttle(Duration::from_millis(1000))
-            .exponential_backoff(Duration::from_secs(1), 1.2)
-            .build();
-        waiter.start();
-
         let btc_adapter_path = config.btc_adapter_path.as_os_str();
         let mut cmd = std::process::Command::new(btc_adapter_path);
         cmd.arg(&config.config_path.to_string_lossy().to_string());
@@ -192,8 +179,7 @@ fn btc_adapter_start_thread(
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             if let Some(socket_path) = &config.socket_path {
                 if socket_path.exists() {
                     std::fs::remove_file(socket_path).expect("Could not remove btc-adapter socket");
@@ -221,22 +207,19 @@ fn btc_adapter_start_thread(
                     debug!(logger, "Got signal to stop. Killing btc-adapter process...");
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "ic-btc-adapter process failed.");
-                    // Reset waiter if last start was over 2 seconds ago, and do not wait.
-                    if std::time::Instant::now().duration_since(last_start)
-                        >= Duration::from_secs(2)
+                    // If it took less than two seconds to exit, wait a bit before trying again.
+                    if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
+                        std::thread::sleep(Duration::from_secs(2));
+                    } else {
                         debug!(
                             logger,
                             "Last ic-btc-adapter seemed to have been healthy, not waiting..."
                         );
-                        waiter.start();
-                    } else {
-                        // Wait before we start it again.
-                        let _ = waiter.wait();
                     }
                 }
             }

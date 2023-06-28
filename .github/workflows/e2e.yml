@@ -5,36 +5,61 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   build_dfx:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, ubuntu-20.04]
-        rust: ["1.60.0"]
-        binary_path: ["target/release"]
+        rust: [ '1.65.0' ]
+        # We build a dynamic-linked linux binary because otherwise HSM support fails with:
+        #   Error: IO: Dynamic loading not supported
+        os: [ macos-12, ubuntu-20.04, ubuntu-22.04 ]
+        include:
+          - os: macos-12
+            target: x86_64-apple-darwin
+            binary_path: target/x86_64-apple-darwin/release
+          - os: ubuntu-20.04
+            target: x86_64-unknown-linux-gnu
+            binary_path: target/x86_64-unknown-linux-gnu/release
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            binary_path: target/x86_64-unknown-linux-gnu/release
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup environment variables
+        run: |
+          echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
       - name: Cache Cargo
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-1
-      - name: Install Rust
-        run: |
-          rustup update ${{ matrix.rust }} --no-self-update
-          rustup default ${{ matrix.rust }}
-          rustup component add rustfmt
+          key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-1
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+        if: contains(matrix.os, 'macos')
       - name: Build
-        # note: since there is no 'cargo clean' here, the results of scripts/prepare-dfx-assets.sh
-        # are often cached.
-        run: cargo build --locked --release
-        env:
-          OPENSSL_STATIC: yes
+        run: |
+          cargo build --target ${{ matrix.target }} --locked --release
       - name: Strip binaries
         run: |
           cd ${{ matrix.binary_path }}
@@ -42,7 +67,7 @@ jobs:
           strip dfx
         if: contains(matrix.os, 'ubuntu')
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
           path: ${{ matrix.binary_path }}/dfx
@@ -54,7 +79,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(scripts/workflows/e2e-matrix.py)"
+        run: echo "matrix=$(scripts/workflows/e2e-matrix.py)" >> $GITHUB_OUTPUT
 
   smoke:
     runs-on: ${{ matrix.os }}
@@ -67,12 +92,12 @@ jobs:
         # ubuntu-18.04 not supported due to:
         #     /home/runner/.cache/dfinity/versions/0.8.3-34-g36e39809/ic-starter:
         #     /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found
-        os: [macos-11, ubuntu-20.04]
-        rust: ["1.60.0"]
+        os: [macos-12, ubuntu-20.04, ubuntu-22.04]
+        rust: ["1.65.0"]
     steps:
       - uses: actions/checkout@v3
       - name: Download dfx binary
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
           path: /usr/local/bin
@@ -113,7 +138,7 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('src/dfx/assets/new_project_rust_files/src/__project_name___backend/Cargo.toml') }}-${{ matrix.rust }}-e2e-${{ matrix.test }}-1
       - name: Download dfx binary
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
           path: /usr/local/bin
@@ -134,6 +159,8 @@ jobs:
               echo "USE_IC_REF=1" >> "$GITHUB_ENV"
           fi
           export
+      - name: Download bats-support as a git submodule
+        run: git submodule update --init --recursive
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 

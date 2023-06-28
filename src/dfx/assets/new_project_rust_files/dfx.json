@@ -1,6 +1,5 @@
 {
   "version": 1,
-  "dfx": "{dfx_version}",
   "canisters": {
     "{project_name}_backend": {
       "type": "rust",
@@ -22,5 +21,6 @@
       "packtool": "",
       "args": ""
     }
-  }
+  },
+  "output_env_file": ".env"
 }

@@ -14,11 +14,42 @@ teardown() {
     standard_teardown
 }
 
-
-
 @test "create succeeds on default project" {
     dfx_start
     assert_command dfx canister create --all
+}
+
+@test "create succeeds with --specified-id" {
+    dfx_start
+    assert_command dfx canister create e2e_project_backend --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
+    assert_command dfx canister id e2e_project_backend
+    assert_match n5n4y-3aaaa-aaaaa-p777q-cai
+}
+
+@test "create succeeds when specify large canister ID" {
+    # ic-ref defaults to have two subnets, each host 2^20 canisters
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
+    
+    dfx_start
+    # hhn2s-5l777-77777-7777q-cai is the canister ID of (u64::MAX / 2)
+    assert_command dfx canister create e2e_project_backend --specified-id hhn2s-5l777-77777-7777q-cai
+    assert_command dfx canister id e2e_project_backend
+    assert_match hhn2s-5l777-77777-7777q-cai
+}
+
+@test "create fails when specify out of range canister ID" {
+    dfx_start
+    # nojwb-ieaaa-aaaaa-aaaaa-cai is the canister ID of (u64::MAX / 2 + 1)
+    assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
+
+    [ "$USE_IC_REF" ] && skip "skipped for ic-ref" # ic-ref has different error code and message
+    assert_match "Specified CanisterId nojwb-ieaaa-aaaaa-aaaaa-cai is not hosted by subnet"
+}
+
+@test "create fails if set both --all and --specified-id" {
+    dfx_start
+    assert_command_fail dfx canister create --all --specified-id xbgkv-fyaaa-aaaaa-aaava-cai
+    assert_match "error: the argument '--all' cannot be used with '--specified-id <PRINCIPAL>'"
 }
 
 @test "create generates the canister_ids.json" {
@@ -67,7 +98,7 @@ teardown() {
 @test "create fails with incorrect network" {
     dfx_start
     assert_command_fail dfx canister create --all --network nosuch
-    assert_match "ComputeNetworkNotFound"
+    assert_match "Network not found"
 }
 
 @test "create succeeds when requested network is configured" {
@@ -90,7 +121,7 @@ teardown() {
 
     jq '.networks.actuallylocal.providers=[]' dfx.json | sponge dfx.json
     assert_command_fail dfx canister create --all --network actuallylocal
-    assert_match "Cannot find providers for network"
+    assert_match "Did not find any providers for network 'actuallylocal'"
 }
 
 @test "create fails with network parameter when network does not exist" {
@@ -102,7 +133,7 @@ teardown() {
 
 @test "create accepts --controller <controller> named parameter, with controller by identity name" {
     dfx_start
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
     ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
     
     
@@ -116,7 +147,7 @@ teardown() {
 
 @test "create accepts --controller <controller> named parameter, with controller by identity principal" {
     dfx_start
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
     ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
     ALICE_WALLET=$(dfx identity get-wallet --identity alice)
 
@@ -131,7 +162,7 @@ teardown() {
 
 @test "create accepts --controller <controller> named parameter, with controller by wallet principal" {
     dfx_start
-    dfx identity new --disable-encryption alice
+    dfx identity new --storage-mode plaintext alice
     ALICE_WALLET=$(dfx identity get-wallet --identity alice)
 
     assert_command dfx canister create --all --controller "${ALICE_WALLET}"
@@ -147,8 +178,8 @@ teardown() {
     # there is a different code path if the specified controller happens to be
     # the currently selected identity.
     dfx_start
-    dfx identity new --disable-encryption alice
-    dfx identity new --disable-encryption bob
+    dfx identity new --storage-mode plaintext alice
+    dfx identity new --storage-mode plaintext bob
     BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
 
     dfx identity use bob
@@ -165,8 +196,8 @@ teardown() {
 
 @test "create single controller accepts --controller <controller> named parameter, with controller by identity name" {
     dfx_start
-    dfx identity new --disable-encryption alice
-    dfx identity new --disable-encryption bob
+    dfx identity new --storage-mode plaintext alice
+    dfx identity new --storage-mode plaintext bob
     ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
     BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
 
@@ -190,8 +221,8 @@ teardown() {
 
 @test "create canister with multiple controllers" {
     dfx_start
-    dfx identity new --disable-encryption alice
-    dfx identity new --disable-encryption bob
+    dfx identity new --storage-mode plaintext alice
+    dfx identity new --storage-mode plaintext bob
     ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
     BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
     # awk step is to avoid trailing space
@@ -216,8 +247,8 @@ teardown() {
     use_wallet_wasm 0.7.2
 
     dfx_start
-    dfx identity new --disable-encryption alice
-    dfx identity new --disable-encryption bob
+    dfx identity new --storage-mode plaintext alice
+    dfx identity new --storage-mode plaintext bob
 
     assert_command_fail dfx canister create --all --controller alice --controller bob --identity alice
     assert_match "The wallet canister must be upgraded: The installed wallet does not support multiple controllers."

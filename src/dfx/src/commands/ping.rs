@@ -1,15 +1,16 @@
+use std::time::Duration;
+
 use crate::lib::environment::{create_agent, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::identity::Identity;
-use crate::lib::provider::{
+use crate::util::expiry_duration;
+use dfx_core::identity::Identity;
+use dfx_core::network::provider::{
     command_line_provider_to_url, create_network_descriptor, get_network_context,
     LocalBindDetermination,
 };
-use crate::util::expiry_duration;
 
-use anyhow::{anyhow, Context};
+use anyhow::{bail, Context};
 use clap::Parser;
-use garcon::{Delay, Waiter};
 use slog::warn;
 use tokio::runtime::Runtime;
 
@@ -23,7 +24,7 @@ pub struct PingOpts {
     network: Option<String>,
 
     /// Repeatedly ping until the replica is healthy
-    #[clap(long)]
+    #[arg(long)]
     wait_healthy: bool,
 }
 
@@ -54,38 +55,39 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     let agent = create_agent(env.get_logger().clone(), &agent_url, identity, timeout)?;
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    if opts.wait_healthy {
-        let mut waiter = Delay::builder()
-            .timeout(std::time::Duration::from_secs(60))
-            .throttle(std::time::Duration::from_secs(1))
-            .build();
-        waiter.start();
+    runtime.block_on(async {
+        if opts.wait_healthy {
+            let mut retries = 0;
 
-        loop {
-            let status = runtime.block_on(agent.status());
-            if let Ok(status) = status {
-                let healthy = match &status.replica_health_status {
-                    Some(s) if s == "healthy" => true,
-                    None => true,
-                    _ => false,
-                };
-                if healthy {
-                    println!("{}", status);
-                    break;
-                } else {
-                    eprintln!("{}", status);
+            loop {
+                let status = agent.status().await;
+                if let Ok(status) = status {
+                    let healthy = match &status.replica_health_status {
+                        Some(s) if s == "healthy" => true,
+                        None => true,
+                        _ => false,
+                    };
+                    if healthy {
+                        println!("{}", status);
+                        break;
+                    } else {
+                        eprintln!("{}", status);
+                    }
                 }
+                if retries >= 60 {
+                    bail!("Timed out waiting for replica to become healthy");
+                }
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                retries += 1;
             }
-            waiter
-                .wait()
-                .map_err(|_| anyhow!("Timed out waiting for replica to become healthy"))?;
+        } else {
+            let status = agent
+                .status()
+                .await
+                .context("Failed while waiting for agent status.")?;
+            println!("{}", status);
         }
-    } else {
-        let status = runtime
-            .block_on(agent.status())
-            .context("Failed while waiting for agent status.")?;
-        println!("{}", status);
-    }
 
-    Ok(())
+        Ok(())
+    })
 }

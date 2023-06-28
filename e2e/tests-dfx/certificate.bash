@@ -36,7 +36,7 @@ setup() {
 
     while true
     do
-        MITM_PORT=$(python3 "${BATS_TEST_DIRNAME}/../utils/get_ephemeral_port.py")
+        MITM_PORT=$(get_ephemeral_port)
         overwrite_webserver_port "$MITM_PORT"
 
         mitmdump -p "$MITM_PORT" --mode "reverse:http://$BACKEND"  "$MODIFY_BODY_ARG" '/~s/Hello,/Hullo,' &

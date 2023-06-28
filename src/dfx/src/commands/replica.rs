@@ -6,45 +6,57 @@ use crate::commands::start::{
     apply_command_line_parameters, configure_btc_adapter_if_enabled,
     configure_canister_http_adapter_if_enabled, empty_writable_path,
 };
-use crate::config::dfinity::DEFAULT_REPLICA_PORT;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::id::write_network_id;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::lib::replica_config::{HttpHandlerConfig, ReplicaConfig};
+use dfx_core::config::model::dfinity::DEFAULT_REPLICA_PORT;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::json::{load_json_file, save_json_file};
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
-use anyhow::Context;
-use clap::Parser;
+use anyhow::{bail, Context};
+use clap::{ArgAction, Parser};
 use fn_error_context::context;
+use slog::warn;
 use std::default::Default;
 use std::fs;
 use std::fs::create_dir_all;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
+use super::start::CachedConfig;
+
 /// Starts a local Internet Computer replica.
 #[derive(Parser)]
 pub struct ReplicaOpts {
     /// Specifies the port the local replica should listen to.
-    #[clap(long)]
+    #[arg(long)]
     port: Option<String>,
 
     /// Runs a dedicated emulator instead of the replica
-    #[clap(long)]
+    #[arg(long)]
     emulator: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[clap(long, conflicts_with("emulator"), multiple_occurrences(true))]
+    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[clap(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with("emulator"))]
     enable_canister_http: bool,
+
+    /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
+    #[arg(long, conflicts_with("emulator"), default_value_t = 600)]
+    artificial_delay: u32,
+
+    /// Start even if the network config was modified.
+    #[arg(long)]
+    force: bool,
 }
 
 /// Gets the configuration options for the Internet Computer replica.
@@ -53,6 +65,7 @@ fn get_config(
     local_server_descriptor: &LocalServerDescriptor,
     replica_port_path: PathBuf,
     state_root: &Path,
+    artificial_delay: u32,
 ) -> DfxResult<ReplicaConfig> {
     let config = &local_server_descriptor.replica;
     let port = config.port.unwrap_or(DEFAULT_REPLICA_PORT);
@@ -67,6 +80,7 @@ fn get_config(
         state_root,
         config.subnet_type.unwrap_or_default(),
         config.log_level.unwrap_or_default(),
+        artificial_delay,
     );
     replica_config.http_handler = http_handler;
 
@@ -84,8 +98,17 @@ pub fn exec(
         bitcoin_node,
         enable_bitcoin,
         enable_canister_http,
+        artificial_delay,
+        force,
     }: ReplicaOpts,
 ) -> DfxResult {
+    warn!(
+        env.get_logger(),
+        "The replica command is deprecated. \
+        Please use the start command instead. \
+        If you have a good reason to use the replica command, \
+        please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163"
+    );
     let system = actix::System::new();
 
     let network_descriptor = create_network_descriptor(
@@ -106,10 +129,10 @@ pub fn exec(
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
-    local_server_descriptor.describe(true, true);
+    local_server_descriptor.describe(env.get_logger());
 
     let temp_dir = &local_server_descriptor.data_directory;
-    create_dir_all(&temp_dir).with_context(|| {
+    create_dir_all(temp_dir).with_context(|| {
         format!(
             "Failed to create network temp directory {}.",
             temp_dir.to_string_lossy()
@@ -130,6 +153,8 @@ pub fn exec(
         empty_writable_path(local_server_descriptor.canister_http_adapter_config_path())?;
     let canister_http_adapter_socket_holder_path =
         local_server_descriptor.canister_http_adapter_socket_holder_path();
+
+    let previous_config_path = local_server_descriptor.effective_config_path();
 
     // dfx bootstrap will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
@@ -161,56 +186,75 @@ pub fn exec(
     let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
-    let mut replica_config = get_config(local_server_descriptor, replica_port_path, &state_root)?;
+    let replica_config = {
+        let mut replica_config = get_config(
+            local_server_descriptor,
+            replica_port_path,
+            &state_root,
+            artificial_delay,
+        )?;
+        if let Some(btc_adapter_config) = btc_adapter_config.as_ref() {
+            replica_config = replica_config.with_btc_adapter_enabled();
+            if let Some(btc_adapter_socket) = btc_adapter_config.get_socket_path() {
+                replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
+            }
+        }
+        if let Some(canister_http_adapter_config) = canister_http_adapter_config.as_ref() {
+            replica_config = replica_config.with_canister_http_adapter_enabled();
+            if let Some(socket_path) = canister_http_adapter_config.get_socket_path() {
+                replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
+            }
+        }
+        replica_config
+    };
+
+    let effective_config = if emulator {
+        CachedConfig::emulator()
+    } else {
+        CachedConfig::replica(&replica_config)
+    };
+    if !force && previous_config_path.exists() {
+        let previous_config = load_json_file(&previous_config_path)
+            .context("Failed to read replica configuration. Run `dfx start` with `--clean`.")?;
+        if effective_config != previous_config {
+            bail!("The network configuration was changed. Run `dfx start` with `--clean`.")
+        }
+    }
+    save_json_file(&previous_config_path, &effective_config)
+        .context("Failed to write replica configuration")?;
 
     system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
         if emulator {
-            start_emulator_actor(env, shutdown_controller, emulator_port_path)?;
+            start_emulator_actor(
+                env,
+                local_server_descriptor,
+                shutdown_controller,
+                emulator_port_path,
+            )?;
         } else {
-            let (btc_adapter_ready_subscribe, btc_adapter_socket_path) =
-                if let Some(ref btc_adapter_config) = btc_adapter_config {
-                    let socket_path = btc_adapter_config.get_socket_path();
-                    let ready_subscribe = start_btc_adapter_actor(
+            let btc_adapter_ready_subscribe = btc_adapter_config
+                .map(|btc_adapter_config| {
+                    start_btc_adapter_actor(
                         env,
                         btc_adapter_config_path,
-                        socket_path.clone(),
+                        btc_adapter_config.get_socket_path(),
                         shutdown_controller.clone(),
                         btc_adapter_pid_file_path,
-                    )?
-                    .recipient();
-                    (Some(ready_subscribe), socket_path)
-                } else {
-                    (None, None)
-                };
-            let (canister_http_adapter_ready_subscribe, canister_http_socket_path) =
-                if let Some(ref canister_http_adapter_config) = canister_http_adapter_config {
-                    let socket_path = canister_http_adapter_config.get_socket_path();
-                    let ready_subscribe = start_canister_http_adapter_actor(
+                    )
+                })
+                .transpose()?;
+            let canister_http_adapter_ready_subscribe = canister_http_adapter_config
+                .map(|canister_http_adapter_config| {
+                    start_canister_http_adapter_actor(
                         env,
                         canister_http_adapter_config_path,
-                        socket_path.clone(),
+                        canister_http_adapter_config.get_socket_path(),
                         shutdown_controller.clone(),
                         canister_http_adapter_pid_file_path,
-                    )?
-                    .recipient();
-                    (Some(ready_subscribe), socket_path)
-                } else {
-                    (None, None)
-                };
-
-            if btc_adapter_config.is_some() {
-                replica_config = replica_config.with_btc_adapter_enabled();
-                if let Some(btc_adapter_socket) = btc_adapter_socket_path {
-                    replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
-                }
-            }
-            if canister_http_adapter_config.is_some() {
-                replica_config = replica_config.with_canister_http_adapter_enabled();
-                if let Some(socket_path) = canister_http_socket_path {
-                    replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
-                }
-            }
+                    )
+                })
+                .transpose()?;
 
             start_replica_actor(
                 env,

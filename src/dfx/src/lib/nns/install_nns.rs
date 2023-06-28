@@ -6,33 +6,32 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
-use crate::config::dfinity::ReplicaSubnetType;
-use crate::lib::environment::Environment;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::info::replica_rev;
-use crate::lib::operations::canister::install_canister_wasm;
-use crate::lib::waiter::waiter_with_timeout;
-use crate::util::blob_from_arguments;
-use crate::util::expiry_duration;
-use crate::util::network::get_replica_urls;
+use dfx_core::canister::install_canister_wasm;
+use dfx_core::config::cache::{get_bin_cache, Cache};
+use dfx_core::config::model::dfinity::{NetworksConfig, ReplicaSubnetType};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 
-use anyhow::bail;
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
+use candid::Encode;
 use flate2::bufread::GzDecoder;
 use fn_error_context::context;
 use futures_util::future::try_join_all;
-use garcon::{Delay, Waiter};
 use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use reqwest::Url;
+use slog::Logger;
+use std::ffi::OsStr;
 use std::fs;
 use std::io::Write;
 use std::path::Component;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
-use std::time::Duration;
 
 use self::canisters::{
     IcNnsInitCanister, SnsCanisterInstallation, StandardCanister, NNS_CORE, NNS_FRONTEND,
@@ -59,30 +58,39 @@ pub mod canisters;
 /// Ideally this should never panic and always return an error on error; while this code is in development reality may differ.
 #[context("Failed to install NNS components.")]
 pub async fn install_nns(
-    env: &dyn Environment,
     agent: &Agent,
+    network: &NetworkDescriptor,
+    networks_config: &NetworksConfig,
+    cache: &dyn Cache,
     ic_nns_init_path: &Path,
+    ledger_accounts: &[String],
+    logger: &Logger,
 ) -> anyhow::Result<()> {
     eprintln!("Checking out the environment...");
-    verify_local_replica_type_is_system(env)?;
+    verify_local_replica_type_is_system(network, networks_config)?;
     verify_nns_canister_ids_are_available(agent).await?;
-    let provider_url = get_and_check_provider(env)?;
-    let nns_url = get_and_check_replica_url(env)?;
+    let provider_url = get_and_check_provider(network)?;
+    let nns_url = get_and_check_replica_url(network, logger)?;
     let subnet_id = get_subnet_id(agent).await?.to_text();
-    let ic_admin_cli = bundled_binary(env, "ic-admin")?;
+    let ic_admin_cli = bundled_binary(cache, "ic-admin")?;
 
     eprintln!("Installing the core backend wasm canisters...");
-    download_nns_wasms(env).await?;
+    download_nns_wasms(cache).await?;
+    let mut test_accounts = vec![
+        canisters::ED25519_TEST_ACCOUNT.to_string(),
+        canisters::SECP256K1_TEST_ACCOUNT.to_string(),
+    ];
+    test_accounts.extend_from_slice(ledger_accounts);
     let ic_nns_init_opts = IcNnsInitOpts {
-        wasm_dir: nns_wasm_dir(env),
+        wasm_dir: nns_wasm_dir(cache)?,
         nns_url: nns_url.to_string(),
-        test_accounts: Some(canisters::TEST_ACCOUNT.to_string()),
+        test_accounts,
         sns_subnets: Some(subnet_id.to_string()),
     };
     ic_nns_init(ic_nns_init_path, &ic_nns_init_opts).await?;
 
     eprintln!("Uploading NNS configuration data...");
-    upload_nns_sns_wasms_canister_wasms(env)?;
+    upload_nns_sns_wasms_canister_wasms(cache)?;
 
     // Install the GUI canisters:
     for StandardCanister {
@@ -92,15 +100,23 @@ pub async fn install_nns(
         canister_id,
     } in NNS_FRONTEND
     {
-        let local_wasm_path = nns_wasm_dir(env).join(wasm_name);
+        let local_wasm_path = nns_wasm_dir(cache)?.join(wasm_name);
         let parsed_wasm_url = Url::parse(wasm_url)
             .with_context(|| format!("Could not parse url for {canister_name} wasm: {wasm_url}"))?;
         download(&parsed_wasm_url, &local_wasm_path).await?;
-        let installed_canister_id = install_canister(env, agent, canister_name, &local_wasm_path)
-            .await?
-            .to_text();
+        let specified_id = Principal::from_text(canister_id)?;
+        let installed_canister_id = install_canister(
+            network,
+            agent,
+            canister_name,
+            &local_wasm_path,
+            specified_id,
+            logger,
+        )
+        .await?
+        .to_text();
         if canister_id != &installed_canister_id {
-            bail!("Canister was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
+            bail!("Canister '{canister_name}' was installed at an incorrect canister ID.  Expected '{canister_id}' but got '{installed_canister_id}'.");
         }
     }
     // ... and configure the backend NNS canisters:
@@ -119,10 +135,9 @@ pub async fn install_nns(
 /// - Only provider localhost:8080 is supported; this is compiled into the canister IDs.
 ///   - The port constraint may be eased, perhaps, at some stage.
 ///   - The requirement that the domain root is 'localhost' is less likely to change; 127.0.0.1 doesn't support subdomains.
-#[context("Failed to get a valid provider for network '{}'.  Please check networks.json and dfx.json.", env.get_network_descriptor().name)]
-fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
-    let provider_url = env
-        .get_network_descriptor()
+#[context("Failed to get a valid provider for network '{}'.  Please check networks.json and dfx.json.", network_descriptor.name)]
+fn get_and_check_provider(network_descriptor: &NetworkDescriptor) -> anyhow::Result<Url> {
+    let provider_url = network_descriptor
         .first_provider()
         .with_context(|| "Environment has no providers")?;
     let provider_url: Url = Url::parse(provider_url)
@@ -130,7 +145,7 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 
     if provider_url.port() != Some(8080) {
         return Err(anyhow!(
-            "dfx nns install supports only port 8080, not {provider_url}."
+            "dfx nns install supports only port 8080, not {provider_url}. Please set the 'local' network's provider to '127.0.0.1:8080'."
         ));
     }
 
@@ -150,15 +165,18 @@ fn get_and_check_provider(env: &dyn Environment) -> anyhow::Result<Url> {
 ///
 /// # Panics
 /// This code is not expected to panic.
-#[context("Failed to determine the replica URL for network '{}'.  This may be caused by `dfx start` failing.", env.get_network_descriptor().name)]
-pub fn get_and_check_replica_url(env: &dyn Environment) -> anyhow::Result<Url> {
-    let network_descriptor = env.get_network_descriptor();
+#[context("Failed to determine the replica URL for network '{}'.  This may be caused by `dfx start` failing.",network_descriptor.name)]
+pub fn get_and_check_replica_url(
+    network_descriptor: &NetworkDescriptor,
+    logger: &Logger,
+) -> anyhow::Result<Url> {
     if network_descriptor.name != "local" {
         return Err(anyhow!(
             "dfx nns install can only deploy to the 'local' network."
         ));
     }
-    get_replica_urls(env, env.get_network_descriptor())?
+    network_descriptor
+        .get_replica_urls(Some(logger))?
         .pop()
         .ok_or_else(|| {
             anyhow!("The list of replica URLs is empty; `dfx start` appears to be unhealthy.")
@@ -180,6 +198,9 @@ async fn get_subnet_id(agent: &Agent) -> anyhow::Result<Principal> {
 /// The NNS canisters use the very first few canister IDs; they must be available.
 #[context("Failed to verify that the network is empty; dfx nns install must be run just after dfx start --clean")]
 async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<()> {
+    /// Checks that the canister is unused on the given network.
+    ///
+    /// The network is queried directly; local state such as canister_ids.json has no effect on this function.
     async fn verify_canister_id_is_available(
         agent: &Agent,
         canister_id: &str,
@@ -189,7 +210,7 @@ async fn verify_nns_canister_ids_are_available(agent: &Agent) -> anyhow::Result<
             format!("Internal error: {canister_name} has an invalid canister ID: {canister_id}")
         })?;
         if agent
-            .read_state_canister_info(canister_principal, "module_hash", false)
+            .read_state_canister_info(canister_principal, "module_hash")
             .await
             .is_ok()
         {
@@ -260,21 +281,17 @@ Frontend canisters:
 /// Gets a URL, trying repeatedly until it is available.
 #[context("Failed to download after multiple tries: {}", url)]
 pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
-    /// The time between the first try and the second.
-    const RETRY_PAUSE: Duration = Duration::from_millis(200);
-    /// Intervals will increase exponentially until they reach this.
-    const MAX_RETRY_PAUSE: Duration = Duration::from_secs(5);
-
-    let mut waiter = Delay::builder()
-        .exponential_backoff_capped(RETRY_PAUSE, 1.4, MAX_RETRY_PAUSE)
-        .build();
+    let mut retry_policy = ExponentialBackoff::default();
 
     loop {
         match reqwest::get(url.clone()).await {
             Ok(response) => {
                 return Ok(response);
             }
-            Err(err) => waiter.wait().map_err(|_| err)?,
+            Err(err) => match retry_policy.next_backoff() {
+                Some(duration) => tokio::time::sleep(duration).await,
+                None => bail!(err),
+            },
         }
     }
 }
@@ -291,9 +308,8 @@ pub async fn get_with_retries(url: &Url) -> anyhow::Result<reqwest::Response> {
 /// # Panics
 /// This code is not expected to panic.
 #[context("Failed to determine the local replica type.")]
-fn local_replica_type(env: &dyn Environment) -> anyhow::Result<ReplicaSubnetType> {
-    Ok(env
-        .get_network_descriptor()
+fn local_replica_type(network_descriptor: &NetworkDescriptor) -> anyhow::Result<ReplicaSubnetType> {
+    Ok(network_descriptor
         .local_server_descriptor()?
         .replica
         .subnet_type
@@ -310,16 +326,51 @@ fn local_replica_type(env: &dyn Environment) -> anyhow::Result<ReplicaSubnetType
 /// # Panics
 /// This code is not expected to panic.
 #[context("Failed to verify that the local replica type is 'system'.")]
-pub fn verify_local_replica_type_is_system(env: &dyn Environment) -> anyhow::Result<()> {
-    match local_replica_type(env) {
+pub fn verify_local_replica_type_is_system(
+    network_descriptor: &NetworkDescriptor,
+    networks_config: &NetworksConfig,
+) -> anyhow::Result<()> {
+    match local_replica_type(network_descriptor) {
         Ok(ReplicaSubnetType::System) => Ok(()),
-        other => Err(anyhow!("The replica subnet_type needs to be \"system\" to run NNS canisters.  Current value: {other:?}")),
+        other => Err(anyhow!(
+            r#"The replica subnet_type needs to be 'system' to run NNS canisters. Current value: {other:?}.
+
+             You can configure it by setting local.replica.subnet_type to "system" in your global networks.json:
+
+             1) Create or edit: {}
+             2) Set the local config to:
+                 {{
+                   "local": {{
+                     "bind": "127.0.0.1:8080",
+                     "type": "ephemeral",
+                     "replica": {{
+                       "subnet_type": "system"
+                     }}
+                   }}
+                 }}
+             3) Verify that you have no network configurations in dfx.json.
+             4) Restart dfx:
+                 dfx stop
+                 dfx start --clean
+
+             "#,
+            networks_config.get_path().to_string_lossy()
+        )),
     }
 }
 
 /// Downloads a file
 #[context("Failed to download '{:?}' to '{:?}'.", source, target)]
 pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
+    if target.exists() {
+        println!("Already downloaded: {}", target.to_string_lossy());
+        return Ok(());
+    }
+    println!(
+        "Downloading {}\n  from: {}",
+        target.to_string_lossy(),
+        source.as_str()
+    );
     let buffer = reqwest::get(source.clone())
         .await
         .with_context(|| "Failed to connect")?
@@ -352,6 +403,15 @@ pub async fn download(source: &Url, target: &Path) -> anyhow::Result<()> {
 /// Downloads and unzips a file
 #[context("Failed to download and unzip '{:?}' from '{:?}'.", target, source.as_str())]
 pub async fn download_gz(source: &Url, target: &Path) -> anyhow::Result<()> {
+    if target.exists() {
+        println!("Already downloaded: {}", target.to_string_lossy());
+        return Ok(());
+    }
+    println!(
+        "Downloading {}\n  from .gz: {}",
+        target.to_string_lossy(),
+        source.as_str()
+    );
     let response = reqwest::get(source.clone())
         .await
         .with_context(|| "Failed to connect")?
@@ -396,44 +456,42 @@ pub async fn download_ic_repo_wasm(
 ) -> anyhow::Result<()> {
     fs::create_dir_all(wasm_dir)
         .with_context(|| format!("Failed to create wasm directory: '{}'", wasm_dir.display()))?;
-    let final_path = wasm_dir.join(&wasm_name);
-    if final_path.exists() {
-        return Ok(());
-    }
-
+    let final_path = wasm_dir.join(wasm_name);
     let url_str =
         format!("https://download.dfinity.systems/ic/{ic_commit}/canisters/{wasm_name}.gz");
     let url = Url::parse(&url_str)
-      .with_context(|| format!("Could not determine download URL.  Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
-    println!(
-        "Downloading {}\n  from {}",
-        final_path.to_string_lossy(),
-        url_str
-    );
+      .with_context(|| format!("Could not determine download URL. Are ic_commit '{ic_commit}' and wasm_name '{wasm_name}' valid?"))?;
     download_gz(&url, &final_path).await
 }
 
 /// Downloads all the core NNS wasms, excluding only the front-end wasms II and NNS-dapp.
 #[context("Failed to download NNS wasm files.")]
-pub async fn download_nns_wasms(env: &dyn Environment) -> anyhow::Result<()> {
-    let ic_commit = replica_rev();
-    let wasm_dir = &nns_wasm_dir(env);
+pub async fn download_nns_wasms(cache: &dyn Cache) -> anyhow::Result<()> {
+    let ic_commit = std::env::var("DFX_IC_COMMIT").unwrap_or_else(|_| replica_rev().to_string());
+    let wasm_dir = &nns_wasm_dir(cache)?;
     for IcNnsInitCanister {
         wasm_name,
         test_wasm_name,
         ..
     } in NNS_CORE
     {
-        download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir).await?;
+        download_ic_repo_wasm(wasm_name, &ic_commit, wasm_dir).await?;
         if let Some(test_wasm_name) = test_wasm_name {
-            download_ic_repo_wasm(test_wasm_name, ic_commit, wasm_dir).await?;
+            download_ic_repo_wasm(test_wasm_name, &ic_commit, wasm_dir).await?;
         }
     }
+    download_sns_wasms(&ic_commit, wasm_dir).await?;
+    Ok(())
+}
+
+/// Downloads all the core SNS wasms.
+#[context("Failed to download SNS wasm files.")]
+pub async fn download_sns_wasms(ic_commit: &str, wasms_dir: &Path) -> anyhow::Result<()> {
     try_join_all(
         SNS_CANISTERS
             .iter()
             .map(|SnsCanisterInstallation { wasm_name, .. }| {
-                download_ic_repo_wasm(wasm_name, ic_commit, wasm_dir)
+                download_ic_repo_wasm(wasm_name, ic_commit, wasms_dir)
             }),
     )
     .await?;
@@ -448,7 +506,7 @@ pub struct IcNnsInitOpts {
     wasm_dir: PathBuf,
     /// The ID of a test account that ic-nns-init will create and to initialise with tokens.
     /// Note: At present only one test account is supported.
-    test_accounts: Option<String>,
+    test_accounts: Vec<String>,
     /// A subnet for SNS canisters.
     /// Note: In this context we support at most one subnet.
     sns_subnets: Option<String>,
@@ -463,6 +521,7 @@ pub struct IcNnsInitOpts {
 #[context("Failed to install NNS components.")]
 pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyhow::Result<()> {
     let mut cmd = std::process::Command::new(ic_nns_init_path);
+    cmd.arg("--pass-specified-id");
     cmd.arg("--url");
     cmd.arg(&opts.nns_url);
     cmd.arg("--wasm-dir");
@@ -475,6 +534,12 @@ pub async fn ic_nns_init(ic_nns_init_path: &Path, opts: &IcNnsInitOpts) -> anyho
         cmd.arg("--sns-subnet");
         cmd.arg(subnet);
     });
+    let args: Vec<_> = cmd
+        .get_args()
+        .into_iter()
+        .map(OsStr::to_string_lossy)
+        .collect();
+    println!("ic-nns-init {}", args.join(" "));
     cmd.stdout(std::process::Stdio::inherit());
     cmd.stderr(std::process::Stdio::inherit());
     let output = cmd
@@ -549,16 +614,16 @@ pub fn set_cmc_authorized_subnets(
 }
 
 /// Uploads wasms to the nns-sns-wasm canister.
-#[context("Failed to upload wasm fils to the nns-sns-wasm canister; it may not be possible to create an SNS.")]
-pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Result<()> {
+#[context("Failed to upload wasm files to the nns-sns-wasm canister; it may not be possible to create an SNS.")]
+pub fn upload_nns_sns_wasms_canister_wasms(cache: &dyn Cache) -> anyhow::Result<()> {
     for SnsCanisterInstallation {
         upload_name,
         wasm_name,
         ..
     } in SNS_CANISTERS
     {
-        let sns_cli = bundled_binary(env, "sns")?;
-        let wasm_path = nns_wasm_dir(env).join(wasm_name);
+        let sns_cli = bundled_binary(cache, "sns")?;
+        let wasm_path = nns_wasm_dir(cache)?.join(wasm_name);
         let mut command = Command::new(sns_cli);
         command
             .arg("add-sns-wasm-for-tests")
@@ -580,7 +645,11 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
                     Err(anyhow!(
                         "Failed to upload {} from {} to the nns-sns-wasm canister:\n{:?} {:?}\nStdout:\n{:?}\n\nStderr:\n{:?}",
                         upload_name,
-                        wasm_path.to_string_lossy(), command.get_program(), command.get_args(), output.stdout, output.stderr
+                        wasm_path.to_string_lossy(),
+                        command.get_program(),
+                        command.get_args(),
+                        String::from_utf8_lossy(&output.stdout),
+                        String::from_utf8_lossy(&output.stderr)
                     ))
                 }
             })?;
@@ -598,39 +667,38 @@ pub fn upload_nns_sns_wasms_canister_wasms(env: &dyn Environment) -> anyhow::Res
 // Notes:
 // - This does not pass any initialisation argument.  If needed, one can be added to the code.
 // - This function may be needed by other plugins as well.
-#[context("Failed to install canister '{canister_name}' on network '{}' using wasm at '{}'.", env.get_network_descriptor().name, wasm_path.display())]
+#[context("Failed to install canister '{canister_name}' on network '{}' using wasm at '{}'.", network_descriptor.name, wasm_path.display())]
 pub async fn install_canister(
-    env: &dyn Environment,
+    network_descriptor: &NetworkDescriptor,
     agent: &Agent,
     canister_name: &str,
     wasm_path: &Path,
+    specified_id: Principal,
+    logger: &Logger,
 ) -> anyhow::Result<Principal> {
     let mgr = ManagementCanister::create(agent);
     let builder = mgr
         .create_canister()
-        .as_provisional_create_with_amount(None);
+        .as_provisional_create_with_specified_id(specified_id);
 
-    let res = builder
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
-        .await;
+    let res = builder.call_and_wait().await;
     let canister_id: Principal = res.context("Canister creation call failed.")?.0;
     let canister_id_str = canister_id.to_text();
 
-    let install_args = blob_from_arguments(None, None, None, &None)?;
+    let install_args = Encode!(&())?;
     let install_mode = InstallMode::Install;
-    let timeout = expiry_duration();
     let call_sender = CallSender::SelectedId;
 
     install_canister_wasm(
-        env,
         agent,
         canister_id,
         Some(canister_name),
         &install_args,
         install_mode,
-        timeout,
         &call_sender,
-        fs::read(&wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
+        fs::read(wasm_path).with_context(|| format!("Unable to read {:?}", wasm_path))?,
+        true,
+        logger,
     )
     .await?;
 
@@ -640,13 +708,13 @@ pub async fn install_canister(
 }
 
 /// The local directory where NNS wasm files are cached.  The directory is typically created on demand.
-fn nns_wasm_dir(env: &dyn Environment) -> PathBuf {
-    Path::new(&format!(".dfx/wasms/nns/dfx-${}/", env.get_version())).to_path_buf()
+fn nns_wasm_dir(cache: &dyn Cache) -> anyhow::Result<PathBuf> {
+    Ok(get_bin_cache(&cache.version_str())?.join("wasms"))
 }
 
 /// Get the path to a bundled command line binary
-fn bundled_binary(env: &dyn Environment, cli_name: &str) -> anyhow::Result<PathBuf> {
-    env.get_cache()
+fn bundled_binary(cache: &dyn Cache, cli_name: &str) -> anyhow::Result<PathBuf> {
+    cache
         .get_binary_command_path(cli_name)
         .with_context(|| format!("Could not find bundled binary '{cli_name}'."))
 }

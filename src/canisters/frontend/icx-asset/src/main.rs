@@ -3,46 +3,48 @@ mod support;
 
 use crate::commands::list::list;
 use crate::commands::sync::sync;
+use anstyle::{AnsiColor, Style};
 use candid::Principal;
+use clap::builder::Styles;
 use clap::{crate_authors, crate_version, Parser};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{agent, Agent, Identity};
 
 use crate::commands::upload::upload;
 use std::path::PathBuf;
-use std::time::Duration;
 
-const DEFAULT_IC_GATEWAY: &str = "https://ic0.app";
+const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
 
 #[derive(Parser)]
-#[clap(
+#[command(
     version = crate_version!(),
     author = crate_authors!(),
-    propagate_version(true),
+    propagate_version = true,
+    styles = style(),
 )]
 struct Opts {
     /// Some input. Because this isn't an Option<T> it's required to be used
-    #[clap(long, default_value = "http://localhost:8000/")]
+    #[arg(long, default_value = "http://localhost:4943/")]
     replica: String,
 
     /// An optional PEM file to read the identity from. If none is passed,
     /// a random identity will be created.
-    #[clap(long)]
+    #[arg(long)]
     pem: Option<PathBuf>,
 
     /// An optional field to set the expiry time on requests. Can be a human
     /// readable time (like `100s`) or a number of seconds.
-    #[clap(long)]
+    #[arg(long)]
     ttl: Option<humantime::Duration>,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcommand: SubCommand,
 }
 
 #[derive(Parser)]
 enum SubCommand {
     /// List keys from the asset canister.
-    #[clap(name = "ls")]
+    #[command(name = "ls")]
     List(ListOpts),
 
     /// Synchronize a directory to the asset canister
@@ -55,29 +57,24 @@ enum SubCommand {
 #[derive(Parser)]
 struct ListOpts {
     /// The canister ID.
-    #[clap()]
     canister_id: String,
 }
 
 #[derive(Parser)]
 struct SyncOpts {
     /// The canister ID.
-    #[clap()]
     canister_id: String,
 
     /// The directories to synchronize
-    #[clap()]
     directory: Vec<PathBuf>,
 }
 
 #[derive(Parser)]
 struct UploadOpts {
     /// The asset canister ID to manage.
-    #[clap()]
     canister_id: String,
 
     /// Files or folders to send.
-    #[clap()]
     files: Vec<String>,
 }
 
@@ -93,14 +90,26 @@ fn create_identity(maybe_pem: Option<PathBuf>) -> Box<dyn Identity + Sync + Send
     }
 }
 
+fn style() -> Styles {
+    let green = Style::new().fg_color(Some(AnsiColor::Green.into()));
+    let yellow = Style::new().fg_color(Some(AnsiColor::Yellow.into()));
+    let red = Style::new()
+        .fg_color(Some(AnsiColor::BrightRed.into()))
+        .bold();
+    Styles::styled()
+        .literal(green)
+        .placeholder(green)
+        .error(red)
+        .header(yellow)
+        .invalid(yellow)
+        .valid(green)
+}
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
-async fn main() -> support::Result {
+async fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::parse();
 
-    let ttl: std::time::Duration = opts
-        .ttl
-        .map(|ht| ht.into())
-        .unwrap_or_else(|| Duration::from_secs(60 * 5)); // 5 minutes is max ingress timeout
+    let logger = support::new_logger();
 
     let agent = Agent::builder()
         .with_transport(
@@ -120,23 +129,35 @@ async fn main() -> support::Result {
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            list(&canister).await?;
+            list(&canister, &logger).await?;
         }
         SubCommand::Sync(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            sync(&canister, ttl, o).await?;
+            sync(&canister, o, &logger).await?;
         }
         SubCommand::Upload(o) => {
             let canister = ic_utils::Canister::builder()
                 .with_agent(&agent)
                 .with_canister_id(Principal::from_text(&o.canister_id)?)
                 .build()?;
-            upload(&canister, o).await?;
+            upload(&canister, o, &logger).await?;
         }
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    use crate::Opts;
+
+    #[test]
+    fn validate_cli() {
+        Opts::command().debug_assert();
+    }
 }

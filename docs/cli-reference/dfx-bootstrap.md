@@ -1,5 +1,7 @@
 # dfx bootstrap {#_dfx_bootstrap}
 
+> **NOTE**: The bootstrap command is deprecated. Please use the [dfx start](./dfx-start.md) command instead. If you have a good reason to use the bootstrap command, please contribute to the [discussion](https://github.com/dfinity/sdk/discussions/3163).
+
 Use the `dfx bootstrap` command to start the bootstrap web server defined in the `dfx.json` configuration file or specified using command-line options.
 
 The bootstrap web server you specify is used to serve the front-end static assets for your project.
@@ -9,15 +11,6 @@ The bootstrap web server you specify is used to serve the front-end static asset
 ``` bash
 dfx bootstrap [option]
 ```
-
-## Flags {#_flags}
-
-You can use the following optional flags with the `dfx bootstrap` command.
-
-| Flag                 | Description                                   |
------------------------|-----------------------------------------------|
-| `-h`, `--help`       | Displays usage information.                   |
-| `-V`, `--version`    | Displays version information.                 |
 
 ## Options {#_options}
 

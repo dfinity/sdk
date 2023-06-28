@@ -2,6 +2,16 @@ name: Lint
 
 on: [pull_request]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+
 jobs:
   test:
     name: lint
@@ -9,13 +19,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.60.0' ]
-        os: [ ubuntu-latest, macos-latest ]
+        rust: [ '1.65.0' ]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
 
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
@@ -29,7 +39,7 @@ jobs:
           rustup default ${{ matrix.rust }}
           rustup component add clippy
       - name: Run Lint
-        run: cargo clippy --verbose --tests --benches -- -D clippy::all
+        run: cargo clippy --verbose --tests --benches --workspace -- -D clippy::all
         env:
           RUST_BACKTRACE: 1
 

@@ -1,5 +1,5 @@
 set -e
-load "${BATSLIB}/load.bash"
+load ../utils/bats-support/load
 load ../utils/assertions
 load ../utils/webserver
 
@@ -25,7 +25,7 @@ standard_setup() {
     x=$(mktemp -d -t dfx-e2e-XXXXXXXX)
     export E2E_TEMP_DIR="$x"
 
-    cache_root="${E2E_CACHE_ROOT:-$x/cache-root}"
+    cache_root="${E2E_CACHE_ROOT:-"$HOME/.e2e-cache-root"}"
 
     mkdir "$x/working-dir"
     mkdir -p "$cache_root"
@@ -39,6 +39,7 @@ standard_setup() {
     export DFX_CACHE_ROOT="$cache_root"
     export DFX_CONFIG_ROOT="$x/config-root"
     export RUST_BACKTRACE=1
+    export MOCK_KEYRING_LOCATION="$HOME/mock_keyring.json"
 
     if [ "$(uname)" == "Darwin" ]; then
         export E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY="$HOME/Library/Application Support/org.dfinity.dfx/network/local"
@@ -155,15 +156,18 @@ dfx_start() {
         # wait for it to close. Because `dfx start` leaves child processes running, we need
         # to close this pipe, otherwise Bats will wait indefinitely.
         if [[ $# -eq 0 ]]; then
-            dfx start --background --host "$FRONTEND_HOST" 3>&- # Start on random port for parallel test execution
+            dfx start --background --host "$FRONTEND_HOST" --artificial-delay 100 3>&- # Start on random port for parallel test execution
         else
-            dfx start --background "$@" 3>&-
+            dfx start --background --artificial-delay 100 "$@" 3>&-
         fi
 
         dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f "${dfx_config_root}/replica-1.port"
         port=$(cat "${dfx_config_root}/replica-1.port")
+        if [ "$port" == "" ]; then
+          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
+        fi
     fi
 
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
@@ -174,6 +178,23 @@ dfx_start() {
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
         || (echo "could not connect to replica on port ${port}" && exit 1)
+}
+
+# Tries to start dfx on the default port, repeating until it succeeds or times out.
+#
+# Motivation: dfx nns install works only on port 8080, as URLs are compiled into the wasms.  This means that multiple
+# tests MAY compete for the same port.
+# - It may be possible in future for the wasms to detect their own URL and recompute signatures accordingly,
+#   however until such a time, we have this restriction.
+# - It may also be that ic-nns-install, if used on a non-standard port, installs only the core canisters not the UI.
+# - However until we have implemented good solutions, all tests on ic-nns-install must run on port 8080.
+dfx_start_for_nns_install() {
+    # TODO: When nns-dapp supports dynamic ports, this wait can be removed.
+    assert_command timeout 300 sh -c \
+        "until dfx start --clean --background --host 127.0.0.1:8080 --verbose --artificial-delay 100; do echo waiting for port 8080 to become free; sleep 3; done" \
+        || (echo "could not connect to replica on port 8080" && exit 1)
+    assert_match "subnet type: System"
+    assert_match "127.0.0.1:8080"
 }
 
 wait_until_replica_healthy() {
@@ -315,12 +336,21 @@ use_wallet_wasm() {
     export DFX_WALLET_WASM="${archive}/wallet/$1/wallet.wasm"
 }
 
+use_asset_wasm() {
+    # shellcheck disable=SC2154
+    export DFX_ASSETS_WASM="${archive}/frontend/$1/assetstorage.wasm.gz"
+}
+
 wallet_sha() {
     shasum -a 256 "${archive}/wallet/$1/wallet.wasm" | awk '{ print $1 }'
 }
 
 use_default_wallet_wasm() {
     unset DFX_WALLET_WASM
+}
+
+use_default_asset_wasm() {
+    unset DFX_ASSETS_WASM
 }
 
 get_webserver_port() {
@@ -347,7 +377,7 @@ get_btc_adapter_pid() {
 }
 
 get_canister_http_adapter_pid() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
 get_icx_proxy_pid() {
@@ -369,4 +399,10 @@ use_test_specific_cache_root() {
     # The effect is to ignore the E2E_CACHE_ROOT environment variable, if set.
     export DFX_CACHE_ROOT="$E2E_TEMP_DIR/cache-root"
     mkdir -p "$DFX_CACHE_ROOT"
+}
+
+get_ephemeral_port() {
+    local script_dir
+    script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    python3 "$script_dir/get_ephemeral_port.py"
 }

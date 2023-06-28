@@ -1,28 +1,30 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
+use dfx_core::fs::create_dir_all;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
+use bytes::Bytes;
 use candid::parser::typing::{pretty_check_file, TypeEnv};
 use candid::types::{Function, Type};
-use candid::Deserialize;
 use candid::{parser::value::IDLValue, IDLArgs};
 use fn_error_context::context;
-use net2::TcpListenerExt;
-use net2::{unix::UnixTcpBuilderExt, TcpBuilder};
+use hyper_rustls::ConfigBuilderExt;
+#[cfg(unix)]
+use net2::unix::UnixTcpBuilderExt;
+use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
+use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
-use schemars::JsonSchema;
-use serde::Serialize;
-use std::convert::TryFrom;
-use std::fmt::Display;
+use std::io::{stdin, Read};
 use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
+use std::path::Path;
 use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
 pub mod currency_conversion;
-pub mod network;
 pub mod stderr_wrapper;
 
 const DECIMAL_POINT: char = '.';
@@ -38,11 +40,15 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
     } else {
         TcpBuilder::new_v6().context("Failed to create IPv6 builder.")?
     };
-    let listener = tcp_builder
+    let tcp_builder = tcp_builder
         .reuse_address(true)
-        .context("Failed to set option reuse_address of tcp builder.")?
+        .context("Failed to set option reuse_address of tcp builder.")?;
+    // On Windows, SO_REUSEADDR without SO_EXCLUSIVEADDRUSE acts like SO_REUSEPORT (among other things), so this is only necessary on *nix.
+    #[cfg(unix)]
+    let tcp_builder = tcp_builder
         .reuse_port(true)
-        .context("Failed to set option reuse_port of tcp builder.")?
+        .context("Failed to set option reuse_port of tcp builder.")?;
+    let listener = tcp_builder
         .bind(SocketAddr::new(ip, port))
         .with_context(|| format!("Failed to set socket of tcp builder to {}:{}.", ip, port))?
         .to_tcp_listener()
@@ -58,10 +64,6 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
 pub fn expiry_duration() -> Duration {
     // 5 minutes is max ingress timeout
     Duration::from_secs(60 * 5)
-}
-
-pub fn network_to_pathcompat(network_name: &str) -> String {
-    network_name.replace(|c: char| !c.is_ascii_alphanumeric(), "_")
 }
 
 /// Deserialize and print return values from canister method.
@@ -105,7 +107,7 @@ pub async fn read_module_metadata(
     Some(
         String::from_utf8_lossy(
             &agent
-                .read_state_canister_metadata(canister_id, metadata, false)
+                .read_state_canister_metadata(canister_id, metadata)
                 .await
                 .ok()?,
         )
@@ -151,6 +153,19 @@ pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Opti
     })
 }
 
+pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
+    if file_name == Path::new("-") {
+        let mut content = String::new();
+        stdin().read_to_string(&mut content).map_err(|e| {
+            error_invalid_argument!("Could not read arguments from stdin to string: {}", e)
+        })?;
+        Ok(content)
+    } else {
+        std::fs::read_to_string(file_name)
+            .map_err(|e| error_invalid_argument!("Could not read arguments file to string: {}", e))
+    }
+}
+
 #[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
     arguments: Option<&str>,
@@ -161,7 +176,7 @@ pub fn blob_from_arguments(
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
         "raw" => {
-            let bytes = hex::decode(&arguments.unwrap_or("")).map_err(|e| {
+            let bytes = hex::decode(arguments.unwrap_or("")).map_err(|e| {
                 error_invalid_argument!("Argument is not a valid hex string: {}", e)
             })?;
             Ok(bytes)
@@ -176,25 +191,7 @@ pub fn blob_from_arguments(
                 }
                 Some((env, func)) => {
                     if let Some(arguments) = arguments {
-                        let first_char = arguments.chars().next();
-                        let is_candid_format = first_char.map_or(false, |c| c == '(');
-                        // If parsing fails and method expects a single value, try parsing as IDLValue.
-                        // If it still fails, and method expects a text type, send arguments as text.
-                        let args = arguments.parse::<IDLArgs>().or_else(|_| {
-                            if func.args.len() == 1 && !is_candid_format {
-                                let is_quote = first_char.map_or(false, |c| c == '"');
-                                if candid::types::Type::Text == func.args[0] && !is_quote {
-                                    Ok(IDLValue::Text(arguments.to_string()))
-                                } else {
-                                    candid::pretty_parse::<IDLValue>("Candid argument", arguments)
-                                }
-                                .map(|v| IDLArgs::new(&[v]))
-                            } else {
-                                candid::pretty_parse::<IDLArgs>("Candid argument", arguments)
-                            }
-                        });
-                        args.map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
-                            .to_bytes_with_types(env, &func.args)
+                        fuzzy_parse_argument(arguments, env, &func.args)
                     } else if func.args.is_empty() {
                         use candid::Encode;
                         Encode!()
@@ -232,54 +229,33 @@ pub fn blob_from_arguments(
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
-#[serde(untagged)]
-pub enum SerdeVec<T> {
-    One(T),
-    Many(Vec<T>),
-}
-
-impl<T> SerdeVec<T> {
-    pub fn into_vec(self) -> Vec<T> {
-        match self {
-            Self::One(t) => vec![t],
-            Self::Many(ts) => ts,
+pub fn fuzzy_parse_argument(
+    arg_str: &str,
+    env: &TypeEnv,
+    types: &[Type],
+) -> Result<Vec<u8>, candid::Error> {
+    let first_char = arg_str.chars().next();
+    let is_candid_format = first_char.map_or(false, |c| c == '(');
+    // If parsing fails and method expects a single value, try parsing as IDLValue.
+    // If it still fails, and method expects a text type, send arguments as text.
+    let args = arg_str.parse::<IDLArgs>().or_else(|_| {
+        if types.len() == 1 && !is_candid_format {
+            let is_quote = first_char.map_or(false, |c| c == '"');
+            if candid::types::Type::Text == types[0] && !is_quote {
+                Ok(IDLValue::Text(arg_str.to_string()))
+            } else {
+                candid::pretty_parse::<IDLValue>("Candid argument", arg_str)
+            }
+            .map(|v| IDLArgs::new(&[v]))
+        } else {
+            candid::pretty_parse::<IDLArgs>("Candid argument", arg_str)
         }
-    }
-}
-
-impl<T> Default for SerdeVec<T> {
-    fn default() -> Self {
-        Self::Many(vec![])
-    }
-}
-
-#[derive(Serialize, serde::Deserialize)]
-#[serde(untagged)]
-enum PossiblyStrInner<T> {
-    NotStr(T),
-    Str(String),
-}
-
-#[derive(Serialize, Deserialize, Default, Copy, Clone, Debug, JsonSchema)]
-#[serde(try_from = "PossiblyStrInner<T>")]
-pub struct PossiblyStr<T>(pub T)
-where
-    T: FromStr,
-    T::Err: Display;
-
-impl<T> TryFrom<PossiblyStrInner<T>> for PossiblyStr<T>
-where
-    T: FromStr,
-    T::Err: Display,
-{
-    type Error = T::Err;
-    fn try_from(inner: PossiblyStrInner<T>) -> Result<Self, Self::Error> {
-        match inner {
-            PossiblyStrInner::NotStr(t) => Ok(Self(t)),
-            PossiblyStrInner::Str(str) => T::from_str(&str).map(Self),
-        }
-    }
+    });
+    let bytes = args
+        .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
+        .to_bytes_with_types(env, types)
+        .map_err(|e| error_invalid_data!("Unable to serialize Candid values: {}", e))?;
+    Ok(bytes)
 }
 
 pub fn format_as_trillions(amount: u128) -> String {
@@ -341,6 +317,54 @@ pub fn pretty_thousand_separators(num: String) -> String {
         .chars()
         .rev()
         .collect::<_>()
+}
+
+#[context("Failed to download {} to {}.", from, to.display())]
+pub async fn download_file_to_path(from: &Url, to: &Path) -> DfxResult {
+    let parent_dir = to.parent().unwrap();
+    create_dir_all(parent_dir)?;
+    let body = download_file(from).await?;
+    dfx_core::fs::write(to, body)?;
+    Ok(())
+}
+
+#[context("Failed to download from url: {}.", from)]
+pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
+    let tls_config = rustls::ClientConfig::builder()
+        .with_safe_defaults()
+        .with_webpki_roots()
+        .with_no_client_auth();
+
+    let client = reqwest::Client::builder()
+        .use_preconfigured_tls(tls_config)
+        .build()
+        .context("Could not create HTTP client.")?;
+
+    let mut retry_policy = ExponentialBackoff::default();
+
+    let body = loop {
+        match attempt_download(&client, from).await {
+            Ok(Some(body)) => break body,
+            Ok(None) => bail!("Not found: {}", from),
+            Err(request_error) => match retry_policy.next_backoff() {
+                Some(duration) => tokio::time::sleep(duration).await,
+                None => bail!(request_error),
+            },
+        }
+    };
+
+    Ok(body.to_vec())
+}
+
+async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>> {
+    let response = client.get(url.clone()).send().await?;
+
+    if response.status() == StatusCode::NOT_FOUND {
+        Ok(None)
+    } else {
+        let body = response.error_for_status()?.bytes().await?;
+        Ok(Some(body))
+    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
-use crate::config::dfinity::ConfigInterface;
 use crate::lib::error::DfxResult;
+use dfx_core::config::model::dfinity::ConfigInterface;
 
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
@@ -20,12 +20,12 @@ pub struct CanisterSettings {
 
 #[context("Failed to get compute allocation.")]
 pub fn get_compute_allocation(
-    compute_allocation: Option<String>,
+    compute_allocation: Option<u64>,
     config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<ComputeAllocation>> {
     let compute_allocation = match (compute_allocation, config_interface, canister_name) {
-        (Some(compute_allocation), _, _) => Some(compute_allocation.parse::<u64>()?),
+        (Some(compute_allocation), _, _) => Some(compute_allocation),
         (None, Some(config_interface), Some(canister_name)) => {
             config_interface.get_compute_allocation(canister_name)? as _
         }
@@ -40,12 +40,12 @@ pub fn get_compute_allocation(
 
 #[context("Failed to get memory allocation.")]
 pub fn get_memory_allocation(
-    memory_allocation: Option<String>,
+    memory_allocation: Option<Byte>,
     config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<MemoryAllocation>> {
     let memory_allocation = match (memory_allocation, config_interface, canister_name) {
-        (Some(memory_allocation), _, _) => Some(memory_allocation.parse::<Byte>()?),
+        (Some(memory_allocation), _, _) => Some(memory_allocation),
         (None, Some(config_interface), Some(canister_name)) => {
             config_interface.get_memory_allocation(canister_name)?
         }
@@ -63,12 +63,12 @@ pub fn get_memory_allocation(
 
 #[context("Failed to get freezing threshold.")]
 pub fn get_freezing_threshold(
-    freezing_threshold: Option<String>,
+    freezing_threshold: Option<u64>,
     config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<FreezingThreshold>> {
     let freezing_threshold = match (freezing_threshold, config_interface, canister_name) {
-        (Some(freezing_threshold), _, _) => Some(freezing_threshold.parse::<u64>()?),
+        (Some(freezing_threshold), _, _) => Some(freezing_threshold),
         (None, Some(config_interface), Some(canister_name)) => config_interface
             .get_freezing_threshold(canister_name)?
             .map(|dur| dur.as_secs()),

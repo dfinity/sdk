@@ -1,10 +1,11 @@
+use std::time::Duration;
+
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::bail;
 use clap::Parser;
-use garcon::{Delay, Waiter};
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
 /// Stops the local network replica.
@@ -26,21 +27,14 @@ fn list_all_descendants<'a>(system: &'a System, proc: &'a Process) -> Vec<&'a Pr
     result
 }
 
-/// Recursively kill a process and ALL its children.
-fn kill_all(system: &System, proc: &Process) -> Vec<Pid> {
+/// Recursively list all descendants of a process.
+fn descendant_pids(system: &System, proc: &Process) -> Vec<Pid> {
     let processes = list_all_descendants(system, proc);
-    for proc in &processes {
-        proc.kill_with(Signal::Term);
-    }
     processes.iter().map(|proc| proc.pid()).collect()
 }
 
 fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
-    let mut waiter = Delay::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .throttle(std::time::Duration::from_secs(1))
-        .build();
-    waiter.start();
+    let mut retries = 0;
 
     loop {
         system.refresh_processes();
@@ -50,7 +44,7 @@ fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
         if pids.is_empty() {
             return Ok(());
         }
-        if waiter.wait().is_err() {
+        if retries >= 30 {
             let remaining = pids
                 .iter()
                 .map(|pid| format!("{pid}"))
@@ -58,6 +52,8 @@ fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
                 .join(" ");
             bail!("Failed to kill all processes.  Remaining: {remaining}");
         }
+        std::thread::sleep(Duration::from_secs(1));
+        retries += 1;
     }
 }
 
@@ -69,27 +65,37 @@ pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
         Some(env.get_logger().clone()),
         LocalBindDetermination::AsConfigured,
     )?;
-    let pid_file_path = network_descriptor.local_server_descriptor()?.dfx_pid_path();
-    if pid_file_path.exists() {
-        // Read and verify it's not running. If it is just return.
-        if let Ok(s) = std::fs::read_to_string(&pid_file_path) {
-            if let Ok(pid) = s.parse::<Pid>() {
-                let mut system = System::new();
-                system.refresh_processes();
-                let pids_killed = if let Some(proc) = system.process(pid) {
-                    kill_all(&system, proc)
-                } else {
-                    vec![]
-                };
-                wait_until_all_exited(system, pids_killed)?;
+
+    let mut found = false;
+    for pid_file_path in network_descriptor
+        .local_server_descriptor()?
+        .dfx_pid_paths()
+    {
+        if pid_file_path.exists() {
+            // Read and verify it's not running. If it is just return.
+            if let Ok(s) = std::fs::read_to_string(&pid_file_path) {
+                if let Ok(pid) = s.parse::<Pid>() {
+                    found = true;
+                    let mut system = System::new();
+                    system.refresh_processes();
+                    let descendant_pids = if let Some(proc) = system.process(pid) {
+                        let descendants = descendant_pids(&system, proc);
+                        proc.kill_with(Signal::Term);
+                        descendants
+                    } else {
+                        vec![]
+                    };
+
+                    wait_until_all_exited(system, descendant_pids)?;
+                }
             }
+            // We ignore errors here because there is no effect for the user. We're just being nice.
+            let _ = std::fs::remove_file(&pid_file_path);
         }
-    } else {
+    }
+    if !found {
         eprintln!("No local network replica found. Nothing to do.");
     }
-
-    // We ignore errors here because there is no effect for the user. We're just being nice.
-    let _ = std::fs::remove_file(&pid_file_path);
 
     Ok(())
 }

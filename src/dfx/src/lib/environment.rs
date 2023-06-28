@@ -1,22 +1,27 @@
-use crate::config::cache::{Cache, DiskBasedCache};
-use crate::config::dfinity::{Config, NetworksConfig};
-use crate::config::{cache, dfx_version};
+use crate::config::cache::DiskBasedCache;
+use crate::config::dfx_version;
+use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_manager::IdentityManager;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
+use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::progress_bar::ProgressBar;
+use dfx_core::config::cache::Cache;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
+use dfx_core::config::model::dfinity::{Config, NetworksConfig};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::error::canister_id_store::CanisterIdStoreError;
+use dfx_core::error::identity::IdentityError;
+use dfx_core::identity::identity_manager::IdentityManager;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
-use slog::{Logger, Record};
+use slog::{warn, Logger, Record};
 use std::borrow::Cow;
-use std::collections::BTreeMap;
 use std::fs::create_dir_all;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 pub trait Environment {
@@ -44,8 +49,13 @@ pub trait Environment {
     fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
 
     fn get_logger(&self) -> &slog::Logger;
+    fn get_verbose_level(&self) -> i64;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
+
+    fn new_identity_manager(&self) -> Result<IdentityManager, IdentityError> {
+        IdentityManager::new(self.get_logger(), self.get_identity_override())
+    }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
@@ -56,6 +66,14 @@ pub trait Environment {
     fn get_selected_identity(&self) -> Option<&String>;
 
     fn get_selected_identity_principal(&self) -> Option<Principal>;
+
+    fn get_effective_canister_id(&self) -> Principal;
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError>;
+
+    fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
+        CanisterIdStore::new(self.get_network_descriptor(), self.get_config())
+    }
 }
 
 pub struct EnvironmentImpl {
@@ -67,9 +85,11 @@ pub struct EnvironmentImpl {
     version: Version,
 
     logger: Option<slog::Logger>,
-    progress: bool,
+    verbose_level: i64,
 
     identity_override: Option<String>,
+
+    effective_canister_id: Principal,
 }
 
 impl EnvironmentImpl {
@@ -116,8 +136,9 @@ impl EnvironmentImpl {
             shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
             logger: None,
-            progress: true,
+            verbose_level: 0,
             identity_override: None,
+            effective_canister_id: Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
         })
     }
 
@@ -126,14 +147,27 @@ impl EnvironmentImpl {
         self
     }
 
-    pub fn with_progress_bar(mut self, progress: bool) -> Self {
-        self.progress = progress;
-        self
-    }
-
     pub fn with_identity_override(mut self, identity: Option<String>) -> Self {
         self.identity_override = identity;
         self
+    }
+
+    pub fn with_verbose_level(mut self, verbose_level: i64) -> Self {
+        self.verbose_level = verbose_level;
+        self
+    }
+
+    pub fn with_effective_canister_id(mut self, effective_canister_id: Option<String>) -> Self {
+        match effective_canister_id {
+            None => self,
+            Some(canister_id) => match Principal::from_text(canister_id) {
+                Ok(principal) => {
+                    self.effective_canister_id = principal;
+                    self
+                }
+                Err(_) => self,
+            },
+        }
     }
 }
 
@@ -190,8 +224,13 @@ impl Environment for EnvironmentImpl {
             .expect("Log was not setup, but is being used.")
     }
 
+    fn get_verbose_level(&self) -> i64 {
+        self.verbose_level
+    }
+
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
-        if self.progress {
+        // Only show the progress bar if the level is INFO or more.
+        if self.verbose_level >= 0 {
             ProgressBar::new_spinner(message)
         } else {
             ProgressBar::discard()
@@ -209,6 +248,14 @@ impl Environment for EnvironmentImpl {
     fn get_selected_identity_principal(&self) -> Option<Principal> {
         None
     }
+
+    fn get_effective_canister_id(&self) -> Principal {
+        self.effective_canister_id
+    }
+
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
+        ExtensionManager::new(self)
+    }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -224,10 +271,19 @@ impl<'a> AgentEnvironment<'a> {
         backend: &'a dyn Environment,
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
+        use_identity: Option<&str>,
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
-        let mut identity_manager = IdentityManager::new(backend)?;
-        let identity = identity_manager.instantiate_selected_identity()?;
+        let mut identity_manager = backend.new_identity_manager()?;
+        let identity = if let Some(identity_name) = use_identity {
+            identity_manager.instantiate_identity_from_name(identity_name, &logger)?
+        } else {
+            identity_manager.instantiate_selected_identity(&logger)?
+        };
+        if network_descriptor.is_ic && identity.insecure {
+            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
+                and use it in mainnet-facing commands with the `--identity` flag", identity.name());
+        }
         let url = network_descriptor.first_provider()?;
 
         Ok(AgentEnvironment {
@@ -286,6 +342,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_logger()
     }
 
+    fn get_verbose_level(&self) -> i64 {
+        self.backend.get_verbose_level()
+    }
+
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
         self.backend.new_spinner(message)
     }
@@ -301,210 +361,29 @@ impl<'a> Environment for AgentEnvironment<'a> {
     fn get_selected_identity_principal(&self) -> Option<Principal> {
         self.identity_manager.get_selected_identity_principal()
     }
-}
 
-pub struct AgentClient {
-    logger: Logger,
-    url: reqwest::Url,
-
-    // The auth `(username, password)`.
-    auth: Arc<Mutex<Option<(String, String)>>>,
-}
-
-impl AgentClient {
-    pub fn new(logger: Logger, url: String) -> DfxResult<AgentClient> {
-        let url = reqwest::Url::parse(&url).with_context(|| format!("Invalid URL: {}", url))?;
-
-        let result = Self {
-            logger,
-            url,
-            auth: Arc::new(Mutex::new(None)),
-        };
-
-        if let Ok(Some(auth)) = result.read_http_auth() {
-            result.auth.lock().unwrap().replace(auth);
-        }
-
-        Ok(result)
+    fn get_effective_canister_id(&self) -> Principal {
+        self.backend.get_effective_canister_id()
     }
 
-    #[context("Failed to determine http auth path.")]
-    fn http_auth_path() -> DfxResult<PathBuf> {
-        Ok(cache::get_cache_root()?.join("http_auth"))
-    }
-
-    // A connection is considered secure if it goes to an HTTPs scheme or if it's the
-    // localhost (which cannot be spoofed).
-    fn is_secure(&self) -> bool {
-        self.url.scheme() == "https" || self.url.host_str().unwrap_or("") == "localhost"
-    }
-
-    #[context("Failed to read http auth map.")]
-    fn read_http_auth_map(&self) -> DfxResult<BTreeMap<String, String>> {
-        let p = &Self::http_auth_path()?;
-        let content = std::fs::read_to_string(p)
-            .with_context(|| format!("Failed to read {}.", p.to_string_lossy()))?;
-
-        // If there's an error parsing, simply use an empty map.
-        Ok(
-            serde_json::from_slice::<BTreeMap<String, String>>(content.as_bytes())
-                .unwrap_or_else(|_| BTreeMap::new()),
-        )
-    }
-
-    fn read_http_auth(&self) -> DfxResult<Option<(String, String)>> {
-        match self.url.host() {
-            None => Ok(None),
-            Some(h) => {
-                let map = self.read_http_auth_map()?;
-                if let Some(token) = map.get(&h.to_string()) {
-                    if !self.is_secure() {
-                        slog::warn!(
-                        self.logger,
-                        "HTTP Auth was found, but protocol is not secure. Refusing to use the token."
-                    );
-                        Ok(None)
-                    } else {
-                        // For backward compatibility with previous versions of DFX, we still
-                        // store the base64 encoding of `username:password`, but we decode it
-                        // since the Agent requires username and password as separate fields.
-                        let pair = base64::decode(&token).unwrap();
-                        let pair = String::from_utf8_lossy(pair.as_slice());
-                        let colon_pos = pair
-                            .find(':')
-                            .ok_or_else(|| anyhow!("Incorrectly formatted auth string (no `:`)"))?;
-                        Ok(Some((
-                            pair[..colon_pos].to_owned(),
-                            pair[colon_pos + 1..].to_owned(),
-                        )))
-                    }
-                } else {
-                    Ok(None)
-                }
-            }
-        }
-    }
-
-    fn save_http_auth(&self, host: &str, auth: &str) -> DfxResult<PathBuf> {
-        let mut map = self
-            .read_http_auth_map()
-            .unwrap_or_else(|_| BTreeMap::new());
-        map.insert(host.to_string(), auth.to_string());
-
-        let p = Self::http_auth_path()?;
-        std::fs::write(
-            &p,
-            serde_json::to_string(&map)
-                .context("Failed to serialize http auth map.")?
-                .as_bytes(),
-        )
-        .with_context(|| format!("Failed to write to {}.", p.to_string_lossy()))?;
-
-        Ok(p)
-    }
-}
-
-impl ic_agent::agent::http_transport::PasswordManager for AgentClient {
-    fn cached(&self, _url: &str) -> Result<Option<(String, String)>, String> {
-        // Support for HTTP Auth if necessary (tries to contact first, then do the HTTP Auth
-        // flow).
-        if let Some(auth) = self.auth.lock().unwrap().as_ref() {
-            Ok(Some(auth.clone()))
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn required(&self, _url: &str) -> Result<(String, String), String> {
-        eprintln!("Unauthorized HTTP Access... Please enter credentials:");
-        let mut username;
-        while {
-            username = dialoguer::Input::<String>::new()
-                .with_prompt("Username")
-                .interact()
-                .unwrap();
-            username.contains(':')
-        } {
-            eprintln!("Invalid username (unexpected `:`)")
-        }
-        let password = dialoguer::Password::new()
-            .with_prompt("Password")
-            .interact()
-            .unwrap();
-
-        let auth = format!("{}:{}", username, password);
-        let auth = base64::encode(&auth);
-
-        self.auth
-            .lock()
-            .unwrap()
-            .replace((username.clone(), password.clone()));
-
-        if let Some(h) = &self.url.host() {
-            if let Ok(p) = self.save_http_auth(&h.to_string(), &auth) {
-                slog::info!(
-                    self.logger,
-                    "Saved HTTP credentials to {}.",
-                    p.to_string_lossy()
-                );
-            }
-        }
-
-        Ok((username, password))
+    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
+        ExtensionManager::new(self.backend)
     }
 }
 
 #[context("Failed to create agent with url {}.", url)]
 pub fn create_agent(
-    logger: Logger,
+    _logger: Logger,
     url: &str,
     identity: Box<dyn Identity + Send + Sync>,
     timeout: Duration,
 ) -> DfxResult<Agent> {
-    let executor = AgentClient::new(logger, url.to_string())?;
     let agent = Agent::builder()
-        .with_transport(
-            ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport::create(url)?
-                .with_password_manager(executor),
-        )
+        .with_transport(ic_agent::agent::http_transport::ReqwestTransport::create(
+            url,
+        )?)
         .with_boxed_identity(identity)
         .with_ingress_expiry(Some(timeout))
         .build()?;
     Ok(agent)
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{env, io};
-
-    use slog::{o, Drain, Logger};
-    use slog_term::{FullFormat, PlainSyncDecorator};
-    use tempfile::TempDir;
-
-    use super::AgentClient;
-
-    #[test]
-    fn test_passwords() {
-        let cache_root = TempDir::new().unwrap();
-        let old_var = env::var_os("DFX_CACHE_ROOT");
-        env::set_var("DFX_CACHE_ROOT", cache_root.path());
-        let log = Logger::root(
-            FullFormat::new(PlainSyncDecorator::new(io::stderr()))
-                .build()
-                .fuse(),
-            o!(),
-        );
-        let client = AgentClient::new(log, "https://localhost".to_owned()).unwrap();
-        client
-            .save_http_auth("localhost", &base64::encode("default:hunter2:"))
-            .unwrap();
-        let (user, pass) = client.read_http_auth().unwrap().unwrap();
-        assert_eq!(user, "default");
-        assert_eq!(pass, "hunter2:");
-        if let Some(old_var) = old_var {
-            env::set_var("DFX_CACHE_ROOT", old_var);
-        } else {
-            env::remove_var("DFX_CACHE_ROOT");
-        }
-    }
 }

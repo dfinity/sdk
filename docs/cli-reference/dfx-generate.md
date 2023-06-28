@@ -14,15 +14,6 @@ The `dfx generate` command looks for the configuration under the `declarations` 
 dfx generate [canister_name]
 ```
 
-## Flags
-
-You can use the following optional flags with the `dfx generate` command.
-
-| Flag              | Description                   |
-|-------------------|-------------------------------|
-| `-h`, `--help`    | Displays usage information.   |
-| `-V`, `--version` | Displays version information. |
-
 ## Arguments
 
 You can specify the following arguments for the `dfx generate` command.
@@ -43,12 +34,12 @@ The behavior of `dfx generate` is controlled by the `dfx.json` configuration fil
 
 Outputs from `dfx generate`:
 
-| Language         | File                                    |
-|------------------|-----------------------------------------|
-| `JavaScript(js)` | `index.js` and `<canister_name>.did.js` |
-| `TypeScript(ts)` | `<canister_name>.did.ts`                |
-| `Candid(did)`    | `<canister_name>.did`                   |
-| `Motoko(mo)`     | `<canister_name>.mo`                    |
+| Language         | File                                     |
+|------------------|------------------------------------------|
+| `JavaScript(js)` | `index.js` and `<canister_name>.did.js`  |
+| `TypeScript(ts)` | `index.d.ts` and `<canister_name>.did.ts`|
+| `Candid(did)`    | `<canister_name>.did`                    |
+| `Motoko(mo)`     | `<canister_name>.mo`                     |
 
 ## Examples
 

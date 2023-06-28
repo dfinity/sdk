@@ -3,11 +3,9 @@
 //! Contains the Candid UI canister for now
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::waiter::waiter_with_timeout;
 use crate::util;
-use crate::util::expiry_duration;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -64,7 +62,8 @@ pub async fn install_ui_canister(
         None => {
             mgr.create_canister()
                 .as_provisional_create_with_amount(None)
-                .call_and_wait(waiter_with_timeout(expiry_duration()))
+                .with_effective_canister_id(env.get_effective_canister_id())
+                .call_and_wait()
                 .await
                 .context("Create canister call failed.")?
                 .0
@@ -72,7 +71,7 @@ pub async fn install_ui_canister(
     };
     mgr.install_code(&canister_id, wasm.as_slice())
         .with_mode(InstallMode::Install)
-        .call_and_wait(waiter_with_timeout(expiry_duration()))
+        .call_and_wait()
         .await
         .context("Install wasm call failed.")?;
     id_store.add(UI_CANISTER, &canister_id.to_text())?;

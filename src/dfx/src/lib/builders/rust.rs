@@ -79,8 +79,13 @@ impl CanisterBuilder for RustBuilder {
         let dependencies = self
             .get_dependencies(pool, canister_info)
             .unwrap_or_default();
-        let vars =
-            super::environment_variables(canister_info, &config.network_name, pool, &dependencies);
+        let vars = super::get_and_write_environment_variables(
+            canister_info,
+            &config.network_name,
+            pool,
+            &dependencies,
+            config.env_file.as_deref(),
+        )?;
         for (key, val) in vars {
             cargo.env(key.as_ref(), val);
         }
@@ -92,16 +97,6 @@ impl CanisterBuilder for RustBuilder {
         );
         let output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")?;
 
-        info!(self.logger, "Optimizing WASM module.");
-        let wasm_path = rust_info.get_output_wasm_path();
-        let wasm = std::fs::read(wasm_path).expect("Could not read the WASM module.");
-        let wasm_optimized =
-            ic_wasm::optimize::optimize(&wasm).map_err(|e| anyhow!(e.to_string()))?;
-        // The optimized wasm overwrites the original wasm.
-        // Because the `get_output_wasm_path` must give the same path,
-        // no matter optimized or not.
-        std::fs::write(wasm_path, wasm_optimized).expect("Could not write optimized WASM module.");
-
         if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);
         }
@@ -110,7 +105,6 @@ impl CanisterBuilder for RustBuilder {
             canister_id,
             wasm: WasmBuildOutput::File(rust_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(rust_info.get_output_idl_path().to_path_buf()),
-            add_candid_service_metadata: true,
         })
     }
 

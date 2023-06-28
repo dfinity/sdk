@@ -4,26 +4,30 @@ use crate::lib::builders::{
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
+use crate::util::download_file_to_path;
 
 use anyhow::{anyhow, Context};
+
 use candid::Principal as CanisterId;
 use console::style;
 use fn_error_context::context;
 use slog::info;
 use slog::Logger;
-use std::fs::File;
-use std::io::Read;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::PathBuf;
+use url::Url;
 
 /// Set of extras that can be specified in the dfx.json.
 struct CustomBuilderExtra {
     /// A list of canister names to use as dependencies.
     dependencies: Vec<CanisterId>,
+    /// Where to download the wasm from
+    input_wasm_url: Option<Url>,
     /// Where the wasm output will be located.
     wasm: PathBuf,
+    /// Where to download the candid from
+    input_candid_url: Option<Url>,
     /// Where the candid output will be located.
     candid: PathBuf,
     /// A command to run to build this canister. This is optional if the canister
@@ -46,13 +50,17 @@ impl CustomBuilderExtra {
             })
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
         let info = info.as_info::<CustomCanisterInfo>()?;
+        let input_wasm_url = info.get_input_wasm_url().to_owned();
         let wasm = info.get_output_wasm_path().to_owned();
+        let input_candid_url = info.get_input_candid_url().to_owned();
         let candid = info.get_output_idl_path().to_owned();
         let build = info.get_build_tasks().to_owned();
 
         Ok(CustomBuilderExtra {
             dependencies,
+            input_wasm_url,
             wasm,
+            input_candid_url,
             candid,
             build,
         })
@@ -96,16 +104,23 @@ impl CanisterBuilder for CustomBuilder {
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let CustomBuilderExtra {
+            input_candid_url: _,
             candid,
+            input_wasm_url: _,
             wasm,
             build,
             dependencies,
         } = CustomBuilderExtra::try_from(info, pool)?;
 
         let canister_id = info.get_canister_id().unwrap();
-        let vars = super::environment_variables(info, &config.network_name, pool, &dependencies);
+        let vars = super::get_and_write_environment_variables(
+            info,
+            &config.network_name,
+            pool,
+            &dependencies,
+            config.env_file.as_deref(),
+        )?;
 
-        let mut add_candid_service_metadata = false;
         for command in build {
             info!(
                 self.logger,
@@ -119,24 +134,15 @@ impl CanisterBuilder for CustomBuilder {
                 .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                add_candid_service_metadata = true;
-                run_command(args, &vars, info.get_workspace_root())
+                super::run_command(args, &vars, info.get_workspace_root())
                     .with_context(|| format!("Failed to run {}.", command))?;
             }
-        }
-
-        let mut file = File::open(&wasm)?;
-        let mut header = [0; 4];
-        file.read_exact(&mut header)?;
-        if header != *b"\0asm" {
-            add_candid_service_metadata = false;
         }
 
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
             idl: IdlBuildOutput::File(candid),
-            add_candid_service_metadata,
         })
     }
 
@@ -178,32 +184,22 @@ impl CanisterBuilder for CustomBuilder {
     }
 }
 
-fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
-    let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = cwd
-        .join(command_name)
-        .canonicalize()
-        .or_else(|_| which::which(command_name))
-        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(&canonicalized);
+pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult {
+    let CustomBuilderExtra {
+        input_candid_url,
+        candid,
+        input_wasm_url,
+        wasm,
+        build: _,
+        dependencies: _,
+    } = CustomBuilderExtra::try_from(info, pool)?;
 
-    cmd.args(arguments)
-        .current_dir(cwd)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-
-    for (key, value) in vars {
-        cmd.env(key.as_ref(), value);
+    if let Some(url) = input_wasm_url {
+        download_file_to_path(&url, &wasm).await?;
+    }
+    if let Some(url) = input_candid_url {
+        download_file_to_path(&url, &candid).await?;
     }
 
-    let output = cmd
-        .output()
-        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(DfxError::new(BuildError::CustomToolError(
-            output.status.code(),
-        )))
-    }
+    Ok(())
 }

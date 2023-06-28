@@ -2,15 +2,15 @@ use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{start_icx_proxy_actor, start_shutdown_controller};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::network::network_descriptor::NetworkDescriptor;
-use crate::lib::provider::{create_network_descriptor, LocalBindDetermination};
 use crate::util::get_reusable_socket_addr;
-use crate::util::network::get_replica_urls;
 use crate::NetworkOpt;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
 use fn_error_context::context;
+use slog::warn;
 use std::fs::create_dir_all;
 use std::net::{IpAddr, SocketAddr};
 
@@ -18,19 +18,19 @@ use std::net::{IpAddr, SocketAddr};
 #[derive(Parser, Clone)]
 pub struct BootstrapOpts {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
-    #[clap(long)]
+    #[arg(long)]
     ip: Option<String>,
 
     /// Specifies the port number that the bootstrap server listens on. Defaults to 8081.
-    #[clap(long)]
+    #[arg(long)]
     port: Option<String>,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
     /// Specifies the maximum number of seconds that the bootstrap server
     /// will wait for upstream requests to complete. Defaults to 30.
-    #[clap(long)]
+    #[arg(long)]
     timeout: Option<String>,
 }
 
@@ -44,6 +44,13 @@ pub fn exec(
         timeout,
     }: BootstrapOpts,
 ) -> DfxResult {
+    warn!(
+        env.get_logger(),
+        "The bootstrap command is deprecated. \
+        Please use the start command instead. \
+        If you have a good reason to use the bootstrap command, \
+        please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163"
+    );
     let network_descriptor = create_network_descriptor(
         env.get_config(),
         env.get_networks_config(),
@@ -54,7 +61,7 @@ pub fn exec(
     let network_descriptor =
         apply_arguments(network_descriptor, ip, port.as_deref(), timeout.as_deref())?;
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
-    local_server_descriptor.describe_bootstrap();
+    local_server_descriptor.describe_bootstrap(env.get_logger());
     let config_bootstrap = &local_server_descriptor.bootstrap;
 
     create_dir_all(&local_server_descriptor.data_directory).with_context(|| {
@@ -66,7 +73,7 @@ pub fn exec(
 
     let icx_proxy_pid_file_path = local_server_descriptor.icx_proxy_pid_path();
 
-    let replica_urls = get_replica_urls(env, &network_descriptor)?;
+    let replica_urls = network_descriptor.get_replica_urls(Some(env.get_logger()))?;
 
     // Since the user may have provided port "0", we need to grab a dynamically
     // allocated port and construct a resuable SocketAddr which the actix
@@ -99,6 +106,7 @@ pub fn exec(
                 bind: socket_addr,
                 replica_urls,
                 fetch_root_key: !network_descriptor.is_ic,
+                verbose: env.get_verbose_level() > 0,
             };
 
             let port_ready_subscribe = None;

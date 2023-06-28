@@ -10,9 +10,9 @@ mod show;
 
 /// Manages the dfx version cache.
 #[derive(Parser)]
-#[clap(name("cache"))]
+#[command(name = "cache")]
 pub struct CacheOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

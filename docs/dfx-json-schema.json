@@ -42,6 +42,13 @@
         "$ref": "#/definitions/ConfigNetwork"
       }
     },
+    "output_env_file": {
+      "description": "If set, environment variables will be output to this file (without overwriting any user-defined variables, if the file already exists).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "profile": {
       "anyOf": [
         {
@@ -115,6 +122,58 @@
         }
       }
     },
+    "CanisterMetadataSection": {
+      "title": "Canister Metadata Configuration",
+      "description": "Configures a custom metadata section for the canister wasm. dfx uses the first definition of a given name matching the current network, ignoring any of the same name that follow.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "content": {
+          "title": "Content",
+          "description": "Content of this metadata section. Conflicts with `path`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "title": "Name",
+          "description": "The name of the wasm section",
+          "type": "string"
+        },
+        "networks": {
+          "title": "Networks",
+          "description": "Networks this section applies to. If this field is absent, then it applies to all networks. An empty array means this element will not apply to any network.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "path": {
+          "title": "Path",
+          "description": "Path to file containing section contents. Conflicts with `content`. For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use the canister's candid definition. If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's actual candid service definition.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "title": "Visibility",
+          "default": "public",
+          "allOf": [
+            {
+              "$ref": "#/definitions/MetadataVisibility"
+            }
+          ]
+        }
+      }
+    },
     "ConfigCanistersCanister": {
       "title": "Canister Configuration",
       "description": "Configurations for a single canister.",
@@ -163,6 +222,16 @@
                 "type": "string"
               }
             },
+            "build": {
+              "title": "Build Commands",
+              "description": "Commands that are executed in order to produce this canister's assets. Expected to produce assets in one of the paths specified by the 'source' field. Optional if there is no build necessary or the assets can be built using the default `npm run build` command.",
+              "default": [],
+              "allOf": [
+                {
+                  "$ref": "#/definitions/SerdeVec_for_String"
+                }
+              ]
+            },
             "type": {
               "type": "string",
               "enum": [
@@ -175,7 +244,6 @@
           "title": "Custom-Specific Properties",
           "type": "object",
           "required": [
-            "build",
             "candid",
             "type",
             "wasm"
@@ -183,7 +251,8 @@
           "properties": {
             "build": {
               "title": "Build Commands",
-              "description": "Commands that are executed in order to produce this canister's WASM module. Expected to produce the WASM in the path specified by the 'wasm' field.",
+              "description": "Commands that are executed in order to produce this canister's WASM module. Expected to produce the WASM in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
+              "default": [],
               "allOf": [
                 {
                   "$ref": "#/definitions/SerdeVec_for_String"
@@ -192,7 +261,7 @@
             },
             "candid": {
               "title": "Candid File",
-              "description": "Path to this canister's candid interface declaration.",
+              "description": "Path to this canister's candid interface declaration.  A URL to a candid file is also acceptable.",
               "type": "string"
             },
             "type": {
@@ -203,7 +272,7 @@
             },
             "wasm": {
               "title": "WASM Path",
-              "description": "Path to WASM to be installed.",
+              "description": "Path to WASM to be installed. URLs to a WASM module are also acceptable. A canister that has a URL to a WASM module can not also have `build` steps.",
               "type": "string"
             }
           }
@@ -222,12 +291,33 @@
               ]
             }
           }
+        },
+        {
+          "title": "Pull-Specific Properties",
+          "type": "object",
+          "required": [
+            "id",
+            "type"
+          ],
+          "properties": {
+            "id": {
+              "title": "Canister ID",
+              "description": "Principal of the canister on the ic network.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "pull"
+              ]
+            }
+          }
         }
       ],
       "properties": {
         "args": {
-          "title": "Canister Argument",
-          "description": "This field defines a static argument to use when deploying the canister.",
+          "title": "Canister-Specific Build Argument",
+          "description": "This field defines an additional argument to pass to the Motoko compiler when building the canister.",
           "type": [
             "string",
             "null"
@@ -268,6 +358,14 @@
             "type": "string"
           }
         },
+        "gzip": {
+          "title": "Gzip Canister WASM",
+          "description": "Disabled by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "initialization_values": {
           "title": "Resource Allocation Settings",
           "description": "Defines initial values for resource allocation settings.",
@@ -290,6 +388,28 @@
             "null"
           ]
         },
+        "metadata": {
+          "title": "Metadata",
+          "description": "Defines metadata sections to set in the canister .wasm",
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CanisterMetadataSection"
+          }
+        },
+        "optimize": {
+          "title": "Optimize Canister WASM",
+          "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WasmOptLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "post_install": {
           "title": "Post-Install Commands",
           "description": "One or more commands to run post canister installation.",
@@ -297,6 +417,19 @@
           "allOf": [
             {
               "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
+        "pullable": {
+          "title": "Pullable",
+          "description": "Defines required properties so that this canister is ready for `dfx deps pull` by other projects.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Pullable"
+            },
+            {
+              "type": "null"
             }
           ]
         },
@@ -311,6 +444,14 @@
             {
               "type": "null"
             }
+          ]
+        },
+        "shrink": {
+          "title": "Shrink Canister WASM",
+          "description": "Whether run `ic-wasm shrink` after building the Canister. Enabled by default for Rust/Motoko canisters. Disabled by default for custom canisters.",
+          "type": [
+            "boolean",
+            "null"
           ]
         }
       }
@@ -401,6 +542,12 @@
       "title": "Bitcoin Adapter Configuration",
       "type": "object",
       "properties": {
+        "canister_init_arg": {
+          "title": "Initialization Argument",
+          "description": "The initialization argument for the bitcoin canister.",
+          "default": "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})",
+          "type": "string"
+        },
         "enabled": {
           "title": "Enable Bitcoin Adapter",
           "default": false,
@@ -482,8 +629,18 @@
       "properties": {
         "enabled": {
           "title": "Enable HTTP Adapter",
-          "default": false,
+          "default": true,
           "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "error",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
         }
       }
     },
@@ -491,6 +648,17 @@
       "title": "Local Replica Configuration",
       "type": "object",
       "properties": {
+        "log_level": {
+          "description": "Run replica with the provided log level. Default is 'error'. Debug prints still get displayed",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaLogLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "port": {
           "description": "Port the replica listens on.",
           "type": [
@@ -611,6 +779,18 @@
         }
       }
     },
+    "HttpAdapterLogLevel": {
+      "description": "Represents the log level of the HTTP adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
     "InitializationValues": {
       "title": "Initial Resource Allocations",
       "type": "object",
@@ -650,6 +830,24 @@
         }
       }
     },
+    "MetadataVisibility": {
+      "oneOf": [
+        {
+          "description": "Anyone can query the metadata",
+          "type": "string",
+          "enum": [
+            "public"
+          ]
+        },
+        {
+          "description": "Only the controllers of the canister can query the metadata.",
+          "type": "string",
+          "enum": [
+            "private"
+          ]
+        }
+      ]
+    },
     "NetworkType": {
       "title": "Network Type",
       "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
@@ -671,6 +869,53 @@
         "Release"
       ]
     },
+    "Pullable": {
+      "type": "object",
+      "required": [
+        "dependencies",
+        "init_guide",
+        "wasm_url"
+      ],
+      "properties": {
+        "dependencies": {
+          "title": "dependencies",
+          "description": "Canister IDs (Principal) of direct dependencies.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "init_guide": {
+          "title": "init_guide",
+          "description": "A message to guide consumers how to initialize the canister.",
+          "type": "string"
+        },
+        "wasm_hash": {
+          "title": "wasm_hash",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_url": {
+          "title": "wasm_url",
+          "description": "The Url to download canister wasm.",
+          "type": "string"
+        }
+      }
+    },
+    "ReplicaLogLevel": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
     "ReplicaSubnetType": {
       "type": "string",
       "enum": [
@@ -690,6 +935,22 @@
             "type": "string"
           }
         }
+      ]
+    },
+    "WasmOptLevel": {
+      "title": "Wasm Optimization Levels",
+      "description": "Wasm optimization levels that are passed to `wasm-opt`. \"cycles\" defaults to O3, \"size\" defaults to Oz. O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os. O3 and Oz empirically give best cycle savings and code size savings respectively.",
+      "type": "string",
+      "enum": [
+        "cycles",
+        "size",
+        "O4",
+        "O3",
+        "O2",
+        "O1",
+        "O0",
+        "Oz",
+        "Os"
       ]
     }
   }

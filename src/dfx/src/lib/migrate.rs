@@ -1,5 +1,6 @@
 use anyhow::{bail, Context, Error};
 use candid::{CandidType, Deserialize, Principal};
+use dfx_core::identity::Identity;
 use ic_agent::{Agent, Identity as _};
 use ic_utils::{
     interfaces::{
@@ -10,19 +11,10 @@ use ic_utils::{
 };
 use itertools::Itertools;
 
-use crate::{
-    lib::{operations::canister::install_wallet, waiter::waiter_with_timeout},
-    util::expiry_duration,
-};
-
-use super::{
-    environment::Environment,
-    error::DfxResult,
-    identity::{Identity, IdentityManager},
-    models::canister_id_store::CanisterIdStore,
-    network::network_descriptor::NetworkDescriptor,
-    root_key::fetch_root_key_if_needed,
-};
+use crate::lib::identity::wallet::wallet_canister_id;
+use crate::lib::operations::canister::install_wallet;
+use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
@@ -31,10 +23,10 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     let agent = env
         .get_agent()
         .expect("Could not get agent from environment");
-    let mut mgr = IdentityManager::new(env)?;
-    let ident = mgr.instantiate_selected_identity()?;
+    let mut mgr = env.new_identity_manager()?;
+    let ident = mgr.instantiate_selected_identity(env.get_logger())?;
     let mut did_migrate = false;
-    let wallet = if let Some(principal) = Identity::wallet_canister_id(network, ident.name())? {
+    let wallet = if let Some(principal) = wallet_canister_id(network, ident.name())? {
         principal
     } else {
         bail!("No wallet found; nothing to do");
@@ -43,14 +35,14 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
         wallet
     } else {
         let cbor = agent
-            .read_state_canister_info(wallet, "controllers", false)
+            .read_state_canister_info(wallet, "controllers")
             .await?;
         let controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
         bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
     };
     did_migrate |= migrate_wallet(env, agent, &wallet, fix).await?;
     if let Some(canisters) = &config.canisters {
-        let store = CanisterIdStore::for_env(env)?;
+        let store = env.get_canister_id_store()?;
         for name in canisters.keys() {
             if !config.is_remote_canister(name, &network.name)? {
                 if let Some(id) = store.find(name) {
@@ -95,7 +87,7 @@ async fn migrate_canister(
     fix: bool,
 ) -> DfxResult<bool> {
     let cbor = agent
-        .read_state_canister_info(canister_id, "controllers", false)
+        .read_state_canister_info(canister_id, "controllers")
         .await?;
     let mut controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
     if controllers.contains(wallet.canister_id_())
@@ -127,7 +119,7 @@ async fn migrate_canister(
                     },)),
                     0,
                 )
-                .call_and_wait(waiter_with_timeout(expiry_duration()))
+                .call_and_wait()
                 .await
                 .context("Could not update canister settings")?;
         } else {

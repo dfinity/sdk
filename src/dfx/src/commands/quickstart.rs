@@ -1,5 +1,6 @@
 use anyhow::{bail, Context};
 use candid::Principal;
+use clap::Parser;
 use dialoguer::{Confirm, Input};
 use ic_agent::Agent;
 use ic_utils::interfaces::{
@@ -13,9 +14,10 @@ use tokio::runtime::Runtime;
 use crate::{
     commands::ledger::{create_canister::MEMO_CREATE_CANISTER, notify_create, transfer_cmc},
     lib::{
+        agent::create_agent_environment,
         environment::Environment,
         error::DfxResult,
-        identity::Identity,
+        identity::wallet::{set_wallet_id, wallet_canister_id},
         ledger_types::{Memo, NotifyError},
         nns_types::{
             account_identifier::AccountIdentifier,
@@ -25,13 +27,21 @@ use crate::{
             canister::install_wallet,
             ledger::{balance, xdr_permyriad_per_icp},
         },
-        provider::create_agent_environment,
-        waiter::waiter_with_timeout,
     },
-    util::{assets::wallet_wasm, expiry_duration},
+    util::assets::wallet_wasm,
 };
 
-pub fn exec(env: &dyn Environment) -> DfxResult {
+/// Use the `dfx quickstart` command to perform initial one time setup for your identity and/or wallet. This command
+/// can be run anytime to repeat the setup process or to be used as an informational command, printing
+/// information about your ICP balance, current ICP to XDR conversion rate, and more.
+///
+/// If setup tasks remain, this command is equivalent to running `dfx identity set-wallet` (for importing) or
+/// `dfx ledger create-canister` followed by `dfx identity deploy-wallet` (for creating), though more steps may
+/// be added in future versions.
+#[derive(Parser)]
+pub struct QuickstartOpts;
+
+pub fn exec(env: &dyn Environment, _: QuickstartOpts) -> DfxResult {
     let env = create_agent_environment(env, Some("ic".to_string()))?;
     let agent = env.get_agent().expect("Unable to create agent");
     let ident = env.get_selected_identity().unwrap();
@@ -47,7 +57,7 @@ pub fn exec(env: &dyn Environment) -> DfxResult {
         let xdr_per_icp = Decimal::from_i128_with_scale(xdr_conversion_rate as i128, 4);
         let icp_per_tc = xdr_per_icp.inv();
         eprintln!("Conversion rate: 1 ICP <> {xdr_per_icp} XDR");
-        let wallet = Identity::wallet_canister_id(env.get_network_descriptor(), ident)?;
+        let wallet = wallet_canister_id(env.get_network_descriptor(), ident)?;
         if let Some(wallet) = wallet {
             step_print_wallet(agent, wallet).await?;
         } else if Confirm::new()
@@ -96,11 +106,11 @@ async fn step_import_wallet(env: &dyn Environment, agent: &Agent, ident: &str) -
         let wasm = wallet_wasm(env.get_logger())?;
         mgmt.install_code(&id, &wasm)
             .with_mode(InstallMode::Install)
-            .call_and_wait(waiter_with_timeout(expiry_duration()))
+            .call_and_wait()
             .await?;
         WalletCanister::create(agent, id).await?
     };
-    Identity::set_wallet_id(env.get_network_descriptor(), ident, id)?;
+    set_wallet_id(env.get_network_descriptor(), ident, id)?;
     eprintln!("Successfully imported wallet {id}.");
     if let Ok(balance) = wallet.wallet_balance().await {
         eprintln!(
@@ -162,6 +172,7 @@ async fn step_interact_ledger(
         TRANSACTION_FEE,
         None,
         ident_principal,
+        None,
     )
     .await
     .context("Failed to transfer to the cycles minting canister")?;
@@ -169,10 +180,10 @@ async fn step_interact_ledger(
         "Sent {icpts} to the cycles minting canister at height {height}"
     ));
     let notify_spinner = ProgressBar::new_spinner();
-    notify_spinner.set_message("Notifying the the cycles minting canister...");
+    notify_spinner.set_message("Notifying the cycles minting canister...");
     notify_spinner.enable_steady_tick(100);
-    let res = notify_create(agent, ident_principal, height).await
-                        .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
+    let res = notify_create(agent, ident_principal, height, None).await
+        .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
     let wallet = match res {
         Ok(principal) => principal,
         Err(NotifyError::Refunded {
@@ -206,7 +217,7 @@ async fn step_finish_wallet(
     install_wallet(env, agent, wallet, InstallMode::Install)
         .await
         .context("Failed to install the wallet code to the canister")?;
-    Identity::set_wallet_id(env.get_network_descriptor(), ident, wallet)
+    set_wallet_id(env.get_network_descriptor(), ident, wallet)
         .context("Failed to record the wallet's principal as your associated wallet")?;
     install_spinner.finish_with_message("Installed the wallet code to the canister");
     eprintln!("Success! Run this command again at any time to print all this information again.");

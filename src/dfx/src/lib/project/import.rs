@@ -1,17 +1,14 @@
-use crate::config::dfinity::Config;
-use crate::lib::error::DfxResult;
-use crate::lib::models::canister_id_store;
-use crate::lib::models::canister_id_store::CanisterIds;
+use crate::lib::error::ProjectError;
+use dfx_core::config::model::canister_id_store;
+use dfx_core::config::model::canister_id_store::CanisterIds;
+use dfx_core::config::model::dfinity::Config;
 
-use anyhow::{anyhow, Context};
-use fn_error_context::context;
 use hyper_rustls::ConfigBuilderExt;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 use slog::{info, Logger};
 use std::collections::BTreeMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use url::Url;
@@ -26,7 +23,7 @@ struct DfxJsonProject {
     pub canisters: BTreeMap<String, DfxJsonCanister>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImportNetworkMapping {
     pub network_name_in_this_project: String,
     pub network_name_in_project_being_imported: String,
@@ -41,11 +38,18 @@ pub async fn import_canister_definitions(
     prefix: Option<&str>,
     import_only_canister_name: Option<String>,
     network_mappings: &[ImportNetworkMapping],
-) -> DfxResult {
+) -> Result<(), ProjectError> {
     let mut loader = Loader::new();
 
     let their_dfx_json_url = location_to_url(their_dfx_json_location)?;
-    let their_canister_ids_json_url = their_dfx_json_url.join("canister_ids.json")?;
+    let their_canister_ids_json_url =
+        their_dfx_json_url.join("canister_ids.json").map_err(|e| {
+            ProjectError::InvalidUrl(
+                their_dfx_json_url.clone(),
+                "canister_ids.json".to_string(),
+                e,
+            )
+        })?;
 
     let what = if let Some(ref name) = import_only_canister_name {
         format!("canister '{}'", name)
@@ -61,7 +65,7 @@ pub async fn import_canister_definitions(
 
     let our_project_root = config.get_project_root().to_path_buf();
     let candid_output_dir = our_project_root.join("candid");
-    fs::create_dir_all(candid_output_dir)?;
+    dfx_core::fs::create_dir_all(&candid_output_dir)?;
 
     let config_canisters_object = get_canisters_json_object(config)?;
 
@@ -115,9 +119,17 @@ async fn import_candid_definition(
     their_relative_candid: &str,
     our_canister_name: &str,
     our_canister: &mut Map<String, Value>,
-) -> DfxResult {
+) -> Result<(), ProjectError> {
     let our_relative_candid_path = format!("candid/{}.did", our_canister_name);
-    let their_candid_url = their_dfx_json_url.join(their_relative_candid)?;
+    let their_candid_url = their_dfx_json_url
+        .join(their_relative_candid)
+        .map_err(|e| {
+            ProjectError::InvalidUrl(
+                their_dfx_json_url.clone(),
+                their_relative_candid.to_string(),
+                e,
+            )
+        })?;
     let our_candid_path_incl_project_root = our_project_root.join(&our_relative_candid_path);
     info!(
         logger,
@@ -126,12 +138,7 @@ async fn import_candid_definition(
         their_candid_url,
     );
     let candid_definition = loader.get_required_url_contents(&their_candid_url).await?;
-    fs::write(&our_candid_path_incl_project_root, candid_definition).with_context(|| {
-        format!(
-            "Failed to write {}",
-            our_candid_path_incl_project_root.display()
-        )
-    })?;
+    dfx_core::fs::write(&our_candid_path_incl_project_root, candid_definition)?;
 
     our_canister.insert(
         "candid".to_string(),
@@ -140,23 +147,25 @@ async fn import_candid_definition(
     Ok(())
 }
 
-fn get_canisters_json_object(config: &mut Config) -> DfxResult<&mut Map<String, Value>> {
+pub fn get_canisters_json_object(
+    config: &mut Config,
+) -> Result<&mut Map<String, Value>, ProjectError> {
     let config_canisters_object = config
         .get_mut_json()
         .pointer_mut("/canisters")
-        .ok_or_else(|| anyhow!("dfx.json does not contain a canisters element"))?
+        .ok_or(ProjectError::DfxJsonMissingCanisters)?
         .as_object_mut()
-        .ok_or_else(|| anyhow!("dfx.json canisters element is not an object"))?;
+        .ok_or_else(|| ProjectError::ValueInDfxJsonIsNotJsonObject("/canisters".to_string()))?;
     Ok(config_canisters_object)
 }
 
-fn set_remote_canister_ids(
+pub fn set_remote_canister_ids(
     logger: &Logger,
     their_canister_name: &str,
     network_mappings: &[ImportNetworkMapping],
     their_canister_ids: &CanisterIds,
     canister: &mut Map<String, Value>,
-) -> DfxResult {
+) -> Result<(), ProjectError> {
     for network_mapping in network_mappings {
         let remote_canister_id = their_canister_ids
             .get(their_canister_name)
@@ -170,14 +179,16 @@ fn set_remote_canister_ids(
             );
             info!(
                 logger,
-                "Canister id on network '{}' is {}",
+                "{} canister id on network '{}' is {}",
+                their_canister_name,
                 network_mapping.network_name_in_this_project,
                 remote_canister_id,
             );
         } else {
             info!(
                 logger,
-                "There is no canister id for network '{}'",
+                "{} has no canister id for network '{}'",
+                their_canister_name,
                 network_mapping.network_name_in_this_project
             );
         }
@@ -194,7 +205,7 @@ fn set_additional_fields(our_canister: &mut Map<String, Value>) {
 fn ensure_child_object<'a>(
     parent: &'a mut Map<String, Value>,
     name: &str,
-) -> DfxResult<&'a mut Map<String, Value>> {
+) -> Result<&'a mut Map<String, Value>, ProjectError> {
     if !parent.contains_key(name) {
         parent.insert(name.to_string(), Value::Object(Map::new()));
     }
@@ -202,16 +213,18 @@ fn ensure_child_object<'a>(
         .get_mut(name)
         .unwrap() // we just added it
         .as_object_mut()
-        .ok_or_else(|| anyhow!("{} is not a json object", name))
+        .ok_or_else(|| ProjectError::ValueInDfxJsonIsNotJsonObject(name.to_string()))
 }
 
-fn location_to_url(dfx_json_location: &str) -> DfxResult<Url> {
+fn location_to_url(dfx_json_location: &str) -> Result<Url, ProjectError> {
     Url::parse(dfx_json_location).or_else(|url_error| {
-        let canonical = PathBuf::from_str(dfx_json_location)?.canonicalize()?;
+        let path = PathBuf::from_str(dfx_json_location).map_err(|e| {
+            ProjectError::ConvertingStringToPathFailed(dfx_json_location.to_string(), e)
+        })?;
+        let canonical = dfx_core::fs::canonicalize(&path)?;
 
-        Url::from_file_path(canonical).map_err(|_file_error_is_unit| {
-            anyhow!("Unable to parse as url ({}) or file", url_error)
-        })
+        Url::from_file_path(canonical)
+            .map_err(|_file_error_is_unit| ProjectError::UnableToParseAsUrlOrFile(url_error))
     })
 }
 
@@ -224,7 +237,7 @@ impl Loader {
         Loader { client: None }
     }
 
-    fn client(&mut self) -> DfxResult<&Client> {
+    fn client(&mut self) -> Result<&Client, ProjectError> {
         if self.client.is_none() {
             let tls_config = rustls::ClientConfig::builder()
                 .with_safe_defaults()
@@ -237,36 +250,40 @@ impl Loader {
             let client = reqwest::Client::builder()
                 .use_preconfigured_tls(tls_config)
                 .build()
-                .context("Could not create HTTP client.")?;
+                .map_err(ProjectError::CouldNotCreateHttpClient)?;
             self.client = Some(client);
         }
         Ok(self.client.as_ref().unwrap())
     }
 
-    #[context("Failed to load project definition from {}", url)]
-    async fn load_project_definition(&mut self, url: &Url) -> DfxResult<DfxJsonProject> {
+    async fn load_project_definition(&mut self, url: &Url) -> Result<DfxJsonProject, ProjectError> {
         let body = self.get_required_url_contents(url).await?;
-        let project = serde_json::from_slice(&body).context("failed to decode json")?;
+        let project = serde_json::from_slice(&body)
+            .map_err(|e| ProjectError::FailedToLoadProjectDefinition(url.clone(), e))?;
         Ok(project)
     }
 
-    #[context("Failed to load canister ids from {}", url)]
-    async fn load_canister_ids(&mut self, url: &Url) -> DfxResult<canister_id_store::CanisterIds> {
+    async fn load_canister_ids(
+        &mut self,
+        url: &Url,
+    ) -> Result<canister_id_store::CanisterIds, ProjectError> {
         match self.get_optional_url_contents(url).await? {
             None => Ok(canister_id_store::CanisterIds::new()),
-            Some(body) => serde_json::from_slice(&body).context("failed to decode json"),
+            Some(body) => serde_json::from_slice(&body)
+                .map_err(|e| ProjectError::FailedToLoadCanisterIds(url.clone(), e)),
         }
     }
 
-    #[context("Failed to get contents of url {}", & url)]
-    async fn get_required_url_contents(&mut self, url: &Url) -> DfxResult<Vec<u8>> {
+    async fn get_required_url_contents(&mut self, url: &Url) -> Result<Vec<u8>, ProjectError> {
         self.get_optional_url_contents(url)
             .await?
-            .ok_or_else(|| anyhow!("Not found: {}", url))
+            .ok_or_else(|| ProjectError::NotFound404(url.clone()))
     }
 
-    #[context("Failed to get contents of url {}", & url)]
-    async fn get_optional_url_contents(&mut self, url: &Url) -> DfxResult<Option<Vec<u8>>> {
+    async fn get_optional_url_contents(
+        &mut self,
+        url: &Url,
+    ) -> Result<Option<Vec<u8>>, ProjectError> {
         if url.scheme() == "file" {
             Self::read_optional_file_contents(&PathBuf::from(url.path()))
         } else {
@@ -274,24 +291,31 @@ impl Loader {
         }
     }
 
-    #[context("Failed to get contents of file {}", path.display())]
-    fn read_optional_file_contents(path: &Path) -> DfxResult<Option<Vec<u8>>> {
+    fn read_optional_file_contents(path: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
         if path.exists() {
-            let contents = fs::read(&path)?;
+            let contents = dfx_core::fs::read(path)?;
             Ok(Some(contents))
         } else {
             Ok(None)
         }
     }
 
-    #[context("Failed to get body from {}", &url)]
-    async fn get_optional_url_body(&mut self, url: &Url) -> DfxResult<Option<Vec<u8>>> {
+    async fn get_optional_url_body(&mut self, url: &Url) -> Result<Option<Vec<u8>>, ProjectError> {
         let client = self.client()?;
-        let response = client.get(url.clone()).send().await?;
+        let response = client
+            .get(url.clone())
+            .send()
+            .await
+            .map_err(|e| ProjectError::FailedToGetResource(url.clone(), e))?;
         if response.status() == StatusCode::NOT_FOUND {
             Ok(None)
         } else {
-            let body = response.error_for_status()?.bytes().await?;
+            let body = response
+                .error_for_status()
+                .map_err(|e| ProjectError::GettingResourceReturnedHTTPError(url.clone(), e))?
+                .bytes()
+                .await
+                .map_err(|e| ProjectError::FailedToGetBodyFromResponse(url.clone(), e))?;
             Ok(Some(body.into()))
         }
     }

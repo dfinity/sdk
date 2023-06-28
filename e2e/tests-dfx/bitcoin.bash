@@ -4,6 +4,8 @@ load ../utils/_
 
 # All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
 
+BITCOIN_CANISTER_ID="g4xu7-jiaaa-aaaan-aaaaq-cai"
+
 setup() {
     standard_setup
 
@@ -159,6 +161,16 @@ set_local_network_bitcoin_enabled() {
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
+@test "dfx start --enable-bitcoin --background waits until bitcoin canister is installed" {
+    dfx_new hello
+
+    dfx_start --enable-bitcoin
+
+    assert_command dfx canister info "$BITCOIN_CANISTER_ID"
+    assert_contains "Controllers: 2vxsx-fae"
+    assert_contains "Module hash: 0x"
+}
+
 @test "dfx replica --enable-bitcoin with no other configuration succeeds" {
     dfx_new hello
 
@@ -220,7 +232,7 @@ set_local_network_bitcoin_enabled() {
     dfx_start --enable-bitcoin --enable-canister-http
 
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 
     install_asset greet
     assert_command dfx deploy
@@ -235,7 +247,7 @@ set_local_network_bitcoin_enabled() {
     dfx_bootstrap
 
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 
     install_asset greet
     assert_command dfx deploy
