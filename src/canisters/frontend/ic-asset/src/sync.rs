@@ -20,16 +20,16 @@ use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
 use crate::canister_api::types::batch_upload::{
     common::ComputeEvidenceArguments, v1::CommitBatchArguments,
 };
-use crate::error::compatibility::CompatibilityError::DowngradeV1TOV0Failed;
-use crate::error::gather_asset_descriptors::GatherAssetDescriptorsError;
-use crate::error::gather_asset_descriptors::GatherAssetDescriptorsError::{
+use crate::error::CompatibilityError::DowngradeV1TOV0Failed;
+use crate::error::GatherAssetDescriptorsError;
+use crate::error::GatherAssetDescriptorsError::{
     DuplicateAssetKey, InvalidDirectoryEntry, InvalidSourceDirectory, LoadConfigFailed,
 };
-use crate::error::prepare_sync_for_proposal::PrepareSyncForProposalError;
-use crate::error::sync::SyncError;
-use crate::error::sync::SyncError::CommitBatchFailed;
-use crate::error::upload_content::UploadContentError;
-use crate::error::upload_content::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
+use crate::error::PrepareSyncForProposalError;
+use crate::error::SyncError;
+use crate::error::SyncError::CommitBatchFailed;
+use crate::error::UploadContentError;
+use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
 
 use candid::Nat;
 use ic_agent::AgentError;

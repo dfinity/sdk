@@ -291,7 +291,7 @@ pub async fn exec(
                 agent
                     .query(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
-                    .with_arg(&arg_value)
+                    .with_arg(arg_value)
                     .call()
                     .await
                     .context("Failed query call.")?
@@ -324,7 +324,7 @@ pub async fn exec(
                 agent
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
-                    .with_arg(&arg_value)
+                    .with_arg(arg_value)
                     .call()
                     .await
                     .context("Failed update call.")?
@@ -353,7 +353,7 @@ pub async fn exec(
                 agent
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
-                    .with_arg(&arg_value)
+                    .with_arg(arg_value)
                     .call_and_wait()
                     .await
                     .context("Failed update call.")?
