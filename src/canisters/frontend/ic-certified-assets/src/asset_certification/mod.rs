@@ -194,6 +194,16 @@ impl CertifiedResponses {
         }
     }
 
+    pub fn expr_path(&self, path: &str) -> String {
+        let path = AssetPath::from(path);
+        let hash_tree_path_root = path.asset_hash_path_root_v2();
+        if self.contains_path(hash_tree_path_root.as_vec()) {
+            path.asset_hash_path_root_v2().expr_path()
+        } else {
+            HashTreePath::not_found_base_path_v2().expr_path()
+        }
+    }
+
     /// If the path has certified responses this function creates a hash tree that proves...
     /// * The path is part of the CertifiedResponses hash tree
     /// The hash tree then includes certification the valid certification v1 response for this path.
@@ -244,7 +254,7 @@ impl CertifiedResponses {
         certificate: &[u8],
     ) -> (HeaderField, WitnessResult) {
         let (witness, witness_result) = self.witness_path(path);
-        let expr_path = AssetPath::from(path).asset_hash_path_root_v2().expr_path();
+        let expr_path = self.expr_path(path);
 
         let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
         serializer.self_describe().unwrap();
