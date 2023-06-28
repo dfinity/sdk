@@ -35,29 +35,27 @@ impl DiagnosedError {
 /// Attempts to give helpful suggestions on how to resolve errors.
 pub fn diagnose(_env: &dyn Environment, err: &AnyhowError) -> Diagnosis {
     if let Some(diagnosed_error) = err.downcast_ref::<DiagnosedError>() {
-        (
+        return (
             diagnosed_error.error_explanation.clone(),
             diagnosed_error.action_suggestion.clone(),
-        )
-    } else if let Some(agent_err) = err.downcast_ref::<AgentError>() {
-        match agent_err {
-            AgentError::HttpError(payload) => match payload.status {
-                403 => diagnose_http_403(),
-                400 => match std::str::from_utf8(payload.content.as_slice()) {
-                    Ok("Wrong sender") => {
-                        // differing behavior between replica and ic-ref:
-                        // replica gives HTTP403, ic-ref gives HTTP400 with message "Wrong sender"
-                        diagnose_http_403()
-                    }
-                    _ => NULL_DIAGNOSIS,
-                },
-                _ => NULL_DIAGNOSIS,
-            },
-            _ => NULL_DIAGNOSIS,
-        }
-    } else {
-        NULL_DIAGNOSIS
+        );
     }
+
+    if let Some(agent_err) = err.downcast_ref::<AgentError>() {
+        if not_a_controller(agent_err) {
+            return diagnose_http_403();
+        }
+    }
+
+    NULL_DIAGNOSIS
+}
+
+fn not_a_controller(err: &AgentError) -> bool {
+    // differing behavior between replica and ic-ref:
+    // replica gives HTTP403, ic-ref gives HTTP400 with message "Wrong sender"
+    matches!(err, AgentError::HttpError(payload) if payload.status == 403)
+        || matches!(err, AgentError::HttpError(payload) if payload.status == 400 &&
+            matches!(std::str::from_utf8(payload.content.as_slice()), Ok("Wrong sender")))
 }
 
 fn diagnose_http_403() -> Diagnosis {

@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::sign::signed_message::SignedMessageV1;
 use dfx_core::identity::CallSender;
 
-use ic_agent::agent::ReplicaV2Transport;
+use ic_agent::agent::Transport;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 
 use anyhow::{anyhow, bail, Context};

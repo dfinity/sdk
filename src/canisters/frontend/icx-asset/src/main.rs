@@ -106,7 +106,7 @@ fn style() -> Styles {
 }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
-async fn main() -> support::Result {
+async fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::parse();
 
     let logger = support::new_logger();

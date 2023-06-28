@@ -8,6 +8,7 @@ use dfx_core::network::provider::get_network_context;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
+use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::AgentError;
 use ic_utils::interfaces::ManagementCanister;
@@ -93,14 +94,25 @@ pub async fn create_canister(
                         .with_optional_freezing_threshold(settings.freezing_threshold)
                         .call_and_wait()
                         .await;
-                    if let Err(AgentError::HttpError(HttpErrorPayload { status, .. })) = &res {
-                        if *status >= 400 && *status < 500 {
-                            bail!("In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
-                                To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
-                                using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.")
+                    const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
+                        To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
+                        using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.";
+                    match res {
+                        Ok((o,)) => o,
+                        Err(AgentError::HttpError(HttpErrorPayload { status, .. }))
+                            if (400..500).contains(&status) =>
+                        {
+                            bail!(NEEDS_WALLET)
                         }
+                        Err(AgentError::ReplicaError(RejectResponse {
+                            reject_code: RejectCode::CanisterReject,
+                            reject_message,
+                            ..
+                        })) if reject_message.contains("is not allowed to call ic00 method") => {
+                            bail!(NEEDS_WALLET)
+                        }
+                        Err(e) => return Err(e).context("Canister creation call failed."),
                     }
-                    res.context("Canister creation call failed.")?.0
                 }
                 CallSender::Wallet(wallet_id) => {
                     let wallet = build_wallet_canister(*wallet_id, agent).await?;

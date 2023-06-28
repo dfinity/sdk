@@ -9,7 +9,7 @@ mod deploy;
 mod init;
 mod pull;
 
-/// Options for `dfx deps`.
+/// Pull dependencies and integrate locally.
 #[derive(Parser)]
 #[command(name = "deps")]
 pub struct DepsOpts {
