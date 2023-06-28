@@ -87,7 +87,7 @@ Now, only transport errors and timeout errors are considered retryable.
 
 ### Frontend canister
 
-- Module hash: d6bf50ad536095eb9879e560e96a5e5eddd767155c0c705b34b816deb2887dd9
+- Module hash: d1596b50735085c863a8cdc0570066c643b731837c0fcde32f5234634b59d2f4
 - https://github.com/dfinity/sdk/pull/3198
 - https://github.com/dfinity/sdk/pull/3154
 - https://github.com/dfinity/sdk/pull/3158
