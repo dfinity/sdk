@@ -108,8 +108,12 @@ Updated Motoko to 0.9.3
 
 ### Replica
 
-Updated replica to elected commit e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28.
+Updated replica to elected commit ef8ca68771baa20a14af650ab89c9b31b1dc9a5e.
 This incorporates the following executed proposals:
+- [123248](https://dashboard.internetcomputer.org/proposal/123248)
+- [123021](https://dashboard.internetcomputer.org/proposal/123021)
+- [123007](https://dashboard.internetcomputer.org/proposal/123007)
+- [122923](https://dashboard.internetcomputer.org/proposal/122923)
 - [122924](https://dashboard.internetcomputer.org/proposal/122924)
 - [122910](https://dashboard.internetcomputer.org/proposal/122910)
 - [122911](https://dashboard.internetcomputer.org/proposal/122911)

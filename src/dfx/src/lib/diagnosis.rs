@@ -1,4 +1,6 @@
+use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
+use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
 use regex::Regex;
@@ -60,6 +62,19 @@ pub fn diagnose(_env: &dyn Environment, err: &AnyhowError) -> Diagnosis {
 }
 
 fn not_a_controller(err: &AgentError) -> bool {
+    // Newer replicas include the error code in the reject response.
+    if matches!(
+        err,
+        AgentError::ReplicaError(RejectResponse {
+            reject_code: RejectCode::CanisterError,
+            error_code: Some(error_code),
+            ..
+        }) if error_code == error_code::CANISTER_INVALID_CONTROLLER
+    ) {
+        return true;
+    }
+
+    // Older replicas do not include the error code in the reject response.
     // differing behavior between replica and ic-ref:
     // replica gives HTTP403, ic-ref gives HTTP400 with message "Wrong sender"
     matches!(err, AgentError::HttpError(payload) if payload.status == 403)
