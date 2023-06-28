@@ -115,6 +115,8 @@ validate_default_project() {
         export hello_world_frontend_url="http://localhost:$webserver_port/?canisterId=$hello_world_frontend_canister_id"
         export candid_ui_url="http://localhost:$webserver_port/?canisterId=$candid_ui_id&id=$application_canister_id"
 
+        pip install playwright==1.35.0
+
         echo
         echo "=================================================="
         echo "dfx project directory: $(pwd)"
@@ -122,30 +124,11 @@ validate_default_project() {
         echo "candid URL: $candid_ui_url"
         echo "=================================================="
         echo
-        echo "[1/4] Verify 'hello' functionality in a browser."
-        echo "  - Open this URL in your web browser with empty cache or 'Private Browsing' mode"
-        echo "  - Type a name and verify the response."
+        echo "Verify the Python script output."
         echo
-        echo "  $hello_world_frontend_url"
+        python3 scripts/test-uis.py --frontend_url "$hello_world_frontend_url" --candid_url "$candid_ui_url" --browsers chromium firefox webkit
         echo
-        wait_for_response 'frontend UI passes'
-        echo
-        echo "[2/4] Verify there are no errors in the console by opening the Developer Tools."
-        echo
-        wait_for_response 'no errors on console'
-        echo
-        echo "[3/4] Verify the Candid UI."
-        echo
-        echo "  - Open this URL in your web browser with empty cache or 'Private Browsing' mode"
-        echo "  - Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*"
-        echo
-        echo "  $candid_ui_url"
-        echo
-        wait_for_response 'candid UI passes'
-        echo
-        echo "[4/4] Verify there are no errors in the console by opening the Developer Tools."
-        echo
-        wait_for_response 'no errors on console'
+        wait_for_response 'Python script logs are ok'
         echo
 
         dfx stop
