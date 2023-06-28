@@ -15,53 +15,53 @@
     "canister_sandbox-x86_64-darwin": {
         "builtin": false,
         "description": "The canister_sandbox binary. It must be updated together with the replica binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "1bra31lsl84n02xzbf1x1a1fvmwd8x54mh6nziqgqrgsnkkbsjql",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "0j3720jip20xqmbaqwj3zhsxj13nvpxfqz2m0wdiyh0q1drq1fv9",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/canister_sandbox.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/canister_sandbox.gz"
     },
     "canister_sandbox-x86_64-linux": {
         "builtin": false,
         "description": "The canister_sandbox binary. It must be updated together with the replica binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "0mkwv408jpp1pr19wc4f893anrdr1j412mdbm2ij5a804zbzjkg0",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1vmw92m6r3084v81y6a215dhkpcw6fpzasjjbypbdjyxzqxj8ila",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/canister_sandbox.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/canister_sandbox.gz"
     },
     "ic-admin-x86_64-darwin": {
         "builtin": false,
         "description": "The ic-admin binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "0darymdy5q5lkv2mx7ijyhj207b9fzdxxhvd5dd6w16kamgdpsnf",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1w07x8yg1yjd6ahy2829d5r0q1xpbqxs8s2sywm7kwnjx8kykzcm",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/ic-admin.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/ic-admin.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/ic-admin.gz"
     },
     "ic-admin-x86_64-linux": {
         "builtin": false,
         "description": "The ic-admin binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "0vrb48iq549v3jhrfz407xnglzn42d34c5hfpi6ah4qwk5difygd",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1zahb8nirpql744fm6lr2kgd6hwv1c9977zvgb0x10rfx966zqah",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/ic-admin.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/ic-admin.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/ic-admin.gz"
     },
     "ic-btc-adapter-x86_64-darwin": {
         "builtin": false,
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "0385l1zfy7957zlxrcxcvagacifa0hihbc04rzi6vprvbigfy74l",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1xi0k544cfxlhqjyw2dj8k07gra5hkl42k0qkj97kqmajrkai31m",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/ic-btc-adapter.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/ic-btc-adapter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/ic-btc-adapter.gz"
     },
     "ic-btc-adapter-x86_64-linux": {
         "builtin": false,
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "0gb8481sxcdsxim24j0v7w89ykspn68ddmhplmk50n7crmrgvr4h",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "0ym8h52rip84ydpdvnjqhb6kp4dy0l1knnww0wgm6gfknw0aj471",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/ic-btc-adapter.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/ic-btc-adapter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/ic-btc-adapter.gz"
     },
     "ic-btc-canister": {
@@ -74,36 +74,36 @@
     },
     "ic-https-outcalls-adapter-x86_64-darwin": {
         "builtin": false,
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "0kzs28i2xsycsms8j0k37ijvaw9izb1zgpyd2ypxf0zq5ddb0fb1",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1z637p81bchyp3jj2caykp1ij01cj4fc4q9r88lqc73wrlnbngsx",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/ic-https-outcalls-adapter.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/ic-https-outcalls-adapter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/ic-https-outcalls-adapter.gz"
     },
     "ic-https-outcalls-adapter-x86_64-linux": {
         "builtin": false,
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "1jz05vc47khad4acz2pz891v40sal5jwihbhv9hgg7mmszrcy5ac",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "03pw9rvqmhi3kh7rlvya1ddp73p0qbb0qj86lx4wfakpvi3az46v",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/ic-https-outcalls-adapter.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/ic-https-outcalls-adapter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/ic-https-outcalls-adapter.gz"
     },
     "ic-nns-init-x86_64-darwin": {
         "builtin": false,
         "description": "The ic-nns-init binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "04l4dql1xjpcy3gsmp4k85larvbcpbpilpc1mvdcb0crv62gg25i",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "117mihi6fmc1lbvgd7kmnb24zqy2kangchlzyvrymxi9vy9i4n6g",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/ic-nns-init.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/ic-nns-init.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/ic-nns-init.gz"
     },
     "ic-nns-init-x86_64-linux": {
         "builtin": false,
         "description": "The ic-nns-init binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "0n3090aa0xaib4am321bqqrsgmi0krgwi5wykllrjpbiamkgr7r5",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1qpk38h12y2capmv6vf9mpigwryjnwmnx9v73fm5h80zg0jd7hw5",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/ic-nns-init.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/ic-nns-init.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/ic-nns-init.gz"
     },
     "ic-ref-x86_64-darwin": {
@@ -126,18 +126,18 @@
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "0yk1a9ym80lh2b5qp5hdfh0ibz5gfq5w2x92r9xh045ggl10xvfg",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "0h6qn88vhbidg9mpsnvf2wnzjdjpaiv2nf3fii3cxd1i8pfnz0d8",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/ic-starter.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/ic-starter.gz"
     },
     "ic-starter-x86_64-linux": {
         "builtin": false,
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "050k2nbvm4cmghv3vl9as0c0q6vqd5m42kr0ib2ilwrn5lihjr14",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "0vhny19nrvc7r3jcfy1m2s853b957993wy9b6fichcd7qziaa866",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/ic-starter.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/ic-starter.gz"
     },
     "icx-proxy-x86_64-darwin": {
@@ -187,55 +187,55 @@
     "replica-x86_64-darwin": {
         "builtin": false,
         "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "1i7y2ijxhk43a5kj1i7a0v2ck9614k4j9w58z73rsv6rv4zj110s",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "0yq78mjk4p4sswnxhzgfjzkx9xd86fr2x069l3xlhw20cxqpls92",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/replica.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/replica.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/replica.gz"
     },
     "replica-x86_64-linux": {
         "builtin": false,
         "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "076vbkabpr864ikcxny360cr9s88byll24wp7dy6jxwg0fvf6ihn",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "0zd4whfpdji3y9h0ky8na97wrs87yxpprkpp5lijpjwl6b9ip4ck",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/replica.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/replica.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/replica.gz"
     },
     "sandbox_launcher-x86_64-darwin": {
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "01gxsmwglddacrh5djb63h4wbhjhkik1p4vff904j1phnrqviq63",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "0a14b736i4zcpbhc7p37m1i225a49maj32nka075ivfpc8ri56v6",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/sandbox_launcher.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/sandbox_launcher.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/sandbox_launcher.gz"
     },
     "sandbox_launcher-x86_64-linux": {
         "builtin": false,
         "description": "The sandbox_launcher binary. It must be updated together with the replica binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "13j8ydhs4gij4amdgs404ny7160jjp8k6g4753dpqrjrjw9hq6p7",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1d00cndh4rxg46xrfg422qffay6f0rbk3wsr38bfhdsfsx76z9gz",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/sandbox_launcher.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/sandbox_launcher.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/sandbox_launcher.gz"
     },
     "sns-x86_64-darwin": {
         "builtin": false,
         "description": "The sns binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "00lpiqg4yjicg6bfhakgdvrrffcy308niawqlgwvcgdl7bmh1sg9",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1c810sgcg6wjdwgmz0j4yb5m7ch3ca8997rxh5bbs8k7d5rc53vw",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-darwin/sns.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-darwin/sns.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/sns.gz"
     },
     "sns-x86_64-linux": {
         "builtin": false,
         "description": "The sns binary.",
-        "rev": "e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28",
-        "sha256": "1i7hdp41fl7dpxbr6hwfg96xc3gmz8iqjczxhjb0l0nl6wsbvybq",
+        "rev": "ef8ca68771baa20a14af650ab89c9b31b1dc9a5e",
+        "sha256": "1hvkzp289jzm4sn2yf63x3d0ras3npbi4p4fmdl5mqxncg6hwhg3",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28/openssl-static-binaries/x86_64-linux/sns.gz",
+        "url": "https://download.dfinity.systems/ic/ef8ca68771baa20a14af650ab89c9b31b1dc9a5e/openssl-static-binaries/x86_64-linux/sns.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/sns.gz"
     }
 }
