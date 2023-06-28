@@ -1,0 +1,16 @@
+name: 'Install dfx'
+description: 'Install the dfx utility at a particular version'
+inputs:
+  dfx-version:
+    description: >
+      The dfx version to install. This value will be used to populate
+      the DFX_VERSION variable that will be handled by the installation
+      script "install.sh".
+    default: '0.14.1'
+
+runs:
+  using: composite
+  steps:
+    - name: Install dfx
+      shell: sh
+      run: DFX_VERSION=${{ inputs.dfx-version }} sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
