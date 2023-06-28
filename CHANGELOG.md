@@ -67,6 +67,10 @@ Suggestions for configured limits:
 
 Note that as always, if `dfx deploy` does not completely upload and commit a batch, the asset canister will retain the batch until 5 minutes have passed since the last chunk was uploaded.  If you have configured limits and the combination of an unsuccessful deployment and a subsequent attempt would exceed those limits, you can either wait 5 minutes before running `dfx deploy` again, or delete the incomplete batch with `delete_batch()`.
 
+### fix: return the correct expr_path for index.html fallback routes
+
+Previously, the requested path was used to construct the `expr_path` for the `index.html` fallback route.  This was incorrect, as the `expr_path` should be the path of the `index.html` file itself in this case.
+
 ## Frontend canister assets synchronization
 
 ### fix: now retries failed `create_chunk()` calls
@@ -83,7 +87,8 @@ Now, only transport errors and timeout errors are considered retryable.
 
 ### Frontend canister
 
-- Module hash: 99eae7ce78e59352817faf811c2337707e8de955d00f62b98fdd49d35f99a2f4
+- Module hash: d6bf50ad536095eb9879e560e96a5e5eddd767155c0c705b34b816deb2887dd9
+- https://github.com/dfinity/sdk/pull/3198
 - https://github.com/dfinity/sdk/pull/3154
 - https://github.com/dfinity/sdk/pull/3158
 - https://github.com/dfinity/sdk/pull/3144

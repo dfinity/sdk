@@ -198,7 +198,7 @@ impl CertifiedResponses {
         let path = AssetPath::from(path);
         let hash_tree_path_root = path.asset_hash_path_root_v2();
         if self.contains_path(hash_tree_path_root.as_vec()) {
-            AssetPath::from(path).asset_hash_path_root_v2().expr_path()
+            path.asset_hash_path_root_v2().expr_path()
         } else {
             HashTreePath::not_found_base_path_v2().expr_path()
         }
