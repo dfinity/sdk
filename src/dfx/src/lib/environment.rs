@@ -4,6 +4,7 @@ use crate::lib::error::extension::ExtensionError;
 use crate::lib::error::DfxResult;
 use crate::lib::extension::manager::ExtensionManager;
 use crate::lib::progress_bar::ProgressBar;
+use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
@@ -280,7 +281,10 @@ impl<'a> AgentEnvironment<'a> {
         } else {
             identity_manager.instantiate_selected_identity(&logger)?
         };
-        if network_descriptor.is_ic && identity.insecure {
+        if network_descriptor.is_ic
+            && identity.insecure
+            && !is_warning_disabled(MainnetPlainTextIdentity)
+        {
             warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }

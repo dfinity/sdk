@@ -35,4 +35,5 @@ pub mod sign;
 pub mod sns;
 pub mod state_tree;
 pub mod toolchain;
+pub mod warning;
 pub mod wasm;
