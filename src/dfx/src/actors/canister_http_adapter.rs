@@ -69,14 +69,14 @@ impl CanisterHttpAdapter {
         }
     }
 
-    /// Wait for canister http adapter process creating the socket file.
+    /// Wait for canister http adapter creating the socket file.
     /// Retry every 0.1s for 5 minutes.
     /// Will break out of the loop if receive stop signal.
     ///
     /// Returns
     /// - Ok(Some()) if succeed;
     /// - Ok(None) if receive stop signal (`dfx start` then Ctrl-C immediately);
-    /// - Err if time out
+    /// - Err if time out;
     fn wait_for_socket(socket_path: &Path, stop_receiver: &Receiver<()>) -> DfxResult<Option<()>> {
         let mut retries = 0;
         while !socket_path.exists() {

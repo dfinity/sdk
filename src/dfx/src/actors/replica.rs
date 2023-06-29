@@ -107,7 +107,7 @@ impl Replica {
     /// Returns
     /// - Ok(Some(port)) if succeed;
     /// - Ok(None) if receive stop signal (`dfx start` then Ctrl-C immediately);
-    /// - Err if time out
+    /// - Err if time out;
     fn wait_for_port_file(
         file_path: &Path,
         stop_receiver: &Receiver<()>,
