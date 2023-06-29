@@ -46,6 +46,8 @@ Then it is separated into two parts: `service.did` and `init_args.txt`, correspo
 
 ## Frontend canister
 
+> **NOTE**: We've disabled response verification v2 in the asset canister while we improve test coverage.
+
 The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
 
 The `validate_commit_proposed_batch()` method no longer requires any permission to call.
@@ -91,7 +93,8 @@ Now, only transport errors and timeout errors are considered retryable.
 
 ### Frontend canister
 
-- Module hash: d1596b50735085c863a8cdc0570066c643b731837c0fcde32f5234634b59d2f4
+- Module hash: 1286960c50eb7a773cfb5fdd77cc238588f39e21f189cc3eb0f35199a99b9c7e
+- https://github.com/dfinity/sdk/pull/3205
 - https://github.com/dfinity/sdk/pull/3198
 - https://github.com/dfinity/sdk/pull/3154
 - https://github.com/dfinity/sdk/pull/3158
