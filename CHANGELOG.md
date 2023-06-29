@@ -46,6 +46,8 @@ Then it is separated into two parts: `service.did` and `init_args.txt`, correspo
 
 ## Frontend canister
 
+> **NOTE**: We've disabled response verification v2 in the asset canister while we improve test coverage.
+
 The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
 
 The `validate_commit_proposed_batch()` method no longer requires any permission to call.
