@@ -1,0 +1,10 @@
+#!/usr/bin/expect -df
+
+match_max 100000
+set timeout 30
+
+spawn dfx start --clean
+expect "Running dfx start for version"
+send \x03
+expect "Stopping the replica...
+Stopped."
