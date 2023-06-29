@@ -106,7 +106,7 @@ impl Replica {
     ///
     /// Returns
     /// - Ok(Some(port)) if succeed;
-    /// - Ok(None) if receive stop signal (`dfx start` then ctrl-c immediately);
+    /// - Ok(None) if receive stop signal (`dfx start` then Ctrl-C immediately);
     /// - Err if time out
     fn wait_for_port_file(
         file_path: &Path,
@@ -390,7 +390,7 @@ fn replica_start_thread(
                     .unwrap()
                 {
                     Some(p) => p,
-                    // If ctrl-c right after `dfx start`, the `ic-starter` child process will be killed already.
+                    // If Ctrl-C right after `dfx start`, the `ic-starter` child process will be killed already.
                     // And the `write_port_to` file will never be ready.
                     // So we let `wait_for_port_file` method to break out from the waiting,
                     // finish this actor starting ASAP and let the system stop the actor.

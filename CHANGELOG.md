@@ -4,7 +4,7 @@
 
 ## DFX
 
-### fix: ctrl-c right after dfx start panics in 2 minutes
+### fix: Ctrl-C right after dfx start panics in 2 minutes
 
 # 0.14.2
 
