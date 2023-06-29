@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+## DFX
+
+### fix: ctrl-c right after dfx start panics in 2 minutes
+
 # 0.14.2
 
 ## DFX
