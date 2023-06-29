@@ -100,12 +100,26 @@ impl Replica {
         }
     }
 
-    fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
+    /// Wait for `ic-starter` process writing the http port file.
+    /// Retry every 0.1s for 2 minutes.
+    /// Will break out of the loop if receive stop signal.
+    ///
+    /// Returns
+    /// - Ok(Some(port)) if succeed;
+    /// - Ok(None) if receive stop signal (`dfx start` then ctrl-c immediately);
+    /// - Err if time out
+    fn wait_for_port_file(
+        file_path: &Path,
+        stop_receiver: &Receiver<()>,
+    ) -> DfxResult<Option<u16>> {
         let mut retries = 0;
         loop {
+            if stop_receiver.try_recv().is_ok() {
+                return Ok(None);
+            }
             if let Ok(content) = std::fs::read_to_string(file_path) {
                 if let Ok(port) = content.parse::<u16>() {
-                    return Ok(port);
+                    return Ok(Some(port));
                 }
             }
             if retries >= 1200 {
@@ -369,9 +383,20 @@ fn replica_start_thread(
             std::fs::write(&replica_pid_path, child.id().to_string())
                 .expect("Could not write to replica-pid file.");
 
-            let port = port.unwrap_or_else(|| {
-                Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
-            });
+            let port = if let Some(p) = port {
+                p
+            } else {
+                match Replica::wait_for_port_file(write_port_to.as_ref().unwrap(), &receiver)
+                    .unwrap()
+                {
+                    Some(p) => p,
+                    // If ctrl-c right after `dfx start`, the `ic-starter` child process will be killed already.
+                    // And the `write_port_to` file will never be ready.
+                    // So we let `wait_for_port_file` method to break out from the waiting,
+                    // finish this actor starting ASAP and let the system stop the actor.
+                    None => break,
+                }
+            };
             addr.do_send(signals::ReplicaRestarted { port });
             let log_clone = logger.clone();
 
