@@ -521,7 +521,6 @@ fn serve_fallback_not_v2_return_v1_instead() {
     assert_eq!(certificate_header, "certificate=::, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYIM8ANxr3uBnyZ3YrWTYvfQjw6CmrHSRuIBULpYIb4aXrgwGCBFgg+jAbPRnbBTCe4Og4iYk7iLWjObu13VUiWYelXqXzECuDAksvaW5kZXguaHRtbIIDWCAWI/HQgRYNl23WWINz3W5z4kr5pv8FamU+vQ+6LzVbzYIEWCAOQBehfDTqG0vtSP22y3mC819U9XK+/bF1sp/8r+CJYQ==:");
 }
 
-
 #[test]
 fn serve_fallback_v1() {
     let mut state = State::default();
@@ -1699,7 +1698,6 @@ mod certificate_expression {
         let certificate_header = lookup_header(&v1_response, "IC-Certificate").unwrap();
         println!("certificate_header: {}", certificate_header);
 
-
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
@@ -1719,7 +1717,6 @@ mod certificate_expression {
 
         assert_eq!(certificate_header, "certificate=::, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYIPbkugQuFf61qjQm/ka1BFqhVhGterJRS9TftCMiHmUugwJOL2NvbnRlbnRzLmh0bWyCA1ggFiPx0IEWDZdt1liDc91uc+JK+ab/BWplPr0Pui81W82CBFgg02FSy73IRVzQv9SWUfbPH8mnJJ3yhkomgW+YuEyVq8c=:");
     }
-
 
     #[test]
     #[ignore] // https://dfinity.atlassian.net/browse/SDK-1156 re-enable this test
