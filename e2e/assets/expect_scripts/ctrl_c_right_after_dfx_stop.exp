@@ -3,14 +3,12 @@
 match_max 100000
 set timeout 30
 
-spawn dfx start --clean --enable-bitcoin
+spawn dfx start --clean
 sleep 2
 send \x03
 sleep 1
 
-expect "Stopping btc-adapter...
-Stopped.
-Stopping canister http adapter...
+expect "Stopping canister http adapter...
 Stopped.
 Stopping the replica...
 Stopped."
