@@ -104,7 +104,7 @@ impl HttpRequest {
         if self.certificate_version.is_none() || self.certificate_version == Some(1) {
             1
         } else {
-            2 // latest available
+            3 // latest available
         }
     }
 
@@ -318,7 +318,7 @@ pub fn response_hash(
     status_code: u16,
     body_hash: &[u8; 32],
 ) -> ResponseHash {
-    // certification v2 spec:
+    // certification v3 spec:
     // Response hash is the hash of the concatenation of
     //   - representation-independent hash of headers
     //   - hash of the response body

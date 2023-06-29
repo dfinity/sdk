@@ -43,7 +43,7 @@ pub const BATCH_EXPIRY_NANOS: u64 = 300_000_000_000;
 const ENCODING_CERTIFICATION_ORDER: &[&str] = &["identity", "gzip", "compress", "deflate", "br"];
 // Order of encodings is relevant for v1. Follow ENCODING_CERTIFICATION_ORDER,
 // then follow the order of existing encodings.
-// For v2, it is important to certify all encodings, therefore all encodings are added to the list.
+// For v3, it is important to certify all encodings, therefore all encodings are added to the list.
 pub fn encoding_certification_order<'a>(
     actual_encodings: impl Iterator<Item = &'a String>,
 ) -> Vec<String> {
@@ -74,7 +74,7 @@ pub struct AssetEncoding {
     pub modified: Timestamp,
     pub content_chunks: Vec<RcBytes>,
     pub total_length: usize,
-    /// Valid as-is for v2.
+    /// Valid as-is for v3.
     /// For v1, also make sure that encoding name == asset.most_important_encoding_v1()
     pub certified: bool,
     pub sha256: [u8; 32],
@@ -83,7 +83,7 @@ pub struct AssetEncoding {
 }
 
 impl AssetEncoding {
-    fn asset_hash_path_v2(&self, path: &AssetPath, status_code: u16) -> Option<HashTreePath> {
+    fn asset_hash_path_v3(&self, path: &AssetPath, status_code: u16) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
                 hashes.get(&status_code).map(|response_hash| {
@@ -1178,7 +1178,7 @@ fn insert_new_response_hashes_for_encoding(
     for key in affected_keys {
         let key_path = AssetPath::from(&key);
         for status_code in STATUS_CODES_TO_CERTIFY {
-            if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
+            if let Some(hash_path) = enc.asset_hash_path_v3(&key_path, status_code) {
                 asset_hashes.certify_response_precomputed(&hash_path);
             } else {
                 unreachable!(

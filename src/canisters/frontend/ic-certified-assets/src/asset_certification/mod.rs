@@ -19,7 +19,7 @@ pub use ic_response_verification::hash::Value;
 pub type CertifiedResponses = NestedTree<NestedTreeKey, Vec<u8>>;
 
 impl CertifiedResponses {
-    /// Certifies a response for a number of paths with certification v2.
+    /// Certifies a response for a number of paths with certification v3.
     ///
     /// # Arguments
     /// * `paths`: path(s) to the resource
@@ -86,7 +86,7 @@ impl CertifiedResponses {
         }
     }
 
-    /// Certifies a response that can be used if no certified response is available for the requested path with certification v2.
+    /// Certifies a response that can be used if no certified response is available for the requested path with certification v3.
     ///
     /// # Arguments
     /// * `status_code`: HTTP status code of the response
@@ -128,10 +128,10 @@ impl CertifiedResponses {
         self.insert(path.as_vec(), Vec::new());
     }
 
-    /// Removes all certified responses for a path for certification v2
+    /// Removes all certified responses for a path for certification v3
     pub fn remove_responses_for_path(&mut self, path: &str) {
         let key = AssetPath::from(path);
-        self.delete(key.asset_hash_path_root_v2().as_vec());
+        self.delete(key.asset_hash_path_root_v3().as_vec());
     }
 
     /// Removes the certified response for a path for certification v1
@@ -140,9 +140,9 @@ impl CertifiedResponses {
         self.delete(key.asset_hash_path_v1().as_vec());
     }
 
-    /// Removes all certified fallback responses for certification v2
+    /// Removes all certified fallback responses for certification v3
     pub fn remove_fallback_responses(&mut self) {
-        self.delete(HashTreePath::not_found_base_path_v2().as_vec());
+        self.delete(HashTreePath::not_found_base_path_v3().as_vec());
     }
 
     /// Removes the certified fallback response for certification v1
@@ -173,14 +173,14 @@ impl CertifiedResponses {
     /// * `tree`: The `HashTree` as described above.
     pub fn witness_path(&self, path: &str) -> (HashTree, WitnessResult) {
         let path = AssetPath::from(path);
-        let hash_tree_path_root = path.asset_hash_path_root_v2();
+        let hash_tree_path_root = path.asset_hash_path_root_v3();
         if self.contains_path(hash_tree_path_root.as_vec()) {
             (
                 self.witness(hash_tree_path_root.as_vec()),
                 WitnessResult::PathFound,
             )
         } else {
-            let fallback_path = HashTreePath::not_found_base_path_v2();
+            let fallback_path = HashTreePath::not_found_base_path_v3();
 
             let absence_proof = self.witness(hash_tree_path_root.as_vec());
             let not_found_proof = self.witness(fallback_path.as_vec());
@@ -196,11 +196,11 @@ impl CertifiedResponses {
 
     pub fn expr_path(&self, path: &str) -> String {
         let path = AssetPath::from(path);
-        let hash_tree_path_root = path.asset_hash_path_root_v2();
+        let hash_tree_path_root = path.asset_hash_path_root_v3();
         if self.contains_path(hash_tree_path_root.as_vec()) {
-            path.asset_hash_path_root_v2().expr_path()
+            path.asset_hash_path_root_v3().expr_path()
         } else {
-            HashTreePath::not_found_base_path_v2().expr_path()
+            HashTreePath::not_found_base_path_v3().expr_path()
         }
     }
 
@@ -263,7 +263,7 @@ impl CertifiedResponses {
         (
             (
                 "IC-Certificate".to_string(),
-                String::from("version=2, ")
+                String::from("version=3, ")
                     + "certificate=:"
                     + &base64::encode(certificate)
                     + ":, tree=:"

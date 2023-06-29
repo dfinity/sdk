@@ -68,7 +68,7 @@ impl AssetPath {
         ])
     }
 
-    pub fn asset_hash_path_root_v2(&self) -> HashTreePath {
+    pub fn asset_hash_path_root_v3(&self) -> HashTreePath {
         let mut hash_path: Vec<NestedTreeKey> = self
             .0
             .iter()
@@ -170,7 +170,7 @@ impl HashTreePath {
         AssetPath::from(path).hash_tree_path(&certificate_expression, &request_hash, response_hash)
     }
 
-    pub fn not_found_base_path_v2() -> Self {
+    pub fn not_found_base_path_v3() -> Self {
         HashTreePath::from(Vec::from([
             NestedTreeKey::String("http_expr".into()),
             NestedTreeKey::String("<*>".into()),

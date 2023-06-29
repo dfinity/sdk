@@ -376,7 +376,7 @@ fn serve_correct_encoding_v1() {
 }
 
 #[test]
-fn serve_correct_encoding_v2() {
+fn serve_correct_encoding_v3() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
@@ -397,7 +397,7 @@ fn serve_correct_encoding_v2() {
     let identity_response = state.http_request(
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
+            .with_certificate_version(3)
             .build(),
         &[],
         unused_callback(),
@@ -409,7 +409,7 @@ fn serve_correct_encoding_v2() {
     let gzip_response = state.http_request(
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "gzip")
-            .with_certificate_version(2)
+            .with_certificate_version(3)
             .build(),
         &[],
         unused_callback(),
@@ -421,7 +421,7 @@ fn serve_correct_encoding_v2() {
     let no_encoding_response = state.http_request(
         RequestBuilder::get("/no-encoding.html")
             .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
+            .with_certificate_version(3)
             .build(),
         &[],
         unused_callback(),
@@ -432,7 +432,7 @@ fn serve_correct_encoding_v2() {
 }
 
 #[test]
-fn serve_fallback_v2() {
+fn serve_fallback_v3() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
 
@@ -448,7 +448,7 @@ fn serve_fallback_v2() {
     let identity_response = state.http_request(
         RequestBuilder::get("/index.html")
             .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
+            .with_certificate_version(3)
             .build(),
         &[],
         unused_callback(),
@@ -463,7 +463,7 @@ fn serve_fallback_v2() {
     let fallback_response = state.http_request(
         RequestBuilder::get("/nonexistent")
             .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
+            .with_certificate_version(3)
             .build(),
         &[],
         unused_callback(),
@@ -1600,7 +1600,7 @@ mod certificate_expression {
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
+                .with_certificate_version(3)
                 .build(),
             &[],
             unused_callback(),
@@ -1638,7 +1638,7 @@ mod certificate_expression {
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
+                .with_certificate_version(3)
                 .build(),
             &[],
             unused_callback(),
@@ -1671,7 +1671,7 @@ mod certificate_expression {
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
+                .with_certificate_version(3)
                 .build(),
             &[],
             unused_callback(),
@@ -1691,7 +1691,7 @@ mod certificate_expression {
 }
 
 #[cfg(test)]
-mod certification_v2 {
+mod certification_v3 {
     use super::*;
 
     #[test]
@@ -1714,7 +1714,7 @@ mod certification_v2 {
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
+                .with_certificate_version(3)
                 .build(),
             &[],
             unused_callback(),
@@ -1726,7 +1726,7 @@ mod certification_v2 {
         println!("IC-Certificate: {}", cert_header);
 
         assert!(
-            cert_header.contains("version=2"),
+            cert_header.contains("version=3"),
             "cert is missing version indicator or has wrong version",
         );
         assert!(cert_header.contains("certificate=:"), "cert is missing",);
@@ -1735,7 +1735,7 @@ mod certification_v2 {
         assert!(cert_header.contains("expr_path=:"), "expr_path is missing",);
         assert!(!cert_header.contains("expr_path=::"), "expr_path is empty",);
 
-        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFggYqb51osZ8yEgbrtk+Z981k9J9Q0m4VEH/xmnuU6SDJqDAklodHRwX2V4cHKDAYIEWCA1sd2JIxN6F1cM5ZJxdJdNmNNEDXnePdxl5Yz/nMkXmIMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCDFaHrIHl7UaWlUtBt+VDFkwpI+dahytlBeV0Be5LB6GIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
+        assert!(cert_header == "version=3, certificate=::, tree=:2dn3gwGCBFggYqb51osZ8yEgbrtk+Z981k9J9Q0m4VEH/xmnuU6SDJqDAklodHRwX2V4cHKDAYIEWCA1sd2JIxN6F1cM5ZJxdJdNmNNEDXnePdxl5Yz/nMkXmIMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCDFaHrIHl7UaWlUtBt+VDFkwpI+dahytlBeV0Be5LB6GIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
 
         create_assets(
             &mut state,
@@ -1749,7 +1749,7 @@ mod certification_v2 {
         let response = state.http_request(
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
+                .with_certificate_version(3)
                 .build(),
             &[],
             unused_callback(),
@@ -1760,7 +1760,7 @@ mod certification_v2 {
 
         println!("Updated IC-Certificate: {}", cert_header);
 
-        assert!(cert_header == "version=2, certificate=::, tree=:2dn3gwGCBFgg1hasIZe9DV/qkwMJwOyFED/kYwg4LKtr0BWWcxuIqI6DAklodHRwX2V4cHKDAYIEWCB8ve5ZiB9SeCaYdKsv2ZfHSFZBomzvLxZtXtSxzg26iYMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCC8DBBYlQxiaVAOAV6uWwZ3un2feoZJc0MW5MYdsWFsLIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
+        assert!(cert_header == "version=3, certificate=::, tree=:2dn3gwGCBFgg1hasIZe9DV/qkwMJwOyFED/kYwg4LKtr0BWWcxuIqI6DAklodHRwX2V4cHKDAYIEWCB8ve5ZiB9SeCaYdKsv2ZfHSFZBomzvLxZtXtSxzg26iYMCTWNvbnRlbnRzLmh0bWyDAkM8JD6DAlggwrQrUBLlYvqrQCZVjsbrUysHuLEniI92YbWT58HhfgGDAkCDAYMCWCCsJkJx/PNM4lug1TVlVDNINmk6i6Mlt5TkF2ZiU75aSoIDQIMCWCC8DBBYlQxiaVAOAV6uWwZ3un2feoZJc0MW5MYdsWFsLIIDQA==:, expr_path=:2dn3g2lodHRwX2V4cHJtY29udGVudHMuaHRtbGM8JD4=:");
     }
 }
 
