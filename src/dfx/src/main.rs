@@ -184,17 +184,17 @@ fn main() {
         app.get_matches()
     };
 
+    let mut args = std::env::args_os().collect::<Vec<_>>();
+
     if let Ok(em) = ExtensionManager::new(dfx_version(), false) {
         let subcmd = matches.subcommand().unwrap().0; // safe to unwrap because clap will display help if no subcommand is provided
         if !DfxCommand::has_subcommand(subcmd) && em.is_extension_installed(subcmd) {
-            let args = &std::env::args_os().collect::<Vec<_>>()[2..];
-            if em.run_extension(subcmd.into(), args.to_owned()).is_ok() {
-                std::process::exit(0);
-            }
+            args.insert(1, "extension".into());
+            args.insert(2, "run".into());
         }
     }
 
-    let cli_opts = CliOpts::parse();
+    let cli_opts = CliOpts::parse_from(args);
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
