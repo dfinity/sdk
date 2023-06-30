@@ -67,16 +67,27 @@ impl BtcAdapter {
         }
     }
 
-    fn wait_for_socket(socket_path: &Path) -> DfxResult {
+    /// Wait for BTC adapter creating the socket file.
+    /// Retry every 0.1s for 5 minutes.
+    /// Will break out of the loop if receive stop signal.
+    ///
+    /// Returns
+    /// - Ok(Some()) if succeed;
+    /// - Ok(None) if receive stop signal (`dfx start` then Ctrl-C immediately);
+    /// - Err if time out;
+    fn wait_for_socket(socket_path: &Path, stop_receiver: &Receiver<()>) -> DfxResult<Option<()>> {
         let mut retries = 0;
         while !socket_path.exists() {
+            if stop_receiver.try_recv().is_ok() {
+                return Ok(None);
+            }
             if retries >= 3000 {
                 bail!("Cannot start btc-adapter: timed out");
             }
             std::thread::sleep(Duration::from_millis(100));
             retries += 1;
         }
-        Ok(())
+        Ok(Some(()))
     }
 
     fn start_btc_adapter(&mut self, addr: Addr<Self>) -> DfxResult {
@@ -195,8 +206,16 @@ fn btc_adapter_start_thread(
                 .expect("Could not write to btc-adapter-pid file.");
 
             if let Some(socket_path) = &config.socket_path {
-                BtcAdapter::wait_for_socket(socket_path)
-                    .expect("btc adapter socket was not created");
+                // If Ctrl-C right after `dfx start`, the adapter child process will be killed already.
+                // And the socket file will never be ready.
+                // So we let `wait_for_socket` method to break out from the waiting,
+                // finish this actor starting ASAP and let the system stop the actor.
+                if BtcAdapter::wait_for_socket(socket_path, &receiver)
+                    .expect("btc adapter socket was not created")
+                    .is_none()
+                {
+                    break;
+                }
             }
             addr.do_send(signals::BtcAdapterReady {});
 

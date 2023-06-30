@@ -4,6 +4,10 @@
 
 ## DFX
 
+### fix: Ctrl-C right after dfx start will hang for minutes and panics
+
+Early break out from actors starting procedure.
+
 ### feat: can disable the warnings about using an unencrypted identity on mainnet
 
 It's now possible to suppress warnings of this form:
