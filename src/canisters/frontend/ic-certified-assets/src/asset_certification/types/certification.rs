@@ -177,7 +177,7 @@ impl HashTreePath {
         ]))
     }
 
-    pub fn not_found_dir_path_v2() -> Self {
+    pub fn not_found_trailing_slash_path_v2() -> Self {
         HashTreePath::from(Vec::from([
             NestedTreeKey::String("http_expr".into()),
             NestedTreeKey::String("".into()),
