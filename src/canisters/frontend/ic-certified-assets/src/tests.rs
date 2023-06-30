@@ -1400,7 +1400,11 @@ fn alias_enable_and_disable() {
         })
         .is_ok());
 
-    let no_more_alias = certified_http_request(&state, RequestBuilder::get("/contents").build());
+    let no_more_alias = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
     assert_ne!(no_more_alias.body.as_ref(), FILE_BODY);
 
     let other_alias_still_works =
@@ -1448,7 +1452,11 @@ fn alias_behavior_persists_through_upgrade() {
         ],
     );
 
-    let alias_disabled = certified_http_request(&state, RequestBuilder::get("/contents").build());
+    let alias_disabled = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
     assert_ne!(alias_disabled.body.as_ref(), FILE_BODY);
 
     let alias_for_other_asset_still_works =
@@ -1461,8 +1469,11 @@ fn alias_behavior_persists_through_upgrade() {
     let stable_state: StableState = state.into();
     let state: State = stable_state.into();
 
-    let alias_stays_turned_off =
-        certified_http_request(&state, RequestBuilder::get("/contents").build());
+    let alias_stays_turned_off = state.http_request(
+        RequestBuilder::get("/contents").build(),
+        &[],
+        unused_callback(),
+    );
     assert_ne!(alias_stays_turned_off.body.as_ref(), FILE_BODY);
 
     let alias_for_other_asset_still_works =
