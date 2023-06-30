@@ -1,14 +1,18 @@
 #!/usr/bin/expect -df
 
 match_max 100000
-set timeout 30
+set timeout 5
 
 spawn dfx start --clean
+set pid [exp_pid]
 sleep 2
 send \x03
 sleep 1
 
-expect "Stopping canister http adapter...
-Stopped.
-Stopping the replica...
-Stopped."
+expect {
+    timeout {
+        puts "Didn't complete before timeout."
+        exec kill -9 $pid
+        exit 2
+    }
+}

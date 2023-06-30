@@ -333,5 +333,5 @@ teardown() {
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-    assert_command timeout -s9 20s "${BATS_TEST_DIRNAME}/../assets/expect_scripts/ctrl_c_right_after_dfx_stop.exp"
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/ctrl_c_right_after_dfx_stop.exp"
 }
