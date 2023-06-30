@@ -17,12 +17,16 @@ pub struct ExtensionManager {
 
 impl CommandFactory for ExtensionManager {
     fn command() -> clap::Command {
-        let m = ExtensionManager::new(dfx_version(), false).unwrap();
-        clap::Command::new("installed-extensions").subcommands(
-            m.list_installed_extensions()
-                .unwrap_or_default()
-                .into_iter()
-                .map(|v| v.into_clap_command(&m)),
+        ExtensionManager::new(dfx_version(), false).map_or_else(
+            |_| clap::Command::new("empty"),
+            |mgr| {
+                clap::Command::new("installed-extensions").subcommands(
+                    mgr.list_installed_extensions()
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|v| v.into_clap_command(&mgr)),
+                )
+            },
         )
     }
 

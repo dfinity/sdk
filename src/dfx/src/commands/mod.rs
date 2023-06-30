@@ -1,14 +1,9 @@
-use std::collections::HashMap;
-#[allow(unused_imports)]
-use std::ffi::OsString;
-
-use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
-use crate::lib::extension::Extension;
-use crate::lib::{environment::Environment, extension::manager::ExtensionManager};
+
+use crate::lib::environment::Environment;
 
 use anyhow::bail;
-use clap::{error::ErrorKind, ArgMatches, Args, Command, Error, FromArgMatches, Subcommand};
+use clap::Subcommand;
 
 mod beta;
 mod bootstrap;
@@ -108,24 +103,5 @@ pub fn exec_without_env(cmd: DfxCommand) -> DfxResult {
     match cmd {
         DfxCommand::Schema(v) => schema::exec(v),
         _ => bail!("Cannot execute this command without environment."),
-    }
-}
-
-/// sort subcommands alphabetically (despite this clap prints help as the last one)
-pub fn sort_clap_commands(cmd: &mut clap::Command) {
-    let mut cli_subcommands: Vec<String> = cmd
-        .get_subcommands()
-        .map(|v| v.get_display_name().unwrap_or_default().to_string())
-        .collect();
-    cli_subcommands.sort();
-    let cli_subcommands: HashMap<String, usize> = cli_subcommands
-        .into_iter()
-        .enumerate()
-        .map(|(i, v)| (v, i))
-        .collect();
-    for c in cmd.get_subcommands_mut() {
-        let name = c.get_display_name().unwrap_or_default().to_string();
-        let ord = *cli_subcommands.get(&name).unwrap_or(&999);
-        *c = c.clone().display_order(ord);
     }
 }

@@ -32,7 +32,7 @@ impl ExtensionManager {
                 effective_extension_name.to_string(),
             ));
         }
-        if DfxCommand::has_subcommand(effective_extension_name.into()) {
+        if DfxCommand::has_subcommand(effective_extension_name) {
             return Err(ExtensionError::CommandAlreadyExists(
                 extension_name.to_string(),
             ));
