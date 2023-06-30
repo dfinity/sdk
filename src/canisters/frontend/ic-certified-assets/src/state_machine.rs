@@ -448,6 +448,15 @@ impl State {
             }
             self.assets.remove(&arg.key);
         }
+        for key in aliases_of(&arg.key) {
+            // if an existing file can be aliased to the deleted file it has to become a valid alias again
+            if self.assets.contains_key(&key) {
+                let dependent_keys = self.dependent_keys(&key);
+                if let Some(asset) = self.assets.get_mut(&key) {
+                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys);
+                }
+            }
+        }
     }
 
     pub fn clear(&mut self) {
