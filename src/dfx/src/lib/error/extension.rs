@@ -18,8 +18,7 @@ pub enum ExtensionError {
     #[error("Extension '{0}' is already installed.")]
     ExtensionAlreadyInstalled(String),
 
-    // TODO: suggest `--install-as` flag (awaiting https://dfinity.atlassian.net/browse/SDK-963)
-    #[error("Extension '{0}' cannot be installed because it conflicts with an existing command.")]
+    #[error("Extension '{0}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.")]
     CommandAlreadyExists(String),
 
     #[error("Cannot fetch compatibility.json from '{0}': {1}")]
@@ -66,11 +65,11 @@ pub enum ExtensionError {
     #[error("Cannot list extensions: {0}")]
     ExtensionsDirectoryIsNotReadable(dfx_core::error::fs::FsError),
 
-    #[error("Malformed extension manifest: Failed to parse contents of {0} as toml: ")]
+    #[error("Malformed extension manifest: {0}")]
     ExtensionManifestIsNotValid(dfx_core::error::structured_file::StructuredFileError),
 
-    #[error("Missing 'extension.toml' file for extension '{0}'.")]
-    ExtensionManifestMissing(String),
+    #[error("Missing 'extension.json' file for extension '{0}' (exact location: {1}).")]
+    ExtensionManifestMissing(String, std::path::PathBuf),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]
