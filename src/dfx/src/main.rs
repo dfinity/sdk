@@ -187,7 +187,9 @@ fn main() {
     let mut args = std::env::args_os().collect::<Vec<_>>();
 
     if let Ok(em) = ExtensionManager::new(dfx_version(), false) {
-        let subcmd = matches.subcommand().unwrap().0; // safe to unwrap because clap will display help if no subcommand is provided
+        // safe to unwrap because clap will display help if no subcommand is provided
+        // which happens when "app.get_matches()" is called above
+        let subcmd = matches.subcommand().unwrap().0;
         if !DfxCommand::has_subcommand(subcmd) && em.is_extension_installed(subcmd) {
             args.insert(1, "extension".into());
             args.insert(2, "run".into());
