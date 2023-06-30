@@ -23,10 +23,9 @@ use ic_cdk_macros::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
-// https://dfinity.atlassian.net/browse/SDK-1156 change back to [u8; 3] = *b"1,2"
 #[cfg(target_arch = "wasm32")]
 #[link_section = "icp:public supported_certificate_versions"]
-pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 1] = *b"1";
+pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());

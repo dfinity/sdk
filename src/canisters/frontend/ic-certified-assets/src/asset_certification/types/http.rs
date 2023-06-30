@@ -101,15 +101,11 @@ impl HttpRequest {
     // If available: use requested certificate version.
     // If requested version is not available: use latest available version.
     pub fn get_certificate_version(&self) -> u16 {
-        // Current behavior: always use version 1.
-        // See https://dfinity.atlassian.net/browse/SDK-1156
-
-        // if self.certificate_version.is_none() || self.certificate_version == Some(1) {
-        //     1
-        // } else {
-        //     2 // latest available
-        // }
-        1
+        if self.certificate_version.is_none() || self.certificate_version == Some(1) {
+            1
+        } else {
+            2 // latest available
+        }
     }
 
     pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {

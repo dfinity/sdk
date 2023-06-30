@@ -376,7 +376,6 @@ fn serve_correct_encoding_v1() {
 }
 
 #[test]
-#[ignore] // https://dfinity.atlassian.net/browse/SDK-1156 re-enable this test
 fn serve_correct_encoding_v2() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
@@ -433,7 +432,6 @@ fn serve_correct_encoding_v2() {
 }
 
 #[test]
-#[ignore] // https://dfinity.atlassian.net/browse/SDK-1156 re-enable this test
 fn serve_fallback_v2() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
@@ -475,50 +473,6 @@ fn serve_fallback_v2() {
     assert_eq!(fallback_response.status_code, 200);
     assert_eq!(fallback_response.body.as_ref(), INDEX_BODY);
     assert!(certificate_header.contains("expr_path=:2dn3gmlodHRwX2V4cHJjPCo+:"));
-}
-
-#[test] // https://dfinity.atlassian.net/browse/SDK-1156 remove this test
-fn serve_fallback_not_v2_return_v1_instead() {
-    let mut state = State::default();
-    let time_now = 100_000_000_000;
-
-    const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
-
-    create_assets(
-        &mut state,
-        time_now,
-        vec![AssetBuilder::new("/index.html", "text/html")
-            .with_encoding("identity", vec![INDEX_BODY])],
-    );
-
-    let identity_response = state.http_request(
-        RequestBuilder::get("/index.html")
-            .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
-            .build(),
-        &[],
-        unused_callback(),
-    );
-    let certificate_header = lookup_header(&identity_response, "IC-Certificate").unwrap();
-    println!("certificate_header: {}", certificate_header);
-
-    assert_eq!(identity_response.status_code, 200);
-    assert_eq!(identity_response.body.as_ref(), INDEX_BODY);
-    assert_eq!(certificate_header, "certificate=::, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYIM8ANxr3uBnyZ3YrWTYvfQjw6CmrHSRuIBULpYIb4aXrgwGCBFgg+jAbPRnbBTCe4Og4iYk7iLWjObu13VUiWYelXqXzECuDAksvaW5kZXguaHRtbIIDWCAWI/HQgRYNl23WWINz3W5z4kr5pv8FamU+vQ+6LzVbzYIEWCAOQBehfDTqG0vtSP22y3mC819U9XK+/bF1sp/8r+CJYQ==:");
-
-    let fallback_response = state.http_request(
-        RequestBuilder::get("/nonexistent")
-            .with_header("Accept-Encoding", "identity")
-            .with_certificate_version(2)
-            .build(),
-        &[],
-        unused_callback(),
-    );
-    let certificate_header = lookup_header(&fallback_response, "IC-Certificate").unwrap();
-
-    assert_eq!(fallback_response.status_code, 200);
-    assert_eq!(fallback_response.body.as_ref(), INDEX_BODY);
-    assert_eq!(certificate_header, "certificate=::, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYIM8ANxr3uBnyZ3YrWTYvfQjw6CmrHSRuIBULpYIb4aXrgwGCBFgg+jAbPRnbBTCe4Og4iYk7iLWjObu13VUiWYelXqXzECuDAksvaW5kZXguaHRtbIIDWCAWI/HQgRYNl23WWINz3W5z4kr5pv8FamU+vQ+6LzVbzYIEWCAOQBehfDTqG0vtSP22y3mC819U9XK+/bF1sp/8r+CJYQ==:");
 }
 
 #[test]
@@ -1615,7 +1569,6 @@ mod certificate_expression {
     }
 
     #[test]
-    #[ignore] // https://dfinity.atlassian.net/browse/SDK-1156 re-enable this test
     fn ic_certificate_expression_present_for_new_assets() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
@@ -1666,60 +1619,7 @@ mod certificate_expression {
         );
     }
 
-    #[test] // https://dfinity.atlassian.net/browse/SDK-1156 remove this test
-    fn ic_certificate_expression_not_present_for_new_assets_returns_v1_instead() {
-        let mut state = State::default();
-        let time_now = 100_000_000_000;
-
-        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
-
-        create_assets(
-            &mut state,
-            time_now,
-            vec![AssetBuilder::new("/contents.html", "text/html")
-                .with_encoding("identity", vec![BODY])
-                .with_max_age(604800)
-                .with_header("Access-Control-Allow-Origin", "*")],
-        );
-
-        let v1_response = state.http_request(
-            RequestBuilder::get("/contents.html")
-                .with_header("Accept-Encoding", "gzip,identity")
-                .build(),
-            &[],
-            unused_callback(),
-        );
-
-        assert!(
-            lookup_header(&v1_response, "ic-certificateexpression").is_none(),
-            "superfluous ic-certificateexpression header detected in cert v1"
-        );
-
-        let certificate_header = lookup_header(&v1_response, "IC-Certificate").unwrap();
-        println!("certificate_header: {}", certificate_header);
-
-        let response = state.http_request(
-            RequestBuilder::get("/contents.html")
-                .with_header("Accept-Encoding", "gzip,identity")
-                .with_certificate_version(2)
-                .build(),
-            &[],
-            unused_callback(),
-        );
-
-        assert!(
-            lookup_header(&response, "ic-certificateexpression").is_none(),
-            "superfluous ic-certificateexpression header detected in cert v1 (v2 was requested)"
-        );
-
-        let certificate_header = lookup_header(&response, "IC-Certificate").unwrap();
-        println!("certificate_header: {}", certificate_header);
-
-        assert_eq!(certificate_header, "certificate=::, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYIPbkugQuFf61qjQm/ka1BFqhVhGterJRS9TftCMiHmUugwJOL2NvbnRlbnRzLmh0bWyCA1ggFiPx0IEWDZdt1liDc91uc+JK+ab/BWplPr0Pui81W82CBFgg02FSy73IRVzQv9SWUfbPH8mnJJ3yhkomgW+YuEyVq8c=:");
-    }
-
     #[test]
-    #[ignore] // https://dfinity.atlassian.net/browse/SDK-1156 re-enable this test
     fn ic_certificate_expression_gets_updated_on_asset_properties_update() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
@@ -1795,7 +1695,6 @@ mod certification_v2 {
     use super::*;
 
     #[test]
-    #[ignore] // https://dfinity.atlassian.net/browse/SDK-1156 re-enable this test
     fn proper_header_structure() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
