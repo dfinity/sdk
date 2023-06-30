@@ -31,6 +31,13 @@ But in this scenario, because `/content` exists, it overwrites the alias and `/c
 When the file `/content` is deleted, `/content` is once again a valid alias of `/content.html`.
 Previously, the alias of `/content.html` was not properly updated in the certification tree, making `/content` inaccessible.
 
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 8dc6e1694568455e6be8b9c589dd0d2a3dbc9fdd6863efee1d61efe103e0307d
+- https://github.com/dfinity/sdk/pull/3211
+
 # 0.14.2
 
 ## DFX

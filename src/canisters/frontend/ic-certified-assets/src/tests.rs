@@ -85,7 +85,7 @@ pub fn verify_response(
 
 fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
     let response = state.http_request(request.clone(), &[], unused_callback());
-    assert!(verify_response(&state, &request, &response).expect("Certificate validation failed."));
+    assert!(verify_response(state, &request, &response).expect("Certificate validation failed."));
     response
 }
 
