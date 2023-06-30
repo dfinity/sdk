@@ -1,13 +1,17 @@
 #!/usr/bin/expect -df
 
 match_max 100000
-set timeout 30
+set timeout 5
+
+spawn dfx cache install
+expect "installed successfully."
 
 spawn dfx start --clean
 set pid [exp_pid]
-sleep 2
-send \x03
-sleep 1
+expect "Using" {
+    sleep 1
+    send \x03
+}
 
 expect {
     timeout {
