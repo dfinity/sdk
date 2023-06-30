@@ -186,6 +186,10 @@ impl CertifiedResponses {
             let not_found_proof = self.witness(fallback_path.as_vec());
             let combined_proof = merge_hash_trees(absence_proof, not_found_proof);
 
+            let fallback_dir_path = HashTreePath::not_found_dir_path_v2();
+            let not_found_dir_proof = self.witness(fallback_dir_path.as_vec());
+            let combined_proof = merge_hash_trees(combined_proof, not_found_dir_proof);
+
             if self.contains_path(fallback_path.as_vec()) {
                 (combined_proof, WitnessResult::FallbackFound)
             } else {

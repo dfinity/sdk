@@ -177,6 +177,14 @@ impl HashTreePath {
         ]))
     }
 
+    pub fn not_found_dir_path_v2() -> Self {
+        HashTreePath::from(Vec::from([
+            NestedTreeKey::String("http_expr".into()),
+            NestedTreeKey::String("".into()),
+            NestedTreeKey::String("<*>".into()),
+        ]))
+    }
+
     pub fn not_found_base_path_v1() -> Self {
         let not_found_path = AssetPath::from(FALLBACK_FILE);
         not_found_path.asset_hash_path_v1()
