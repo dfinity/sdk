@@ -35,6 +35,7 @@ mod wallet;
 
 #[derive(Subcommand)]
 pub enum DfxCommand {
+    #[command(hide = true)]
     Beta(beta::BetaOpts),
     Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
@@ -49,6 +50,7 @@ pub enum DfxCommand {
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
+    #[command(name = "_language-service")]
     LanguageServices(language_service::LanguageServiceOpts),
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
