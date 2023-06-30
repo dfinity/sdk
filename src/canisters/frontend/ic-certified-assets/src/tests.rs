@@ -41,7 +41,7 @@ pub fn verify_response(
     let canister_id = create_canister_id("rdmx6-jaaaa-aaaaa-aaadq-cai");
     let min_requested_verification_version = request.get_certificate_version();
 
-    // inject certificate into IC-Certificate header
+    // inject certificate into IC-Certificate header with 'certificate=::'
     let (_cert, root_key, cert_cbor) =
         CertificateBuilder::new(CertificateData::CanisterData(CanisterData {
             canister_id,
@@ -359,30 +359,6 @@ fn can_create_assets_using_batch_api() {
         expected,
         error_msg
     );
-}
-
-#[test]
-fn mytest() {
-    let mut state = State::default();
-    let time_now = 100_000_000_000;
-
-    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
-
-    let _batch_id = create_assets(
-        &mut state,
-        time_now,
-        vec![AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY])],
-    );
-
-    let response = certified_http_request(
-        &state,
-        RequestBuilder::get("/contents.html")
-            .with_header("Accept-Encoding", "gzip,identity")
-            .build(),
-    );
-
-    assert_eq!(response.status_code, 200);
-    assert_eq!(response.body.as_ref(), BODY);
 }
 
 #[test]
