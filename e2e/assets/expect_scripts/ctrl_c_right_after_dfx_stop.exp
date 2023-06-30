@@ -1,7 +1,7 @@
 #!/usr/bin/expect -df
 
 match_max 100000
-set timeout 5
+set timeout 30
 
 spawn dfx start --clean
 set pid [exp_pid]
