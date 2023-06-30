@@ -22,6 +22,22 @@ Note that this can be combined to also disable the dfx version check warning:
 export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
 ```
 
+## Frontend canister
+
+### fix: Certification for aliasing updates on asset deletion
+
+Best explained by an example: Two assets exist with aliasing enabled: `/content` and `/content.html`. Usually, when requesting `/content`, `/content.html` is served because it has aliasing enabled.
+But in this scenario, because `/content` exists, it overwrites the alias and `/content` is served when requesting the path `/content`.
+When the file `/content` is deleted, `/content` is once again a valid alias of `/content.html`.
+Previously, the alias of `/content.html` was not properly updated in the certification tree, making `/content` inaccessible.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 8dc6e1694568455e6be8b9c589dd0d2a3dbc9fdd6863efee1d61efe103e0307d
+- https://github.com/dfinity/sdk/pull/3211
+
 # 0.14.2
 
 ## DFX

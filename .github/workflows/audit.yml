@@ -57,9 +57,10 @@ jobs:
           rustup default ${{ matrix.rust }}
           cargo install --force --version ${{ matrix.cargo-audit }} cargo-audit --locked
       - name: Audit
+        # ignores RUSTSEC-2020-0071 because it is 'only' in a dev dependency (ic-certified-responses -> ic-types -> chrono -> time)
         run: |
           cd sdk
-          cargo audit --no-fetch --db "${GITHUB_WORKSPACE}"/advisory-db
+          cargo audit --no-fetch --db "${GITHUB_WORKSPACE}"/advisory-db --ignore RUSTSEC-2020-0071
         env:
           RUST_BACKTRACE: 1
 
