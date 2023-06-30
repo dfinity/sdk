@@ -9,7 +9,16 @@ use crate::types::{
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::Principal;
+use ic_crypto_tree_hash::Digest;
+use ic_response_verification::ResponseVerificationError;
+use ic_response_verification_test_utils::{
+    base64_encode, create_canister_id, get_current_timestamp, CanisterData, CertificateBuilder,
+    CertificateData,
+};
 use serde_bytes::ByteBuf;
+
+// from ic-response-verification tests
+const MAX_CERT_TIME_OFFSET_NS: u128 = 300_000_000_000;
 
 fn some_principal() -> Principal {
     Principal::from_text("ryjl3-tyaaa-aaaaa-aaaba-cai").unwrap()
@@ -20,6 +29,64 @@ fn unused_callback() -> candid::Func {
         method: "unused".to_string(),
         principal: some_principal(),
     }
+}
+
+pub fn verify_response(
+    state: &State,
+    request: &HttpRequest,
+    response: &HttpResponse,
+) -> Result<bool, ResponseVerificationError> {
+    let mut response = response.clone();
+    let current_time = get_current_timestamp();
+    let canister_id = create_canister_id("rdmx6-jaaaa-aaaaa-aaadq-cai");
+    let min_requested_verification_version = request.get_certificate_version();
+
+    // inject certificate into IC-Certificate header
+    let (_cert, root_key, cert_cbor) =
+        CertificateBuilder::new(CertificateData::CanisterData(CanisterData {
+            canister_id,
+            certified_data: Digest(state.root_hash()),
+        }))
+        .with_time(current_time)
+        .build();
+    let replacement_cert_value = base64_encode(&cert_cbor);
+    let (_, header_value) = response
+        .headers
+        .iter_mut()
+        .find(|(header, _)| header == "IC-Certificate")
+        .expect("HttpResponse is missing 'IC-Certificate' header");
+    *header_value = header_value.replace(
+        "certificate=::",
+        &format!("certificate=:{replacement_cert_value}:"),
+    );
+
+    // actual verification
+    let request = ic_response_verification::types::Request {
+        method: request.method.clone(),
+        url: request.url.clone(),
+        headers: request.headers.clone(),
+    };
+    let response = ic_response_verification::types::Response {
+        status_code: response.status_code,
+        headers: response.headers,
+        body: response.body[..].into(),
+    };
+    ic_response_verification::verify_request_response_pair(
+        request,
+        response,
+        canister_id.as_ref(),
+        current_time,
+        MAX_CERT_TIME_OFFSET_NS,
+        &root_key,
+        min_requested_verification_version.try_into().unwrap(),
+    )
+    .map(|res| res.passed)
+}
+
+fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
+    let response = state.http_request(request.clone(), &[], unused_callback());
+    assert!(verify_response(&state, &request, &response).expect("Certificate validation failed."));
+    response
 }
 
 struct AssetBuilder {
@@ -264,12 +331,11 @@ fn can_create_assets_using_batch_api() {
         vec![AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY])],
     );
 
-    let response = state.http_request(
+    let response = certified_http_request(
+        &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "gzip,identity")
             .build(),
-        &[],
-        unused_callback(),
     );
 
     assert_eq!(response.status_code, 200);
@@ -296,6 +362,30 @@ fn can_create_assets_using_batch_api() {
 }
 
 #[test]
+fn mytest() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+    let _batch_id = create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY])],
+    );
+
+    let response = certified_http_request(
+        &state,
+        RequestBuilder::get("/contents.html")
+            .with_header("Accept-Encoding", "gzip,identity")
+            .build(),
+    );
+
+    assert_eq!(response.status_code, 200);
+    assert_eq!(response.body.as_ref(), BODY);
+}
+
+#[test]
 fn serve_correct_encoding_v1() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
@@ -317,12 +407,11 @@ fn serve_correct_encoding_v1() {
     );
 
     // Most important encoding is returned with certificate
-    let identity_response = state.http_request(
+    let identity_response = certified_http_request(
+        &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "identity")
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(identity_response.status_code, 200);
     assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
@@ -341,29 +430,28 @@ fn serve_correct_encoding_v1() {
     assert!(lookup_header(&gzip_response, "IC-Certificate").is_none());
 
     // If no encoding matches, return most important encoding with certificate
-    let unknown_encoding_response = state.http_request(
+    let unknown_encoding_response = certified_http_request(
+        &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "unknown")
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(unknown_encoding_response.status_code, 200);
     assert_eq!(unknown_encoding_response.body.as_ref(), IDENTITY_BODY);
     assert!(lookup_header(&unknown_encoding_response, "IC-Certificate").is_some());
 
-    let unknown_encoding_response_2 = state.http_request(
+    let unknown_encoding_response_2 = certified_http_request(
+        &state,
         RequestBuilder::get("/only-identity.html")
             .with_header("Accept-Encoding", "gzip")
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(unknown_encoding_response_2.status_code, 200);
     assert_eq!(unknown_encoding_response_2.body.as_ref(), IDENTITY_BODY);
     assert!(lookup_header(&unknown_encoding_response_2, "IC-Certificate").is_some());
 
     // Serve 404 if the requested asset has no encoding uploaded at all
+    // certificatoin v1 cannot certify 404
     let no_encoding_response = state.http_request(
         RequestBuilder::get("/no-encoding.html")
             .with_header("Accept-Encoding", "identity")
@@ -395,37 +483,34 @@ fn serve_correct_encoding_v2() {
         ],
     );
 
-    let identity_response = state.http_request(
+    let identity_response = certified_http_request(
+        &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "identity")
             .with_certificate_version(2)
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(identity_response.status_code, 200);
     assert_eq!(identity_response.body.as_ref(), IDENTITY_BODY);
     assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
 
-    let gzip_response = state.http_request(
+    let gzip_response = certified_http_request(
+        &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "gzip")
             .with_certificate_version(2)
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(gzip_response.status_code, 200);
     assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
     assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
 
-    let no_encoding_response = state.http_request(
+    let no_encoding_response = certified_http_request(
+        &state,
         RequestBuilder::get("/no-encoding.html")
             .with_header("Accept-Encoding", "identity")
             .with_certificate_version(2)
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(no_encoding_response.status_code, 404);
     assert_eq!(no_encoding_response.body.as_ref(), "not found".as_bytes());
@@ -447,13 +532,12 @@ fn serve_fallback_v2() {
             .with_encoding("identity", vec![INDEX_BODY])],
     );
 
-    let identity_response = state.http_request(
+    let identity_response = certified_http_request(
+        &state,
         RequestBuilder::get("/index.html")
             .with_header("Accept-Encoding", "identity")
             .with_certificate_version(2)
             .build(),
-        &[],
-        unused_callback(),
     );
     let certificate_header = lookup_header(&identity_response, "IC-Certificate").unwrap();
     println!("certificate_header: {}", certificate_header);
@@ -462,13 +546,12 @@ fn serve_fallback_v2() {
     assert_eq!(identity_response.body.as_ref(), INDEX_BODY);
     assert!(certificate_header.contains("expr_path=:2dn3g2lodHRwX2V4cHJqaW5kZXguaHRtbGM8JD4=:"));
 
-    let fallback_response = state.http_request(
+    let fallback_response = certified_http_request(
+        &state,
         RequestBuilder::get("/nonexistent")
             .with_header("Accept-Encoding", "identity")
             .with_certificate_version(2)
             .build(),
-        &[],
-        unused_callback(),
     );
     let certificate_header = lookup_header(&fallback_response, "IC-Certificate").unwrap();
 
@@ -491,13 +574,12 @@ fn serve_fallback_not_v2_return_v1_instead() {
             .with_encoding("identity", vec![INDEX_BODY])],
     );
 
-    let identity_response = state.http_request(
+    let identity_response = certified_http_request(
+        &state,
         RequestBuilder::get("/index.html")
             .with_header("Accept-Encoding", "identity")
             .with_certificate_version(2)
             .build(),
-        &[],
-        unused_callback(),
     );
     let certificate_header = lookup_header(&identity_response, "IC-Certificate").unwrap();
     println!("certificate_header: {}", certificate_header);
@@ -506,13 +588,12 @@ fn serve_fallback_not_v2_return_v1_instead() {
     assert_eq!(identity_response.body.as_ref(), INDEX_BODY);
     assert_eq!(certificate_header, "certificate=::, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYIM8ANxr3uBnyZ3YrWTYvfQjw6CmrHSRuIBULpYIb4aXrgwGCBFgg+jAbPRnbBTCe4Og4iYk7iLWjObu13VUiWYelXqXzECuDAksvaW5kZXguaHRtbIIDWCAWI/HQgRYNl23WWINz3W5z4kr5pv8FamU+vQ+6LzVbzYIEWCAOQBehfDTqG0vtSP22y3mC819U9XK+/bF1sp/8r+CJYQ==:");
 
-    let fallback_response = state.http_request(
+    let fallback_response = certified_http_request(
+        &state,
         RequestBuilder::get("/nonexistent")
             .with_header("Accept-Encoding", "identity")
             .with_certificate_version(2)
             .build(),
-        &[],
-        unused_callback(),
     );
     let certificate_header = lookup_header(&fallback_response, "IC-Certificate").unwrap();
 
@@ -535,23 +616,21 @@ fn serve_fallback_v1() {
             .with_encoding("identity", vec![INDEX_BODY])],
     );
 
-    let identity_response = state.http_request(
+    let identity_response = certified_http_request(
+        &state,
         RequestBuilder::get("/index.html")
             .with_header("Accept-Encoding", "identity")
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(identity_response.status_code, 200);
     assert_eq!(identity_response.body.as_ref(), INDEX_BODY);
     assert!(lookup_header(&identity_response, "IC-Certificate").is_some());
 
-    let fallback_response = state.http_request(
+    let fallback_response = certified_http_request(
+        &state,
         RequestBuilder::get("/nonexistent")
             .with_header("Accept-Encoding", "identity")
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(fallback_response.status_code, 200);
     assert_eq!(fallback_response.body.as_ref(), INDEX_BODY);
@@ -571,12 +650,11 @@ fn can_create_assets_using_batch_proposal_api() {
         vec![AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY])],
     );
 
-    let response = state.http_request(
+    let response = certified_http_request(
+        &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "gzip,identity")
             .build(),
-        &[],
-        unused_callback(),
     );
 
     assert_eq!(response.status_code, 200);
@@ -832,12 +910,11 @@ fn returns_index_file_for_missing_assets() {
         ],
     );
 
-    let response = state.http_request(
+    let response = certified_http_request(
+        &state,
         RequestBuilder::get("/missing.html")
             .with_header("Accept-Encoding", "gzip,identity")
             .build(),
-        &[],
-        unused_callback(),
     );
 
     assert_eq!(response.status_code, 200);
@@ -861,12 +938,11 @@ fn preserves_state_on_stable_roundtrip() {
     let stable_state: StableState = state.into();
     let state: State = stable_state.into();
 
-    let response = state.http_request(
+    let response = certified_http_request(
+        &state,
         RequestBuilder::get("/index.html")
             .with_header("Accept-Encoding", "gzip,identity")
             .build(),
-        &[],
-        unused_callback(),
     );
     assert_eq!(response.status_code, 200);
     assert_eq!(response.body.as_ref(), INDEX_BODY);
@@ -934,12 +1010,11 @@ fn supports_max_age_headers() {
         ],
     );
 
-    let response = state.http_request(
+    let response = certified_http_request(
+        &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "gzip,identity")
             .build(),
-        &[],
-        unused_callback(),
     );
 
     assert_eq!(response.status_code, 200);
@@ -950,12 +1025,11 @@ fn supports_max_age_headers() {
         response,
     );
 
-    let response = state.http_request(
+    let response = certified_http_request(
+        &state,
         RequestBuilder::get("/max-age.html")
             .with_header("Accept-Encoding", "gzip,identity")
             .build(),
-        &[],
-        unused_callback(),
     );
 
     assert_eq!(response.status_code, 200);
@@ -1008,12 +1082,11 @@ fn supports_custom_http_headers() {
         ],
     );
 
-    let response = state.http_request(
+    let response = certified_http_request(
+        &state,
         RequestBuilder::get("/contents.html")
             .with_header("Accept-Encoding", "gzip,identity")
             .build(),
-        &[],
-        unused_callback(),
     );
 
     assert_eq!(response.status_code, 200);
@@ -1029,12 +1102,11 @@ fn supports_custom_http_headers() {
         response,
     );
 
-    let response = state.http_request(
+    let response = certified_http_request(
+        &state,
         RequestBuilder::get("/max-age.html")
             .with_header("Accept-Encoding", "gzip,identity")
             .build(),
-        &[],
-        unused_callback(),
     );
 
     assert_eq!(response.status_code, 200);
@@ -1269,46 +1341,31 @@ fn support_aliases() {
         ],
     );
 
-    let normal_request = state.http_request(
-        RequestBuilder::get("/contents.html").build(),
-        &[],
-        unused_callback(),
-    );
+    let normal_request =
+        certified_http_request(&state, RequestBuilder::get("/contents.html").build());
     assert_eq!(normal_request.body.as_ref(), FILE_BODY);
 
-    let alias_add_html = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_add_html = certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
-    let root_alias = state.http_request(RequestBuilder::get("/").build(), &[], unused_callback());
+    let root_alias = certified_http_request(&state, RequestBuilder::get("/").build());
     assert_eq!(root_alias.body.as_ref(), INDEX_BODY);
 
+    // cannot use certified request because this produces an invalid URL
     let empty_path_alias =
         state.http_request(RequestBuilder::get("").build(), &[], unused_callback());
     assert_eq!(empty_path_alias.body.as_ref(), INDEX_BODY);
 
-    let subdirectory_index_alias = state.http_request(
-        RequestBuilder::get("/subdirectory/index").build(),
-        &[],
-        unused_callback(),
-    );
+    let subdirectory_index_alias =
+        certified_http_request(&state, RequestBuilder::get("/subdirectory/index").build());
     assert_eq!(subdirectory_index_alias.body.as_ref(), SUBDIR_INDEX_BODY);
 
-    let subdirectory_index_alias_2 = state.http_request(
-        RequestBuilder::get("/subdirectory/").build(),
-        &[],
-        unused_callback(),
-    );
+    let subdirectory_index_alias_2 =
+        certified_http_request(&state, RequestBuilder::get("/subdirectory/").build());
     assert_eq!(subdirectory_index_alias_2.body.as_ref(), SUBDIR_INDEX_BODY);
 
-    let subdirectory_index_alias_3 = state.http_request(
-        RequestBuilder::get("/subdirectory").build(),
-        &[],
-        unused_callback(),
-    );
+    let subdirectory_index_alias_3 =
+        certified_http_request(&state, RequestBuilder::get("/subdirectory").build());
     assert_eq!(subdirectory_index_alias_3.body.as_ref(), SUBDIR_INDEX_BODY);
 }
 
@@ -1330,11 +1387,7 @@ fn alias_enable_and_disable() {
         ],
     );
 
-    let alias_add_html = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_add_html = certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
     assert!(state
@@ -1347,18 +1400,11 @@ fn alias_enable_and_disable() {
         })
         .is_ok());
 
-    let no_more_alias = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let no_more_alias = certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_ne!(no_more_alias.body.as_ref(), FILE_BODY);
 
-    let other_alias_still_works = state.http_request(
-        RequestBuilder::get("/subdirectory/index").build(),
-        &[],
-        unused_callback(),
-    );
+    let other_alias_still_works =
+        certified_http_request(&state, RequestBuilder::get("/subdirectory/index").build());
     assert_eq!(other_alias_still_works.body.as_ref(), SUBDIR_INDEX_BODY);
 
     create_assets(
@@ -1378,11 +1424,8 @@ fn alias_enable_and_disable() {
             is_aliased: Some(Some(true)),
         })
         .is_ok());
-    let alias_add_html_again = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_add_html_again =
+        certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_eq!(alias_add_html_again.body.as_ref(), FILE_BODY);
 }
 
@@ -1405,18 +1448,11 @@ fn alias_behavior_persists_through_upgrade() {
         ],
     );
 
-    let alias_disabled = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_disabled = certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_ne!(alias_disabled.body.as_ref(), FILE_BODY);
 
-    let alias_for_other_asset_still_works = state.http_request(
-        RequestBuilder::get("/subdirectory").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_for_other_asset_still_works =
+        certified_http_request(&state, RequestBuilder::get("/subdirectory").build());
     assert_eq!(
         alias_for_other_asset_still_works.body.as_ref(),
         SUBDIR_INDEX_BODY
@@ -1425,18 +1461,12 @@ fn alias_behavior_persists_through_upgrade() {
     let stable_state: StableState = state.into();
     let state: State = stable_state.into();
 
-    let alias_stays_turned_off = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_stays_turned_off =
+        certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_ne!(alias_stays_turned_off.body.as_ref(), FILE_BODY);
 
-    let alias_for_other_asset_still_works = state.http_request(
-        RequestBuilder::get("/subdirectory").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_for_other_asset_still_works =
+        certified_http_request(&state, RequestBuilder::get("/subdirectory").build());
     assert_eq!(
         alias_for_other_asset_still_works.body.as_ref(),
         SUBDIR_INDEX_BODY
@@ -1457,11 +1487,7 @@ fn aliasing_name_clash() {
             .with_encoding("identity", vec![FILE_BODY])],
     );
 
-    let alias_add_html = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_add_html = certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_eq!(alias_add_html.body.as_ref(), FILE_BODY);
 
     create_assets(
@@ -1471,11 +1497,8 @@ fn aliasing_name_clash() {
             .with_encoding("identity", vec![FILE_BODY_2])],
     );
 
-    let alias_doesnt_overwrite_actual_file = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_doesnt_overwrite_actual_file =
+        certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_eq!(
         alias_doesnt_overwrite_actual_file.body.as_ref(),
         FILE_BODY_2
@@ -1485,11 +1508,8 @@ fn aliasing_name_clash() {
         key: "/contents".to_string(),
     });
 
-    let alias_accessible_again = state.http_request(
-        RequestBuilder::get("/contents").build(),
-        &[],
-        unused_callback(),
-    );
+    let alias_accessible_again =
+        certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_eq!(alias_accessible_again.body.as_ref(), FILE_BODY);
 }
 
@@ -1631,12 +1651,11 @@ mod certificate_expression {
                 .with_header("Access-Control-Allow-Origin", "*")],
         );
 
-        let v1_response = state.http_request(
+        let v1_response = certified_http_request(
+            &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
                 .build(),
-            &[],
-            unused_callback(),
         );
 
         assert!(
@@ -1644,13 +1663,12 @@ mod certificate_expression {
             "superfluous ic-certificateexpression header detected in cert v1"
         );
 
-        let response = state.http_request(
+        let response = certified_http_request(
+            &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
                 .with_certificate_version(2)
                 .build(),
-            &[],
-            unused_callback(),
         );
 
         assert!(
@@ -1682,12 +1700,11 @@ mod certificate_expression {
                 .with_header("Access-Control-Allow-Origin", "*")],
         );
 
-        let v1_response = state.http_request(
+        let v1_response = certified_http_request(
+            &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
                 .build(),
-            &[],
-            unused_callback(),
         );
 
         assert!(
@@ -1698,13 +1715,12 @@ mod certificate_expression {
         let certificate_header = lookup_header(&v1_response, "IC-Certificate").unwrap();
         println!("certificate_header: {}", certificate_header);
 
-        let response = state.http_request(
+        let response = certified_http_request(
+            &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
                 .with_certificate_version(2)
                 .build(),
-            &[],
-            unused_callback(),
         );
 
         assert!(
@@ -1735,13 +1751,12 @@ mod certificate_expression {
                 .with_header("Access-Control-Allow-Origin", "*")],
         );
 
-        let response = state.http_request(
+        let response = certified_http_request(
+            &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
                 .with_certificate_version(2)
                 .build(),
-            &[],
-            unused_callback(),
         );
 
         assert!(
@@ -1768,13 +1783,12 @@ mod certificate_expression {
                 is_aliased: None,
             })
             .unwrap();
-        let response = state.http_request(
+        let response = certified_http_request(
+            &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
                 .with_certificate_version(2)
                 .build(),
-            &[],
-            unused_callback(),
         );
         assert!(
             lookup_header(&response, "ic-certificateexpression").is_some(),
@@ -1812,13 +1826,12 @@ mod certification_v2 {
                 .with_header("Access-Control-Allow-Origin", "*")],
         );
 
-        let response = state.http_request(
+        let response = certified_http_request(
+            &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
                 .with_certificate_version(2)
                 .build(),
-            &[],
-            unused_callback(),
         );
 
         let cert_header =
@@ -1847,13 +1860,12 @@ mod certification_v2 {
                 .with_header("Access-Control-Allow-Origin", "*")],
         );
 
-        let response = state.http_request(
+        let response = certified_http_request(
+            &state,
             RequestBuilder::get("/contents.html")
                 .with_header("Accept-Encoding", "gzip,identity")
                 .with_certificate_version(2)
                 .build(),
-            &[],
-            unused_callback(),
         );
 
         let cert_header = lookup_header(&response, "ic-certificate")

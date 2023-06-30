@@ -17,7 +17,7 @@ candid = { workspace = true }
 hex.workspace = true
 ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
-ic-certified-map = "0.3"
+ic-certified-map = "0.3.2"
 ic-response-verification = "0.1.0"
 itertools.workspace = true
 num-traits.workspace = true
@@ -25,3 +25,7 @@ serde.workspace = true
 serde_bytes.workspace = true
 serde_cbor.workspace = true
 sha2.workspace = true
+
+[dev-dependencies]
+ic-response-verification-test-utils = { git = "https://github.com/dfinity/response-verification.git" }
+ic-crypto-tree-hash = { git = "https://github.com/dfinity/ic.git", rev = "a533346f63f4091eb64692891de0d5b2ffd5b22a"  }
