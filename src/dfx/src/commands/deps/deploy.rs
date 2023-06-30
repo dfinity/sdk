@@ -16,7 +16,7 @@ use ic_agent::Agent;
 use ic_utils::interfaces::{management_canister::builders::InstallMode, ManagementCanister};
 use slog::{info, Logger};
 
-/// Deploy pulled dependencies.
+/// Deploy pulled dependencies locally.
 #[derive(Parser)]
 pub struct DepsDeployOpts {
     /// Specify the canister to deploy. You can specify its name (as defined in dfx.json) or Principal.

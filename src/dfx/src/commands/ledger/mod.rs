@@ -17,6 +17,7 @@ use candid::Principal;
 use candid::{Decode, Encode};
 use clap::Parser;
 use fn_error_context::context;
+use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -238,10 +239,11 @@ pub async fn notify_top_up(
 
 fn retryable(agent_error: &AgentError) -> bool {
     match agent_error {
-        AgentError::ReplicaError {
-            reject_code,
+        AgentError::ReplicaError(RejectResponse {
+            reject_code: RejectCode::CanisterError,
             reject_message,
-        } if *reject_code == 5 && reject_message.contains("is out of cycles") => false,
+            ..
+        }) if reject_message.contains("is out of cycles") => false,
         AgentError::HttpError(HttpErrorPayload {
             status,
             content_type: _,

@@ -1,4 +1,7 @@
 use super::common::*;
+use crate::error::DowngradeCommitBatchArgumentsV1ToV0Error;
+use crate::error::DowngradeCommitBatchArgumentsV1ToV0Error::V0SetAssetPropertiesNotSupported;
+
 use candid::{CandidType, Nat};
 
 /// Batch operations that can be applied atomically.
@@ -33,7 +36,7 @@ pub struct CommitBatchArguments {
 
 // impl try_from for v0::BatchOperationKind from v1::BatchOperationKind
 impl TryFrom<super::v1::CommitBatchArguments> for CommitBatchArguments {
-    type Error = String;
+    type Error = DowngradeCommitBatchArgumentsV1ToV0Error;
 
     fn try_from(value: super::v1::CommitBatchArguments) -> Result<Self, Self::Error> {
         let mut operations = vec![];
@@ -53,7 +56,7 @@ impl TryFrom<super::v1::CommitBatchArguments> for CommitBatchArguments {
                 }
                 super::v1::BatchOperationKind::Clear(args) => BatchOperationKind::Clear(args),
                 super::v1::BatchOperationKind::SetAssetProperties(_) => {
-                    return Err("SetAssetProperties is not supported".to_string())
+                    return Err(V0SetAssetPropertiesNotSupported)
                 }
             };
             operations.push(operation);

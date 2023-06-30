@@ -1,6 +1,5 @@
-use crate::lib::error::DfxResult;
-
 use crate::lib::environment::Environment;
+use crate::lib::error::DfxResult;
 
 use anyhow::bail;
 use clap::Subcommand;
@@ -45,6 +44,7 @@ pub enum DfxCommand {
     Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
+    #[command(hide = true)]
     Extension(extension::ExtensionOpts),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),

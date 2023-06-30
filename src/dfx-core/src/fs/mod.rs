@@ -4,12 +4,12 @@ use crate::error::archive::ArchiveError;
 use crate::error::fs::FsError;
 use crate::error::fs::FsErrorKind::{
     CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed,
-    ReadFileFailed, ReadPermissionsFailed, ReadToStringFailed, RemoveDirectoryAndContentsFailed,
-    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, UnpackingArchiveFailed, WriteFileFailed,
-    WritePermissionsFailed,
+    ReadFileFailed, ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
+    RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
+    UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
 };
 
-use std::fs::{Permissions, ReadDir};
+use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
 pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
@@ -39,6 +39,10 @@ pub fn get_archive_path(
         .path()
         .map_err(ArchiveError::ArchiveFileInvalidPath)?;
     Ok(path.to_path_buf())
+}
+
+pub fn metadata(path: &Path) -> Result<Metadata, FsError> {
+    std::fs::metadata(path).map_err(|err| FsError::new(ReadMetadataFailed(path.to_path_buf(), err)))
 }
 
 pub fn parent(path: &Path) -> Result<PathBuf, FsError> {

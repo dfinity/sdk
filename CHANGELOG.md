@@ -2,7 +2,27 @@
 
 # UNRELEASED
 
-Note: Canister http functionality is broken.  Do not release dfx until this is corrected.  See https://dfinity.atlassian.net/browse/SDK-1129
+## DFX
+
+### feat: can disable the warnings about using an unencrypted identity on mainnet
+
+It's now possible to suppress warnings of this form:
+
+```
+WARN: The <identity> identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` and use it in mainnet-facing commands with the `--identity` flag
+```
+
+To do so, export the environment variable `DFX_WARNING` with the value `-mainnet_plaintext_identity`.
+```bash
+export DFX_WARNING="-mainnet_plaintext_identity"
+```
+
+Note that this can be combined to also disable the dfx version check warning:
+```bash
+export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
+```
+
+# 0.14.2
 
 ## DFX
 
@@ -27,6 +47,10 @@ The custom build command can be set in `dfx.json` the same way it is set for `cu
 }
 ```
 
+### fix: Diagnose duplicate assets and display upgrade steps
+
+If `dfx deploy` detects duplicate assets in the dist/ and frontend assets/ directories, it will now suggest upgrade steps.
+
 ### fix: motoko canisters can import other canisters with service constructor
 
 After specific canister builder output wasm and candid file, `dfx` will do some post processing on the candid file.
@@ -41,6 +65,8 @@ Then it is separated into two parts: `service.did` and `init_args.txt`, correspo
 ### fix: dfx start now respects the network replica port configuration in dfx.json or networks.json
 
 ## Frontend canister
+
+> **NOTE**: We've disabled response verification v2 in the asset canister while we improve test coverage.
 
 The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
 
@@ -67,6 +93,10 @@ Suggestions for configured limits:
 
 Note that as always, if `dfx deploy` does not completely upload and commit a batch, the asset canister will retain the batch until 5 minutes have passed since the last chunk was uploaded.  If you have configured limits and the combination of an unsuccessful deployment and a subsequent attempt would exceed those limits, you can either wait 5 minutes before running `dfx deploy` again, or delete the incomplete batch with `delete_batch()`.
 
+### fix: return the correct expr_path for index.html fallback routes
+
+Previously, the requested path was used to construct the `expr_path` for the `index.html` fallback route.  This was incorrect, as the `expr_path` should be the path of the `index.html` file itself in this case.
+
 ## Frontend canister assets synchronization
 
 ### fix: now retries failed `create_chunk()` calls
@@ -83,7 +113,9 @@ Now, only transport errors and timeout errors are considered retryable.
 
 ### Frontend canister
 
-- Module hash: 99eae7ce78e59352817faf811c2337707e8de955d00f62b98fdd49d35f99a2f4
+- Module hash: 1286960c50eb7a773cfb5fdd77cc238588f39e21f189cc3eb0f35199a99b9c7e
+- https://github.com/dfinity/sdk/pull/3205
+- https://github.com/dfinity/sdk/pull/3198
 - https://github.com/dfinity/sdk/pull/3154
 - https://github.com/dfinity/sdk/pull/3158
 - https://github.com/dfinity/sdk/pull/3144
@@ -98,10 +130,18 @@ Updated cycles wallet to `20230530` release:
 - Module hash: c1290ad65e6c9f840928637ed7672b688216a9c1e919eacbacc22af8c904a5e3
 - https://github.com/dfinity/cycles-wallet/commit/313fb01d59689df90bd3381659d94164c2a61cf4
 
+### Motoko
+
+Updated Motoko to 0.9.3
+
 ### Replica
 
-Updated replica to elected commit e0c5ad62a151d1bd0b2f59822c127f4ae7a4ce28.
+Updated replica to elected commit ef8ca68771baa20a14af650ab89c9b31b1dc9a5e.
 This incorporates the following executed proposals:
+- [123248](https://dashboard.internetcomputer.org/proposal/123248)
+- [123021](https://dashboard.internetcomputer.org/proposal/123021)
+- [123007](https://dashboard.internetcomputer.org/proposal/123007)
+- [122923](https://dashboard.internetcomputer.org/proposal/122923)
 - [122924](https://dashboard.internetcomputer.org/proposal/122924)
 - [122910](https://dashboard.internetcomputer.org/proposal/122910)
 - [122911](https://dashboard.internetcomputer.org/proposal/122911)
