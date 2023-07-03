@@ -11,6 +11,8 @@ use std::{
     fs::DirEntry,
 };
 
+use super::error::ExtensionError;
+
 #[derive(Debug, Default)]
 pub struct Extension {
     pub name: String,
@@ -30,23 +32,19 @@ impl Display for Extension {
 }
 
 impl Extension {
-    pub fn into_clap_command(self, manager: &ExtensionManager) -> Command {
-        let mut cmd = Command::new(&self.name)
+    pub fn into_clap_command(
+        self,
+        manager: &ExtensionManager,
+    ) -> Result<clap::Command, ExtensionError> {
+        let manifest = ExtensionManifest::new(&self.name, &manager.dir)?;
+        let cmd = Command::new(&self.name)
             .bin_name(&self.name)
             // don't accept unknown options
             .allow_missing_positional(false)
             // don't accept unknown subcommands
-            .allow_external_subcommands(false);
-        let about = match ExtensionManifest::new(&self.name, &manager.dir) {
-            Ok(manifest) => {
-                let about = manifest.summary.clone();
-                if let Some(subcmds) = manifest.into_clap_commands() {
-                    cmd = cmd.subcommands(subcmds);
-                }
-                about
-            }
-            Err(err) => err.to_string(),
-        };
-        cmd.about(about)
+            .allow_external_subcommands(false)
+            .about(&manifest.summary)
+            .subcommands(manifest.into_clap_commands()?);
+        Ok(cmd)
     }
 }

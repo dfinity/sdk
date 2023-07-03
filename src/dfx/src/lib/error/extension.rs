@@ -5,8 +5,8 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
-    #[error("Cannot find cache directory '{0}': {1}")]
-    FindCacheDirectoryFailed(std::path::PathBuf, dfx_core::error::cache::CacheError),
+    #[error("Cannot find cache directory: '{0}'")]
+    FindCacheDirectoryFailed(dfx_core::error::cache::CacheError),
 
     #[error("Cannot get extensions directory: {0}")]
     EnsureExtensionDirExistsFailed(dfx_core::error::fs::FsError),
@@ -74,6 +74,9 @@ pub enum ExtensionError {
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]
     InvalidExtensionName(std::ffi::OsString),
+
+    #[error("Extension's subcommand argument '{0}' is missing description.")]
+    ExtensionSubcommandArgMissingDescription(String),
 
     #[error("Cannot find extension binary at '{0}'.")]
     ExtensionBinaryDoesNotExist(std::path::PathBuf),

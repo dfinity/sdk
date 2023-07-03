@@ -40,38 +40,47 @@ teardown() {
 }
 
 @test "manually create extension" {
-    CACHE_DIR=$(dfx cache show)
-
     assert_command dfx extension list
     assert_match 'No extensions installed'
 
+    CACHE_DIR=$(dfx cache show)
     mkdir -p $CACHE_DIR/extensions/test_extension
-    echo "#!/usr/bin/env bash" > $CACHE_DIR/extensions/test_extension/test_extension
-    echo "echo test" > $CACHE_DIR/extensions/test_extension/test_extension
+    echo '#!/usr/bin/env bash
+
+echo testoutput' > $CACHE_DIR/extensions/test_extension/test_extension
     chmod +x $CACHE_DIR/extensions/test_extension/test_extension
 
-    assert_command dfx extension list
-    assert_match 'test_extension'
-
-    assert_command dfx extension run test_extension
-    assert_match 'test'
-
-    assert_command dfx test_extension
-    assert_match 'test'
-
-    assert_command dfx --help
+    assert_command_fail dfx extension list
     assert_match "Missing \'extension.json\' file for extension \'test_extension\' \(exact location:.*/extensions/test_extension/extension.json\)"
 
-    assert_command dfx test_extension --help
+    assert_command_fail dfx extension run test_extension
+    assert_match "Missing \'extension.json\' file for extension \'test_extension\' \(exact location:.*/extensions/test_extension/extension.json\)"
+
+    assert_command_fail dfx test_extension
+    assert_match "Missing \'extension.json\' file for extension \'test_extension\' \(exact location:.*/extensions/test_extension/extension.json\)"
+
+    assert_command_fail dfx --help
+    assert_match "Missing \'extension.json\' file for extension \'test_extension\' \(exact location:.*/extensions/test_extension/extension.json\)"
+
+    assert_command_fail dfx test_extension --help
     assert_match "Missing \'extension.json\' file for extension \'test_extension\' \(exact location:.*/extensions/test_extension/extension.json\)"
 
     echo "{}" > $CACHE_DIR/extensions/test_extension/extension.json
 
-    assert_command dfx --help
-    assert_match "Malformed extension manifest: Failed to parse contents of.*/extensions/test_extension/extension.json"
+    assert_command_fail dfx extension list
+    assert_match "Malformed extension manifest: Failed to parse contents of .*extensions/test_extension/extension.json as json: missing field .*"
 
-    assert_command dfx test_extension --help
-    assert_match "Malformed extension manifest: Failed to parse contents of.*/extensions/test_extension/extension.json"
+    assert_command_fail dfx extension run test_extension
+    assert_match "Malformed extension manifest: Failed to parse contents of .*extensions/test_extension/extension.json as json: missing field .*"
+
+    assert_command_fail dfx test_extension
+    assert_match "Malformed extension manifest: Failed to parse contents of .*extensions/test_extension/extension.json as json: missing field .*"
+
+    assert_command_fail dfx --help
+    assert_match "Malformed extension manifest: Failed to parse contents of .*extensions/test_extension/extension.json as json: missing field .*"
+
+    assert_command_fail dfx test_extension --help
+    assert_match "Malformed extension manifest: Failed to parse contents of .*extensions/test_extension/extension.json as json: missing field .*"
 
     echo '{
   "name": "test_extension",
@@ -88,6 +97,15 @@ teardown() {
 
     assert_command dfx test_extension --help
     assert_match "Test extension for e2e purposes..*Usage: dfx test_extension"
+
+    assert_command dfx extension list
+    assert_match "test_extension"
+
+    assert_command dfx extension run test_extension
+    assert_match "testoutput"
+
+    assert_command dfx test_extension
+    assert_match "testoutput"
 
     assert_command dfx extension uninstall test_extension
     # TODO: how to capture spinner message?

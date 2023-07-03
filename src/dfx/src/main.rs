@@ -1,6 +1,5 @@
 #![allow(special_module_name)]
 
-use crate::commands::DfxCommand;
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use crate::lib::environment::{Environment, EnvironmentImpl};
@@ -8,11 +7,12 @@ use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
 use anyhow::Error;
-use clap::{ArgAction, Args, CommandFactory, Parser, Subcommand};
+use clap::{ArgAction, Args, CommandFactory, Parser};
 
 use lib::extension::manager::ExtensionManager;
 use semver::Version;
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 mod actors;
@@ -174,25 +174,32 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 }
 
 fn main() {
-    let matches = {
-        let installed_extensions = ExtensionManager::command();
-        let mut app =
-            CliOpts::command_for_update().subcommands(installed_extensions.get_subcommands());
-        if !installed_extensions.get_subcommands().count() > 0 {
-            sort_clap_commands(&mut app);
-        }
-        app.get_matches()
-    };
+    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
+    let mut args = std::env::args_os().collect::<Vec<OsString>>();
 
-    let mut args = std::env::args_os().collect::<Vec<_>>();
-
-    if let Ok(em) = ExtensionManager::new(dfx_version(), false) {
-        // safe to unwrap because clap will display help if no subcommand is provided
-        // which happens when "app.get_matches()" is called above
-        let subcmd = matches.subcommand().unwrap().0;
-        if !DfxCommand::has_subcommand(subcmd) && em.is_extension_installed(subcmd) {
-            args.insert(1, "extension".into());
-            args.insert(2, "run".into());
+    if let Ok(em) = ExtensionManager::new(dfx_version(), true) {
+        match em.installed_extensions_as_clap_commands() {
+            Ok(installed_extensions) => {
+                let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
+                if !installed_extensions.is_empty() {
+                    sort_clap_commands(&mut app);
+                }
+                let matches = app.get_matches();
+                // safe to unwrap because clap will display help if no subcommand is provided
+                // which happens when "app.get_matches()" is called above
+                let subcmd = matches.subcommand().unwrap().0;
+                if em.is_extension_installed(subcmd) {
+                    let index = args.iter().position(|arg| arg == subcmd).unwrap();
+                    args.splice(
+                        index..index,
+                        vec![OsString::from("extension"), OsString::from("run")].into_iter(),
+                    );
+                }
+            }
+            Err(err) => {
+                print_error_and_diagnosis(err.into(), error_diagnosis);
+                std::process::exit(255);
+            }
         }
     }
 
@@ -201,7 +208,6 @@ fn main() {
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
     let command = cli_opts.command;
-    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());

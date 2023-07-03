@@ -19,4 +19,14 @@ impl ExtensionManager {
             })
             .collect())
     }
+
+    pub fn installed_extensions_as_clap_commands(
+        &self,
+    ) -> Result<Vec<clap::Command>, ExtensionError> {
+        let mut extensions = vec![];
+        for ext in self.list_installed_extensions()? {
+            extensions.push(ext.into_clap_command(self)?);
+        }
+        Ok(extensions)
+    }
 }

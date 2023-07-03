@@ -35,29 +35,24 @@ impl ExtensionManifest {
                 manifest_path,
             ));
         }
-        dfx_core::json::load_json_file(&manifest_path)
-            .map_err(ExtensionError::ExtensionManifestIsNotValid)
-            .map(|mut m: ExtensionManifest| {
-                m.name = name.to_string();
-                m
-            })
+        let mut m: ExtensionManifest = dfx_core::json::load_json_file(&manifest_path)
+            .map_err(ExtensionError::ExtensionManifestIsNotValid)?;
+        m.name = name.to_string();
+        Ok(m)
     }
 
-    pub fn into_clap_commands(self) -> Option<Vec<clap::Command>> {
-        if let Some(subcmds) = self.subcommands {
-            return Some(
-                subcmds
-                    .0
-                    .into_iter()
-                    .map(|(k, v)| v.into_clap_command(k))
-                    .collect(),
-            );
-        }
-        None
+    pub fn into_clap_commands(self) -> Result<Vec<clap::Command>, ExtensionError> {
+        Ok(self
+            .subcommands
+            .unwrap_or_default()
+            .0
+            .into_iter()
+            .map(|(subcmd, opts)| opts.into_clap_command(subcmd))
+            .collect::<Result<Vec<_>, _>>()?)
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct ExtensionSubcommandsOpts(BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
 
 #[derive(Debug, Deserialize)]
@@ -75,27 +70,31 @@ pub struct ExtensionSubcommandArgOpts {
 }
 
 impl ExtensionSubcommandArgOpts {
-    pub fn into_clap_arg(self, name: String) -> clap::Arg {
-        let mut arg = clap::Arg::new(name).help(
-            self.about
-                .unwrap_or_else(|| "Missing arg description.".to_string()),
-        );
+    pub fn into_clap_arg(self, name: String) -> Result<clap::Arg, ExtensionError> {
+        let mut arg = clap::Arg::new(name.clone());
+        if let Some(about) = self.about {
+            arg = arg.help(about);
+        } else {
+            return Err(ExtensionError::ExtensionSubcommandArgMissingDescription(
+                name,
+            ));
+        }
         if let Some(l) = self.long {
             arg = arg.long(l);
         }
         if let Some(s) = self.short {
             arg = arg.short(s);
         }
-        arg
+        Ok(arg
             // let's not enforce any restrictions
             .allow_hyphen_values(false)
             .required(false)
-            .action(ArgAction::Append)
+            .action(ArgAction::Append))
     }
 }
 
 impl ExtensionSubcommandOpts {
-    pub fn into_clap_command(self, name: String) -> clap::Command {
+    pub fn into_clap_command(self, name: String) -> Result<clap::Command, ExtensionError> {
         let mut cmd = clap::Command::new(name);
 
         if let Some(about) = self.about {
@@ -104,17 +103,17 @@ impl ExtensionSubcommandOpts {
 
         if let Some(args) = self.args {
             for (name, opts) in args {
-                cmd = cmd.arg(opts.into_clap_arg(name));
+                cmd = cmd.arg(opts.into_clap_arg(name)?);
             }
         }
 
         if let Some(subcommands) = self.subcommands {
             for (name, subcommand) in subcommands.0 {
-                cmd = cmd.subcommand(subcommand.into_clap_command(name));
+                cmd = cmd.subcommand(subcommand.into_clap_command(name)?);
             }
         }
 
-        cmd
+        Ok(cmd)
     }
 }
 

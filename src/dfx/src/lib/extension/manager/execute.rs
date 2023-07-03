@@ -1,4 +1,4 @@
-use dfx_core::config::cache::{get_bin_cache, get_cache_root};
+use dfx_core::config::cache::get_bin_cache;
 
 use super::ExtensionManager;
 use crate::lib::error::ExtensionError;
@@ -15,15 +15,8 @@ impl ExtensionManager {
             .map_err(ExtensionError::InvalidExtensionName)?;
 
         let mut extension_binary = self.get_extension_binary(&extension_name)?;
-        let dfx_cache = get_bin_cache(self.dfx_version.to_string().as_str()).map_err(|e| {
-            ExtensionError::FindCacheDirectoryFailed(
-                get_cache_root()
-                    .unwrap_or_default()
-                    .join("versions")
-                    .join(self.dfx_version.to_string()),
-                e,
-            )
-        })?;
+        let dfx_cache = get_bin_cache(self.dfx_version.to_string().as_str())
+            .map_err(ExtensionError::FindCacheDirectoryFailed)?;
 
         params.extend(["--dfx-cache-path".into(), dfx_cache.into_os_string()]);
 
