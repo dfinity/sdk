@@ -44,11 +44,11 @@ teardown() {
     assert_match 'No extensions installed'
 
     CACHE_DIR=$(dfx cache show)
-    mkdir -p $CACHE_DIR/extensions/test_extension
+    mkdir -p "$CACHE_DIR"/extensions/test_extension
     echo '#!/usr/bin/env bash
 
-echo testoutput' > $CACHE_DIR/extensions/test_extension/test_extension
-    chmod +x $CACHE_DIR/extensions/test_extension/test_extension
+echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
+    chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
 
     assert_command_fail dfx extension list
     assert_match "Missing \'extension.json\' file for extension \'test_extension\' \(exact location:.*/extensions/test_extension/extension.json\)"
@@ -65,7 +65,7 @@ echo testoutput' > $CACHE_DIR/extensions/test_extension/test_extension
     assert_command_fail dfx test_extension --help
     assert_match "Missing \'extension.json\' file for extension \'test_extension\' \(exact location:.*/extensions/test_extension/extension.json\)"
 
-    echo "{}" > $CACHE_DIR/extensions/test_extension/extension.json
+    echo "{}" > "$CACHE_DIR"/extensions/test_extension/extension.json
 
     assert_command_fail dfx extension list
     assert_match "Malformed extension manifest: Failed to parse contents of .*extensions/test_extension/extension.json as json: missing field .*"
@@ -90,7 +90,7 @@ echo testoutput' > $CACHE_DIR/extensions/test_extension/test_extension
   "summary": "Test extension for e2e purposes.",
   "categories": [],
   "keywords": []
-}' > $CACHE_DIR/extensions/test_extension/extension.json
+}' > "$CACHE_DIR"/extensions/test_extension/extension.json
 
     assert_command dfx --help
     assert_match "test_extension.*Test extension for e2e purposes."
