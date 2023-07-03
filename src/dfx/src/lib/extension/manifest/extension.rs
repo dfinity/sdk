@@ -42,13 +42,12 @@ impl ExtensionManifest {
     }
 
     pub fn into_clap_commands(self) -> Result<Vec<clap::Command>, ExtensionError> {
-        Ok(self
-            .subcommands
+        self.subcommands
             .unwrap_or_default()
             .0
             .into_iter()
             .map(|(subcmd, opts)| opts.into_clap_command(subcmd))
-            .collect::<Result<Vec<_>, _>>()?)
+            .collect::<Result<Vec<_>, _>>()
     }
 }
 
