@@ -172,7 +172,7 @@ In this example, the `bob_standard` identity is the currently-active user contex
 ## dfx identity new
 
 Use the `dfx identity new` command to add new user identities. You should note that the identities you add are global. They are not confined to a specific project context. Therefore, you can use any identity you add using the `dfx identity new` command in any project.
-Only the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_0123456789` are valid in identity names.
+Only the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789` are valid in identity names.
 
 ### Basic usage
 

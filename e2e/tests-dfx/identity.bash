@@ -34,6 +34,8 @@ teardown() {
     assert_match "Invalid identity name"
 
     assert_command dfx identity new i_den.ti-ty --storage-mode plaintext
+
+    assert_command dfx identity new i_den@ti-ty --storage-mode plaintext
 }
 
 @test "identity get-principal: the get-principal is the same as sender id" {

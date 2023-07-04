@@ -53,9 +53,9 @@ pub struct NewIdentityOpts {
 }
 
 fn identity_name_validator(name: &str) -> Result<String, String> {
-    let valid_name = Regex::new(r"^[A-Za-z0-9\.\-_]+$").unwrap();
+    let valid_name = Regex::new(r"^[A-Za-z0-9\.\-_@]+$").unwrap();
     if !valid_name.is_match(name) {
-        return Err("Invalid identity name. Please only use the characters ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_0123456789".to_string());
+        return Err("Invalid identity name. Please only use the characters ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789".to_string());
     }
     Ok(name.into())
 }
