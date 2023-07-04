@@ -35,12 +35,17 @@ But in this scenario, because `/content` exists, it overwrites the alias and `/c
 When the file `/content` is deleted, `/content` is once again a valid alias of `/content.html`.
 Previously, the alias of `/content.html` was not properly updated in the certification tree, making `/content` inaccessible.
 
+### fix: 404 response is now certified for certification v2
+
+Certification v2 allows certifying arbitrary responses. If the requested file does not exist, and the fallback file (`/index.html`) does not exist either,
+the frontend canister serves a HTTP 404 response. This response was previously not certified.
+
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 8dc6e1694568455e6be8b9c589dd0d2a3dbc9fdd6863efee1d61efe103e0307d
-- https://github.com/dfinity/sdk/pull/3211
+- Module hash: f426dff9e67c67c37b4940805c2f7bf92212376c5721c77ddf3b71f0e3e68971
+- https://github.com/dfinity/sdk/pull/3212
 
 # 0.14.2
 
