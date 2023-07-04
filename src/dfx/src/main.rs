@@ -174,10 +174,10 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 }
 
 fn main() {
-    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let mut args = std::env::args_os().collect::<Vec<OsString>>();
+    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
 
-    if let Ok(em) = ExtensionManager::new(dfx_version()) {
+    if let Ok(em) = ExtensionManager::new(dfx_version(), false) {
         match em.installed_extensions_as_clap_commands() {
             Ok(installed_extensions) if !installed_extensions.is_empty() => {
                 let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
@@ -186,11 +186,8 @@ fn main() {
                 // safe to unwrap because clap will display help if no subcommand is provided (which happens when "app.get_matches()" is called above)
                 let subcmd = matches.subcommand().unwrap().0;
                 if em.is_extension_installed(subcmd) {
-                    let index = args.iter().position(|arg| arg == subcmd).unwrap();
-                    args.splice(
-                        index..index,
-                        vec![OsString::from("extension"), OsString::from("run")].into_iter(),
-                    );
+                    let idx = args.iter().position(|arg| arg == subcmd).unwrap();
+                    args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
                 }
             }
             Err(err) => {

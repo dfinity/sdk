@@ -255,7 +255,7 @@ impl Environment for EnvironmentImpl {
     }
 
     fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
-        ExtensionManager::new(self.get_version())
+        ExtensionManager::new(self.get_version(), true)
     }
 }
 
@@ -371,7 +371,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
-        ExtensionManager::new(self.backend.get_version())
+        ExtensionManager::new(self.backend.get_version(), true)
     }
 }
 

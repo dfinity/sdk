@@ -3,6 +3,9 @@ use crate::lib::{error::ExtensionError, extension::Extension};
 
 impl ExtensionManager {
     pub fn list_installed_extensions(&self) -> Result<Vec<Extension>, ExtensionError> {
+        if !&self.dir.exists() {
+            return Ok(vec![]);
+        }
         let dir_content = dfx_core::fs::read_dir(&self.dir)
             .map_err(ExtensionError::ExtensionsDirectoryIsNotReadable)?;
 
