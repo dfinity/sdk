@@ -26,6 +26,12 @@ Note that this can be combined to also disable the dfx version check warning:
 export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
 ```
 
+### fix!: restrict `dfx identity new` to safe characters
+
+New identities like `dfx identity new my/identity` or `dfx identity new 'my identity'` can easily lead to problems, either for dfx internals or for usability.
+New identities are now restricted to the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_0123456789`.
+Existing identities are not affected by this change.
+
 # 0.14.2
 
 ## DFX
