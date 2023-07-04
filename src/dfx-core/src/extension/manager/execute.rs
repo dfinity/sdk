@@ -1,5 +1,5 @@
 use super::ExtensionManager;
-use crate::lib::error::ExtensionError;
+use crate::error::extension::ExtensionError;
 use std::{ffi::OsString, path::PathBuf};
 
 impl ExtensionManager {

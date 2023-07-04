@@ -32,6 +32,7 @@ argon2 = "0.4.0"
 backoff = "0.4.0"
 base64 = "0.13.0"
 byte-unit = "4.0.14"
+bytes = "1.2.1"
 clap = "4.2.0"
 dialoguer = "0.10.0"
 directories-next = "2.0.0"
@@ -47,6 +48,12 @@ mime_guess = "2.0.4"
 num-traits = "0.2.14"
 pem = "1.0.2"
 proptest = "1.0.0"
+reqwest = { version = "0.11.9", default-features = false, features = [
+    "blocking",
+    "json",
+    "rustls-tls",
+    "native-tls-vendored",
+]}
 ring = "0.16.11"
 schemars = "0.8"
 sec1 = "0.3.0"

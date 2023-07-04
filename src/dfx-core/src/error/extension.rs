@@ -6,10 +6,10 @@ use thiserror::Error;
 pub enum ExtensionError {
     // errors related to extension directory management
     #[error("Cannot find cache directory '{0}': {1}")]
-    FindCacheDirectoryFailed(std::path::PathBuf, dfx_core::error::cache::CacheError),
+    FindCacheDirectoryFailed(std::path::PathBuf, crate::error::cache::CacheError),
 
     #[error("Cannot get extensions directory: {0}")]
-    EnsureExtensionDirExistsFailed(dfx_core::error::fs::FsError),
+    EnsureExtensionDirExistsFailed(crate::error::fs::FsError),
 
     #[error("Extension '{0}' not installed.")]
     ExtensionNotInstalled(String),
@@ -49,21 +49,21 @@ pub enum ExtensionError {
     CreateTemporaryDirectoryFailed(std::path::PathBuf, std::io::Error),
 
     #[error(transparent)]
-    Io(#[from] dfx_core::error::fs::FsError),
+    Io(#[from] crate::error::fs::FsError),
 
     #[error("Platform '{0}' is not supported.")]
     PlatformNotSupported(String),
 
     // errors related to uninstalling extensions
     #[error("Cannot uninstall extension: {0}")]
-    InsufficientPermissionsToDeleteExtensionDirectory(dfx_core::error::fs::FsError),
+    InsufficientPermissionsToDeleteExtensionDirectory(crate::error::fs::FsError),
 
     // errors related to listing extensions
     #[error("Cannot list extensions: {0}")]
-    ExtensionsDirectoryIsNotReadable(dfx_core::error::fs::FsError),
+    ExtensionsDirectoryIsNotReadable(crate::error::fs::FsError),
 
     #[error("Malformed extension manifest: {0}")]
-    ExtensionManifestIsNotValidJson(dfx_core::error::structured_file::StructuredFileError),
+    ExtensionManifestIsNotValidJson(crate::error::structured_file::StructuredFileError),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]

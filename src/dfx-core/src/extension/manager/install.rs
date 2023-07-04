@@ -1,5 +1,5 @@
-use crate::lib::error::extension::ExtensionError;
-use crate::lib::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
+use crate::error::extension::ExtensionError;
+use crate::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
 
 use flate2::read::GzDecoder;
 use reqwest::Url;
@@ -98,13 +98,13 @@ impl ExtensionManager {
         temp_dir: TempDir,
     ) -> Result<(), ExtensionError> {
         let effective_extension_dir = &self.get_extension_directory(effective_extension_name);
-        dfx_core::fs::rename(
+        crate::fs::rename(
             &temp_dir.path().join(extension_unarchived_dir_name),
             effective_extension_dir,
         )?;
         if extension_name != effective_extension_name {
             // rename the binary
-            dfx_core::fs::rename(
+            crate::fs::rename(
                 &effective_extension_dir.join(extension_name),
                 &effective_extension_dir.join(effective_extension_name),
             )?;
@@ -112,7 +112,7 @@ impl ExtensionManager {
         #[cfg(not(target_os = "windows"))]
         {
             let bin = effective_extension_dir.join(effective_extension_name);
-            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
+            crate::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
         }
         Ok(())
     }

@@ -1,13 +1,12 @@
-use crate::lib::environment::Environment;
-use crate::lib::error::ExtensionError;
-use crate::lib::extension::{
+use crate::config::cache::{get_bin_cache, get_cache_root};
+use crate::error::extension::ExtensionError;
+use crate::extension::{
     manifest::{ExtensionManifest, MANIFEST_FILE_NAME},
     Extension,
 };
-use dfx_core::config::cache::{get_bin_cache, get_cache_root};
 
-use dfx_core::fs::composite::ensure_dir_exists;
-use dfx_core::json::load_json_file;
+use crate::fs::composite::ensure_dir_exists;
+use crate::json::load_json_file;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -22,20 +21,19 @@ pub struct ExtensionManager {
 }
 
 impl ExtensionManager {
-    pub fn new(env: &dyn Environment) -> Result<Self, ExtensionError> {
-        let versioned_cache_dir =
-            get_bin_cache(env.get_version().to_string().as_str()).map_err(|e| {
-                ExtensionError::FindCacheDirectoryFailed(
-                    get_cache_root().unwrap_or_default().join("versions"),
-                    e,
-                )
-            })?;
+    pub fn new(version: &Version) -> Result<Self, ExtensionError> {
+        let versioned_cache_dir = get_bin_cache(version.to_string().as_str()).map_err(|e| {
+            ExtensionError::FindCacheDirectoryFailed(
+                get_cache_root().unwrap_or_default().join("versions"),
+                e,
+            )
+        })?;
         let dir = versioned_cache_dir.join("extensions");
         ensure_dir_exists(&dir).map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
 
         Ok(Self {
             dir,
-            dfx_version: env.get_version().clone(),
+            dfx_version: version.clone(),
         })
     }
 
