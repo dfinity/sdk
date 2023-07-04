@@ -498,12 +498,21 @@ fn serve_fallback_v2() {
     let time_now = 100_000_000_000;
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    const OTHER_BODY: &[u8] = b"<!DOCTYPE html><html>other content</html>";
 
     create_assets(
         &mut state,
         time_now,
-        vec![AssetBuilder::new("/index.html", "text/html")
-            .with_encoding("identity", vec![INDEX_BODY])],
+        vec![
+            AssetBuilder::new("/index.html", "text/html")
+                .with_encoding("identity", vec![INDEX_BODY]),
+            AssetBuilder::new("/deep/nested/folder/a_file.html", "text/html")
+                .with_encoding("identity", vec![OTHER_BODY]),
+            AssetBuilder::new("/deep/nested/sibling/a_file.html", "text/html")
+                .with_encoding("identity", vec![OTHER_BODY]),
+            AssetBuilder::new("/deep/nested/sibling/a_file.html", "text/html")
+                .with_encoding("identity", vec![OTHER_BODY]),
+        ],
     );
 
     let identity_response = certified_http_request(
@@ -528,10 +537,29 @@ fn serve_fallback_v2() {
             .build(),
     );
     let certificate_header = lookup_header(&fallback_response, "IC-Certificate").unwrap();
-
     assert_eq!(fallback_response.status_code, 200);
     assert_eq!(fallback_response.body.as_ref(), INDEX_BODY);
     assert!(certificate_header.contains("expr_path=:2dn3gmlodHRwX2V4cHJjPCo+:"));
+
+    let valid_response = certified_http_request(
+        &state,
+        RequestBuilder::get("/deep/nested/folder/a_file.html")
+            .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
+            .build(),
+    );
+    assert_eq!(valid_response.status_code, 200);
+    assert_eq!(valid_response.body.as_ref(), OTHER_BODY);
+
+    let fallback_response = certified_http_request(
+        &state,
+        RequestBuilder::get("/deep/nested/folder/nonexistent")
+            .with_header("Accept-Encoding", "identity")
+            .with_certificate_version(2)
+            .build(),
+    );
+    assert_eq!(fallback_response.status_code, 200);
+    assert_eq!(fallback_response.body.as_ref(), INDEX_BODY);
 }
 
 #[test]
