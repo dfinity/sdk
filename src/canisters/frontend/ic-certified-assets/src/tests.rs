@@ -427,7 +427,7 @@ fn serve_correct_encoding_v1() {
     assert!(lookup_header(&unknown_encoding_response_2, "IC-Certificate").is_some());
 
     // Serve 404 if the requested asset has no encoding uploaded at all
-    // certificatoin v1 cannot certify 404
+    // certification v1 cannot certify 404
     let no_encoding_response = state.http_request(
         RequestBuilder::get("/no-encoding.html")
             .with_header("Accept-Encoding", "identity")
@@ -508,7 +508,7 @@ fn serve_fallback_v2() {
                 .with_encoding("identity", vec![INDEX_BODY]),
             AssetBuilder::new("/deep/nested/folder/a_file.html", "text/html")
                 .with_encoding("identity", vec![OTHER_BODY]),
-            AssetBuilder::new("/deep/nested/sibling/a_file.html", "text/html")
+            AssetBuilder::new("/deep/nested/sibling/another_file.html", "text/html")
                 .with_encoding("identity", vec![OTHER_BODY]),
             AssetBuilder::new("/deep/nested/sibling/a_file.html", "text/html")
                 .with_encoding("identity", vec![OTHER_BODY]),
