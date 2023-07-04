@@ -4,6 +4,30 @@
 
 ## DFX
 
+### feat: Integration of GitHub Action for `dfx` installation
+
+A new functionality has been implemented to enable the installation of `dfx` through GitHub Actions. This provides a more streamlined approach to installation:
+
+```yml
+jobs:
+  example-job:
+    runs-on: ubuntu-latest  # `macOS` works too by specifying `macos-latest`
+    steps:
+    - name: Install dfx
+      uses: dfinity/sdk@master
+    - name: Confirm successful installation
+      run: dfx --version
+```
+
+Moreover, it accommodates the installation of specific dfx versions:
+
+```yml
+    - name: Install dfx
+      uses: dfinity/sdk@master
+      with:
+        dfx-version: "0.14.2-beta.2"
+```
+
 ### fix: Ctrl-C right after dfx start will hang for minutes and panics
 
 Early break out from actors starting procedure.
