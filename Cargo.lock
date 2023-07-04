@@ -2393,6 +2393,7 @@ dependencies = [
  "ic-cdk-macros",
  "ic-certified-map",
  "ic-crypto-tree-hash",
+ "ic-representation-independent-hash",
  "ic-response-verification",
  "ic-response-verification-test-utils",
  "itertools 0.10.5",
@@ -2620,16 +2621,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-response-verification"
-version = "0.1.0"
+name = "ic-representation-independent-hash"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f4e57f65dc2b5567f11e0508b3648518097fe9fcd443389eb0057b91a3c5acd"
+checksum = "5f5790ff4b3752ce648d83554b3b0df1039a94bea24119d29a0f9874d796075e"
+dependencies = [
+ "leb128",
+ "sha2 0.10.6",
+]
+
+[[package]]
+name = "ic-response-verification"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "736044d69c526fa8a2a5e54d3debd878bbd4ec10c259fd21d9e6804aef67687b"
 dependencies = [
  "base64 0.13.1",
  "candid 0.8.4",
  "flate2",
  "http",
  "ic-certification 0.23.2",
+ "ic-representation-independent-hash",
  "leb128",
  "log",
  "miracl_core_bls12381",

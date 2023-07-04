@@ -27,7 +27,7 @@ use crate::{
 
 use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash};
-use ic_response_verification::hash::Value;
+use ic_representation_independent_hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -625,6 +625,7 @@ impl State {
             }
         }
         self.batches.remove(&batch_id);
+        self.certify_404_if_required();
         Ok(())
     }
 
@@ -865,8 +866,7 @@ impl State {
                 }
             }
         }
-
-        HttpResponse::build_404(certificate_header)
+        HttpResponse::build_404(certificate_header, req.get_certificate_version())
     }
 
     pub fn http_request(
@@ -1023,6 +1023,26 @@ impl State {
         }
         if let Some(max_bytes) = args.max_bytes {
             self.configuration.max_bytes = max_bytes;
+        }
+    }
+
+    fn certify_404_if_required(&mut self) {
+        if !self
+            .asset_hashes
+            .contains_path(HashTreePath::not_found_base_path_v2().as_vec())
+        {
+            let response = HttpResponse::uncertified_404();
+            let headers: Vec<_> = response
+                .headers
+                .into_iter()
+                .map(|(k, v)| (k, Value::String(v)))
+                .collect();
+            self.asset_hashes.certify_fallback_response(
+                response.status_code,
+                &headers,
+                &response.body,
+                None,
+            );
         }
     }
 }

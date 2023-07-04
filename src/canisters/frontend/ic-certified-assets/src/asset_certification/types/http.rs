@@ -5,7 +5,7 @@ use crate::{
 
 use candid::{CandidType, Deserialize, Func, Nat};
 use ic_certified_map::Hash;
-use ic_response_verification::hash::{representation_independent_hash, Value};
+use ic_representation_independent_hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 
@@ -292,10 +292,26 @@ impl HttpResponse {
         }
     }
 
-    pub fn build_404(certificate_header: HeaderField) -> HttpResponse {
+    pub fn build_404(certificate_header: HeaderField, cert_version: u16) -> HttpResponse {
+        let base_404 = Self::uncertified_404();
+        let mut headers = base_404.headers.clone();
+        headers.push(certificate_header);
+        if cert_version == 2 {
+            let certificate_expression =
+                build_ic_certificate_expression_from_headers(&base_404.headers);
+            let cert_expr_header = build_ic_certificate_expression_header(&certificate_expression);
+            headers.push(cert_expr_header)
+        }
+        HttpResponse {
+            headers,
+            ..base_404
+        }
+    }
+
+    pub fn uncertified_404() -> HttpResponse {
         HttpResponse {
             status_code: 404,
-            headers: vec![certificate_header],
+            headers: vec![("content-type".to_string(), "text/plain".to_string())],
             body: RcBytes::from(ByteBuf::from("not found")),
             upgrade: None,
             streaming_strategy: None,
