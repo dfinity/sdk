@@ -2,7 +2,31 @@
 
 # UNRELEASED
 
-Note: Canister http functionality is broken.  Do not release dfx until this is corrected.  See https://dfinity.atlassian.net/browse/SDK-1129
+## DFX
+
+### fix: Ctrl-C right after dfx start will hang for minutes and panics
+
+Early break out from actors starting procedure.
+
+### feat: can disable the warnings about using an unencrypted identity on mainnet
+
+It's now possible to suppress warnings of this form:
+
+```
+WARN: The <identity> identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` and use it in mainnet-facing commands with the `--identity` flag
+```
+
+To do so, export the environment variable `DFX_WARNING` with the value `-mainnet_plaintext_identity`.
+```bash
+export DFX_WARNING="-mainnet_plaintext_identity"
+```
+
+Note that this can be combined to also disable the dfx version check warning:
+```bash
+export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
+```
+
+# 0.14.2
 
 ## DFX
 
@@ -27,6 +51,10 @@ The custom build command can be set in `dfx.json` the same way it is set for `cu
 }
 ```
 
+### fix: Diagnose duplicate assets and display upgrade steps
+
+If `dfx deploy` detects duplicate assets in the dist/ and frontend assets/ directories, it will now suggest upgrade steps.
+
 ### fix: motoko canisters can import other canisters with service constructor
 
 After specific canister builder output wasm and candid file, `dfx` will do some post processing on the candid file.
@@ -41,6 +69,8 @@ Then it is separated into two parts: `service.did` and `init_args.txt`, correspo
 ### fix: dfx start now respects the network replica port configuration in dfx.json or networks.json
 
 ## Frontend canister
+
+> **NOTE**: We've disabled response verification v2 in the asset canister while we improve test coverage.
 
 The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
 
@@ -87,7 +117,8 @@ Now, only transport errors and timeout errors are considered retryable.
 
 ### Frontend canister
 
-- Module hash: d1596b50735085c863a8cdc0570066c643b731837c0fcde32f5234634b59d2f4
+- Module hash: 1286960c50eb7a773cfb5fdd77cc238588f39e21f189cc3eb0f35199a99b9c7e
+- https://github.com/dfinity/sdk/pull/3205
 - https://github.com/dfinity/sdk/pull/3198
 - https://github.com/dfinity/sdk/pull/3154
 - https://github.com/dfinity/sdk/pull/3158
