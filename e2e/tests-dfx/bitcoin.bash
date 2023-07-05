@@ -175,6 +175,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx replica --enable-bitcoin with no other configuration succeeds" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
 
     dfx_replica --enable-bitcoin
@@ -211,6 +212,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through default configuration - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     define_project_network
     set_project_default_bitcoin_enabled
@@ -221,6 +223,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through shared local network - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     set_shared_local_network_bitcoin_enabled
 

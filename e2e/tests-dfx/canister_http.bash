@@ -156,6 +156,7 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx replica --enable-canister-http with no other configuration succeeds" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
 
     dfx_replica --enable-canister-http
@@ -223,6 +224,7 @@ set_shared_local_network_canister_http_empty() {
 
 
 @test "can enable http through project default configuration - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     define_project_network
     set_project_default_canister_http_enabled
@@ -233,6 +235,7 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through project default configuration - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     define_project_network
     set_project_default_canister_http_enabled false
@@ -243,6 +246,7 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can enable http through project local network - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     define_project_network
     set_project_local_network_canister_http_enabled
@@ -253,6 +257,7 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through project local network - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     define_project_network
     set_project_local_network_canister_http_enabled false
@@ -263,6 +268,7 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can enable http through shared local network - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     set_shared_local_network_canister_http_enabled
 
@@ -272,6 +278,7 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can disable http through shared local network - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     set_shared_local_network_canister_http_enabled false
 
