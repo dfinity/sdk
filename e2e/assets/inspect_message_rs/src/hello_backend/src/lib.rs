@@ -1,8 +1,4 @@
-use ic_cdk::{
-    api::{
-        call,
-    },
-};
+use ic_cdk::api::call;
 
 #[ic_cdk::update]
 fn always_accepted() {
