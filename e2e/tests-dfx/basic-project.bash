@@ -149,11 +149,8 @@ teardown() {
 
 @test "inspect message - rust" {
     dfx_new_rust hello
-    cat dfx.json
-    cat ./src/hello_backend/src/lib.rs
 
     install_asset inspect_message_rs
-    cat ./src/hello_backend/src/lib.rs
 
     dfx_start
     dfx deploy
@@ -161,5 +158,10 @@ teardown() {
     assert_command dfx canister call hello_backend always_accepted
 
     assert_command_fail dfx canister call hello_backend always_rejected
-    assert_contains "Canister $(dfx canister id hello_backend) rejected the message"
+    if [ "$USE_IC_REF" ];
+    then
+        assert_contains "canister trapped in inspect_message: message not accepted by inspect_message"
+    else
+        assert_contains "Canister $(dfx canister id hello_backend) rejected the message"
+    fi
 }
