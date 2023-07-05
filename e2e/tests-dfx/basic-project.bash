@@ -132,3 +132,14 @@ teardown() {
   },
 )"
 }
+
+@test "inspect message" {
+    install_asset inspect_message
+    dfx_start
+    dfx deploy
+
+    assert_command dfx canister call hello_backend always_succeed
+
+    assert_command_fail dfx canister call hello_backend always_fail
+    assert_contains "canister_inspect_message explicitly refused message"
+}
