@@ -7,7 +7,6 @@ use anyhow::bail;
 use clap::Subcommand;
 
 mod beta;
-mod bootstrap;
 mod build;
 mod cache;
 mod canister;
@@ -26,7 +25,6 @@ mod nns;
 mod ping;
 mod quickstart;
 mod remote;
-mod replica;
 mod schema;
 mod sns;
 mod start;
@@ -39,7 +37,6 @@ mod wallet;
 pub enum Command {
     #[command(hide = true)]
     Beta(beta::BetaOpts),
-    Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
@@ -63,7 +60,6 @@ pub enum Command {
     Ping(ping::PingOpts),
     Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
-    Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
     Sns(sns::SnsOpts),
     Start(start::StartOpts),
@@ -76,7 +72,6 @@ pub enum Command {
 pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
     match cmd {
         Command::Beta(v) => beta::exec(env, v),
-        Command::Bootstrap(v) => bootstrap::exec(env, v),
         Command::Build(v) => build::exec(env, v),
         Command::Cache(v) => cache::exec(env, v),
         Command::Canister(v) => canister::exec(env, v),
@@ -96,7 +91,6 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Ping(v) => ping::exec(env, v),
         Command::Quickstart(v) => quickstart::exec(env, v),
         Command::Remote(v) => remote::exec(env, v),
-        Command::Replica(v) => replica::exec(env, v),
         Command::Schema(v) => schema::exec(v),
         Command::Sns(v) => sns::exec(env, v),
         Command::Start(v) => start::exec(env, v),
