@@ -4,6 +4,14 @@
 
 ## DFX
 
+### feat!: Removed dfx replica and dfx bootstrap commands
+
+Use `dfx start` instead.  If you have a good reason why we should keep these commands, please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163
+
+### fix: Wait for new module hash when installing wallet
+
+A previous change made dfx wait after installing a canister until the replica updated its reported module hash, but this change did not affect wallets. Now dfx waits for wallets too, to eliminate a class of wallet installation errors.
+
 ### fix: Ctrl-C right after dfx start will hang for minutes and panics
 
 Early break out from actors starting procedure.

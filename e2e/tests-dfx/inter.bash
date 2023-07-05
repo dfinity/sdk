@@ -8,8 +8,8 @@ setup() {
 
 teardown() {
     dfx_stop
-    stop_dfx_replica
-    stop_dfx_bootstrap
+    # stop_dfx_replica
+    # stop_dfx_bootstrap
     standard_teardown
 }
 
