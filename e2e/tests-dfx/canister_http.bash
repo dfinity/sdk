@@ -10,8 +10,8 @@ setup() {
 
 teardown() {
     dfx_stop
-    stop_dfx_replica
-    stop_dfx_bootstrap
+    # stop_dfx_replica
+    # stop_dfx_bootstrap
     standard_teardown
 }
 
@@ -100,6 +100,7 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx restarts replica when ic-https-outcalls-adapter restarts - replica and bootstrap" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     dfx_replica
     dfx_bootstrap
