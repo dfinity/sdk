@@ -29,12 +29,6 @@ pub struct ExtensionManifest {
 impl ExtensionManifest {
     pub fn new(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
         let manifest_path = extensions_root_dir.join(name).join(MANIFEST_FILE_NAME);
-        if !manifest_path.exists() {
-            return Err(ExtensionError::ExtensionManifestMissing(
-                name.to_owned(),
-                manifest_path,
-            ));
-        }
         let mut m: ExtensionManifest = dfx_core::json::load_json_file(&manifest_path)
             .map_err(ExtensionError::ExtensionManifestIsNotValid)?;
         m.name = name.to_string();
