@@ -1,11 +1,38 @@
-on: [push]
+on:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - '.github/workflows/tests/dfx-action.yml'
+      - 'action.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/tests/dfx-action.yml'
+      - 'action.yml'
 
 jobs:
   test_dfx_action:
     runs-on: ubuntu-latest
     name: Test the dfx action (action.yml)
+    strategy:
+      matrix:
+        version: ['0.11.1', '0.14.1', '0.14.2-beta.2']
     steps:
       # To use this repository's private action, you must check out the repository
       - name: Checkout
         uses: actions/checkout@v3
-      - uses: ./
+      # Install a certain `dfx` version and check if it is properly installed
+      - name: Install dfx
+        uses: ./
+        with:
+          dfx-version: ${{ matrix.version }}
+      - name: Check if the proper dfx version is installed
+        run: |
+          actual_dfx_ver="$(dfx --version)"
+          expected_dfx_ver="dfx ${{ matrix.version }}"
+          if [ "$actual_dfx_ver" != "$expected_dfx_ver" ]; then
+            echo "Error: expected dfx version '$expected_dfx_ver', but found '$actual_dfx_ver'"
+            exit 1
+          fi
+
+          echo "dfx version '$actual_dfx_ver' was installed correctly"
