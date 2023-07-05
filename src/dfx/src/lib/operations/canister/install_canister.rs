@@ -120,56 +120,14 @@ pub async fn install_canister(
         )
         .await?;
     }
-    let mut retry_policy = ExponentialBackoff::default();
-    let mut times = 0;
-    loop {
-        match read_state_tree_canister_module_hash(agent, canister_id).await? {
-            Some(reported_hash) => {
-                if reported_hash[..] == new_hash[..] {
-                    break;
-                } else if installed_module_hash
-                    .as_deref()
-                    .map_or(true, |old_hash| old_hash == reported_hash)
-                {
-                    times += 1;
-                    if times > 3 {
-                        info!(
-                            env.get_logger(),
-                            "Waiting for module change to be reflected in system state tree..."
-                        )
-                    }
-                    let interval = retry_policy.next_backoff()
-                        .context("Timed out waiting for the module to update to the new hash in the state tree. \
-                            Something may have gone wrong with the upload. \
-                            No post-installation tasks have been run, including asset uploads.")?;
-                    tokio::time::sleep(interval).await;
-                } else {
-                    bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
-                        It has likely been modified while this command is running. \
-                        The state of the canister is unknown. \
-                        For this reason, no post-installation tasks have been run, including asset uploads.",
-                        old = installed_module_hash.map_or_else(|| "none".to_string(), hex::encode),
-                        new = hex::encode(new_hash),
-                        reported = hex::encode(reported_hash),
-                    )
-                }
-            }
-            None => {
-                times += 1;
-                if times > 3 {
-                    info!(
-                        env.get_logger(),
-                        "Waiting for module change to be reflected in system state tree..."
-                    )
-                }
-                let interval = retry_policy.next_backoff()
-                    .context("Timed out waiting for the module to update to the new hash in the state tree. \
-                        Something may have gone wrong with the upload. \
-                        No post-installation tasks have been run, including asset uploads.")?;
-                tokio::time::sleep(interval).await;
-            }
-        }
-    }
+    wait_for_module_hash(
+        env,
+        agent,
+        canister_id,
+        installed_module_hash.as_deref(),
+        &new_hash,
+    )
+    .await?;
     if canister_info.is_assets() {
         if let CallSender::Wallet(wallet_id) = call_sender {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;
@@ -240,6 +198,63 @@ fn check_candid_compatibility(
         Ok(_) => None,
         Err(e) => Some(e.to_string()),
     })
+}
+
+async fn wait_for_module_hash(
+    env: &dyn Environment,
+    agent: &Agent,
+    canister_id: Principal,
+    old_hash: Option<&[u8]>,
+    new_hash: &[u8],
+) -> DfxResult {
+    let mut retry_policy = ExponentialBackoff::default();
+    let mut times = 0;
+    loop {
+        match read_state_tree_canister_module_hash(agent, canister_id).await? {
+            Some(reported_hash) => {
+                if reported_hash[..] == new_hash[..] {
+                    break;
+                } else if old_hash.map_or(true, |old_hash| old_hash == reported_hash) {
+                    times += 1;
+                    if times > 3 {
+                        info!(
+                            env.get_logger(),
+                            "Waiting for module change to be reflected in system state tree..."
+                        )
+                    }
+                    let interval = retry_policy.next_backoff()
+                        .context("Timed out waiting for the module to update to the new hash in the state tree. \
+                            Something may have gone wrong with the upload. \
+                            No post-installation tasks have been run, including asset uploads.")?;
+                    tokio::time::sleep(interval).await;
+                } else {
+                    bail!("The reported module hash ({reported}) is neither the existing module ({old}) or the new one ({new}). \
+                        It has likely been modified while this command is running. \
+                        The state of the canister is unknown. \
+                        For this reason, no post-installation tasks have been run, including asset uploads.",
+                        old = old_hash.map_or_else(|| "none".to_string(), hex::encode),
+                        new = hex::encode(new_hash),
+                        reported = hex::encode(reported_hash),
+                    )
+                }
+            }
+            None => {
+                times += 1;
+                if times > 3 {
+                    info!(
+                        env.get_logger(),
+                        "Waiting for module change to be reflected in system state tree..."
+                    )
+                }
+                let interval = retry_policy.next_backoff()
+                    .context("Timed out waiting for the module to update to the new hash in the state tree. \
+                        Something may have gone wrong with the upload. \
+                        No post-installation tasks have been run, including asset uploads.")?;
+                tokio::time::sleep(interval).await;
+            }
+        }
+    }
+    Ok(())
 }
 
 fn check_stable_compatibility(
@@ -358,6 +373,7 @@ pub async fn install_wallet(
         .call_and_wait()
         .await
         .context("Failed to install wallet wasm.")?;
+    wait_for_module_hash(env, agent, id, None, &Sha256::digest(&wasm)).await?;
     let wallet = build_wallet_canister(id, agent).await?;
     wallet
         .wallet_store_wallet_wasm(wasm)
