@@ -9,13 +9,15 @@ setup() {
 }
 
 teardown() {
-    stop_dfx_replica
-    stop_dfx_bootstrap
+    # stop_dfx_replica
+    # stop_dfx_bootstrap
 
     standard_teardown
 }
 
 @test "forbid starting webserver with a forwarded port" {
+    skip "dfx replica and bootstrap are deprecated"
+
     [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     assert_command_fail dfx bootstrap --port 4943
@@ -23,6 +25,8 @@ teardown() {
 }
 
 @test "bootstrap supports http requests" {
+    skip "dfx replica and bootstrap are deprecated"
+
     dfx_replica
     dfx_bootstrap
 
