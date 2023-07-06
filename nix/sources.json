@@ -173,7 +173,7 @@
         "sha256": "085kvs6q7nrdlnxzxb28vw36g022a4ckg3idh85b9v2azixfqx1w",
         "type": "file",
         "url": "https://github.com/dfinity/motoko/releases/download/0.9.3/motoko-macos-0.9.3.tar.gz",
-        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
+        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Darwin-x86_64-<version>.tar.gz",
         "version": "0.9.3"
     },
     "motoko-x86_64-linux": {
@@ -181,7 +181,7 @@
         "sha256": "0p0flwbrl3z23imx590865s7jyx9py110hvm7jcclw6zmkxp0xv4",
         "type": "file",
         "url": "https://github.com/dfinity/motoko/releases/download/0.9.3/motoko-linux64-0.9.3.tar.gz",
-        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
+        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
         "version": "0.9.3"
     },
     "replica-x86_64-darwin": {
