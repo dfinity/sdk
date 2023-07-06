@@ -162,27 +162,27 @@
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
-        "sha256": "1bq6cwwib4z3siykp851987h136wfap0cw4a9gq4nakr39qzj872",
+        "sha256": "04awra5kjj9fwf3pcjr5r821ki5ajjn70ggw4in26psdi7czsziv",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.9.3/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.9.5/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.9.3"
+        "version": "0.9.5"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "085kvs6q7nrdlnxzxb28vw36g022a4ckg3idh85b9v2azixfqx1w",
+        "sha256": "05jp02hwmhk7i6zp729b5wi3446ds7ns3ni2jaa6k7199qc8q0sh",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.9.3/motoko-macos-0.9.3.tar.gz",
-        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-macos-<version>.tar.gz",
-        "version": "0.9.3"
+        "url": "https://github.com/dfinity/motoko/releases/download/0.9.5/motoko-Darwin-x86_64-0.9.5.tar.gz",
+        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Darwin-x86_64-<version>.tar.gz",
+        "version": "0.9.5"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "0p0flwbrl3z23imx590865s7jyx9py110hvm7jcclw6zmkxp0xv4",
+        "sha256": "1afjyfpg42irwmanyhincdgsgvsph2zj19y7fbnh9hgpvhdwc3z4",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.9.3/motoko-linux64-0.9.3.tar.gz",
-        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-linux64-<version>.tar.gz",
-        "version": "0.9.3"
+        "url": "https://github.com/dfinity/motoko/releases/download/0.9.5/motoko-Linux-x86_64-0.9.5.tar.gz",
+        "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
+        "version": "0.9.5"
     },
     "replica-x86_64-darwin": {
         "builtin": false,

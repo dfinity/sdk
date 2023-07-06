@@ -34,6 +34,12 @@ Note that this can be combined to also disable the dfx version check warning:
 export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
 ```
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
+
 # 0.14.2
 
 ## DFX
