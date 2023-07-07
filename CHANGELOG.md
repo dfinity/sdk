@@ -45,6 +45,13 @@ Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
 - Updated Candid UI canister to https://github.com/dfinity/candid/pull/449
 - Module hash: 32cf0e528ee7a4fc0ac2028c985ce3bbf5af264e802a9473f72ba332eff32185
 
+### Replica
+
+Updated replica to elected commit 7742d96ddd30aa6b607c9d2d4093a7b714f5b25b.
+This incorporates the following executed proposals:
+
+- [123311](https://dashboard.internetcomputer.org/proposal/123311)
+
 # 0.14.2
 
 ## DFX
