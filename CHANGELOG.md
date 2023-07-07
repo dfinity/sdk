@@ -40,6 +40,11 @@ export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
 
 Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
 
+### Candid UI
+
+- Updated Candid UI canister to https://github.com/dfinity/candid/pull/449
+- Module hash: 32cf0e528ee7a4fc0ac2028c985ce3bbf5af264e802a9473f72ba332eff32185
+
 # 0.14.2
 
 ## DFX
