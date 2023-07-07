@@ -85,6 +85,9 @@ impl ExtensionManager {
             .bytes()
             .map_err(|e| ExtensionError::ExtensionDownloadFailed(download_url.clone(), e))?;
 
+        dfx_core::fs::composite::ensure_dir_exists(&self.dir)
+            .map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
+
         let temp_dir = tempdir_in(&self.dir).map_err(|e| {
             ExtensionError::CreateTemporaryDirectoryFailed(self.dir.to_path_buf(), e)
         })?;
@@ -105,6 +108,7 @@ impl ExtensionManager {
         temp_dir: TempDir,
     ) -> Result<(), ExtensionError> {
         let effective_extension_dir = &self.get_extension_directory(effective_extension_name);
+
         dfx_core::fs::rename(
             &temp_dir.path().join(extension_unarchived_dir_name),
             effective_extension_dir,

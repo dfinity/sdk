@@ -177,26 +177,25 @@ fn main() {
     let mut args = std::env::args_os().collect::<Vec<OsString>>();
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
 
-    if let Ok(em) = ExtensionManager::new(dfx_version(), false) {
-        match em.installed_extensions_as_clap_commands() {
-            Ok(installed_extensions) if !installed_extensions.is_empty() => {
-                let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
+    ExtensionManager::new(dfx_version())
+        .and_then(|em| {
+            let exts = em.installed_extensions_as_clap_commands()?;
+            if !exts.is_empty() {
+                let mut app = CliOpts::command_for_update().subcommands(&exts);
                 sort_clap_commands(&mut app);
-                let matches = app.get_matches();
-                // safe to unwrap because clap will display help if no subcommand is provided (which happens when "app.get_matches()" is called above)
-                let subcmd = matches.subcommand().unwrap().0;
+                let app = app.get_matches();
+                let subcmd = app.subcommand().unwrap().0;
                 if em.is_extension_installed(subcmd) {
                     let idx = args.iter().position(|arg| arg == subcmd).unwrap();
                     args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
                 }
             }
-            Err(err) => {
-                print_error_and_diagnosis(err.into(), error_diagnosis);
-                std::process::exit(255);
-            }
-            _ => {}
-        }
-    }
+            Ok(())
+        })
+        .unwrap_or_else(|err| {
+            print_error_and_diagnosis(err.into(), error_diagnosis.clone());
+            std::process::exit(255);
+        });
 
     let cli_opts = CliOpts::parse_from(args);
     let (verbose_level, log) = setup_logging(&cli_opts);

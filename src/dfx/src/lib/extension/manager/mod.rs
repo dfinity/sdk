@@ -15,17 +15,10 @@ pub struct ExtensionManager {
 }
 
 impl ExtensionManager {
-    pub fn new(version: &Version, ensure_dir_exists: bool) -> Result<Self, ExtensionError> {
+    pub fn new(version: &Version) -> Result<Self, ExtensionError> {
         let extensions_dir = get_cache_path_for_version(&version.to_string())
             .map_err(ExtensionError::FindCacheDirectoryFailed)?
             .join("extensions");
-
-        if ensure_dir_exists {
-            dfx_core::fs::composite::ensure_dir_exists(&extensions_dir)
-                .map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
-        } else if !extensions_dir.exists() {
-            return Err(ExtensionError::ExtensionDirDoesNotExist(extensions_dir));
-        }
 
         Ok(Self {
             dir: extensions_dir,
