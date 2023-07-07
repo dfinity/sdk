@@ -1,12 +1,11 @@
 # The whole SDK team owns the whole repo for now.
-* @dfinity/sdk
+dfinity/sdk
+# Other individual users who are not part of the above teams
+chenyan-dfinity
 
 # The infra team can still approve Nix PRs.
 **/*.nix @dfinity-lab/infra
 nix/** @dfinity-lab/infra
 
-// Allows sources.json to be updated without full approval (only CI).
+# Allows sources.json to be updated without full approval (only CI).
 nix/sources.json @ghost
-
-# Other individual users who are not part of the above teams
-@chenyan-dfinity
