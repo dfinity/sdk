@@ -34,6 +34,8 @@ Note that this can be combined to also disable the dfx version check warning:
 export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
 ```
 
+### chore: bump candid to 0.9.0
+
 ## Dependencies
 
 ### Motoko
