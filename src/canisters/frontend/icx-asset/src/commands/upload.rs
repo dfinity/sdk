@@ -1,4 +1,4 @@
-use crate::{support, UploadOpts};
+use crate::UploadOpts;
 use ic_utils::Canister;
 use slog::Logger;
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ pub(crate) async fn upload(
     canister: &Canister<'_>,
     opts: &UploadOpts,
     logger: &Logger,
-) -> support::Result {
+) -> anyhow::Result<()> {
     let key_map = get_key_map(&opts.files)?;
     ic_asset::upload(canister, key_map, logger).await?;
     Ok(())

@@ -4,6 +4,7 @@ use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
+use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
 use anyhow::Error;
 use clap::{ArgAction, Args, Parser};
 use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
@@ -73,15 +74,6 @@ impl NetworkOpt {
     }
 }
 
-fn is_warning_disabled(warning: &str) -> bool {
-    // By default, warnings are all enabled.
-    let env_warnings = std::env::var("DFX_WARNING").unwrap_or_else(|_| "".to_string());
-    env_warnings
-        .split(',')
-        .filter(|w| w.starts_with('-'))
-        .any(|w| w.chars().skip(1).collect::<String>().eq(warning))
-}
-
 /// In some cases, redirect the dfx execution to the proper version.
 /// This will ALWAYS return None, OR WILL TERMINATE THE PROCESS. There is no Ok()
 /// version of this (nor should there be).
@@ -93,7 +85,7 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
     // call to the cache.
     if dfx_version() != version {
         // Show a warning to the user.
-        if !is_warning_disabled("version_check") {
+        if !is_warning_disabled(VersionCheck) {
             eprintln!(
                 concat!(
                     "Warning: The version of DFX used ({}) is different than the version ",

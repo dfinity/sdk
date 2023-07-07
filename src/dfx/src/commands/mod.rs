@@ -1,3 +1,5 @@
+use std::ffi::OsString;
+
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 
@@ -5,7 +7,6 @@ use anyhow::bail;
 use clap::Subcommand;
 
 mod beta;
-mod bootstrap;
 mod build;
 mod cache;
 mod canister;
@@ -24,7 +25,6 @@ mod nns;
 mod ping;
 mod quickstart;
 mod remote;
-mod replica;
 mod schema;
 mod sns;
 mod start;
@@ -37,19 +37,18 @@ mod wallet;
 pub enum Command {
     #[command(hide = true)]
     Beta(beta::BetaOpts),
-    Bootstrap(bootstrap::BootstrapOpts),
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
     Deploy(deploy::DeployOpts),
-    #[command(hide = true)]
     Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
-    // Extension(extension::ExtensionOpts),
+    #[command(hide = true)]
+    Extension(extension::ExtensionOpts),
     // Executes an extension
-    // #[clap(external_subcommand)]
-    // ExtensionRun(Vec<OsString>),
+    #[clap(external_subcommand)]
+    ExtensionRun(Vec<OsString>),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
@@ -61,7 +60,6 @@ pub enum Command {
     Ping(ping::PingOpts),
     Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
-    Replica(replica::ReplicaOpts),
     Schema(schema::SchemaOpts),
     Sns(sns::SnsOpts),
     Start(start::StartOpts),
@@ -74,7 +72,6 @@ pub enum Command {
 pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
     match cmd {
         Command::Beta(v) => beta::exec(env, v),
-        Command::Bootstrap(v) => bootstrap::exec(env, v),
         Command::Build(v) => build::exec(env, v),
         Command::Cache(v) => cache::exec(env, v),
         Command::Canister(v) => canister::exec(env, v),
@@ -82,8 +79,8 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Deps(v) => deps::exec(env, v),
         Command::Diagnose(v) => diagnose::exec(env, v),
         Command::Fix(v) => fix::exec(env, v),
-        // Command::Extension(v) => extension::exec(env, v),
-        // Command::ExtensionRun(v) => extension::run::exec(env, v.into()),
+        Command::Extension(v) => extension::exec(env, v),
+        Command::ExtensionRun(v) => extension::run::exec(env, v.into()),
         Command::Generate(v) => generate::exec(env, v),
         Command::Identity(v) => identity::exec(env, v),
         Command::Info(v) => info::exec(env, v),
@@ -94,7 +91,6 @@ pub fn exec(env: &dyn Environment, cmd: Command) -> DfxResult {
         Command::Ping(v) => ping::exec(env, v),
         Command::Quickstart(v) => quickstart::exec(env, v),
         Command::Remote(v) => remote::exec(env, v),
-        Command::Replica(v) => replica::exec(env, v),
         Command::Schema(v) => schema::exec(v),
         Command::Sns(v) => sns::exec(env, v),
         Command::Start(v) => start::exec(env, v),

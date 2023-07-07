@@ -16,6 +16,7 @@ use dfx_core::json::save_json_file;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
+use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -113,10 +114,11 @@ pub async fn create_wallet(
         .call_and_wait()
         .await
     {
-        Err(AgentError::ReplicaError {
-            reject_code: 5,
+        Err(AgentError::ReplicaError(RejectResponse {
+            reject_code: RejectCode::CanisterError,
             reject_message,
-        }) if reject_message.contains("not empty") => {
+            ..
+        })) if reject_message.contains("not empty") => {
             bail!(
                 r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#,
                 network.name

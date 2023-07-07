@@ -169,4 +169,9 @@ teardown() {
     dfx identity new bob --storage-mode plaintext
     assert_command dfx ledger balance --network ic --identity bob
     assert_match "WARN: The bob identity is not stored securely." "$stderr"
+
+    export DFX_WARNING=-mainnet_plaintext_identity
+    assert_command dfx ledger balance --network ic --identity bob
+    assert_not_contains "not stored securely" "$stderr"
+
 }

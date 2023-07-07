@@ -11,6 +11,9 @@ use crate::canister_api::types::batch_upload::common::{
     UnsetAssetContentArguments,
 };
 use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
+use crate::error::ComputeEvidenceError;
+use crate::error::HashContentError;
+use crate::error::HashContentError::{EncodeContentFailed, LoadContentFailed};
 use crate::sync::gather_asset_descriptors;
 use ic_utils::Canister;
 use sha2::{Digest, Sha256};
@@ -36,10 +39,12 @@ pub async fn compute_evidence(
     canister: &Canister<'_>,
     dirs: &[&Path],
     logger: &Logger,
-) -> anyhow::Result<String> {
+) -> Result<String, ComputeEvidenceError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
-    let canister_assets = list_assets(canister).await?;
+    let canister_assets = list_assets(canister)
+        .await
+        .map_err(ComputeEvidenceError::ListAssets)?;
     info!(
         logger,
         "Fetching properties for all assets in the canister."
@@ -74,7 +79,7 @@ fn hash_operation(
     hasher: &mut Sha256,
     op: &BatchOperationKind,
     project_assets: &HashMap<String, ProjectAsset>,
-) -> anyhow::Result<()> {
+) -> Result<(), HashContentError> {
     match op {
         BatchOperationKind::CreateAsset(args) => hash_create_asset(hasher, args),
         BatchOperationKind::SetAssetContent(args) => {
@@ -107,7 +112,7 @@ fn hash_set_asset_content(
     hasher: &mut Sha256,
     args: &SetAssetContentArguments,
     project_assets: &HashMap<String, ProjectAsset>,
-) -> anyhow::Result<()> {
+) -> Result<(), HashContentError> {
     hasher.update(TAG_SET_ASSET_CONTENT);
     hasher.update(&args.key);
     hasher.update(&args.content_encoding);
@@ -117,11 +122,13 @@ fn hash_set_asset_content(
     let ad = &project_asset.asset_descriptor;
 
     let content = {
-        let identity = Content::load(&ad.source)?;
+        let identity = Content::load(&ad.source).map_err(LoadContentFailed)?;
         if args.content_encoding == "identity" {
             identity
         } else if args.content_encoding == "gzip" {
-            identity.encode(&Gzip)?
+            identity
+                .encode(&Gzip)
+                .map_err(|e| EncodeContentFailed(ad.key.clone(), Gzip, e))?
         } else {
             unreachable!("unhandled content encoder");
         }

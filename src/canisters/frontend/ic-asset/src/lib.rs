@@ -34,6 +34,7 @@
 mod asset;
 mod batch_upload;
 mod canister_api;
+pub mod error;
 mod evidence;
 mod sync;
 mod upload;
