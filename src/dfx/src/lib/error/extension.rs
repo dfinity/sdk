@@ -11,6 +11,9 @@ pub enum ExtensionError {
     #[error("Cannot get extensions directory: {0}")]
     EnsureExtensionDirExistsFailed(dfx_core::error::fs::FsError),
 
+    #[error("Extension directory '{0}' does not exist.")]
+    ExtensionDirDoesNotExist(std::path::PathBuf),
+
     #[error("Extension '{0}' not installed.")]
     ExtensionNotInstalled(String),
 
