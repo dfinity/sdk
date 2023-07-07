@@ -16,18 +16,19 @@ pub struct ExtensionManager {
 
 impl ExtensionManager {
     pub fn new(version: &Version, ensure_dir_exists: bool) -> Result<Self, ExtensionError> {
-        let versioned_cache_dir = get_cache_path_for_version(version.to_string().as_str())
-            .map_err(ExtensionError::FindCacheDirectoryFailed)?;
-        let dir = versioned_cache_dir.join("extensions");
+        let extensions_dir = get_cache_path_for_version(&version.to_string())
+            .map_err(ExtensionError::FindCacheDirectoryFailed)?
+            .join("extensions");
+
         if ensure_dir_exists {
-            dfx_core::fs::composite::ensure_dir_exists(&dir)
+            dfx_core::fs::composite::ensure_dir_exists(&extensions_dir)
                 .map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
-        } else if !dir.exists() {
-            return Err(ExtensionError::ExtensionDirDoesNotExist(dir));
+        } else if !extensions_dir.exists() {
+            return Err(ExtensionError::ExtensionDirDoesNotExist(extensions_dir));
         }
 
         Ok(Self {
-            dir,
+            dir: extensions_dir,
             dfx_version: version.clone(),
         })
     }
