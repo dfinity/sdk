@@ -7,3 +7,6 @@ nix/** @dfinity-lab/infra
 
 // Allows sources.json to be updated without full approval (only CI).
 nix/sources.json @ghost
+
+# Other individual users who are not part of the above teams
+@chenyan
