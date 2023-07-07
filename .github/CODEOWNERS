@@ -1,7 +1,5 @@
 # The whole SDK team owns the whole repo for now.
-dfinity/sdk
-# Other individual users who are not part of the above teams
-chenyan-dfinity
+* @dfinity/sdk @chenyan-dfinity
 
 # The infra team can still approve Nix PRs.
 **/*.nix @dfinity-lab/infra
