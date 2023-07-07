@@ -9,4 +9,4 @@ nix/** @dfinity-lab/infra
 nix/sources.json @ghost
 
 # Other individual users who are not part of the above teams
-@chenyan
+@chenyan-dfinity
