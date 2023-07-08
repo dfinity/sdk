@@ -1,14 +1,18 @@
 #![allow(special_module_name)]
 
 use crate::config::{dfx_version, dfx_version_str};
+use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 
 use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
 use anyhow::Error;
-use clap::{ArgAction, Args, Parser};
-use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
+use clap::{ArgAction, Args, CommandFactory, Parser};
+
+use lib::extension::manager::ExtensionManager;
 use semver::Version;
+use std::collections::HashMap;
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 mod actors;
@@ -19,7 +23,7 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Parser)]
-#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style())]
+#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style(), arg_required_else_help = true)]
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
     #[arg(long, short, action = ArgAction::Count, global = true)]
@@ -46,7 +50,7 @@ pub struct CliOpts {
     provisional_create_canister_effective_canister_id: Option<String>,
 
     #[command(subcommand)]
-    command: commands::Command,
+    command: commands::DfxCommand,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -170,12 +174,36 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 }
 
 fn main() {
-    let cli_opts = CliOpts::parse();
+    let mut args = std::env::args_os().collect::<Vec<OsString>>();
+    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
+
+    ExtensionManager::new(dfx_version())
+        .and_then(|em| {
+            let installed_extensions = em.installed_extensions_as_clap_commands()?;
+            if !installed_extensions.is_empty() {
+                let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
+                sort_clap_commands(&mut app);
+                // here clap will display the help message if no subcommand was provided...
+                let app = app.get_matches();
+                // ...therefore we can safely unwrap here because we know a subcommand was provided
+                let subcmd = app.subcommand().unwrap().0;
+                if em.is_extension_installed(subcmd) {
+                    let idx = args.iter().position(|arg| arg == subcmd).unwrap();
+                    args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
+                }
+            }
+            Ok(())
+        })
+        .unwrap_or_else(|err| {
+            print_error_and_diagnosis(err.into(), error_diagnosis.clone());
+            std::process::exit(255);
+        });
+
+    let cli_opts = CliOpts::parse_from(args);
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
     let command = cli_opts.command;
-    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
@@ -202,7 +230,7 @@ fn main() {
             }
         }
         Err(e) => match command {
-            commands::Command::Schema(_) => commands::exec_without_env(command),
+            commands::DfxCommand::Schema(_) => commands::exec_without_env(command),
             _ => Err(e),
         },
     };
@@ -221,5 +249,24 @@ mod tests {
     #[test]
     fn validate_cli() {
         CliOpts::command().debug_assert();
+    }
+}
+
+/// sort subcommands alphabetically (despite this clap prints help as the last one)
+pub fn sort_clap_commands(cmd: &mut clap::Command) {
+    let mut cli_subcommands: Vec<String> = cmd
+        .get_subcommands()
+        .map(|v| v.get_display_name().unwrap_or_default().to_string())
+        .collect();
+    cli_subcommands.sort();
+    let cli_subcommands: HashMap<String, usize> = cli_subcommands
+        .into_iter()
+        .enumerate()
+        .map(|(i, v)| (v, i))
+        .collect();
+    for c in cmd.get_subcommands_mut() {
+        let name = c.get_display_name().unwrap_or_default().to_string();
+        let ord = *cli_subcommands.get(&name).unwrap_or(&999);
+        *c = c.clone().display_order(ord);
     }
 }
