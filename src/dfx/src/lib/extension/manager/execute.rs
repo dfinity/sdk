@@ -1,11 +1,12 @@
+use dfx_core::config::cache::get_bin_cache;
+
 use super::ExtensionManager;
 use crate::lib::error::ExtensionError;
-use std::{ffi::OsString, path::PathBuf};
+use std::ffi::OsString;
 
 impl ExtensionManager {
     pub fn run_extension(
         &self,
-        dfx_cache: PathBuf,
         extension_name: OsString,
         mut params: Vec<OsString>,
     ) -> Result<(), ExtensionError> {
@@ -14,6 +15,8 @@ impl ExtensionManager {
             .map_err(ExtensionError::InvalidExtensionName)?;
 
         let mut extension_binary = self.get_extension_binary(&extension_name)?;
+        let dfx_cache = get_bin_cache(self.dfx_version.to_string().as_str())
+            .map_err(ExtensionError::FindCacheDirectoryFailed)?;
 
         params.extend(["--dfx-cache-path".into(), dfx_cache.into_os_string()]);
 

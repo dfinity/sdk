@@ -1,13 +1,6 @@
-use crate::lib::environment::Environment;
 use crate::lib::error::ExtensionError;
-use crate::lib::extension::{
-    manifest::{ExtensionManifest, MANIFEST_FILE_NAME},
-    Extension,
-};
-use dfx_core::config::cache::{get_bin_cache, get_cache_root};
+use dfx_core::config::cache::get_cache_path_for_version;
 
-use dfx_core::fs::composite::ensure_dir_exists;
-use dfx_core::json::load_json_file;
 use semver::Version;
 use std::path::PathBuf;
 
@@ -22,20 +15,14 @@ pub struct ExtensionManager {
 }
 
 impl ExtensionManager {
-    pub fn new(env: &dyn Environment) -> Result<Self, ExtensionError> {
-        let versioned_cache_dir =
-            get_bin_cache(env.get_version().to_string().as_str()).map_err(|e| {
-                ExtensionError::FindCacheDirectoryFailed(
-                    get_cache_root().unwrap_or_default().join("versions"),
-                    e,
-                )
-            })?;
-        let dir = versioned_cache_dir.join("extensions");
-        ensure_dir_exists(&dir).map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
+    pub fn new(version: &Version) -> Result<Self, ExtensionError> {
+        let extensions_dir = get_cache_path_for_version(&version.to_string())
+            .map_err(ExtensionError::FindCacheDirectoryFailed)?
+            .join("extensions");
 
         Ok(Self {
-            dir,
-            dfx_version: env.get_version().clone(),
+            dir: extensions_dir,
+            dfx_version: version.clone(),
         })
     }
 
@@ -63,11 +50,7 @@ impl ExtensionManager {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn load_manifest(&self, ext: Extension) -> Result<ExtensionManifest, ExtensionError> {
-        let manifest_path = self
-            .get_extension_directory(&ext.name)
-            .join(MANIFEST_FILE_NAME);
-        load_json_file(&manifest_path).map_err(ExtensionError::ExtensionManifestIsNotValidJson)
+    pub fn is_extension_installed(&self, extension_name: &str) -> bool {
+        self.get_extension_directory(extension_name).exists()
     }
 }
