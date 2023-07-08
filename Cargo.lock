@@ -1166,6 +1166,7 @@ dependencies = [
  "byte-unit",
  "bytes",
  "candid 0.8.4",
+ "clap",
  "dialoguer",
  "directories-next",
  "flate2",

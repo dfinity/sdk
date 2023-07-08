@@ -1,8 +1,6 @@
-use crate::commands::DfxCommand;
 use crate::error::extension::ExtensionError;
 use crate::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
 
-use clap::Subcommand;
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
@@ -30,11 +28,6 @@ impl ExtensionManager {
         {
             return Err(ExtensionError::ExtensionAlreadyInstalled(
                 effective_extension_name.to_string(),
-            ));
-        }
-        if DfxCommand::has_subcommand(effective_extension_name) {
-            return Err(ExtensionError::CommandAlreadyExists(
-                extension_name.to_string(),
             ));
         }
 
