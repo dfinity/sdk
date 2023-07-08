@@ -69,7 +69,7 @@ pub enum ExtensionError {
     ExtensionsDirectoryIsNotReadable(dfx_core::error::fs::FsError),
 
     #[error("Cannot load extension manifest: {0}")]
-    ExtensionManifestIsNotValid(dfx_core::error::structured_file::StructuredFileError),
+    LoadExtensionManifestFailed(dfx_core::error::structured_file::StructuredFileError),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]

@@ -179,11 +179,13 @@ fn main() {
 
     ExtensionManager::new(dfx_version())
         .and_then(|em| {
-            let exts = em.installed_extensions_as_clap_commands()?;
-            if !exts.is_empty() {
-                let mut app = CliOpts::command_for_update().subcommands(&exts);
+            let installed_extensions = em.installed_extensions_as_clap_commands()?;
+            if !installed_extensions.is_empty() {
+                let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
                 sort_clap_commands(&mut app);
+                // here clap will display the help message if no subcommand was provided...
                 let app = app.get_matches();
+                // ...therefore we can safely unwrap here because we know a subcommand was provided
                 let subcmd = app.subcommand().unwrap().0;
                 if em.is_extension_installed(subcmd) {
                     let idx = args.iter().position(|arg| arg == subcmd).unwrap();

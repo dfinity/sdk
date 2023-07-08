@@ -30,7 +30,7 @@ impl ExtensionManifest {
     pub fn new(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
         let manifest_path = extensions_root_dir.join(name).join(MANIFEST_FILE_NAME);
         let mut m: ExtensionManifest = dfx_core::json::load_json_file(&manifest_path)
-            .map_err(ExtensionError::ExtensionManifestIsNotValid)?;
+            .map_err(ExtensionError::LoadExtensionManifestFailed)?;
         m.name = name.to_string();
         Ok(m)
     }
