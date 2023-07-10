@@ -120,14 +120,18 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
     CACHE_DIR=$(dfx cache show)
     mkdir -p "$CACHE_DIR"/extensions/test_extension
 
-    # shellcheck disable=SC2016
-    echo '#!/usr/bin/env bash
+    cat > "$CACHE_DIR"/extensions/test_extension/test_extension << "EOF"
+#!/usr/bin/env bash
 
 if [ "$2" == "--the-param" ]; then
-    echo "$3"
-fi' > "$CACHE_DIR"/extensions/test_extension/test_extension
+    echo "the param is $3"
+fi
+EOF
+
     chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
-    echo '{
+
+    cat > "$CACHE_DIR"/extensions/test_extension/extension.json <<EOF
+{
   "name": "test_extension",
   "version": "0.1.0",
   "homepage": "https://github.com/dfinity/dfx-extensions",
@@ -146,8 +150,9 @@ fi' > "$CACHE_DIR"/extensions/test_extension/test_extension
       }
     }
   }
-}' > "$CACHE_DIR"/extensions/test_extension/extension.json
+}
+EOF
 
     assert_command dfx test_extension abc --the-param 123
-    assert_match "123"
+    assert_contains "the param is 123"
 }
