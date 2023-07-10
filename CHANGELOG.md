@@ -18,6 +18,8 @@ Note that existing projects that specify `"allow_raw_access": false` in .ic-asse
 
 ## Dependencies
 
+### Updated candid to 0.9.0
+
 ### Frontend canister
 
 - Module hash: 752f6cb0118ccf314627a38242ba63b142f46a12b39e2922079fd6bf0e5dcf98
@@ -26,6 +28,11 @@ Note that existing projects that specify `"allow_raw_access": false` in .ic-asse
 # 0.14.3
 
 ## Dependencies
+
+### Frontend canister
+
+- Module hash: e50dfb318c8eb3dfb70fc3276b014302adaa0a26b5d8b4537bac033ad8d934c2
+- https://github.com/dfinity/sdk/pull/3227
 
 ### Replica
 
