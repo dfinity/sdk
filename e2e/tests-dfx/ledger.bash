@@ -26,8 +26,6 @@ teardown() {
     dfx_stop
 
     standard_teardown
-
-    dfx extension uninstall nns
 }
 
 current_time_nanoseconds() {
