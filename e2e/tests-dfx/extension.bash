@@ -115,3 +115,37 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
     assert_match 'No extensions installed'
 }
 
+
+@test "run with hyphened parameters" {
+    CACHE_DIR=$(dfx cache show)
+    mkdir -p "$CACHE_DIR"/extensions/test_extension
+    echo '#!/usr/bin/env bash
+
+if [ "$2" == "--the-param" ]; then
+    echo "$3"
+fi' > "$CACHE_DIR"/extensions/test_extension/test_extension
+    chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
+    echo '{
+  "name": "test_extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "subcommands": {
+    "abc": {
+      "about": "something something",
+      "args": {
+        "the_param": {
+          "about": "this is the param",
+          "long": "the-param"
+        }
+      }
+    }
+  }
+}' > "$CACHE_DIR"/extensions/test_extension/extension.json
+
+    assert_command dfx test_extension abc --the-param 123
+    assert_match "123"
+}
