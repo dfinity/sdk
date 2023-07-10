@@ -790,11 +790,11 @@ impl State {
             .get(&arg.content_encoding)
             .ok_or_else(|| "no such encoding".to_string())?;
 
-        if let Some(expected_hash) = arg.sha256 {
-            if expected_hash != enc.sha256 {
-                return Err("sha256 mismatch".to_string());
-            }
+        let expected_hash = arg.sha256.ok_or("sha256 required")?;
+        if expected_hash != enc.sha256 {
+            return Err(format!("sha256 mismatch"));
         }
+
         if arg.index >= enc.content_chunks.len() {
             return Err("chunk index out of bounds".to_string());
         }
@@ -922,10 +922,9 @@ impl State {
             .get(&content_encoding)
             .ok_or_else(|| "Invalid token on streaming: encoding not found.".to_string())?;
 
-        if let Some(expected_hash) = sha256 {
-            if expected_hash != enc.sha256 {
-                return Err("sha256 mismatch".to_string());
-            }
+        let expected_hash = sha256.ok_or("sha256 required")?;
+        if expected_hash != enc.sha256 {
+            return Err(format!("sha256 mismatch"));
         }
 
         // MAX is good enough. This means a chunk would be above 64-bits, which is impossible...
