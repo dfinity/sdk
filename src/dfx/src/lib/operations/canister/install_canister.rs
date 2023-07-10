@@ -288,7 +288,8 @@ async fn wait_for_module_hash(
                     // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
                     info!(
                         env.get_logger(),
-                        "Something is installed in the canister. Assuming new code is installed."
+                        "Something is installed in canister {}. Assuming new code is installed.",
+                        canister_id
                     );
                     break;
                 }
