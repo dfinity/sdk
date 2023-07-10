@@ -154,5 +154,5 @@ EOF
 EOF
 
     assert_command dfx test_extension abc --the-param 123
-    assert_contains "the param is 123"
+    assert_eq "the param is 123"
 }
