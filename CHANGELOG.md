@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat!: Removed dfx nns and dfx sns commands
+
+Both have now been turned into the dfx extensions. In order to obtain them, please run `dfx extension install nns` and `dfx extension install sns` respectively. After the installation, you can use them as you did before: `dfx nns ...`, and `dfx sns ...`.
+
 ### feat!: Removed dfx replica and dfx bootstrap commands
 
 Use `dfx start` instead.  If you have a good reason why we should keep these commands, please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163

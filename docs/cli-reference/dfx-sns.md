@@ -1,5 +1,5 @@
 :::caution
-The `dfx sns` command is no longer part of dfx, and has now been turned into the dfx extension. In order to obtain it, please run `dfx extension install sns`."
+The `dfx sns` command is no longer part of dfx, and has now been turned into the dfx extension. In order to obtain it, please run `dfx extension install sns`.
 :::
 
 Use the `dfx sns` subcommands to simulate decentralizing a dapp.
