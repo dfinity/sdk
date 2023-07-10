@@ -124,7 +124,7 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
 #!/usr/bin/env bash
 
 if [ "$2" == "--the-param" ]; then
-    echo "the param is $3"
+    echo "pamparam the param is $3"
 fi
 EOF
 
@@ -154,5 +154,5 @@ EOF
 EOF
 
     assert_command dfx test_extension abc --the-param 123
-    assert_eq "the param is 123"
+    assert_eq "pamparam the param is 123"
 }
