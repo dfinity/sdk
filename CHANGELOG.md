@@ -52,6 +52,13 @@ Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
 - Module hash: e50dfb318c8eb3dfb70fc3276b014302adaa0a26b5d8b4537bac033ad8d934c2
 - https://github.com/dfinity/sdk/pull/3227
 
+### Replica
+
+Updated replica to elected commit 7742d96ddd30aa6b607c9d2d4093a7b714f5b25b.
+This incorporates the following executed proposals:
+
+- [123311](https://dashboard.internetcomputer.org/proposal/123311)
+
 # 0.14.2
 
 ## DFX

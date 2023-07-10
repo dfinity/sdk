@@ -260,7 +260,8 @@ pub fn get_pulled_service_candid_path(canister_id: &Principal) -> DfxResult<Path
 
 /// The path of the dir contains wasm and service.did.
 pub fn get_pulled_canister_dir(canister_id: &Principal) -> DfxResult<PathBuf> {
-    Ok(get_cache_root()?.join("pulled").join(canister_id.to_text()))
+    let p = get_cache_root()?;
+    Ok(p.join("pulled").join(canister_id.to_text()))
 }
 
 /// Get the principal of a pull dependency which must exist in `pulled.json`.
