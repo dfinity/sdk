@@ -1278,6 +1278,34 @@ fn supports_getting_and_setting_asset_properties() {
 }
 
 #[test]
+fn create_asset_fails_if_asset_exists() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])],
+    );
+
+    assert!(
+        state
+            .create_asset(CreateAssetArguments {
+                key: "/contents.html".to_string(),
+                content_type: "text/html".to_string(),
+                max_age: None,
+                headers: None,
+                allow_raw_access: None,
+                enable_aliasing: None,
+            })
+            .unwrap_err()
+            == "asset already exists"
+    );
+}
+
+#[test]
 fn support_aliases() {
     let mut state = State::default();
     let time_now = 100_000_000_000;

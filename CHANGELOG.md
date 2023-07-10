@@ -60,6 +60,10 @@ Previously, the alias of `/content.html` was not properly updated in the certifi
 Certification v2 allows certifying arbitrary responses. If the requested file does not exist, and the fallback file (`/index.html`) does not exist either,
 the frontend canister serves a HTTP 404 response. This response was previously not certified.
 
+### fix!: The CreateAsset batch operation now fails if the asset already exists
+
+Previously, the operation was a no-op if the content type matched, but ignored other, possibly different, asset properties. Now, it fails with an error.
+
 ## Dependencies
 
 ### Motoko
@@ -76,7 +80,8 @@ Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
 
 ### Frontend canister
 
-- Module hash: 5fecf8e6af7867624c1effd62054f0d1eb230a8a610eba16d6e9c6f1f537d82e
+- Module hash: b044794cd29e8ea0cdde2a44e314d612885ad0e2bfe3bf65a4d9934035c0e58d
+- https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/sdk/pull/3249
 - https://github.com/dfinity/sdk/pull/3212
 - https://github.com/dfinity/sdk/pull/3227
