@@ -119,6 +119,8 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
 @test "run with hyphened parameters" {
     CACHE_DIR=$(dfx cache show)
     mkdir -p "$CACHE_DIR"/extensions/test_extension
+
+    # shellcheck disable=SC2016
     echo '#!/usr/bin/env bash
 
 if [ "$2" == "--the-param" ]; then
