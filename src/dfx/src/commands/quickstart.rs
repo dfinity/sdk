@@ -12,7 +12,7 @@ use rust_decimal::Decimal;
 use tokio::runtime::Runtime;
 
 use crate::{
-    commands::ledger::{create_canister::MEMO_CREATE_CANISTER, notify_create, transfer_cmc},
+    commands::ledger::create_canister::MEMO_CREATE_CANISTER,
     lib::{
         agent::create_agent_environment,
         environment::Environment,
@@ -25,6 +25,7 @@ use crate::{
         },
         operations::{
             canister::install_wallet,
+            cmc::{notify_create, transfer_cmc},
             ledger::{balance, xdr_permyriad_per_icp},
         },
     },
