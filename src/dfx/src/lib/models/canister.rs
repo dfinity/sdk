@@ -129,7 +129,7 @@ impl Canister {
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
             trace!(logger, "Optimizing WASM at level {}", level);
-            ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string())
+            ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string(), false)
                 .context("Failed to optimize the WASM module.")?;
             modified = true;
         } else if info.get_shrink() == Some(true)
@@ -314,11 +314,12 @@ impl Canister {
 
 fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
     let (env, actor) = check_candid_file(path)?;
-    if let Some(candid::types::internal::Type::Class(args, ty)) = actor {
+    let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
+    if let candid::types::internal::TypeInner::Class(args, ty) = actor.as_ref() {
         use candid::bindings::candid::pp_ty;
         use candid::pretty::{concat, enclose};
 
-        let actor = Some(*ty);
+        let actor = Some(ty.clone());
         let service_did = candid::bindings::candid::compile(&env, &actor);
         let doc = concat(args.iter().map(pp_ty), ",");
         let init_args = enclose("(", doc, ")").pretty(80).to_string();
