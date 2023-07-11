@@ -10,6 +10,7 @@ pub struct RunOpts {
     /// Specifies the name of the extension to run.
     name: OsString,
     /// Specifies the parameters to pass to the extension.
+    #[arg(allow_hyphen_values = true)]
     params: Vec<OsString>,
 }
 
