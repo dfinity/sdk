@@ -16,8 +16,8 @@ teardown() {
     bitcoin-cli -regtest stop
 
     dfx_stop
-    stop_dfx_replica
-    stop_dfx_bootstrap
+    # stop_dfx_replica
+    # stop_dfx_bootstrap
     standard_teardown
 }
 
@@ -90,6 +90,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx restarts replica when ic-btc-adapter restarts - replica and bootstrap" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     dfx_replica --enable-bitcoin
     dfx_bootstrap
@@ -145,6 +146,8 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx replica --bitcoin-node <node> implies --enable-bitcoin" {
+    skip "dfx replica and bootstrap are deprecated"
+
     dfx_new hello
     dfx_replica "--bitcoin-node" "127.0.0.1:18444"
     dfx_bootstrap
@@ -172,6 +175,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx replica --enable-bitcoin with no other configuration succeeds" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
 
     dfx_replica --enable-bitcoin
@@ -208,6 +212,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through default configuration - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     define_project_network
     set_project_default_bitcoin_enabled
@@ -218,6 +223,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through shared local network - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     set_shared_local_network_bitcoin_enabled
 
@@ -241,6 +247,8 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx replica+bootstrap with both bitcoin and canister http enabled" {
+    skip "dfx replica and bootstrap are deprecated"
+
     dfx_new hello
 
     dfx_replica --enable-bitcoin --enable-canister-http

@@ -17,11 +17,15 @@ candid = { workspace = true }
 hex.workspace = true
 ic-cdk.workspace = true
 ic-cdk-macros.workspace = true
-ic-certified-map = "0.3"
-ic-response-verification = "0.1.0"
+ic-certified-map = { version = "0.3", git = "https://github.com/dfinity/cdk-rs.git", branch = "beta" }
+ic-response-verification = "0.1.0"  # Bump this, after candid is bumped to 0.9 in this crate
 itertools.workspace = true
 num-traits.workspace = true
 serde.workspace = true
 serde_bytes.workspace = true
 serde_cbor.workspace = true
 sha2.workspace = true
+
+[dev-dependencies]
+candid = { workspace = true, features = ["parser"] }
+
