@@ -21,7 +21,7 @@ teardown() {
     assert_command_fail dfx identity new 'iden tity' --storage-mode plaintext
     assert_match "Invalid identity name"
 
-    assert_command_fail dfx identity new 'iden$tity' --storage-mode plaintext
+    assert_command_fail dfx identity new "iden\$tity" --storage-mode plaintext
     assert_match "Invalid identity name"
 
     assert_command_fail dfx identity new iden\\tity --storage-mode plaintext
