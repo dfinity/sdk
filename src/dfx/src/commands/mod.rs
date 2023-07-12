@@ -19,12 +19,10 @@ mod info;
 mod language_service;
 mod ledger;
 mod new;
-mod nns;
 mod ping;
 mod quickstart;
 mod remote;
 mod schema;
-mod sns;
 mod start;
 mod stop;
 mod toolchain;
@@ -51,12 +49,10 @@ pub enum DfxCommand {
     LanguageServices(language_service::LanguageServiceOpts),
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
-    Nns(nns::NnsOpts),
     Ping(ping::PingOpts),
     Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
     Schema(schema::SchemaOpts),
-    Sns(sns::SnsOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
     Toolchain(toolchain::ToolchainOpts),
@@ -81,12 +77,10 @@ pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
         DfxCommand::LanguageServices(v) => language_service::exec(env, v),
         DfxCommand::Ledger(v) => ledger::exec(env, v),
         DfxCommand::New(v) => new::exec(env, v),
-        DfxCommand::Nns(v) => nns::exec(env, v),
         DfxCommand::Ping(v) => ping::exec(env, v),
         DfxCommand::Quickstart(v) => quickstart::exec(env, v),
         DfxCommand::Remote(v) => remote::exec(env, v),
         DfxCommand::Schema(v) => schema::exec(v),
-        DfxCommand::Sns(v) => sns::exec(env, v),
         DfxCommand::Start(v) => start::exec(env, v),
         DfxCommand::Stop(v) => stop::exec(env, v),
         DfxCommand::Toolchain(v) => toolchain::exec(env, v),
